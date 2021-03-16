@@ -1,0 +1,236 @@
+#!/bin/bash
+
+# Reqs:
+# - ImageMagick
+# - brew install coreutils for gdate
+# - brew install mediainfo
+# - 
+# - 
+
+echo -e "erikiado's shell tools" 
+# GOPRO_PATH=
+
+function add_counter {
+  COUNTER=$[$(cat $TEMPFILE) + 1]
+  echo $COUNTER > $TEMPFILE
+}
+
+function find_gopro_directory {
+  if [[ $2 -eq "2" ]]; then
+    printf "" 
+  else
+    for file in `ls ${1}`
+    do
+      if [[ -d "$1/$file" ]]; then
+        find_gopro_directory "$1/$file" $[$2 + 1]
+      fi
+      if [[ -d "$1/$file" ]]; then
+        if [[ $file == "DCIM" ]]; then
+          echo "$1/$file" > $GOPRO_TEMPFILE
+        fi
+      fi
+    done
+  fi
+}
+
+function mac_copy_gopro_files {
+  echo "copy and rename gopro sd files to ~/Downloads/gopro"
+  mkdir -p ~/Downloads/gopro/videos/timelapses
+  mkdir -p ~/Downloads/gopro/photos/bursts
+  GOPRO_TEMPFILE=/tmp/$$.tmp
+  find_gopro_directory /Volumes 0
+  COUNTRY_SHORT="mx"
+  CITY_SHORT="cdmx"
+  CAM_NAME="gp01"
+  GOPRO_PATH=`cat $GOPRO_TEMPFILE`
+  for gp_dir in `ls ${GOPRO_PATH}`
+  do
+    if [[ -d "$GOPRO_PATH/$gp_dir" ]]; then
+      for gp_file in `ls ${GOPRO_PATH}/$gp_dir`
+      do
+        gp_file_ts=`stat -f '%m' "${GOPRO_PATH}/$gp_dir/$gp_file"`
+        gp_file_date=`gdate -d @$gp_file_ts +%Y-%j_%d-%m`
+        gp_file_time=`gdate -d @$gp_file_ts +\[%H%M-%N\]`
+        neu_file_name=`echo "${gp_file_date}@${COUNTRY_SHORT}-${CITY_SHORT}${gp_file_time}${CAM_NAME}"`
+        if [[ -f "${GOPRO_PATH}/$gp_dir/$gp_file" ]]; then
+          if [ ${gp_file: -4} == ".JPG" ]; then
+            if [ ${gp_file:: 2} == "GO" ]; then
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/photos/${neu_file_name}.jpg
+            else
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/photos/bursts/${neu_file_name}.jpg
+            fi
+          fi
+          if [ ${gp_file: -4} == ".MP4" ]; then
+            if mediainfo "${GOPRO_PATH}/$gp_dir/$gp_file" | grep -q Audio; then
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/videos/${neu_file_name}.mp4
+            else
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/videos/timelapses/${neu_file_name}.mp4
+            fi
+          fi
+          if [ ${gp_file: -4} == ".LRV" ]; then
+            rm "${GOPRO_PATH}/$gp_dir/$gp_file"
+          fi
+          if [ ${gp_file: -4} == ".THM" ]; then
+            rm "${GOPRO_PATH}/$gp_dir/$gp_file"
+          fi
+        fi
+      done
+    fi
+  done
+  unlink $GOPRO_TEMPFILE
+  echo "done"
+}
+
+function get_wh_file_info {
+  echo "Printing image files width and height in ${1}" 
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      get_wh_file_info "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      echo "$1/$file"
+      if [ ${file: -4} == ".png" ]; then
+        # echo "$1/$file is a png"
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      elif [ ${file: -4} == ".jpg" ]; then
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      elif [ ${file: -4} == ".jpeg" ]; then
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+function print_directories {
+  echo "Choose a local directory:"
+  DIR_COUNT=0
+  for file in `ls`
+  do
+    if [[ -d "$file" ]]; then
+      printf "$file"
+      if [ $(( $DIR_COUNT % 4 )) -eq 3 ]; then
+        printf "\n"
+      else
+        printf "\t\t"
+      fi
+      DIR_COUNT=($DIR_COUNT+1)
+    fi
+  done
+}
+
+function file_manager_submenu {
+  manager_options=(
+    "Print Directory File Information"
+    "Copy GoPro Files"
+    "Quit"
+  )
+  select opt in "${manager_options[@]}"
+  do
+      case $opt in
+          "Print Directory File Information")
+            print_directories
+            printf "\nGet info for file in\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            get_wh_file_info $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Checked ${COUNTER} files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Copy GoPro Files")
+            # print_directories
+            mac_copy_gopro_files
+            # printf "\nGet info for file in\n?: "
+            # read conv_dir
+            # TEMPFILE=/tmp/$$.tmp
+            # echo 0 > $TEMPFILE
+            # get_wh_file_info $conv_dir
+            # COUNTER=$[$(cat $TEMPFILE)]
+            # echo "Checked ${COUNTER} files"
+            # unlink $TEMPFILE
+            break
+            ;;
+          "Quit")
+            break
+            ;;
+          *) echo "invalid option $REPLY";;
+      esac
+  done
+}
+
+
+
+
+
+
+PS3='Select task: '
+options=(
+    "Optimize Directory Images" 
+    "Convert Format Tasks"
+    "City Images Tasks" 
+    "File Management Tasks" 
+    "Quit"
+)
+select opt in "${options[@]}"
+do
+    case $opt in
+        # "Transform Search Thumbnail")
+        #   echo "choice 1"
+        #   break
+        #   ;;
+        # "Transform Thumbnail City Card")
+        #   echo "choice 2"
+        #   break
+        #   ;;
+        # "Transform Thumbnail Card")
+        #   echo "choice 2"
+        #   break
+        #   ;;
+        # "Transform Cover Background")
+        #   echo "choice 3"
+        #   break
+        #   ;;
+        "Optimize Directory Images")
+          print_directories
+          printf "\n?: "
+          read opt_dir
+          TEMPFILE=/tmp/$$.tmp
+          echo 0 > $TEMPFILE
+          optimize_directory_imgs $opt_dir
+          COUNTER=$[$(cat $TEMPFILE)]
+          echo "Optimized ${COUNTER} (png, jpeg, jpg, svg) files"
+          unlink $TEMPFILE
+          du -h "${opt_dir}" | sed '$!d'
+          du -h "onlyimgs_${opt_dir}" | sed '$!d'
+          du -h "optim_${opt_dir}" | sed '$!d'
+          break
+          ;;
+        "Convert Format Tasks")
+          convert_format_submenu
+          break
+          ;;
+        "City Images Tasks")
+          city_images_submenu
+          break
+          ;;
+        "File Management Tasks")
+          file_manager_submenu
+          break
+          ;;
+        "Quit")
+          break
+          ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done

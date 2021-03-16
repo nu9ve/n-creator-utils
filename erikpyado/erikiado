@@ -1,0 +1,509 @@
+#!/bin/bash
+
+# Reqs:
+# - ImageMagick
+# - brew install coreutils for gdate
+# - brew install mediainfo
+# - 
+# - 
+
+echo -e "erikiado's shell tools" 
+# GOPRO_PATH=
+
+function add_counter {
+  COUNTER=$[$(cat $TEMPFILE) + 1]
+  echo $COUNTER > $TEMPFILE
+}
+
+function optimize_directory_imgs {
+  echo "Optimizing ${1}" 
+  mkdir -p "optim_$1"
+  mkdir -p "onlyimgs_$1"
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      optimize_directory_imgs "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      if [ ${file: -5} == ".html" ]; then
+        # echo "es html"
+        continue
+      elif [ ${file: -4} == ".png" ]; then
+        # echo "$1/$file is a png"
+        cp "${1}/$file" "onlyimgs_${1}/$file"
+        pngcrush "${1}/$file" "optim_${1}/$file"
+        add_counter
+      elif [ ${file: -4} == ".jpg" ]; then
+        cp "${1}/$file" "onlyimgs_${1}/$file"
+        jpegoptim "${1}/$file" --dest="optim_${1}/"
+        add_counter
+      elif [ ${file: -5} == ".jpeg" ]; then
+        cp "${1}/$file" "onlyimgs_${1}/$file"
+        jpegoptim "${1}/$file" --dest="optim_${1}/"
+        add_counter
+      elif [ ${file: -4} == ".svg" ]; then
+        cp "${1}/$file" "onlyimgs_${1}/$file"
+        svgo "${1}/$file" -o "optim_${1}/$file"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+function webp_convert_directory_imgs {
+  echo "Converting jpg, jpeg and png files in ${1} to webp" 
+  mkdir -p "webp_$1"
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      webp_convert_directory_imgs "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      if [ ${file: -5} == ".html" ]; then
+        # echo "es html"
+        continue
+      elif [ ${file: -4} == ".png" ]; then
+        # echo "$1/$file is a png"
+        cwebp "${1}/$file" -o webp_${1}/`basename webp_${1}/$file .png`.webp
+        add_counter
+      elif [ ${file: -4} == ".jpg" ]; then
+        cwebp "${1}/$file" -o webp_${1}/`basename webp_${1}/$file .jpg`.webp
+        add_counter
+      elif [ ${file: -5} == ".jpeg" ]; then
+        cwebp "${1}/$file" -o webp_${1}/`basename webp_${1}/$file .jpeg`.webp
+        add_counter
+      elif [ ${file: -4} == ".svg" ]; then
+        cp "${1}/$file" -o "webp_${1}/$file"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+function get_s3_cities_bg_imgs {
+  echo "Getting S3 cities bg images:"
+  CITIES_FOLDER='arrivedo-static/cities/'
+  for CITY in `aws --profile arrivedo s3 ls arrivedo-static/cities/`
+  do
+    if [[ $CITY = */ ]] 
+    then
+        echo "arrivedo-static/cities/${CITY}"
+        aws --profile arrivedo s3 cp "s3://arrivedo-static/cities/${CITY}bg.jpg" "processing/${CITY}bg.jpg"
+    fi
+  done
+}
+
+function convert_directory_png_jpg {
+  echo "Converting png files to jpg in ${1} in same place" 
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      convert_directory_png_jpg "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      if [ ${file: -4} == ".png" ]; then
+        # echo "$1/$file is a png"
+        convert "${1}/$file" ${1}/`basename webp_${1}/$file .png`.jpg
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+function find_gopro_directory {
+  if [[ $2 -eq "2" ]]; then
+    printf "" 
+  else
+    for file in `ls ${1}`
+    do
+      if [[ -d "$1/$file" ]]; then
+        find_gopro_directory "$1/$file" $[$2 + 1]
+      fi
+      if [[ -d "$1/$file" ]]; then
+        if [[ $file == "DCIM" ]]; then
+          echo "$1/$file" > $GOPRO_TEMPFILE
+        fi
+      fi
+    done
+  fi
+}
+
+function mac_copy_gopro_files {
+  echo "copy and rename gopro sd files to ~/Downloads/gopro"
+  mkdir -p ~/Downloads/gopro/videos/timelapses
+  mkdir -p ~/Downloads/gopro/photos/bursts
+  GOPRO_TEMPFILE=/tmp/$$.tmp
+  find_gopro_directory /Volumes 0
+  COUNTRY_SHORT="mx"
+  CITY_SHORT="cdmx"
+  CAM_NAME="gp01"
+  GOPRO_PATH=`cat $GOPRO_TEMPFILE`
+  for gp_dir in `ls ${GOPRO_PATH}`
+  do
+    if [[ -d "$GOPRO_PATH/$gp_dir" ]]; then
+      for gp_file in `ls ${GOPRO_PATH}/$gp_dir`
+      do
+        gp_file_ts=`stat -f '%m' "${GOPRO_PATH}/$gp_dir/$gp_file"`
+        gp_file_date=`gdate -d @$gp_file_ts +%Y-%j_%d-%m`
+        gp_file_time=`gdate -d @$gp_file_ts +\[%H%M-%N\]`
+        neu_file_name=`echo "${gp_file_date}@${COUNTRY_SHORT}-${CITY_SHORT}${gp_file_time}${CAM_NAME}"`
+        if [[ -f "${GOPRO_PATH}/$gp_dir/$gp_file" ]]; then
+          if [ ${gp_file: -4} == ".JPG" ]; then
+            if [ ${gp_file:: 2} == "GO" ]; then
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/photos/${neu_file_name}.jpg
+            else
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/photos/bursts/${neu_file_name}.jpg
+            fi
+          fi
+          if [ ${gp_file: -4} == ".MP4" ]; then
+            if mediainfo "${GOPRO_PATH}/$gp_dir/$gp_file" | grep -q Audio; then
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/videos/${neu_file_name}.mp4
+            else
+              mv "${GOPRO_PATH}/$gp_dir/$gp_file" ~/Downloads/gopro/videos/timelapses/${neu_file_name}.mp4
+            fi
+          fi
+          if [ ${gp_file: -4} == ".LRV" ]; then
+            rm "${GOPRO_PATH}/$gp_dir/$gp_file"
+          fi
+          if [ ${gp_file: -4} == ".THM" ]; then
+            rm "${GOPRO_PATH}/$gp_dir/$gp_file"
+          fi
+        fi
+      done
+    fi
+  done
+  unlink $GOPRO_TEMPFILE
+  echo "done"
+}
+
+function get_wh_file_info {
+  echo "Printing image files width and height in ${1}" 
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      get_wh_file_info "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      echo "$1/$file"
+      if [ ${file: -4} == ".png" ]; then
+        # echo "$1/$file is a png"
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      elif [ ${file: -4} == ".jpg" ]; then
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      elif [ ${file: -4} == ".jpeg" ]; then
+        identify -format "WxH:%wx%h fsize: %B" "${1}/$file"
+        printf "\n\n"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+
+function resize_city_backgrounds {
+  echo "Resizing bg.jpg files to 1920x in ${1}" 
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      resize_city_backgrounds "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      echo "$1/$file"
+      if [ $file == "bg.jpg" ]; then
+        # echo "$1/$file is a png"
+        convert "$1/$file" -resize 1920x\> "$1/$file"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+function create_city_thumbnails {
+  echo "Converting bg.jpg files to 400x154 thumbnail.jpg in ${1}" 
+  for file in `ls ${1}`
+  do
+    if [[ -d "$1/$file" ]]; then
+      create_city_thumbnails "$1/$file"
+    elif [[ -f "$1/$file" ]]; then
+      echo "$1/$file"
+      if [ $file == "bg.jpg" ]; then
+        # echo "$1/$file is a png"
+        aspect 400x154 -m crop "$1/$file" "${1}/thumbnail.jpg"
+        add_counter
+      fi
+    else
+      echo "$1/$file is not a valid file"
+      # exit 1
+    fi
+  done
+}
+
+
+function upload_s3_city_bgs {
+  CITIES_FOLDER='s3://arrivedo-static/cities/'
+  echo "Uploading ${1}/ bg images:"
+  for CITY in `ls ${1}`
+  do
+    aws --profile arrivedo s3 cp "./${1}/${CITY}/bg.jpg" "${CITIES_FOLDER}${CITY}/bg.jpg" 
+  done
+}
+
+function upload_s3_city_thumbnails {
+  CITIES_FOLDER='s3://arrivedo-static/cities/'
+  echo "Uploading ${1}/ thumbnail images:"
+  for CITY in `ls ${1}`
+  do
+    aws --profile arrivedo s3 cp "./${1}/${CITY}/thumbnail.jpg" "${CITIES_FOLDER}${CITY}/thumbnail.jpg" 
+  done
+}
+
+
+function print_directories {
+  echo "Choose a local directory:"
+  DIR_COUNT=0
+  for file in `ls`
+  do
+    if [[ -d "$file" ]]; then
+      printf "$file"
+      if [ $(( $DIR_COUNT % 4 )) -eq 3 ]; then
+        printf "\n"
+      else
+        printf "\t\t"
+      fi
+      DIR_COUNT=($DIR_COUNT+1)
+    fi
+  done
+}
+
+function convert_format_submenu {
+  format_options=(
+    "Convert Directory PNG to JPG" 
+    "Convert Directory Images to Webp" 
+    "Quit"
+  )
+  select opt in "${format_options[@]}"
+  do
+      case $opt in
+        "Convert Directory PNG to JPG")
+          print_directories
+          printf "\nConvert png files to jpg in\n?: "
+          read conv_dir
+          TEMPFILE=/tmp/$$.tmp
+          echo 0 > $TEMPFILE
+          convert_directory_png_jpg $conv_dir
+          COUNTER=$[$(cat $TEMPFILE)]
+          echo "Converted ${COUNTER} png files to jpg"
+          unlink $TEMPFILE
+          break
+          ;;
+        "Convert Directory Images to Webp")
+          print_directories
+          printf "\n?: "
+          read conv_dir
+          TEMPFILE=/tmp/$$.tmp
+          echo 0 > $TEMPFILE
+          webp_convert_directory_imgs $conv_dir
+          COUNTER=$[$(cat $TEMPFILE)]
+          echo "Converted ${COUNTER} (png, jpeg, jpg) files to webp"
+          unlink $TEMPFILE
+          du -h "${conv_dir}" | sed '$!d'
+          du -h "webp_${conv_dir}" | sed '$!d'
+          break
+          ;;
+        "Quit")
+          break
+          ;;
+        *) echo "invalid option $REPLY";;
+      esac
+  done
+}
+
+function city_images_submenu {
+  city_options=(
+    "Get S3 City Images" 
+    "Resize Background Images" 
+    "Create City Thumbnails" 
+    "Upload City Backgrounds S3" 
+    "Upload City Thumbnails S3" 
+    "Quit"
+  )
+  select opt in "${city_options[@]}"
+  do
+      case $opt in
+          "Get S3 City Images")
+            get_s3_cities_bg_imgs
+            break
+            ;;
+          "Resize Background Images")
+            print_directories
+            printf "\Resize bg.jpg files in\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            resize_city_backgrounds $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Checked ${COUNTER} files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Create City Thumbnails")
+            print_directories
+            printf "\nConvert bg.jpg to thumbnail.jpg in\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            create_city_thumbnails $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Created ${COUNTER} files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Upload City Backgrounds S3")
+            print_directories
+            printf "\nUploading bg.jpg to S3, point to cities directory\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            upload_s3_city_bgs $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Uploaded ${COUNTER} bg.jpg files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Upload City Thumbnails S3")
+            print_directories
+            printf "\nUploading thumbnail.jpg to S3, point to cities directory\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            upload_s3_city_thumbnails $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Uploaded ${COUNTER} thumbnail.jpg files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Quit")
+            break
+            ;;
+          *) echo "invalid option $REPLY";;
+      esac
+  done
+}
+
+
+function file_manager_submenu {
+  manager_options=(
+    "Print Directory File Information"
+    "Copy GoPro Files"
+    "Quit"
+  )
+  select opt in "${manager_options[@]}"
+  do
+      case $opt in
+          "Print Directory File Information")
+            print_directories
+            printf "\nGet info for file in\n?: "
+            read conv_dir
+            TEMPFILE=/tmp/$$.tmp
+            echo 0 > $TEMPFILE
+            get_wh_file_info $conv_dir
+            COUNTER=$[$(cat $TEMPFILE)]
+            echo "Checked ${COUNTER} files"
+            unlink $TEMPFILE
+            break
+            ;;
+          "Copy GoPro Files")
+            # print_directories
+            mac_copy_gopro_files
+            # printf "\nGet info for file in\n?: "
+            # read conv_dir
+            # TEMPFILE=/tmp/$$.tmp
+            # echo 0 > $TEMPFILE
+            # get_wh_file_info $conv_dir
+            # COUNTER=$[$(cat $TEMPFILE)]
+            # echo "Checked ${COUNTER} files"
+            # unlink $TEMPFILE
+            break
+            ;;
+          "Quit")
+            break
+            ;;
+          *) echo "invalid option $REPLY";;
+      esac
+  done
+}
+
+PS3='Select task: '
+options=(
+    "Optimize Directory Images" 
+    "Convert Format Tasks"
+    "City Images Tasks" 
+    "File Management Tasks" 
+    "Quit"
+)
+select opt in "${options[@]}"
+do
+    case $opt in
+        # "Transform Search Thumbnail")
+        #   echo "choice 1"
+        #   break
+        #   ;;
+        # "Transform Thumbnail City Card")
+        #   echo "choice 2"
+        #   break
+        #   ;;
+        # "Transform Thumbnail Card")
+        #   echo "choice 2"
+        #   break
+        #   ;;
+        # "Transform Cover Background")
+        #   echo "choice 3"
+        #   break
+        #   ;;
+        "Optimize Directory Images")
+          print_directories
+          printf "\n?: "
+          read opt_dir
+          TEMPFILE=/tmp/$$.tmp
+          echo 0 > $TEMPFILE
+          optimize_directory_imgs $opt_dir
+          COUNTER=$[$(cat $TEMPFILE)]
+          echo "Optimized ${COUNTER} (png, jpeg, jpg, svg) files"
+          unlink $TEMPFILE
+          du -h "${opt_dir}" | sed '$!d'
+          du -h "onlyimgs_${opt_dir}" | sed '$!d'
+          du -h "optim_${opt_dir}" | sed '$!d'
+          break
+          ;;
+        "Convert Format Tasks")
+          convert_format_submenu
+          break
+          ;;
+        "City Images Tasks")
+          city_images_submenu
+          break
+          ;;
+        "File Management Tasks")
+          file_manager_submenu
+          break
+          ;;
+        "Quit")
+          break
+          ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
