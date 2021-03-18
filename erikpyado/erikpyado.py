@@ -176,6 +176,8 @@ def store_video_files():
   #     year(19)month(01-12)day(01-31)_micname_duration(mmm-ss)_
   #     191131-2355_H6LR_20-02_JP-TOKYO[optional(place,mood)].WAV
   done_test = False
+  final_4k_dir = '/Volumes/HDD4/vdron/'
+  final_4k_dir = '/Volumes/HDD4/v4k/'
   final_videos_dir = '/Volumes/HDD4/videos/'
   final_images_dir = '/Volumes/HDD4/images/'
   final_screens_dir = '/Volumes/HDD4/screens/'
