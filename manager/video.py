@@ -6,7 +6,7 @@ import shutil
 import logging
 from os.path import join as join_path
 
-from utils.constants import LOGGER_NAME, MONTH_STRING_NUMBERS, SD_CARD_NAME
+from utils.constants import LOGGER_NAME, MONTH_STRING_NUMBERS, SD_CAM_NAME
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -86,7 +86,7 @@ def get_image_file_description(folder, cam_name, video_file):
 
 def store_video_files():
   # erikpyado save
-  #   check plugged memories, if name available in SD_CARD_NAME
+  #   check plugged memories, if name available in SD_CAM_NAME
   # erikpyado videos
   # 2019/
   #   month (1-12)
@@ -125,7 +125,11 @@ def store_video_files():
           os.makedirs(final_dir)
         final_path = join_path(final_dir, new_file_name)
         print(final_path)
-        shutil.move(initial_path, final_path)
+        
+
+        # shutil.move(initial_path, final_path)
+
+
       if '.JPG' == video_file[-4:] or '.jpg' == video_file[-4:]:
         if 'GOP' in video_file[:3] or 'GP' in video_file[:3] or 'G0' in video_file[:2]:
           cam_name = 'GOPRO'
@@ -140,7 +144,11 @@ def store_video_files():
           os.makedirs(final_dir)
         final_path = join_path(final_dir, new_file_name)
         print(final_path)
-        shutil.move(initial_path, final_path)
+
+
+        # shutil.move(initial_path, final_path)
+
+
       if '.MP4' == video_file[-4:] or '.mp4' == video_file[-4:]:
         if 'GOP' in video_file[:3] or 'GP' in video_file[:3]:
           cam_name = 'GOPRO'
@@ -155,7 +163,22 @@ def store_video_files():
         final_path = join_path(final_dir, new_file_name)
         initial_path = join_path(source_dir, video_file)
         print(final_path)
-        shutil.move(initial_path, final_path)
+
+        is4k = False
+        probe_cmd = [ 'ffprobe', '-v', 'error', '-select_streams', 'v:0', 
+          '-show_entries', 'stream=width,height,r_frame_rate', '-of', 'csv=s=x:p=0', initial_path]
+        # print(' '.join(probe_cmd))
+        result = subprocess.run(probe_cmd, capture_output=True)
+        dims = str(result.stdout).split('x')
+        v_w = dims[0].split("'")[1]
+        v_h = dims[1].split("'")[0].replace('\\n','')
+        print('w x h', v_w, v_h)
+        print('4k? ', is4k)
+
+
+        # shutil.move(initial_path, final_path)
+
+
       if '.MOV' == video_file[-4:] or '.mov' == video_file[-4:]:
         new_file_name, file_data = get_video_file_description(source_dir,cam_name,video_file)
         new_file_name += '_{}-{}[].mov'.format(country_code.upper(), city_name.upper())
@@ -168,5 +191,7 @@ def store_video_files():
         final_path = join_path(final_dir, new_file_name)
         initial_path = join_path(source_dir, video_file)
         print(final_path)
-        shutil.move(initial_path, final_path)
+
+
+        # shutil.move(initial_path, final_path)
 
