@@ -1,17 +1,7 @@
 {
 	"clips":[{
 		"title": "primer titulo",
-		"start": "00:00:10",
-		"end": "00:00:20"
-	},
-	{
-		"title": "segundo titulo",
-		"start": "00:00:10",
-		"end": "00:01:20"
-	},
-	{
-		"title": "tercer titulo",
 		"start": "00:01:10",
-		"end": "00:03:25"
+		"end": "00:01:15"
 	}]
 }
