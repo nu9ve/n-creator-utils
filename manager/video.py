@@ -146,7 +146,7 @@ def store_video_files():
         print(final_path)
 
 
-        # shutil.move(initial_path, final_path)
+        shutil.move(initial_path, final_path)
 
 
       if '.MP4' == video_file[-4:] or '.mp4' == video_file[-4:]:
@@ -157,13 +157,9 @@ def store_video_files():
         # if file_data['duration'] > 600: #10 min
         #   final_dir = join_path(long_recordings_dir,file_data['year'],file_data['month'])
         # else:
-        final_dir = join_path(final_videos_dir,file_data['year'],file_data['month'])
-        if not os.path.exists(final_dir): 
-          os.makedirs(final_dir)
-        final_path = join_path(final_dir, new_file_name)
-        initial_path = join_path(source_dir, video_file)
-        print(final_path)
 
+
+        initial_path = join_path(source_dir, video_file)
         is4k = False
         probe_cmd = [ 'ffprobe', '-v', 'error', '-select_streams', 'v:0', 
           '-show_entries', 'stream=width,height,r_frame_rate', '-of', 'csv=s=x:p=0', initial_path]
@@ -172,11 +168,20 @@ def store_video_files():
         dims = str(result.stdout).split('x')
         v_w = dims[0].split("'")[1]
         v_h = dims[1].split("'")[0].replace('\\n','')
-        print('w x h', v_w, v_h)
-        print('4k? ', is4k)
+        if int(v_w) > 2000 or int(v_h) > 2000:
+          is4k = True
+
+        category_dir = final_videos_dir
+        if is4k:
+          category_dir = final_4k_dir
+        final_dir = join_path(category_dir,file_data['year'],file_data['month'])
+        if not os.path.exists(final_dir): 
+          os.makedirs(final_dir)
+        final_path = join_path(final_dir, new_file_name)
+        print(final_path)
 
 
-        # shutil.move(initial_path, final_path)
+        shutil.move(initial_path, final_path)
 
 
       if '.MOV' == video_file[-4:] or '.mov' == video_file[-4:]:
