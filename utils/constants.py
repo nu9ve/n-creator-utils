@@ -4,7 +4,6 @@ from os.path import join as join_path
 LOGGER_NAME = 'kiddie'
 
 ROOT_DIR = '/Volumes/HDD4'
-ROOT_DIR = '~/Movies'
 
 FINAL_DRON_DIR = join_path(ROOT_DIR,'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR,'v4k')
