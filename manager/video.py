@@ -239,10 +239,10 @@ def store_video_files():
       logger.info('source: {}'.format(source_path))
       if move_file:
         logger.info('moving to: {}\n'.format(final_path))
-        # shutil.move(source_path, final_path)
+        shutil.move(source_path, final_path)
       if delete_file:
         logger.info('deleting: {}\n'.format(source_path))
-        # shutil.move(source_path, final_path)
+        os.remove(source_path)
       if not delete_file and not move_file:
         logger.info('no action: {}\n'.format(source_path))
 
