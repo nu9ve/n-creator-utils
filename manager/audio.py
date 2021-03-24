@@ -46,6 +46,6 @@ def get_audio_file_description(file_path):
   mic_name = mic_file.split('.')[0].split('_')[1]
   duration, duration_string = get_audio_file_duration(file_path)
   audio_data['duration'] = duration
-  audio_data['duration'] = duration_string
+  audio_data['duration_string'] = duration_string
   audio_data['mic_name'] = mic_name
   return audio_data

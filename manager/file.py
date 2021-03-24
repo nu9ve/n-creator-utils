@@ -111,7 +111,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         video_file = True
       if 'wav' == file_extension:
         audio_file = True
-      if 'lrv' == file_extension or 'thm' == file_extension:
+      if 'lrv' == file_extension or 'thm' == file_extension or 'hprj' == file_extension:
         delete_file = True
 
       file_data = get_file_description(source_path, video_file, image_file, audio_file)
