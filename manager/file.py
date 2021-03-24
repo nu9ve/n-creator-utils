@@ -129,7 +129,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       new_file_name = '{}_{}'.format(file_date_string, src_name.upper())
 
       if image_file:
-        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension)
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         if 'screenshot' in source_path or 'Screenshot' in source_path:
           final_dir = join_path(FINAL_SCREENS_DIR,file_data['year'],file_data['month'])
         else:
@@ -141,7 +141,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
       if video_file:
         new_file_name += '_{}'.format(file_data['duration_string'])
-        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension)
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         is4k = is_4k(source_path)
         category_dir = FINAL_VIDEOS_DIR
         if is4k:
@@ -154,7 +154,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
       if audio_file:
         new_file_name += '{}_{}'.format(file_data['mic_name'].upper(), file_data['duration_string'])
-        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension)
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         category_dir = FINAL_RECORDINGS_DIR
         backup_category_dir = SSD_RECORDINGS_DIR
         if file_data['duration'] > 600:
