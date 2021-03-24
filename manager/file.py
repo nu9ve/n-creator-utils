@@ -174,13 +174,13 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       logger.info('source: {}'.format(source_path))
       if copy_file:
         logger.info('copying to: {}'.format(backup_path))
-        # shutil.move(source_path, final_path)
+        shutil.copyfile(source_path, final_path)
       if move_file:
         logger.info('moving to: {}\n'.format(final_path))
-        # shutil.move(source_path, final_path)
+        shutil.move(source_path, final_path)
       if delete_file:
         logger.info('deleting: {}\n'.format(source_path))
-        # os.remove(source_path)
+        os.remove(source_path)
       if not delete_file and not move_file:
         logger.info('no action: {}\n'.format(source_path))
 
