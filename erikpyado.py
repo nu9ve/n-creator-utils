@@ -2,8 +2,9 @@ import sys
 import logging
 
 from utils.constants import LOGGER_NAME
-from manager.audio import store_audio_files
-from manager.video import store_video_files
+# from manager.audio import store_audio_files
+# from manager.video import store_video_files
+from manager.file import save_files
 
 if __name__ == "__main__":
   # MAIN
@@ -16,10 +17,13 @@ if __name__ == "__main__":
   logger.addHandler(ch)
   
   if len(sys.argv) > 2:
-    if sys.argv[1] == 'zoom':
-      store_audio_files()
-    if sys.argv[1] == 'videos':
-      store_video_files()
+    if sys.argv[1] == 'save':
+      # all or /directory
+      save_files()
+    # if sys.argv[1] == 'zoom':
+    #   store_audio_files()
+    # if sys.argv[1] == 'videos':
+    #   store_video_files()
     # if sys.argv[1] == 'yt2mix2stems':
     #   download_youtube_song_split_stem()
     # if sys.argv[1] == 'file2stems':
@@ -32,6 +36,6 @@ if __name__ == "__main__":
     # if sys.argv[1] == 'audio':
     # if sys.argv[1] == 'visuals':
   else:
-    error = 'Missing arguments \n\n\t\terikpyado [program]\n\n\t\tzoom, videos\n\n'
+    error = 'Missing arguments \n\n\t\terikpyado [program]\n\n\t\tsave\n\n'
     logger.error(error)
 

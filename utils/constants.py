@@ -1,34 +1,42 @@
 from os.path import join as join_path
+from sys import platform
 
 
 LOGGER_NAME = 'kiddie'
 
 ROOT_DIR = '/Volumes/HDD4'
+SD_ROOT_DIR = '/Volumes'
+ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
+
+if platform == "linux" or platform == "linux2":
+  # linux
+  print('linux')
+elif platform == "darwin":
+  # OS X
+  SD_ROOT_DIR = '/Volumes'
+elif platform == "win32":
+  # Windows...
+  print('windows')
+
 
 FINAL_DRON_DIR = join_path(ROOT_DIR,'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR,'v4k')
 FINAL_VIDEOS_DIR = join_path(ROOT_DIR,'videos')
 FINAL_IMAGES_DIR = join_path(ROOT_DIR,'images')
 FINAL_SCREENS_DIR = join_path(ROOT_DIR,'screens')
+FINAL_RECORDINGS_DIR = join_path(ROOT_DIR,'recordings')
+FINAL_LONG_RECORDINGS_DIR = join_path(ROOT_DIR,'recordingslong')
+SSD_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR,'recordings')
+SSD_LONG_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR,'recordingslong')
 
-SD_CAM_NAME = {
-  'EOS_DIGITAL': '',
-  'GO': '',
-  'downloads': '',
-  'DJI': ''
+SD_SRC_NAME = {
+  'EOS_DIGITAL': 'SL3',
+  'GOPRO64': 'GOPRO4',
+  'DJI': 'MAVIC2',
+  'H6_SD': 'H6'
 }
 
-SD_RECORDER_NAME = {
-  'H6_SD': ''
-}
 
-# from sys import platform
-# if platform == "linux" or platform == "linux2":
-#     # linux
-# elif platform == "darwin":
-#     # OS X
-# elif platform == "win32":
-#     # Windows...
 
 # os.unmount(path)
 # os.system("drutil tray open")
