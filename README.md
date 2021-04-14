@@ -1,6 +1,6 @@
 # n-creator-utils
 
-nu9ve python based scripts to help on a creative workflow.
+nu9ve python and shell based scripts to help on a creative workflow.
 
 ## Getting Started
 
