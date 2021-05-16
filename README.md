@@ -28,6 +28,7 @@ configure path
 
 ```
 export
+alias nu9ve='python3 $HOME/Code/nu9ve/n-creator-utils/nu9ve.py'
 ```
 
 

@@ -1,0 +1,8 @@
+{
+	"background": "#4F2EEE",
+	"clips":[{
+		"title": "primer titulo",
+		"start": "00:01:10",
+		"end": "00:01:15"
+	}]
+}
