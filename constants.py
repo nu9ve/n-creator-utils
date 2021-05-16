@@ -1,8 +1,10 @@
 from os.path import join as join_path
 from sys import platform
 
+DEBUG = True
+# DEBUG = False
 
-LOGGER_NAME = 'kiddie'
+LOGGER_NAME = 'nu9ve'
 
 ROOT_DIR = '/Volumes/HDD4'
 SD_ROOT_DIR = '/Volumes'

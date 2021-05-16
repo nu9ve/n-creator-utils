@@ -1,7 +1,7 @@
 import subprocess
 import logging
 
-from utils.constants import LOGGER_NAME
+from constants import LOGGER_NAME
 
 
 logger = logging.getLogger(LOGGER_NAME)

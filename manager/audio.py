@@ -4,7 +4,7 @@ import subprocess
 import contextlib
 import shutil
 
-from utils.constants import MONTH_STRING_NUMBERS
+from constants import MONTH_STRING_NUMBERS
 
 
 def metatag_updater(directory):
