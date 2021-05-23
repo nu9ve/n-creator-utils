@@ -20,16 +20,16 @@ elif platform == "win32":
   # Windows...
   print('windows')
 
-
-FINAL_DRON_DIR = join_path(ROOT_DIR,'vdron')
-FINAL_4K_DIR = join_path(ROOT_DIR,'v4k')
-FINAL_VIDEOS_DIR = join_path(ROOT_DIR,'videos')
-FINAL_IMAGES_DIR = join_path(ROOT_DIR,'images')
-FINAL_SCREENS_DIR = join_path(ROOT_DIR,'screens')
-FINAL_RECORDINGS_DIR = join_path(ROOT_DIR,'recordings')
-FINAL_LONG_RECORDINGS_DIR = join_path(ROOT_DIR,'recordingslong')
-SSD_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR,'recordings')
-SSD_LONG_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR,'recordingslong')
+FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
+FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
+FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
+FINAL_VIDEOS_DIR = join_path(ROOT_DIR, 'videos')
+FINAL_IMAGES_DIR = join_path(ROOT_DIR, 'images')
+FINAL_SCREENS_DIR = join_path(ROOT_DIR, 'screens')
+FINAL_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordings')
+FINAL_LONG_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordingslong')
+SSD_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordings')
+SSD_LONG_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordingslong')
 
 SD_SRC_NAME = {
   'EOS_DIGITAL': 'SL3',

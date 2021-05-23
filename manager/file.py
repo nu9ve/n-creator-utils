@@ -6,7 +6,8 @@ from os.path import join as join_path, exists as path_exists
 from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
   FINAL_SCREENS_DIR, MONTH_NUMBER_STRINGS, SD_ROOT_DIR, FINAL_RECORDINGS_DIR,
-  FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR)
+  FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR,
+  FINAL_CORRUPT_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -101,6 +102,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       video_file = False
       image_file = False
       audio_file = False
+      corrupt_file = False
       source_path = join_path(r, media_file)
       media_file_parts = media_file.split('.')
       file_extension = media_file_parts[len(media_file_parts)-1].lower()
@@ -111,6 +113,8 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         video_file = True
       if 'wav' == file_extension:
         audio_file = True
+      if 'dat' == file_extension:
+        corrupt_file = True
       if 'lrv' == file_extension or 'thm' == file_extension or 'hprj' == file_extension:
         delete_file = True
 
@@ -127,6 +131,14 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
       file_date_string = '{}{}{}-{}{}{}'.format(file_data['date'][4][-2:],file_data['date'][1].upper(),file_data['date'][2],file_data['time'][0],file_data['time'][1],file_data['time'][2])
       new_file_name = '{}_{}'.format(file_date_string, src_name.upper())
+
+      if corrupt_file:
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
+        final_dir = join_path(FINAL_CORRUPT_DIR,file_data['year'])
+        if not path_exists(final_dir): 
+          os.makedirs(final_dir)
+        final_path = join_path(final_dir, new_file_name)
+        move_file = True
 
       if image_file:
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
