@@ -67,10 +67,36 @@ def get_video_info(video_path):
 	video_data['ratio'] = float(video_data['width'])/float(video_data['height'])
 	video_data['frame_rate'] = float(v_tf[0])/float(v_tf[1])
 	video_data['file_name'] = video_path.split('/')[len(video_path.split('/'))-1]
+	video_data['format'] = video_path.split('.')[len(video_path.split('.'))-1]
 	video_data['full_path'] = video_path
 	video_data['path'] = video_path
 	return video_data
 	
+def rename_first_cut(output_path, cut_output_path):
+	if DEBUG:
+		op_parts = output_path.split('/')
+		cop_parts = cut_output_path.split('/')
+		num_parts = len(op_parts)
+		logger.debug('rename {} to {}'.format(op_parts[num_parts-1], cop_parts[num_parts-1]))
+	else:
+		os.rename(output_path, cut_output_path)
+
+def parse_clip_data(video_data, clip):
+	clip_data = dict()
+	clip_data['width'] = video_data['width']
+	clip_data['height'] = video_data['height']
+	clip_data['ratio'] = video_data['ratio']
+	clip_data['frame_rate'] = video_data['frame_rate']
+	clip_data['file_name'] = video_data['file_name']
+	clip_data['format'] = video_data['format']
+	clip_data['full_path'] = video_data['full_path']
+	clip_data['path'] = video_data['path']
+
+	clip_data['start'] = clip['start']
+	clip_data['ffmpeg_end'] = get_time_delta_string(clip)
+	clip_data['mode'] = clip.get('mode', '#1F1F1F')
+	clip_data['valid'] = True
+	return clip_data
 
 def clip_video(video_path, clips):
 	logger.info(video_path)
@@ -83,26 +109,43 @@ def clip_video(video_path, clips):
 	is_landscape = video_data['ratio'] > 1
 
 	for i, c in enumerate(clips):
-		end_string = get_time_delta_string(c)
-		c['ffmpeg_end'] = end_string
 		output_path = video_path.replace('.mp4', '_clip_{}.mp4'.format(i))
-		video_data['mode'] = c.get('mode','blurred')
-		cut_range(video_path, c, output_path)
+		clip_data = parse_clip_data(video_data, c)
+		
+		if not clip_data['valid']:
+			invalid_error = '''clip {} config error\n'''.format(i)
+			logger.error(invalid_error)
+		cut_range(video_path, clip_data, output_path)
 		if is_landscape:
 			cut_output_path = output_path.replace('.mp4', '_horizontal.mp4')
-			render_portrait_video(output_path, video_data)
+			clip_data['mode'] = 'blurred'
+			clip_data['view'] = 100
+			render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = '#FF00AA'
+			clip_data['view'] = 90
+			render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = '#FF88AA'
+			clip_data['view'] = 50
+			render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = '#0088AA'
+			clip_data['view'] = 30
+			render_portrait_video(output_path, clip_data)
+			clip_data['view'] = 10
+			render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = '#008888'
+			clip_data['view'] = 0
+			render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = 'blurred'
+			# render_portrait_video(output_path, clip_data)
+			# clip_data['mode'] = 'crop_center'
+			# render_portrait_video(output_path, clip_data)
 		else:
 			cut_output_path = output_path.replace('.mp4', '_vertical.mp4')
-			render_landscape_video(output_path, video_data)
-		render_square_video(output_path, video_data)
-		render_34_video(output_path, video_data)
-		if DEBUG:
-			op_parts = output_path.split('/')
-			cop_parts = cut_output_path.split('/')
-			num_parts = len(op_parts)
-			logger.debug('rename {} to {}'.format(op_parts[num_parts-1], cop_parts[num_parts-1]))
-		else:
-			os.rename(output_path, cut_output_path)
+			render_landscape_video(output_path, clip_data)
+		# render_square_video(output_path, clip_data)
+		# render_34_video(output_path, clip_data)
+		# rename_first_cut(output_path, cut_output_path)
+		
 
 
 
@@ -142,6 +185,11 @@ def clipper():
 
   if not config_file:
   	logger.error('config file not found')
+  	return
+  
+  file_ext = video_path.split('.')[len(video_path.split('.'))-1].lower()
+  if file_ext != 'mp4' and file_ext != 'mov':
+  	logger.error(f'{file_ext} not supported. [mp4, mov]')
   	return
   clips = read_from_json(config_file)
   clip_video(video_path, clips)
