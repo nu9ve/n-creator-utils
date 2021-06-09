@@ -118,30 +118,55 @@ def clip_video(video_path, clips):
 		cut_range(video_path, clip_data, output_path)
 		if is_landscape:
 			cut_output_path = output_path.replace('.mp4', '_horizontal.mp4')
-			clip_data['mode'] = 'blurred'
-			clip_data['view'] = 100
 			render_portrait_video(output_path, clip_data)
-			# clip_data['mode'] = '#FF00AA'
-			clip_data['view'] = 90
-			render_portrait_video(output_path, clip_data)
-			# clip_data['mode'] = '#FF88AA'
-			clip_data['view'] = 50
-			render_portrait_video(output_path, clip_data)
-			# clip_data['mode'] = '#0088AA'
-			clip_data['view'] = 30
-			render_portrait_video(output_path, clip_data)
-			clip_data['view'] = 10
-			render_portrait_video(output_path, clip_data)
-			# clip_data['mode'] = '#008888'
-			clip_data['view'] = 0
-			render_portrait_video(output_path, clip_data)
+			
 			# clip_data['mode'] = 'blurred'
+			# # clip_data['text'] = 'LEL, TIENE QUE SER ASI\nY A VER QP'
+			# # clip_data['text'] = clip_data['title']
+			# clip_data['view'] = 100
 			# render_portrait_video(output_path, clip_data)
-			# clip_data['mode'] = 'crop_center'
+			# # clip_data['mode'] = '#FF00AA'
+			# clip_data['view'] = 90
 			# render_portrait_video(output_path, clip_data)
+			# # clip_data['mode'] = '#FF88AA'
+			# clip_data['view'] = 50
+			# render_portrait_video(output_path, clip_data)
+			# # clip_data['mode'] = '#0088AA'
+			# clip_data['view'] = 30
+			# render_portrait_video(output_path, clip_data)
+			# clip_data['view'] = 10
+			# render_portrait_video(output_path, clip_data)
+			# # clip_data['mode'] = '#008888'
+			# clip_data['view'] = 0
+			# render_portrait_video(output_path, clip_data)
+			# # clip_data['mode'] = 'blurred'
+			# # render_portrait_video(output_path, clip_data)
+			# # clip_data['mode'] = 'crop_center'
+			# # render_portrait_video(output_path, clip_data)
 		else:
 			cut_output_path = output_path.replace('.mp4', '_vertical.mp4')
+			# render_landscape_video(output_path, clip_data)
+
+			clip_data['mode'] = 'blurred'
+			# clip_data['text'] = 'LEL, TIENE QUE SER ASI\nY A VER QP'
+			# clip_data['text'] = clip_data['title']
+			clip_data['view'] = 100
 			render_landscape_video(output_path, clip_data)
+			# clip_data['mode'] = '#FF00AA'
+			clip_data['view'] = 90
+			render_landscape_video(output_path, clip_data)
+			# clip_data['mode'] = '#FF88AA'
+			clip_data['view'] = 50
+			render_landscape_video(output_path, clip_data)
+			# clip_data['mode'] = '#0088AA'
+			clip_data['view'] = 30
+			render_landscape_video(output_path, clip_data)
+			clip_data['view'] = 10
+			render_landscape_video(output_path, clip_data)
+			# clip_data['mode'] = '#008888'
+			clip_data['view'] = 0
+			render_landscape_video(output_path, clip_data)
+
 		# render_square_video(output_path, clip_data)
 		# render_34_video(output_path, clip_data)
 		# rename_first_cut(output_path, cut_output_path)
