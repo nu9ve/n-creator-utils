@@ -1,8 +1,8 @@
 from os.path import join as join_path
 from sys import platform
 
-DEBUG = True
-# DEBUG = False
+# DEBUG = True
+DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
