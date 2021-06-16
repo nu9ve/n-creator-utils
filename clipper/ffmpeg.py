@@ -63,7 +63,7 @@ def build_portrait_filter(video_data, clip_filter):
 		scale_height = input_height * scale_factor
 		filter_cmd_list = [
 			"scale={}:{}".format(scale_width, scale_height), # scale up video
-			",crop={}:ih:iw/4:0".format(input_height), # crop sides
+			",crop={}:ih".format(input_height), # crop sides
 			",pad=iw:2*trunc(iw*16/18):(ow-iw)/2:(oh-ih)/2:{}".format(main_color), # grow bars
 			# ",setsar=1,scale={}:{}".format(input_height, input_width) # make pxls square and invert size
 		]
@@ -73,14 +73,14 @@ def build_portrait_filter(video_data, clip_filter):
 		scale_height = input_height * scale_factor
 		filter_cmd_list = [
 			"scale={}:{}".format(scale_width, scale_height), # scale up video
-			",crop={}:ih:iw/4:0".format(input_height) # crop sides
+			",crop={}:ih".format(input_height) # crop sides
 		]
 	elif mode == 'blurred':
 		mode_view = mode_view/100
 		mode_view = 2 - (mode_view * 1.5) # 1.0 to 0.5; 0.5 to 1~; 0 to 2
 		filter_cmd_list = [
 			"split[original][copy];",
-			"[copy]crop=ih*9/16:ih:iw/2-ow/2:0,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
+			"[copy]crop=ih*9/16:ih,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
 			"[original]scale={}:{}[original];".format(input_width/mode_view, input_height/mode_view),
 			"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 			",setsar=1,scale={}:{}".format(input_height, input_width),
@@ -112,13 +112,14 @@ def build_landscape_filter(video_data, clip_filter):
 		# takes 0-100 converts to 3-1 so 0-100 scales
 		mode_view = mode_view/100
 		mode_view = ((1 - mode_view)/.3) # = (0 - 3.33)
-		mode_view = (math.sqrt(mode_view + 1) * 1.99) - .99
+		mode_view = (math.sqrt(mode_view + 1) * 1.99) - .99 # 1 - 3+?
 		scale_factor = (input_height/input_width) / mode_view
 		scale_width = input_width * scale_factor
 		scale_height = input_height * scale_factor
+		
 		filter_cmd_list = [
 			"scale={}:{}".format(scale_width, scale_height), # scale up video
-			",crop=iw:{}:0:ih/4".format(input_width), # crop top-bottom
+			",crop=iw:{}".format(input_width),#".format(input_width), # crop top-bottom
 			",pad=2*trunc(ih*16/18):ih:(ow-iw)/2:(oh-ih)/2:{}".format(main_color), # grow bars
 		]
 	if mode == 'crop_center':
@@ -127,15 +128,15 @@ def build_landscape_filter(video_data, clip_filter):
 		scale_height = input_height * scale_factor
 		filter_cmd_list = [
 			"scale={}:{}".format(scale_width, scale_height), # scale up video
-			",crop=iw:{}:0:ih/2-oh/2".format(input_width) # crop top-bottom
+			",crop=iw:{}".format(input_width) # crop top-bottom
 		]
 	elif mode == 'blurred':
 		mode_view = mode_view/100
 		mode_view = 2 - (mode_view * 1.5) # 1.0 to 0.5; 0.5 to 1~; 0 to 2
 		filter_cmd_list = [
 			"split[original][copy];",
-			# "[copy]crop=ih*9/16:ih:iw/2-ow/2:0,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
-			"[copy]crop=iw/1.5:iw*9/16/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
+			# "[copy]crop=ih*9/16:ih,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
+			"[copy]crop=iw/1.5:iw*9/16/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
 			"[original]scale={}:{}[original];".format(input_width/mode_view, input_height/mode_view),
 			"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 			",setsar=1,scale={}:{}".format(input_height, input_width),
@@ -163,10 +164,10 @@ def build_square_filter(video_data, clip_filter):
 		mode_view = mode_view/100
 		if video_data['is_landscape']:
 			scale_factor = (input_width/input_height)
-			cc_filter = ",crop=ih:ih:iw/2-ow/2:ih/2-oh/2:0"
+			cc_filter = ",crop=ih:ih:0"
 		else:
 			scale_factor = (input_height/input_width)
-			cc_filter = ",crop=iw:iw:iw/2-ow/2:ih/2-oh/2:0"
+			cc_filter = ",crop=iw:iw:0"
 		scale_width = input_width * scale_factor # 1080
 		scale_height = input_height * scale_factor # 1918
 		mult_pad = 1 + (1 - mode_view)
@@ -178,10 +179,10 @@ def build_square_filter(video_data, clip_filter):
 	if mode == 'crop_center':
 		if video_data['is_landscape']:
 			scale_factor = (input_width/input_height)
-			cc_filter = ",crop=ih:ih:iw/2-ow/2:ih/2-oh/2"
+			cc_filter = ",crop=ih:ih"
 		else:
 			scale_factor = (input_height/input_width)
-			cc_filter = ",crop=iw:iw:iw/2-ow/2:ih/2-oh/2"
+			cc_filter = ",crop=iw:iw"
 		scale_width = input_width * scale_factor
 		scale_height = input_height * scale_factor
 		filter_cmd_list = [
@@ -195,13 +196,13 @@ def build_square_filter(video_data, clip_filter):
 		if input_height > input_width:
 			input_larger = input_height
 		if video_data['is_landscape']:
-			# bc_filter = "[copy]crop=iw/1.5:iw*9/16/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width)
+			# bc_filter = "[copy]crop=iw/1.5:iw*9/16/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width)
 			# cc_filter = "[original]scale={}:{}[original];".format(input_width/mode_view, input_height/mode_view),
-			bc_filter = "[copy]crop=ih/1.5:ih/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_width, input_width)
-			cc_filter = "[original]scale={}:{},crop=ih:ih:iw/2-ow/2:ih/2-oh/2[original];".format(input_width/mode_view, input_height/mode_view)
+			bc_filter = "[copy]crop=ih/1.5:ih/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_width, input_width)
+			cc_filter = "[original]scale={}:{},crop=ih:ih[original];".format(input_width/mode_view, input_height/mode_view)
 		else:
-			bc_filter = "[copy]crop=iw/1.5:iw/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_height)
-			cc_filter = "[original]scale={}:{},crop=iw:iw:iw/2-ow/2:ih/2-oh/2[original];".format(input_width/mode_view, input_height/mode_view)
+			bc_filter = "[copy]crop=iw/1.5:iw/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_height)
+			cc_filter = "[original]scale={}:{},crop=iw:iw[original];".format(input_width/mode_view, input_height/mode_view)
 		filter_cmd_list = [
 			"split[original][copy];",
 			bc_filter,
@@ -242,7 +243,7 @@ def build_34_filter(video_data, clip_filter):
 		scale_height = input_height * scale_factor
 		filter_cmd_list = [
 			"scale={}:{}".format(scale_width, scale_height), # scale up video
-			",crop={}:ih:iw/4:0".format(input_height), # crop sides
+			",crop={}:ih".format(input_height), # crop sides
 			",pad=iw:2*trunc(iw*16/18):(ow-iw)/2:(oh-ih)/2:{}".format(main_color), # grow bars
 			# ",setsar=1,scale={}:{}".format(input_height, input_width) # make pxls square and invert size
 		]
@@ -252,11 +253,11 @@ def build_34_filter(video_data, clip_filter):
 			scale_width = input_width * scale_factor
 			scale_height = input_height * scale_factor
 			scale_filter = "scale={}:{}".format(scale_width, scale_height) # scale up video
-			cc_filter = ",crop=ih*0.75:ih:iw/2-ow/2:ih/2-oh/2".format(scale_factor)
+			cc_filter = ",crop=ih*0.75:ih".format(scale_factor)
 		else:
 			scale_filter = ""
 			# scale_factor = (input_height/input_width)
-			cc_filter = "crop=iw:ih*0.75:iw/2-ow/2:ih/2-oh/2" #",crop=iw:ih*0.75:iw/2-ow/2:ih/2-oh/2".format(scale_factor)
+			cc_filter = "crop=iw:ih*0.75" #",crop=iw:ih*0.75".format(scale_factor)
 		filter_cmd_list = [
 			scale_filter,
 			cc_filter
@@ -266,7 +267,7 @@ def build_34_filter(video_data, clip_filter):
 		# mode_view = 2 - (mode_view * 1.5) # 1.0 to 0.5; 0.5 to 1~; 0 to 2
 		# filter_cmd_list = [
 		# 	"split[original][copy];",
-		# 	"[copy]crop=ih*9/16:ih:iw/2-ow/2:0,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
+		# 	"[copy]crop=ih*9/16:ih,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width),
 		# 	"[original]scale={}:{}[original];".format(input_width/mode_view, input_height/mode_view),
 		# 	"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 		# 	",setsar=1,scale={}:{}".format(input_height, input_width),
@@ -279,13 +280,13 @@ def build_34_filter(video_data, clip_filter):
 			input_larger = input_height
 
 		if video_data['is_landscape']:
-			# bc_filter = "[copy]crop=iw/1.5:iw*9/16/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width)
+			# bc_filter = "[copy]crop=iw/1.5:iw*9/16/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_width)
 			# cc_filter = "[original]scale={}:{}[original];".format(input_width/mode_view, input_height/mode_view),
-			bc_filter = "[copy]crop=ih/1.5:ih/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_width, input_width)
-			cc_filter = "[original]scale={}:{},crop=ih:ih:iw/2-ow/2:ih/2-oh/2[original];".format(input_width/mode_view, input_height/mode_view)
+			bc_filter = "[copy]crop=ih/1.5:ih/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_width, input_width)
+			cc_filter = "[original]scale={}:{},crop=ih:ih[original];".format(input_width/mode_view, input_height/mode_view)
 		else:
-			bc_filter = "[copy]crop=iw/1.5:iw/1.5:iw/2-ow/2:ih/2-oh/2,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_height)
-			cc_filter = "[original]scale={}:{},crop=iw:iw:iw/2-ow/2:ih/2-oh/2[original];".format(input_width/mode_view, input_height/mode_view)
+			bc_filter = "[copy]crop=iw/1.5:iw/1.5,scale={}:{},gblur=sigma=20[blurred];".format(input_height, input_height)
+			cc_filter = "[original]scale={}:{},crop=iw:iw[original];".format(input_width/mode_view, input_height/mode_view)
 		filter_cmd_list = [
 			"split[original][copy];",
 			bc_filter,
