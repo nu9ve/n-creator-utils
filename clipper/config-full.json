@@ -1,8 +1,43 @@
 {
 	"background": "#4F2EEE",
+	"mode": "#213233",
+	"view": 50,
+	"bottom_text": "episodio x: hablando de..",
+	"texts": [
+		{
+			"text": "hola que pets"
+		},
+		{
+			"text": "xiao",
+			"y": "80"
+		}
+	],
 	"clips":[{
 		"title": "primer titulo",
 		"start": "00:01:10",
-		"end": "00:01:15"
+		"end": "00:01:15",
+		"view": 90
+	},
+	{
+		"title": "segundo titulo",
+		"start": "00:02:50",
+		"end": "00:04:15",
+		"texts": [
+			{
+				"text": "holi",
+				"y": "10"
+			},
+			{
+				"text": "holi2",
+				"y": "20"
+			},
+			{
+				"text": "bottttom text"
+			},
+			{
+				"text": "holi3",
+				"y": "40"
+			}
+		]
 	}]
 }
