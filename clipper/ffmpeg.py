@@ -39,8 +39,42 @@ def cut_range(video_path, clip, output_path):
 	logger.info(clipping_log)
 	run_ffmpeg_cmd(cut_cmd)
 
+def build_text_filter(clip_data, clip_filter):
+	cmd_list = []
+	for ct in clip_data['texts']:
+		ct['text'] = ct.get('text', 'bottom_text')
+		ct['text'] = ct.get('text', 'bottom_text')
+		ct['y'] = ct.get('y', '50')
+		flt_cmd = "".join([ 
+			",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
+			"text='{}':".format(ct['text']),
+			"fontcolor=white:fontsize=32:",
+			"box=1:boxcolor=black@0.5:boxborderw=5:",
+			# "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
+			"x=(w-text_w)/2:y=(h*{}/100)-text_h".format(ct['y'])])
+		cmd_list.append(flt_cmd)
+	return ''.join(cmd_list)
+	# if 'bottom_text' in clip_data:
+	# 	flt_cmd = "".join([flt_cmd, 
+	# 		",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
+	# 		"text='{}':".format(clip_data['bottom_text']),
+	# 		"fontcolor=white:fontsize=32:",
+	# 		"box=1:boxcolor=black@0.5:boxborderw=5:",
+	# 		# "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
+	# 		"x=(w-text_w)/2:y=(h*3/4)-text_h"])		
+	# 	# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
+	# if 'top_text' in clip_data:
+	# 	flt_cmd = "".join([flt_cmd, 
+	# 		",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
+	# 		"text='{}':".format(clip_data['top_text']),
+	# 		"fontcolor=white:fontsize=32:",
+	# 		"box=1:boxcolor=black@0.5:boxborderw=5:",
+	# 		# "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
+	# 		"x=(w-text_w)/2:y=(h*3/4)-text_h"])		
+	# 	# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
+	
+
 def build_portrait_filter(video_data, clip_filter):
-	text_string = None
 	mode = video_data['mode']
 	mode_view = video_data.get('view', 0)
 	input_width = float(video_data['width'])
@@ -85,17 +119,12 @@ def build_portrait_filter(video_data, clip_filter):
 			"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 			",setsar=1,scale={}:{}".format(input_height, input_width),
 		]
-
-	if 'text' in video_data:
-		filter_cmd_list.append(",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/Platinum Sign.ttf:text='{}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-		# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
 	
 	flt = ''.join(filter_cmd_list)
 	return flt
 
 
 def build_landscape_filter(video_data, clip_filter):
-	text_string = None
 	mode = video_data['mode']
 	mode_view = video_data.get('view', 0)
 	input_width = float(video_data['width'])
@@ -116,9 +145,8 @@ def build_landscape_filter(video_data, clip_filter):
 		scale_factor = (input_height/input_width) / mode_view
 		scale_width = input_width * scale_factor
 		scale_height = input_height * scale_factor
-		
 		filter_cmd_list = [
-			"scale={}:{}".format(scale_width, scale_height), # scale up video
+			"scale={}:{}".format(scale_width, input_width), # scale up video
 			",crop=iw:{}".format(input_width),#".format(input_width), # crop top-bottom
 			",pad=2*trunc(ih*16/18):ih:(ow-iw)/2:(oh-ih)/2:{}".format(main_color), # grow bars
 		]
@@ -141,17 +169,12 @@ def build_landscape_filter(video_data, clip_filter):
 			"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 			",setsar=1,scale={}:{}".format(input_height, input_width),
 		]
-
-	if 'text' in video_data:
-		filter_cmd_list.append(",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/Platinum Sign.ttf:text='{}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-		# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
 	
 	flt = ''.join(filter_cmd_list)
 	return flt
 
 
 def build_square_filter(video_data, clip_filter):
-	text_string = None
 	mode = video_data['mode']
 	mode_view = video_data.get('view', 0)
 	input_width = float(video_data['width'])
@@ -210,17 +233,12 @@ def build_square_filter(video_data, clip_filter):
 			"[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
 			",setsar=1,scale={}:{}".format(input_larger, input_larger),
 		]
-
-	if 'text' in video_data:
-		filter_cmd_list.append(",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/Platinum Sign.ttf:text='{}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-		# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
 	
 	flt = ''.join(filter_cmd_list)
 	return flt
 
 
 def build_34_filter(video_data, clip_filter):
-	text_string = None
 	mode = video_data['mode']
 	mode_view = video_data.get('view', 0)
 	input_width = float(video_data['width'])
@@ -295,12 +313,22 @@ def build_34_filter(video_data, clip_filter):
 			",setsar=1,scale={}:{}".format(input_larger, input_larger),
 		]
 
-	if 'text' in video_data:
-		filter_cmd_list.append(",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/Platinum Sign.ttf:text='{}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-		# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-	
 	flt = ''.join(filter_cmd_list)
 	return flt
+
+def build_filter_texts(video_data, clip_filter):
+	mode = video_data['mode']
+	mode_view = video_data.get('view', 0)
+	input_width = float(video_data['width'])
+	input_height = float(video_data['height'])
+
+	filter_cmd_list = []
+
+
+	flt = ''.join(filter_cmd_list)
+	flt_cmd = ''.join([flt, build_text_filter(video_data, clip_filter)])
+
+	return flt_cmd
 
 
 def render_portrait_video(video_path, video_data):
@@ -317,6 +345,7 @@ def render_portrait_video(video_path, video_data):
 	if 'view' in clip_data:
 		output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
 	flt_cmd = build_portrait_filter(clip_data, format_data)
+	flt_cmd = ''.join([flt_cmd, build_text_filter(clip_data, format_data)])
 	fill_cmd = [ "ffmpeg", "-i", video_path, "-vf", flt_cmd, output_path]
 	clipping_log = '{}vertical to:{} {}'.format('\033[1m', '\033[0m', output_path)
 	logger.info(clipping_log)
@@ -337,6 +366,7 @@ def render_landscape_video(video_path, video_data):
 	if 'view' in clip_data:
 		output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
 	flt_cmd = build_landscape_filter(clip_data, format_data)
+	flt_cmd = ''.join([flt_cmd, build_text_filter(clip_data, format_data)])
 	fill_cmd = [ "ffmpeg", "-i", video_path, "-vf", flt_cmd, output_path]
 	clipping_log = '{}horizontal to:{} {}'.format('\033[1m', '\033[0m', output_path)
 	logger.info(clipping_log)
@@ -357,6 +387,7 @@ def render_square_video(video_path, video_data):
 	if 'view' in clip_data:
 		output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
 	flt_cmd = build_square_filter(clip_data, format_data)
+	flt_cmd = ''.join([flt_cmd, build_text_filter(clip_data, format_data)])
 	fill_cmd = [ "ffmpeg", "-i", video_path, "-vf", flt_cmd, output_path]
 	clipping_log = '{}square to:{} {}'.format('\033[1m', '\033[0m', output_path)
 	logger.info(clipping_log)
@@ -377,7 +408,29 @@ def render_34_video(video_path, video_data):
 	if 'view' in clip_data:
 		output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
 	flt_cmd = build_34_filter(clip_data, format_data)
+	flt_cmd = ''.join([flt_cmd, build_text_filter(clip_data, format_data)])
 	fill_cmd = [ "ffmpeg", "-i", video_path, "-vf", flt_cmd, output_path]
 	clipping_log = '{}3:4 to:{} {}'.format('\033[1m', '\033[0m', output_path)
+	logger.info(clipping_log)
+	run_ffmpeg_cmd(fill_cmd)
+
+
+def render_filters_texts(video_path, clip_data):
+# def rename_filter_first_cut(output_path, cut_output_path, clip_data):
+	if clip_data['is_landscape']:
+		fmt_data = 'horizontal'
+	else:
+		fmt_data = 'vertical'
+	output_path = video_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(fmt_data, clip_data['format']))
+	# filters = dict()
+	format_data = clip_data.get(fmt_data, dict())
+	clip_data = copy.deepcopy(clip_data)
+	video_mode = clip_data['mode']
+	output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(video_mode, clip_data['format']))
+	if 'view' in clip_data:
+		output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
+	flt_cmd = build_filter_texts(clip_data, format_data)
+	fill_cmd = [ "ffmpeg", "-i", video_path, "-vf", flt_cmd, output_path]
+	clipping_log = '{}Render texts to:{} {}'.format('\033[1m', '\033[0m', output_path)
 	logger.info(clipping_log)
 	run_ffmpeg_cmd(fill_cmd)

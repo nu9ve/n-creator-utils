@@ -1,0 +1,22 @@
+{
+	"background": "#4F2EEE",
+	"mode": "#213233",
+	"view": 50,
+	"bottom_text": "episodio x: hablando de..",
+	"top_text": "creativo",
+	"clips":[{
+		"title": "primer titulo",
+		"start": "00:01:10",
+		"end": "00:01:15"
+	},
+	{
+		"title": "segundo titulo",
+		"start": "00:01:30",
+		"end": "00:01:35"
+	},
+	{
+		"title": "tercer titulo",
+		"start": "00:02:20",
+		"end": "00:02:45"
+	}]
+}

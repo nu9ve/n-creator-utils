@@ -3,16 +3,21 @@ import sys
 import json
 import logging
 import os
+import copy
 from os.path import exists as path_exists, join as join_path
 from inspect import getmembers, isfunction
 import subprocess
 import pathlib
+
+import datetime as dt
+
 # pathlib.Path(__file__).parent.absolute()
 
 # pathlib.Path().absolute()
 
 from constants import LOGGER_NAME, DEBUG
-from clipper.ffmpeg import cut_range, render_portrait_video, render_landscape_video, render_square_video, render_34_video
+from clipper.ffmpeg import (cut_range, render_portrait_video,
+	render_landscape_video, render_square_video, render_filters_texts)
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -25,14 +30,31 @@ def read_from_txt():
 	pass
 
 def read_from_json(file_path):
-	with open(file_path) as f:
-		d = json.load(f)
-		default_clip_output = dict()
-		default_clip_output['mode'] = '#101010'
-		for i, c in enumerate(d['clips']):
-			if 'mode' not in c:
-				d['clips'][i]['mode'] = d.get('mode', default_clip_output['mode'])
-		return d['clips']
+  # if file not json and not exists return empty clips
+  clips_data = []
+  with open(file_path) as f:
+    d = json.load(f)
+    default_clip_output = dict()
+    default_clip_output['texts'] = d.get('texts', [])
+    if d.get('mode', False):
+      default_clip_output['mode'] = d.get('mode', '#101010')	
+    if d.get('view', False):
+      default_clip_output['view'] = d.get('view', 90)
+
+    for i, c in enumerate(d['clips']):
+      clip_data = copy.deepcopy(c)
+      if 'mode' not in c:
+        clip_data['mode'] = d.get('mode', default_clip_output['mode'])
+      if 'view' not in c:
+        clip_data['view'] = d.get('view', default_clip_output['view'])
+      
+      if 'texts' in c:
+        clip_data['texts'] = default_clip_output['texts'] + c['texts']
+      else:
+        clip_data['texts'] = default_clip_output['texts']
+
+      clips_data.append(clip_data)
+  return clips_data
 
 
 def time_component_str(t):
@@ -49,8 +71,10 @@ def get_times(time_string):
 def get_time_delta_string(clip):
 	hh, mm ,ss = get_times(clip['start'])
 	hhf, mmf ,ssf = get_times(clip['end'])
-	deltas =  [hhf-hh, mmf-mm, ssf-ss]
-	delta = ':'.join(map(time_component_str, deltas))
+	enter = dt.time(hh, mm, ss)
+	exit = dt.time(hhf, mmf, ssf)
+	deltat = dt.datetime.combine(dt.date.min, exit) - dt.datetime.combine(dt.date.min, enter)
+	delta = str(deltat)
 	return delta
 
 
@@ -71,15 +95,7 @@ def get_video_info(video_path):
 	video_data['full_path'] = video_path
 	video_data['path'] = video_path
 	return video_data
-	
-def rename_first_cut(output_path, cut_output_path):
-	if DEBUG:
-		op_parts = output_path.split('/')
-		cop_parts = cut_output_path.split('/')
-		num_parts = len(op_parts)
-		logger.debug('rename {} to {}'.format(op_parts[num_parts-1], cop_parts[num_parts-1]))
-	else:
-		os.rename(output_path, cut_output_path)
+
 
 def parse_clip_data(video_data, clip):
 	clip_data = dict()
@@ -96,6 +112,8 @@ def parse_clip_data(video_data, clip):
 	clip_data['ffmpeg_end'] = get_time_delta_string(clip)
 	clip_data['mode'] = clip.get('mode', '#1F1F1F')
 	clip_data['valid'] = True
+
+	clip_data['texts'] = clip['texts']
 	return clip_data
 
 def clip_video(video_path, clips):
@@ -111,7 +129,7 @@ def clip_video(video_path, clips):
 	for i, c in enumerate(clips):
 		output_path = video_path.replace('.mp4', '_clip_{}.mp4'.format(i))
 		clip_data = parse_clip_data(video_data, c)
-		
+
 		if not clip_data['valid']:
 			invalid_error = '''clip {} config error\n'''.format(i)
 			logger.error(invalid_error)
@@ -119,13 +137,11 @@ def clip_video(video_path, clips):
 		clip_data['is_landscape'] = is_landscape
 
 		if is_landscape:
-			cut_output_path = output_path.replace('.mp4', '_horizontal.mp4')
 			render_portrait_video(output_path, clip_data)
 		else:
-			cut_output_path = output_path.replace('.mp4', '_vertical.mp4')
 			render_landscape_video(output_path, clip_data)
 		render_square_video(output_path, clip_data)
-		rename_first_cut(output_path, cut_output_path)
+		render_filters_texts(output_path, clip_data)
 
 
 
@@ -233,22 +249,21 @@ def clipper():
 
   #default on script folder
   config_file = None
-	#search config in video root
+  #search config in video root
   config_video_path = join_path(video_root, 'config.json')
   if path_exists(config_video_path):
-  	config_file = config_video_path
+    config_file = config_video_path
   #parameter
   elif len(sys.argv) == 4:
-  	config_file = str(sys.argv[3])
-
+    config_file = str(sys.argv[3])
+    
   if not config_file:
-  	logger.error('config file not found')
-  	return
-  
+    logger.error('config file not found')
+    return
   file_ext = video_path.split('.')[len(video_path.split('.'))-1].lower()
   if file_ext != 'mp4' and file_ext != 'mov':
-  	logger.error(f'{file_ext} not supported. [mp4, mov]')
-  	return
+    logger.error(f'{file_ext} not supported. [mp4, mov]')
+    return
   clips = read_from_json(config_file)
   clip_video(video_path, clips)
 
