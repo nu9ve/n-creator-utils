@@ -6,7 +6,7 @@ DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
-ROOT_DIR = '/Volumes/HDD4'
+ROOT_DIR = '/Volumes/MEDIA500'
 SD_ROOT_DIR = '/Volumes'
 ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
 
@@ -27,6 +27,7 @@ FINAL_VIDEOS_DIR = join_path(ROOT_DIR, 'videos')
 FINAL_IMAGES_DIR = join_path(ROOT_DIR, 'images')
 FINAL_RAW_DIR = join_path(ROOT_DIR, 'rimages')
 FINAL_SCREENS_DIR = join_path(ROOT_DIR, 'screens')
+FINAL_SCREENR_DIR = join_path(ROOT_DIR, 'screens', 'recordings')
 FINAL_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordings')
 FINAL_LONG_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordingslong')
 SSD_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordings')
