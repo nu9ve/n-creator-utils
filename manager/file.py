@@ -7,7 +7,7 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
   FINAL_SCREENS_DIR, MONTH_NUMBER_STRINGS, SD_ROOT_DIR, FINAL_RECORDINGS_DIR,
   FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR,
-  FINAL_CORRUPT_DIR, FINAL_RAW_DIR)
+  FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -109,7 +109,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
       if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension:
         image_file = True
-      if 'mov' == file_extension or 'mp4' == file_extension:
+      if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
       if 'wav' == file_extension:
         audio_file = True
@@ -142,7 +142,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
       if image_file:
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
-        if 'screenshot' in source_path or 'Screenshot' in source_path:
+        if 'screenshot' in source_path.lower() or 'screen shot' in source_path.lower():
           final_dir = join_path(FINAL_SCREENS_DIR,file_data['year'],file_data['month'])
         elif'cr3' == file_extension:
           final_dir = join_path(FINAL_RAW_DIR,file_data['year'],file_data['month'])
@@ -161,6 +161,10 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         if is4k:
           category_dir = FINAL_4K_DIR
         final_dir = join_path(category_dir,file_data['year'],file_data['month'])
+        if 'screenrecording' in source_path.lower() or 'screen recording' in source_path.lower():
+          final_dir = join_path(FINAL_SCREENR_DIR,file_data['year'],file_data['month'])
+        if 'dji' in source_path.lower():
+          final_dir = join_path(FINAL_DRON_DIR,file_data['year'],file_data['month'])
         if not path_exists(final_dir): 
           os.makedirs(final_dir)
         final_path = join_path(final_dir, new_file_name)
