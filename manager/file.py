@@ -107,7 +107,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       media_file_parts = media_file.split('.')
       file_extension = media_file_parts[len(media_file_parts)-1].lower()
 
-      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension:
+      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension:
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
@@ -144,7 +144,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         if 'screenshot' in source_path.lower() or 'screen shot' in source_path.lower():
           final_dir = join_path(FINAL_SCREENS_DIR,file_data['year'],file_data['month'])
-        elif'cr3' == file_extension:
+        elif'cr3' == file_extension or 'cr2' == file_extension:
           final_dir = join_path(FINAL_RAW_DIR,file_data['year'],file_data['month'])
         else:
           final_dir = join_path(FINAL_IMAGES_DIR,file_data['year'],file_data['month'])
@@ -192,7 +192,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       logger.info('source: {}'.format(source_path))
       if copy_file:
         logger.info('copying to: {}'.format(backup_path))
-        shutil.copyfile(source_path, final_path)
+        shutil.copyfile(source_path, backup_path)
       if move_file:
         logger.info('moving to: {}\n'.format(final_path))
         shutil.move(source_path, final_path)
