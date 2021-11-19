@@ -7,7 +7,7 @@ from constants import LOGGER_NAME
 # from manager.video import store_video_files
 from manager.file import save_files
 from clipper.clipper import clipper
-from hardware.control import hardware_control
+# from hardware.control import hardware_control
 
 if __name__ == "__main__":
   # MAIN
@@ -27,9 +27,9 @@ if __name__ == "__main__":
       # all or /directory
       clipper()
     
-    if sys.argv[1] == 'control':
-      # all or /directory
-      hardware_control()
+    # if sys.argv[1] == 'control':
+    #   # all or /directory
+    #   hardware_control()
 
   else:
     error = 'Missing arguments \n\n\t\tnu9ve [program]\n\n\t\tsave\n\t\tclip\n\t\tcontrol\n\n'
