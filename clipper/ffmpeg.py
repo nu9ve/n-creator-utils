@@ -343,36 +343,6 @@ def build_filter_texts(video_data, clip_filter):
 
   return flt_cmd
 
-# def render_portrait_screen(video_path, video_data):
-#   output_path = video_path.replace('.{}'.format(video_data['format']), '_vertical.{}'.format(video_data['format']))
-#   # filters = dict()
-#   format_data = video_data.get('vertical', dict())
-#   clip_data = copy.deepcopy(video_data)
-#   video_mode = clip_data['mode']
-#   if video_mode != 'crop_center' and video_mode != 'blurred':
-#     video_mode = 'background'
-#     clip_data['color'] = clip_data['mode']
-#     clip_data['mode'] =  video_mode
-#   output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(video_mode, clip_data['format']))
-#   if 'view' in clip_data:
-#     output_path = output_path.replace('.{}'.format(clip_data['format']), '_{}.{}'.format(clip_data['view'], clip_data['format']))
-#   flt_cmd = build_portrait_filter(clip_data, format_data)
-#   flt_cmd = ''.join([flt_cmd, build_text_filter(clip_data, format_data)])
-
-#   ff_filter_type = "-vf"
-#   if len(clip_data['inputs']) > 1:
-#     flt_cmd = ''.join([flt_cmd, build_logo_filter(clip_data, format_data)])
-#     ff_filter_type = "-filter_complex"
-#   inputs = []
-#   for x in clip_data['inputs']:
-#     inputs.append('-i')
-#     inputs.append(x)
-#   fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
-#   clipping_log = '{}vertical to:{} {}'.format('\033[1m', '\033[0m', output_path)
-#   logger.info(clipping_log)
-#   run_ffmpeg_cmd(fill_cmd)
-
-
 
 def render_portrait_video(video_path, video_data):
   output_path = video_path.replace('.{}'.format(video_data['format']), '_vertical.{}'.format(video_data['format']))
@@ -398,7 +368,7 @@ def render_portrait_video(video_path, video_data):
   for x in clip_data['inputs']:
     inputs.append('-i')
     inputs.append(x)
-  if clip_data.get('screens', False):
+  if clip_data.get('preview', False):
     fill_cmd = [ "ffmpeg", "-ss","00:00:01",*inputs, ff_filter_type, flt_cmd, '-vframes', '1', '-q:v','2', output_path.replace('.mp4','.jpg')]
   else:
     fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
@@ -430,7 +400,7 @@ def render_landscape_video(video_path, video_data):
   for x in clip_data['inputs']:
     inputs.append('-i')
     inputs.append(x)
-  if clip_data.get('screens', False):
+  if clip_data.get('preview', False):
     fill_cmd = [ "ffmpeg", "-ss","00:00:01",*inputs, ff_filter_type, flt_cmd, '-vframes', '1', '-q:v','2', output_path.replace('.mp4','.jpg')]
   else:
     fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
@@ -462,7 +432,7 @@ def render_square_video(video_path, video_data):
   for x in clip_data['inputs']:
     inputs.append('-i')
     inputs.append(x)
-  if clip_data.get('screens', False):
+  if clip_data.get('preview', False):
     fill_cmd = [ "ffmpeg", "-ss","00:00:01",*inputs, ff_filter_type, flt_cmd, '-vframes', '1', '-q:v','2', output_path.replace('.mp4','.jpg')]
   else:
     fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
@@ -494,7 +464,7 @@ def render_34_video(video_path, video_data):
   for x in clip_data['inputs']:
     inputs.append('-i')
     inputs.append(x)
-  if clip_data.get('screens', False):
+  if clip_data.get('preview', False):
     fill_cmd = [ "ffmpeg", "-ss","00:00:01",*inputs, ff_filter_type, flt_cmd, '-vframes', '1', '-q:v','2', output_path.replace('.mp4','.jpg')]
   else:
     fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
@@ -533,7 +503,7 @@ def render_filters_texts(video_path, clip_data):
   for x in clip_data['inputs']:
     inputs.append('-i')
     inputs.append(x)
-  if clip_data.get('screens', False):
+  if clip_data.get('preview', False):
     fill_cmd = [ "ffmpeg", "-ss","00:00:01",*inputs, ff_filter_type, flt_cmd, '-vframes', '1', '-q:v','2', output_path.replace('.mp4','.jpg')]
   else:
     fill_cmd = [ "ffmpeg", *inputs, ff_filter_type, flt_cmd, output_path]
