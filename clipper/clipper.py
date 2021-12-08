@@ -150,7 +150,7 @@ def parse_clip_data(video_data, clip):
   clip_data['inputs'] = clip['inputs']
   return clip_data
 
-def clip_video(video_path, clips, screens):
+def clip_video(video_path, clips, preview):
   logger.info(video_path)
   video_data = get_video_info(video_path)
   message = '''{}
@@ -168,8 +168,8 @@ def clip_video(video_path, clips, screens):
     cut_range(video_path, clip_data, output_path)
     clip_data['is_landscape'] = is_landscape
     clip_data['inputs'][0] = output_path
-    clip_data['screens'] = screens
-    
+    clip_data['preview'] = preview
+
     if is_landscape:
       render_portrait_video(output_path, clip_data)
     else:
@@ -279,7 +279,7 @@ def clipper():
                       help='function to run')
   parser.add_argument('video_path', metavar='video_path', type=str,
                       help='path to the video to clip')
-  parser.add_argument('--screens', dest='screens', action='store_const',
+  parser.add_argument('--preview', dest='preview', action='store_const',
                     const=True, default=False,
                     help='print single frame of clips')
   args = parser.parse_args()
@@ -304,6 +304,6 @@ def clipper():
     logger.error(f'{file_ext} not supported. [mp4, mov]')
     return
   clips = read_from_json(config_file, video_path)
-  clip_video(video_path, clips, args.screens)
+  clip_video(video_path, clips, args.preview)
 
 
