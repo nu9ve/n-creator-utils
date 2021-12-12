@@ -2,23 +2,23 @@
 
 nu9ve python and shell based scripts to help on a creative workflow.
 
-## Getting Started
+## getting started
 
-Clone project
-Install dependencies
-Configure path
-Create
+clone project
+install dependencies
+configure path
+create
 
-### Prerequisites
+### prerequisites
 
 ```
-Python 3.9
+python 3.9
 ffmpeg
 ```
 
-### Installing
+### installing
 
-Install dependencies
+install dependencies
 
 ```
 ffmpeg
@@ -32,9 +32,9 @@ alias nu9ve='python3 $HOME/Code/nu9ve/n-creator-utils/nu9ve.py'
 ```
 
 
-End with an example of getting some data out of the system or using it for a little demo
+end with an example of getting some data out of the system or using it for a little demo
 
-## Running the tests (xd)
+## running the tests (xd)
 
 filemanager should output correct actions
 clipper should check ffmpeg version or export is working
@@ -43,15 +43,15 @@ clipper should check ffmpeg version or export is working
 nu9ve test [function]
 ```
 
-## Contributing
+## contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
-## License
+## license
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+this project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-## Acknowledgments
+## acknowledgments
 
-* Hat tip to anyone whose code was used
-* Thanks for the [template](https://gist.github.com/PurpleBooth/b24679402957c63ec426) PurpleBooth
+* hat tip to anyone whose code was used
+* thanks for the [template](https://gist.github.com/PurpleBooth/b24679402957c63ec426) purplebooth
