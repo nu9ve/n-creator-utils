@@ -39,7 +39,7 @@ def read_from_json(file_path, video_path):
     
     default_clip_output['inputs'] = [video_path]
 
-    default_clip_output['text_size'] = d.get('text_size', 7)
+    default_clip_output['text_size'] = d.get('text_size', 3)
     default_clip_output['texts'] = d.get('texts', [])
     default_clip_output['vertical_only'] = d.get('vertical_only', True)
     if d.get('background', False):

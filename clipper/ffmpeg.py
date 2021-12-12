@@ -44,6 +44,8 @@ def build_text_filter(clip_data, clip_filter):
     ct['y'] = ct.get('y', '25')
     # ct['y'] = ct.get('y', '25')
     text_size = ct.get('text_size', 4)
+    if int(text_size) > 3 and len(ct['text']) > 25:
+      text_size = int(text_size) - 1
     font_size = "h*{}/100".format(text_size)
     # if clip_data['is_landscape']:
       # font_size = "w*10/100"
