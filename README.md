@@ -33,7 +33,7 @@ alias nu9ve='python3 $HOME/Code/nu9ve/n-creator-utils/nu9ve.py'
 
 
 end with an example of getting some data out of the system or using it for a little demo
-
+<!-- 
 ## running the tests (xd)
 
 filemanager should output correct actions
@@ -54,4 +54,4 @@ this project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ## acknowledgments
 
 * hat tip to anyone whose code was used
-* thanks for the [template](https://gist.github.com/PurpleBooth/b24679402957c63ec426) purplebooth
+* thanks for the [template](https://gist.github.com/PurpleBooth/b24679402957c63ec426) purplebooth -->
