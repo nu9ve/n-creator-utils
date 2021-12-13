@@ -45,12 +45,12 @@ nu9ve clip [filepath] --preview
 
 config json can help output clips into different formats and with varied styles, texts and images
 
-formats:
+<!-- formats:
 ```
     portrait
     landscape
     square
-```
+``` -->
 
 video and clip parameters:
 ```
