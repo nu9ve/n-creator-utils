@@ -1,36 +1,44 @@
 # n-creator-utils
 
-nu9ve python and shell based scripts to help on a creative workflow.
+nu9ve python and shell based scripts to help on a creative workflow
 
-## getting started
 
-clone project
-install dependencies
-configure path
-create
-
-### prerequisites
+### dependencies
 
 ```
 python 3.9
 ffmpeg
 ```
 
-### installing
 
-install dependencies
+## getting started
 
+- clone project
+    `git clone git@github.com:nu9ve/n-creator-utils.git`
+- install dependencies
+    `brew install ffmpeg`
+- configure path
+    include the following line in your shell config (~/.profile, ~/.zshrc, etc)
+    ```shell
+    export alias nu9ve='python3 $HOME/path/to/n-creator-utils/nu9ve.py'
+    ```
+    *don't forget to update the path to this project's path
+- create
+
+
+### run
+
+after configuring your path you should be able to run `nu9ve` from your terminal, you can then select from the following subcommands:
+
+#### save
+```console
+nu9ve save [dir_path|all] [general_tag] [specific_tag]
 ```
-ffmpeg
-```
 
-configure path
-
+#### [clip](https://github.com/nu9ve/n-creator-utils/tree/master/clipper)
+```console
+nu9ve clip [videopath]
 ```
-export
-alias nu9ve='python3 $HOME/Code/nu9ve/n-creator-utils/nu9ve.py'
-```
-
 
 <!-- 
 end with an example of getting some data out of the system or using it for a little demo
