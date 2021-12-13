@@ -50,7 +50,8 @@ config json can help output clips into different formats and with varied styles,
     portrait
     landscape
     square
-``` -->
+``` 
+-->
 
 video and clip parameters:
 ```
