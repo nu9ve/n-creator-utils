@@ -32,8 +32,8 @@ alias nu9ve='python3 $HOME/Code/nu9ve/n-creator-utils/nu9ve.py'
 ```
 
 
-end with an example of getting some data out of the system or using it for a little demo
 <!-- 
+end with an example of getting some data out of the system or using it for a little demo
 ## running the tests (xd)
 
 filemanager should output correct actions
