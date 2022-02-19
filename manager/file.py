@@ -7,7 +7,8 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
   FINAL_SCREENS_DIR, MONTH_NUMBER_STRINGS, SD_ROOT_DIR, FINAL_RECORDINGS_DIR,
   FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR,
-  FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR)
+  FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
+  FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -22,7 +23,7 @@ def get_file_modified_time(file_path):
   tds = ts[3].split(':')
   return ts, tds
 
-def get_file_description(file_path, video_file, image_file, audio_file):
+def get_file_description(file_path, src_name, video_file, image_file, audio_file):
   file_data = dict()
   ts, tds = get_file_modified_time(file_path)
   if video_file:
@@ -30,7 +31,7 @@ def get_file_description(file_path, video_file, image_file, audio_file):
     file_data['duration'] = duration
     file_data['duration_string'] = file_duration_string
   if audio_file:
-    audio_data = get_audio_file_description(file_path)
+    audio_data = get_audio_file_description(file_path, src_name)
     file_data = {**file_data, **audio_data}
   file_data['date'] = ts
   file_data['time'] = tds
@@ -111,14 +112,14 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
-      if 'wav' == file_extension:
+      if 'wav' == file_extension or 'mp3' == file_extension:
         audio_file = True
       if 'dat' == file_extension:
         corrupt_file = True
       if 'lrv' == file_extension or 'thm' == file_extension or 'hprj' == file_extension:
         delete_file = True
 
-      file_data = get_file_description(source_path, video_file, image_file, audio_file)
+      file_data = get_file_description(source_path, src_name, video_file, image_file, audio_file)
       
       if 'GOP' in media_file[:3] or 'GP' in media_file[:3] or 'G0' in media_file[:2]:
         src_name = 'GOPRO'
@@ -163,7 +164,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         final_dir = join_path(category_dir,file_data['year'],file_data['month'])
         if 'screenrecording' in source_path.lower() or 'screen recording' in source_path.lower():
           final_dir = join_path(FINAL_SCREENR_DIR,file_data['year'],file_data['month'])
-        if 'dji' in source_path.lower():
+        if 'mavic2' in source_path.lower():
           final_dir = join_path(FINAL_DRON_DIR,file_data['year'],file_data['month'])
         if not path_exists(final_dir): 
           os.makedirs(final_dir)
@@ -178,6 +179,12 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         if file_data['duration'] > 600:
           category_dir = FINAL_LONG_RECORDINGS_DIR
           backup_category_dir = SSD_LONG_RECORDINGS_DIR
+        if src_name.lower() == 'hijack':
+          category_dir = FINAL_HIJACK_DIR
+          backup_category_dir = SSD_HIJACK_DIR
+          if file_data['duration'] > 600:
+            category_dir = FINAL_LONG_HIJACK_DIR
+            backup_category_dir = SSD_LONG_HIJACK_DIR
         final_dir = join_path(category_dir,file_data['year'],file_data['month'])
         backup_dir = join_path(backup_category_dir,file_data['year'],file_data['month'])
         if not path_exists(final_dir): 
@@ -228,12 +235,15 @@ def save_files():
 
   if src_dir == 'all':
     # look for sds
-
     for sd in SD_SRC_NAME:
       src_path = join_path(SD_ROOT_DIR, sd)
       if path_exists(src_path):
         logger.info('{} found. Saving...'.format(src_path))
         save_tag_files(src_path, SD_SRC_NAME[sd], country_code, city_name)
+  elif src_dir == 'hijack':
+    src_name = 'hijack'
+    src_dir = AUDIO_HIJACK_DIR
+    save_tag_files(src_dir, src_name, country_code, city_name)
   else:
     if len(sys.argv) != 6:
       logger.error(help_error)
