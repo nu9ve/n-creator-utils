@@ -20,7 +20,7 @@ elif platform == "win32":
   # Windows...
   print('windows')
 
-AUDIO_HIJACK_DIR = '/Users/nu9ve/Music/Audio Hijack/'
+AUDIO_HIJACK_DIR = '~/Music/Audio Hijack/'
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
