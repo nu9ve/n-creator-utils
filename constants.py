@@ -1,5 +1,6 @@
 from os.path import join as join_path
 from sys import platform
+import pathlib
 
 DEBUG = True
 # DEBUG = False
@@ -20,7 +21,9 @@ elif platform == "win32":
   # Windows...
   print('windows')
 
-AUDIO_HIJACK_DIR = '~/Music/Audio Hijack/'
+username = str(pathlib.Path().absolute()).split('/')[2]
+
+AUDIO_HIJACK_DIR = '/Users/{}/Music/Audio Hijack/'.format(username)
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
