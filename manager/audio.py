@@ -39,11 +39,14 @@ def get_audio_file_duration(file_path):
     file_duration_string += '{}'.format(ss)
   return duration, file_duration_string
 
-def get_audio_file_description(file_path):
+def get_audio_file_description(file_path, src_name):
   audio_data = dict()
   path_parts = file_path.split('/')
-  mic_file = path_parts[len(path_parts)-1]
-  mic_name = mic_file.split('.')[0].split('_')[1]
+  if src_name == 'hijack':
+    mic_name = ''
+  else:
+    mic_file = path_parts[len(path_parts)-1]
+    mic_name = mic_file.split('.')[0].split('_')[1]
   duration, duration_string = get_audio_file_duration(file_path)
   audio_data['duration'] = duration
   audio_data['duration_string'] = duration_string

@@ -1,12 +1,12 @@
 from os.path import join as join_path
 from sys import platform
 
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
-ROOT_DIR = '/Volumes/MEDIA500'
+ROOT_DIR = '/Volumes/MEDIA501'
 SD_ROOT_DIR = '/Volumes'
 ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
 
@@ -20,6 +20,7 @@ elif platform == "win32":
   # Windows...
   print('windows')
 
+AUDIO_HIJACK_DIR = '/Users/nu9ve/Music/Audio Hijack/'
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
@@ -30,13 +31,17 @@ FINAL_SCREENS_DIR = join_path(ROOT_DIR, 'screens')
 FINAL_SCREENR_DIR = join_path(ROOT_DIR, 'screens', 'recordings')
 FINAL_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordings')
 FINAL_LONG_RECORDINGS_DIR = join_path(ROOT_DIR, 'recordingslong')
+FINAL_HIJACK_DIR = join_path(ROOT_DIR, 'hijack')
+FINAL_LONG_HIJACK_DIR = join_path(ROOT_DIR, 'hijacklong')
 SSD_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordings')
 SSD_LONG_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordingslong')
+SSD_HIJACK_DIR = join_path(ROOT_RECORDINGS_DIR, 'hijack')
+SSD_LONG_HIJACK_DIR = join_path(ROOT_RECORDINGS_DIR, 'hijacklong')
 
 SD_SRC_NAME = {
   'EOS_DIGITAL': 'SL3',
   'GOPRO64': 'GOPRO4',
-  'DJI': 'MAVIC2',
+  'MAVIC200': 'MAVIC2',
   'H6_SD': 'H6'
 }
 
