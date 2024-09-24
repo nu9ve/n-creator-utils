@@ -1,5 +1,6 @@
 import subprocess
 import logging
+import re
 
 from constants import LOGGER_NAME
 
@@ -14,7 +15,14 @@ def get_video_length(filename):
                              "default=noprint_wrappers=1:nokey=1", filename],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT)
-    return float(result.stdout)
+    # strip result to remove leading and trailing whitespaces and newlines
+    clean_res = result.stdout.decode().strip()
+
+    duration_match = re.search(r'(\d+\.\d+)', clean_res)
+    if duration_match:
+        duration = float(duration_match.group(0))
+        return duration
+    return clean_res
 
 
 def get_video_file_duration(file_path):
@@ -22,12 +30,18 @@ def get_video_file_duration(file_path):
   mm = 0
   ss = 0
   file_duration_string = ''
-  if '.MP4' in file_path or '.mp4' in file_path:
+
+  if '.MOV' in file_path or '.mov' in file_path:
     duration = int(get_video_length(file_path))
     minutes = duration/60
     mm = int(minutes)
     ss = int((minutes - mm) * 60)
-  if '.MOV' in file_path or '.mov' in file_path:
+  if '.mp4' in file_path.lower():
+    duration = int(get_video_length(file_path))
+    minutes = duration/60
+    mm = int(minutes)
+    ss = int((minutes - mm) * 60)
+  if '.insv' in file_path.lower():
     duration = int(get_video_length(file_path))
     minutes = duration/60
     mm = int(minutes)

@@ -8,7 +8,8 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   FINAL_SCREENS_DIR, MONTH_NUMBER_STRINGS, SD_ROOT_DIR, FINAL_RECORDINGS_DIR,
   FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR,
   FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
-  FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR)
+  FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR,
+  FINAL_360_VID_DIR, FINAL_360_IMG_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -35,6 +36,7 @@ def get_file_description(file_path, src_name, video_file, image_file, audio_file
     file_data = {**file_data, **audio_data}
   file_data['date'] = ts
   file_data['time'] = tds
+  print(file_data)
   return file_data
 
 def complete_time_string(ts):
@@ -102,24 +104,32 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       delete_file = False
       video_file = False
       image_file = False
+      video_360_file = False
+      image_360_file = False
       audio_file = False
       corrupt_file = False
       source_path = join_path(r, media_file)
       media_file_parts = media_file.split('.')
       file_extension = media_file_parts[len(media_file_parts)-1].lower()
 
-      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension:
+      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension:
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
+      if 'insv' == file_extension or 'lrv' == file_extension:
+        video_360_file = True
+      if 'insp' == file_extension:
+        image_360_file = True
       if 'wav' == file_extension or 'mp3' == file_extension:
         audio_file = True
       if 'dat' == file_extension:
         corrupt_file = True
-      if 'lrv' == file_extension or 'thm' == file_extension or 'hprj' == file_extension:
+      # delete low res files
+      if 'thm' == file_extension or 'hprj' == file_extension or 'bmp' == file_extension or 'gyro' == file_extension or 'aae' == file_extension:
         delete_file = True
 
-      file_data = get_file_description(source_path, src_name, video_file, image_file, audio_file)
+      print(source_path)
+      file_data = get_file_description(source_path, src_name, video_file or video_360_file, image_file or image_360_file, audio_file)
       
       if 'GOP' in media_file[:3] or 'GP' in media_file[:3] or 'G0' in media_file[:2]:
         src_name = 'GOPRO'
@@ -166,6 +176,23 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
           final_dir = join_path(FINAL_SCREENR_DIR,file_data['year'],file_data['month'])
         if 'mavic2' in source_path.lower():
           final_dir = join_path(FINAL_DRON_DIR,file_data['year'],file_data['month'])
+        if not path_exists(final_dir): 
+          os.makedirs(final_dir)
+        final_path = join_path(final_dir, new_file_name)
+        move_file = True
+
+      if video_360_file:
+        new_file_name += '_{}'.format(file_data['duration_string'])
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
+        final_dir = join_path(FINAL_360_VID_DIR,file_data['year'],file_data['month'])
+        if not path_exists(final_dir): 
+          os.makedirs(final_dir)
+        final_path = join_path(final_dir, new_file_name)
+        move_file = True
+
+      if image_360_file:
+        new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
+        final_dir = join_path(FINAL_360_IMG_DIR,file_data['year'],file_data['month'])
         if not path_exists(final_dir): 
           os.makedirs(final_dir)
         final_path = join_path(final_dir, new_file_name)

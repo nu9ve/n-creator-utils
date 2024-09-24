@@ -6,7 +6,7 @@ from constants import LOGGER_NAME
 # from manager.audio import store_audio_files
 # from manager.video import store_video_files
 from manager.file import save_files
-from clipper.clipper import clipper
+from clipper.clipper_cli import clipper
 # from hardware.control import hardware_control
 
 if __name__ == "__main__":
@@ -19,7 +19,7 @@ if __name__ == "__main__":
   ch.setFormatter(formatter)
   logger.addHandler(ch)
   
-  if len(sys.argv) > 2:
+  if len(sys.argv) > 1 and sys.argv[1] in ['save', 'clip', 'control']:
     if sys.argv[1] == 'save':
       # all or /directory
       save_files()
@@ -34,6 +34,9 @@ if __name__ == "__main__":
       error = 'program not found \n\n\t\tnu9ve [program]\n\n\t\tsave\n\t\tclip\n\t\tcontrol\n\n'
       logger.error(error)
   else:
+
+
+
     error = 'Missing arguments \n\n\t\tnu9ve [program]\n\n\t\tsave\n\t\tclip\n\t\tcontrol\n\n'
     logger.error(error)
 
