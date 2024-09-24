@@ -3,7 +3,7 @@ from sys import platform
 import pathlib
 
 DEBUG = True
-# DEBUG = False
+DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
@@ -27,6 +27,8 @@ AUDIO_HIJACK_DIR = '/Users/{}/Music/Audio Hijack/'.format(username)
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
+FINAL_360_VID_DIR = join_path(ROOT_DIR, '360/videos')
+FINAL_360_IMG_DIR = join_path(ROOT_DIR, '360/images')
 FINAL_VIDEOS_DIR = join_path(ROOT_DIR, 'videos')
 FINAL_IMAGES_DIR = join_path(ROOT_DIR, 'images')
 FINAL_RAW_DIR = join_path(ROOT_DIR, 'rimages')
@@ -45,7 +47,8 @@ SD_SRC_NAME = {
   'EOS_DIGITAL': 'SL3',
   'GOPRO64': 'GOPRO4',
   'MAVIC200': 'MAVIC2',
-  'H6_SD': 'H6'
+  'H6_SD': 'H6',
+  'INSTA360': 'INSTA360',
 }
 
 
