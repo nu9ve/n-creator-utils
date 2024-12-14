@@ -2,6 +2,8 @@ import os, time, sys
 import shutil
 import logging
 from os.path import join as join_path, exists as path_exists
+import subprocess
+import re
 
 from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
@@ -9,7 +11,8 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   FINAL_LONG_RECORDINGS_DIR, SSD_RECORDINGS_DIR, SSD_LONG_RECORDINGS_DIR,
   FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
   FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR,
-  FINAL_360_VID_DIR, FINAL_360_IMG_DIR)
+  FINAL_360_VID_DIR, FINAL_360_IMG_DIR, AUDIO_SAMPLES_DIR, AUDIO_SPLITS_DIR, 
+  AUDIO_SONGS_DIR, TMP_VIDEO_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -116,7 +119,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
-      if 'insv' == file_extension or 'lrv' == file_extension:
+      if 'insv' == file_extension or 'lrv' == file_extension or 'thm' == file_extension:
         video_360_file = True
       if 'insp' == file_extension:
         image_360_file = True
@@ -125,7 +128,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       if 'dat' == file_extension:
         corrupt_file = True
       # delete low res files
-      if 'thm' == file_extension or 'hprj' == file_extension or 'bmp' == file_extension or 'gyro' == file_extension or 'aae' == file_extension:
+      if 'hprj' == file_extension or 'bmp' == file_extension or 'gyro' == file_extension or 'aae' == file_extension:
         delete_file = True
 
       print(source_path)
@@ -279,3 +282,239 @@ def save_files():
     src_name = sys.argv[5]
     save_tag_files(src_dir, src_name, country_code, city_name)
 
+
+def get_source_service(download_url):
+  service = ''
+  if 'youtube' in download_url or 'youtu.be' in download_url:
+    service = 'youtube'
+  elif 'soundcloud' in download_url:
+    service = 'soundcloud'
+  elif 'spotify' in download_url:
+    service = 'spotify'
+  elif 'bandcamp' in download_url:
+    service = 'bandcamp'
+  elif 'mixcloud' in download_url:
+    service = 'mixcloud'
+  elif 'vimeo' in download_url:
+    service = 'vimeo'
+  elif 'twitch' in download_url:
+    service = 'twitch'
+  elif 'facebook' in download_url:
+    service = 'facebook'
+  elif 'instagram' in download_url:
+    service = 'instagram'
+  elif 'twitter' in download_url or 't.co' in download_url or 'twimg' in download_url or 'x.co' in download_url:
+    service = 'x'
+  elif 'tiktok' in download_url:
+    service = 'tiktok'
+  return service
+
+def download_file(download_url, source_service, file_type):
+  # download file
+  # save to file_type
+  download_cmd = ''
+  logger.info(f"downloading {download_url} from {source_service} to {file_type}s")
+
+  if source_service == 'youtube':
+    # use yt-dlp to download
+    if file_type == 'song' or file_type == 'sample':
+      download_cmd = f'yt-dlp -x --audio-format mp3 {download_url}'
+    elif file_type == 'video':
+      download_cmd = f'yt-dlp -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4 {download_url}'
+    else:
+      logger.error(f"file type {file_type} not supported")
+  elif source_service == 'soundcloud':
+    # use scdl to download
+    download_cmd = f'scdl -l {download_url}'
+  elif source_service == 'spotify':
+    # use spotify-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'bandcamp':
+    # use bandcamp-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'mixcloud':
+    # use mixcloud-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'vimeo':
+    # use vimeo-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'twitch':
+    # use twitch-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'facebook':
+    # use facebook-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'instagram':
+    # use instagram-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'x':
+    # use x-dl to download
+    logger.info('missing, should implement')
+  elif source_service == 'tiktok':
+    # use tiktok-dl to download
+    logger.info('missing, should implement')
+  if not download_cmd:
+    return ""
+    # process = subprocess.Popen(cmd_list)
+    # print(process)
+    # # , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # process.wait()
+
+  cmd_list = download_cmd.split(' ')
+  # Run the command and capture the output
+  process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+  stdout, stderr = process.communicate()
+  file_name = ''
+  # print("return code:", process.returncode)
+  # print(stdout)
+  # print(stderr)
+  if process.returncode == 0:
+      # Parse the output to find the downloaded file name
+      for line in stderr.splitlines():
+          # if scdl
+          if "Downloaded" in line:  # Adjust based on scdl output format
+              file_name = line.split(" Downloaded.")[0]
+              file_name = re.sub(r'\x1b\[[0-9;]*[mGK]', '', file_name)
+              file_name = file_name.strip()
+              logger.info(f"Downloaded file: {file_name}")
+              break
+      for line in stdout.splitlines():
+          if "[ExtractAudio] Destination:" in line:
+              file_name = line.split("[ExtractAudio] Destination: ")[1]
+              file_name = re.sub(r'\x1b\[[0-9;]*[mGK]', '', file_name)
+              file_name = file_name.strip()
+              logger.info(f"Downloaded file: {file_name}")
+              break
+          if "[Merger] Merging formats into" in line:
+              # extract file_name from template
+              # [Merger] Merging formats into "{file_name}"
+              file_name = re.search(r'\"(.+?)\"', line).group(1)
+              break
+  else:
+      print(f"Error: {stderr}")
+  # get downloaded file name from cmd output
+  # print process output
+  # print(process.stdout.read())
+  return file_name
+
+def move_to_file_type_dir(file_type, file_name):
+  file_path = ''
+  src_path = file_name
+  if file_type == 'sample':
+    dest_path = join_path(AUDIO_SAMPLES_DIR, file_name)
+    logger.info(f"moving {src_path} to {dest_path}")
+    shutil.move(src_path, dest_path)
+  elif file_type == 'song':
+    dest_path = join_path(AUDIO_SONGS_DIR, file_name)
+    logger.info(f"moving {src_path} to {dest_path}")
+    shutil.move(src_path, dest_path)
+  elif file_type == 'video':
+    dest_path = join_path(TMP_VIDEO_DIR, file_name)
+    logger.info(f"moving {src_path} to {dest_path}")
+    shutil.move(src_path, dest_path)
+  return file_path
+
+# cmd line interface
+def downloader():
+  # nu9ve download [video|song|sample] [link]
+  #   [video|song|sample] - type of file to download
+
+  # get_external_storage
+  help_error = '''nu9ve download [video|song|sample] [link]\n\t
+        [video|song|sample] - type of file to download (where to save)\n\t
+        link - url to download'''
+
+  if len(sys.argv) != 4:
+    logger.error(help_error)
+    return
+
+  # check if necessary directories exist if not create
+  if not path_exists(AUDIO_SAMPLES_DIR):
+    os.makedirs(AUDIO_SAMPLES_DIR)
+  if not path_exists(AUDIO_SPLITS_DIR):
+    os.makedirs(AUDIO_SPLITS_DIR)
+  if not path_exists(AUDIO_SONGS_DIR):
+    os.makedirs(AUDIO_SONGS_DIR)
+  if not path_exists(TMP_VIDEO_DIR):
+    os.makedirs(TMP_VIDEO_DIR)
+
+  file_type = sys.argv[2]
+  download_url = sys.argv[3]
+
+  source_service = get_source_service(download_url)
+  
+  file_name = download_file(download_url, source_service, file_type)
+  
+  if not file_name:
+    logger.error(f"failed to download {download_url}")
+    return
+
+  move_to_file_type_dir(file_type, file_name)
+
+def split_file(file_path):
+  # run demucs on file via subprocess
+  cmd_list = ['demucs', file_path]
+  # Run the command and capture the output
+  process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+  stdout, stderr = process.communicate()
+  # print("return code:", process.returncode)
+  # print(stdout)
+  # print(stderr)
+  if process.returncode == 0:
+      # print(stdout)
+      logger.info(f"splitted file: {file_path}")
+  else:
+      print(f"Error: {stderr}")
+  
+def splitter():
+  help_error = '''nu9ve split [link]\n\t
+        [link] - file to split'''
+
+  if len(sys.argv) != 3:
+    logger.error(help_error)
+    return
+
+  if not path_exists(AUDIO_SPLITS_DIR):
+    os.makedirs(AUDIO_SPLITS_DIR)
+
+  file_url = sys.argv[2]
+
+  current_dir = os.getcwd()
+  os.chdir(AUDIO_SPLITS_DIR)
+
+  if 'http' not in file_url:
+    file_path = join_path(current_dir, file_url)
+  else:
+    source_service = get_source_service(file_url)
+    file_path = download_file(file_url, source_service, 'song')
+
+
+  # rename file to normalized name
+  file_path_split = file_path.split('/')
+  file_name = file_path_split[-1]
+  file_dir = file_path_split[:-1]
+  file_name = file_name.replace(' ', '')
+  # Only_Now_-_Eyes_of_Pain_[4be7e1cc4RI]
+  if '[' in file_name:
+    file_parts = file_name.split('[')
+    tmp_file_name = file_parts[0]
+  else:
+    tmp_file_name = file_name
+  tmp_file_name = tmp_file_name.replace(' ', '')
+  tmp_file_name = tmp_file_name.replace('_', '')
+  if '[' in file_name:
+    file_name = tmp_file_name + '[' + file_parts[1]
+  else:
+    file_name = tmp_file_name
+  normal_file_path = join_path("/".join(file_dir), file_name)
+  shutil.move(file_path, normal_file_path)
+  logger.info(f"renamed {file_path} to {normal_file_path}")
+  logger.info(f"splitting {normal_file_path}")
+
+  split_file(normal_file_path)
+
+  shutil.move(normal_file_path, join_path(AUDIO_SPLITS_DIR, 'splitted', file_name))
+
+  os.chdir(current_dir)  
+
+  
