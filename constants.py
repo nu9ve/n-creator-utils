@@ -1,5 +1,6 @@
 from os.path import join as join_path
 from sys import platform
+import datetime
 import pathlib
 
 DEBUG = True
@@ -23,7 +24,14 @@ elif platform == "win32":
 
 username = str(pathlib.Path().absolute()).split('/')[2]
 
+# get current year string
+CURRENT_YEAR = datetime.datetime.now().strftime('%Y')
+
 AUDIO_HIJACK_DIR = '/Users/{}/Music/Audio Hijack/'.format(username)
+AUDIO_SAMPLES_DIR = '/Users/{}/Music/01_produccion/samples/{}/raw/'.format(username, CURRENT_YEAR)
+AUDIO_SPLITS_DIR = '/Users/{}/Music/01_produccion/splits/'.format(username)
+AUDIO_SONGS_DIR = '/Users/{}/Music/02_mix/latest/'.format(username)
+TMP_VIDEO_DIR = '/Users/{}/data/projectIX/raw/'.format(username)
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
