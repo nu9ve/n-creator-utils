@@ -8,7 +8,7 @@ DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
-ROOT_DIR = '/Volumes/MEDIA501'
+ROOT_DIR = '/Volumes/MEDIA502/001_raw'
 SD_ROOT_DIR = '/Volumes'
 ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
 
@@ -53,6 +53,7 @@ SSD_LONG_HIJACK_DIR = join_path(ROOT_RECORDINGS_DIR, 'hijacklong')
 
 SD_SRC_NAME = {
   'EOS_DIGITAL': 'SL3',
+  'NIKON D3300': 'NIKON',
   'GOPRO64': 'GOPRO4',
   'MAVIC200': 'MAVIC2',
   'H6_SD': 'H6',
