@@ -115,7 +115,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       media_file_parts = media_file.split('.')
       file_extension = media_file_parts[len(media_file_parts)-1].lower()
 
-      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension:
+      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension or 'nef' == file_extension:
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
         video_file = True
@@ -158,7 +158,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         if 'screenshot' in source_path.lower() or 'screen shot' in source_path.lower():
           final_dir = join_path(FINAL_SCREENS_DIR,file_data['year'],file_data['month'])
-        elif'cr3' == file_extension or 'cr2' == file_extension:
+        elif'cr3' == file_extension or 'cr2' == file_extension or 'nef' == file_extension:
           final_dir = join_path(FINAL_RAW_DIR,file_data['year'],file_data['month'])
         else:
           final_dir = join_path(FINAL_IMAGES_DIR,file_data['year'],file_data['month'])
@@ -309,7 +309,7 @@ def get_source_service(download_url):
     service = 'tiktok'
   return service
 
-def download_file(download_url, source_service, file_type):
+def download_file(download_url, source_service, file_type, client_id='', auth_token=''):
   # download file
   # save to file_type
   download_cmd = ''
@@ -318,14 +318,16 @@ def download_file(download_url, source_service, file_type):
   if source_service == 'youtube':
     # use yt-dlp to download
     if file_type == 'song' or file_type == 'sample':
-      download_cmd = f'yt-dlp -x --audio-format mp3 {download_url}'
+      download_cmd = f'yt-dlp -x --audio-format mp3 {download_url} --cookies-from-browser BRAVE'
     elif file_type == 'video':
       download_cmd = f'yt-dlp -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4 {download_url}'
     else:
       logger.error(f"file type {file_type} not supported")
   elif source_service == 'soundcloud':
     # use scdl to download
-    download_cmd = f'scdl -l {download_url}'
+    client_id = 'sQHBwYwmzeqpmKktQSeKYpDpE1YsCSWl'
+    auth_token = '2-302616-6841298-jMTsUUMTCpWvycEd'
+    download_cmd = f'scdl -l {download_url} --client-id={client_id} --auth-token={auth_token}'
   elif source_service == 'spotify':
     # use spotify-dl to download
     logger.info('missing, should implement')
@@ -424,7 +426,7 @@ def downloader():
         [video|song|sample] - type of file to download (where to save)\n\t
         link - url to download'''
 
-  if len(sys.argv) != 4:
+  if len(sys.argv) < 4:
     logger.error(help_error)
     return
 
@@ -440,6 +442,9 @@ def downloader():
 
   file_type = sys.argv[2]
   download_url = sys.argv[3]
+  # set it or scrape it
+  # client_id = sys.argv[4]
+  # auth_token = sys.argv[5]
 
   source_service = get_source_service(download_url)
   
