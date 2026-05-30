@@ -8,7 +8,8 @@ DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
-ROOT_DIR = '/Volumes/MEDIA502/001_raw'
+DRIVE_NAME = 'MOMMA'
+ROOT_DIR = f'/Volumes/{DRIVE_NAME}/001_raw'
 SD_ROOT_DIR = '/Volumes'
 ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
 
