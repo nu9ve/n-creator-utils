@@ -39,6 +39,7 @@ FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
 FINAL_360_VID_DIR = join_path(ROOT_DIR, '360/videos')
 FINAL_360_IMG_DIR = join_path(ROOT_DIR, '360/images')
 FINAL_VIDEOS_DIR = join_path(ROOT_DIR, 'videos')
+FINAL_METADATA_DIR = join_path(ROOT_DIR, 'metadata')
 FINAL_IMAGES_DIR = join_path(ROOT_DIR, 'images')
 FINAL_RAW_DIR = join_path(ROOT_DIR, 'rimages')
 FINAL_SCREENS_DIR = join_path(ROOT_DIR, 'screens')
@@ -59,6 +60,7 @@ SD_SRC_NAME = {
   'MAVIC200': 'MAVIC2',
   'H6_SD': 'H6',
   'INSTA360': 'INSTA360',
+  'NO NAME': 'SONYA6400',
 }
 
 

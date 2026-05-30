@@ -4,6 +4,8 @@ import logging
 from os.path import join as join_path, exists as path_exists
 import subprocess
 import re
+import datetime
+import xml.etree.ElementTree as ET
 
 from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
@@ -12,12 +14,19 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
   FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR,
   FINAL_360_VID_DIR, FINAL_360_IMG_DIR, AUDIO_SAMPLES_DIR, AUDIO_SPLITS_DIR, 
-  AUDIO_SONGS_DIR, TMP_VIDEO_DIR)
+  AUDIO_SONGS_DIR, TMP_VIDEO_DIR, FINAL_METADATA_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
 
 logger = logging.getLogger(LOGGER_NAME)
+
+IGNORED_DIR_NAMES = {
+  '.fseventsd',
+  '.Spotlight-V100',
+  '.Trashes',
+  'System Volume Information',
+}
 
 def get_file_modified_time(file_path):
   # ['Wed', 'Apr', '20', '06:13:20', '2016']
@@ -27,9 +36,106 @@ def get_file_modified_time(file_path):
   tds = ts[3].split(':')
   return ts, tds
 
+def parse_datetime(value):
+  if not value:
+    return None
+  try:
+    clean_value = value.replace('Z', '+00:00')
+    return datetime.datetime.fromisoformat(clean_value)
+  except ValueError:
+    return None
+
+def get_sony_sidecar_path(file_path):
+  base_name = os.path.basename(file_path)
+  file_root, file_ext = os.path.splitext(base_name)
+  if file_ext.lower() != '.mp4':
+    return ''
+  sidecar_name = '{}M01.XML'.format(file_root)
+  sidecar_path = join_path(os.path.dirname(file_path), sidecar_name)
+  if path_exists(sidecar_path):
+    return sidecar_path
+  return ''
+
+def parse_sony_xml_metadata(xml_path):
+  metadata = {}
+  if not xml_path or not path_exists(xml_path):
+    return metadata
+  try:
+    root = ET.parse(xml_path).getroot()
+  except ET.ParseError as error:
+    logger.warning('could not parse Sony XML {}: {}'.format(xml_path, error))
+    return metadata
+
+  def find_first(local_name):
+    for element in root.iter():
+      if element.tag.split('}')[-1] == local_name:
+        return element
+    return None
+
+  creation_date = find_first('CreationDate')
+  if creation_date is not None:
+    metadata['creation_datetime'] = parse_datetime(creation_date.attrib.get('value'))
+
+  video_frame = find_first('VideoFrame')
+  if video_frame is not None:
+    metadata['video_codec'] = video_frame.attrib.get('videoCodec', '')
+    metadata['capture_fps'] = video_frame.attrib.get('captureFps', '')
+    metadata['format_fps'] = video_frame.attrib.get('formatFps', '')
+
+  video_layout = find_first('VideoLayout')
+  if video_layout is not None:
+    metadata['width'] = video_layout.attrib.get('pixel', '')
+    metadata['height'] = video_layout.attrib.get('numOfVerticalLine', '')
+
+  device = find_first('Device')
+  if device is not None:
+    metadata['manufacturer'] = device.attrib.get('manufacturer', '')
+    metadata['model'] = device.attrib.get('modelName', '')
+
+  return metadata
+
+def get_video_creation_datetime(file_path):
+  try:
+    result = subprocess.run([
+      'ffprobe', '-v', 'error',
+      '-show_entries', 'format_tags=creation_time',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      file_path,
+    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+  except FileNotFoundError:
+    return None
+  if result.returncode != 0:
+    return None
+  return parse_datetime(result.stdout.strip())
+
+def datetime_to_file_time(media_datetime):
+  month = media_datetime.strftime('%b')
+  return (
+    [media_datetime.strftime('%a'), month, str(media_datetime.day), media_datetime.strftime('%H:%M:%S'), str(media_datetime.year)],
+    [media_datetime.strftime('%H'), media_datetime.strftime('%M'), media_datetime.strftime('%S')],
+  )
+
+def get_media_creation_datetime(file_path, video_file):
+  if video_file:
+    sony_metadata = parse_sony_xml_metadata(get_sony_sidecar_path(file_path))
+    if sony_metadata.get('creation_datetime'):
+      return sony_metadata['creation_datetime'], sony_metadata
+    video_datetime = get_video_creation_datetime(file_path)
+    if video_datetime:
+      local_datetime = video_datetime.astimezone() if video_datetime.tzinfo else video_datetime
+      return local_datetime, sony_metadata
+    return None, sony_metadata
+  return None, {}
+
 def get_file_description(file_path, src_name, video_file, image_file, audio_file):
   file_data = dict()
-  ts, tds = get_file_modified_time(file_path)
+  media_datetime, media_metadata = get_media_creation_datetime(file_path, video_file)
+  if media_datetime:
+    ts, tds = datetime_to_file_time(media_datetime)
+    file_data['media_datetime'] = media_datetime
+  else:
+    ts, tds = get_file_modified_time(file_path)
+  file_data['media_metadata'] = media_metadata
   if video_file:
     duration, file_duration_string = get_video_file_duration(file_path)
     file_data['duration'] = duration
@@ -39,8 +145,108 @@ def get_file_description(file_path, src_name, video_file, image_file, audio_file
     file_data = {**file_data, **audio_data}
   file_data['date'] = ts
   file_data['time'] = tds
-  print(file_data)
   return file_data
+
+def date_string_from_file_data(file_data):
+  return '{}{}{}-{}{}{}'.format(
+    file_data['date'][4][-2:],
+    file_data['date'][1].upper(),
+    file_data['date'][2].zfill(2),
+    file_data['time'][0],
+    file_data['time'][1],
+    file_data['time'][2],
+  )
+
+def format_setfile_datetime(media_datetime):
+  return media_datetime.strftime('%m/%d/%Y %H:%M:%S')
+
+def set_file_dates(file_path, file_data=None, source_path=None):
+  if file_data and file_data.get('media_datetime'):
+    timestamp = file_data['media_datetime'].timestamp()
+    os.utime(file_path, (timestamp, timestamp))
+    setfile_date = format_setfile_datetime(file_data['media_datetime'])
+  elif source_path:
+    shutil.copystat(source_path, file_path)
+    try:
+      birth_timestamp = os.stat(source_path).st_birthtime
+      birth_datetime = datetime.datetime.fromtimestamp(birth_timestamp)
+      setfile_date = format_setfile_datetime(birth_datetime)
+    except AttributeError:
+      setfile_date = ''
+  else:
+    setfile_date = ''
+
+  if setfile_date and shutil.which('SetFile'):
+    subprocess.run(['SetFile', '-d', setfile_date, file_path], check=False)
+
+def unique_destination_path(final_path):
+  if not path_exists(final_path):
+    return final_path
+  file_dir = os.path.dirname(final_path)
+  file_name = os.path.basename(final_path)
+  file_root, file_ext = os.path.splitext(file_name)
+  counter = 2
+  while True:
+    candidate = join_path(file_dir, '{}-{:02d}{}'.format(file_root, counter, file_ext))
+    if not path_exists(candidate):
+      return candidate
+    counter += 1
+
+def move_preserving_metadata(source_path, final_path, file_data=None):
+  final_path = unique_destination_path(final_path)
+  shutil.copy2(source_path, final_path)
+  set_file_dates(final_path, file_data, source_path)
+  os.remove(source_path)
+  return final_path
+
+def copy_preserving_metadata(source_path, final_path, file_data=None):
+  final_path = unique_destination_path(final_path)
+  shutil.copy2(source_path, final_path)
+  set_file_dates(final_path, file_data, source_path)
+  return final_path
+
+def save_sony_sidecar(source_path, final_path, file_data, remove_source=True):
+  sidecar_path = get_sony_sidecar_path(source_path)
+  if not sidecar_path:
+    return
+  sidecar_dir = join_path(FINAL_METADATA_DIR, 'sony', file_data['year'], file_data['month'])
+  if not path_exists(sidecar_dir):
+    os.makedirs(sidecar_dir)
+  sidecar_dest = join_path(sidecar_dir, os.path.splitext(os.path.basename(final_path))[0] + '.XML')
+  sidecar_dest = unique_destination_path(sidecar_dest)
+  shutil.copy2(sidecar_path, sidecar_dest)
+  set_file_dates(sidecar_dest, file_data, sidecar_path)
+  if remove_source:
+    os.remove(sidecar_path)
+
+def is_sony_m4root_clip(source_path):
+  normalized_path = source_path.replace(os.sep, '/').lower()
+  return '/private/m4root/clip/' in normalized_path
+
+def is_sony_avchd_stream(source_path):
+  normalized_path = source_path.replace(os.sep, '/').lower()
+  return '/private/avchd/bdmv/stream/' in normalized_path
+
+def is_sony_camera_support_file(source_path, media_file):
+  normalized_path = source_path.replace(os.sep, '/').lower()
+  file_extension = media_file.split('.')[-1].lower()
+  if '/avf_info/' in normalized_path:
+    return True
+  if '/private/m4root/thmbnl/' in normalized_path:
+    return True
+  if normalized_path.endswith('/private/m4root/mediapro.xml'):
+    return True
+  if normalized_path.endswith('/private/m4root/status.bin'):
+    return True
+  if '/private/avchd/bdmv/' in normalized_path and file_extension in {'bdm', 'cpi', 'mpl'}:
+    return True
+  return False
+
+def is_ignored_dir(dir_path):
+  return os.path.basename(dir_path) in IGNORED_DIR_NAMES
+
+def should_preserve_source_after_save(effective_src_name):
+  return effective_src_name.upper() == 'SONYA6400'
 
 def complete_time_string(ts):
   time_string = str(ts)
@@ -101,7 +307,9 @@ def update_file_time(ts, tds):
 
 def save_tag_files(src_dir, src_name, country_code, city_name):
   for r, ds, fs in os.walk(src_dir):
+    ds[:] = [d for d in ds if not is_ignored_dir(join_path(r, d))]
     for media_file in fs:
+      effective_src_name = src_name
       copy_file = False
       move_file = False
       delete_file = False
@@ -115,9 +323,13 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       media_file_parts = media_file.split('.')
       file_extension = media_file_parts[len(media_file_parts)-1].lower()
 
+      if is_sony_camera_support_file(source_path, media_file):
+        logger.info('leaving camera support file: {}\n'.format(source_path))
+        continue
+
       if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension or 'nef' == file_extension:
         image_file = True
-      if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension:
+      if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension or 'mts' == file_extension:
         video_file = True
       if 'insv' == file_extension or 'lrv' == file_extension or 'thm' == file_extension:
         video_360_file = True
@@ -131,20 +343,30 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       if 'hprj' == file_extension or 'bmp' == file_extension or 'gyro' == file_extension or 'aae' == file_extension:
         delete_file = True
 
-      print(source_path)
+      if not path_exists(source_path):
+        continue
+      if delete_file:
+        logger.info('deleting: {}\n'.format(source_path))
+        os.remove(source_path)
+        continue
+
       file_data = get_file_description(source_path, src_name, video_file or video_360_file, image_file or image_360_file, audio_file)
       
       if 'GOP' in media_file[:3] or 'GP' in media_file[:3] or 'G0' in media_file[:2]:
-        src_name = 'GOPRO'
+        effective_src_name = 'GOPRO'
         if int(file_data['date'][4]) < 2018:
           file_data['date'], file_data['time'] = update_file_time(file_data['date'], file_data['time'])
+      if is_sony_m4root_clip(source_path) and video_file:
+        effective_src_name = 'SONYA6400'
+      if is_sony_avchd_stream(source_path) and video_file:
+        effective_src_name = 'SONYA6400'
       
       file_data['day'] = file_data['date'][2]
       file_data['month'] = MONTH_STRING_NUMBERS[file_data['date'][1]]
       file_data['year'] = file_data['date'][4]
 
-      file_date_string = '{}{}{}-{}{}{}'.format(file_data['date'][4][-2:],file_data['date'][1].upper(),file_data['date'][2],file_data['time'][0],file_data['time'][1],file_data['time'][2])
-      new_file_name = '{}_{}'.format(file_date_string, src_name.upper())
+      file_date_string = date_string_from_file_data(file_data)
+      new_file_name = '{}_{}'.format(file_date_string, effective_src_name.upper())
 
       if corrupt_file:
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
@@ -229,13 +451,18 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       logger.info('source: {}'.format(source_path))
       if copy_file:
         logger.info('copying to: {}'.format(backup_path))
-        shutil.copyfile(source_path, backup_path)
+        shutil.copy2(source_path, backup_path)
+        set_file_dates(backup_path, file_data, source_path)
       if move_file:
-        logger.info('moving to: {}\n'.format(final_path))
-        shutil.move(source_path, final_path)
-      if delete_file:
-        logger.info('deleting: {}\n'.format(source_path))
-        os.remove(source_path)
+        preserve_source = should_preserve_source_after_save(effective_src_name)
+        if preserve_source:
+          logger.info('copying to: {}\n'.format(final_path))
+          final_path = copy_preserving_metadata(source_path, final_path, file_data)
+        else:
+          logger.info('moving to: {}\n'.format(final_path))
+          final_path = move_preserving_metadata(source_path, final_path, file_data)
+        if is_sony_m4root_clip(source_path) and video_file:
+          save_sony_sidecar(source_path, final_path, file_data, remove_source=not preserve_source)
       if not delete_file and not move_file:
         logger.info('no action: {}\n'.format(source_path))
 
@@ -520,6 +747,4 @@ def splitter():
 
   shutil.move(normal_file_path, join_path(AUDIO_SPLITS_DIR, 'splitted', file_name))
 
-  os.chdir(current_dir)  
-
-  
+  os.chdir(current_dir)
