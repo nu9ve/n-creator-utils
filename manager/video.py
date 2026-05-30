@@ -41,6 +41,11 @@ def get_video_file_duration(file_path):
     minutes = duration/60
     mm = int(minutes)
     ss = int((minutes - mm) * 60)
+  if '.mts' in file_path.lower():
+    duration = int(get_video_length(file_path))
+    minutes = duration/60
+    mm = int(minutes)
+    ss = int((minutes - mm) * 60)
   if '.insv' in file_path.lower():
     duration = int(get_video_length(file_path))
     minutes = duration/60
@@ -73,5 +78,4 @@ def is_4k(file_path):
   if int(v_w) > 2000 or int(v_h) > 2000:
     is4k = True
   return is4k
-
 
