@@ -8,7 +8,7 @@ DEBUG = False
 
 LOGGER_NAME = 'nu9ve'
 
-DRIVE_NAME = 'MOMMA'
+DRIVE_NAME = 'MEDIA502'
 ROOT_DIR = f'/Volumes/{DRIVE_NAME}/001_raw'
 SD_ROOT_DIR = '/Volumes'
 ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
@@ -38,6 +38,7 @@ FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
 FINAL_360_VID_DIR = join_path(ROOT_DIR, '360/videos')
 FINAL_360_IMG_DIR = join_path(ROOT_DIR, '360/images')
+FINAL_INSTA360_DIR = join_path(ROOT_DIR, 'insta360')
 FINAL_VIDEOS_DIR = join_path(ROOT_DIR, 'videos')
 FINAL_METADATA_DIR = join_path(ROOT_DIR, 'metadata')
 FINAL_IMAGES_DIR = join_path(ROOT_DIR, 'images')
@@ -60,6 +61,7 @@ SD_SRC_NAME = {
   'MAVIC200': 'MAVIC2',
   'H6_SD': 'H6',
   'INSTA360': 'INSTA360',
+  'Untitled': 'AUTO',
   'NO NAME': 'SONYA6400',
 }
 

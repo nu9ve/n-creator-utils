@@ -6,6 +6,7 @@ import subprocess
 import re
 import datetime
 import xml.etree.ElementTree as ET
+import json
 
 from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
@@ -14,7 +15,7 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
   FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR,
   FINAL_360_VID_DIR, FINAL_360_IMG_DIR, AUDIO_SAMPLES_DIR, AUDIO_SPLITS_DIR, 
-  AUDIO_SONGS_DIR, TMP_VIDEO_DIR, FINAL_METADATA_DIR)
+  AUDIO_SONGS_DIR, TMP_VIDEO_DIR, FINAL_METADATA_DIR, FINAL_INSTA360_DIR)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -27,6 +28,21 @@ IGNORED_DIR_NAMES = {
   '.Trashes',
   'System Volume Information',
 }
+
+INSTA360_EXTENSIONS = {'insv', 'lrv', 'thm', 'insp'}
+AUTO_SRC_NAME = 'AUTO'
+SONY_SUPPORT_PATHS = [
+  ('AVF_INFO',),
+  ('PRIVATE', 'M4ROOT', 'THMBNL'),
+  ('PRIVATE', 'M4ROOT', 'SUB'),
+  ('PRIVATE', 'M4ROOT', 'GENERAL'),
+  ('PRIVATE', 'M4ROOT', 'MEDIAPRO.XML'),
+  ('PRIVATE', 'M4ROOT', 'STATUS.BIN'),
+  ('PRIVATE', 'AVCHD', 'BDMV', 'INDEX.BDM'),
+  ('PRIVATE', 'AVCHD', 'BDMV', 'MOVIEOBJ.BDM'),
+  ('PRIVATE', 'AVCHD', 'BDMV', 'PLAYLIST'),
+  ('PRIVATE', 'AVCHD', 'BDMV', 'CLIPINF'),
+]
 
 def get_file_modified_time(file_path):
   # ['Wed', 'Apr', '20', '06:13:20', '2016']
@@ -166,7 +182,12 @@ def set_file_dates(file_path, file_data=None, source_path=None):
     os.utime(file_path, (timestamp, timestamp))
     setfile_date = format_setfile_datetime(file_data['media_datetime'])
   elif source_path:
-    shutil.copystat(source_path, file_path)
+    try:
+      shutil.copystat(source_path, file_path)
+    except PermissionError as error:
+      logger.warning('could not copy full file flags from {} to {}: {}'.format(source_path, file_path, error))
+      source_stat = os.stat(source_path)
+      os.utime(file_path, (source_stat.st_atime, source_stat.st_mtime))
     try:
       birth_timestamp = os.stat(source_path).st_birthtime
       birth_datetime = datetime.datetime.fromtimestamp(birth_timestamp)
@@ -205,6 +226,15 @@ def copy_preserving_metadata(source_path, final_path, file_data=None):
   set_file_dates(final_path, file_data, source_path)
   return final_path
 
+def move_exact_preserving_metadata(source_path, final_path):
+  shutil.copyfile(source_path, final_path)
+  set_file_dates(final_path, None, source_path)
+  try:
+    os.remove(source_path)
+  except PermissionError as error:
+    logger.warning('could not remove source after copy {}: {}'.format(source_path, error))
+  return final_path
+
 def save_sony_sidecar(source_path, final_path, file_data, remove_source=True):
   sidecar_path = get_sony_sidecar_path(source_path)
   if not sidecar_path:
@@ -227,6 +257,15 @@ def is_sony_avchd_stream(source_path):
   normalized_path = source_path.replace(os.sep, '/').lower()
   return '/private/avchd/bdmv/stream/' in normalized_path
 
+def has_sony_camera_structure(src_dir):
+  sony_paths = [
+    join_path(src_dir, 'PRIVATE', 'M4ROOT', 'CLIP'),
+    join_path(src_dir, 'PRIVATE', 'M4ROOT', 'THMBNL'),
+    join_path(src_dir, 'PRIVATE', 'AVCHD', 'BDMV', 'STREAM'),
+    join_path(src_dir, 'AVF_INFO'),
+  ]
+  return any(path_exists(sony_path) for sony_path in sony_paths)
+
 def is_sony_camera_support_file(source_path, media_file):
   normalized_path = source_path.replace(os.sep, '/').lower()
   file_extension = media_file.split('.')[-1].lower()
@@ -246,7 +285,220 @@ def is_ignored_dir(dir_path):
   return os.path.basename(dir_path) in IGNORED_DIR_NAMES
 
 def should_preserve_source_after_save(effective_src_name):
-  return effective_src_name.upper() == 'SONYA6400'
+  return False
+
+def is_insta360_source(src_name):
+  return src_name.upper() == 'INSTA360'
+
+def is_auto_source(src_name):
+  return src_name.upper() == AUTO_SRC_NAME
+
+def get_file_extension(file_path):
+  return os.path.splitext(file_path)[1].lower().lstrip('.')
+
+def sanitize_path_tag(value):
+  clean_value = re.sub(r'[^A-Za-z0-9]+', '-', value.strip().upper()).strip('-')
+  return clean_value or 'UNTAGGED'
+
+def iter_importable_files(src_dir):
+  for root, dirs, files in os.walk(src_dir):
+    dirs[:] = [d for d in dirs if not is_ignored_dir(join_path(root, d))]
+    for file_name in files:
+      yield join_path(root, file_name)
+
+def get_insta360_import_datetime(src_dir):
+  media_times = []
+  for source_path in sorted(iter_importable_files(src_dir)):
+    if get_file_extension(source_path) in INSTA360_EXTENSIONS:
+      media_times.append(os.path.getmtime(source_path))
+  if media_times:
+    return datetime.datetime.fromtimestamp(min(media_times))
+  return datetime.datetime.now()
+
+def has_insta360_media(src_dir):
+  for source_path in iter_importable_files(src_dir):
+    if get_file_extension(source_path) in INSTA360_EXTENSIONS:
+      return True
+  return False
+
+def has_insta360_camera_structure(src_dir):
+  insta360_paths = [
+    join_path(src_dir, 'DCIM', 'fileinfo_list.list'),
+  ]
+  return any(path_exists(insta360_path) for insta360_path in insta360_paths) or has_insta360_media(src_dir)
+
+def detect_sd_source_name(src_dir):
+  if has_sony_camera_structure(src_dir):
+    return 'SONYA6400'
+  if has_insta360_camera_structure(src_dir):
+    return 'INSTA360'
+  return ''
+
+def resolve_src_name(src_dir, configured_src_name):
+  detected_src_name = detect_sd_source_name(src_dir)
+  if detected_src_name:
+    if not is_auto_source(configured_src_name) and configured_src_name.upper() != detected_src_name:
+      logger.info('detected {} for {}; overriding configured {}'.format(detected_src_name, src_dir, configured_src_name))
+    return detected_src_name
+  if is_auto_source(configured_src_name):
+    logger.info('skipping {}: could not auto-detect camera profile\n'.format(src_dir))
+    return ''
+  return configured_src_name
+
+def build_insta360_import_dir(src_dir, country_code, city_name, src_name):
+  import_datetime = get_insta360_import_datetime(src_dir)
+  import_root = join_path(
+    FINAL_INSTA360_DIR,
+    import_datetime.strftime('%Y'),
+    import_datetime.strftime('%m'),
+  )
+  folder_name = '{}_{}-{}_{}'.format(
+    import_datetime.strftime('%d%m-%H%M%S'),
+    sanitize_path_tag(country_code),
+    sanitize_path_tag(city_name),
+    sanitize_path_tag(src_name),
+  )
+  return unique_destination_path(join_path(import_root, folder_name)), import_datetime
+
+def save_insta360_bundle(src_dir, src_name, country_code, city_name):
+  if not has_insta360_media(src_dir):
+    logger.info('no Insta360 media found in: {}\n'.format(src_dir))
+    return
+
+  final_dir, import_datetime = build_insta360_import_dir(src_dir, country_code, city_name, src_name)
+  logger.info('moving Insta360 bundle to: {}'.format(final_dir))
+  os.makedirs(final_dir)
+
+  manifest = {
+    'source_dir': src_dir,
+    'source_name': src_name,
+    'country': country_code,
+    'city': city_name,
+    'imported_at': datetime.datetime.now().isoformat(timespec='seconds'),
+    'media_date': import_datetime.isoformat(timespec='seconds'),
+    'files': [],
+  }
+
+  for source_path in sorted(iter_importable_files(src_dir)):
+    relative_path = os.path.relpath(source_path, src_dir)
+    final_path = join_path(final_dir, relative_path)
+    final_parent = os.path.dirname(final_path)
+    if not path_exists(final_parent):
+      os.makedirs(final_parent)
+    file_record = {
+      'source': source_path,
+      'relative_path': relative_path,
+      'size': os.path.getsize(source_path),
+      'extension': get_file_extension(source_path),
+    }
+    move_exact_preserving_metadata(source_path, final_path)
+    file_record['destination'] = final_path
+    manifest['files'].append(file_record)
+
+  manifest_path = join_path(final_dir, 'manifest.json')
+  with open(manifest_path, 'w') as manifest_file:
+    json.dump(manifest, manifest_file, indent=2, sort_keys=True)
+    manifest_file.write('\n')
+
+  logger.info('moved {} files to: {}\n'.format(len(manifest['files']), final_dir))
+
+def remove_empty_dirs(dir_path):
+  for root, dirs, files in os.walk(dir_path, topdown=False):
+    if root == dir_path:
+      continue
+    if files:
+      continue
+    try:
+      os.rmdir(root)
+    except OSError:
+      pass
+
+def build_sony_support_dir(file_data, country_code, city_name):
+  support_root = join_path(
+    FINAL_METADATA_DIR,
+    'sony',
+    'support',
+    file_data['year'],
+    file_data['month'],
+  )
+  folder_name = '{}_{}-{}_SONYA6400'.format(
+    '{}{}-{}{}{}'.format(
+      file_data['day'].zfill(2),
+      file_data['month'],
+      file_data['time'][0],
+      file_data['time'][1],
+      file_data['time'][2],
+    ),
+    sanitize_path_tag(country_code),
+    sanitize_path_tag(city_name),
+  )
+  return unique_destination_path(join_path(support_root, folder_name))
+
+def archive_path_contents(source_path, source_root, final_root, manifest):
+  if os.path.isfile(source_path):
+    relative_path = os.path.relpath(source_path, source_root)
+    final_path = join_path(final_root, relative_path)
+    final_parent = os.path.dirname(final_path)
+    if not path_exists(final_parent):
+      os.makedirs(final_parent)
+    file_record = {
+      'source': source_path,
+      'relative_path': relative_path,
+      'size': os.path.getsize(source_path),
+      'extension': get_file_extension(source_path),
+    }
+    move_exact_preserving_metadata(source_path, final_path)
+    file_record['destination'] = final_path
+    manifest['files'].append(file_record)
+    return
+
+  for root, dirs, files in os.walk(source_path):
+    dirs[:] = [d for d in dirs if not is_ignored_dir(join_path(root, d))]
+    for file_name in sorted(files):
+      child_path = join_path(root, file_name)
+      relative_path = os.path.relpath(child_path, source_root)
+      final_path = join_path(final_root, relative_path)
+      final_parent = os.path.dirname(final_path)
+      if not path_exists(final_parent):
+        os.makedirs(final_parent)
+      file_record = {
+        'source': child_path,
+        'relative_path': relative_path,
+        'size': os.path.getsize(child_path),
+        'extension': get_file_extension(child_path),
+      }
+      move_exact_preserving_metadata(child_path, final_path)
+      file_record['destination'] = final_path
+      manifest['files'].append(file_record)
+
+def archive_sony_support_files(src_dir, file_data, country_code, city_name):
+  final_dir = build_sony_support_dir(file_data, country_code, city_name)
+  manifest = {
+    'source_dir': src_dir,
+    'source_name': 'SONYA6400',
+    'country': country_code,
+    'city': city_name,
+    'archived_at': datetime.datetime.now().isoformat(timespec='seconds'),
+    'media_date': file_data.get('media_datetime', '').isoformat(timespec='seconds') if file_data.get('media_datetime') else '',
+    'files': [],
+  }
+
+  for relative_parts in SONY_SUPPORT_PATHS:
+    source_path = join_path(src_dir, *relative_parts)
+    if path_exists(source_path):
+      if not path_exists(final_dir):
+        os.makedirs(final_dir)
+      archive_path_contents(source_path, src_dir, final_dir, manifest)
+
+  if not manifest['files']:
+    return
+
+  manifest_path = join_path(final_dir, 'manifest.json')
+  with open(manifest_path, 'w') as manifest_file:
+    json.dump(manifest, manifest_file, indent=2, sort_keys=True)
+    manifest_file.write('\n')
+
+  logger.info('archived {} Sony support files to: {}\n'.format(len(manifest['files']), final_dir))
 
 def complete_time_string(ts):
   time_string = str(ts)
@@ -306,6 +558,13 @@ def update_file_time(ts, tds):
   return ts, tds
 
 def save_tag_files(src_dir, src_name, country_code, city_name):
+  if is_insta360_source(src_name):
+    save_insta360_bundle(src_dir, src_name, country_code, city_name)
+    return
+
+  sony_moved_count = 0
+  sony_file_data = None
+
   for r, ds, fs in os.walk(src_dir):
     ds[:] = [d for d in ds if not is_ignored_dir(join_path(r, d))]
     for media_file in fs:
@@ -327,7 +586,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         logger.info('leaving camera support file: {}\n'.format(source_path))
         continue
 
-      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension or 'nef' == file_extension:
+      if 'png' == file_extension or 'jpg' == file_extension or 'jpeg' == file_extension or 'cr3' == file_extension or 'cr2' == file_extension or 'dng' == file_extension or 'heic' == file_extension or 'gif' == file_extension or 'nef' == file_extension or 'arw' == file_extension:
         image_file = True
       if 'mov' == file_extension or 'mp4' == file_extension or 'mpg' == file_extension or 'mts' == file_extension:
         video_file = True
@@ -380,7 +639,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         if 'screenshot' in source_path.lower() or 'screen shot' in source_path.lower():
           final_dir = join_path(FINAL_SCREENS_DIR,file_data['year'],file_data['month'])
-        elif'cr3' == file_extension or 'cr2' == file_extension or 'nef' == file_extension:
+        elif'cr3' == file_extension or 'cr2' == file_extension or 'nef' == file_extension or 'arw' == file_extension:
           final_dir = join_path(FINAL_RAW_DIR,file_data['year'],file_data['month'])
         else:
           final_dir = join_path(FINAL_IMAGES_DIR,file_data['year'],file_data['month'])
@@ -461,10 +720,16 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         else:
           logger.info('moving to: {}\n'.format(final_path))
           final_path = move_preserving_metadata(source_path, final_path, file_data)
+          if effective_src_name.upper() == 'SONYA6400':
+            sony_moved_count += 1
+            sony_file_data = file_data
         if is_sony_m4root_clip(source_path) and video_file:
           save_sony_sidecar(source_path, final_path, file_data, remove_source=not preserve_source)
       if not delete_file and not move_file:
         logger.info('no action: {}\n'.format(source_path))
+
+  if src_name.upper() == 'SONYA6400' and sony_moved_count > 0 and sony_file_data:
+    archive_sony_support_files(src_dir, sony_file_data, country_code, city_name)
 
 
 # cmd line interface
@@ -495,8 +760,11 @@ def save_files():
     for sd in SD_SRC_NAME:
       src_path = join_path(SD_ROOT_DIR, sd)
       if path_exists(src_path):
-        logger.info('{} found. Saving...'.format(src_path))
-        save_tag_files(src_path, SD_SRC_NAME[sd], country_code, city_name)
+        src_name = resolve_src_name(src_path, SD_SRC_NAME[sd])
+        if not src_name:
+          continue
+        logger.info('{} found as {}. Saving...'.format(src_path, src_name))
+        save_tag_files(src_path, src_name, country_code, city_name)
   elif src_dir == 'hijack':
     src_name = 'hijack'
     src_dir = AUDIO_HIJACK_DIR
@@ -507,6 +775,10 @@ def save_files():
       return
 
     src_name = sys.argv[5]
+    if is_auto_source(src_name):
+      src_name = resolve_src_name(src_dir, src_name)
+      if not src_name:
+        return
     save_tag_files(src_dir, src_name, country_code, city_name)
 
 
