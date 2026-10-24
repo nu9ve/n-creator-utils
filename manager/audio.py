@@ -3,6 +3,8 @@ import wave
 import subprocess
 import contextlib
 import shutil
+from pathlib import Path
+import math
 
 from constants import MONTH_STRING_NUMBERS
 
@@ -15,7 +17,7 @@ def get_audio_file_duration(file_path):
   mm = 0
   ss = 0
   file_duration_string = ''
-  if '.WAV' in file_path:
+  if Path(file_path).suffix.lower() == '.wav':
     with contextlib.closing(wave.open(file_path,'r')) as f:
       frames = f.getnframes()
       rate = f.getframerate()
@@ -23,6 +25,17 @@ def get_audio_file_duration(file_path):
       minutes = duration/60
       mm = int(minutes)
       ss = int((minutes - mm) * 60)
+  elif Path(file_path).suffix.lower() == '.mp3':
+    result = subprocess.run([
+      'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+      '-of', 'default=noprint_wrappers=1:nokey=1', str(file_path),
+    ], capture_output=True, text=True)
+    if result.returncode:
+      raise ValueError('ffprobe could not read audio: {}'.format(file_path))
+    duration = float(result.stdout.strip())
+    if not math.isfinite(duration) or duration < 0:
+      raise ValueError('Invalid audio duration: {}'.format(file_path))
+    mm, ss = divmod(int(duration), 60)
   if duration == -1:
     return duration, '00-00'
   if mm == 0:
@@ -41,12 +54,12 @@ def get_audio_file_duration(file_path):
 
 def get_audio_file_description(file_path, src_name):
   audio_data = dict()
-  path_parts = file_path.split('/')
   if src_name == 'hijack':
     mic_name = ''
   else:
-    mic_file = path_parts[len(path_parts)-1]
-    mic_name = mic_file.split('.')[0].split('_')[1]
+    mic_file = Path(file_path).name
+    parts = mic_file.split('.')[0].split('_')
+    mic_name = parts[1] if len(parts) > 1 else ''
   duration, duration_string = get_audio_file_duration(file_path)
   audio_data['duration'] = duration
   audio_data['duration_string'] = duration_string

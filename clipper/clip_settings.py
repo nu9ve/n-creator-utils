@@ -1,158 +1,128 @@
-import sys
-import json
-import logging
-import os
-import copy
-from os.path import exists as path_exists, join as join_path
-from inspect import getmembers, isfunction
-import subprocess
-import pathlib
-import argparse
-import datetime as dt
+"""Read clip jobs without loading cloud clients or rendering media."""
 
+import copy
+import json
+import math
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 
 def time_component_str(t):
-	if t < 10:
-		return '0'+str(t)
-	return str(t)
+    return str(t).zfill(2)
+
+
+def timestamp_seconds(value):
+    try:
+        parts = str(value).split(':')
+        if len(parts) == 1:
+            seconds = Decimal(parts[0])
+        elif len(parts) == 3:
+            hours, minutes = int(parts[0]), int(parts[1])
+            fraction = Decimal(parts[2])
+            if hours < 0 or not 0 <= minutes < 60 or not 0 <= fraction < 60:
+                raise ValueError('Invalid timestamp: {}'.format(value))
+            seconds = hours * 3600 + minutes * 60 + fraction
+        else:
+            raise ValueError('Use seconds or HH:MM:SS[.fraction]: {}'.format(value))
+        if not seconds.is_finite() or seconds < 0:
+            raise ValueError('Timestamp must be finite and nonnegative')
+        return seconds
+    except (InvalidOperation, TypeError) as error:
+        raise ValueError('Invalid timestamp: {}'.format(value)) from error
 
 
 def get_times(time_string):
-  ts = time_string.split(':')
-  ssms = ts[2].split('.')
-  ss = ssms[0]
-  if len(ssms) == 1:
-    ms = '00'
-  else:
-    ms = ssms[1]
-  return int(ts[0]), int(ts[1]), int(ss), int(ms)
+    seconds = timestamp_seconds(time_string)
+    whole = int(seconds)
+    return whole // 3600, (whole // 60) % 60, whole % 60, int((seconds - whole) * 1000000)
 
 
 def get_time_delta_string(clip):
-	hh, mm ,ss, ms = get_times(clip['start'])
-	hhf, mmf ,ssf, msf = get_times(clip['end'])
-	enter = dt.time(hh, mm, ss, ms)
-	exit = dt.time(hhf, mmf, ssf, msf)
-	deltat = dt.datetime.combine(dt.date.min, exit) - dt.datetime.combine(dt.date.min, enter)
-	delta = str(deltat)
-	return delta
+    duration = timestamp_seconds(clip['end']) - timestamp_seconds(clip['start'])
+    if duration <= 0:
+        raise ValueError('Clip end must be greater than start')
+    return format(duration, 'f')
 
 
 def get_video_info(video_path):
-  probe_cmd = [ 'ffprobe', '-v', 'error', '-select_streams', 'v:0', 
-          '-show_entries', 'stream=width,height,r_frame_rate', '-of', 'csv=s=x:p=0', video_path]
-  result = subprocess.run(probe_cmd, capture_output=True)
-  dims = str(result.stdout).split('x')
-  v_f = dims[2].replace("\\n'", '')
-  v_tf = v_f.split('/')
-  video_data = dict()
-  video_data['width'] = dims[0].split("'")[1]
-  video_data['height'] = dims[1].split("'")[0].replace('\\n','')
-  video_data['ratio'] = float(video_data['width'])/float(video_data['height'])
-  video_data['frame_rate'] = float(v_tf[0])/float(v_tf[1])
-  video_data['file_name'] = video_path.split('/')[len(video_path.split('/'))-1]
-  video_data['format'] = video_path.split('.')[len(video_path.split('.'))-1]
-  video_data['full_path'] = video_path
-  video_data['path'] = video_path
-  return video_data
+    from manager.video import probe_video
+    stream = probe_video(video_path)['streams'][0]
+    numerator, denominator = stream.get('r_frame_rate', '0/1').split('/')
+    width, height = int(stream['width']), int(stream['height'])
+    if width <= 0 or height <= 0 or float(denominator) == 0:
+        raise ValueError('Invalid video dimensions or frame rate')
+    return {
+        'width': str(width), 'height': str(height), 'ratio': width / height,
+        'frame_rate': float(numerator) / float(denominator),
+        'file_name': Path(video_path).name, 'format': Path(video_path).suffix.lstrip('.'),
+        'full_path': video_path, 'path': video_path,
+    }
 
 
 def parse_clip_data(video_data, clip):
-  clip_data = dict()
-  clip_data['width'] = video_data['width']
-  clip_data['height'] = video_data['height']
-  clip_data['ratio'] = video_data['ratio']
-  clip_data['frame_rate'] = video_data['frame_rate']
-  clip_data['file_name'] = video_data['file_name']
-  clip_data['format'] = video_data['format']
-  clip_data['full_path'] = video_data['full_path']
-  clip_data['path'] = video_data['path']
-
-  clip_data['start'] = str(clip['start'])
-  # if type(clip['start']) == float or type(clip['start']) == int:
-  #   clip_data['start'] = str(clip['start'])
-  # else:
-  #   clip_data['start'] = get_time_delta_string(clip)
-  if type(clip['end']) == float or type(clip['end']) == int or '.' in clip['end']:
-    clip_data['ffmpeg_end'] = str(clip['end'])
-  else:
-    clip_data['ffmpeg_end'] = get_time_delta_string(clip)
-  clip_data['mode'] = clip.get('mode', '#1F1F1F')
-  clip_data['valid'] = True
-  
-  if 'vertical_only' in clip:
-    clip_data['vertical_only'] = clip['vertical_only']
-  else:
-    clip_data['vertical_only'] = False
-  
-  if 'view' in clip:
-    clip_data['view'] = clip['view']
-  else:
-    clip_data['view'] = 90
-  
-  clip_data['texts'] = clip['texts']
-  clip_data['inputs'] = clip['inputs']
-  clip_data['input_types'] = clip['input_types']
-  clip_data['background'] = clip['background']
-  return clip_data
+    data = dict(video_data)
+    data.update({
+        'start': str(clip['start']), 'ffmpeg_end': get_time_delta_string(clip),
+        'mode': clip.get('mode', '#1F1F1F'), 'valid': True,
+        'vertical_only': clip.get('vertical_only', True), 'view': clip.get('view', 90),
+        'texts': copy.deepcopy(clip.get('texts', [])),
+        'inputs': list(clip.get('inputs', [video_data['full_path']])),
+        'input_types': list(clip.get('input_types', [])),
+        'background': clip.get('background'),
+    })
+    return data
 
 
 def read_from_json(file_path, video_path):
-    # if file not json and not exists return empty clips
-    clips_data = []
-    with open(file_path) as f:
-      d = json.load(f)
-      default_clip_output = dict()
-      
-      default_clip_output['inputs'] = [video_path]
-      default_clip_output['input_types'] = []
-
-      default_clip_output['text_size'] = d.get('text_size', 3)
-      default_clip_output['texts'] = d.get('texts', [])
-      default_clip_output['vertical_only'] = d.get('vertical_only', True)
-
-      if d.get('mode', False):
-        default_clip_output['mode'] = d.get('mode', '#101010')	
-      if d.get('view', False):
-        default_clip_output['view'] = d.get('view', 90)
-      if d.get('logo', False):
-        default_clip_output['logo'] = d.get('logo')
-        default_clip_output['inputs'].append(d.get('logo'))
-        default_clip_output['input_types'].append('logo')
-      if d.get('background', False):
-        default_clip_output['mode'] = d.get('background', '#101010')
-        default_clip_output['background'] = d.get('background')
-        default_clip_output['inputs'].append(d.get('background'))
-        default_clip_output['input_types'].append('background')
-
-      # if d.get('logo', False):
-        # default_clip_output['logo'] = d.get('logo') # filepath normalize
-
-      for i, c in enumerate(d['clips']):
-        clip_data = copy.deepcopy(c)
-        clip_data['inputs'] = default_clip_output['inputs']
-        clip_data['input_types'] = default_clip_output['input_types']
-        if 'vertical_only' not in c:
-          clip_data['vertical_only'] = default_clip_output['vertical_only']
-        if 'mode' not in c:
-          clip_data['mode'] = d.get('mode', default_clip_output['mode'])
-        if 'view' not in c:
-          clip_data['view'] = d.get('view', default_clip_output['view'])
-        if 'texts' in c:
-          clip_data['texts'] = copy.deepcopy(default_clip_output['texts']) + c['texts']
+    with open(file_path, encoding='utf-8') as source:
+        config = json.load(source)
+    if not isinstance(config, dict) or not isinstance(config.get('clips'), list):
+        raise ValueError('Clip configuration must contain a clips array')
+    base = Path(file_path).resolve().parent
+    inputs, input_types = [video_path], []
+    if config.get('logo'):
+        logo = Path(config['logo']).expanduser()
+        inputs.append(str(logo if logo.is_absolute() else base / logo))
+        input_types.append('logo')
+    background = config.get('background')
+    mode = config.get('mode', '#101010')
+    # Old examples used background for both colors and file inputs.
+    if background:
+        if background.startswith('#'):
+            mode = background
         else:
-          clip_data['texts'] = copy.deepcopy(default_clip_output['texts'])
-        if 'title' in c:
-          # clip_data['view'] = 80
-          title = dict(text=c['title'], y=(98-clip_data['view']))
-          clip_data['texts'].append(title)
-        if 'logo' in default_clip_output:
-          clip_data['logo'] = default_clip_output['logo']
-        if 'background' in default_clip_output:
-          clip_data['background'] = default_clip_output['background']
-        for i, t in enumerate(clip_data['texts']):
-          # clip_data['']
-          clip_data['texts'][i]['text_size'] = default_clip_output['text_size']
-        clips_data.append(clip_data)
-    return clips_data
+            path = Path(background).expanduser()
+            background = str(path if path.is_absolute() else base / path)
+            inputs.append(background)
+            input_types.append('background')
+    clips = []
+    for index, entry in enumerate(config['clips']):
+        if not isinstance(entry, dict) or 'start' not in entry or 'end' not in entry:
+            raise ValueError('Clip {} requires start and end'.format(index))
+        get_time_delta_string(entry)
+        clip = copy.deepcopy(entry)
+        clip['mode'] = entry.get('mode', mode)
+        clip['view'] = entry.get('view', config.get('view', 90))
+        if isinstance(clip['view'], bool) or not isinstance(clip['view'], (int, float)) or not 0 <= clip['view'] <= 100:
+            raise ValueError('Clip view must be a number between 0 and 100')
+        clip['vertical_only'] = entry.get('vertical_only', config.get('vertical_only', True))
+        if not isinstance(clip['vertical_only'], bool):
+            raise ValueError('vertical_only must be true or false')
+        clip['inputs'], clip['input_types'] = list(inputs), list(input_types)
+        clip['background'] = background
+        global_texts, local_texts = config.get('texts', []), entry.get('texts', [])
+        if not isinstance(global_texts, list) or not isinstance(local_texts, list):
+            raise ValueError('texts must be an array')
+        clip['texts'] = copy.deepcopy(global_texts + local_texts)
+        if 'title' in entry:
+            clip['texts'].append({'text': entry['title'], 'y': 98 - clip['view']})
+        text_size = config.get('text_size', 3)
+        for text in clip['texts']:
+            if not isinstance(text, dict) or not isinstance(text.get('text'), str):
+                raise ValueError('Each text requires a text string')
+            text.setdefault('text_size', text_size)
+            size = float(text['text_size'])
+            if not math.isfinite(size) or size <= 0:
+                raise ValueError('text_size must be positive and finite')
+        clips.append(clip)
+    return clips
