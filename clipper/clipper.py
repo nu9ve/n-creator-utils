@@ -1,9 +1,7 @@
 from os.path import exists as path_exists, join as join_path
 import pathlib
 from clipper.clip_settings import read_from_json, get_video_info, parse_clip_data
-import replicate
 import json
-import openai
 import pickle
 from pprint import pformat
 
@@ -177,17 +175,20 @@ class Clipper:
     self.logger = logger
     self.generate_clip_config = generate_clips
     self.config_format = "json"
-    self.replicate_client = replicate.Client(api_token="ee353fdb2c553a6cde7e191ffa62f693c5723c6c")
+    if generate_clips:
+      import os
+      import replicate
+      if not os.environ.get('REPLICATE_API_TOKEN') or not os.environ.get('OPENAI_API_KEY'):
+        raise ValueError('AI mode requires REPLICATE_API_TOKEN and OPENAI_API_KEY')
+      self.replicate_client = replicate.Client()
 
 
   def clip_video(self):
-    if not self.video_path:
-      self.logger.error('No video path')
-      return 
+    if not pathlib.Path(self.video_path).is_file():
+      raise ValueError('Video not found: {}'.format(self.video_path))
     self.load_clips_config()
-    if len(self.clips) == 0:
-      self.logger.error('No clips configured [], nothing to do\n\nplease configure a config.json file, see: https://github.com/nu9ve/n-creator-utils/tree/master/clipper') # todo: add link to docs in github
-      return
+    if not self.clips:
+      raise ValueError('No clips configured; see clipper/README.md')
 
     self.clip_loaded_video()
   
@@ -200,25 +201,15 @@ class Clipper:
   #   self.clip_loaded_video(self.video_path, clips, self.preview)
 
   def load_clips_config(self):
-    #default on script folder
-    clips_config = []
-    #search config in video root
-    default_json_config_path = join_path(self.video_root, 'config.json')
-    param_config_path = join_path(self.video_root, self.config_file or 'config.json')
-
     if self.generate_clip_config:
-      self.logger.info('Generating config.json')
-      clips_config = self.generate_clips_with_open_ai()
-
-    elif path_exists(default_json_config_path):
-      # clips_config = config_video_path
-      clips_config = read_from_json(default_json_config_path, self.video_path)
-
-    elif path_exists(param_config_path):
-      # clips_config = config_video_path
-      clips_config = read_from_json(self.config_file, self.video_path)    
-
-    self.clips = clips_config
+      self.clips = self.generate_clips_with_open_ai()
+      return
+    path = pathlib.Path(self.config_file or 'config.json').expanduser()
+    if not path.is_absolute():
+      path = self.video_root / path
+    if not path.is_file():
+      raise ValueError('Clip configuration not found: {}'.format(path))
+    self.clips = read_from_json(str(path), self.video_path)
 
   def generate_clips_with_open_ai(self):
     clips = []
@@ -261,6 +252,8 @@ class Clipper:
     return clips
   
   def choose_best_clips_with_gpt(self, clean_segments):
+
+    import openai
 
     # get best clips range with timestamps from chatgpt
     segments = ""
@@ -352,12 +345,13 @@ class Clipper:
 
     is_landscape = video_data['ratio'] > 1
     for i, c in enumerate(self.clips):
-      output_path = self.video_path.replace('.mp4', '_clip_{}.mp4'.format(i)).replace('.mov', '_clip_{}.mp4'.format(i))
+      output_path = str(pathlib.Path(self.video_path).with_name(pathlib.Path(self.video_path).stem + '_clip_{}.mp4'.format(i)))
       clip_data = parse_clip_data(video_data, c)
       if not clip_data['valid']:
         invalid_error = '''clip {} config error\n'''.format(i)
         self.logger.error(invalid_error)
       cut_range(self.video_path, clip_data, output_path)
+      clip_data['format'] = 'mp4'
       clip_data['is_landscape'] = is_landscape
       clip_data['inputs'][0] = output_path
       clip_data['preview'] = self.preview

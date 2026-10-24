@@ -1,38 +1,29 @@
 from os.path import join as join_path
-from sys import platform
 import datetime
 import pathlib
+from configuration import load_settings
 
-DEBUG = True
-DEBUG = False
+SETTINGS = load_settings()
+DEBUG = SETTINGS['debug']
 
 LOGGER_NAME = 'nu9ve'
 
 DRIVE_NAME = 'MEDIA502'
-ROOT_DIR = f'/Volumes/{DRIVE_NAME}/001_raw'
-SD_ROOT_DIR = '/Volumes'
-ROOT_RECORDINGS_DIR = '/Volumes/SSD1'
-
-if platform == "linux" or platform == "linux2":
-  # linux
-  print('linux')
-elif platform == "darwin":
-  # OS X
-  SD_ROOT_DIR = '/Volumes'
-elif platform == "win32":
-  # Windows...
-  print('windows')
-
-username = str(pathlib.Path().absolute()).split('/')[2]
+ROOT_DIR = SETTINGS['root_dir']
+SD_ROOT_DIR = SETTINGS['sd_root_dir']
+ROOT_RECORDINGS_DIR = SETTINGS['root_recordings_dir']
+CLIPPER_FONT_FILE = SETTINGS['clipper_font_file']
+YT_DLP_COOKIES_BROWSER = SETTINGS['yt_dlp_cookies_browser']
+username = pathlib.Path.home().name
 
 # get current year string
 CURRENT_YEAR = datetime.datetime.now().strftime('%Y')
 
-AUDIO_HIJACK_DIR = '/Users/{}/Music/Audio Hijack/'.format(username)
-AUDIO_SAMPLES_DIR = '/Users/{}/Music/01_produccion/samples/{}/raw/'.format(username, CURRENT_YEAR)
-AUDIO_SPLITS_DIR = '/Users/{}/Music/01_produccion/splits/'.format(username)
-AUDIO_SONGS_DIR = '/Users/{}/Music/02_mix/latest/'.format(username)
-TMP_VIDEO_DIR = '/Users/{}/data/projectIX/raw/'.format(username)
+AUDIO_HIJACK_DIR = SETTINGS['audio_hijack_dir']
+AUDIO_SAMPLES_DIR = SETTINGS['audio_samples_dir']
+AUDIO_SPLITS_DIR = SETTINGS['audio_splits_dir']
+AUDIO_SONGS_DIR = SETTINGS['audio_songs_dir']
+TMP_VIDEO_DIR = SETTINGS['tmp_video_dir']
 FINAL_CORRUPT_DIR = join_path(ROOT_DIR, 'corrupt')
 FINAL_DRON_DIR = join_path(ROOT_DIR, 'vdron')
 FINAL_4K_DIR = join_path(ROOT_DIR, 'v4k')
@@ -54,16 +45,7 @@ SSD_LONG_RECORDINGS_DIR = join_path(ROOT_RECORDINGS_DIR, 'recordingslong')
 SSD_HIJACK_DIR = join_path(ROOT_RECORDINGS_DIR, 'hijack')
 SSD_LONG_HIJACK_DIR = join_path(ROOT_RECORDINGS_DIR, 'hijacklong')
 
-SD_SRC_NAME = {
-  'EOS_DIGITAL': 'SL3',
-  'NIKON D3300': 'NIKON',
-  'GOPRO64': 'GOPRO4',
-  'MAVIC200': 'MAVIC2',
-  'H6_SD': 'H6',
-  'INSTA360': 'INSTA360',
-  'Untitled': 'AUTO',
-  'NO NAME': 'SONYA6400',
-}
+SD_SRC_NAME = SETTINGS['sd_src_name']
 
 
 

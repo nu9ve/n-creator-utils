@@ -7,6 +7,8 @@ import re
 import datetime
 import xml.etree.ElementTree as ET
 import json
+import argparse
+from pathlib import Path
 
 from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   SD_SRC_NAME, FINAL_DRON_DIR, FINAL_4K_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, 
@@ -15,7 +17,8 @@ from constants import (LOGGER_NAME, MONTH_STRING_NUMBERS, MONTH_NUMBER_DAYS,
   FINAL_LONG_HIJACK_DIR, FINAL_HIJACK_DIR, SSD_HIJACK_DIR, SSD_LONG_HIJACK_DIR,
   FINAL_CORRUPT_DIR, FINAL_RAW_DIR, FINAL_SCREENR_DIR, AUDIO_HIJACK_DIR,
   FINAL_360_VID_DIR, FINAL_360_IMG_DIR, AUDIO_SAMPLES_DIR, AUDIO_SPLITS_DIR, 
-  AUDIO_SONGS_DIR, TMP_VIDEO_DIR, FINAL_METADATA_DIR, FINAL_INSTA360_DIR)
+  AUDIO_SONGS_DIR, TMP_VIDEO_DIR, FINAL_METADATA_DIR, FINAL_INSTA360_DIR,
+  ROOT_DIR, ROOT_RECORDINGS_DIR, YT_DLP_COOKIES_BROWSER)
 from manager.video import is_4k, get_video_file_duration
 from manager.audio import get_audio_file_description
 
@@ -217,6 +220,7 @@ def move_preserving_metadata(source_path, final_path, file_data=None):
   final_path = unique_destination_path(final_path)
   shutil.copy2(source_path, final_path)
   set_file_dates(final_path, file_data, source_path)
+  verify_copy_size(source_path, final_path)
   os.remove(source_path)
   return final_path
 
@@ -224,11 +228,17 @@ def copy_preserving_metadata(source_path, final_path, file_data=None):
   final_path = unique_destination_path(final_path)
   shutil.copy2(source_path, final_path)
   set_file_dates(final_path, file_data, source_path)
+  verify_copy_size(source_path, final_path)
   return final_path
+
+def verify_copy_size(source_path, final_path):
+  if os.path.getsize(source_path) != os.path.getsize(final_path):
+    raise OSError('Copied size differs; source preserved: {}'.format(source_path))
 
 def move_exact_preserving_metadata(source_path, final_path):
   shutil.copyfile(source_path, final_path)
   set_file_dates(final_path, None, source_path)
+  verify_copy_size(source_path, final_path)
   try:
     os.remove(source_path)
   except PermissionError as error:
@@ -246,6 +256,7 @@ def save_sony_sidecar(source_path, final_path, file_data, remove_source=True):
   sidecar_dest = unique_destination_path(sidecar_dest)
   shutil.copy2(sidecar_path, sidecar_dest)
   set_file_dates(sidecar_dest, file_data, sidecar_path)
+  verify_copy_size(sidecar_path, sidecar_dest)
   if remove_source:
     os.remove(sidecar_path)
 
@@ -395,7 +406,7 @@ def save_insta360_bundle(src_dir, src_name, country_code, city_name):
     file_record['destination'] = final_path
     manifest['files'].append(file_record)
 
-  manifest_path = join_path(final_dir, 'manifest.json')
+  manifest_path = unique_destination_path(join_path(final_dir, 'manifest.json'))
   with open(manifest_path, 'w') as manifest_file:
     json.dump(manifest, manifest_file, indent=2, sort_keys=True)
     manifest_file.write('\n')
@@ -493,7 +504,7 @@ def archive_sony_support_files(src_dir, file_data, country_code, city_name):
   if not manifest['files']:
     return
 
-  manifest_path = join_path(final_dir, 'manifest.json')
+  manifest_path = unique_destination_path(join_path(final_dir, 'manifest.json'))
   with open(manifest_path, 'w') as manifest_file:
     json.dump(manifest, manifest_file, indent=2, sort_keys=True)
     manifest_file.write('\n')
@@ -558,6 +569,20 @@ def update_file_time(ts, tds):
   return ts, tds
 
 def save_tag_files(src_dir, src_name, country_code, city_name):
+  for tag in (src_name, country_code, city_name):
+    if not tag.strip() or '/' in tag or '\\' in tag or tag in {'.', '..'}:
+      raise ValueError('Source, country and city must be nonempty tags without path separators')
+  source = Path(src_dir).resolve()
+  if not source.is_dir():
+    raise ValueError('Source directory does not exist: {}'.format(source))
+  # Never create an absent archive root: an unmounted disk must not redirect an
+  # import onto the system disk. Subdirectories are still created as before.
+  if not Path(ROOT_DIR).is_dir():
+    raise ValueError('Archive root must already exist: {}'.format(ROOT_DIR))
+  for destination in (ROOT_DIR, ROOT_RECORDINGS_DIR):
+    target = Path(destination).resolve()
+    if source == target or source in target.parents or target in source.parents:
+      raise ValueError('Source and archive roots must not overlap: {}'.format(source))
   if is_insta360_source(src_name):
     save_insta360_bundle(src_dir, src_name, country_code, city_name)
     return
@@ -683,6 +708,8 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
         move_file = True
 
       if audio_file:
+        if not Path(ROOT_RECORDINGS_DIR).is_dir():
+          raise ValueError('Audio backup root must already exist: {}'.format(ROOT_RECORDINGS_DIR))
         new_file_name += '{}_{}'.format(file_data['mic_name'].upper(), file_data['duration_string'])
         new_file_name += '_{}-{}[].{}'.format(country_code.upper(), city_name.upper(), file_extension.upper())
         category_dir = FINAL_RECORDINGS_DIR
@@ -710,8 +737,7 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
       logger.info('source: {}'.format(source_path))
       if copy_file:
         logger.info('copying to: {}'.format(backup_path))
-        shutil.copy2(source_path, backup_path)
-        set_file_dates(backup_path, file_data, source_path)
+        copy_preserving_metadata(source_path, backup_path, file_data)
       if move_file:
         preserve_source = should_preserve_source_after_save(effective_src_name)
         if preserve_source:
@@ -733,27 +759,16 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
 
 
 # cmd line interface
-def save_files():
-  # erikpyado save
-  #   check plugged memories, if name available in SD_SRC_NAME
-  # erikpyado videos
-  # 2019/
-  #   month (1-12)
-  #     year(19)month(01-12)day(01-31)_micname_duration(mmm-ss)_
-  #     191131-2355_H6LR_20-02_JP-TOKYO[optional(place,mood)].WAV
-
-  # get_external_storage
-  help_error = '''erikpyado save [src_dir|all] jp tag [src_name]\n\t
-        all - saves configured sd card names\n\t
-        src_dir - requires src_name'''
-
-  if len(sys.argv) != 6 and len(sys.argv) != 5:
-    logger.error(help_error)
-    return
-
-  src_dir = sys.argv[2]
-  country_code = sys.argv[3]
-  city_name = sys.argv[4]
+def save_files(argv=None):
+  parser = argparse.ArgumentParser(description='Importa media; mueve archivos y elimina originales tras copiar.')
+  parser.add_argument('source', help='directorio, all o hijack')
+  parser.add_argument('country')
+  parser.add_argument('city')
+  parser.add_argument('source_name', nargs='?', help='perfil/etiqueta; obligatorio para directorios')
+  args = parser.parse_args(sys.argv[2:] if argv is None else argv)
+  src_dir, country_code, city_name = args.source, args.country, args.city
+  if src_dir not in {'all', 'hijack'} and not args.source_name:
+    parser.error('source_name es obligatorio para un directorio (puede ser AUTO)')
 
   if src_dir == 'all':
     # look for sds
@@ -770,11 +785,9 @@ def save_files():
     src_dir = AUDIO_HIJACK_DIR
     save_tag_files(src_dir, src_name, country_code, city_name)
   else:
-    if len(sys.argv) != 6:
-      logger.error(help_error)
-      return
-
-    src_name = sys.argv[5]
+    src_name = args.source_name
+    if not Path(src_dir).is_dir():
+      raise ValueError('Source directory does not exist: {}'.format(src_dir))
     if is_auto_source(src_name):
       src_name = resolve_src_name(src_dir, src_name)
       if not src_name:
@@ -783,240 +796,122 @@ def save_files():
 
 
 def get_source_service(download_url):
-  service = ''
-  if 'youtube' in download_url or 'youtu.be' in download_url:
-    service = 'youtube'
-  elif 'soundcloud' in download_url:
-    service = 'soundcloud'
-  elif 'spotify' in download_url:
-    service = 'spotify'
-  elif 'bandcamp' in download_url:
-    service = 'bandcamp'
-  elif 'mixcloud' in download_url:
-    service = 'mixcloud'
-  elif 'vimeo' in download_url:
-    service = 'vimeo'
-  elif 'twitch' in download_url:
-    service = 'twitch'
-  elif 'facebook' in download_url:
-    service = 'facebook'
-  elif 'instagram' in download_url:
-    service = 'instagram'
-  elif 'twitter' in download_url or 't.co' in download_url or 'twimg' in download_url or 'x.co' in download_url:
-    service = 'x'
-  elif 'tiktok' in download_url:
-    service = 'tiktok'
-  return service
+  from urllib.parse import urlparse
+  host = (urlparse(download_url).hostname or '').lower()
+  services = {
+    'youtube.com': 'youtube', 'youtu.be': 'youtube', 'soundcloud.com': 'soundcloud',
+    'spotify.com': 'spotify', 'bandcamp.com': 'bandcamp', 'mixcloud.com': 'mixcloud',
+    'vimeo.com': 'vimeo', 'twitch.tv': 'twitch', 'facebook.com': 'facebook',
+    'instagram.com': 'instagram', 'twitter.com': 'x', 'x.com': 'x', 't.co': 'x',
+    'tiktok.com': 'tiktok',
+  }
+  for domain, service in services.items():
+    if host == domain or host.endswith('.' + domain):
+      return service
+  return ''
 
-def download_file(download_url, source_service, file_type, client_id='', auth_token=''):
-  # download file
-  # save to file_type
-  download_cmd = ''
-  logger.info(f"downloading {download_url} from {source_service} to {file_type}s")
 
+def download_file(download_url, source_service, file_type, client_id='', auth_token='', cwd=None):
+  if file_type not in {'video', 'song', 'sample'}:
+    raise ValueError('Unsupported download type: {}'.format(file_type))
+  logger.info('downloading from %s to %ss', source_service, file_type)
   if source_service == 'youtube':
-    # use yt-dlp to download
-    if file_type == 'song' or file_type == 'sample':
-      download_cmd = f'yt-dlp -x --audio-format mp3 {download_url} --cookies-from-browser BRAVE'
-    elif file_type == 'video':
-      download_cmd = f'yt-dlp -f bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4 {download_url}'
+    command = ['yt-dlp', '--print', 'after_move:filepath']
+    if file_type in {'song', 'sample'}:
+      command += ['-x', '--audio-format', 'mp3']
+      if YT_DLP_COOKIES_BROWSER:
+        command += ['--cookies-from-browser', YT_DLP_COOKIES_BROWSER]
     else:
-      logger.error(f"file type {file_type} not supported")
+      command += ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4']
+    command += ['--', download_url]
   elif source_service == 'soundcloud':
-    # use scdl to download
-    client_id = 'sQHBwYwmzeqpmKktQSeKYpDpE1YsCSWl'
-    auth_token = '2-302616-6841298-jMTsUUMTCpWvycEd'
-    download_cmd = f'scdl -l {download_url} --client-id={client_id} --auth-token={auth_token}'
-  elif source_service == 'spotify':
-    # use spotify-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'bandcamp':
-    # use bandcamp-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'mixcloud':
-    # use mixcloud-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'vimeo':
-    # use vimeo-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'twitch':
-    # use twitch-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'facebook':
-    # use facebook-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'instagram':
-    # use instagram-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'x':
-    # use x-dl to download
-    logger.info('missing, should implement')
-  elif source_service == 'tiktok':
-    # use tiktok-dl to download
-    logger.info('missing, should implement')
-  if not download_cmd:
-    return ""
-    # process = subprocess.Popen(cmd_list)
-    # print(process)
-    # # , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # process.wait()
-
-  cmd_list = download_cmd.split(' ')
-  # Run the command and capture the output
-  process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-  stdout, stderr = process.communicate()
-  file_name = ''
-  # print("return code:", process.returncode)
-  # print(stdout)
-  # print(stderr)
-  if process.returncode == 0:
-      # Parse the output to find the downloaded file name
-      for line in stderr.splitlines():
-          # if scdl
-          if "Downloaded" in line:  # Adjust based on scdl output format
-              file_name = line.split(" Downloaded.")[0]
-              file_name = re.sub(r'\x1b\[[0-9;]*[mGK]', '', file_name)
-              file_name = file_name.strip()
-              logger.info(f"Downloaded file: {file_name}")
-              break
-      for line in stdout.splitlines():
-          if "[ExtractAudio] Destination:" in line:
-              file_name = line.split("[ExtractAudio] Destination: ")[1]
-              file_name = re.sub(r'\x1b\[[0-9;]*[mGK]', '', file_name)
-              file_name = file_name.strip()
-              logger.info(f"Downloaded file: {file_name}")
-              break
-          if "[Merger] Merging formats into" in line:
-              # extract file_name from template
-              # [Merger] Merging formats into "{file_name}"
-              file_name = re.search(r'\"(.+?)\"', line).group(1)
-              break
+    command = ['scdl', '-l', download_url]
+    client_id = client_id or os.environ.get('SOUNDCLOUD_CLIENT_ID', '')
+    auth_token = auth_token or os.environ.get('SOUNDCLOUD_AUTH_TOKEN', '')
+    if client_id:
+      command += ['--client-id', client_id]
+    if auth_token:
+      command += ['--auth-token', auth_token]
   else:
-      print(f"Error: {stderr}")
-  # get downloaded file name from cmd output
-  # print process output
-  # print(process.stdout.read())
-  return file_name
+    raise ValueError('Download service not implemented: {}'.format(source_service or 'unknown'))
+
+  result = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
+  if result.returncode:
+    # Do not echo command arguments or stderr: provider diagnostics may contain tokens.
+    raise RuntimeError('{} failed (exit {})'.format(command[0], result.returncode))
+  file_name = ''
+  if source_service == 'youtube':
+    lines = result.stdout.strip().splitlines()
+    if lines:
+      file_name = lines[-1].strip()
+  else:
+    for line in (result.stderr + '\n' + result.stdout).splitlines():
+      if ' Downloaded.' in line:
+        file_name = re.sub(r'\x1b\[[0-9;]*[mGK]', '', line.split(' Downloaded.')[0]).strip()
+        break
+  if not file_name:
+    raise RuntimeError('Downloader did not report a file; inspect its working directory')
+  path = Path(file_name)
+  if not path.is_absolute():
+    path = Path(cwd or os.getcwd()) / path
+  if not path.is_file():
+    raise RuntimeError('Downloaded file not found: {}'.format(path))
+  return str(path)
+
 
 def move_to_file_type_dir(file_type, file_name):
-  file_path = ''
-  src_path = file_name
-  if file_type == 'sample':
-    dest_path = join_path(AUDIO_SAMPLES_DIR, file_name)
-    logger.info(f"moving {src_path} to {dest_path}")
-    shutil.move(src_path, dest_path)
-  elif file_type == 'song':
-    dest_path = join_path(AUDIO_SONGS_DIR, file_name)
-    logger.info(f"moving {src_path} to {dest_path}")
-    shutil.move(src_path, dest_path)
-  elif file_type == 'video':
-    dest_path = join_path(TMP_VIDEO_DIR, file_name)
-    logger.info(f"moving {src_path} to {dest_path}")
-    shutil.move(src_path, dest_path)
-  return file_path
+  destinations = {'sample': AUDIO_SAMPLES_DIR, 'song': AUDIO_SONGS_DIR, 'video': TMP_VIDEO_DIR}
+  if file_type not in destinations:
+    raise ValueError('Unsupported download type: {}'.format(file_type))
+  final_dir = destinations[file_type]
+  os.makedirs(final_dir, exist_ok=True)
+  destination = unique_destination_path(join_path(final_dir, os.path.basename(file_name)))
+  if Path(file_name).resolve() != Path(destination).resolve():
+    shutil.move(file_name, destination)
+  return destination
 
-# cmd line interface
-def downloader():
-  # nu9ve download [video|song|sample] [link]
-  #   [video|song|sample] - type of file to download
 
-  # get_external_storage
-  help_error = '''nu9ve download [video|song|sample] [link]\n\t
-        [video|song|sample] - type of file to download (where to save)\n\t
-        link - url to download'''
+def downloader(argv=None):
+  parser = argparse.ArgumentParser(description='Descarga desde YouTube o SoundCloud.')
+  parser.add_argument('file_type', choices=['video', 'song', 'sample'])
+  parser.add_argument('url')
+  args = parser.parse_args(sys.argv[2:] if argv is None else argv)
+  file_name = download_file(args.url, get_source_service(args.url), args.file_type)
+  return move_to_file_type_dir(args.file_type, file_name)
 
-  if len(sys.argv) < 4:
-    logger.error(help_error)
-    return
-
-  # check if necessary directories exist if not create
-  if not path_exists(AUDIO_SAMPLES_DIR):
-    os.makedirs(AUDIO_SAMPLES_DIR)
-  if not path_exists(AUDIO_SPLITS_DIR):
-    os.makedirs(AUDIO_SPLITS_DIR)
-  if not path_exists(AUDIO_SONGS_DIR):
-    os.makedirs(AUDIO_SONGS_DIR)
-  if not path_exists(TMP_VIDEO_DIR):
-    os.makedirs(TMP_VIDEO_DIR)
-
-  file_type = sys.argv[2]
-  download_url = sys.argv[3]
-  # set it or scrape it
-  # client_id = sys.argv[4]
-  # auth_token = sys.argv[5]
-
-  source_service = get_source_service(download_url)
-  
-  file_name = download_file(download_url, source_service, file_type)
-  
-  if not file_name:
-    logger.error(f"failed to download {download_url}")
-    return
-
-  move_to_file_type_dir(file_type, file_name)
 
 def split_file(file_path):
-  # run demucs on file via subprocess
-  cmd_list = ['demucs', file_path]
-  # Run the command and capture the output
-  process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-  stdout, stderr = process.communicate()
-  # print("return code:", process.returncode)
-  # print(stdout)
-  # print(stderr)
-  if process.returncode == 0:
-      # print(stdout)
-      logger.info(f"splitted file: {file_path}")
+  result = subprocess.run(['demucs', file_path], cwd=AUDIO_SPLITS_DIR)
+  if result.returncode:
+    raise RuntimeError('demucs failed (exit {})'.format(result.returncode))
+  logger.info('split file: %s', file_path)
+
+
+def splitter(argv=None):
+  parser = argparse.ArgumentParser(description='Separa stems con Demucs desde un archivo o URL.')
+  parser.add_argument('source')
+  args = parser.parse_args(sys.argv[2:] if argv is None else argv)
+  os.makedirs(AUDIO_SPLITS_DIR, exist_ok=True)
+  from urllib.parse import urlparse
+  if urlparse(args.source).scheme in {'http', 'https'}:
+    file_path = download_file(args.source, get_source_service(args.source), 'song', cwd=AUDIO_SPLITS_DIR)
   else:
-      print(f"Error: {stderr}")
-  
-def splitter():
-  help_error = '''nu9ve split [link]\n\t
-        [link] - file to split'''
+    file_path = str(Path(args.source).expanduser().resolve())
+  if not Path(file_path).is_file():
+    raise ValueError('Audio file does not exist: {}'.format(file_path))
 
-  if len(sys.argv) != 3:
-    logger.error(help_error)
-    return
-
-  if not path_exists(AUDIO_SPLITS_DIR):
-    os.makedirs(AUDIO_SPLITS_DIR)
-
-  file_url = sys.argv[2]
-
-  current_dir = os.getcwd()
-  os.chdir(AUDIO_SPLITS_DIR)
-
-  if 'http' not in file_url:
-    file_path = join_path(current_dir, file_url)
-  else:
-    source_service = get_source_service(file_url)
-    file_path = download_file(file_url, source_service, 'song')
-
-
-  # rename file to normalized name
-  file_path_split = file_path.split('/')
-  file_name = file_path_split[-1]
-  file_dir = file_path_split[:-1]
-  file_name = file_name.replace(' ', '')
-  # Only_Now_-_Eyes_of_Pain_[4be7e1cc4RI]
-  if '[' in file_name:
-    file_parts = file_name.split('[')
-    tmp_file_name = file_parts[0]
-  else:
-    tmp_file_name = file_name
-  tmp_file_name = tmp_file_name.replace(' ', '')
-  tmp_file_name = tmp_file_name.replace('_', '')
-  if '[' in file_name:
-    file_name = tmp_file_name + '[' + file_parts[1]
-  else:
-    file_name = tmp_file_name
-  normal_file_path = join_path("/".join(file_dir), file_name)
-  shutil.move(file_path, normal_file_path)
-  logger.info(f"renamed {file_path} to {normal_file_path}")
-  logger.info(f"splitting {normal_file_path}")
-
+  # Preserve the historical normalization, without replacing an existing file.
+  name = Path(file_path).name.replace(' ', '')
+  prefix, separator, suffix = name.partition('[')
+  name = prefix.replace('_', '') + separator + suffix
+  normal_file_path = str(Path(file_path).with_name(name))
+  if Path(file_path) != Path(normal_file_path):
+    normal_file_path = unique_destination_path(normal_file_path)
+    shutil.move(file_path, normal_file_path)
+  logger.info('splitting %s', normal_file_path)
   split_file(normal_file_path)
-
-  shutil.move(normal_file_path, join_path(AUDIO_SPLITS_DIR, 'splitted', file_name))
-
-  os.chdir(current_dir)
+  final_dir = join_path(AUDIO_SPLITS_DIR, 'splitted')
+  os.makedirs(final_dir, exist_ok=True)
+  destination = unique_destination_path(join_path(final_dir, Path(normal_file_path).name))
+  shutil.move(normal_file_path, destination)
+  return destination

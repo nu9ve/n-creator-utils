@@ -1,214 +1,96 @@
-# nu9ve clipper
+# Clipper local
 
-the *clipper* (nu9ve clip) helps reducing some time and efforts on the distribution of a clipable video. it allows the clipping and reformating of a full length video into various segments via timestamps on a config files. it exports into multiple formats so they are easily shared in any platform.
+Recorta un video por rangos y genera encuadres mediante FFmpeg. Se invoca desde el comando `nu9ve clip`; también funciona `python3 /ruta/al/repo/nu9ve.py clip ...`. `clipper/clipper.py` define la clase de trabajo, pero no tiene una entrada standalone propia.
 
+## Inicio rápido
 
-### getting started
-the fastest way to get started is to copy a config file from the examples into your working directory 
-```console
-nu9ve clip [videopath]
-```
+Requiere Python 3.9+, FFmpeg y FFprobe. Para títulos/textos hace falta el filtro `drawtext` y una fuente disponible. No requiere OpenAI ni Replicate para el procesamiento local.
 
-you can run the clipper as a standalone script or configure [nu9ve](https://github.com/nu9ve/n-creator-utils/blob/master/README.md) to run as subcommand. these are the dependencies:
-```
-python 3.9
-ffmpeg
-```
-
-to run this script as standalone replace in the examples `nu9ve` with `python` and run the script from your video project directory like this:
-```console
-/pc/videos/project $ python /path/to/clipper/clipper.py [videopath]
-```
-
-your project directory should include the video file, configuration json and optional added assets like logos or backgrounds
-you should structure it something similar to this:
-```
-/project/
-  videofile.mp4
+```text
+proyecto/
+  video.mp4
   config.json
-  [watermark.jpg]
 ```
 
-### running command
-
-basic command with config json in working directory:
-```console
-nu9ve clip [videopath]
-```
-
-preview current configuration before rendering full clips:
-```console
-nu9ve clip [filepath] --preview
-```
-
-### configuration files
-
-config json can help output clips into different formats and with varied styles, texts and images
-
-<!-- formats:
-```
-    portrait
-    landscape
-    square.
-``` 
--->
-
-video and clip parameters:
-```
-    view
-    texts
-    logo
-```
-
-clip parameters
-```
-    title
-
-    mode
-        background
-        blurred
-        crop_center
-
-    view
-        100 - fills entire screen (similar to crop_center)
-        90 - fills 90% of the screen with the centered video
-        10 - the video fills only 10% of the 
-```
-
-simple config:
 ```json
 {
-	"clips":[{
-		"title": "primer titulo",
-		"start": "00:01:10",
-		"end": "00:01:15"
-	}]
+  "clips": [
+    {"title": "Primer clip", "start": "00:01:10", "end": "00:01:15"}
+  ]
 }
 ```
 
-full config:
+```sh
+nu9ve clip "/ruta/proyecto/video.mp4" --preview
+nu9ve clip "/ruta/proyecto/video.mp4" clips.json
+nu9ve clip "/ruta/proyecto/video.mp4" "/otra/ruta/clips.json" --preview --verbose
+```
+
+El JSON predeterminado se busca junto al video. Un JSON explícito tiene prioridad; si su ruta es relativa, se resuelve respecto a la carpeta del video. Los recursos `logo` y `background` relativos se buscan respecto al JSON. No hay lector TXT.
+
+`--preview` **crea primero un video intermedio por rango** y luego un JPEG por encuadre, tomando la imagen aproximadamente al segundo 1 del recorte. Usa rangos de al menos unos segundos para que exista ese frame. Escribe junto al video, necesita espacio y no es dry-run. Prueba estilos con preview antes de renderizar completos.
+
+Los resultados usan el nombre fuente más `_clip_0.mp4`, `_clip_1.mp4`, etc.; las variantes añaden sufijos como `_vertical_background_90.mp4` o `.jpg`. El corte inicial usa stream copy, por lo que la precisión depende de keyframes; no se garantiza precisión por frame. La extensión de los intermedios es MP4; no todo codec de entrada puede copiarse a ese contenedor.
+
+Las salidas existentes provocan error, sin pregunta interactiva ni sobrescritura. Para probar preview y luego render completo en el mismo directorio, conserva/reubica los intermedios previos antes de repetir. No hay directorio de salida o limpieza automática configurable.
+
+## Campos implementados
+
+| Campo | Ámbito/default | Comportamiento |
+| --- | --- | --- |
+| `clips` | Global, obligatorio | Array de trabajos; cada uno necesita `start` y `end`. |
+| `start`, `end` | Por clip | Segundos numéricos o `HH:MM:SS[.fracción]`. Ambos son posiciones absolutas; `end` debe ser mayor. |
+| `mode` | Global o por clip, `#101010` | Color de fondo; estilos históricos `crop_center`, `blurred`, `overlay`. El soporte varía por orientación/renderer. |
+| `view` | Global o por clip, `90` | Valor entre 0 y 100 que controla el tamaño/recorte según el estilo; no es una escala uniforme en todos los formatos. |
+| `vertical_only` | Global o por clip, `true` | Controla si además se generan cuadrado y versión con texto en orientación original; ver selección de formatos. |
+| `texts` | Global y por clip, `[]` | Los locales se agregan después de los globales. Cada entrada lleva `text` y puede incluir `y` y `text_size`. |
+| `title` | Por clip | Añade una entrada de texto con `y = 98 - view`. |
+| `text_size` | Global, `3`, o por entrada de texto | Porcentaje de la altura; los tamaños mayores de 3 se reducen en 1 para textos largos. |
+| `logo` | Global | Archivo adicional de imagen; escala/posición/opacidad se fijan en el renderer. |
+| `background` | Global | Un color `#...` actúa como fondo sin abrir un archivo; una ruta añade un recurso para los estilos que lo usan. |
+
+El esquema valida la estructura principal, rangos y algunos tipos; no es un validador completo de colores, recursos o filtros FFmpeg. Claves desconocidas pueden ignorarse. Los campos antiguos `top_text` y `bottom_text` de ejemplos full no se leen; usa `texts`.
+
+Ejemplo con dos formatos adicionales, fondo y texto:
+
 ```json
 {
-	"mode": "#213233",
-	"view": 50,
-	"texts": [
-		{
-			"text": "hola que pets"
-		},
-		{
-			"text": "xiao",
-			"y": "80"
-		}
-	],
-	"clips":[{
-		"title": "primer titulo",
-		"start": "00:01:10",
-		"end": "00:01:15",
-		"view": 90
-	},
-	{
-		"title": "segundo titulo",
-		"start": "00:02:50",
-		"end": "00:04:15",
-		"texts": [
-			{
-				"text": "holi",
-				"y": "10"
-			},
-			{
-				"text": "holi2",
-				"y": "20"
-			},
-			{
-				"text": "bottttom text"
-			},
-			{
-				"text": "holi3",
-				"y": "40"
-			}
-		]
-	}]
+  "mode": "#213233",
+  "view": 80,
+  "vertical_only": false,
+  "text_size": 3,
+  "texts": [{"text": "Mi proyecto", "y": 85}],
+  "clips": [
+    {"title": "Primer segmento", "start": "00:00:10.50", "end": "00:00:15.75"},
+    {"title": "Segundo segmento", "start": 30, "end": 36, "view": 90}
+  ]
 }
 ```
 
-creativo:
-```json
-{
-	"background": "#FFFFFF",
-	"logo": "[/path/to/logo.jpg]",
-	"view": 80,
-	"text_size": "4",
-	"clips":[{
-		"title": "Mi arranque de rockstar",
-		"start": "01:27:40.70",
-		"end": "01:34:32"
-	},
-	{
-		"title": "El wey que he querido ser",
-		"start": "01:34:33.50",
-		"end": "01:40:06"
-	},
-	{
-		"title": "El que no conoce a dios...",
-		"start": "01:40:11",
-		"end": "01:52:37"
-	},
-	{
-		"title": "Ser un camaleon social y adaptarte",
-		"start": "01:04:11.70",
-		"end": "01:12:37"
-	},
-	{
-		"title": "9 morras me batearon",
-		"start": "00:48:35.70",
-		"end": "00:57:41"
-	},
-	{
-		"title": "Como revolucionar la comedia",
-		"start": "00:28:33",
-		"end": "00:36:51"
-	},
-	{
-		"title": "Me hubiera comprado el BMW",
-		"start": "01:13:02.20",
-		"end": "01:26:43"
-	},
-	{
-		"title": "La disciplina supera al talento",
-		"start": "00:06:21.50",
-		"end": "00:13:53"
-	}]
-}
-```
+## Selección de formatos
 
+- Fuente horizontal (`ancho/alto > 1`): genera versión vertical.
+- Fuente vertical o cuadrada: genera versión horizontal.
+- Con `vertical_only: false`: además genera cuadrado y una versión de la orientación original con los filtros de texto.
 
-### help commands
+El nombre histórico `vertical_only` es impreciso: no obliga a salida vertical para una fuente vertical. No hay selector general de formatos/resoluciones. Existe un renderer 3:4 en el código, pero la orquestación no lo invoca.
 
-cropping youtube videos:
-```
-youtube-dl -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4' [youtube_url]
-```
+Para la fuente tipográfica configura `clipper_font_file` en el JSON local del repo o `NU9VE_CLIPPER_FONT_FILE`. Si el archivo no existe, se solicita `Sans` al sistema. Esto puede cambiar la apariencia respecto al antiguo archivo Coolvetica personal. `doctor` muestra si existe la fuente configurada.
 
+## IA experimental
 
-<!-- ## running the tests (xd)
+`--openai` conserva un experimento de transcripción con Replicate y selección de rangos usando llamadas OpenAI heredadas. Necesita SDKs compatibles, `REPLICATE_API_TOKEN` y `OPENAI_API_KEY`. Puede enviar audio y transcripción a esos servicios; el núcleo local no los contacta.
 
-filemanager should output correct actions
-clipper should check ffmpeg version or export is working
+Las referencias de modelo están fijadas en código, se consideran sólo los primeros 40 segmentos y se guarda cache `segments_*.p` en el directorio de ejecución. **No cargues pickle ajeno**: no es un formato seguro para datos sin confianza. El modelo, SDK, formato de respuesta y calidad del resultado requieren migración/validación antes de recomendar este flujo. No se ejecutaron llamadas externas en esta revisión.
 
-```
-nu9ve test [function]
-``` 
+El archivo `openai_clipper.py` es otro experimento standalone y mantiene un audio `./lower.mp3` fijo; no es necesario para este comando. La generación de IA no guarda un JSON de configuración listo para reutilizar, aunque un log histórico diga “Generating config.json”.
 
-## contributing
+## Límites y siguientes mejoras
 
-please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+- El escape de texto para `drawtext` aún no cubre bien comillas, dos puntos, barras y otros caracteres especiales. Valida esos casos con preview.
+- Logos y fondos multimedia, especialmente ambos juntos, usan ramas históricas y necesitan pruebas específicas por orientación/estilo. Su presencia en el esquema no garantiza todas las combinaciones.
+- Quedan dimensiones, curvas de `view`, colores y posiciones de logo dentro de `ffmpeg.py`; no hay presets extensibles.
+- Las invocaciones fallidas de FFmpeg detienen el flujo; los outputs previos pueden permanecer. No hay rollback/reanudación ni limpieza automática.
+- `debug: true` en la configuración del repo omite ejecución FFmpeg y sólo registra comandos con nivel debug; no garantiza salidas válidas y no es simulación del importador.
 
-## license
-
-this project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## acknowledgments
-
-* hat tip to anyone whose code was used
-* thanks for the [template](https://gist.github.com/PurpleBooth/b24679402957c63ec426) purplebooth
--->
+[Configuración de ambiente](../docs/configuration.md) · [Validación](../docs/development.md) · [Plan de mejoras](../PLAN.md)

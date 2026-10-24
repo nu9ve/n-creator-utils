@@ -6,13 +6,16 @@ import copy
 import math
 from os.path import join as join_path
 
-from constants import LOGGER_NAME, DEBUG
+from constants import LOGGER_NAME, DEBUG, CLIPPER_FONT_FILE
 
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
 def run_ffmpeg_cmd(cmd_list):
+  if cmd_list and cmd_list[0] == 'ffmpeg':
+    # Batch jobs must fail clearly on collisions instead of waiting for input.
+    cmd_list = [cmd_list[0], '-nostdin', '-n', *cmd_list[1:]]
   process = None
   if DEBUG:
     cmd_string = ' '.join(cmd_list)
@@ -22,9 +25,10 @@ def run_ffmpeg_cmd(cmd_list):
   else:
     # subprocess.run(cmd_list)
     process = subprocess.Popen(cmd_list)
-    print(process)
     # , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     process.wait()
+    if process.returncode:
+      raise RuntimeError("FFmpeg failed (exit {})".format(process.returncode))
     # print(process.returncode)
     # # print(process.stdout)
     # print(process.stderr)
@@ -58,53 +62,27 @@ def cut_range(video_path, clip, output_path):
   run_ffmpeg_cmd(cut_cmd)
 
 def build_text_filter(clip_data, clip_filter):
-  cmd_list = []
-  y_texts = [] # if texts doesnt include y or sector
-  dim_to_size = {
-    '1920x1080': 7,
-    '1080x1920': 4,
-  }
-  for ct in clip_data['texts']:
-    logger.info(clip_data)
-    ct['text'] = ct.get('text', '@@@@@@ @@@ @@@@@@@@')
-    ct['y'] = ct.get('y', '25')
-    # ct['y'] = ct.get('y', '25')
-    text_size = ct.get('text_size', 4)
-    if int(text_size) > 3 and len(ct['text']) > 25:
-      text_size = int(text_size) - 1
-    font_size = "h*{}/100".format(text_size)
-    # if clip_data['is_landscape']:
-      # font_size = "w*10/100"
-    flt_cmd = "".join([ 
-      ",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
-      "text='{}':".format(ct['text']),
-      # "fontcolor=white:fontsize=32:",
-      "fontcolor=black:fontsize={}:".format(font_size),
-      # "box=1:boxcolor=black@0.5:boxborderw=5:",
-      # "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
-      "x=(w-text_w)/2:y=(h*{}/100)-text_h".format(ct['y'])])
-    cmd_list.append(flt_cmd)
-    cmd_list.append("[m1]")
-  return ''.join(cmd_list)
-  # if 'bottom_text' in clip_data:
-  # 	flt_cmd = "".join([flt_cmd, 
-  # 		",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
-  # 		"text='{}':".format(clip_data['bottom_text']),
-  # 		"fontcolor=white:fontsize=32:",
-  # 		"box=1:boxcolor=black@0.5:boxborderw=5:",
-  # 		# "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
-  # 		"x=(w-text_w)/2:y=(h*3/4)-text_h"])		
-  # 	# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-  # if 'top_text' in clip_data:
-  # 	flt_cmd = "".join([flt_cmd, 
-  # 		",drawtext=fontfile=/Users/nu9ve/Downloads/test_clipper/coolvetica.ttf:",
-  # 		"text='{}':".format(clip_data['top_text']),
-  # 		"fontcolor=white:fontsize=32:",
-  # 		"box=1:boxcolor=black@0.5:boxborderw=5:",
-  # 		# "x=(w-text_w)/2:y=((h*3/4)-text_h)/2"])		
-  # 		"x=(w-text_w)/2:y=(h*3/4)-text_h"])		
-  # 	# filter_cmd_list.append(",drawtext=fontfile=/path/to/font.ttf:text='{}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2".format(video_data['text']))		
-  
+  filters = []
+  font = pathlib.Path(CLIPPER_FONT_FILE)
+  if font.is_file():
+    escaped_font = str(font).replace('\\', '/').replace(':', r'\:').replace("'", r"\'")
+    font_option = "fontfile='{}'".format(escaped_font)
+  else:
+    font_option = 'font=Sans'
+  for text in clip_data['texts']:
+    text_size = float(text.get('text_size', 4))
+    if text_size > 3 and len(text['text']) > 25:
+      text_size -= 1
+    filters.append(
+      ",drawtext={}:text='{}':fontcolor=black:fontsize=h*{}/100:"
+      "x=(w-text_w)/2:y=(h*{}/100)-text_h".format(
+        font_option, text['text'], text_size, text.get('y', 25)))
+  # Only the logo overlay needs a named output; chained texts share one stream.
+  if clip_data.get('input_types', [])[:1] == ['logo']:
+    filters.append('[m1]')
+  return ''.join(filters)
+
+
 def build_logo_filter(clip_data, clip_filter):
   cmd_list = []
   flt_cmd = "".join([ 

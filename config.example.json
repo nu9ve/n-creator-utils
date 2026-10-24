@@ -1,0 +1,18 @@
+{
+  "root_dir": "~/Media/archive",
+  "sd_root_dir": "/Volumes",
+  "root_recordings_dir": "~/Media/audio-backup",
+  "audio_hijack_dir": "~/Music/Audio Hijack",
+  "audio_samples_dir": "~/Music/samples/raw",
+  "audio_splits_dir": "~/Music/splits",
+  "audio_songs_dir": "~/Music/songs",
+  "tmp_video_dir": "~/Movies/downloads",
+  "clipper_font_file": "~/Library/Fonts/coolvetica.ttf",
+  "yt_dlp_cookies_browser": "",
+  "debug": false,
+  "sd_src_name": {
+    "NO NAME": "SONYA6400",
+    "Untitled": "AUTO",
+    "INSTA360": "INSTA360"
+  }
+}
