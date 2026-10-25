@@ -36,6 +36,12 @@ def parser():
     apply = commands.add_parser('apply'); apply.add_argument('plan'); apply.add_argument('--digest', required=True)
     resume = commands.add_parser('resume'); resume.add_argument('job_id')
     recover = commands.add_parser('recover-catalog'); recover.add_argument('volume')
+    confirm = commands.add_parser('confirm-cleanup', help='After formatting a card in the camera, close its backup job')
+    confirm.add_argument('job_id'); confirm.add_argument('source')
+    commands.add_parser('captures', help='Read-only: completed Stalker sessions in a library and whether each is archived').add_argument('root')
+    audit = commands.add_parser('coverage', help='Read-only: which work-disk files already exist byte-identical on the archive')
+    audit.add_argument('--work', required=True); audit.add_argument('--archive', required=True)
+    audit.add_argument('--path', help='Only this folder of the work disk'); audit.add_argument('--no-hash', action='store_true', help='Size matches only (fast, probable)')
     commands.add_parser('relayout', help='Rename finished Stalker bundle copies to the dated name in place').add_argument('job_id')
     rename = commands.add_parser('rename-project'); rename.add_argument('project_id'); rename.add_argument('title')
     publication = commands.add_parser('publication'); publication.add_argument('asset_id'); publication.add_argument('variant'); publication.add_argument('--channel', required=True); publication.add_argument('--state', choices=['candidate','approved','published'], required=True); publication.add_argument('--url')
@@ -81,7 +87,7 @@ def main(argv=None):
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication'}.get(method, method)
+            method = {'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup'}.get(method, method)
         data = service.call(method, params)
         print(json.dumps({'ok': True, 'command': method, 'data': data}, ensure_ascii=False, indent=2))
         return 0

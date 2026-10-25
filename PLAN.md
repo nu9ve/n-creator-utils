@@ -9,6 +9,16 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Now · next sessions (2026-10-25)
+
+| When | Task |
+| --- | --- |
+| Next | Format the Sony SD in the camera, re-insert, `media confirm-cleanup JOB SOURCE` (or the app's «Ya la formateé…»), diff its index files against the pre-format snapshot. Decide whether a validated Sony profile is ever worth automating. |
+| Next | Clipper session, then Stalker session: [prompts](docs/contracts/next-sessions.md). Edit `debloateando-mi-tele` in Clipper. |
+| Tonight | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
+| Tomorrow | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
+| First new card | Measure the parallel copy speed against the 829 s / 6.35 GB baseline. |
+
 ## P0 · close the current implementation
 
 | Task | Acceptance / owner |
@@ -30,7 +40,7 @@ Do not start by polishing more panels or testing full personal cards. Local fixt
 | Stalker operational closeout | Real recording/finalizing/recovery/multi-session events, event loss/remount and CPU/IO contention validated; producer finalization/revision agreement documented. |
 | Work delivery and restoration UX | Pending/skipped/ready clear by project/selection, preview before large jobs, offline requests retained, order preserved. |
 | Clipper handoff/relink adoption | Consumer accepts the library contract and ACKs complete session/voice/tracks/queue updates. No direct JSON edits here. Coordinated in Clipper's repo. |
-| Second archive replica + scrub | Decide option A/B/C in [replication policy](docs/features/replication-policy.md); verified `replicate` job, coverage per asset, periodic rehash; releasing work copies requires ≥2 archive replicas. |
+| Work release and single-archive safeguards | Per [policy](docs/features/replication-policy.md) (MEDIA = backup, ESSD = work, decided 2026-10-25): coverage audit, archive ESSD-only material, explicit per-project release, MEDIA rehash and catalog export. A second replica stays a future option. |
 | Stalker/Clipper naming adoption | Stalker names sessions per [naming v1](docs/contracts/media-naming-v1.md) at finalization; Clipper library picker keeps capture order and resolves bundles by manifest/IDs. Coordinated in their repos. |
 | Deliveries and published archive | Bundle chosen variants/thumbnails/copy; explicit per-channel publication; `subidos` convention only a configurable suggestion. Idempotent verified archive into final collections. |
 

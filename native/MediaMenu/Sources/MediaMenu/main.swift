@@ -284,6 +284,15 @@ struct DraftUnit: Identifiable, Equatable {
             self.message = "Selección exportada; requiere soporte de biblioteca en Clipper"
         }
     }
+    func confirmCleanup(_ id: String) {
+        let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
+        panel.directoryURL = URL(fileURLWithPath: "/Volumes"); panel.message = "Elige la tarjeta ya formateada en la cámara"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        operation("Comprobando tarjeta formateada") {
+            let result = try await self.client!.call("confirm_camera_cleanup", ["job_id": .string(id), "source": .string(url.path)])
+            self.message = self.stateLabel(result["state"].string)
+        }
+    }
     func resume(_ id: String) {
         operation("Reanudando job") {
             let result = try await self.client!.call("resume", ["job_id": .string(id)])
@@ -430,7 +439,8 @@ struct MainView: View {
     }
     var activity: some View {
         List(model.jobs, id: \.["id"].string) { job in
-            HStack { VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) } }
+            HStack { VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
+                if job["state"].string == "camera_action_required" && job["cleanup_profile"].string == "camera_action_required" { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
         }.padding(.top)
     }
     var settings: some View {

@@ -1,31 +1,29 @@
-# Política de réplicas del archivo (propuesta)
+# Política de respaldo y disco de trabajo
 
-Estado: **propuesta para decidir**, nada implementado más allá de lo existente. Prioridad en [PLAN](../../PLAN.md). Se relaciona con «Liberar trabajo» en [media-experience](../media-experience.md).
+**Decisión del usuario, 2026-10-25:** MEDIA502 (HDD) es el respaldo; ESSD es el disco de trabajo. No hay segunda copia de archivo por ahora. Al terminar de editar un proyecto se eliminan sus copias de ESSD para seguir teniendo espacio; eso es el flujo normal, no una excepción. Prioridades en [PLAN](../../PLAN.md).
 
-## El problema
+## Reglas que se derivan
 
-Hoy un ingreso deja MEDIA502 (archivo) + ESSD (trabajo): dos discos físicos. ESSD está al 94 %, y liberar copias de trabajo de proyectos publicados es parte del flujo. En cuanto se libera un proyecto, **MEDIA502 queda como copia única** de sus raws. Un recibo dice que los bytes se leyeron bien el día del ingreso, no que sigan sanos hoy. Un disco USB de 4.5 TB es un punto único de falla: caída, firmware, borrado accidental o robo.
+1. **Nada se elimina de ESSD si no está verificado en MEDIA.** Para material ingresado por el motor, la prueba es el recibo de archivo más una comprobación rápida (stamp, o rehash a elección) de la copia en MEDIA en el momento de liberar. Para material viejo o creado en ESSD (ediciones, finales, `0000_acomodar`, bibliotecas de Final Cut) la prueba es la [auditoría de cobertura](#auditoría-de-cobertura): contenido idéntico (SHA-256) en MEDIA.
+2. **Lo que existe sólo en ESSD se archiva primero:** job verificado ESSD → MEDIA con recibos, sin limpieza automática del origen. Los finales van a `002_finales`.
+3. **Liberar trabajo es una acción explícita por proyecto:** muestra bytes, qué queda sólo en MEDIA y qué no está cubierto, y nunca la dispara un evento.
+4. **Única réplica, aceptada conscientemente:** después de liberar, MEDIA es la única copia de esos raws. Mitigaciones que no requieren otro disco:
+   - rehash periódico de MEDIA, con `recover-catalog` en un catálogo temporal; ya probado: 8.2 GB en 70 s;
+   - export del catálogo SQLite a `.ncreator/catalog-backups/` en MEDIA.
 
-## Regla propuesta
+## Auditoría de cobertura
 
-1. **Retiro de trabajo exige dos réplicas de archivo independientes.** Antes de proponer borrar copias de trabajo de un proyecto, cada asset debe tener ≥2 ubicaciones de rol archivo en discos físicos distintos (o MEDIA + nube), con verificación vigente. Sin eso, la UI lo muestra como «cobertura: 1 réplica» y no ofrece liberar.
-2. **Segunda réplica por job de replicación verificado**, mismo motor: origen MEDIA, destino registrado con rol `archive`, recibos propios, idempotente y reanudable. Nunca una sincronización ciega tipo `rsync --delete`.
-3. **Scrub periódico.** Rehash de una muestra o de todo lo que tenga más de N meses sin verificar, usando la ruta de `recover-catalog` (ya probada: 8.2 GB en 70 s desde MEDIA502). Registrar `last_verified_at` por copia; una diferencia marca la réplica como dañada y propone repararla desde la otra.
-4. **Catálogo**: los recibos ya viven en cada archivo (`.ncreator/receipts`). Añadir export periódico del SQLite a `.ncreator/catalog-backups/` en cada disco de archivo, para conservar decisiones humanas que los recibos no tienen.
+`nu9ve media coverage --work ESSD --archive MEDIA502 [--path CARPETA] [--no-hash]` ([coverage.py](../../media/coverage.py)). Es de sólo lectura en ambos discos.
 
-## Opciones de segunda réplica (decidir una)
+- Indexa MEDIA por tamaño y recorre ESSD (o una subcarpeta).
+- Un archivo de ESSD con recibo de archivo en el catálogo cuenta como cubierto sin rehash.
+- Si no hay recibo pero sí candidatos del mismo tamaño en MEDIA, compara SHA-256, aunque los nombres difieran (el importador viejo renombraba).
+- `--no-hash` da sólo coincidencias probables por tamaño, para una primera pasada rápida.
 
-| Opción | Pros | Contras |
-| --- | --- | --- |
-| A. Segundo disco rotatorio (p. ej. MEDIA503) guardado fuera de casa | Barato, rápido, sin servicio externo; restauración local. | Disciplina manual de rotación; mismo riesgo si ambos están juntos. |
-| B. Nube fría (Backblaze B2, S3 Glacier Deep Archive) para raws de proyectos publicados | Fuera de sitio automático; no depende de rotar discos. | Costo mensual y de egreso; subir TBs toma días; requiere credenciales y cifrado del lado cliente. |
-| C. A ahora + B sólo para proyectos publicados/finales | Equilibra costo y riesgo; los finales pesan menos. | Dos mecanismos que mantener. |
+Clasifica cada archivo como `in_archive`, `size_match` u `only_work`, con resumen por carpeta. El informe JSON queda en `<catálogo>/reports/`.
 
-Recomendación: **C**, empezando por A. El motor ya sabe copiar y verificar entre discos, y B se suma después como otro tipo de destino, sin cambiar la regla 1.
+Por volumen (ESSD tenía 434 GB al 2026-10-25) la corrida completa con hash toma horas: lanzarla de noche. **Aún no se ha corrido sobre los discos reales.**
 
-## Criterios de aceptación cuando se implemente
+## Opciones futuras (no decididas)
 
-- Job `replicate` (MEDIA → segundo archivo) con plan revisado, recibos y cobertura por asset en el catálogo.
-- La UI y el CLI muestran cobertura (1/2 réplicas, última verificación) por proyecto. «Liberar trabajo» bloqueado con <2.
-- `scrub` programable sin daemon nuevo (lanzado desde la app al montar ambos discos, o manual), con presupuesto de IO y cancelable.
-- Pruebas en fixtures: réplica corrupta detectada, reparación desde la sana, nunca borrar la única copia sana.
+Si más adelante hay otro disco o nube fría: job `replicate` verificado MEDIA → segundo destino, cobertura por asset y rehash programado. Nube fría sólo para finales y catálogo (~40 GB) sería la opción más barata sin disco nuevo.

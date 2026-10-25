@@ -25,6 +25,8 @@ El índice central enlaza formatos propietarios; sólo se centralizan decisiones
 
 ## Tareas listas para pasar a los otros repos
 
+Prompts actuales, en orden de ejecución: [next-sessions.md](next-sessions.md). Los textos de abajo son el resumen anterior.
+
 No se enviaron mensajes a otros chats ni se editaron esos repos. Textos de trabajo sugeridos:
 
 **Stalker:** «Lee `n-creator-utils/docs/contracts/media-naming-v1.md` (sección Adopción: Stalker) y `media-library-v1.md`. Mantén `stalker-clipper/1` como autoridad de captura. Implementa, detrás de una opción: proyecto/país opcionales en la sesión y nombre de carpeta `YYMONDD-HHMMSS_STALKER_MM-SS_PAIS-PROYECTO[].stalker` (inicio local de `createdAt`, duración final), renombrando al finalizar y antes de `completed`. Los internos del bundle no cambian. Agrega biblioteca durable configurable fuera de Downloads y señal estable de finalización. Prueba con la fixture del contrato (`createdAt 2026-10-25T02:58:50Z`, duración 227.6 s, MX, debloateando-mi-tele → `26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker` en America/Hermosillo). No cambies reloj ni pistas.»
