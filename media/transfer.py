@@ -13,6 +13,25 @@ from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, dige
 from .planner import destination_path, preflight, scan, validate_plan
 
 
+def confirm_camera_cleanup(catalog, backend, job_id, source):
+    """Close a camera_action_required job once the card, freed in the camera, no longer holds any backed-up media."""
+    from .layout import MEDIA_KINDS, kind_of
+    job = catalog.job(job_id)
+    require(job['state'] == 'camera_action_required', 'invalid_state', 'Job is not waiting for a camera-side cleanup')
+    info = backend.describe(source, external_required=True)
+    require(info['mount'] == str(Path(source).absolute()), 'card_root_required', 'Choose the root of the mounted card')
+    files, _, _ = scan(source)
+    present = {(f['path'], f['stamp']['size'], f['stamp']['mtime_ns']) for f in files}
+    # A new recording may reuse C0001.MP4; only the exact backed-up clip (path, size, mtime) still blocks.
+    remaining = [f['path'] for f in job['plan']['files'] if kind_of(f['path']) in MEDIA_KINDS
+                 and (f['path'], f['stamp']['size'], f['stamp']['mtime_ns']) in present]
+    require(not remaining, 'source_not_clean', 'Backed-up clips are still on the card: ' + ', '.join(remaining[:5]))
+    with catalog.writer():
+        catalog.event(job_id, 'camera_cleanup_confirmed', {'source': str(source), 'volume_uuid': info['volume_uuid'], 'files_now': len(files)})
+        catalog.state(job_id, 'completed')
+    return catalog.job(job_id)
+
+
 def write_all(fd, block):
     view = memoryview(block)
     while view:

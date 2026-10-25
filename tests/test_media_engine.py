@@ -446,6 +446,19 @@ class NamedLayoutTests(MediaFixture):
         replacement.register('A-NEW', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
         self.assertTrue(recover_catalog(replacement, self.backend, 'A-NEW')['verified'])
 
+    def test_camera_cleanup_confirmed_only_when_backed_up_clips_are_gone(self):
+        from media.transfer import confirm_camera_cleanup
+        card = self.sony_card()
+        plan = self.plan(source=str(card), project='tele')  # cleanup=True, Sony => camera action.
+        self.assertEqual(self.run_plan(plan)['state'], 'camera_action_required')
+        with self.assertRaisesRegex(MediaError, 'still on the card'):
+            confirm_camera_cleanup(self.catalog, self.backend, plan['id'], str(card))
+        for rel in ('PRIVATE/M4ROOT/CLIP/C0001.MP4', 'PRIVATE/M4ROOT/CLIP/C0001M01.XML', 'PRIVATE/M4ROOT/THMBNL/C0001T01.JPG'):
+            (card / rel).unlink()  # What a camera format leaves: indexes, no clips.
+        (card / 'PRIVATE/M4ROOT/CLIP/C0001.MP4').write_bytes(b'a brand new recording')  # Reused name, new clip.
+        self.assertEqual(confirm_camera_cleanup(self.catalog, self.backend, plan['id'], str(card))['state'], 'completed')
+        self.assertTrue((self.archive / '001_raw/videos/2026/10').is_dir())
+
     def test_same_second_clips_get_distinct_names(self):
         card = self.root / 'twins'; (card / 'DCIM').mkdir(parents=True)
         for name in ('A.MP4', 'B.MP4'):
@@ -455,6 +468,41 @@ class NamedLayoutTests(MediaFixture):
         targets = [entry['work'] for entry in plan['layout'].values()]
         self.assertEqual(len(set(targets)), 2)
         self.assertTrue(any(t.endswith('-2[].MP4') for t in targets))
+
+
+class CaptureArchiveStatusTests(MediaFixture):
+    def test_uppercase_session_ids_are_reported_archived(self):
+        from media.captures import captures
+        library = self.root / 'library'; bundle = library / 'Stalker_2026-10-24_19-58-50.stalker'; bundle.mkdir(parents=True)
+        (bundle / 'screen.mov').write_bytes(b'screen')
+        (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'status': 'completed',
+            'sessionID': str(uuid.uuid4()).upper(), 'tracks': [{'relativePath': 'screen.mov'}]}))
+        self.assertEqual(len(captures(self.catalog, library)['pending']), 1)
+        self.run_plan(self.plan(source=str(library), source_kind='stalker', cleanup=False))
+        self.assertEqual(captures(self.catalog, library)['pending'], [])
+
+
+class CoverageTests(MediaFixture):
+    def test_coverage_is_read_only_and_matches_by_content(self):
+        from media.coverage import coverage
+        plan = self.plan(cleanup=False); self.run_plan(plan)  # Receipted work copies.
+        old = self.work / '001_proyectos/viejo'; old.mkdir(parents=True)
+        (old / 'renamed.mov').write_bytes(b'same bytes')
+        (self.archive / '001_raw/videos').mkdir(parents=True)
+        (self.archive / '001_raw/videos/26OCT01-000000_X[].MOV').write_bytes(b'same bytes')
+        (old / 'impostor.mov').write_bytes(b'other byte')  # Same size, different content.
+        (old / 'unique.wav').write_bytes(b'only here!!!')
+        (old / '.DS_Store').write_bytes(b'finder')
+        before = sorted((p, p.stat().st_mtime_ns) for root in (self.work, self.archive) for p in root.rglob('*'))
+        result = coverage(self.catalog, self.backend, 'ESSD', 'MEDIA')
+        after = sorted((p, p.stat().st_mtime_ns) for root in (self.work, self.archive) for p in root.rglob('*'))
+        self.assertEqual(before, after)
+        self.assertEqual(result['totals']['in_archive']['files'], 3)  # Two receipted copies + renamed.mov.
+        self.assertEqual(sorted(f['path'] for f in result['only_work_sample']),
+                         ['001_proyectos/viejo/impostor.mov', '001_proyectos/viejo/unique.wav'])
+        fast = coverage(self.catalog, self.backend, 'ESSD', 'MEDIA', path='001_proyectos/viejo', hash_matches=False)
+        self.assertEqual((fast['totals']['size_match']['files'], fast['totals']['only_work']['files']), (2, 1))
+        self.assertTrue(Path(result['report']).is_file())
 
 
 class AdditionalFailureTests(MediaFixture):

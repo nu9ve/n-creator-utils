@@ -58,6 +58,13 @@ class Service:
             return set_work_state(self.catalog, params['asset_ids'], params['state'])
         if method == 'restore':
             return restore(self.catalog, self.backend, params['asset_id'], params['destination'])
+        if method == 'confirm_camera_cleanup':
+            from .transfer import confirm_camera_cleanup
+            return confirm_camera_cleanup(self.catalog, self.backend, params['job_id'], params['source'])
+        if method == 'coverage':
+            from .coverage import coverage
+            return coverage(self.catalog, self.backend, params['work'], params['archive'], params.get('path') or '',
+                            not params.get('no_hash', False), self.cancel)
         if method == 'relayout':
             return relayout(self.catalog, self.backend, params['job_id'])
         if method == 'handoff':

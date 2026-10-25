@@ -38,6 +38,7 @@ def captures(catalog, root, changed_paths=None):
         except (OSError, ValueError, KeyError, TypeError, MediaError):
             previous[raw] = {'path': raw, 'status': 'needs_review'}
     if previous != catalog.get(key, {}): catalog.set(key, previous)
-    archived = {(row[0], row[1]) for row in catalog.db.execute('SELECT session_id,manifest_digest FROM sessions')}
+    # Plans keep the manifest's spelling of sessionID (Stalker writes uppercase); compare as UUIDs.
+    archived = {(row[0].lower(), row[1]) for row in catalog.db.execute('SELECT session_id,manifest_digest FROM sessions')}
     sessions = [dict(value, archived=(value.get('session_id'), value.get('manifest_digest')) in archived) for value in previous.values()]
     return {'sessions': sessions, 'pending': [s for s in sessions if s.get('status') == 'completed' and not s['archived']]}

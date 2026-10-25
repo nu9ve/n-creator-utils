@@ -49,7 +49,13 @@ Copias aterrizan como `.<nombre>.ncpartial`, se verifican por lectura y se renom
 
 Para jobs terminados con sesiones Stalker copiadas con el nombre anterior. Renombra la carpeta del bundle en cada volumen con copias (rename atómico, sin copiar bytes). Después actualiza las filas `copies`, guarda `layout_override:<job>` para entregas futuras y reescribe el recibo portable con un bloque `relayout`. Es idempotente tras una interrupción. Verificado en las 3 sesiones reales y con `recover-catalog` desde MEDIA.
 
+Las copias de trabajo se eliminan al terminar de editar (ver [política](../features/replication-policy.md)). Reeditar después requiere `nu9ve media deliver`/`restore` desde MEDIA y relink en el editor.
+
 Un renombre cambia rutas. Un consumidor que guardó la ruta vieja debe resolver por `sessionID`/`asset_id` (handoff nuevo) o hacer relink. No se renombra nada que un editor esté usando sin ese paso.
+
+## Estado de archivo para productores
+
+`nu9ve media captures <biblioteca>` (sólo lectura) lista las sesiones `completed` de una biblioteca Stalker con `archived: true|false`. `true` significa que hay copia de archivo verificada con recibo para ese `sessionID` + digest del manifest. Es la única señal válida para ofrecer liberar el original local; un manifest modificado después de archivar vuelve a `false`.
 
 ## Adopción propuesta: Stalker
 
@@ -57,10 +63,11 @@ Un renombre cambia rutas. Un consumidor que guardó la ruta vieja debe resolver 
 2. Proyecto/país como metadata opcional versionada del manifest, propiedad de Stalker; el archivador no la escribe.
 3. Biblioteca durable configurable fuera de `~/Downloads`. Señal estable de finalización, sin reescribir un bundle `completed`.
 4. Fixture compartida: una sesión con `createdAt`/`duration` conocidos debe producir exactamente `26OCT24-195850_STALKER_03-48_MX-…[].stalker`, y su contenido no debe cambiar.
+5. «Liberar sesiones archivadas»: sólo sesiones con `archived: true` según `captures`, por selección explícita, hacia la Papelera (recuperable), nunca por evento. El archivador no borra la biblioteca de Stalker.
 
 ## Adopción propuesta: Clipper
 
-1. Selector de biblioteca que lea `<perfil>_raw/<proyecto>/` y respete el orden por nombre: clips y sesiones intercalados por inicio de captura.
+1. Selector de biblioteca que lea `<perfil>_raw/<proyecto>/` y respete el orden por nombre: clips y sesiones intercalados por inicio de captura. Comprobado 2026-10-25: `clipper_tui.stalker.expand_inputs` sobre la carpeta real devuelve los 7 clips y 3 bundles en ese orden, y reconoce `.stalker` por sufijo. Falta comprobar import, sync, render y export con `[]` en las rutas (filtros de ffmpeg, listas concat, glob).
 2. Reconocer `*.stalker` con cualquier nombre de carpeta: validar por `manifest.json` (`producer`, `sessionID`), no por el patrón `Stalker_…`.
 3. Guardar en el proyecto el `sessionID`/`asset_id` además de la ruta, y ofrecer relink cuando la ruta cambie (relayout, otro SSD, restauración).
 4. Consumir `creator-media-handoff/1` ([spec](media-library-v1.md)): ubicaciones por volumen/rol. La copia de trabajo es la preferida para editar; el archivo es el respaldo.
