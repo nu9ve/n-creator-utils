@@ -13,7 +13,7 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 | When | Task |
 | --- | --- |
-| Next | Format the Sony SD in the camera, re-insert, `media confirm-cleanup JOB SOURCE` (or the app's «Ya la formateé…»), diff its index files against the pre-format snapshot. Decide whether a validated Sony profile is ever worth automating. |
+| Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
 | Next | Clipper session, then Stalker session: [prompts](docs/contracts/next-sessions.md). Edit `debloateando-mi-tele` in Clipper. |
 | Tonight | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
 | Tomorrow | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
