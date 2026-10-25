@@ -3,7 +3,7 @@ from pathlib import Path
 
 from .catalog import Catalog
 from .common import require, relative
-from .library import deliver_work, handoff, resolve, restore, set_work_state
+from .library import deliver_work, handoff, relayout, resolve, restore, set_work_state
 from .planner import build_plan
 from .transfer import Transfer
 from .volumes import VolumeBackend
@@ -58,6 +58,8 @@ class Service:
             return set_work_state(self.catalog, params['asset_ids'], params['state'])
         if method == 'restore':
             return restore(self.catalog, self.backend, params['asset_id'], params['destination'])
+        if method == 'relayout':
+            return relayout(self.catalog, self.backend, params['job_id'])
         if method == 'handoff':
             return handoff(self.catalog, self.backend, params['asset_ids'])
         if method == 'rename_project':

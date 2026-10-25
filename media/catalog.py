@@ -129,6 +129,8 @@ class Catalog:
         result['progress'] = {'verified_copies': self.db.execute('SELECT COUNT(*) FROM copies WHERE job_id=?', (job_id,)).fetchone()[0],
                               'cleaned_files': self.db.execute('SELECT COUNT(*) FROM members WHERE job_id=? AND cleaned=1', (job_id,)).fetchone()[0],
                               'total_files': len(result['plan']['files'])}
+        # Live bytes/phase from the running transfer (see Transfer.report); absent for older jobs.
+        result['progress'].update(self.get('progress:' + job_id, {}))
         return result
 
     def jobs(self):

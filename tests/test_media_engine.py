@@ -83,6 +83,23 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(len(assets), 1)  # JPG+DNG stay paired.
         self.assertEqual(assets[0]['work_delivery_status'], 'ready')
 
+    def test_single_read_fans_out_and_reports_progress(self):
+        from unittest import mock
+        opened = []
+        real_open = Tree.open
+        def spy(tree, rel, *args, **kwargs):
+            if tree.root == self.source: opened.append(rel)
+            return real_open(tree, rel, *args, **kwargs)
+        with mock.patch.object(Tree, 'open', spy):
+            result = self.run_plan()
+        self.assertEqual(result['state'], 'completed')
+        # Copy read + pre-cleanup re-read per file; never a second copy read for the other destination.
+        self.assertEqual(sorted(opened), sorted(['DCIM/photo.DNG', 'DCIM/photo.JPG'] * 2))
+        progress = result['progress']
+        self.assertEqual((progress['copied_bytes'], progress['bytes_total']), (18, 18))
+        self.assertEqual((progress['verified_bytes'], progress['verify_total']), (36, 36))
+        self.assertEqual((progress['files_done'], progress['phase']), (2, 'completed'))
+
     def test_no_media_writes_by_plan_and_stable_plan_digest(self):
         first = self.plan(cleanup=False)
         second = self.plan(cleanup=False)
@@ -329,7 +346,7 @@ class StalkerEngineTests(MediaFixture):
         self.assertEqual(plan['skipped'], ['active.stalker'])
         self.run_plan(plan)
         self.assertTrue((recording / 'screen.mov').exists())
-        saved = next(self.archive.rglob('sample.stalker'))
+        saved = next(self.archive.rglob('*_STALKER_*.stalker'))
         self.assertEqual((saved / 'sources/mic.mov').read_bytes(), b'raw microphone')
         asset = next(a for a in self.catalog.search() if a['kind'] == 'stalker_session')
         exported = handoff(self.catalog, self.backend, [asset['id']])
@@ -383,6 +400,51 @@ class NamedLayoutTests(MediaFixture):
         exported = handoff(self.catalog, self.backend, [clip['id']])['assets'][0]
         self.assertEqual({l['role'] for l in exported['locations']}, {'archive', 'work'})
         self.assertEqual([m['relative_path'] for m in exported['members']], [name + '.MP4'])
+
+    def test_stalker_bundle_takes_dated_name_and_interleaves_with_clips(self):
+        card = self.sony_card()
+        bundle = card / 'Stalker_2026-10-24_19-58-50.stalker'; bundle.mkdir()
+        (bundle / 'screen.mov').write_bytes(b'screen')
+        (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': str(uuid.uuid4()),
+            'status': 'completed', 'createdAt': '2026-10-25T02:58:50Z', 'duration': {'value': 227618267500, 'timescale': 1000000000},
+            'tracks': [{'relativePath': 'screen.mov'}]}))
+        os.environ['TZ'] = 'America/Hermosillo'; __import__('time').tzset()
+        self.addCleanup(lambda: (os.environ.pop('TZ', None), __import__('time').tzset()))
+        plan = self.plan(source=str(card), project='debloateando mi tele', source_kind='stalker', cleanup=False)
+        name = '26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker'
+        self.assertEqual(plan['layout']['Stalker_2026-10-24_19-58-50.stalker/screen.mov'],
+                         {'archive': 'stalker/2026/10/' + name + '/screen.mov', 'work': 'e64_raw/debloateando-mi-tele/' + name + '/screen.mov'})
+        self.assertLess('26OCT24-194650_SONYA6400', name)  # Sorts after the 19:46 clip, before 20:41.
+        self.assertLess(name, '26OCT24-204110_SONYA6400')
+
+    def test_relayout_renames_copied_bundle_in_place_on_every_volume(self):
+        from unittest import mock
+        from media import layout
+        from media.library import relayout
+        from media.recovery import recover_catalog
+        card = self.root / 'captures'; bundle = card / 'Stalker_2026-10-24_19-58-50.stalker'; bundle.mkdir(parents=True)
+        (bundle / 'screen.mov').write_bytes(b'screen'); (bundle / 'sources').mkdir(); (bundle / 'sources/mic.mov').write_bytes(b'mic')
+        (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': str(uuid.uuid4()),
+            'status': 'completed', 'createdAt': '2026-10-25T02:58:50Z', 'duration': {'value': 227618267500, 'timescale': 1000000000},
+            'tracks': [{'relativePath': 'screen.mov'}]}))
+        real = layout.stalker_bundle_name
+        with mock.patch.object(layout, 'stalker_bundle_name', lambda m, f, c, p: ('Stalker_2026-10-24_19-58-50.stalker', real(m, f, c, p)[1])):
+            plan = self.plan(source=str(card), project='tele', source_kind='stalker', cleanup=False)
+        self.run_plan(plan)
+        self.assertTrue(list(self.work.rglob('Stalker_2026-10-24_19-58-50.stalker')))
+        result = relayout(self.catalog, self.backend, plan['id'])
+        self.assertEqual(len(result['renamed']), 2)  # Archive and work.
+        for root in (self.archive, self.work):
+            self.assertEqual(list(root.rglob('Stalker_2026-10-24_19-58-50.stalker')), [])
+            renamed = next(root.rglob('*_STALKER_03-48_MX-TELE[[]].stalker'))
+            self.assertEqual((renamed / 'sources/mic.mov').read_bytes(), b'mic')
+        relayout(self.catalog, self.backend, plan['id'])  # Idempotent.
+        asset = next(a for a in self.catalog.search() if a['kind'] == 'stalker_session')
+        locations = handoff(self.catalog, self.backend, [asset['id']])['assets'][0]['locations']
+        self.assertTrue(all('_STALKER_' in l['relative_path'] for l in locations))
+        replacement = Catalog(self.root / 'recovered'); self.addCleanup(replacement.close)
+        replacement.register('A-NEW', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
+        self.assertTrue(recover_catalog(replacement, self.backend, 'A-NEW')['verified'])
 
     def test_same_second_clips_get_distinct_names(self):
         card = self.root / 'twins'; (card / 'DCIM').mkdir(parents=True)
@@ -520,6 +582,14 @@ class RecoveryAndCaptureTests(MediaFixture):
         target = self.root / 'recovered-output'; target.mkdir()
         self.assertTrue(restore(replacement, self.backend, recovered['id'], target)['verified'])
         self.assertEqual(next(target.rglob('photo.JPG')).read_bytes(), b'photo-data')
+
+    def test_recovery_ignores_appledouble_receipt_companions(self):
+        from media.recovery import recover_catalog
+        plan = self.plan(); self.run_plan(plan)
+        (self.archive / '.ncreator/receipts' / ('._' + plan['id'] + '.json')).write_bytes(b'\x00\x05\x16\x07 appledouble')
+        replacement = Catalog(self.root / 'exfat-state'); self.addCleanup(replacement.close)
+        replacement.register('A-NEW', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
+        self.assertTrue(recover_catalog(replacement, self.backend, 'A-NEW')['verified'])
 
     def test_recovery_rejects_corrupt_archive(self):
         from media.recovery import recover_catalog

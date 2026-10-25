@@ -148,16 +148,25 @@ def archive_folder(kind, found, camera):
     return '360/images' if camera in {'dji-360', 'insta360'} else 'images'
 
 
-def bundle_name(plan, bundle):
-    return plan['source_name'] if bundle == '.' else bundle.rsplit('/', 1)[-1]
+def stalker_facts(manifest, fallback_ns):
+    """Start (local wall clock) and duration of a Stalker session from its manifest."""
+    created = None
+    try:
+        created = datetime.datetime.fromisoformat(manifest['createdAt'].replace('Z', '+00:00')).astimezone()
+    except (KeyError, AttributeError, TypeError, ValueError):
+        pass
+    seconds = None
+    try:
+        seconds = manifest['duration']['value'] / manifest['duration']['timescale']
+    except (KeyError, TypeError, ZeroDivisionError):
+        pass
+    return {'created': created or datetime.datetime.fromtimestamp(fallback_ns / 1e9).astimezone(), 'seconds': seconds}
 
 
-def bundle_date(name, files):
-    match = re.search(r'(\d{4})-(\d{2})-(\d{2})', name)
-    if match:
-        return match.group(1) + '/' + match.group(2)
-    newest = max(f['stamp']['mtime_ns'] for f in files)
-    return datetime.datetime.fromtimestamp(newest / 1e9).strftime('%Y/%m')
+def stalker_bundle_name(manifest, fallback_ns, country, project):
+    found = stalker_facts(manifest, fallback_ns)
+    name = '{}_STALKER_{}_{}-{}[].stalker'.format(stamp(found['created']), duration(found['seconds']), tag(country), tag(project))
+    return name, found['created']
 
 
 def build_layout(source, plan, units, files):
@@ -185,12 +194,15 @@ def build_layout(source, plan, units, files):
         work_root = slug(unit['profile']) + '_raw/' + project
         label = '{}-{}'.format(tag(plan['country']), tag(project))
         if unit['kind'] == 'stalker_session':
-            name = bundle_name(plan, unit['bundle'])
+            # The bundle folder takes the dated name so sessions interleave with camera clips; its inside stays byte-identical.
             prefix = '' if unit['bundle'] == '.' else unit['bundle'] + '/'
-            month = bundle_date(name, members)
+            manifest = json.loads((source / (prefix + 'manifest.json')).read_bytes())
+            name, created = stalker_bundle_name(manifest, min(f['stamp']['mtime_ns'] for f in members), plan['country'], project)
+            name = claim(created.strftime('%Y/%m') + '/' + name).split('/', 2)[2]
+            first_capture = created if first_capture is None or created < first_capture else first_capture
             for file in members:
                 inner = file['path'][len(prefix):]
-                layout[file['path']] = {'archive': 'stalker/{}/{}/{}'.format(month, name, inner),
+                layout[file['path']] = {'archive': 'stalker/{}/{}/{}'.format(created.strftime('%Y/%m'), name, inner),
                                         'work': '{}/{}/{}'.format(work_root, name, inner)}
             continue
         media = [f for f in members if kind_of(f['path']) in MEDIA_KINDS]

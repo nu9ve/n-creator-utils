@@ -30,6 +30,8 @@ Do not start by polishing more panels or testing full personal cards. Local fixt
 | Stalker operational closeout | Real recording/finalizing/recovery/multi-session events, event loss/remount and CPU/IO contention validated; producer finalization/revision agreement documented. |
 | Work delivery and restoration UX | Pending/skipped/ready clear by project/selection, preview before large jobs, offline requests retained, order preserved. |
 | Clipper handoff/relink adoption | Consumer accepts the library contract and ACKs complete session/voice/tracks/queue updates. No direct JSON edits here. Coordinated in Clipper's repo. |
+| Second archive replica + scrub | Decide option A/B/C in [replication policy](docs/features/replication-policy.md); verified `replicate` job, coverage per asset, periodic rehash; releasing work copies requires ≥2 archive replicas. |
+| Stalker/Clipper naming adoption | Stalker names sessions per [naming v1](docs/contracts/media-naming-v1.md) at finalization; Clipper library picker keeps capture order and resolves bundles by manifest/IDs. Coordinated in their repos. |
 | Deliveries and published archive | Bundle chosen variants/thumbnails/copy; explicit per-channel publication; `subidos` convention only a configurable suggestion. Idempotent verified archive into final collections. |
 
 ## P2 · dashboard, launcher and maintainability

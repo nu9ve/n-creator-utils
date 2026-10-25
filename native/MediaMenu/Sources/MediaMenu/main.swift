@@ -190,7 +190,7 @@ struct DraftUnit: Identifiable, Equatable {
                     try? await Task.sleep(for: .seconds(2))
                     if Task.isCancelled { break }
                     if let job = try? await self.client!.call("job", ["job_id": reviewed["id"]]) {
-                        self.message = self.stateLabel(job["state"].string)
+                        self.message = self.progressLabel(job)
                     }
                 }
             }
@@ -214,6 +214,19 @@ struct DraftUnit: Identifiable, Equatable {
         case "paused": return "Pausado; se puede reanudar"
         case "failed": return "Fallo; revisa el job antes de reanudar"
         default: return state
+        }
+    }
+    func progressLabel(_ job: JSONValue) -> String {
+        // Real bytes from Transfer.report; never an invented percentage.
+        let p = job["progress"], gb = { (bytes: Double) in String(format: "%.1f", bytes / 1e9) }
+        guard p["bytes_total"].double > 0 else { return stateLabel(job["state"].string) }
+        let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
+        let files = " · \(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos"
+        switch p["phase"].string {
+        case "copying": return "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB" + rate + files
+        case "verifying": return "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB" + files
+        case "cleaning": return "Limpiando SD tras verificar"
+        default: return stateLabel(job["state"].string)
         }
     }
     func jobLabel(_ job: JSONValue) -> String {

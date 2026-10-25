@@ -18,7 +18,8 @@ def recover_catalog(catalog, backend, volume):
         with tree.parent('.ncreator/receipts/entry.json') as (fd, _):
             names = sorted(os.listdir(fd))
         for name in names:
-            if not name.endswith('.json'): continue
+            # ExFAT gets AppleDouble `._*.json` companions from macOS; they are never receipts.
+            if not name.endswith('.json') or name.startswith('.'): continue
             fd = tree.open('.ncreator/receipts/' + name)
             with os.fdopen(fd, 'rb') as stream: raw = stream.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'receipt_too_large', 'Receipt exceeds input limit')
