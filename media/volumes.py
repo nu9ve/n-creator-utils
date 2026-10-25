@@ -18,13 +18,19 @@ class VolumeBackend:
             require(not path.is_symlink(), 'unsafe_path', 'Volume root contains a symlink')
         st = root.stat()
         if sys.platform == 'darwin':
-            mounted = subprocess.run(['/bin/df', '-P', str(root)], capture_output=True, text=True, timeout=10)
+            try:
+                mounted = subprocess.run(['/bin/df', '-P', str(root)], capture_output=True, text=True, timeout=10)
+            except subprocess.TimeoutExpired as error:
+                raise MediaError('volume_identity_unavailable', 'df did not answer for ' + str(root) + '; retry in a moment') from error
             require(mounted.returncode == 0, 'volume_identity_unavailable', 'Cannot determine source filesystem')
             rows = mounted.stdout.strip().splitlines()
             require(len(rows) >= 2 and len(rows[-1].split(None, 5)) == 6, 'volume_identity_unavailable', 'Unexpected filesystem report')
             mount_path = rows[-1].split(None, 5)[-1]
-            result = subprocess.run(['/usr/sbin/diskutil', 'info', '-plist', mount_path],
-                                    capture_output=True, timeout=15)
+            try:
+                result = subprocess.run(['/usr/sbin/diskutil', 'info', '-plist', mount_path], capture_output=True, timeout=30)
+            except subprocess.TimeoutExpired as error:
+                # Freshly mounted cards can stall diskutil while Spotlight indexes them; fail closed, retry later.
+                raise MediaError('volume_identity_unavailable', 'diskutil did not answer for ' + mount_path + '; retry in a moment') from error
             require(result.returncode == 0, 'volume_identity_unavailable', 'Cannot establish disk identity')
             data = plistlib.loads(result.stdout)
             mount = data.get('MountPoint')

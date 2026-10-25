@@ -27,3 +27,17 @@ nu9ve inspect "/ruta/a/copia-de-la-SD"
 ```
 
 Reporta nombres y evidencia Sony del sidecar si está disponible. No verifica hashes, no exporta todo el inventario de atributos de la SD ni certifica que la cámara aceptará su base de imágenes. Para comparar snapshots de la prueba se añadirá un modo de evidencia con hashes al motor, separado del inventario rápido.
+
+## Tarjeta formateada en cámara (ILCE-6400, 2026-10-25)
+
+Primer ciclo real completo: respaldo verificado (`camera_action_required`), formateo en la cámara y cierre con `media confirm-cleanup` → `completed`. Huellas antes/después en la sesión de trabajo; resumen:
+
+| Elemento | Después del formateo |
+| --- | --- |
+| `PRIVATE/M4ROOT/CLIP/*`, `THMBNL/*` | Eliminados (antes 21 archivos). |
+| `PRIVATE/M4ROOT/MEDIAPRO.XML` | Regenerado, 406 B: lista vacía, `mediaId` nuevo, `createdAt` del formateo. |
+| `AVF_INFO/*`, `PRIVATE/AVCHD/BDMV/*` | Mismos tamaños, contenido nuevo. |
+| `STATUS.BIN`, `PRIVATE/SONY/SONYCARD.IND` | Idénticos. |
+| Volumen ExFAT | 76 MB usados; **mismo Volume UUID** que antes del formateo. |
+
+Conclusión: la cámara reescribe sus índices con identificadores propios. Imitarlo desde la computadora sería manipular índices por inferencia, así que **la limpieza Sony sigue siendo formatear en la cámara**. El motor la cierra comprobando que no queda ningún clip respaldado (misma ruta, tamaño y `mtime`). Un clip nuevo con nombre reutilizado no bloquea. Como el UUID no cambia, no sirve para detectar el formateo.

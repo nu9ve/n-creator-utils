@@ -482,6 +482,17 @@ class CaptureArchiveStatusTests(MediaFixture):
         self.assertEqual(captures(self.catalog, library)['pending'], [])
 
 
+class VolumeBackendTests(unittest.TestCase):
+    def test_stalled_diskutil_is_a_media_error(self):
+        import subprocess, sys
+        from unittest import mock
+        if sys.platform != 'darwin':
+            self.skipTest('macOS identity backend')
+        with tempfile.TemporaryDirectory() as root, mock.patch('subprocess.run', side_effect=subprocess.TimeoutExpired('diskutil', 30)):
+            with self.assertRaisesRegex(MediaError, 'retry in a moment'):
+                VolumeBackend().describe(Path(root).resolve())
+
+
 class CoverageTests(MediaFixture):
     def test_coverage_is_read_only_and_matches_by_content(self):
         from media.coverage import coverage
