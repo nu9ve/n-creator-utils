@@ -35,7 +35,7 @@ nu9ve media plan /Volumes/TARJETA --archive MEDIA502 --work ESSD \
 nu9ve media apply plan.json --digest DIGEST_REVISADO
 ```
 
-`plan` no copia/borra media. El CLI JSON devuelve `{ok, command, data}` o un error; `apply` acepta el plan crudo o la respuesta completa de `plan`. Cambios entre revisión y ejecución pueden bloquear el job. El planner preserva árboles bajo contenedores por job/unidad; no produce automáticamente los nombres históricos del importador viejo.
+`plan` no copia/borra media. El CLI JSON devuelve `{ok, command, data}` o un error; `apply` acepta el plan crudo o la respuesta completa de `plan`. Cambios entre revisión y ejecución pueden bloquear el job. El planner decide nombres históricos fechados y carpetas por tipo/año/mes (ver [CONTEXT](CONTEXT.md)); revisa `data.layout`/`data.preview` antes de aplicar.
 
 Flujo humano equivalente:
 
@@ -105,7 +105,8 @@ Para una sesión de prueba, elegir un `NU9VE_MEDIA_HOME` nuevo bajo `/private/tm
 | No popup al insertar SD | Es esperado sin destinos registrados online. Con destinos, verificar identidad y que la fuente sea una tarjeta elegible; manual inspect sigue disponible. |
 | `volume_identity_unavailable` | `diskutil`/`df`, permisos y montaje. No saltar la comprobación por nombre. |
 | `source_changed` / `checksum_mismatch` | Revisar job, conservar archivos y no forzar limpieza; reproducción pequeña con fixture. |
-| `destination_conflict` | Contenedor sin owner válido o de otro plan. No sobrescribir ni borrar para ocultarlo. |
+| `source_has_new_material` | Lo planeado quedó verificado y limpio; aparecieron archivos nuevos en la SD durante la limpieza y **no están respaldados**. Inspeccionar la SD de nuevo y crear otro plan. |
+| `destination_conflict` | Ya existe un archivo distinto con el nombre planeado (o un contenedor de plan esquema 1 sin owner). No sobrescribir ni borrar para ocultarlo; revisar cuál es cuál. |
 | App ve otro catálogo/runtime | Entorno de lanzamiento, preferencias del bundle, runtime externo frente a incluido; no mezclar el catálogo temporal de UI con el normal. |
 | Swift no puede escribir su module cache | El ambiente puede necesitar autorización de build fuera del sandbox. No es una razón para desactivar validaciones del motor. |
 

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UserNotifications
 import MediaMenuCore
 
 struct DraftUnit: Identifiable, Equatable {
@@ -19,6 +20,9 @@ struct DraftUnit: Identifiable, Equatable {
     var captureWatcher: CaptureWatcher?
     var captureTask: Task<Void, Never>?
     @Published var project = ""
+    @Published var lastProject = ""
+    @Published var cardSuggestions: [String] = []
+    var notifiedCards: Set<String> = []
     @Published var profile = "e64"
     @Published var country = "mx"
     @Published var city = "hermosillo"
@@ -107,7 +111,8 @@ struct DraftUnit: Identifiable, Equatable {
             jobs = try await client.call("jobs").array
             if loadDefaults {
                 let values = try await client.call("defaults")
-                project = values["project"].string
+                // Offered via "Usar último"; a new card never inherits it silently.
+                lastProject = values["project"].string
                 profile = values["profile"].string.isEmpty ? "e64" : values["profile"].string
                 country = values["country"].string.isEmpty ? "mx" : values["country"].string
                 city = values["city"].string.isEmpty ? "hermosillo" : values["city"].string
@@ -193,7 +198,7 @@ struct DraftUnit: Identifiable, Equatable {
             self.message = self.stateLabel(result["state"].string)
             _ = try await self.client!.call("defaults", ["project": .string(self.project), "profile": .string(self.profile),
                 "country": .string(self.country), "city": .string(self.city), "archive": .string(self.archive), "work": .string(self.work)])
-            self.plan = nil
+            self.lastProject = self.project; self.plan = nil
         }
     }
     func cancel() { client?.cancel(); message = "Cancelando en un punto recuperable…" }
@@ -205,9 +210,31 @@ struct DraftUnit: Identifiable, Equatable {
         case "completed": return "Respaldo verificado · SD libre"
         case "camera_action_required": return "Respaldo verificado · libera la tarjeta desde la cámara"
         case "source_retained": return "Respaldo verificado · origen conservado"
+        case "source_has_new_material": return "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados"
         case "paused": return "Pausado; se puede reanudar"
         case "failed": return "Fallo; revisa el job antes de reanudar"
         default: return state
+        }
+    }
+    func jobLabel(_ job: JSONValue) -> String {
+        // Cards holding Stalker bundles end camera_action_required without any camera step.
+        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "files" {
+            return "Respaldo verificado · las sesiones Stalker se conservan en el origen"
+        }
+        return stateLabel(job["state"].string)
+    }
+    func useCard(_ path: String) {
+        source = path; units = []; plan = nil; project = ""; selectedTab = 0
+    }
+    func notifyCard(_ path: String) {
+        guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
+        Task {
+            let center = UNUserNotificationCenter.current()
+            guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Tarjeta detectada"
+            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre Media para revisar el plan"
+            try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }
     }
     func deliver() {
@@ -257,14 +284,22 @@ struct DraftUnit: Identifiable, Equatable {
             guard !Task.isCancelled, !busy, let client, client.configuration.usable else { return }
             await refresh()
             captureChanged([])
-            guard volumes.contains(where: { $0["online"].bool }) else { return }
+            guard volumes.contains(where: { $0["online"].bool }) else { cardSuggestions = []; notifiedCards = []; statusChanged?(); return }
             let mounted = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeIsInternalKey], options: [.skipHiddenVolumes]) ?? []
+            var shown: [String] = []
             for url in mounted {
                 guard (try? url.resourceValues(forKeys: [.volumeIsInternalKey]).volumeIsInternal) == false else { continue }
-                if let suggestion = try? await client.call("suggest", ["source": .string(url.path)]), suggestion["show"].bool {
-                    if source != url.path { source = url.path; units = []; plan = nil; openWindow?() }
-                }
+                if let suggestion = try? await client.call("suggest", ["source": .string(url.path)]), suggestion["show"].bool { shown.append(url.path) }
             }
+            // A mount event notifies once per insertion; it never opens the window or replaces work in progress.
+            cardSuggestions = shown
+            notifiedCards.formIntersection(shown)
+            let idle = units.isEmpty && plan == nil && (source.isEmpty || !FileManager.default.fileExists(atPath: source))
+            for path in shown where !notifiedCards.contains(path) {
+                notifiedCards.insert(path); notifyCard(path)
+                if idle && source != path { useCard(path) }
+            }
+            statusChanged?()
             if assets.contains(where: { $0["work_delivery_status"].string == "pending" }) { statusChanged?() }
         }
     }
@@ -300,8 +335,14 @@ struct MainView: View {
     }
     var ingest: some View {
         VStack(alignment: .leading, spacing: 12) {
+            ForEach(model.cardSuggestions.filter { $0 != model.source }, id: \.self) { path in
+                HStack { Label("Tarjeta detectada: " + URL(fileURLWithPath: path).lastPathComponent, systemImage: "sdcard"); Button("Usar esta tarjeta") { model.useCard(path) } }
+            }
             HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() }; Button("Inspeccionar") { model.discover() }.disabled(model.source.isEmpty) }
-            HStack { TextField("Proyecto", text: $model.project); TextField("Perfil", text: $model.profile); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
+            HStack {
+                TextField("Proyecto", text: $model.project)
+                if !model.lastProject.isEmpty && model.project != model.lastProject { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
+                TextField("Perfil", text: $model.profile); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
             HStack {
                 volumePicker("Archivo", role: "archive", selection: $model.archive)
                 volumePicker("Trabajo", role: "work", selection: $model.work)
@@ -376,7 +417,7 @@ struct MainView: View {
     }
     var activity: some View {
         List(model.jobs, id: \.["id"].string) { job in
-            HStack { VStack(alignment: .leading) { Text(model.stateLabel(job["state"].string)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) } }
+            HStack { VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) } }
         }.padding(.top)
     }
     var settings: some View {
@@ -394,7 +435,7 @@ struct MainView: View {
     }
 }
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     let model = Model()
     var status: NSStatusItem!
     var window: NSWindow?
@@ -413,7 +454,7 @@ struct MainView: View {
         model.openWindow = { [weak self] in self?.show() }
         model.statusChanged = { [weak self] in
             guard let self else { return }
-            self.status.button?.title = self.model.busy ? " …" : ((self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty) ? " •" : "")
+            self.status.button?.title = self.model.busy ? " …" : ((self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty) ? " •" : "")
             self.status.button?.toolTip = self.model.message
         }
         let center = NSWorkspace.shared.notificationCenter
@@ -422,6 +463,7 @@ struct MainView: View {
                 Task { @MainActor in self?.model.mountChanged() }
             })
         }
+        if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().delegate = self }
         if CommandLine.arguments.contains("--show") { show() }
         // Normal startup has no popup or recurring idle timer. Initial catalog read only.
     }
@@ -433,6 +475,10 @@ struct MainView: View {
         }
         NSApp.activate(ignoringOtherApps: true); window?.makeKeyAndOrderFront(nil)
     }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        await MainActor.run { model.selectedTab = 0; show() }
+    }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner] }
     @objc func cancel() { model.cancel() }
     @objc func quit() { NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

@@ -13,7 +13,7 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 | Task | Acceptance / owner |
 | --- | --- |
-| Review plan validation, source cleanup races, receipt durability and replay | Changed/absent/replaced source or required destination never causes an unverified delete. Complete fault coverage at the narrow boundary. `media/{planner,transfer,common}.py`. |
+| Review plan validation, source cleanup races, receipt durability and replay | Independent review done 2026-10-25; durability, source re-read and metadata fixes applied. Remaining: authenticated/recorded plan digests, job owner/lease. `media/{planner,transfer,catalog}.py`. |
 | Re-run the final snapshot and build a clean package | Full Python suite, Swift tests, current wheel contents, actual handoff schema/semantics and JSON CLI roundtrip. Record exact evidence in STATUS; no inherited green counts. |
 | Harden recovery and the location graph | All relevant `asset_jobs`/locations can resolve; recovered work/ownership can reconcile without source SD; later human metadata has a durable backup/export strategy. `catalog/library/recovery`. |
 | Physical acceptance | Sony procedure, H6 required SSD1/confirmed exception, DJI drone versus 360, ExFAT/HFS+ and ESSD reconnects using a small explicit trial. [Protocol](docs/sony-validation.md). |

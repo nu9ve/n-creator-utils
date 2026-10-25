@@ -7,9 +7,10 @@ import stat
 import unicodedata
 import uuid
 
-from manager.inventory import camera_evidence, IGNORED_DIRS
+from manager.inventory import camera_evidence, IGNORED_DIRS, IGNORED_FILES
 from .volumes import independent
 from .common import Tree, content_stamp, digest, fingerprint, read_json, relative, require, slug
+from .layout import build_layout
 
 CAMERAS = {'sony', 'canon', 'nikon', 'gopro', 'h6', 'dji-drone', 'dji-360', 'dji-action', 'insta360', 'generic'}
 
@@ -59,6 +60,8 @@ def scan(root, skip_active=False, cancel=None):
                 if entry.is_dir(follow_symlinks=False):
                     if entry.name not in IGNORED_DIRS:
                         visit(Path(entry.path), rel, bundle)
+                elif entry.name in IGNORED_FILES or entry.name.startswith('._'):
+                    continue
                 else:
                     require(entry.is_file(follow_symlinks=False), 'unsafe_file', 'Special entry in source: ' + rel)
                     st = tree.stat(rel)
@@ -183,12 +186,14 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
             file['unit_id'] = unit_id
     # A plan ID/digest is stable for an unchanged source, routing and policy.
     timestamp = datetime.datetime.fromtimestamp(max(f['stamp']['mtime_ns'] for f in files) / 1e9, datetime.timezone.utc)
-    plan = {'schema': 'nu9ve-ingest-plan/1', 'source': str(source), 'source_identity': source_key,
+    plan = {'schema': 'nu9ve-ingest-plan/2', 'source': str(source), 'source_identity': source_key,
             'source_kind': source_kind, 'archive_id': archive_record['id'], 'work_id': active_work['id'] if active_work else None,
             'expected_work_id': expected_work, 'archive_only_confirmed': archive_only and confirm_archive_only,
             'work_delivery_status': work_decision, 'cleanup': cleanup, 'country': country, 'city': city,
             'media_date': timestamp.strftime('%Y/%m'), 'source_name': relative(source.name),
             'files': files, 'units': units, 'bundles': bundles, 'skipped': skipped}
+    if source_kind != 'delivery':
+        plan['layout'] = build_layout(source, plan, units, files)
     sony = any('/private/m4root/' in ('/' + f['path']).lower() or '/private/avchd/' in ('/' + f['path']).lower()
                or f['path'].lower().startswith('avf_info/') for f in files)
     plan['cleanup_profile'] = 'camera_action_required' if sony or any(u['camera'] == 'sony' for u in units) else 'files'
@@ -198,8 +203,22 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
     plan['preview'] = [{'source': f['path'], 'bytes': f['stamp']['size'], 'project': units_by_id[f['unit_id']]['project'],
                        'profile': units_by_id[f['unit_id']]['profile'], 'camera': units_by_id[f['unit_id']]['camera'],
                        'archive_path': str(Path(archive_record['root']) / destination_path(archive_record, plan, units_by_id[f['unit_id']], f['path'])),
-                       'work_path': str(Path(active_work['root']) / destination_path(active_work, plan, units_by_id[f['unit_id']], f['path'])) if active_work else None}
+                       'work_path': str(Path(active_work['root']) / destination_path(active_work, plan, units_by_id[f['unit_id']], f['path']))
+                                    if active_work and destination_path(active_work, plan, units_by_id[f['unit_id']], f['path']) else None}
                       for f in files]
+    plan['preview'].sort(key=lambda row: row['archive_path'])
+    for record in [archive_record] + ([active_work] if active_work else []):
+        # Fail at review time, not mid-copy, when a different file already holds a planned name.
+        with Tree(record['root']) as target:
+            for f in files:
+                rel = destination_path(record, plan, units_by_id[f['unit_id']], f['path'])
+                if rel is None:
+                    continue
+                try:
+                    size = target.stat(rel).st_size
+                except FileNotFoundError:
+                    continue
+                require(size == f['stamp']['size'], 'destination_conflict', 'A different file already exists at ' + rel)
     require(len(files) <= 100000 and len(__import__('json').dumps(plan).encode()) <= 12 * 1024 * 1024, 'plan_too_large', 'Split this source into smaller ingest operations')
     plan['digest'] = digest(plan)
     preflight(catalog, backend, plan, reserve=True)
@@ -207,7 +226,7 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
 
 
 def validate_plan(plan):
-    require(isinstance(plan, dict) and plan.get('schema') == 'nu9ve-ingest-plan/1', 'invalid_plan', 'Unsupported plan')
+    require(isinstance(plan, dict) and plan.get('schema') in {'nu9ve-ingest-plan/1', 'nu9ve-ingest-plan/2'}, 'invalid_plan', 'Unsupported plan')
     raw = dict(plan); supplied = raw.pop('digest', None)
     require(digest(raw) == supplied, 'plan_changed', 'Plan digest mismatch')
     try:
@@ -230,6 +249,15 @@ def validate_plan(plan):
             require(file['path'] in ids[file['unit_id']]['paths'], 'invalid_plan', 'Unit/member mismatch')
             require(isinstance(file['stamp']['size'], int) and file['stamp']['size'] >= 0, 'invalid_plan', 'Invalid file size')
         require(seen and seen == {p for u in ids.values() for p in u['paths']}, 'invalid_plan', 'Empty or inconsistent plan')
+        if plan['schema'] == 'nu9ve-ingest-plan/2' and plan['source_kind'] != 'delivery':
+            layout = plan['layout']
+            require(set(layout) == seen, 'invalid_plan', 'Layout must cover every planned file')
+            for role in ('archive', 'work'):
+                targets = [entry[role] for entry in layout.values() if entry[role] is not None]
+                for target in targets:
+                    relative(target)
+                require(len({t.lower() for t in targets}) == len(targets), 'invalid_plan', 'Two files share one destination')
+            require(all(entry['archive'] for entry in layout.values()), 'invalid_plan', 'Every file needs an archive destination')
         if plan['work_id'] is None:
             require(plan['archive_only_confirmed'] is True and plan['work_delivery_status'] in {'pending', 'skipped'},
                     'confirmation_required', 'Archive-only confirmation missing')
@@ -244,7 +272,12 @@ def validate_plan(plan):
 
 
 def destination_path(record, plan, unit, source_path):
+    """Relative destination below the volume root, or None when this role does not receive the file."""
     relative(record['prefix'])
+    if 'layout' in plan:
+        target = plan['layout'][source_path][record['role']]
+        return None if target is None else record['prefix'] + '/' + relative(target)
+    # Plans before schema 2 nest original trees under per-job/per-unit containers.
     if record['role'] == 'archive':
         prefix = (record.get('finals_prefix', '002_finales') if plan['source_kind'] == 'delivery' else record['prefix']) + '/' + ('stalker' if unit['kind'] == 'stalker_session' else 'camera-bundles') + '/' + plan['media_date']
     else:

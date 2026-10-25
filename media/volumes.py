@@ -40,7 +40,8 @@ class VolumeBackend:
                     'mount': mount, 'external': external, 'physical': ','.join(physical_disks), 'physical_disks': physical_disks,
                     'filesystem': data.get('FilesystemType', ''), 'block_size': data.get('VolumeAllocationBlockSize', 4096),
                     'root_inode': st.st_ino, 'device': st.st_dev, 'free': shutil.disk_usage(root).free,
-                    'removable': bool(data.get('RemovableMedia') or data.get('Removable'))}
+                    'removable': bool(data.get('RemovableMedia') or data.get('Removable')),
+                    'disk_image': data.get('BusProtocol') == 'Disk Image'}
         require(not external_required, 'unsupported_platform', 'External identity backend is currently macOS only')
         return {'mode': 'local', 'volume_uuid': str(st.st_dev), 'disk_uuid': None, 'mount': str(root),
                 'external': False, 'physical': str(st.st_dev), 'filesystem': 'local', 'block_size': 4096,
@@ -66,6 +67,9 @@ class VolumeBackend:
 
 
 def independent(first, second):
+    # A mounted image's bytes live on some other disk; it never counts as a separate replica.
+    if first.get('disk_image') or second.get('disk_image'):
+        return False
     left = set(first.get('physical_disks') or [first['physical']])
     right = set(second.get('physical_disks') or [second['physical']])
     return left.isdisjoint(right)

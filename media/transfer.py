@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, digest, hash_fd, now, require
+from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, digest, full_sync, hash_fd, now, require, uncached
 from .planner import destination_path, preflight, scan, validate_plan
 
 
@@ -14,11 +14,15 @@ def claim_directory(tree, rel, owner):
     with tree.parent(rel, True) as (fd, name):
         try:
             os.mkdir(name, 0o700, dir_fd=fd)
-            os.fsync(fd)
+            full_sync(fd)
             created = True
         except FileExistsError:
             created = False
     marker = rel + '/.ncreator-owner.json'
+    if not created:
+        with tree.parent(marker) as (fd, name):
+            # A crash between mkdir and the marker leaves an empty directory that is still claimable.
+            created = not os.listdir(fd)
     if created:
         tree.write_json(marker, owner)
     else:
@@ -79,29 +83,36 @@ class Transfer:
                 require(actual_map[path]['stamp'] == file['stamp'], 'source_changed', 'Source changed: ' + path)
         return actual_map
 
-    def copy_file(self, source_tree, source_rel, target_tree, target_rel, record, expected=None, source_stamp=None, owned_partial=False):
+    def copy_file(self, source_tree, source_rel, target_tree, target_rel, record, expected=None, source_stamp=None):
+        """Write `.name.ncpartial`, verify it, then rename without replacing anything already at target_rel."""
         self.check_volume(record)
         source_tree.check(); target_tree.check()
-        src = source_tree.open(source_rel)
+        folder, _, name = target_rel.rpartition('/')
+        partial = (folder + '/' if folder else '') + '.' + name + '.ncpartial'
+        src = uncached(source_tree.open(source_rel))
         try:
             initial = os.fstat(src)
             if source_stamp is not None:
                 require(content_stamp(initial) == source_stamp, 'source_changed', 'Source file changed before reading')
-            # A prior partial belongs to this job's exclusively claimed directory.
             try:
-                existing = target_tree.open(target_rel)
+                existing = uncached(target_tree.open(target_rel))
             except FileNotFoundError:
                 existing = None
             if existing is not None:
+                # Identical bytes (an earlier run or ingest) are adopted; anything else is never touched.
                 try:
                     existing_hash = hash_fd(existing, self.cancel)
-                    if expected and existing_hash == expected:
-                        return expected, content_stamp(os.fstat(existing))
-                    require(owned_partial, 'destination_conflict', 'Existing destination differs from verified content')
+                    wanted = expected or hash_fd(src, self.cancel)
+                    require(existing_hash == wanted, 'destination_conflict', 'A different file already exists at ' + target_rel)
+                    require(content_stamp(os.fstat(src)) == content_stamp(initial), 'source_changed', 'Source changed during comparison')
+                    return wanted, content_stamp(os.fstat(existing))
                 finally:
                     os.close(existing)
-                target_tree.unlink(target_rel)
-            dst = target_tree.open(target_rel, os.O_WRONLY | os.O_CREAT | os.O_EXCL, True)
+            try:
+                target_tree.unlink(partial)  # `.ncpartial` names belong to this tool.
+            except FileNotFoundError:
+                pass
+            dst = uncached(target_tree.open(partial, os.O_WRONLY | os.O_CREAT | os.O_EXCL, True))
             h = hashlib.sha256()
             try:
                 while True:
@@ -115,25 +126,35 @@ class Transfer:
                         written = os.write(dst, view)
                         require(written > 0, 'write_failed', 'Short write without progress')
                         view = view[written:]
-                os.fsync(dst)
                 os.utime(dst, ns=(initial.st_atime_ns, initial.st_mtime_ns))
-                os.fsync(dst)
+                full_sync(dst)
             finally:
                 os.close(dst)
-            with target_tree.parent(target_rel) as (parent, _):
-                os.fsync(parent)
+            with target_tree.parent(partial) as (parent, _):
+                full_sync(parent)
             require(content_stamp(os.fstat(src)) == content_stamp(initial), 'source_changed', 'Source changed during copy')
             sha = h.hexdigest()
             require(expected is None or sha == expected, 'source_changed', 'Copy source differs from recorded content')
-            self.checkpoint('before_verify', {'path': target_rel, 'root': str(target_tree.root)})
-            verified = target_tree.open(target_rel)
+            self.checkpoint('before_verify', {'path': partial, 'root': str(target_tree.root)})
+            verified = uncached(target_tree.open(partial))
             try:
                 target_hash = hash_fd(verified, self.cancel)
-                stamp = content_stamp(os.fstat(verified))
+                size = os.fstat(verified).st_size
             finally:
                 os.close(verified)
-            require(target_hash == sha and stamp['size'] == initial.st_size, 'checksum_mismatch', 'Destination verification failed: ' + target_rel)
+            require(target_hash == sha and size == initial.st_size, 'checksum_mismatch', 'Destination verification failed: ' + target_rel)
             self.check_volume(record); target_tree.check()
+            with target_tree.parent(target_rel) as (parent, final):
+                try:
+                    os.stat(final, dir_fd=parent, follow_symlinks=False)
+                    raise MediaError('destination_conflict', 'A file appeared at ' + target_rel)
+                except FileNotFoundError:
+                    pass
+                os.rename('.' + final + '.ncpartial', final, src_dir_fd=parent, dst_dir_fd=parent)
+                full_sync(parent)
+            # Some filesystems (ExFAT) derive inode numbers from the directory entry; stamp the final name.
+            stamp = content_stamp(target_tree.stat(target_rel))
+            require(stamp['size'] == initial.st_size, 'checksum_mismatch', 'Destination size changed: ' + target_rel)
             return sha, stamp
         finally:
             os.close(src)
@@ -144,7 +165,7 @@ class Transfer:
         with self.catalog.writer():
             existing = self.catalog.db.execute('SELECT digest,state FROM jobs WHERE id=?', (plan['id'],)).fetchone()
             require(existing is None or existing['digest'] == expected_digest, 'job_conflict', 'Job ID reused with another plan')
-            if existing and existing['state'] in {'completed', 'camera_action_required', 'source_retained'}:
+            if existing and existing['state'] in {'completed', 'camera_action_required', 'source_retained', 'source_has_new_material'}:
                 # Returning a prior receipt does not repeat destructive actions.
                 return self.catalog.job(plan['id'])
             preflight(self.catalog, self.backend, plan, reserve=existing is None)
@@ -176,9 +197,11 @@ class Transfer:
                         self.checkpoint('before_file', file)
                         unit = units[file['unit_id']]
                         dest = destination_path(record, plan, unit, file['path'])
-                        # Exclusive per-job/project container, distinct from original directory tree.
-                        base = dest[:dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
-                        if base not in claimed:
+                        if dest is None:
+                            continue  # This role does not receive the file (e.g. Sony XML on the work SSD).
+                        # Schema-1 plans own an exclusive per-job container; named layouts rely on no-clobber renames.
+                        base = None if 'layout' in plan else dest[:dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
+                        if base and base not in claimed:
                             claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
                             claimed.add(base)
                         member = self.catalog.db.execute('SELECT * FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()
@@ -203,11 +226,10 @@ class Transfer:
                                 previous_volume = self.catalog.volume(previous['volume_id'])
                                 self.backend.check(previous_volume)
                                 with Tree(previous_volume['root']) as previous_tree:
-                                    sha, stamp = self.copy_file(previous_tree, previous['destination'], target, dest, record,
-                                                                expected=expected, owned_partial=True)
+                                    sha, stamp = self.copy_file(previous_tree, previous['destination'], target, dest, record, expected=expected)
                             else:
                                 sha, stamp = self.copy_file(source_tree, file['path'], target, dest, record,
-                                                            expected=expected, source_stamp=file['stamp'], owned_partial=True)
+                                                            expected=expected, source_stamp=file['stamp'])
                             require(expected is None or sha == expected, 'checksum_mismatch', 'Replica hashes differ')
                             with self.catalog.db:
                                 self.catalog.db.execute('INSERT OR IGNORE INTO members(job_id,relative_path,sha256) VALUES(?,?,?)',
@@ -277,14 +299,22 @@ class Transfer:
                     else:
                         require(row[0] != 1, 'source_changed', 'New file appeared at a cleaned source path')
                         require(content_stamp(st) == file['stamp'], 'source_changed', 'Source changed before cleanup')
+                        # Replicas may all descend from one SD read; a fresh read must agree before the only original goes.
+                        expected = self.catalog.db.execute('SELECT sha256 FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()[0]
+                        fd = uncached(source_tree.open(file['path']))
+                        try:
+                            require(hash_fd(fd, self.cancel) == expected, 'checksum_mismatch', 'Source re-read differs from verified copies: ' + file['path'])
+                            require(content_stamp(os.fstat(fd)) == file['stamp'], 'source_changed', 'Source changed while re-reading')
+                        finally:
+                            os.close(fd)
                         with self.catalog.db:
                             self.catalog.db.execute('UPDATE members SET cleaned=-1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
                         source_tree.unlink(file['path'], file['stamp'])
                     with self.catalog.db:
                         self.catalog.db.execute('UPDATE members SET cleaned=1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
                 remaining, _, _ = scan(plan['source'])
-                final = 'completed' if not remaining else 'source_changed'
-                require(not remaining, 'source_changed', 'Source has remaining/new material; do not mark ready')
+                # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
+                final = 'completed' if not remaining else 'source_has_new_material'
             self.catalog.state(plan['id'], final)
         return self.catalog.job(plan['id'])
 
@@ -303,7 +333,9 @@ class Transfer:
                 self.catalog.db.execute('INSERT OR IGNORE INTO asset_jobs VALUES(?,?)', (unit['id'], plan['id']))
                 if unit.get('session_id') and unit.get('capture_manifest_digest'):
                     self.catalog.db.execute('INSERT OR IGNORE INTO sessions VALUES(?,?,?)', (unit['session_id'], unit['capture_manifest_digest'], unit['id']))
+                # Camera indexes/thumbnails have no work copy in a named layout; never leave them pending.
+                needs_work = any(destination_path({'role': 'work', 'prefix': 'x'}, plan, unit, p) for p in unit['paths'])
                 self.catalog.db.execute('INSERT OR IGNORE INTO work VALUES(?,?,?,?)',
-                    (unit['id'], plan['work_delivery_status'], plan['expected_work_id'], now()))
-                if plan['work_delivery_status'] == 'ready':
+                    (unit['id'], plan['work_delivery_status'] if needs_work else 'skipped', plan['expected_work_id'], now()))
+                if plan['work_delivery_status'] == 'ready' and needs_work:
                     self.catalog.db.execute('UPDATE work SET state=?,target=?,updated_at=? WHERE asset_id=?', ('ready', plan['work_id'], now(), unit['id']))

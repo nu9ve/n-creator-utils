@@ -1,16 +1,16 @@
 # Implementation status
 
-Updated: 2026-10-25, America/Hermosillo. Snapshot taken at the user's request to stop visual testing and document continuity. Code exists in the working tree; it is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-10-25, America/Hermosillo. Base commit `5346663`; the data-loss review fixes, UX fixes and CI below are uncommitted on top of it. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
 ## Implemented
 
 | Capability | Owner | Current limit |
 | --- | --- | --- |
-| Safe `save`, explicit legacy command, project/profile/country/city | [save](../media/save.py), [entry](../nu9ve.py) | New flag syntax; old positional flow is `legacy-save`. New layout is not legacy naming parity. |
+| Safe `save`, explicit legacy command, project/profile/country/city | [save](../media/save.py), [entry](../nu9ve.py) | New flag syntax; old positional flow is `legacy-save`. Named layout restores historical names/folders (Sony XML duration/date verified on a real ILCE-6400 card; H6/DJI/GoPro naming only fixture-level). |
 | Stable plan/digest, paired-file assignment, actual destination preview, required disks and space preflight | [planner](../media/planner.py) | Simple stem/sidecar pairing; DJI category explicit; date routing uses file mtime; no full EXIF/device registry. |
 | Volume identity + physical-store overlap checks | [volumes](../media/volumes.py) | macOS diskutil/df; fixtures simulate devices. Exact cloned filesystem identity remains a limitation; other OS backends are incomplete. |
-| Copy in bounded blocks, destination read-back SHA-256, per-file reattempts, mutation lock and journal | [transfer](../media/transfer.py), [IO](../media/common.py) | No multi-GB hardware benchmark or power-loss guarantee for every filesystem. No rollback promise. |
-| Cleanup after all required receipts; interruption recovery | [transfer](../media/transfer.py) | Generic file cleanup only. Sony/Stalker handled conservatively; system directories are excluded. Not validated in a physical camera. |
+| Copy in bounded blocks, destination read-back SHA-256, per-file reattempts, mutation lock and journal | [transfer](../media/transfer.py), [IO](../media/common.py) | `F_FULLFSYNC` for files/dirs/receipts and SQLite `fullfsync`; `F_NOCACHE` on copy/verify reads is best effort (already-cached pages can still answer). No multi-GB hardware benchmark yet; F_FULLFSYNC support on ExFAT not measured. No rollback promise. |
+| Cleanup after all required receipts; interruption recovery | [transfer](../media/transfer.py) | Each source file is re-read and must match the verified hash right before unlink. Finder metadata (`.DS_Store`, `._*`, `.TemporaryItems`) is ignored, not deleted. Material appearing during cleanup ends `source_has_new_material` (terminal). Sony/Stalker never unlink. Not validated in a physical camera. |
 | Explicit archive-only + pending/skipped work | [planner](../media/planner.py), [library](../media/library.py) | Registered expected work target required for pending. Later delivery is explicitly selected, not a silent bulk copy. |
 | SQLite catalog, stable project IDs/rename aliases, asset/project associations | [catalog](../media/catalog.py) | Shared-asset resolution still primarily uses the initial job. Broader relink/location policy needs review. |
 | Restore, work delivery, handoff export and archive receipt recovery | [library](../media/library.py), [recovery](../media/recovery.py) | Recovery restores receipt-time metadata, not every later local decision. Recovered work-location/ownership reconciliation needs more coverage. |
@@ -23,10 +23,16 @@ Updated: 2026-10-25, America/Hermosillo. Snapshot taken at the user's request to
 
 ## Validation evidence
 
-- Python: previous full suite **59 passed**. After adding recovery/capture cases, full suite ran **63 tests: 62 passed, 1 failed**. Failure was Python 3.9 incompatibility in `Path.stat(follow_symlinks=...)` in capture discovery. It was changed to `os.stat(...)`; **that failing test then passed individually**. No full-suite rerun after this final fix or documentation checkpoint.
+- 2026-10-25 on `5346663` (before the fixes below): Python 3.9.16 full suite **63/63 OK**; Swift **5/5 OK**.
+- 2026-10-25 after review fixes (uncommitted): Python 3.9.16 and 3.12 full suite **68/68 OK** (new: transient bad SD read, Finder metadata, crash before owner marker, disk-image replica, new file during cleanup); Swift build without warnings and **5/5 OK**. Suite time rose from ~2 s to ~15 s because of real `F_FULLFSYNC`.
+- Named layout (uncommitted): 71/71 Python tests on 3.9 and 3.12, including a Sony fixture card (dated names from XML, work gets only clips, support tree, handoff) and same-second collisions.
+- **First live operational run, 2026-10-25** (user-requested): Sony ILCE-6400 SD (`Untitled`, ExFAT, 30 files, 6.35 GB) plus 3 completed Stalker sessions from `~/Downloads` (1.87 GB) → MEDIA502 (ExFAT) + ESSD (HFS+), project `debloateando-mi-tele`. Results: Sony `camera_action_required` in 829 s (~7.7 MB/s effective over copy+verify+second copy+verify), Stalker `source_retained` in 28/65/101 s. Receipts on both disks, no `.ncpartial` left, independent `shasum` matched SD/ESSD/MEDIA for a sampled clip and `mic.wav`. Nothing deleted: SD still holds its clips (format in camera), sessions remain in Downloads. An earlier attempt with the schema-1 nested layout was stopped by the user's choice; its partial work copy and catalog job were removed.
+- [CI](../.gitlab-ci.yml) added: Python 3.9/3.12 in Linux containers, Swift as a manual macOS job. **Not yet run on GitLab or Linux** (no local Docker daemon).
+- Independent data-loss review (2026-10-25): no logic path deletes a source without same-run verified copies on every required destination. Fixed: drive-cache durability, single-SD-read replicas, Finder metadata blocking jobs, crash before owner marker, disk images counted as independent replicas. Open: see blockers 1.
 - Failure fixtures include same-size corruption, missing/replaced/overlapping disks, insufficient space, symlinks, concurrent writer, changed source, partial cleanup and cancel/resume. Three real child-process hard exits exercise recovery during copy, after receipts and immediately after unlink.
 - Native: latest recorded build completed; **5 Swift tests passed**, including a real Python RPC call with isolated state and exact 64-bit nanosecond roundtrip. Swift tools 6.3.3, target macOS 14+.
-- UI smoke test: a development .app, isolated catalog and two tiny local fixture files. Inspected paired files, showed SSD absent, requested archive-only confirmation, applied verified copy with source retained and displayed work pending. No real SD cleanup. Latest FSEvents/routing refinements were compiled but not re-tested visually.
+- Native UX fixes (uncommitted, compiled, **not visually re-tested**): a mounted card notifies once and appears as a suggestion instead of opening the window or replacing an in-progress source; the last project is offered ("Usar último") instead of prefilled; labels for Stalker-on-card and `source_has_new_material`.
+- UI smoke test (earlier snapshot): a development .app, isolated catalog and two tiny local fixture files. Inspected paired files, showed SSD absent, requested archive-only confirmation, applied verified copy with source retained and displayed work pending. No real SD cleanup. Latest FSEvents/routing refinements were compiled but not re-tested visually.
 - Earlier wheel/schema/link checks belonged to the earlier inventory-only snapshot. They are **not** evidence that the latest full package/handoff is release-validated. Rebuild/validate current outputs before release.
 
 ## Artifacts and local test context
@@ -42,7 +48,7 @@ The review app was opened using the isolated `NU9VE_MEDIA_HOME`; its development
 
 ## Release blockers / known gaps
 
-1. Independent review of the data-loss boundaries and a fresh integrated test/package pass on the final snapshot. Physical SD/camera/ExFAT disconnect trials remain necessary.
+1. Remaining review items: plan digest is unauthenticated, so `apply` trusts plan-time checks (DJI review, archive-only confirmation) a caller could skip — record reviewed digests in the catalog or re-run checks; jobs have no owner/lease, so a killed run looks active; `progress.verified_copies` also counts delivery/recovery rows. Fresh package pass and physical SD/ExFAT disconnect trials remain necessary.
 2. Sony cleanup acceptance and samples/rules for the actual DJI models; full metadata dates and device persistence are not implemented.
 3. Catalog backup of later human decisions, secondary-job location resolution, recovery/work ownership reconciliation and active-consumer leases need hardening. Receipt recovery is valuable but is not a complete backup policy for local SQLite.
 4. Clipper consumer/relink is not implemented in its repo. Handoff remains a draft; no guarantee of queue/source relocation. Atlas/FCP integrations are design only.

@@ -7,7 +7,9 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 
-IGNORED_DIRS = {'.fseventsd', '.Spotlight-V100', '.Trashes', 'System Volume Information'}
+IGNORED_DIRS = {'.fseventsd', '.Spotlight-V100', '.Trashes', '.TemporaryItems', '.DocumentRevisions-V100', 'System Volume Information'}
+# Finder/macOS metadata that appears when a card is browsed; never media and never part of a plan.
+IGNORED_FILES = {'.DS_Store', '.localized'}
 KINDS = {
     'video': {'.mov', '.mp4', '.mpg', '.mts', '.insv'},
     'image': {'.png', '.jpg', '.jpeg', '.gif', '.heic', '.insp'},

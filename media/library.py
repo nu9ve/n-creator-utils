@@ -6,6 +6,7 @@ import uuid
 
 from .volumes import independent
 from .common import Tree, canonical, now, require, uid
+from .layout import MEDIA_KINDS, kind_of
 from .planner import destination_path
 from .transfer import Transfer, claim_directory
 
@@ -45,16 +46,18 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
             require(work_info['free'] >= needed + 64 * 1024 * 1024, 'insufficient_space', 'Insufficient work space')
             copies = []
             with Tree(archive['root']) as source, Tree(record['root']) as target:
-                first_dest = destination_path(record, plan, asset, files[0]['path'])
-                base = first_dest[:first_dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
-                claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
+                files = [f for f in files if destination_path(record, plan, asset, f['path'])]
+                if 'layout' not in plan:
+                    first_dest = destination_path(record, plan, asset, files[0]['path'])
+                    base = first_dest[:first_dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
+                    claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
                 for file in files:
                     prior = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
                                                (plan['id'], archive['id'], file['path'])).fetchone()
                     require(prior is not None, 'missing_receipt', 'Archive copy is not verified')
                     prior = json.loads(prior[0])
                     dest = destination_path(record, plan, asset, file['path'])
-                    sha, stamp = engine.copy_file(source, prior['destination'], target, dest, record, expected=prior['sha256'], owned_partial=False)
+                    sha, stamp = engine.copy_file(source, prior['destination'], target, dest, record, expected=prior['sha256'])
                     copy = {'job_id': plan['id'], 'volume_id': record['id'], 'path': file['path'], 'destination': dest,
                             'sha256': sha, 'bytes': file['stamp']['size'], 'verified_at': now(), 'stamp': stamp, 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'] + ':' + asset_id))}
                     with catalog.db:
@@ -99,14 +102,31 @@ def handoff(catalog, backend, asset_ids):
         for record in catalog.volumes():
             rows = [json.loads(row[0]) for row in catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (plan['id'], record['id']))]
             copies = {r['path']: r for r in rows if r['path'] in asset['paths']}
-            if set(copies) != set(asset['paths']):
+            if 'layout' in plan:
+                # Named layouts: each role holds its own subset (no Sony XML on work); hand off editable media only.
+                expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p)}
+                if not expected or set(copies) != expected:
+                    continue
+                if asset['kind'] == 'stalker_session':
+                    prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
+                    sample = next(iter(copies.values()))
+                    location_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
+                    members = [{'relative_path': row['destination'][len(location_path) + 1:], 'bytes': row['bytes'], 'sha256': row['sha256']}
+                               for _, row in sorted(copies.items())]
+                else:
+                    media = [row for _, row in sorted(copies.items()) if kind_of(row['path']) in MEDIA_KINDS] or [row for _, row in sorted(copies.items())]
+                    location_path = media[0]['destination']
+                    members = [{'relative_path': Path(row['destination']).name, 'bytes': row['bytes'], 'sha256': row['sha256']} for row in media]
+                    sample = media[0]
+            elif set(copies) != set(asset['paths']):
                 continue
-            sample = next(iter(copies.values()))
-            if asset['kind'] == 'file':
+            elif asset['kind'] == 'file':
+                sample = next(iter(copies.values()))
                 location_path = sample['destination']
                 members = [{'relative_path': Path(location_path).name, 'bytes': sample['bytes'], 'sha256': sample['sha256']}]
             else:
-                # Unit-exclusive container; bundle root is preserved beneath it.
+                # Schema-1 unit-exclusive container; bundle root is preserved beneath it.
+                sample = next(iter(copies.values()))
                 marker = '/' + asset['id'] + '/'
                 base = sample['destination'].split(marker)[0] + marker + plan['source_name']
                 if asset['bundle'] not in {None, '.'}:
@@ -152,7 +172,7 @@ def restore(catalog, backend, asset_id, destination):
             require(row is not None, 'missing_receipt', 'Archive copy missing')
             row = json.loads(row[0])
             engine.copy_file(source, row['destination'], target, base + '/' + plan['source_name'] + '/' + file['path'], record,
-                             expected=row['sha256'], owned_partial=False)
+                             expected=row['sha256'])
         target.write_json(base + '/.ncreator-restore.json', {'asset_id': asset_id, 'revision': asset['revision'], 'verified_at': now()})
         catalog.set('restore:' + asset_id, {'root': str(root), 'path': base, 'verified_at': now()})
     return {'asset_id': asset_id, 'path': str(root / base / plan['source_name']), 'verified': True}

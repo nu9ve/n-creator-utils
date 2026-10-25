@@ -33,6 +33,9 @@ class Catalog:
             require(version is not None and version[0] == '1', 'unsupported_catalog', 'Unsupported catalog version')
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=FULL')
+        # The cleanup journal must survive power loss as durably as the unlink it guards.
+        self.db.execute('PRAGMA fullfsync=1')
+        self.db.execute('PRAGMA checkpoint_fullfsync=1')
         self.db.executescript('''
           CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);
@@ -129,7 +132,7 @@ class Catalog:
         return result
 
     def jobs(self):
-        return [dict(row) for row in self.db.execute('SELECT id,state,error,updated_at FROM jobs ORDER BY created_at DESC LIMIT 200')]
+        return [dict(row) for row in self.db.execute("SELECT id,state,error,updated_at,json_extract(plan,'$.cleanup_profile') AS cleanup_profile FROM jobs ORDER BY created_at DESC LIMIT 200")]
 
     def project_for(self, profile, title):
         row = self.db.execute('SELECT project_id FROM project_aliases WHERE profile=? AND alias=?', (profile, title)).fetchone()
