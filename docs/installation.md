@@ -1,10 +1,12 @@
-# Instalación y compatibilidad
+# Instalación base y utilidades históricas
 
-Estas instrucciones instalan las utilidades de organización/archivo de este repo. El editor vigente se instala desde [nu9ve/clipper](https://github.com/nu9ve/clipper); el `nu9ve clip` antiguo aún incluido aquí no lo sustituye. Las dependencias de texto/IA del clipper que aparecen abajo se conservan como referencia histórica.
+Para motor nuevo, app, runtime, registro de discos y debug usa [operations](operations.md); para distribución [release](release.md). Los resultados de pruebas citados abajo pertenecen al snapshot anterior; la evidencia actual está en [STATUS](STATUS.md).
+
+Estas instrucciones instalan las utilidades de organización/archivo de este repo. El editor vigente se instala desde [nu9ve/clipper](https://github.com/nu9ve/clipper); el editor interno fue retirado junto con sus opciones y dependencias de IA.
 
 ## Núcleo local
 
-Necesitas Python 3.9+ y los ejecutables `ffmpeg` y `ffprobe` en `PATH`. `save` necesita `ffprobe` para video y MP3; las imágenes y WAV PCM se inspeccionan con la biblioteca estándar. `clip` necesita ambos ejecutables. Las pruebas actuales se ejecutaron con Python 3.9.6 y 3.12.12 en macOS; no constituyen una matriz completa de compatibilidad entre versiones/plataformas.
+Necesitas Python 3.9+ y los ejecutables `ffmpeg` y `ffprobe` en `PATH`. `save` necesita `ffprobe` para video y MP3; las imágenes y WAV PCM se inspeccionan con la biblioteca estándar. `inspect` no requiere ejecutables externos. Las pruebas actuales se ejecutaron con Python 3.9.6 y 3.12.12 en macOS; no constituyen una matriz completa de compatibilidad entre versiones/plataformas.
 
 ```sh
 # macOS
@@ -40,15 +42,13 @@ Así tampoco necesitas un alias con el nombre de otro usuario. Los dos modos usa
 | YouTube | Ejecutable `yt-dlp`; FFmpeg para extracción/mezcla | Puede instalarse en el entorno con `python -m pip install yt-dlp`. Cookies opcionales según proveedor. |
 | SoundCloud | Ejecutable `scdl` | Puede instalarse con `python -m pip install scdl`; opciones y formato de salida dependen de su versión. |
 | Stems | Ejecutable `demucs` | Puede instalarse con `python -m pip install demucs`. Sus dependencias de audio/ML y modelos deben validarse en un entorno compatible. |
-| Texto del clipper | FFmpeg con filtro `drawtext`; fuente configurable | Si falta el archivo de fuente, se solicita `Sans` a FFmpeg. Comprueba `ffmpeg -filters` y las fuentes del sistema. |
-| IA del clipper | SDKs `replicate` y `openai` compatibles con las llamadas heredadas | La llamada `openai.ChatCompletion.create` corresponde a una API antigua. No se ofrece un entorno de IA validado ni se instalan esos SDKs en el núcleo. |
 | Prototipos MIDI | `rtmidi`, `novation_launchpad.charset` y dispositivo compatible | El repo no incluye `charset` ni un flujo CLI conectado. Requiere trabajo de integración. |
 
 No existe un lockfile de herramientas externas ni se garantiza que su última versión sea compatible. Las pruebas de descargas y Demucs simulan sus procesos; para adoptarlas en producción hay que fijar y probar versiones en el ambiente destino. Para evitar conflictos de ML, se pueden instalar herramientas en entornos separados siempre que sus ejecutables estén accesibles en `PATH`.
 
 ## Configuración inicial
 
-Copia [config.example.json](../config.example.json) a `config.local.json` en la raíz del checkout y edítalo. Si instalas fuera del checkout, usa `NU9VE_CONFIG` con una ruta explícita. No confundas este archivo con `config.json` del clipper.
+Copia [config.example.json](../config.example.json) a `config.local.json` en la raíz del checkout y edítalo. Si instalas fuera del checkout, usa `NU9VE_CONFIG` con una ruta explícita. Los otros repos tienen configuración propia.
 
 Ejemplo para comenzar con destinos locales usando el archivo de ejemplo:
 
@@ -65,4 +65,4 @@ Crea esos directorios sólo si realmente quieres almacenar allí. Para discos ex
 - **Linux:** rutas configurables, por ejemplo `/media/usuario/TARJETA` o `/mnt/archive`. No hay gestión automática de montaje/expulsión; falta validación integral en Linux.
 - **Windows:** no hay compatibilidad comprobada. Algunos nombres generados contienen `[]`, los filtros de FFmpeg tienen reglas propias de escape y quedan operaciones históricas basadas en `/`. Configurar rutas no demuestra soporte completo.
 
-La carpeta temporal de descargas suele ser el directorio desde el que ejecutas el comando; asegúrate de tener espacio también allí. El clipper guarda resultados junto al video. `split` guarda resultados bajo `audio_splits_dir`.
+La carpeta temporal de descargas suele ser el directorio desde el que ejecutas el comando; asegúrate de tener espacio también allí. `split` guarda resultados bajo `audio_splits_dir`.

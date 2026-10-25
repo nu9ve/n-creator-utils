@@ -575,6 +575,8 @@ def save_tag_files(src_dir, src_name, country_code, city_name):
   source = Path(src_dir).resolve()
   if not source.is_dir():
     raise ValueError('Source directory does not exist: {}'.format(source))
+  from manager.inventory import assert_generic_source
+  assert_generic_source(Path(src_dir))
   # Never create an absent archive root: an unmounted disk must not redirect an
   # import onto the system disk. Subdirectories are still created as before.
   if not Path(ROOT_DIR).is_dir():

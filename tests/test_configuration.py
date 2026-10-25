@@ -20,9 +20,8 @@ class ConfigurationTests(unittest.TestCase):
             self.assertEqual(local['root_dir'], str((Path(tmp) / 'archive').resolve()))
             self.assertEqual(local['sd_src_name'], {'CARD': 'AUTO'})
             env = load_settings(environ={'NU9VE_CONFIG': str(path), 'NU9VE_ROOT_DIR': tmp,
-                                         'NU9VE_DEBUG': 'true', 'NU9VE_YT_DLP_COOKIES_BROWSER': ''})
+                                         'NU9VE_YT_DLP_COOKIES_BROWSER': ''})
             self.assertEqual(env['root_dir'], str(Path(tmp).resolve()))
-            self.assertTrue(env['debug'])
             self.assertEqual(env['yt_dlp_cookies_browser'], '')
             self.assertFalse((Path(tmp) / 'archive').exists())
 
@@ -31,7 +30,7 @@ class ConfigurationTests(unittest.TestCase):
             load_settings('/this-config-does-not-exist.json', environ={})
 
     def test_reject_invalid_types_unknown_keys_and_volume_traversal(self):
-        invalid = [[], {'root_diir': 'x'}, {'root_dir': ''}, {'debug': 1},
+        invalid = [[], {'root_diir': 'x'}, {'root_dir': ''},
                    {'sd_src_name': {'../CARD': 'AUTO'}}, {'sd_src_name': {'CARD': ''}}]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'local.json'
@@ -40,3 +39,11 @@ class ConfigurationTests(unittest.TestCase):
                     path.write_text(json.dumps(value))
                     with self.assertRaises(ConfigurationError):
                         load_settings(path, environ={})
+
+    def test_retired_renderer_keys_do_not_break_existing_configs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'local.json'
+            path.write_text(json.dumps({'debug': True, 'clipper_font_file': 'old.ttf'}))
+            settings = load_settings(path, environ={})
+            self.assertNotIn('debug', settings)
+            self.assertNotIn('clipper_font_file', settings)

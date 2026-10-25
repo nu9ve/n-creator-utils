@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nu9ve:creator-media-handoff:1",
+  "title": "Creator media library handoff (draft, not yet adopted)",
+  "type": "object",
+  "required": [
+    "schema",
+    "handoff_id",
+    "created_at",
+    "project_id",
+    "profile_id",
+    "assets"
+  ],
+  "properties": {
+    "schema": {
+      "const": "creator-media-handoff/1"
+    },
+    "handoff_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "project_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\\\:\\x00])(?!.*\\/$).+$"
+    },
+    "member": {
+      "type": "object",
+      "required": [
+        "relative_path",
+        "bytes",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "location": {
+      "type": "object",
+      "required": [
+        "volume_id",
+        "relative_path",
+        "role",
+        "receipt_id"
+      ],
+      "properties": {
+        "volume_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "relative_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "role": {
+          "enum": [
+            "work",
+            "archive"
+          ]
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "asset_id",
+        "content_revision",
+        "kind",
+        "order",
+        "members",
+        "locations"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "content_revision": {
+          "$ref": "#/$defs/uuid"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "stalker_session",
+            "camera_bundle",
+            "delivery"
+          ]
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_session_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/member"
+          }
+        },
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/location"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "stalker_session"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "capture_session_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "file"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "members": {
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

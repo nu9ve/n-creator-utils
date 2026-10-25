@@ -1,69 +1,54 @@
-# Plan de evolución
+# Evolution plan
 
-La meta es convertir la colección en una herramienta configurable, modular e integrable conservando sus capacidades. Este archivo separa cambios realizados de propuestas; el comportamiento actual se documenta en [README](README.md) e [importación](docs/importing.md).
+Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invariants in [CONTEXT](docs/CONTEXT.md). Architecture and UX remain the design references, not a completed-feature list. This plan is the single prioritized backlog.
 
-## Base implementada en esta revisión
+## General direction
 
-- Configuración local ignorada por Git, JSON seleccionable y variables de entorno; rutas personales basadas en el home real, con defaults de archivo preservados.
-- Entry point instalable y uso directo por Python, ayuda por comando y diagnóstico JSON sin operaciones sobre media.
-- Carga diferida de IA; el recorte local no necesita los SDKs cloud. Credenciales incrustadas retiradas del código de trabajo, sin reescribir historial.
-- Root de archivo existente y rutas sin solapamiento como precondiciones; comparación de tamaño antes de borrar en los helpers de movimiento/copia. Esto no es verificación por checksum.
-- Colisiones protegidas en segunda copia de audio, descargas y originales de stems; conservación de manifest original de un bundle.
-- FFprobe estructurado y con errores explícitos; WAV minúsculo, MP3 y nombres de audio genéricos tolerados.
-- Defaults del JSON del clipper, prioridad de config explícita, inputs independientes por clip, rangos fraccionarios, extensión mayúscula y propagación de fallos FFmpeg corregidos. Fuente configurable y fallback del sistema.
-- URLs como argumentos completos; ruta final de yt-dlp reportada de forma explícita; split sin cambiar el cwd global, archivando el original sólo tras éxito.
-- Documentación por área y suite de regresión con archivos temporales/media sintética.
+1. Ship a trustworthy macOS ingest vertical slice: plan → verify required copies → clean SD, with archive-only exception and deferred work.
+2. Make catalog, recovery, Stalker and editor handoffs dependable without moving old terabytes.
+3. Grow the dashboard and launcher on the same service boundary.
+4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
-Estos cambios son una base. No certifican servicios externos, hardware, compatibilidad Windows o todas las combinaciones de render.
+## P0 · close the current implementation
 
-## Prioridad 1: importación confiable y revisable
-
-| Trabajo | Criterio de aceptación |
+| Task | Acceptance / owner |
 | --- | --- |
-| Plan de importación + `save --dry-run` | La misma planificación alimenta simulación y ejecución; simulación no crea ni borra archivos. Incluye auxiliares que hoy se eliminan directamente. |
-| Políticas explícitas de copy/move/delete | El usuario puede preservar tarjetas sin editar código; comportamiento histórico sigue disponible y claramente identificado. |
-| Transferencia verificada y recuperación | Copia temporal, checksum origen/destino, publicación final y borrado sólo tras validación; fallo deja estado reconocible y recuperable. |
-| Identidad/espacio de volúmenes y locks | No importar en una carpeta que suplanta un disco ausente; detectar destinos con poco espacio y procesos concurrentes. |
-| Manifiesto incremental y reporte final | Estados por archivo, errores y acciones completadas, incluidos Sony y archivo genérico; el registro sobrevive a fallos intermedios. |
-| Idempotencia/reintentos | Repetir una importación no duplica todo ni desasocia video/sidecar; recuperación documentada y probada. |
+| Review plan validation, source cleanup races, receipt durability and replay | Changed/absent/replaced source or required destination never causes an unverified delete. Complete fault coverage at the narrow boundary. `media/{planner,transfer,common}.py`. |
+| Re-run the final snapshot and build a clean package | Full Python suite, Swift tests, current wheel contents, actual handoff schema/semantics and JSON CLI roundtrip. Record exact evidence in STATUS; no inherited green counts. |
+| Harden recovery and the location graph | All relevant `asset_jobs`/locations can resolve; recovered work/ownership can reconcile without source SD; later human metadata has a durable backup/export strategy. `catalog/library/recovery`. |
+| Physical acceptance | Sony procedure, H6 required SSD1/confirmed exception, DJI drone versus 360, ExFAT/HFS+ and ESSD reconnects using a small explicit trial. [Protocol](docs/sony-validation.md). |
+| Freeze a release candidate | Align versions, bundle a verified relocatable runtime, package/sign/notarize and test Gatekeeper on a clean user. [Release gates](docs/release.md). |
 
-La nota antigua que proponía Sony copy-only no estaba implementada. Hoy se mueve media y se archiva soporte para liberar la SD. Una futura política debe preservar esa opción y ofrecer un modo de conservación de tarjeta; no cambiar silenciosamente el comportamiento.
+Do not start by polishing more panels or testing full personal cards. Local fixture coverage precedes hardware; a hardware pass does not replace fault injection.
 
-## Prioridad 2: modularidad y configuración
+## P1 · complete daily workflows
 
-| Trabajo | Criterio de aceptación |
+| Feature | Done when |
 | --- | --- |
-| Extraer configuración por operación | Se puede ejecutar con dos perfiles de usuario en el mismo proceso sin tocar constantes globales. |
-| Separar `manager/file.py` | Módulos de detección/perfiles, metadata, naming, planificación, transferencia, manifiesto y adaptadores externos con contratos explícitos. |
-| Reglas/presets de cámara | Sony, Insta360, GoPro, Canon, Nikon, DJI y grabadoras tienen fixtures y responsabilidades delimitadas; etiquetas no se confunden con detectores. |
-| Política de fecha y nombres | Locale/zona/EXIF explícitos; tags y caracteres válidos por plataforma. Sustituir corrección GoPro fija por ajuste configurable. |
-| Enrutamiento configurable | Categorías, umbral de resolución, audio largo, detección de drone/pantalla y retención de auxiliares dejan de depender de substrings/fijos. |
-| Sidecars adicionales | XMP y otros acompañantes conservan relación con el master; operación consistente ante fallos. |
+| Device/model registry and capture timestamps | Metadata evidence + user-confirmed model/category persist. DJI ambiguity resolved per file/unit, without global brand or residual-directory guesses. Timezone/precision/fallback explicit. |
+| Native onboarding and first-run disk setup | User selects registered archive/work roles and sees identity, free/reserved space and capabilities. No absent-disk fallback. |
+| Stalker operational closeout | Real recording/finalizing/recovery/multi-session events, event loss/remount and CPU/IO contention validated; producer finalization/revision agreement documented. |
+| Work delivery and restoration UX | Pending/skipped/ready clear by project/selection, preview before large jobs, offline requests retained, order preserved. |
+| Clipper handoff/relink adoption | Consumer accepts the library contract and ACKs complete session/voice/tracks/queue updates. No direct JSON edits here. Coordinated in Clipper's repo. |
+| Deliveries and published archive | Bundle chosen variants/thumbnails/copy; explicit per-channel publication; `subidos` convention only a configurable suggestion. Idempotent verified archive into final collections. |
 
-## Prioridad 3: límites entre repos y herramientas externas
+## P2 · dashboard, launcher and maintainability
 
-El propietario confirmó que [nu9ve/clipper](https://github.com/nu9ve/clipper) reemplaza al clipper interno. El trabajo futuro de este repo se centra en ingreso, organización y archivo; el editor externo mantiene cortes, composición, subtítulos, IA y export. El análisis de rutas, referencias y escenarios está en [archivos y flujos](docs/file-workflows.md).
+Detailed, prioritized ideas: [dashboard/launcher backlog](docs/features/dashboard-launcher.md).
 
-- Retirar el comando/módulo `clipper` histórico, sus opciones y dependencias de empaquetado en un cambio separado. Identificar trabajos antiguos que aún necesiten consulta; no inventar compatibilidad automática de su JSON con el proyecto nuevo.
-- Incorporar reconocimiento de paquetes antes de cualquier movimiento: `.stalker`, bundles Insta360, proyectos Clipper y entregas no son carpetas arbitrarias de archivos clasificables por extensión.
-- Definir transferencia/archivo de bundle completo, ubicaciones estables y registro de origen/destino para incorporar fuentes a Clipper después de organizarlas.
-- Coordinar un contrato de relocalización con Clipper: sus referencias de sesión, voz, pistas y cola no quedan resueltas cambiando sólo la ruta del video. El organizador no debe modificar JSON editorial de forma independiente.
-- Diseñar archivo de entregas que conserve master/variantes y assets de publicación elegidos con referencia al proyecto. No pasar finales/proyectos al `save` genérico.
-- Adaptadores de descarga con resultados estructurados y contrato de múltiples archivos/playlists; decidir biblioteca de assets con el flujo real del usuario.
-- Ciclo de vida de stems explícito: `split` actualmente renombra y mueve el audio local. Proteger fuentes compartidas y registrar procedencia de derivados antes de automatizar su entrega al editor.
+- Action center for blocked jobs, missing destinations, work pending and final deliveries pending archive.
+- Storage/coverage view for logical versus allocated bytes, online/offline snapshots, replication and space reservation.
+- Compact launcher/menubar commands with last-project choice, launch at login, real notifications and runtime health.
+- Diagnostics bundle with redaction, version inventory, job events and copyable retry command; log/cache quotas.
+- Imports/search for historical archives without bulk rename. Profiles/aliases and saved collections reusable by other surfaces.
+- Downloads/stems as isolated derived-asset jobs; do not grow the media worker into another editor.
 
-Estas integraciones son candidatas, no funciones implementadas. Se elegirán después de describir los flujos comunes del usuario. No se continuará desarrollando aquí otro renderer/editor ni se migrarán funciones del editor externo de vuelta a este repo.
+## P3 · broader automation and platforms
 
-## Prioridad 4: integraciones y plataformas
+Read-only MCP stdio already exists. Mutations need reviewed-plan IDs/digests, clear client approval/cancel semantics and common error/progress contracts; do not expose arbitrary shell/filesystem tools.
 
-- API Python con modelos de entrada/salida y excepciones estables; CLI como adaptador del mismo servicio.
-- Reportes/eventos JSON con IDs de operación para gestores de tareas, servicios o interfaces futuras. No iniciar un API server antes de estabilizar estas operaciones.
-- Matriz de Python/macOS/Linux y empaquetado reproducible; verificar wheel, herramientas externas y dependencias opcionales por ambiente. Evaluar Windows con pruebas propias.
-- `inspect-sd`, reportes Markdown/CSV y expulsión opcional sólo tras éxito verificable.
-- Inventario de usos manuales de hardware/Bash y evaluación de dependencias/procedencia antes de integrar o archivar código.
+Windows/Linux require their own volume identity/events/safe IO/locking, path and filesystem compatibility, packaging and hardware acceptance. The current native UI is macOS-only. Future HTTP/multi-user catalogs are not prerequisites for a local dashboard.
 
-## Confirmaciones de producto pendientes
+## Parallel sessions / task ownership
 
-El sucesor de `clipper/` ya está confirmado: `/Users/nu9ve/code/ai/clipper`. Stalker es el productor de capturas asociado. Para las otras áreas, completar la tabla de [repos sucesores](docs/modules.md#duplicación-y-repos-sucesores) con equivalencias y usos reales. Queda describir los flujos habituales para concretar qué transferencias y política de archivo conviene automatizar.
-
-El propietario debe revocar las credenciales que estuvieron incrustadas y provisionar nuevas mediante el ambiente. Retirarlas del código actual no las elimina del historial ni cambia su estado en los proveedores.
+Use [development handoff](docs/development.md#cerrar-y-retomar-una-sesión). Choose one vertical feature/module, state files in scope, contract changes and validation. Separate UI work from transfer integrity review; shared protocol/catalog changes need coordination. Respect current staged/unstaged work. Update STATUS and this plan when a priority actually changes.
