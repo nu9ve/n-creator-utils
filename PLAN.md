@@ -14,7 +14,7 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 | When | Task |
 | --- | --- |
 | Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
-| Next | Clipper session, then Stalker session: [prompts](docs/contracts/next-sessions.md). Edit `debloateando-mi-tele` in Clipper. |
+| Next | Stalker session, then Clipper session ([prompts](docs/contracts/next-sessions.md)); each updates its adoption row and «Pendientes para n-creator-utils» in [contracts](docs/contracts/README.md). Then implement those pending items here. |
 | Tonight | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
 | Tomorrow | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
 | First new card | Measure the parallel copy speed against the 829 s / 6.35 GB baseline. |
