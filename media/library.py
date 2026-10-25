@@ -265,6 +265,15 @@ def relayout(catalog, backend, job_id):
     return {'job_id': job_id, 'renamed': renamed}
 
 
+def present(root, copy):
+    """Cheap check that a recorded copy is still there at its size; hashes stay with verify/recovery."""
+    try:
+        st = os.stat(Path(root) / copy['destination'], follow_symlinks=False)
+    except OSError:
+        return False
+    return st.st_size == copy['bytes']
+
+
 def sources(catalog, backend, project, purpose='edit'):
     """Editable sources of a project in capture order, one call, for an editor's quick import (read-only)."""
     require(purpose in {'edit', 'archive'}, 'invalid_purpose', 'Purpose must be edit or archive')
@@ -272,7 +281,7 @@ def sources(catalog, backend, project, purpose='edit'):
     require(assets, 'unknown_project', 'No ingested assets for project ' + str(project))
     volumes = {v['id']: dict(v, online=bool(backend.online(v))) for v in catalog.volumes()}
     preference = ('work', 'archive') if purpose == 'edit' else ('archive', 'work')
-    result, offline = [], []
+    result, offline, removed, warnings = [], [], [], []
     for asset in assets:
         copies = {}
         for row in catalog.db.execute('SELECT payload FROM copies WHERE job_id=?', (asset['job_id'],)):
@@ -286,7 +295,7 @@ def sources(catalog, backend, project, purpose='edit'):
             primary = [p for p in asset['paths'] if kind_of(p) in MEDIA_KINDS]
         if not primary:
             continue  # Camera indexes/thumbnails are never editor sources.
-        candidates = []
+        candidates, missing = [], []
         for volume_id, rows in copies.items():
             if not all(p in rows for p in primary):
                 continue
@@ -296,27 +305,40 @@ def sources(catalog, backend, project, purpose='edit'):
                 relative_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
             else:
                 relative_path = sample['destination']
-            candidates.append((not volume['online'], preference.index(volume['role']) if volume['role'] in preference else 9, volume, relative_path, sample))
-        if not candidates:
+            location = {'volume': volume['name'], 'role': volume['role'], 'online': volume['online'], 'path': str(Path(volume['root']) / relative_path)}
+            if volume['online'] and not all(present(volume['root'], row) for row in rows.values()):
+                # Deleted or edited by hand (e.g. an unusable clip removed in Finder): report it, never fail or resurrect it.
+                missing.append(location)
+                continue
+            candidates.append((not volume['online'], preference.index(volume['role']) if volume['role'] in preference else 9, location, relative_path, sample))
+        if not candidates and not missing:
             continue
         candidates.sort(key=lambda c: (c[0], c[1]))
-        _, _, volume, relative_path, sample = candidates[0]
+        name = (candidates[0][3] if candidates else missing[0]['path']).rsplit('/', 1)[-1]
         entry = {'asset_id': asset['id'], 'revision': asset['revision'], 'kind': asset['kind'], 'session_id': asset.get('session_id'),
-                 'path': str(Path(volume['root']) / relative_path), 'name': relative_path.rsplit('/', 1)[-1],
-                 'volume': volume['name'], 'role': volume['role'], 'online': volume['online'],
-                 'bytes': sum(f['stamp']['size'] for f in catalog.job(asset['job_id'])['plan']['files'] if f['path'] in asset['paths']),
-                 'sha256': None if asset['kind'] == 'stalker_session' else sample['sha256'],
+                 'name': name, 'bytes': sum(f['stamp']['size'] for f in catalog.job(asset['job_id'])['plan']['files'] if f['path'] in asset['paths']),
+                 'sha256': None if asset['kind'] == 'stalker_session' or not candidates else candidates[0][4]['sha256'],
                  # Wall-clock capture start (seconds precision, no zone) and rounded duration, for time-based grouping.
-                 **(parse_name(relative_path.rsplit('/', 1)[-1]) or {'captured_at': None, 'duration_seconds': None}),
-                 'alternatives': [{'volume': c[2]['name'], 'role': c[2]['role'], 'online': c[2]['online'], 'path': str(Path(c[2]['root']) / c[3])} for c in candidates[1:]]}
-        (result if volume['online'] else offline).append(entry)
+                 **(parse_name(name) or {'captured_at': None, 'duration_seconds': None}),
+                 'alternatives': [c[2] for c in candidates[1:]], 'missing': missing}
+        if candidates:
+            entry.update({k: candidates[0][2][k] for k in ('path', 'volume', 'role', 'online')})
+        if any(m['role'] == 'archive' for m in missing):
+            warnings.append({'asset_id': asset['id'], 'name': name, 'problem': 'archive_copy_missing', 'locations': missing})
+        if purpose == 'edit' and any(m['role'] == 'work' for m in missing):
+            removed.append(entry)  # The user took it out of the working set; it stays available from the archive.
+        elif candidates and candidates[0][2]['online']:
+            result.append(entry)
+        else:
+            offline.append(entry)
     # Dated names sort as capture time; this is the order the editor should present.
     result.sort(key=lambda e: e['name'])
     offline.sort(key=lambda e: e['name'])
+    removed.sort(key=lambda e: e['name'])
     for order, entry in enumerate(result):
         entry['order'] = order
     return {'project': assets[0]['project'], 'project_id': assets[0]['project_id'], 'profile': assets[0]['profile'],
-            'purpose': purpose, 'sources': result, 'offline': offline}
+            'purpose': purpose, 'sources': result, 'offline': offline, 'removed_from_work': removed, 'warnings': warnings}
 
 
 def projects(catalog):

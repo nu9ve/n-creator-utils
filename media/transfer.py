@@ -10,6 +10,7 @@ import time
 import uuid
 
 from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, digest, full_sync, hash_fd, now, require, uncached
+from .layout import sony_index_member
 from .planner import destination_path, preflight, scan, validate_plan
 
 
@@ -26,6 +27,12 @@ def confirm_camera_cleanup(catalog, backend, job_id, source):
     remaining = [f['path'] for f in job['plan']['files'] if kind_of(f['path']) in MEDIA_KINDS
                  and (f['path'], f['stamp']['size'], f['stamp']['mtime_ns']) in present]
     require(not remaining, 'source_not_clean', 'Backed-up clips are still on the card: ' + ', '.join(remaining[:5]))
+    indexes = [f for f in job['plan']['files'] if sony_index_member(f['path'])]
+    if job['plan']['cleanup_profile'] == 'sony_clips_then_format' and indexes:
+        # The engine already removed the clips; only a camera format rewrites its indexes (seen on a real ILCE-6400).
+        current = {f['path']: f['stamp'] for f in files}
+        require(any(current.get(f['path']) != f['stamp'] for f in indexes), 'card_not_formatted',
+                'Card indexes are unchanged; format the card in the camera, then confirm')
     with catalog.writer():
         catalog.event(job_id, 'camera_cleanup_confirmed', {'source': str(source), 'volume_uuid': info['volume_uuid'], 'files_now': len(files)})
         catalog.state(job_id, 'completed')
@@ -385,7 +392,9 @@ class Transfer:
                 per_source = {}
                 for record, dest, stamp, original in verified_in_run:
                     per_source.setdefault(original, []).append((record, dest, stamp))
-                for file in plan['files']:
+                sony = plan['cleanup_profile'] == 'sony_clips_then_format'
+                removable = [f for f in plan['files'] if not sony or not sony_index_member(f['path'])]
+                for file in removable:
                     self.checkpoint('cleanup_file', file)
                     self.source_check(plan)
                     for required in records:
@@ -423,7 +432,9 @@ class Transfer:
                         self.catalog.db.execute('UPDATE members SET cleaned=1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
                 remaining, _, _ = scan(plan['source'])
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
-                final = 'completed' if not remaining else 'source_has_new_material'
+                kept = {f['path']: f['stamp'] for f in plan['files'] if f not in removable}
+                unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp']]
+                final = 'source_has_new_material' if unexpected else ('camera_action_required' if sony else 'completed')
             self.catalog.state(plan['id'], final)
             self.report(force=True, phase=final)
         return self.catalog.job(plan['id'])

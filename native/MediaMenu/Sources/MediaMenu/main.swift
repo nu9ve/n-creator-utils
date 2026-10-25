@@ -234,6 +234,9 @@ struct DraftUnit: Identifiable, Equatable {
         if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "files" {
             return "Respaldo verificado · las sesiones Stalker se conservan en el origen"
         }
+        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "sony_clips_then_format" {
+            return "Respaldo verificado · clips borrados de la SD · formatéala en la cámara"
+        }
         return stateLabel(job["state"].string)
     }
     func useCard(_ path: String) {
@@ -387,7 +390,7 @@ struct MainView: View {
             }
             if let plan = model.plan {
                 Text("\(plan["files"].array.count) archivos · \(plan["units"].array.count) unidades · \(plan["work_id"] == .null ? "sólo archivo confirmado" : "archivo + trabajo")")
-                Text(plan["cleanup_profile"].string == "camera_action_required" ? "Limpieza pendiente en cámara tras verificar." : (plan["cleanup"].bool ? "La SD se limpiará después de verificar." : "El origen se conservará."))
+                Text(!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Tras verificar se borran los clips de la SD; después formatéala en la cámara." : plan["cleanup_profile"].string == "camera_action_required" ? "Limpieza pendiente en cámara tras verificar." : "La SD se limpiará después de verificar.")
                 DisclosureGroup("Ver rutas y clasificación del plan") {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
@@ -440,7 +443,7 @@ struct MainView: View {
     var activity: some View {
         List(model.jobs, id: \.["id"].string) { job in
             HStack { VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
-                if job["state"].string == "camera_action_required" && job["cleanup_profile"].string == "camera_action_required" { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
+                if job["state"].string == "camera_action_required" && ["camera_action_required", "sony_clips_then_format"].contains(job["cleanup_profile"].string) { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
         }.padding(.top)
     }
     var settings: some View {
