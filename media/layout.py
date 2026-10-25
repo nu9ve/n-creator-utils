@@ -30,6 +30,20 @@ def kind_of(path):
     return next((kind for kind, suffixes in KINDS.items() if suffix in suffixes), None)
 
 
+def sony_index_member(path):
+    """Sony camera databases/indexes: never deleted or edited here; the camera format regenerates them.
+
+    Everything else on a Sony card (clips, thumbnails, DCIM stills) may leave the card after verification."""
+    lowered = '/' + path.lower()
+    if '/avf_info/' in lowered or '/private/sony/' in lowered:
+        return True
+    if '/m4root/' in lowered:
+        return not any(part in lowered for part in ('/m4root/clip/', '/m4root/thmbnl/', '/m4root/sub/'))
+    if '/avchd/' in lowered:
+        return '/stream/' not in lowered
+    return False
+
+
 def tag(value):
     return slug(value).upper()
 

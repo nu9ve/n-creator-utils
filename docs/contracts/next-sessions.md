@@ -93,14 +93,17 @@ Implementa:
    cámara como items. Guarda por fuente asset_id, revision, session_id y sha256/bytes. El profile llega como
    sugerencia. Reimportar es idempotente: agrega sólo assets nuevos y no duplica. Se conservan el pegado de rutas
    y la importación de carpeta, que reconoce bundles por manifest.json y no por el patrón Stalker_*.
-2. Agrupación sugerida cámara + pantalla por solape de captured_at/duration_seconds y reloj Stalker, como hint
-   que el usuario confirma o deshace. Nunca auto-sync silencioso.
+2. Autogroup cámara + pantalla. Lee "Agrupar cámara y pantalla" en media-naming-v1.md: la relación es N:M
+   (p. ej. C0003 20:41:10-20:43:27 y C0004 20:44:01-20:48:48 alrededor de la sesión 20:44:16-20:52:00). Usa
+   solape o cercanía con tolerancia configurable sobre captured_at/duration_seconds y reloj Stalker, con relojes
+   de cámara y Mac que pueden diferir. Es un hint que el usuario confirma o deshace; nunca auto-sync silencioso.
 3. Robustez de rutas con "[]" y cualquier nombre .stalker en todo el flujo: sync, transcripción, overlays, render y
    export (escape de filtros ffmpeg subtitles=/movie=, listas concat, glob(), shell). Pruebas con fixtures
    temporales que usen esos nombres.
-4. Offline y relink: las copias de trabajo se borran al terminar de editar y ESSD puede no estar montado. Muestra
-   las fuentes offline y ofrece relink volviendo a pedir `media sources` (la alternativa de MEDIA), validando
-   asset_id/session_id/sha256. Nunca cambies en silencio a otra revisión.
+4. Borrado manual, offline y relink: el usuario borra en Finder, sin avisar, clips inútiles o un proyecto entero
+   al terminar, y ESSD puede no estar montado. `media sources` ya lo reporta (removed_from_work, offline,
+   warnings): muéstralo sin error ni re-import automático. Ofrece relink a la copia de MEDIA sólo si el usuario lo
+   pide, validando asset_id/session_id/sha256. Nunca cambies en silencio a otra revisión.
 5. Espacio: el disco interno tiene ~5.7 GB libres. Para proyectos importados de la biblioteca, el proyecto y los
    renders van por default a /Volumes/ESSD/001_proyectos/e64/<proyecto>/ (configurable), con aviso de espacio
    antes de un render grande.

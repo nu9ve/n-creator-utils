@@ -71,6 +71,7 @@ def main(argv=None):
             print('{}: {} archivos, {:.2f} GB, {}. {}'.format(plan['source'], len(plan['files']), size / 1e9,
                 'sólo archivo confirmado' if plan['work_id'] is None else 'archivo + trabajo',
                 'Liberación en cámara pendiente' if plan['cleanup_profile'] == 'camera_action_required' else
+                'Borrar clips tras verificar; luego formatear en cámara' if plan['cleanup_profile'] == 'sony_clips_then_format' and plan['cleanup'] else
                 ('Limpiar SD tras verificar' if plan['cleanup'] else 'Conservar origen')))
         if not args.yes:
             require(sys.stdin.isatty(), 'confirmation_required', 'Review with --dry-run, then use apply with digest or save --yes')

@@ -40,4 +40,6 @@ Primer ciclo real completo: respaldo verificado (`camera_action_required`), form
 | `STATUS.BIN`, `PRIVATE/SONY/SONYCARD.IND` | Idénticos. |
 | Volumen ExFAT | 76 MB usados; **mismo Volume UUID** que antes del formateo. |
 
+Desde el 2026-10-25 (perfil `sony_clips_then_format`) el motor borra de la tarjeta los clips, las miniaturas y las fotos `DCIM` tras verificar y releer cada archivo, para que el formateo en cámara sea rápido. Los índices quedan intactos. La cámara puede pedir «recuperar base de datos» al insertarla; da igual, el paso siguiente es formatear. `confirm-cleanup` exige además que la cámara haya reescrito algún índice. **Pendiente de probar con la próxima tarjeta real.**
+
 Conclusión: la cámara reescribe sus índices con identificadores propios. Imitarlo desde la computadora sería manipular índices por inferencia, así que **la limpieza Sony sigue siendo formatear en la cámara**. El motor la cierra comprobando que no queda ningún clip respaldado (misma ruta, tamaño y `mtime`). Un clip nuevo con nombre reutilizado no bloquea. Como el UUID no cambia, no sirve para detectar el formateo.
