@@ -4,7 +4,6 @@ import pathlib
 from configuration import load_settings
 
 SETTINGS = load_settings()
-DEBUG = SETTINGS['debug']
 
 LOGGER_NAME = 'nu9ve'
 
@@ -12,7 +11,6 @@ DRIVE_NAME = 'MEDIA502'
 ROOT_DIR = SETTINGS['root_dir']
 SD_ROOT_DIR = SETTINGS['sd_root_dir']
 ROOT_RECORDINGS_DIR = SETTINGS['root_recordings_dir']
-CLIPPER_FONT_FILE = SETTINGS['clipper_font_file']
 YT_DLP_COOKIES_BROWSER = SETTINGS['yt_dlp_cookies_browser']
 username = pathlib.Path.home().name
 

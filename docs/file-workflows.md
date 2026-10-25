@@ -1,8 +1,12 @@
 # Archivos y flujos entre n-creator-utils, Stalker y Clipper
 
+Revisión histórica anterior a `media/`. El importador genérico descrito aquí vive ahora en `legacy-save`; la nueva entrada `save` usa planificación/verificación. Estado vigente y consumidores pendientes: [STATUS](STATUS.md), [operación](operations.md), [contratos](contracts/README.md).
+
+Actualización de alcance: el análisis siguiente conserva la revisión inicial de rutas. La auditoría ampliada basada en tus flujos está en [media-audit.md](media-audit.md), el diseño en [media-architecture.md](media-architecture.md) y los contratos centrales en [contracts/README.md](contracts/README.md). El editor interno ya fue retirado; `save` ahora rechaza paquetes Stalker/Clipper antes de procesarlos. Los demás movimientos/destructivos del legado siguen vigentes.
+
 Revisión: 24 de octubre de 2026. Alcance: almacenamiento, identidad, referencias, movimientos, entregas y puntos de integración. No es una auditoría de efectos, calidad de render o modelos de IA.
 
-Se revisaron los checkouts de Clipper (`7075eb9`) y Stalker (`46161c7`), sus contratos y el código de lectura/escritura de archivos. Los cambios de esta revisión son documentales: no se movieron grabaciones, proyectos o finales, ni se configuraron automatizaciones.
+Se revisaron los checkouts de Clipper (`7075eb9`) y Stalker (`46161c7`), sus contratos y el código de lectura/escritura de archivos. Los cambios de aquella revisión inicial fueron documentales: no se movieron grabaciones, proyectos o finales, ni se configuraron automatizaciones.
 
 ## Qué le corresponde a cada repo
 
@@ -12,7 +16,7 @@ Se revisaron los checkouts de Clipper (`7075eb9`) y Stalker (`46161c7`), sus con
 | **[Stalker](https://github.com/nu9ve/stalker)** | Grabar pantalla y señales asociadas | La **carpeta `.stalker` completa**, con su manifest, pistas, voz derivada y eventos opcionales. |
 | **[Clipper](https://github.com/nu9ve/clipper)** | Editar, sincronizar, componer y producir entregas | `clipper-project.json`, artefactos editoriales y las fuentes externas a las que apunta. El proyecto por sí solo no es un backup de esos originales. |
 
-El propietario confirmó que el editor de `/Users/nu9ve/code/ai/clipper` reemplaza al `clipper/` antiguo de este repo. No hay que mejorar dos editores en paralelo. El código antiguo todavía está presente y conectado a `nu9ve clip`; retirarlo es un cambio pendiente separado. Su JSON de rangos no es el contrato del editor nuevo.
+El propietario confirmó que el editor de `/Users/nu9ve/code/ai/clipper` reemplaza al `clipper/` antiguo de este repo. No hay que mejorar dos editores en paralelo. El código antiguo se retiró en la entrega posterior; `nu9ve clip` sólo informa el sucesor con error. Su JSON de rangos no es el contrato del editor nuevo.
 
 Stalker y Clipper ya tienen un intercambio implementado. Lo que falta aquí es integrar **ingreso, organización y archivo** alrededor de ese intercambio, conservando sus archivos y relaciones.
 
@@ -84,7 +88,7 @@ El reloj v3 es común para pistas y eventos; al sincronizar con una cámara se a
 | Operación | Comportamiento actual | Consecuencia para el flujo |
 | --- | --- | --- |
 | `nu9ve save` sobre media de cámara | Copia a destinos normalizados y elimina la fuente; mueve sidecars/soporte según perfil | Conviene hacerlo antes de importar esas fuentes a Clipper. Después las rutas/firma de la edición pueden quedar obsoletas. |
-| `nu9ve save` sobre `.stalker` o proyecto Clipper | No hay adaptador: recorre archivos sueltos, puede renombrar MOV/WAV y dejar JSON/eventos atrás; un MOV sólo-audio tampoco sigue el supuesto de video genérico | **No es un flujo compatible.** Necesitamos manejo de paquete completo, no pasarle estas carpetas al clasificador actual. |
+| `nu9ve save` sobre `.stalker` o proyecto Clipper | No hay adaptador de transferencia: ahora se rechaza antes de modificar la fuente. No se usa la clasificación por extensión dentro del paquete | **No es un flujo compatible.** Necesitamos manejo de paquete completo, no pasarle estas carpetas al clasificador actual. |
 | Agregar media/importar Stalker en Clipper | Registra referencias a archivos existentes | Importar no equivale a respaldar ni consolidar media. |
 | Mover el proyecto Clipper | Existen helpers para mover carpeta de proyecto y reescribir algunas referencias internas | No relocalizan automáticamente originales externos. No asumir portabilidad completa de sesiones Stalker o cola. |
 | Relink genérico de Clipper | Reasigna rutas de items; los registros `capture_sessions` incluyen además raíz, voz y pistas como strings | Falta un relink completo de bundle. Cambiar sólo `item.path` no resuelve todas sus dependencias. |
@@ -98,7 +102,7 @@ La revisión de relink se basa en `remap_project_media_paths`, `relink_project_m
 
 ## Flujos que ya pueden conectarse manualmente
 
-Son escenarios candidatos para contrastar con tus hábitos, no una afirmación de que ya trabajas exactamente así. No hay automatización entre los tres repos.
+Estos escenarios preceden a la descripción completa de tus hábitos; la reconstrucción actual está en [media-audit.md](media-audit.md). No hay automatización entre los tres repos.
 
 ### Cámara → archivo estable → edición
 
@@ -150,11 +154,11 @@ Un MP4 terminado no sustituye los originales o el proyecto si después se quiere
 | Media | Registro de procedencia de assets/stems | Relacionar descarga/original y derivados sin mover una fuente que otro proyecto sigue usando. |
 | Después | Automatizar llegada de sesiones terminadas | Detectar `completed`, pedir/asignar proyecto según el flujo acordado y registrar resultado. Detectar un MOV no basta para autorizar importación/archivo. |
 
-Estas son propuestas de archivo/integración. No implican watcher, daemon, edición automática del proyecto, cambio de carpetas ni implementación ya acordada. Primero hay que describir tus flujos reales para decidir qué simplifica trabajo y qué sólo añade pasos.
+Estas propuestas se concretaron con los flujos del propietario en [media-experience.md](media-experience.md) y [PLAN](../PLAN.md). Watcher, motor verificado y relocalización siguen sin implementar; el inventario y el guard de paquetes sí se incorporaron.
 
-## Qué definir con los flujos reales
+## Datos complementarios para las próximas pruebas
 
-Para cada caso basta describir: qué grabas/descargas; dónde llega; cuándo lo nombras u organizas; cuándo lo importas; qué produces al exportar; qué conservas al terminar y en qué disco; qué tareas repites o te hacen perder tiempo. Con eso podremos elegir ubicaciones y transferencias concretas sin imponer una estructura de carpetas antes de entender el uso.
+Los flujos ya están descritos en la auditoría ampliada. Falta recoger muestras de modelos DJI concretos, prueba de cámara Sony, identidades de discos aún ausentes y dependencias de bibliotecas Final Cut durante la implementación.
 
 ## Referencias de código y contratos
 

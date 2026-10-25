@@ -14,11 +14,16 @@ REPO = Path(__file__).resolve().parents[1]
 
 class CommandTests(unittest.TestCase):
     def test_help_and_doctor_work_without_site_packages(self):
-        for args in [['--help'], ['clip', '--help'], ['save', '--help'], ['doctor']]:
+        for args in [['--help'], ['inspect', '--help'], ['save', '--help'], ['doctor']]:
             result = subprocess.run([sys.executable, '-S', str(REPO / 'nu9ve.py'), *args], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             if args == ['doctor']:
                 self.assertIn('executables', json.loads(result.stdout))
+
+    def test_retired_clip_command_points_to_successor(self):
+        result = subprocess.run([sys.executable, '-S', str(REPO / 'nu9ve.py'), 'clip', '--help'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('https://github.com/nu9ve/clipper', result.stderr)
 
     def test_invalid_usage_and_missing_files_have_nonzero_exit(self):
         for args in [['save'], ['download', 'wrong', 'https://example.com'], ['clip', '/missing.mp4'], ['save', '/missing-source', 'mx', 'hmo', 'AUTO'], ['control']]:

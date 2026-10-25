@@ -1,59 +1,74 @@
-# Desarrollo y verificación
+# Desarrollo, modularidad y continuidad
 
-El clipper local quedó reemplazado por [nu9ve/clipper](https://github.com/nu9ve/clipper). Las pruebas e instrucciones de renderer en esta página describen el código histórico aún presente; no son una prioridad para nuevas funciones aquí. La evolución entre repos se centra en [archivos, paquetes y transferencias](file-workflows.md).
+Lee [CONTEXT](CONTEXT.md) y [STATUS](STATUS.md) antes de cambiar código. [PLAN](../PLAN.md) fija prioridades; esta página describe cómo trabajar. No volver a auditar todos los repos para una mejora pequeña.
 
-## Preparar el entorno
+## Dónde implementar cada cambio
+
+| Responsabilidad | Archivos | Regla |
+| --- | --- | --- |
+| Invariantes, rutas relativas, hashes y IO | [common](../media/common.py) | Sin dependencias de UI ni globals del importador histórico. |
+| Clasificación, asignaciones, preview y política efectiva | [planner](../media/planner.py) | La misma planificación alimenta CLI y app; no copiar reglas de rutas en Swift. |
+| Montajes, identidad, espacio y capacidades | [volumes](../media/volumes.py) | Adaptadores por plataforma; nombres de disco no son identidad. |
+| Copia, verificación, limpieza y replay | [transfer](../media/transfer.py) | Única ruta nueva de escritura/limpieza de fuentes. Pruebas de fallo obligatorias. |
+| Persistencia y decisiones humanas | [catalog](../media/catalog.py) | IDs estables, migraciones y un writer; catálogo local, recibos portables. |
+| Resolución, restore, pendientes y handoff | [library](../media/library.py), [recovery](../media/recovery.py) | Mantener procedencia y relaciones; no editar proyectos ajenos. |
+| Capturas y publicaciones | [captures](../media/captures.py), [publication](../media/publication.py) | Finalización/publicación explícitas; no inferirlas de un MOV o export existente. |
+| Boundary de operaciones | [service](../media/service.py), [cli](../media/cli.py), [save](../media/save.py), [MCP](../media/mcp.py) | JSON estructurado; stdout no mezcla logs. MCP actual sólo lectura. |
+| App nativa | [main.swift](../native/MediaMenu/Sources/MediaMenu/main.swift) | UI/eventos; no reimplementar transferencias. El modelo y las vistas aún deben separarse al crecer. |
+| Puente/runtime/eventos nativos | [Protocol](../native/MediaMenu/Sources/MediaMenuCore/Protocol.swift), [CaptureWatcher](../native/MediaMenu/Sources/MediaMenuCore/CaptureWatcher.swift) | Preservar enteros de 64 bits y errores; cero workers periódicos en idle. |
+| Empaquetado | [builder](../scripts/build_media_app.py), [pyproject](../pyproject.toml) | Artefacto nuevo por build; distinguir runtime externo de bundle distribuible. |
+
+`manager/file.py` conserva legacy-save/download/split. No hace falta reescribirlo para agregar una vista al dashboard. Futuras extracciones de download/stems deben entregar assets/provenance por el servicio, sin acoplarse a Swift.
+
+## Validación proporcionada al cambio
 
 ```sh
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e .
+python3 -m unittest discover -s tests -p test_media_engine.py -v
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q nu9ve.py constants.py configuration.py manager clipper hardware utils
+python3 -m compileall -q media manager nu9ve.py scripts
+swift test --package-path native/MediaMenu
+git diff --check
 ```
 
-La suite usa `unittest` y no necesita pytest ni paquetes Python opcionales. Las pruebas de media real se omiten si faltan FFmpeg/FFprobe; la prueba de texto se omite si FFmpeg no tiene `drawtext`. Lee el reporte de skips para saber qué se verificó realmente. Ejecuta desde la raíz del repo.
+No ejecutar todo repetidamente cuando ya pasó y no cambió el comportamiento. Docs: consistencia y enlaces. UI: compilar y revisar el flujo afectado con estado aislado. Cambios de integridad: primero fixture/fallo dirigido, luego suite completa de límites. El estado exacto del último pase está en [STATUS](STATUS.md), no en un conteo duplicado aquí.
 
-No ejecutes `hardware/test.py`, `clipper/openai_clipper.py` ni scripts de `playground/` como parte de pruebas automáticas: son experimentos manuales, pueden usar equipos/cuentas reales y no equivalen a la suite de regresión.
+`tests/test_media_engine.py` incluye `FixtureVolumes`: simula identidades y fallos sin registrar discos reales. Hay hard exits en subprocess, corrupción del mismo tamaño y recuperación de limpieza. Las pruebas antiguas siguen cubriendo el importador legado y los adaptadores externos simulados. Una prueba de bytes Sony no sustituye la prueba de cámara.
 
-## Qué cubren las pruebas
+No ejecutar `hardware/test.py` o playground como suite automática. Para fixtures locales con el backend real hay registro explícito `--allow-local`; eso no demuestra redundancia ni convierte carpetas del mismo disco en discos distintos.
 
-| Suite | Casos |
-| --- | --- |
-| `test_configuration.py` | Defaults, home correcto, JSON parcial, precedencia, rutas relativas, no crear destinos, errores de esquema y mapa de volúmenes. |
-| `test_import.py` | Naming/colisiones de fotos, fechas, bytes, origen conservado ante fallo/copia truncada, raíz ausente, solapamientos, bundle Insta360 con manifest existente, Sony y archivos de soporte, WAV minúsculo y segunda copia de audio. |
-| `test_clipper.py` | Configuración mínima, selección explícita de JSON, recursos relativos, listas de inputs independientes, rangos fraccionarios/largos/inválidos, cadena de textos y detener fallos FFmpeg. |
-| `test_commands.py` | Ayuda/diagnóstico sin site-packages, argumentos inválidos, códigos de error, URL como argumento, destinos con espacios, proveedores no implementados, omisión de tokens en errores y ciclo de vida del original para split. |
-| `test_media_integration.py` | Video/audio generado localmente con FFmpeg, dos rangos desde fuente con espacios/extensión mayúscula, fuente intacta, previews, texto múltiple real y render completo horizontal/vertical con formatos adicionales. |
+## Evolucionar un contrato
 
-La revisión validó los 26 tests en Python 3.9.6 y 3.12.12 en macOS, incluidos los tres tests locales de media sin skips. Todas las escrituras de las pruebas van a directorios temporales. Las rutas de archivo/respaldo del importador se sustituyen por fixtures. Las descargas, Demucs y servicios externos se simulan. El test Sony usa un clip de bytes ficticios y mocks de FFprobe; valida el movimiento/metadata, no decodificación de una cámara real.
+1. Cambiar el owner del dominio y su entrada en [contracts](contracts/README.md).
+2. Versionar cambios incompatibles; conservar campos desconocidos compatibles. Añadir fixture/replay del comportamiento, no sólo del serializer.
+3. El servicio valida, CLI transporta y Swift presenta. No generar otra verdad de paths, estado de copia o timeline editorial.
+4. Campos numéricos como `mtime_ns` deben seguir exactos al cruzar Swift/Python. JSON válido no equivale a plan intacto.
+5. Registrar adopción por consumidor. Exportar handoff aquí no significa que Clipper ya lo lea.
 
-El empaquetado normal y editable se construyó con setuptools en Python 3.12 y se instaló sin dependencias en entornos temporales Python 3.9. Se verificaron `nu9ve --help`, `nu9ve clip --help` y `nu9ve doctor` desde fuera del checkout. Esto comprueba el entry point, no sustituye la suite de media ni una matriz de plataformas.
+## Cerrar y retomar una sesión
 
-## Cambios sobre importación
+Handoff recomendado, en pocas líneas:
 
-Mantén fixtures que representen tanto el archivo principal como sus sidecars, índices y carpetas ignoradas. Antes de probar en hardware:
+```text
+Objetivo / tarea de PLAN:
+Estado: implementado | en curso | bloqueado | validación pendiente
+Archivos/módulos tocados:
+Decisiones e invariantes afectadas:
+Comandos realmente ejecutados y resultado:
+Pendientes/riesgos concretos:
+Siguiente acción mínima:
+Enlaces a STATUS, contrato o nota de decisión:
+```
 
-1. Copia una muestra pequeña de una tarjeta a un directorio temporal y configura destinos de prueba ya existentes.
-2. Registra qué nombres, fechas, archivos auxiliares y rutas deberían resultar.
-3. Ejecuta el flujo sobre la copia y compara fuente/destinos, incluidos archivos no reconocidos y segunda copia de audio.
-4. Para una prueba real de cámara, valida que puede reutilizar la tarjeta y registra el modelo/firmware/filesystem. No generalices desde una fixture a toda la familia de dispositivos.
+En otra sesión: leer CONTEXT → STATUS → tarea de PLAN → módulos relevantes. Revisar `git status` antes de editar; este checkpoint tiene cambios anteriores staged y trabajo nuevo sin seguimiento. No asumir un checkout limpio ni restagear todo.
 
-No existe una garantía actual de checksum, atomicidad o tolerancia a ejecuciones simultáneas. Las pruebas de tamaño no deben describirse como validación de integridad completa.
+Para trabajo simultáneo, definir superficie y archivos antes de empezar. UI/dashboard y revisión del motor pueden avanzar en sesiones distintas si el protocolo se mantiene; cambios en `service`, catálogo o schemas requieren acordar el boundary. Los agentes de Stalker/Clipper/Atlas revisan sus propios contratos; no enviarles mensajes ni editar sus repos sin autorización del usuario.
 
-## Cambios sobre clipper e integraciones
+## Mantener documentación viva
 
-Para filtros, usa media sintética pequeña antes de un video largo. Valida forma, duración y apariencia de la salida. Nuevas combinaciones de logo, fondos, orientación, texto especial y formatos necesitan sus propios casos; no basta con comprobar que se construyó una cadena de argumentos.
+- CONTEXT: objetivo, invariantes, mapa breve; cambiar sólo cuando cambia el producto.
+- STATUS: hechos, evidencia, artefactos y límites de la última entrega; actualizar al cerrar sesión.
+- PLAN: prioridades y aceptación, sin repetir toda la historia.
+- Owner docs/contratos: semántica y decisiones durables; enlazar desde el índice.
+- Notas históricas: fecha y scope visibles; no presentarlas como implementación vigente.
 
-Para descargas/ML, separa pruebas simuladas y pruebas optativas con acceso externo. Registra versiones de ejecutables/SDKs, proveedor, formato de salida y comportamiento de errores. Evita credenciales en fixtures, ejemplos, logs y argumentos registrados.
-
-## Compatibilidad de cambios
-
-- Conserva comandos y nombres de carpetas existentes o documenta una migración explícita.
-- No elimines scripts “antiguos” basándote sólo en no estar importados: pueden usarse manualmente.
-- Mantén defaults existentes; agrega nuevas reglas peligrosas como opciones explícitas y verificables.
-- Convierte decisiones de usuario/ambiente en configuración validada, evitando más flags o rutas personales dispersas.
-- Al separar módulos, desacopla dominio, filesystem y proveedores con pruebas de comportamiento antes de cambiar salidas.
-
-El inventario y los contratos actuales están en [módulos](modules.md); los trabajos pendientes en [PLAN.md](../PLAN.md).
+Una nueva feature no necesita otra guía general completa. Añadir sección al owner o una nota corta enlazada suele bastar.

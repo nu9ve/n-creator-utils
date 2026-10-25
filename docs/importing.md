@@ -1,8 +1,12 @@
-# Importación de media (`save`)
+# Importador histórico: Importación de media (`save`)
+
+Esta página describe `manager/file.py`, ahora accesible como **`legacy-save`**. Las menciones antiguas a `save` en ejemplos/secciones se refieren a ese motor. Para el nuevo flujo ver [operations](operations.md) y [STATUS](STATUS.md).
 
 ## Alcance frente a Stalker y Clipper
 
-Este importador organiza archivos de cámaras/grabadoras; no entiende sesiones `.stalker`, proyectos `clipper-project.json` ni paquetes de entrega del editor. El recorrido genérico puede mover sus MOV/WAV, renombrarlos y dejar atrás manifests, eventos o sidecars. No lo uses sobre esas carpetas completas. Además, mover fuentes ya importadas puede romper referencias de Clipper. El contrato y los flujos que necesitamos están documentados en [file-workflows.md](file-workflows.md).
+El [diseño de media](media-architecture.md) define copiar, verificar destinos y después limpiar la SD en el mismo flujo; el motor nuevo ya existe con los límites de STATUS; este documento describe el importador histórico, que todavía borra originales y soporte Sony sin esas garantías. [Prueba Sony](sony-validation.md).
+
+Este importador organiza archivos de cámaras/grabadoras; no entiende sesiones `.stalker`, proyectos `clipper-project.json` ni paquetes de entrega del editor. Ahora se rechazan fuentes dentro de paquetes Stalker/Clipper o que los contengan, antes de modificar esa fuente; también links/entradas especiales. Todavía no hay adaptador de copia para ellos. Paquetes de entrega, Final Cut y Atlas tampoco deben pasarse a este importador genérico. Además, mover fuentes ya importadas puede romper referencias de Clipper. El contrato y los flujos que necesitamos están documentados en [file-workflows.md](file-workflows.md).
 
 ## Contrato actual
 

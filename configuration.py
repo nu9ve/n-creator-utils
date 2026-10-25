@@ -28,9 +28,7 @@ def load_settings(config_path=None, environ=None):
         'audio_splits_dir': str(home / 'Music/01_produccion/splits'),
         'audio_songs_dir': str(home / 'Music/02_mix/latest'),
         'tmp_video_dir': str(home / 'data/projectIX/raw'),
-        'clipper_font_file': str(home / 'Downloads/test_clipper/coolvetica.ttf'),
         'yt_dlp_cookies_browser': 'brave',
-        'debug': False,
         'sd_src_name': {
             'EOS_DIGITAL': 'SL3', 'NIKON D3300': 'NIKON', 'GOPRO64': 'GOPRO4',
             'MAVIC200': 'MAVIC2', 'H6_SD': 'H6', 'INSTA360': 'INSTA360',
@@ -50,6 +48,8 @@ def load_settings(config_path=None, environ=None):
             raise ConfigurationError(f'Cannot read configuration {path}: {error}') from error
         if not isinstance(local, dict):
             raise ConfigurationError('Configuration must be a JSON object')
+        # Retired renderer settings are ignored so existing local configs work.
+        local = {k: v for k, v in local.items() if k not in {'clipper_font_file', 'debug'}}
         unknown = set(local) - set(settings)
         if unknown:
             raise ConfigurationError(f'Unknown configuration keys: {", ".join(sorted(unknown))}')
@@ -64,12 +64,7 @@ def load_settings(config_path=None, environ=None):
                 raise ConfigurationError('sd_src_name must map volume names to nonempty profile names')
             continue
         value = env.get(env_key, value)
-        if key == 'debug':
-            if isinstance(value, str) and value.lower() in {'true', 'false', '1', '0'}:
-                value = value.lower() in {'true', '1'}
-            if not isinstance(value, bool):
-                raise ConfigurationError('debug must be true or false')
-        elif not isinstance(value, str) or (not value.strip() and key != 'yt_dlp_cookies_browser'):
+        if not isinstance(value, str) or (not value.strip() and key != 'yt_dlp_cookies_browser'):
             raise ConfigurationError(f'{key} must be a nonempty string')
         elif key != 'yt_dlp_cookies_browser':
             value_path = Path(os.path.expandvars(value)).expanduser()

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "n-creator-utils"
 version = "0.1.0"
-description = "Utilities for importing, organizing and clipping creative media"
+description = "Utilities for inspecting, importing and organizing creative media"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []
@@ -15,4 +15,4 @@ nu9ve = "nu9ve:main"
 
 [tool.setuptools]
 py-modules = ["nu9ve", "constants", "configuration"]
-packages = ["manager", "clipper", "hardware", "utils"]
+packages = ["manager", "media", "hardware", "utils"]

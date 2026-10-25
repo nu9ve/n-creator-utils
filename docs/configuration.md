@@ -1,6 +1,8 @@
-# Configuración
+# Configuración del legado y herramientas externas
 
-Esta configuración pertenece a `n-creator-utils`. No configura el editor externo ni Stalker. El clipper incluido aquí quedó reemplazado; `clipper_font_file`, su modo `debug` y credenciales de IA son opciones históricas mientras exista ese código. Las rutas y ajustes de los otros repos se describen en [manejo de archivos y flujos](file-workflows.md#ubicaciones-y-configuración-actuales).
+El nuevo `save`/`media` usa catálogo, volúmenes registrados y defaults por servicio; ver [operations](operations.md). Este JSON sigue atendiendo legacy-save/download/split/doctor. El mapa `sd_src_name` también ayuda a `save all` a encontrar tarjetas, pero no registra destinos nuevos.
+
+Esta configuración pertenece a `n-creator-utils`. No configura el editor externo ni Stalker. El editor interno fue retirado. `clipper_font_file` y `debug` en un JSON antiguo se ignoran por compatibilidad; sus variables de entorno ya no tienen efecto. Las rutas y ajustes de los otros repos se describen en [manejo de archivos y flujos](file-workflows.md#ubicaciones-y-configuración-actuales).
 
 ## Fuentes y precedencia
 
@@ -43,20 +45,18 @@ El archivo indicado debe existir. `doctor` devuelve JSON con rutas efectivas, ex
 
 | Clave JSON | Valor predeterminado | Uso |
 | --- | --- | --- |
-| `root_dir` | `/Volumes/MEDIA502/001_raw` | Raíz principal de importación. Debe existir antes de `save`. |
+| `root_dir` | `/Volumes/MEDIA502/001_raw` | Raíz principal de importación. Debe existir antes de `legacy-save`. |
 | `sd_root_dir` | `/Volumes` | Directorio donde `save all` busca nombres del mapa de tarjetas. |
 | `root_recordings_dir` | `/Volumes/SSD1` | Raíz de segunda copia de audio; debe existir para importar audio. |
-| `audio_hijack_dir` | `~/Music/Audio Hijack` | Fuente del alias `save hijack`. |
+| `audio_hijack_dir` | `~/Music/Audio Hijack` | Fuente del alias `legacy-save hijack`. |
 | `audio_samples_dir` | `~/Music/01_produccion/samples/YYYY/raw` | Destino de `download sample`. |
 | `audio_splits_dir` | `~/Music/01_produccion/splits` | Directorio de trabajo de Demucs, descargas para split y originales procesados. |
 | `audio_songs_dir` | `~/Music/02_mix/latest` | Destino de `download song`. |
 | `tmp_video_dir` | `~/data/projectIX/raw` | Destino de `download video`. |
-| `clipper_font_file` | `~/Downloads/test_clipper/coolvetica.ttf` | Fuente de `drawtext`; si falta se utiliza `Sans` del sistema. |
 | `yt_dlp_cookies_browser` | `brave` | Valor de `--cookies-from-browser` para canciones/samples de YouTube. `""` desactiva esa opción. No se añade a video. |
-| `debug` | `false` | Modo histórico del renderer: registra comandos en vez de ejecutar FFmpeg. **No es dry-run de `save`**. Usa `clip --verbose` para verlos. |
 | `sd_src_name` | Mapa en `configuration.py` | Nombre de volumen → perfil/etiqueta. `AUTO` intenta Sony/Insta360 y omite tarjetas desconocidas. |
 
-Todas las filas excepto `sd_src_name` aceptan su variable de entorno, por ejemplo `NU9VE_ROOT_DIR` o `NU9VE_CLIPPER_FONT_FILE`. `NU9VE_DEBUG` acepta `true`, `false`, `1`, `0`. Los destinos por categoría (`images`, `v4k`, `metadata/sony`, etc.) se derivan de las raíces y mantienen sus nombres históricos; aún no son reglas configurables.
+Todas las filas excepto `sd_src_name` aceptan su variable de entorno, por ejemplo `NU9VE_ROOT_DIR` o `NU9VE_AUDIO_SONGS_DIR`. Los destinos por categoría (`images`, `v4k`, `metadata/sony`, etc.) se derivan de las raíces y mantienen sus nombres históricos; aún no son reglas configurables.
 
 ## Credenciales
 
@@ -66,8 +66,6 @@ Las integraciones leen credenciales exclusivamente del entorno o de argumentos d
 | --- | --- |
 | `SOUNDCLOUD_CLIENT_ID` | `scdl`, si la instalación/cuenta necesita client ID. |
 | `SOUNDCLOUD_AUTH_TOKEN` | `scdl`, si necesita autenticación. |
-| `REPLICATE_API_TOKEN` | Modo experimental `clip --openai` y experimento standalone. |
-| `OPENAI_API_KEY` | Modo experimental de IA. |
 
 Los archivos `.env` están ignorados, pero **no se cargan automáticamente**. Exporta las variables en el shell o usa el gestor de secretos de tu ambiente. `doctor` no incluye estas variables.
 

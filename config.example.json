@@ -7,9 +7,7 @@
   "audio_splits_dir": "~/Music/splits",
   "audio_songs_dir": "~/Music/songs",
   "tmp_video_dir": "~/Movies/downloads",
-  "clipper_font_file": "~/Library/Fonts/coolvetica.ttf",
   "yt_dlp_cookies_browser": "",
-  "debug": false,
   "sd_src_name": {
     "NO NAME": "SONYA6400",
     "Untitled": "AUTO",

@@ -1,0 +1,85 @@
+"""Human-facing safe save flow; legacy positional semantics are deliberately retired."""
+import argparse
+import json
+from pathlib import Path
+import sys
+
+from .catalog import Catalog
+from .common import MediaError, read_json, require
+from .planner import build_plan
+from .transfer import Transfer
+from .volumes import VolumeBackend
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Planear, verificar y liberar SD. Usa --project; el formato posicional antiguo vive en legacy-save.')
+    parser.add_argument('source', help='raíz de SD, carpeta de capturas o all')
+    parser.add_argument('--state-dir')
+    parser.add_argument('--archive'); parser.add_argument('--work'); parser.add_argument('--project')
+    parser.add_argument('--profile'); parser.add_argument('--country'); parser.add_argument('--city')
+    parser.add_argument('--assignments'); parser.add_argument('--camera')
+    parser.add_argument('--source-kind', choices=['card', 'stalker', 'delivery'], default='card')
+    parser.add_argument('--keep-source', action='store_true')
+    parser.add_argument('--archive-only', action='store_true'); parser.add_argument('--confirm-archive-only', action='store_true')
+    parser.add_argument('--work-decision', choices=['pending', 'skipped'], default='pending')
+    parser.add_argument('--dry-run', action='store_true'); parser.add_argument('--yes', action='store_true', help='Aplicar plan estándar sin prompt; archive-only requiere confirmación propia')
+    args = parser.parse_args(argv)
+    catalog = Catalog(args.state_dir); backend = VolumeBackend()
+    try:
+        defaults = catalog.get('defaults', {})
+        archive = args.archive or defaults.get('archive')
+        work = args.work or defaults.get('work')
+        if not archive:
+            archives = [v for v in catalog.volumes() if v['role'] == 'archive']
+            archive = archives[0]['id'] if len(archives) == 1 else None
+        require(archive, 'archive_required', 'Register/select an archive volume with nu9ve media volumes register')
+        if not work:
+            choices = [v for v in catalog.volumes() if v['role'] == 'work']
+            work = choices[0]['id'] if len(choices) == 1 else None
+        project = args.project or defaults.get('project', '')
+        if not project and sys.stdin.isatty() and not args.dry_run:
+            project = input('Proyecto: ').strip()
+        require(project, 'project_required', 'Choose --project; country/city are separate flags')
+        archive_only, confirmed = args.archive_only, args.confirm_archive_only
+        work_online = backend.online(catalog.volume(work)) if work else None
+        if not work_online and not archive_only and sys.stdin.isatty() and not args.dry_run:
+            print('Falta el SSD de trabajo. Sólo se respaldará en MEDIA; la SD se puede liberar tras verificar ese archivo.')
+            confirmed = input('Escribe SOLO MEDIA para confirmar esta operación: ').strip() == 'SOLO MEDIA'
+            require(confirmed, 'confirmation_required', 'Archive-only was not confirmed')
+            archive_only = True
+        sources = [Path(args.source).expanduser().absolute()]
+        if args.source == 'all':
+            from configuration import load_settings
+            settings = load_settings()
+            registered = {Path(v['root']) for v in catalog.volumes()}
+            sources = []
+            for path in sorted(Path(settings['sd_root_dir']).iterdir()):
+                if path in registered or not path.is_dir() or path.is_symlink(): continue
+                info = backend.describe(path)
+                if info['external'] and (info['removable'] or path.name in settings['sd_src_name']):
+                    sources.append(path)
+        require(sources, 'no_cards', 'No eligible card is connected')
+        plans = [build_plan(catalog, backend, str(source), archive, work, project,
+                    args.profile or defaults.get('profile', 'e64'), args.country or defaults.get('country', 'mx'),
+                    args.city or defaults.get('city', 'hermosillo'), archive_only, confirmed, args.work_decision,
+                    not args.keep_source and args.source_kind == 'card',
+                    read_json(args.assignments) if args.assignments else None, args.camera, args.source_kind) for source in sources]
+        if args.dry_run:
+            print(json.dumps(plans[0] if len(plans) == 1 else plans, indent=2, ensure_ascii=False)); return 0
+        for plan in plans:
+            size = sum(f['stamp']['size'] for f in plan['files'])
+            print('{}: {} archivos, {:.2f} GB, {}. {}'.format(plan['source'], len(plan['files']), size / 1e9,
+                'sólo archivo confirmado' if plan['work_id'] is None else 'archivo + trabajo',
+                'Liberación en cámara pendiente' if plan['cleanup_profile'] == 'camera_action_required' else
+                ('Limpiar SD tras verificar' if plan['cleanup'] else 'Conservar origen')))
+        if not args.yes:
+            require(sys.stdin.isatty(), 'confirmation_required', 'Review with --dry-run, then use apply with digest or save --yes')
+            require(input('Escribe GUARDAR para ejecutar estos planes: ').strip() == 'GUARDAR', 'cancelled', 'No files changed')
+        for plan in plans:
+            result = Transfer(catalog, backend).apply(plan, plan['digest'])
+            print(json.dumps({'job_id': plan['id'], 'state': result['state']}, ensure_ascii=False))
+        catalog.set('defaults', {'project': project, 'profile': plans[-1]['units'][0]['profile'], 'country': plans[-1]['country'],
+                                'city': plans[-1]['city'], 'archive': archive, 'work': work or ''})
+        return 0
+    finally:
+        catalog.close()
