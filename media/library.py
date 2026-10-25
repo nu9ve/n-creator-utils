@@ -6,7 +6,7 @@ import uuid
 
 from .volumes import independent
 from .common import Tree, canonical, content_stamp, full_sync, now, require, uid
-from .layout import MEDIA_KINDS, kind_of
+from .layout import MEDIA_KINDS, kind_of, parse_name
 from .planner import destination_path
 from .transfer import Transfer, claim_directory
 
@@ -263,3 +263,73 @@ def relayout(catalog, backend, job_id):
         catalog.set('layout_override:' + job_id, override)
         catalog.event(job_id, 'relayout', {'renamed': renamed})
     return {'job_id': job_id, 'renamed': renamed}
+
+
+def sources(catalog, backend, project, purpose='edit'):
+    """Editable sources of a project in capture order, one call, for an editor's quick import (read-only)."""
+    require(purpose in {'edit', 'archive'}, 'invalid_purpose', 'Purpose must be edit or archive')
+    assets = [a for a in catalog.search(project) if a['kind'] in {'stalker_session', 'camera_bundle', 'file'}]
+    require(assets, 'unknown_project', 'No ingested assets for project ' + str(project))
+    volumes = {v['id']: dict(v, online=bool(backend.online(v))) for v in catalog.volumes()}
+    preference = ('work', 'archive') if purpose == 'edit' else ('archive', 'work')
+    result, offline = [], []
+    for asset in assets:
+        copies = {}
+        for row in catalog.db.execute('SELECT payload FROM copies WHERE job_id=?', (asset['job_id'],)):
+            copy = json.loads(row[0])
+            if copy['path'] in asset['paths']:
+                copies.setdefault(copy['volume_id'], {})[copy['path']] = copy
+        if asset['kind'] == 'stalker_session':
+            prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
+            primary = [prefix + 'manifest.json']
+        else:
+            primary = [p for p in asset['paths'] if kind_of(p) in MEDIA_KINDS]
+        if not primary:
+            continue  # Camera indexes/thumbnails are never editor sources.
+        candidates = []
+        for volume_id, rows in copies.items():
+            if not all(p in rows for p in primary):
+                continue
+            volume = volumes[volume_id]
+            sample = rows[primary[0]]
+            if asset['kind'] == 'stalker_session':
+                relative_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
+            else:
+                relative_path = sample['destination']
+            candidates.append((not volume['online'], preference.index(volume['role']) if volume['role'] in preference else 9, volume, relative_path, sample))
+        if not candidates:
+            continue
+        candidates.sort(key=lambda c: (c[0], c[1]))
+        _, _, volume, relative_path, sample = candidates[0]
+        entry = {'asset_id': asset['id'], 'revision': asset['revision'], 'kind': asset['kind'], 'session_id': asset.get('session_id'),
+                 'path': str(Path(volume['root']) / relative_path), 'name': relative_path.rsplit('/', 1)[-1],
+                 'volume': volume['name'], 'role': volume['role'], 'online': volume['online'],
+                 'bytes': sum(f['stamp']['size'] for f in catalog.job(asset['job_id'])['plan']['files'] if f['path'] in asset['paths']),
+                 'sha256': None if asset['kind'] == 'stalker_session' else sample['sha256'],
+                 # Wall-clock capture start (seconds precision, no zone) and rounded duration, for time-based grouping.
+                 **(parse_name(relative_path.rsplit('/', 1)[-1]) or {'captured_at': None, 'duration_seconds': None}),
+                 'alternatives': [{'volume': c[2]['name'], 'role': c[2]['role'], 'online': c[2]['online'], 'path': str(Path(c[2]['root']) / c[3])} for c in candidates[1:]]}
+        (result if volume['online'] else offline).append(entry)
+    # Dated names sort as capture time; this is the order the editor should present.
+    result.sort(key=lambda e: e['name'])
+    offline.sort(key=lambda e: e['name'])
+    for order, entry in enumerate(result):
+        entry['order'] = order
+    return {'project': assets[0]['project'], 'project_id': assets[0]['project_id'], 'profile': assets[0]['profile'],
+            'purpose': purpose, 'sources': result, 'offline': offline}
+
+
+def projects(catalog):
+    """Projects with ingested editable sources, newest first, for an editor's project picker (read-only)."""
+    found = {}
+    for asset in catalog.search():
+        if asset['kind'] != 'stalker_session' and not any(kind_of(p) in MEDIA_KINDS for p in asset['paths']):
+            continue  # Camera indexes/thumbnails are not sources.
+        entry = found.setdefault(asset['project_id'], {'project': asset['project'], 'project_id': asset['project_id'],
+                                                       'profile': asset['profile'], 'assets': 0, 'jobs': set()})
+        entry['assets'] += 1
+        entry['jobs'].add(asset['job_id'])
+    for entry in found.values():
+        jobs = sorted(entry.pop('jobs'))
+        entry['updated_at'] = max(catalog.job(job)['updated_at'] for job in jobs)
+    return sorted(found.values(), key=lambda e: e['updated_at'], reverse=True)

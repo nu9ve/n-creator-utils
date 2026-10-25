@@ -493,6 +493,30 @@ class VolumeBackendTests(unittest.TestCase):
                 VolumeBackend().describe(Path(root).resolve())
 
 
+class EditorSourcesTests(MediaFixture):
+    def test_project_sources_are_ordered_preferring_online_work(self):
+        from media.library import projects, sources
+        card = self.root / 'mixed'; (card / 'DCIM').mkdir(parents=True)
+        (card / 'DCIM/B.MP4').write_bytes(b'later clip'); os.utime(card / 'DCIM/B.MP4', ns=(2 * 10**18, 2 * 10**18))
+        (card / 'DCIM/A.MP4').write_bytes(b'early clip'); os.utime(card / 'DCIM/A.MP4', ns=(10**18, 10**18))
+        bundle = card / 'Stalker_x.stalker'; bundle.mkdir()
+        (bundle / 'screen.mov').write_bytes(b'screen')
+        (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'status': 'completed',
+            'sessionID': str(uuid.uuid4()).upper(), 'createdAt': '2020-01-01T00:00:00Z', 'duration': {'value': 1, 'timescale': 1},
+            'tracks': [{'relativePath': 'screen.mov'}]}))
+        self.run_plan(self.plan(source=str(card), project='tele', cleanup=False))
+        listed = sources(self.catalog, self.backend, 'tele')
+        self.assertEqual([s['kind'] for s in listed['sources']], ['file', 'stalker_session', 'file'])  # 2001, 2020, 2033.
+        self.assertTrue(all(s['role'] == 'work' and Path(s['path']).exists() for s in listed['sources']))
+        self.assertTrue(listed['sources'][1]['path'].endswith('.stalker') and listed['sources'][1]['session_id'])
+        self.assertIn(listed['sources'][1]['captured_at'][:10], {'2019-12-31', '2020-01-01'})  # Local wall clock of 2020-01-01T00:00Z.
+        self.assertEqual(listed['sources'][1]['duration_seconds'], 1)
+        self.backend.offline.add(str(self.work))
+        fallback = sources(self.catalog, self.backend, 'tele')
+        self.assertEqual({s['role'] for s in fallback['sources']}, {'archive'})
+        self.assertEqual([p['project'] for p in projects(self.catalog)], ['tele'])
+
+
 class CoverageTests(MediaFixture):
     def test_coverage_is_read_only_and_matches_by_content(self):
         from media.coverage import coverage

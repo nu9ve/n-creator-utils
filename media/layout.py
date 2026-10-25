@@ -118,6 +118,20 @@ def stamp(created):
     return created.strftime('%y') + created.strftime('%b').upper() + created.strftime('%d-%H%M%S')
 
 
+NAME = re.compile(r'^(\d{2})([A-Z]{3})(\d{2})-(\d{2})(\d{2})(\d{2})_[^_]+(?:_(\d+)-(\d{2}))?_')
+MONTHS = ('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
+
+
+def parse_name(name):
+    """Capture start (local wall clock, ISO without zone) and duration from a dated name; None if it is not one."""
+    match = NAME.match(name)
+    if not match or match.group(2) not in MONTHS:
+        return None
+    yy, mon, dd, hh, mi, ss, minutes, seconds = match.groups()
+    start = datetime.datetime(2000 + int(yy), MONTHS.index(mon) + 1, int(dd), int(hh), int(mi), int(ss))
+    return {'captured_at': start.isoformat(), 'duration_seconds': int(minutes) * 60 + int(seconds) if minutes else None}
+
+
 def duration(seconds):
     total = int(round(seconds or 0))
     return '{:02d}-{:02d}'.format(total // 60, total % 60)

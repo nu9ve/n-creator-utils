@@ -23,14 +23,50 @@ El índice central enlaza formatos propietarios; sólo se centralizan decisiones
 4. Fixture compartida copiada del contrato con versiones fijadas: importa por ruta, importa por biblioteca, relocaliza, abre cola y exporta sin duplicar audio. ACK con revisión y hashes.
 5. Sólo entonces habilitar retiro de ubicaciones viejas, previa revisión de consumidores no integrados como Final Cut.
 
-## Tareas listas para pasar a los otros repos
+## Estado de adopción por app
 
-Prompts actuales, en orden de ejecución: [next-sessions.md](next-sessions.md). Los textos de abajo son el resumen anterior.
+Cada sesión de Stalker o Clipper actualiza **su fila** al terminar, con fecha y commit de su repo.
 
-No se enviaron mensajes a otros chats ni se editaron esos repos. Textos de trabajo sugeridos:
+| App | Contrato / sección | Estado | Fecha · commit | Notas y límites |
+| --- | --- | --- | --- | --- |
+| n-creator-utils | Productor: naming v1, handoff v1, interfaz local | Implementado | 2026-10-25 | Ver [STATUS](../STATUS.md). |
+| Stalker | naming v1 «Adopción: Stalker», estado de archivo | Pendiente | — | Hoy nombra `Stalker_fecha` y graba en `~/Downloads`. |
+| Clipper | naming v1 «Adopción: Clipper», interfaz local, handoff v1 | Pendiente | — | `expand_inputs` ya respeta el orden de la carpeta (comprobado en sólo lectura). |
+| Atlas | library v1 como consumidor | Sin iniciar | — | — |
 
-**Stalker:** «Lee `n-creator-utils/docs/contracts/media-naming-v1.md` (sección Adopción: Stalker) y `media-library-v1.md`. Mantén `stalker-clipper/1` como autoridad de captura. Implementa, detrás de una opción: proyecto/país opcionales en la sesión y nombre de carpeta `YYMONDD-HHMMSS_STALKER_MM-SS_PAIS-PROYECTO[].stalker` (inicio local de `createdAt`, duración final), renombrando al finalizar y antes de `completed`. Los internos del bundle no cambian. Agrega biblioteca durable configurable fuera de Downloads y señal estable de finalización. Prueba con la fixture del contrato (`createdAt 2026-10-25T02:58:50Z`, duración 227.6 s, MX, debloateando-mi-tele → `26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker` en America/Hermosillo). No cambies reloj ni pistas.»
+## Interfaz local estable para las apps (sólo lectura)
 
-**Clipper:** «Lee `n-creator-utils/docs/contracts/media-naming-v1.md` (Adopción: Clipper) y `media-library-v1.md`. La carpeta de trabajo de un proyecto (`/Volumes/ESSD/001_proyectos/e64_raw/<proyecto>/`) tiene clips de cámara y bundles `*_STALKER_*.stalker` intercalados por hora: el selector debe respetar ese orden y reconocer bundles por `manifest.json`, no por el patrón `Stalker_…`. Guarda `sessionID`/`asset_id` además de rutas. Antes de admitir migración automática, implementa un relink de sesión que actualice items, `capture_sessions.root`, pistas, voz, sync refs, artefactos y snapshots dependientes con revisión esperada y validación de hashes. Agrega selección de recordings disponibles por biblioteca/proyecto manteniendo pegado directo; orden de selección y creative profile son hints. Devuelve ACK y limitaciones; no cambies el contrato editorial. Prueba el cambio de raíz con el origen presente y ausente y conserva proyectos personales.»
+```text
+python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media <comando>   # o `nu9ve media` si está instalado
+```
+
+- **Formato de respuesta:** stdout JSON `{"ok": true, "command": …, "data": …}` o `{"ok": false, "error": {"code", "message"}}`; código de salida 0/1.
+- **Catálogo:** por defecto el del usuario. `--state-dir DIR` o `NU9VE_MEDIA_HOME` dan un catálogo aislado; **las pruebas de otras apps usan siempre uno aislado con fixtures**.
+
+| Comando | Para qué | Datos |
+| --- | --- | --- |
+| `projects` | Selector de proyectos | `[{project, project_id, profile, assets, updated_at}]`, más reciente primero. |
+| `sources --project P [--purpose edit\|archive]` | Quick import de un proyecto | `sources[]` en orden de captura: `order, asset_id, revision, kind (file\|camera_bundle\|stalker_session), session_id, path` (absoluto: archivo o carpeta `.stalker`), `name, volume, role, online, bytes, sha256` (de archivos), `captured_at` (hora local de inicio, sin zona) y `duration_seconds` (leídos del nombre fechado; `null` si no lo es), `alternatives[]`; `offline[]` aparte. Prefiere la copia de trabajo en línea. |
+| `captures ROOT` | Estado de archivo de una biblioteca Stalker | `sessions[{path, session_id, status, archived}]`, `pending[]`. |
+| `handoff ASSET…` | Intercambio portable `creator-media-handoff/1` | Ver [media-library-v1](media-library-v1.md). |
+| `resolve ASSET` | Ubicaciones de un asset | Lento (identidad de cada volumen); preferir `sources`. |
+
+Los comandos que mutan (`plan`, `apply`, `relayout`, `confirm-cleanup`, `deliver`, `restore`) sólo los inicia el usuario con un plan revisado; otra app no los llama sin esa revisión. Un campo nuevo opcional no rompe a nadie. Quitar o cambiar el significado de un campo exige nueva versión y nota aquí.
+
+## Cómo actualizan este contrato otras sesiones
+
+Una sesión de Stalker o Clipper **puede editar `docs/contracts/*.md` de este repo**, y nada más: ni código, ni pruebas, ni STATUS/PLAN.
+- Actualiza su fila de adopción, con fecha y commit de su repo.
+- Si toma o descubre una decisión que afecta a las tres apps (nombres, identidad, rutas, estados, señales), la registra en el contrato correspondiente con fecha, repo que la origina y compatibilidad. No reinterpreta en silencio.
+- Si necesita un cambio en el productor (un campo, un comando, un bug), lo agrega a «Pendientes para n-creator-utils» en vez de editar código de este repo.
+- Los textos de los prompts vigentes están en [next-sessions.md](next-sessions.md).
+
+### Pendientes para n-creator-utils
+
+| Fecha | Origen | Pedido | Estado |
+| --- | --- | --- | --- |
+| — | — | (vacío) | — |
+
+## Otros consumidores
 
 **Atlas:** «Revisa el modelo de asset/ubicación como consumidor. Conserva pares JPG+DNG, coverage exports y nombres de captura. Propón un adaptador que resuelva raíces por IDs/manifiesto sin renombrar entradas existentes, y diferencie estado humano persistente de derivados regenerables. El media manager no debe redefinir GPS, vuelo, quality o fotogrametría.»

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from .catalog import Catalog
 from .common import require, relative
-from .library import deliver_work, handoff, relayout, resolve, restore, set_work_state
+from .library import deliver_work, handoff, relayout, resolve, restore, set_work_state, sources, projects
 from .planner import build_plan
 from .transfer import Transfer
 from .volumes import VolumeBackend
@@ -65,6 +65,10 @@ class Service:
             from .coverage import coverage
             return coverage(self.catalog, self.backend, params['work'], params['archive'], params.get('path') or '',
                             not params.get('no_hash', False), self.cancel)
+        if method == 'projects':
+            return projects(self.catalog)
+        if method == 'sources':
+            return sources(self.catalog, self.backend, params['project'], params.get('purpose') or 'edit')
         if method == 'relayout':
             return relayout(self.catalog, self.backend, params['job_id'])
         if method == 'handoff':
