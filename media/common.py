@@ -1,6 +1,7 @@
 """Bounded, durable IO and explicit service errors."""
 import contextlib
 import datetime
+import fcntl
 import hashlib
 import json
 import os
@@ -10,6 +11,27 @@ import unicodedata
 import uuid
 
 CHUNK_SIZE = 4 * 1024 * 1024
+
+
+def full_sync(fd):
+    # macOS fsync does not flush the drive cache; F_FULLFSYNC does where the filesystem supports it.
+    if hasattr(fcntl, 'F_FULLFSYNC'):
+        try:
+            fcntl.fcntl(fd, fcntl.F_FULLFSYNC)
+            return
+        except OSError:
+            pass
+    os.fsync(fd)
+
+
+def uncached(fd):
+    # Best effort: keep verification reads from being answered by pages this process just wrote.
+    if hasattr(fcntl, 'F_NOCACHE'):
+        try:
+            fcntl.fcntl(fd, fcntl.F_NOCACHE, 1)
+        except OSError:
+            pass
+    return fd
 
 
 class MediaError(RuntimeError):
@@ -98,7 +120,7 @@ class Tree:
                 if create:
                     try:
                         os.mkdir(part, 0o700, dir_fd=fd)
-                        os.fsync(fd)
+                        full_sync(fd)
                     except FileExistsError:
                         pass
                 next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
@@ -131,7 +153,7 @@ class Tree:
             if expected is not None:
                 require(content_stamp(st) == expected, 'source_changed', 'File changed before cleanup: ' + rel)
             os.unlink(name, dir_fd=fd)
-            os.fsync(fd)
+            full_sync(fd)
 
     def write_json(self, rel, value):
         with self.parent(rel, True) as (fd, name):
@@ -141,7 +163,7 @@ class Tree:
                 with os.fdopen(out, 'wb') as stream:
                     stream.write(canonical(value) + b'\n')
                     stream.flush()
-                    os.fsync(stream.fileno())
+                    full_sync(stream.fileno())
                 # JSON is owned metadata. Refuse replacing links/special entries.
                 try:
                     old = os.stat(name, dir_fd=fd, follow_symlinks=False)
@@ -149,7 +171,7 @@ class Tree:
                 except FileNotFoundError:
                     pass
                 os.replace(temp, name, src_dir_fd=fd, dst_dir_fd=fd)
-                os.fsync(fd)
+                full_sync(fd)
             finally:
                 try:
                     os.unlink(temp, dir_fd=fd)

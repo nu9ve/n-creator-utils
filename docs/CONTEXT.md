@@ -8,7 +8,7 @@ n-creator-utils manages creative media: SD ingest, verified archive, working cop
 
 Typical video flow: SD → MEDIA archive + ESSD working raw → Clipper → Final Cut → finals → published → MEDIA finals. Audio normally needs MEDIA + SSD1. Projects/profiles can be mixed on one card; project/country/city/profile are independent fields. Preserve selection order, sidecars and complete Stalker bundles.
 
-Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_proyectos/e64`, `002_finales`; MEDIA502 `001_raw`, `002_finales`, `003_curado`. Do not reorganize old TBs to introduce the catalog. The new layout preserves source-relative paths under per-job/per-unit containers; legacy normalized naming is not automatic parity.
+Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_proyectos/e64`, `002_finales`; MEDIA502 `001_raw`, `002_finales`, `003_curado`. Do not reorganize old TBs to introduce the catalog. Named layout (plan schema 2, [layout.py](../media/layout.py), decided at plan time and part of the digest) restores the historical names `YYMONDD-HHMMSS_MODEL_MM-SS_COUNTRY-PROJECT[].EXT` and MEDIA type/year/month folders; Sony XML goes to `metadata/sony/`, camera indexes/thumbnails keep their tree under `metadata/sony/support/`. Work copies are flat in `<profile>_raw/<project>/` with only editable media and whole Stalker bundles, so a folder lists in capture order. Copies land as `.name.ncpartial`, are verified, then renamed without replacing anything; identical existing files are adopted, different ones block the plan. Schema-1 plans keep per-job containers.
 
 ## Product decisions to preserve
 
@@ -34,6 +34,6 @@ Use [modules](modules.md), [operations](operations.md) and [development](develop
 
 ## Current working state
 
-Implementation exists in the checkout, including new untracked source directories; earlier work is also staged. No commit/release has been made. `.vscode/` was pre-existing and is unrelated. No personal SD was cleaned and no MEDIA/ESSD was used as a test destination.
+Implementation is committed in `5346663`; review fixes, UX fixes and CI are uncommitted on top (see [STATUS](STATUS.md)). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
 
-The user requested stopping visual exploration and documenting this checkpoint. The next session should start with release blockers/review, not more dashboard polish or an unconditional live backup. Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).
+Next: remaining review items, the first small physical run and real progress/notifications, per [PLAN](../PLAN.md). Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).

@@ -18,7 +18,7 @@ Ingreso, respaldo verificado, catálogo y preparación de media para trabajar. C
 
 Normalmente: MEDIA + ESSD para video, MEDIA + SSD1 para audio. Si MEDIA está y falta el SSD, se puede confirmar sólo archivo por operación y dejar trabajo pendiente u omitido. Después se copia desde MEDIA, sin necesitar la SD original. Sin destinos registrados online, insertar SD no provoca popup ni escaneo profundo automático.
 
-Proyecto, perfil, país y ciudad son campos distintos. SDs mixtas admiten asignación por unidad; pares y bundles se preservan. DJI requiere categoría explícita cuando es ambiguo. El nuevo layout conserva rutas originales bajo contenedores de job/unidad; no imita automáticamente el naming histórico.
+Proyecto, perfil, país y ciudad son campos distintos. SDs mixtas admiten asignación por unidad; pares y bundles se preservan. DJI requiere categoría explícita cuando es ambiguo. Layout (plan esquema 2, [layout.py](media/layout.py)): nombres históricos `26OCT24-194650_SONYA6400_08-24_MX-PROYECTO[].MP4` desde el XML Sony/ffprobe/mtime. MEDIA por tipo/año/mes (`videos/`, `v4k/`, `recordings/`, `images/`, `stalker/`; XML en `metadata/sony/`, índices y miniaturas en `metadata/sony/support/`). Trabajo plano en `e64_raw/<proyecto>/` sólo con clips y bundles Stalker.
 
 ## Empezar
 
@@ -65,4 +65,4 @@ swift test --package-path native/MediaMenu
 
 [Desarrollo y handoff](docs/development.md) · [Build/debug/instalación](docs/operations.md) · [Gates de release](docs/release.md).
 
-No se usaron MEDIA/ESSD/SDs personales como destinos de prueba. Los bundles actuales de `dist/` son snapshots ad-hoc de desarrollo, no un instalador final. Hay cambios staged y trabajo nuevo sin seguimiento; revisar el árbol antes de continuar y no asumir un commit limpio.
+Las pruebas automatizadas nunca usan MEDIA/ESSD/SDs personales. Los bundles de `dist/` son snapshots ad-hoc de desarrollo, no un instalador final. CI: [.gitlab-ci.yml](.gitlab-ci.yml). Revisar `git status` antes de continuar; el estado exacto está en [STATUS](docs/STATUS.md).

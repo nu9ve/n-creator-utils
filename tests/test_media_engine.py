@@ -74,11 +74,11 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(result['state'], 'completed')
         self.assertEqual(list(self.source.rglob('*.*')), [])
         for volume in (self.a, self.w):
-            self.assertEqual(len(list(Path(volume['root']).rglob('photo.JPG'))), 1)
-            self.assertEqual(next(Path(volume['root']).rglob('photo.DNG')).read_bytes(), b'raw-data')
+            self.assertEqual(len(list(Path(volume['root']).rglob('*.JPG'))), 1)
+            self.assertEqual(next(Path(volume['root']).rglob('*.DNG')).read_bytes(), b'raw-data')
             self.assertTrue((Path(volume['root']) / '.ncreator/receipts' / (plan['id'] + '.json')).is_file())
         self.assertEqual(self.run_plan(plan)['state'], 'completed')
-        self.assertEqual(len(list(self.archive.rglob('photo.JPG'))), 1)
+        self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 1)
         assets = self.catalog.search()
         self.assertEqual(len(assets), 1)  # JPG+DNG stay paired.
         self.assertEqual(assets[0]['work_delivery_status'], 'ready')
@@ -103,7 +103,7 @@ class MediaEngineTests(MediaFixture):
         self.backend.offline.clear()
         deliver_work(self.catalog, self.backend, [pending[0]['id']], 'ESSD')
         deliver_work(self.catalog, self.backend, [pending[0]['id']], 'ESSD')
-        self.assertEqual(len(list(self.work.rglob('photo.JPG'))), 1)
+        self.assertEqual(len(list(self.work.rglob('*.JPG'))), 1)
         self.assertEqual(self.catalog.search()[0]['work_delivery_status'], 'ready')
 
     def test_explicit_skip_does_not_remain_pending(self):
@@ -130,7 +130,8 @@ class MediaEngineTests(MediaFixture):
         with self.assertRaises(OSError): self.run_plan(plan, hook=fail)
         self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
         self.assertEqual(self.run_plan(plan)['state'], 'completed')
-        self.assertEqual(len(list(self.archive.rglob('photo.JPG'))), 1)
+        self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 1)
+        self.assertEqual(list(self.archive.rglob('*.ncpartial')), [])
 
     def test_partial_cleanup_resumes_from_journal(self):
         plan = self.plan()
@@ -149,6 +150,55 @@ class MediaEngineTests(MediaFixture):
         with self.assertRaisesRegex(MediaError, 'membership changed'): self.run_plan(hook=add)
         self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
         self.assertTrue((self.source / 'new.mp4').exists())
+
+    def test_new_file_during_cleanup_is_kept_and_reported(self):
+        plan = self.plan()
+        def add(stage, data):
+            if stage == 'cleanup_file' and not (self.source / 'new.mp4').exists(): (self.source / 'new.mp4').write_bytes(b'new recording')
+        self.assertEqual(self.run_plan(plan, hook=add)['state'], 'source_has_new_material')
+        self.assertFalse((self.source / 'DCIM/photo.JPG').exists())
+        self.assertEqual((self.source / 'new.mp4').read_bytes(), b'new recording')
+        self.assertEqual(self.run_plan(plan)['state'], 'source_has_new_material')  # Terminal; no repeated cleanup.
+        self.assertTrue((self.source / 'new.mp4').exists())
+
+    def test_transient_bad_source_read_never_cleans_card(self):
+        # One corrupted SD read feeds both replicas; the fresh re-read before unlink must catch it.
+        from unittest import mock
+        real_read, target = os.read, (self.source / 'DCIM/photo.JPG').stat().st_ino
+        state = {'corrupted': False}
+        def flaky(fd, size):
+            block = real_read(fd, size)
+            if block and not state['corrupted'] and os.fstat(fd).st_ino == target:
+                state['corrupted'] = True
+                return b'X' * len(block)
+            return block
+        with mock.patch('os.read', side_effect=flaky):
+            with self.assertRaisesRegex(MediaError, 'Source re-read differs'):
+                self.run_plan()
+        self.assertEqual((self.source / 'DCIM/photo.JPG').read_bytes(), b'photo-data')
+
+    def test_finder_metadata_does_not_block_or_remain(self):
+        def browse(stage, data):
+            if stage == 'before_cleanup':
+                (self.source / '.DS_Store').write_bytes(b'finder')
+                (self.source / 'DCIM/._photo.JPG').write_bytes(b'appledouble')
+        self.assertEqual(self.run_plan(hook=browse)['state'], 'completed')
+        self.assertFalse((self.source / 'DCIM/photo.JPG').exists())
+        self.assertTrue((self.source / '.DS_Store').exists())  # Metadata is ignored, not deleted.
+
+    def test_crash_with_partial_copy_is_resumable(self):
+        plan = self.plan()
+        def crash(stage, data):
+            if stage == 'before_verify': raise OSError('power loss before rename')
+        with self.assertRaises(OSError): self.run_plan(plan, hook=crash)
+        self.assertTrue(list(self.work.rglob('*.ncpartial')))
+        self.assertEqual(self.run_plan(plan)['state'], 'completed')
+        self.assertEqual(list(self.work.rglob('*.ncpartial')), [])
+
+    def test_disk_image_is_never_an_independent_replica(self):
+        from media.volumes import independent
+        self.assertTrue(independent({'physical': 'disk4'}, {'physical': 'disk6'}))
+        self.assertFalse(independent({'physical': 'disk4'}, {'physical': 'disk9', 'disk_image': True}))
 
     def test_source_modified_before_or_during_copy_blocks_cleanup(self):
         plan = self.plan()
@@ -186,12 +236,24 @@ class MediaEngineTests(MediaFixture):
 
     def test_foreign_destination_not_overwritten(self):
         plan = self.plan()
-        destination = destination_path(self.w, plan, plan['units'][0], plan['files'][0]['path'])
-        base = destination[:destination.index('/' + plan['id'] + '/')] + '/' + plan['id']
-        (self.work / base).mkdir(parents=True)
-        (self.work / base / 'important.txt').write_text('keep')
-        with self.assertRaises(FileNotFoundError): self.run_plan(plan)
-        self.assertEqual((self.work / base / 'important.txt').read_text(), 'keep')
+        destination = self.work / destination_path(self.w, plan, plan['units'][0], plan['files'][0]['path'])
+        destination.parent.mkdir(parents=True)
+        destination.write_bytes(b'other!' + b'x' * (plan['files'][0]['stamp']['size'] - 6))  # Same size, other bytes.
+        with self.assertRaisesRegex(MediaError, 'different file'): self.run_plan(plan)
+        self.assertTrue(destination.read_bytes().startswith(b'other!'))
+        self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
+        destination.write_bytes(b'different size')
+        with self.assertRaisesRegex(MediaError, 'different file'): self.plan()  # Caught at review time.
+
+    def test_identical_existing_destination_is_adopted(self):
+        plan = self.plan()
+        for file in plan['files']:
+            unit = next(u for u in plan['units'] if u['id'] == file['unit_id'])
+            target = self.archive / destination_path(self.a, plan, unit, file['path'])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.source / file['path'], target)
+        self.assertEqual(self.run_plan(plan)['state'], 'completed')
+        self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 1)
 
     def test_plan_digest_and_mutation_lock(self):
         plan = self.plan(); changed = copy.deepcopy(plan); changed['cleanup'] = False
@@ -283,6 +345,56 @@ class StalkerEngineTests(MediaFixture):
         with self.assertRaises(MediaError): self.run_plan(plan)
         self.assertEqual(list(self.archive.iterdir()), [])
 
+class NamedLayoutTests(MediaFixture):
+    SONY_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<NonRealTimeMeta xmlns="urn:schemas-professionalDisc:nonRealTimeMeta:ver.2.00">
+  <Duration value="30210"/>
+  <CreationDate value="2026-10-24T19:46:50-07:00"/>
+  <VideoFormat><VideoFrame videoCodec="AVC_1920_1080_HP@L42" captureFps="59.94p" formatFps="59.94p"/>
+  <VideoLayout pixel="1920" numOfVerticalLine="1080" aspectRatio="16:9"/></VideoFormat>
+  <Device manufacturer="Sony" modelName="ILCE-6400" serialNo="1"/>
+</NonRealTimeMeta>"""
+
+    def sony_card(self):
+        card = self.root / 'sony'
+        for rel, data in {'PRIVATE/M4ROOT/CLIP/C0001.MP4': b'clip-one', 'PRIVATE/M4ROOT/CLIP/C0001M01.XML': self.SONY_XML.encode(),
+                          'PRIVATE/M4ROOT/THMBNL/C0001T01.JPG': b'thumb', 'PRIVATE/M4ROOT/MEDIAPRO.XML': b'<index/>',
+                          'PRIVATE/SONY/SONYCARD.IND': b'ind', 'AVF_INFO/AVIN0001.BNP': b'bnp'}.items():
+            (card / rel).parent.mkdir(parents=True, exist_ok=True)
+            (card / rel).write_bytes(data)
+        return card
+
+    def test_sony_card_uses_dated_names_and_work_gets_only_clips(self):
+        card = self.sony_card()
+        plan = self.plan(source=str(card), project='debloateando mi tele', cleanup=False)
+        name = '26OCT24-194650_SONYA6400_08-24_MX-DEBLOATEANDO-MI-TELE[]'
+        self.assertEqual(plan['layout']['PRIVATE/M4ROOT/CLIP/C0001.MP4'],
+                         {'archive': 'videos/2026/10/' + name + '.MP4', 'work': 'e64_raw/debloateando-mi-tele/' + name + '.MP4'})
+        self.assertEqual(plan['layout']['PRIVATE/M4ROOT/CLIP/C0001M01.XML'], {'archive': 'metadata/sony/2026/10/' + name + '.XML', 'work': None})
+        self.assertEqual(plan['layout']['PRIVATE/M4ROOT/THMBNL/C0001T01.JPG']['work'], None)
+        self.assertTrue(plan['layout']['AVF_INFO/AVIN0001.BNP']['archive'].startswith(
+            'metadata/sony/support/2026/10/2410-194650_MX-DEBLOATEANDO-MI-TELE_SONYA6400/AVF_INFO/'))
+        self.assertEqual(self.run_plan(plan)['state'], 'source_retained')
+        work_files = sorted(p.relative_to(self.work).as_posix() for p in self.work.rglob('*') if p.is_file() and '.ncreator' not in p.parts)
+        self.assertEqual(work_files, ['001_proyectos/e64_raw/debloateando-mi-tele/' + name + '.MP4'])
+        self.assertEqual((self.archive / '001_raw/videos/2026/10' / (name + '.MP4')).read_bytes(), b'clip-one')
+        self.assertEqual(self.catalog.search(work_state='pending'), [])  # Support units are not work.
+        clip = next(a for a in self.catalog.search() if 'PRIVATE/M4ROOT/CLIP/C0001.MP4' in a['paths'])
+        exported = handoff(self.catalog, self.backend, [clip['id']])['assets'][0]
+        self.assertEqual({l['role'] for l in exported['locations']}, {'archive', 'work'})
+        self.assertEqual([m['relative_path'] for m in exported['members']], [name + '.MP4'])
+
+    def test_same_second_clips_get_distinct_names(self):
+        card = self.root / 'twins'; (card / 'DCIM').mkdir(parents=True)
+        for name in ('A.MP4', 'B.MP4'):
+            (card / 'DCIM' / name).write_bytes(name.encode())
+            os.utime(card / 'DCIM' / name, ns=(10**18, 10**18))
+        plan = self.plan(source=str(card), cleanup=False)
+        targets = [entry['work'] for entry in plan['layout'].values()]
+        self.assertEqual(len(set(targets)), 2)
+        self.assertTrue(any(t.endswith('-2[].MP4') for t in targets))
+
+
 class AdditionalFailureTests(MediaFixture):
     def test_process_death_during_copy_and_after_unlink_is_recoverable(self):
         import subprocess, sys
@@ -323,7 +435,7 @@ Transfer(catalog,backend,hook=hook).apply(plan,plan['digest'])
                     result = Transfer(state, backend).apply(plan, plan['digest'])
                     self.assertEqual(result['state'], 'completed')
                     self.assertEqual(list(source.iterdir()), [])
-                    self.assertEqual(len(list(archive.rglob('a.jpg'))), 1)
+                    self.assertEqual(len(list(archive.rglob('*.JPG'))), 2)  # a.jpg and b.jpg, no duplicates.
                 finally: state.close()
 
     def test_corruption_during_cleanup_blocks_deletion_of_affected_source(self):
@@ -412,7 +524,7 @@ class RecoveryAndCaptureTests(MediaFixture):
     def test_recovery_rejects_corrupt_archive(self):
         from media.recovery import recover_catalog
         self.run_plan()
-        next(self.archive.rglob('photo.JPG')).write_bytes(b'corrupt!!!')
+        next(self.archive.rglob('*.JPG')).write_bytes(b'corrupt!!!')
         replacement = Catalog(self.root / 'corrupt-state'); self.addCleanup(replacement.close)
         replacement.register('A-NEW', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
         with self.assertRaises(MediaError): recover_catalog(replacement, self.backend, 'A-NEW')
