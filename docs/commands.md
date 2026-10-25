@@ -16,7 +16,9 @@ nu9ve save hijack PAIS CIUDAD
 
 **Este comando mueve y elimina archivos.** Consulta [importación](importing.md) para extensiones, rutas, Sony e Insta360. El proceso no es transaccional: si falla a mitad, algunos archivos ya pueden estar importados. No hay opción de simulación ni resumen estructurado por ejecución.
 
-## Recortar video
+## Recortar video — comando histórico reemplazado
+
+El editor vigente está en [nu9ve/clipper](https://github.com/nu9ve/clipper). `nu9ve clip` sigue conectado a la implementación antigua de este repo y no abre ese editor. Lo siguiente documenta únicamente la compatibilidad histórica. Para el flujo actual de originales/proyectos/finales consulta [archivos e integración](file-workflows.md).
 
 ```sh
 nu9ve clip VIDEO [JSON] [--preview] [--verbose] [--openai]

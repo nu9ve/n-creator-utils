@@ -1,5 +1,7 @@
 # Instalación y compatibilidad
 
+Estas instrucciones instalan las utilidades de organización/archivo de este repo. El editor vigente se instala desde [nu9ve/clipper](https://github.com/nu9ve/clipper); el `nu9ve clip` antiguo aún incluido aquí no lo sustituye. Las dependencias de texto/IA del clipper que aparecen abajo se conservan como referencia histórica.
+
 ## Núcleo local
 
 Necesitas Python 3.9+ y los ejecutables `ffmpeg` y `ffprobe` en `PATH`. `save` necesita `ffprobe` para video y MP3; las imágenes y WAV PCM se inspeccionan con la biblioteca estándar. `clip` necesita ambos ejecutables. Las pruebas actuales se ejecutaron con Python 3.9.6 y 3.12.12 en macOS; no constituyen una matriz completa de compatibilidad entre versiones/plataformas.

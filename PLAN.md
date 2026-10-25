@@ -40,14 +40,19 @@ La nota antigua que proponía Sony copy-only no estaba implementada. Hoy se muev
 | Enrutamiento configurable | Categorías, umbral de resolución, audio largo, detección de drone/pantalla y retención de auxiliares dejan de depender de substrings/fijos. |
 | Sidecars adicionales | XMP y otros acompañantes conservan relación con el master; operación consistente ante fallos. |
 
-## Prioridad 3: clipper y herramientas externas
+## Prioridad 3: límites entre repos y herramientas externas
 
-- Esquema de clips completo y versionado: tipos, recursos existentes, colores, texto, rangos dentro de duración del video y claves desconocidas.
-- Presets de salida, carpeta de resultados y política de colisión/intermedios, sin perder los encuadres disponibles.
-- Pruebas reales de fuente vertical, horizontal, cuadrada, logo, fondo multimedia, ambos recursos y texto con caracteres especiales. Filtros con escape correcto y selección explícita de streams/audio.
-- Separar la generación IA de la ejecución de un trabajo; JSON persistente, modelos/SDK actualizados y configurables, límites/reintentos y cache JSON en lugar de pickle.
-- Adaptadores de descarga con versiones probadas y resultados estructurados; eliminar dependencia del texto de logs `scdl` y definir el contrato de múltiples archivos/playlists.
-- Flags/modelos de Demucs configurables, ciclo de vida explícito del audio fuente y pruebas optativas de ML con datos pequeños.
+El propietario confirmó que [nu9ve/clipper](https://github.com/nu9ve/clipper) reemplaza al clipper interno. El trabajo futuro de este repo se centra en ingreso, organización y archivo; el editor externo mantiene cortes, composición, subtítulos, IA y export. El análisis de rutas, referencias y escenarios está en [archivos y flujos](docs/file-workflows.md).
+
+- Retirar el comando/módulo `clipper` histórico, sus opciones y dependencias de empaquetado en un cambio separado. Identificar trabajos antiguos que aún necesiten consulta; no inventar compatibilidad automática de su JSON con el proyecto nuevo.
+- Incorporar reconocimiento de paquetes antes de cualquier movimiento: `.stalker`, bundles Insta360, proyectos Clipper y entregas no son carpetas arbitrarias de archivos clasificables por extensión.
+- Definir transferencia/archivo de bundle completo, ubicaciones estables y registro de origen/destino para incorporar fuentes a Clipper después de organizarlas.
+- Coordinar un contrato de relocalización con Clipper: sus referencias de sesión, voz, pistas y cola no quedan resueltas cambiando sólo la ruta del video. El organizador no debe modificar JSON editorial de forma independiente.
+- Diseñar archivo de entregas que conserve master/variantes y assets de publicación elegidos con referencia al proyecto. No pasar finales/proyectos al `save` genérico.
+- Adaptadores de descarga con resultados estructurados y contrato de múltiples archivos/playlists; decidir biblioteca de assets con el flujo real del usuario.
+- Ciclo de vida de stems explícito: `split` actualmente renombra y mueve el audio local. Proteger fuentes compartidas y registrar procedencia de derivados antes de automatizar su entrega al editor.
+
+Estas integraciones son candidatas, no funciones implementadas. Se elegirán después de describir los flujos comunes del usuario. No se continuará desarrollando aquí otro renderer/editor ni se migrarán funciones del editor externo de vuelta a este repo.
 
 ## Prioridad 4: integraciones y plataformas
 
@@ -59,6 +64,6 @@ La nota antigua que proponía Sony copy-only no estaba implementada. Hoy se muev
 
 ## Confirmaciones de producto pendientes
 
-Completar la tabla de [repos sucesores](docs/modules.md#duplicación-y-repos-sucesores) con enlaces, capacidades equivalentes, diferencias y usos reales. No hay base para declarar módulos reemplazados únicamente por antigüedad o por no ser importados desde el CLI.
+El sucesor de `clipper/` ya está confirmado: `/Users/nu9ve/code/ai/clipper`. Stalker es el productor de capturas asociado. Para las otras áreas, completar la tabla de [repos sucesores](docs/modules.md#duplicación-y-repos-sucesores) con equivalencias y usos reales. Queda describir los flujos habituales para concretar qué transferencias y política de archivo conviene automatizar.
 
 El propietario debe revocar las credenciales que estuvieron incrustadas y provisionar nuevas mediante el ambiente. Retirarlas del código actual no las elimina del historial ni cambia su estado en los proveedores.

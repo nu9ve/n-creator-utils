@@ -1,5 +1,9 @@
 # Inventario y arquitectura
 
+## Responsabilidad entre repos
+
+`n-creator-utils` se ocupa de ingreso, organización, descargas, stems y archivo. [Stalker](https://github.com/nu9ve/stalker) produce capturas y [Clipper](https://github.com/nu9ve/clipper) es el editor vigente. El clipper interno de este repo quedó reemplazado; el diagrama siguiente documenta lo que todavía está conectado en el código, no una recomendación de mantener dos editores. Consulta [archivos y flujos entre repos](file-workflows.md).
+
 ## Flujo principal
 
 ```text
@@ -11,7 +15,7 @@ nu9ve.py (CLI, logging y códigos de salida)
   │    └─ Insta360 → bundle + manifiesto
   ├─ download → manager.file.downloader → yt-dlp / scdl
   ├─ split → manager.file.splitter → descarga opcional → demucs
-  └─ clip → clipper.clipper_cli → Clipper
+  └─ clip → clipper.clipper_cli → Clipper (histórico, reemplazado)
        ├─ clip_settings → JSON y metadata
        ├─ ffmpeg → cortes, filtros y renders
        └─ --openai → clientes de IA opcionales
@@ -32,10 +36,10 @@ El núcleo no requiere paquetes Python externos. Los programas de media se invoc
 | `manager/file.py` | Detección, clasificación, naming, transferencias, Sony/Insta360; descarga y stems | Activo. Concentra demasiadas responsabilidades; candidato principal a separar. |
 | `manager/video.py` | Consultar FFprobe en JSON, duración y umbral de resolución | Activo; compartido por importación y clipper. |
 | `manager/audio.py` | Duración WAV/MP3 e identificador de micrófono | Activo. `metatag_updater` es un stub vacío. |
-| `clipper/clipper_cli.py` | Argumentos de `clip` | Activo, sin filtro artificial por número de argumentos. |
-| `clipper/clipper.py` | Orquestación de cortes/renders y experimento IA | Parte local activa; IA heredada y sin validación externa. Contiene comentarios históricos. |
-| `clipper/clip_settings.py` | Parseo JSON, defaults, herencia, rangos y datos de video | Activo. Sólo JSON; la antigua promesa de TXT no tenía implementación. |
-| `clipper/ffmpeg.py` | Construcción de filtros y ejecución FFmpeg | Activo. Tiene estilos históricos, tamaños/colores y posiciones fijas. `render_34_video` existe pero no se invoca en el flujo normal. |
+| `clipper/clipper_cli.py` | Argumentos de `clip` | Histórico/reemplazado, aún conectado al CLI por compatibilidad. |
+| `clipper/clipper.py` | Orquestación antigua de cortes/renders y experimento IA | Reemplazado por el editor externo; sin nuevas funciones previstas aquí. |
+| `clipper/clip_settings.py` | Parseo antiguo de JSON, defaults, herencia y rangos | Histórico/reemplazado. No es el formato de proyecto del editor actual. |
+| `clipper/ffmpeg.py` | Construcción antigua de filtros y ejecución FFmpeg | Histórico/reemplazado. El renderer actual se mantiene en el repo Clipper. |
 | `clipper/config*.json` | Ejemplos de trabajos de recorte | Los archivos full incluyen claves antiguas `bottom_text`/`top_text` que no se leen. Usa la guía para campos actuales. |
 | `clipper/openai_clipper.py` | Experimento standalone de transcripción y selección | No importado por el CLI; sólo ejecuta al llamarlo como script. Usa `./lower.mp3`, SDK legado y modelos fijados en código. |
 | `hardware/novation.py` | Biblioteca MIDI copiada/adaptada para Launchpad, LaunchControlXL, LaunchKeyMini y Dicer | No importada por el flujo normal. Referencias de origen en su cabecera; depende de `rtmidi` y `novation_launchpad.charset`. |
@@ -60,16 +64,16 @@ Duplicaciones observables aquí:
 - `clipper/openai_clipper.py` anticipa métodos de IA de `Clipper`; el experimento no es una implementación independiente validada.
 - La consulta de video ahora usa un adaptador común `manager.video.probe_video`, aunque aún hay consultas específicas de fecha y audio.
 
-No hay evidencia suficiente en este repo para afirmar que otro repositorio reemplaza por completo una función. Antes de retirar una parte, registrar:
+La sustitución del clipper local está confirmada por el propietario y por la revisión del editor externo. Para el resto aún hay que registrar equivalencias antes de retirar código:
 
 | Capacidad | Repo sucesor | Comando/API equivalente | Diferencias, usuarios y decisión |
 | --- | --- | --- | --- |
-| Clipper local/IA | Por confirmar | Por confirmar | Conservar hasta comparar estilos, salidas, formatos y credenciales. |
+| Clipper local/IA | [nu9ve/clipper](https://github.com/nu9ve/clipper), checkout `/Users/nu9ve/code/ai/clipper` | CLI `clipper`, TUI y ClipperStudio; proyecto `clipper-project.json` | Sucesor confirmado. Retirar el módulo antiguo como cambio separado; no duplicar nuevas funciones de edición aquí. Su JSON antiguo no tiene migración automática. |
 | Importador de cámaras | Por confirmar | Por confirmar | Comparar Sony, Insta360, fechas, borrados y segunda copia de audio. |
 | Descargas y stems | Por confirmar | Por confirmar | Comparar destinos, proveedores, normalización y modelos. |
 | MIDI, scripts Bash y tareas S3 | Por confirmar | Por confirmar | Confirmar usos manuales y herramientas que no cubre el CLI actual. |
 
-Esta tabla es una tarea de verificación, no una propuesta automática de eliminación.
+Stalker, en `/Users/nu9ve/code/ai/stalker`, es el productor de capturas `.stalker`, no otro editor. La revisión de sus archivos y del contrato compartido está en [file-workflows.md](file-workflows.md). El retiro del código antiguo y las integraciones propuestas todavía no se han ejecutado.
 
 ## Integrar con otros sistemas hoy
 
