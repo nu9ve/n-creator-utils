@@ -9,6 +9,8 @@ Las dos pueden y deben actualizar el contrato en este repo según las [reglas](R
 
 ## 1. Stalker (`~/code/ai/stalker`)
 
+Estado: ejecutada el 2026-10-25 (Stalker `ecb18f1` y `d88eaf9`, main). Resultado en la [fila de adopción](README.md#estado-de-adopción-por-app) y en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25).
+
 ```text
 Eres la sesión de Stalker. Objetivo: terminar la implementación para que Stalker quede dentro del contrato del
 ecosistema de media (n-creator-utils archiva y prepara; Stalker captura; Clipper edita) y coordinado con los

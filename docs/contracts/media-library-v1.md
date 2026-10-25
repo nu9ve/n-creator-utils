@@ -81,9 +81,9 @@ Un contrato de leases registra uso en proyecto/queue/Final Cut/Atlas, responsabl
 
 ## Finalización de Stalker y metadata común
 
-Hoy se puede inspeccionar `status=completed`, pero el productor puede regenerar outputs. Antes de automatizar retiro del local se necesita acuerdo de inmovilidad o revisión verificable. Propuesta para Stalker: finalización atómica del manifest después de cerrar writers y derivados, señal opcional durable de sesión completada y revisión que cambie al regenerar archivos. Una notificación del SO es sólo una pista; el archivador vuelve a leer y verifica manifest/membresía antes y después.
+Acuerdo de inmovilidad adoptado por Stalker 0.4.0 (2026-10-25, `ecb18f1`): `status=completed` es la última escritura, durable y atómica, después de cerrar writers y derivados; un bundle `completed` no se regenera ni renombra en sitio (la CLI de recuperación escribe fuera). La «revisión verificable» es el digest del manifest: si alguien edita el bundle, cambia y `captures` lo reporta `archived: false`. Detalle en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25). Una notificación del SO es sólo una pista; el archivador vuelve a leer y verifica manifest/membresía antes y después.
 
-Proponer `project_id`/`profile_id` opcionales al iniciar o sidecar común fuera del manifest. Stalker mantiene ownership y compatibilidad. Nunca exigir nombrar un proyecto para poder grabar una prueba rápida. El organizador puede clasificar esa captura más tarde sin cambiar la identidad/reloj.
+Stalker 0.4 guarda en el manifest `project: {version: 1, name, country}` (texto del usuario, sin IDs). `project_id`/`profile_id` comunes siguen siendo del catálogo; Stalker no los conoce todavía. Stalker mantiene ownership y compatibilidad. Nunca exigir nombrar un proyecto para poder grabar una prueba rápida. El organizador puede clasificar esa captura más tarde sin cambiar la identidad/reloj.
 
 ## Entregas y publicación
 
