@@ -35,7 +35,7 @@ nu9ve media plan /Volumes/TARJETA --archive MEDIA502 --work ESSD \
 nu9ve media apply plan.json --digest DIGEST_REVISADO
 ```
 
-`plan` no copia/borra media. El CLI JSON devuelve `{ok, command, data}` o un error; `apply` acepta el plan crudo o la respuesta completa de `plan`. Cambios entre revisión y ejecución pueden bloquear el job. El planner decide nombres históricos fechados y carpetas por tipo/año/mes (ver [CONTEXT](CONTEXT.md)); revisa `data.layout`/`data.preview` antes de aplicar.
+`plan` no copia/borra media. El CLI JSON devuelve `{ok, command, data}` o un error; `apply` acepta el plan crudo o la respuesta completa de `plan`. Cambios entre revisión y ejecución pueden bloquear el job. El planner decide nombres históricos fechados y carpetas por tipo/año/mes (ver [CONTEXT](CONTEXT.md)); revisa `data.layout`/`data.preview` antes de aplicar. `nu9ve media job JOB_ID` muestra `progress` (fase, bytes copiados/verificados, MB/s). `nu9ve media relayout JOB_ID` renombra en sitio bundles Stalker de jobs terminados al naming [v1](contracts/media-naming-v1.md).
 
 Flujo humano equivalente:
 

@@ -1,13 +1,29 @@
 """Verified, resumable transfers. Source cleanup is gated by durable receipts."""
+from concurrent.futures import ThreadPoolExecutor, wait
+import contextlib
 import hashlib
 import json
 import os
 from pathlib import Path
 import sqlite3
+import time
 import uuid
 
 from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, digest, full_sync, hash_fd, now, require, uncached
 from .planner import destination_path, preflight, scan, validate_plan
+
+
+def write_all(fd, block):
+    view = memoryview(block)
+    while view:
+        written = os.write(fd, view)
+        require(written > 0, 'write_failed', 'Short write without progress')
+        view = view[written:]
+
+
+def finish_partial(fd, initial):
+    os.utime(fd, ns=(initial.st_atime_ns, initial.st_mtime_ns))
+    full_sync(fd)
 
 
 def claim_directory(tree, rel, owner):
@@ -39,6 +55,8 @@ class Transfer:
         self.hook = hook or (lambda *args: None)
         self.volume_tokens = {}
         self.source_token = None
+        self.progress = None
+        self.progress_started = self.progress_flushed = time.monotonic()
 
     def check_volume(self, record, full=False):
         if full or record['id'] not in self.volume_tokens:
@@ -83,81 +101,131 @@ class Transfer:
                 require(actual_map[path]['stamp'] == file['stamp'], 'source_changed', 'Source changed: ' + path)
         return actual_map
 
+    def report(self, force=False, **changes):
+        """Progress for observers (app/CLI `job`); written from this thread at most once per second."""
+        if self.progress is None:
+            return
+        self.progress.update(changes)
+        moment = time.monotonic()
+        if force or moment - self.progress_flushed >= 1:
+            elapsed = max(moment - self.progress_started, 0.001)
+            self.progress.update(updated_at=now(), bytes_per_second=int(self.progress['copied_bytes'] / elapsed))
+            self.catalog.set('progress:' + self.progress['job_id'], self.progress)
+            self.progress_flushed = moment
+
     def copy_file(self, source_tree, source_rel, target_tree, target_rel, record, expected=None, source_stamp=None):
-        """Write `.name.ncpartial`, verify it, then rename without replacing anything already at target_rel."""
-        self.check_volume(record)
-        source_tree.check(); target_tree.check()
-        folder, _, name = target_rel.rpartition('/')
-        partial = (folder + '/' if folder else '') + '.' + name + '.ncpartial'
+        return self.copy_many(source_tree, source_rel, [(target_tree, target_rel, record)], expected, source_stamp)[0]
+
+    def copy_many(self, source_tree, source_rel, targets, expected=None, source_stamp=None):
+        """One source read fans out to every target's `.name.ncpartial`; each is verified, then renamed without replacing anything."""
+        for target_tree, _, record in targets:
+            self.check_volume(record); target_tree.check()
+        source_tree.check()
+        results = [None] * len(targets)
         src = uncached(source_tree.open(source_rel))
         try:
             initial = os.fstat(src)
             if source_stamp is not None:
                 require(content_stamp(initial) == source_stamp, 'source_changed', 'Source file changed before reading')
-            try:
-                existing = uncached(target_tree.open(target_rel))
-            except FileNotFoundError:
-                existing = None
-            if existing is not None:
+            wanted = expected
+            for index, (target_tree, target_rel, _) in enumerate(targets):
+                try:
+                    existing = uncached(target_tree.open(target_rel))
+                except FileNotFoundError:
+                    continue
                 # Identical bytes (an earlier run or ingest) are adopted; anything else is never touched.
                 try:
-                    existing_hash = hash_fd(existing, self.cancel)
-                    wanted = expected or hash_fd(src, self.cancel)
-                    require(existing_hash == wanted, 'destination_conflict', 'A different file already exists at ' + target_rel)
+                    wanted = wanted or hash_fd(src, self.cancel)
+                    require(hash_fd(existing, self.cancel) == wanted, 'destination_conflict', 'A different file already exists at ' + target_rel)
                     require(content_stamp(os.fstat(src)) == content_stamp(initial), 'source_changed', 'Source changed during comparison')
-                    return wanted, content_stamp(os.fstat(existing))
+                    results[index] = (wanted, content_stamp(os.fstat(existing)))
                 finally:
                     os.close(existing)
-            try:
-                target_tree.unlink(partial)  # `.ncpartial` names belong to this tool.
-            except FileNotFoundError:
-                pass
-            dst = uncached(target_tree.open(partial, os.O_WRONLY | os.O_CREAT | os.O_EXCL, True))
+            pending = [(i, t) for i, t in enumerate(targets) if results[i] is None]
+            if not pending:
+                return results
+            partials = {}
+            for index, (target_tree, target_rel, _) in pending:
+                folder, _, name = target_rel.rpartition('/')
+                partials[index] = (folder + '/' if folder else '') + '.' + name + '.ncpartial'
+                try:
+                    target_tree.unlink(partials[index])  # `.ncpartial` names belong to this tool.
+                except FileNotFoundError:
+                    pass
+            outputs = {}
             h = hashlib.sha256()
+            pool = ThreadPoolExecutor(max_workers=len(pending))
             try:
+                for index, (target_tree, _, _) in pending:
+                    outputs[index] = uncached(target_tree.open(partials[index], os.O_WRONLY | os.O_CREAT | os.O_EXCL, True))
+                writes = []
+                os.lseek(src, 0, os.SEEK_SET)
                 while True:
                     self.checkpoint('copy_block', {'path': source_rel})
-                    block = os.read(src, CHUNK_SIZE)
+                    block = os.read(src, CHUNK_SIZE)  # Overlaps with the previous block's writes.
+                    for future in writes:
+                        future.result()
                     if not block:
                         break
                     h.update(block)
-                    view = memoryview(block)
-                    while view:
-                        written = os.write(dst, view)
-                        require(written > 0, 'write_failed', 'Short write without progress')
-                        view = view[written:]
-                os.utime(dst, ns=(initial.st_atime_ns, initial.st_mtime_ns))
-                full_sync(dst)
+                    writes = [pool.submit(write_all, fd, block) for fd in outputs.values()]
+                    if self.progress:
+                        self.report(copied_bytes=self.progress['copied_bytes'] + len(block))
+                for future in [pool.submit(finish_partial, fd, initial) for fd in outputs.values()]:
+                    future.result()
             finally:
-                os.close(dst)
-            with target_tree.parent(partial) as (parent, _):
-                full_sync(parent)
+                pool.shutdown(wait=True)
+                for fd in outputs.values():
+                    os.close(fd)
+            for index, (target_tree, _, _) in pending:
+                with target_tree.parent(partials[index]) as (parent, _):
+                    full_sync(parent)
             require(content_stamp(os.fstat(src)) == content_stamp(initial), 'source_changed', 'Source changed during copy')
             sha = h.hexdigest()
             require(expected is None or sha == expected, 'source_changed', 'Copy source differs from recorded content')
-            self.checkpoint('before_verify', {'path': partial, 'root': str(target_tree.root)})
-            verified = uncached(target_tree.open(partial))
-            try:
-                target_hash = hash_fd(verified, self.cancel)
-                size = os.fstat(verified).st_size
-            finally:
-                os.close(verified)
-            require(target_hash == sha and size == initial.st_size, 'checksum_mismatch', 'Destination verification failed: ' + target_rel)
-            self.check_volume(record); target_tree.check()
-            with target_tree.parent(target_rel) as (parent, final):
+            for index, (target_tree, _, _) in pending:
+                self.checkpoint('before_verify', {'path': partials[index], 'root': str(target_tree.root)})
+            if self.progress:
+                self.report(phase='verifying')
+
+            def verify(index):
+                target_tree = targets[index][0]
+                fd = uncached(target_tree.open(partials[index]))
                 try:
-                    os.stat(final, dir_fd=parent, follow_symlinks=False)
-                    raise MediaError('destination_conflict', 'A file appeared at ' + target_rel)
-                except FileNotFoundError:
-                    pass
-                os.rename('.' + final + '.ncpartial', final, src_dir_fd=parent, dst_dir_fd=parent)
-                full_sync(parent)
-            # Some filesystems (ExFAT) derive inode numbers from the directory entry; stamp the final name.
-            stamp = content_stamp(target_tree.stat(target_rel))
-            require(stamp['size'] == initial.st_size, 'checksum_mismatch', 'Destination size changed: ' + target_rel)
-            return sha, stamp
+                    return hash_fd(fd, self.cancel, self.count_verified), os.fstat(fd).st_size
+                finally:
+                    os.close(fd)
+            with ThreadPoolExecutor(max_workers=len(pending)) as verifiers:
+                checks = {index: verifiers.submit(verify, index) for index, _ in pending}
+                while not all(f.done() for f in checks.values()):
+                    wait(list(checks.values()), timeout=1)
+                    self.report()
+                for index, (_, target_rel, _) in pending:
+                    target_hash, size = checks[index].result()
+                    require(target_hash == sha and size == initial.st_size, 'checksum_mismatch', 'Destination verification failed: ' + target_rel)
+            for index, (target_tree, target_rel, record) in pending:
+                self.check_volume(record); target_tree.check()
+                with target_tree.parent(target_rel) as (parent, final):
+                    try:
+                        os.stat(final, dir_fd=parent, follow_symlinks=False)
+                        raise MediaError('destination_conflict', 'A file appeared at ' + target_rel)
+                    except FileNotFoundError:
+                        pass
+                    os.rename('.' + final + '.ncpartial', final, src_dir_fd=parent, dst_dir_fd=parent)
+                    full_sync(parent)
+                # Some filesystems (ExFAT) derive inode numbers from the directory entry; stamp the final name.
+                stamp = content_stamp(target_tree.stat(target_rel))
+                require(stamp['size'] == initial.st_size, 'checksum_mismatch', 'Destination size changed: ' + target_rel)
+                results[index] = (sha, stamp)
+            if self.progress:
+                self.report(phase='copying')
+            return results
         finally:
             os.close(src)
+
+    def count_verified(self, size):
+        if self.progress:
+            self.progress['verified_bytes'] += size  # Plain int update from verifier threads; flushed by the caller.
 
     def apply(self, plan, expected_digest):
         validate_plan(plan)
@@ -187,67 +255,88 @@ class Transfer:
         records.append(self.catalog.volume(plan['archive_id']))
         verified_in_run = []
         self.catalog.state(plan['id'], 'copying')
-        with Tree(plan['source']) as source_tree:
+        total = sum(f['stamp']['size'] for f in plan['files'])
+        self.progress = {'job_id': plan['id'], 'phase': 'copying', 'files_total': len(plan['files']), 'files_done': 0,
+                         'bytes_total': total, 'copied_bytes': 0, 'verified_bytes': 0,
+                         'verify_total': sum(f['stamp']['size'] for f in plan['files'] for r in records if destination_path(r, plan, units[f['unit_id']], f['path']))}
+        self.progress_started = time.monotonic()
+        self.report(force=True)
+        with Tree(plan['source']) as source_tree, contextlib.ExitStack() as stack:
             for record in records:
                 self.check_volume(record, full=True)
-                receipts = []
-                with Tree(record['root']) as target:
-                    claimed = set()
-                    for file in plan['files']:
-                        self.checkpoint('before_file', file)
-                        unit = units[file['unit_id']]
-                        dest = destination_path(record, plan, unit, file['path'])
-                        if dest is None:
-                            continue  # This role does not receive the file (e.g. Sony XML on the work SSD).
-                        # Schema-1 plans own an exclusive per-job container; named layouts rely on no-clobber renames.
-                        base = None if 'layout' in plan else dest[:dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
-                        if base and base not in claimed:
-                            claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
-                            claimed.add(base)
-                        member = self.catalog.db.execute('SELECT * FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()
-                        prior = self.catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
-                                                       (plan['id'], record['id'], file['path'])).fetchone()
-                        expected = member['sha256'] if member else None
-                        if prior:
-                            data = json.loads(prior[0])
-                            fd = target.open(dest)
-                            try:
-                                require(hash_fd(fd, self.cancel) == data['sha256'], 'checksum_mismatch', 'Previously verified copy is corrupt')
-                                stamp = content_stamp(os.fstat(fd))
-                            finally:
-                                os.close(fd)
-                            sha = data['sha256']
-                        else:
-                            # Archive reads from verified SSD when available, not the SD twice.
-                            work_copy = self.catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND relative_path=? LIMIT 1',
-                                                               (plan['id'], file['path'])).fetchone()
-                            if work_copy:
-                                previous = json.loads(work_copy[0])
-                                previous_volume = self.catalog.volume(previous['volume_id'])
-                                self.backend.check(previous_volume)
-                                with Tree(previous_volume['root']) as previous_tree:
-                                    sha, stamp = self.copy_file(previous_tree, previous['destination'], target, dest, record, expected=expected)
-                            else:
-                                sha, stamp = self.copy_file(source_tree, file['path'], target, dest, record,
-                                                            expected=expected, source_stamp=file['stamp'])
-                            require(expected is None or sha == expected, 'checksum_mismatch', 'Replica hashes differ')
-                            with self.catalog.db:
-                                self.catalog.db.execute('INSERT OR IGNORE INTO members(job_id,relative_path,sha256) VALUES(?,?,?)',
-                                                        (plan['id'], file['path'], sha))
-                        receipt = {'job_id': plan['id'], 'volume_id': record['id'], 'path': file['path'], 'destination': dest,
-                                   'sha256': sha, 'bytes': file['stamp']['size'], 'verified_at': now(), 'stamp': stamp, 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id']))}
-                        with self.catalog.db:
-                            self.catalog.db.execute('INSERT OR REPLACE INTO copies VALUES(?,?,?,?,?)',
-                                (plan['id'], record['id'], file['path'], sha, canonical(receipt).decode()))
-                        receipts.append(receipt); verified_in_run.append((record, dest, stamp, file['path']))
-                        self.checkpoint('after_file_verified', receipt)
-                    self.check_volume(record)
-                    self.check_volume(record, full=True)
-                    target.write_json('.ncreator/receipts/' + plan['id'] + '.json', {
-                        'schema': 'nu9ve-transfer-receipt/1', 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'])),
-                        'job_id': plan['id'], 'plan_digest': plan['digest'], 'volume_id': record['id'],
-                        'verified_at': now(), 'files': receipts, 'units': [dict(u, project_id=self.catalog.project_for(u['profile'], u['project'])) for u in plan['units']], 'plan': plan,
-                        'country': plan['country'], 'city': plan['city'], 'work_delivery_status': plan['work_delivery_status']})
+            trees = {record['id']: stack.enter_context(Tree(record['root'])) for record in records}
+            receipts = {record['id']: [] for record in records}
+            claimed = set()
+            for file in plan['files']:
+                self.checkpoint('before_file', file)
+                unit = units[file['unit_id']]
+                member = self.catalog.db.execute('SELECT * FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()
+                expected = member['sha256'] if member else None
+                done, pending = {}, []
+                for record in records:
+                    target = trees[record['id']]
+                    dest = destination_path(record, plan, unit, file['path'])
+                    if dest is None:
+                        continue  # This role does not receive the file (e.g. Sony XML on the work SSD).
+                    # Schema-1 plans own an exclusive per-job container; named layouts rely on no-clobber renames.
+                    base = None if 'layout' in plan else dest[:dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
+                    if base and (record['id'], base) not in claimed:
+                        claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
+                        claimed.add((record['id'], base))
+                    prior = self.catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
+                                                   (plan['id'], record['id'], file['path'])).fetchone()
+                    if prior:
+                        data = json.loads(prior[0])
+                        fd = target.open(dest)
+                        try:
+                            require(hash_fd(fd, self.cancel) == data['sha256'], 'checksum_mismatch', 'Previously verified copy is corrupt')
+                            done[record['id']] = (dest, data['sha256'], content_stamp(os.fstat(fd)))
+                        finally:
+                            os.close(fd)
+                    else:
+                        pending.append((target, dest, record))
+                if pending:
+                    # After an interruption, a verified replica from this job is the source, not the SD a second time.
+                    previous = self.catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND relative_path=? LIMIT 1',
+                                                       (plan['id'], file['path'])).fetchone()
+                    if previous:
+                        previous = json.loads(previous[0])
+                        previous_volume = self.catalog.volume(previous['volume_id'])
+                        self.backend.check(previous_volume)
+                        with Tree(previous_volume['root']) as previous_tree:
+                            outcomes = self.copy_many(previous_tree, previous['destination'], pending, expected=expected)
+                    else:
+                        outcomes = self.copy_many(source_tree, file['path'], pending, expected=expected, source_stamp=file['stamp'])
+                    for (_, dest, record), (sha, stamp) in zip(pending, outcomes):
+                        require(expected is None or sha == expected, 'checksum_mismatch', 'Replica hashes differ')
+                        expected = sha
+                        done[record['id']] = (dest, sha, stamp)
+                    with self.catalog.db:
+                        self.catalog.db.execute('INSERT OR IGNORE INTO members(job_id,relative_path,sha256) VALUES(?,?,?)',
+                                                (plan['id'], file['path'], expected))
+                for record in records:
+                    if record['id'] not in done:
+                        continue
+                    dest, sha, stamp = done[record['id']]
+                    receipt = {'job_id': plan['id'], 'volume_id': record['id'], 'path': file['path'], 'destination': dest,
+                               'sha256': sha, 'bytes': file['stamp']['size'], 'verified_at': now(), 'stamp': stamp, 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id']))}
+                    with self.catalog.db:
+                        self.catalog.db.execute('INSERT OR REPLACE INTO copies VALUES(?,?,?,?,?)',
+                            (plan['id'], record['id'], file['path'], sha, canonical(receipt).decode()))
+                    receipts[record['id']].append(receipt); verified_in_run.append((record, dest, stamp, file['path']))
+                    self.checkpoint('after_file_verified', receipt)
+                if not pending:
+                    self.progress['copied_bytes'] += file['stamp']['size']
+                self.report(files_done=self.progress['files_done'] + 1, file=file['path'])
+            for record in records:
+                target = trees[record['id']]
+                self.check_volume(record)
+                self.check_volume(record, full=True)
+                target.write_json('.ncreator/receipts/' + plan['id'] + '.json', {
+                    'schema': 'nu9ve-transfer-receipt/1', 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'])),
+                    'job_id': plan['id'], 'plan_digest': plan['digest'], 'volume_id': record['id'],
+                    'verified_at': now(), 'files': receipts[record['id']], 'units': [dict(u, project_id=self.catalog.project_for(u['profile'], u['project'])) for u in plan['units']], 'plan': plan,
+                    'country': plan['country'], 'city': plan['city'], 'work_delivery_status': plan['work_delivery_status']})
             self.checkpoint('after_receipts', plan)
             self.validate_source(plan)
             self.catalog.state(plan['id'], 'backup_verified')
@@ -258,6 +347,7 @@ class Transfer:
                 final = 'camera_action_required'
             else:
                 self.catalog.state(plan['id'], 'cleaning_source')
+                self.report(force=True, phase='cleaning')
                 self.checkpoint('before_cleanup', plan)
                 self.validate_source(plan)
                 # Receipts verified during this run; rehash only copies whose stamps changed.
@@ -316,6 +406,7 @@ class Transfer:
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
                 final = 'completed' if not remaining else 'source_has_new_material'
             self.catalog.state(plan['id'], final)
+            self.report(force=True, phase=final)
         return self.catalog.job(plan['id'])
 
     def _index(self, plan):

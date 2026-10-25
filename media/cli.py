@@ -36,6 +36,7 @@ def parser():
     apply = commands.add_parser('apply'); apply.add_argument('plan'); apply.add_argument('--digest', required=True)
     resume = commands.add_parser('resume'); resume.add_argument('job_id')
     recover = commands.add_parser('recover-catalog'); recover.add_argument('volume')
+    commands.add_parser('relayout', help='Rename finished Stalker bundle copies to the dated name in place').add_argument('job_id')
     rename = commands.add_parser('rename-project'); rename.add_argument('project_id'); rename.add_argument('title')
     publication = commands.add_parser('publication'); publication.add_argument('asset_id'); publication.add_argument('variant'); publication.add_argument('--channel', required=True); publication.add_argument('--state', choices=['candidate','approved','published'], required=True); publication.add_argument('--url')
     commands.add_parser('publications')

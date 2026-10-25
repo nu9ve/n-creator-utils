@@ -179,7 +179,7 @@ class Tree:
                     pass
 
 
-def hash_fd(fd, cancel=lambda: False):
+def hash_fd(fd, cancel=lambda: False, progress=None):
     os.lseek(fd, 0, os.SEEK_SET)
     h = hashlib.sha256()
     while True:
@@ -188,6 +188,8 @@ def hash_fd(fd, cancel=lambda: False):
         if not block:
             return h.hexdigest()
         h.update(block)
+        if progress:
+            progress(len(block))
 
 
 def read_json(path, limit=16 * 1024 * 1024):

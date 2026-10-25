@@ -5,7 +5,7 @@ from pathlib import Path
 import uuid
 
 from .volumes import independent
-from .common import Tree, canonical, now, require, uid
+from .common import Tree, canonical, content_stamp, full_sync, now, require, uid
 from .layout import MEDIA_KINDS, kind_of
 from .planner import destination_path
 from .transfer import Transfer, claim_directory
@@ -47,6 +47,7 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
             copies = []
             with Tree(archive['root']) as source, Tree(record['root']) as target:
                 files = [f for f in files if destination_path(record, plan, asset, f['path'])]
+                override = catalog.get('layout_override:' + plan['id'], {})
                 if 'layout' not in plan:
                     first_dest = destination_path(record, plan, asset, files[0]['path'])
                     base = first_dest[:first_dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
@@ -57,6 +58,8 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
                     require(prior is not None, 'missing_receipt', 'Archive copy is not verified')
                     prior = json.loads(prior[0])
                     dest = destination_path(record, plan, asset, file['path'])
+                    if override.get(file['path'], {}).get('work'):
+                        dest = record['prefix'] + '/' + override[file['path']]['work']  # Bundle renamed in place after ingest.
                     sha, stamp = engine.copy_file(source, prior['destination'], target, dest, record, expected=prior['sha256'])
                     copy = {'job_id': plan['id'], 'volume_id': record['id'], 'path': file['path'], 'destination': dest,
                             'sha256': sha, 'bytes': file['stamp']['size'], 'verified_at': now(), 'stamp': stamp, 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'] + ':' + asset_id))}
@@ -176,3 +179,87 @@ def restore(catalog, backend, asset_id, destination):
         target.write_json(base + '/.ncreator-restore.json', {'asset_id': asset_id, 'revision': asset['revision'], 'verified_at': now()})
         catalog.set('restore:' + asset_id, {'root': str(root), 'path': base, 'verified_at': now()})
     return {'asset_id': asset_id, 'path': str(root / base / plan['source_name']), 'verified': True}
+
+
+def relayout(catalog, backend, job_id):
+    """Rename already verified Stalker bundle folders to the dated name in place; bytes are never copied or rewritten."""
+    from .layout import stalker_bundle_name
+    job = catalog.job(job_id)
+    plan = job['plan']
+    require(job['state'] in {'completed', 'camera_action_required', 'source_retained', 'source_has_new_material'},
+            'job_not_finished', 'Only finished jobs can be renamed in place')
+    sessions = [u for u in plan['units'] if u['kind'] == 'stalker_session']
+    require(sessions, 'nothing_to_relayout', 'This job has no Stalker sessions')
+    archive = catalog.volume(plan['archive_id'])
+    renamed = []
+    with catalog.writer():
+        rows = {}
+        for row in catalog.db.execute('SELECT volume_id, payload FROM copies WHERE job_id=?', (job_id,)):
+            payload = json.loads(row[1])
+            rows.setdefault(payload['volume_id'], {})[payload['path']] = payload
+        override = catalog.get('layout_override:' + job_id, {})
+        for unit in sessions:
+            prefix = '' if unit['bundle'] == '.' else unit['bundle'] + '/'
+            manifest_copy = rows[archive['id']][prefix + 'manifest.json']
+            backend.check(archive)
+            with Tree(archive['root']) as tree:
+                fd = tree.open(manifest_copy['destination'])
+                with os.fdopen(fd, 'rb') as stream:
+                    manifest = json.loads(stream.read(1024 * 1024))
+            require(manifest.get('sessionID', '').lower() == (unit['session_id'] or '').lower(), 'invalid_bundle', 'Archived manifest is not this session')
+            name, created = stalker_bundle_name(manifest, min(f['stamp']['mtime_ns'] for f in plan['files'] if f['unit_id'] == unit['id']),
+                                                plan['country'], unit['project'])
+            for volume_id, copies in rows.items():
+                members = [copies[p] for p in unit['paths'] if p in copies]
+                if not members:
+                    continue
+                record = catalog.volume(volume_id)
+                backend.check(record)
+                sample = members[0]
+                old_dir = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
+                parent = old_dir.rsplit('/', 1)[0]
+                if record['role'] == 'archive':
+                    parent = parent.rsplit('/', 2)[0] + '/' + created.strftime('%Y/%m')
+                new_dir = parent + '/' + name
+                with Tree(record['root']) as tree:
+                    if old_dir != new_dir:
+                        old_parent_rel, old_name = old_dir.rsplit('/', 1)
+                        new_parent_rel, new_name = new_dir.rsplit('/', 1)
+                        with tree.parent(old_parent_rel + '/x') as (src_fd, _), tree.parent(new_parent_rel + '/x', True) as (dst_fd, _):
+                            exists = lambda fd, entry: entry in os.listdir(fd)
+                            if exists(src_fd, old_name):
+                                require(not exists(dst_fd, new_name), 'destination_conflict', 'Target bundle name already exists: ' + new_dir)
+                                os.rename(old_name, new_name, src_dir_fd=src_fd, dst_dir_fd=dst_fd)
+                                full_sync(src_fd); full_sync(dst_fd)
+                            else:
+                                # Idempotent re-run after a crash between the rename and the catalog update.
+                                require(exists(dst_fd, new_name), 'missing_copy', 'Neither old nor new bundle folder exists: ' + old_dir)
+                    for member in members:
+                        destination = new_dir + member['destination'][len(old_dir):]
+                        st = tree.stat(destination)
+                        require(st.st_size == member['bytes'], 'checksum_mismatch', 'Renamed member size differs: ' + destination)
+                        member.update(destination=destination, stamp=content_stamp(st))
+                        with catalog.db:
+                            catalog.db.execute('UPDATE copies SET payload=? WHERE job_id=? AND volume_id=? AND relative_path=?',
+                                               (canonical(member).decode(), job_id, volume_id, member['path']))
+                        override.setdefault(member['path'], {})[record['role']] = destination[len(record['prefix']) + 1:]
+                renamed.append({'session_id': unit['session_id'], 'volume_id': volume_id, 'from': old_dir, 'to': new_dir})
+        # Portable receipts must name the new folders, or recovery would look for the old ones.
+        for volume_id, copies in rows.items():
+            record = catalog.volume(volume_id)
+            with Tree(record['root']) as tree:
+                for receipt_name in ['.ncreator/receipts/' + job_id + '.json']:
+                    try:
+                        fd = tree.open(receipt_name)
+                    except FileNotFoundError:
+                        continue
+                    with os.fdopen(fd, 'rb') as stream:
+                        receipt = json.loads(stream.read(16 * 1024 * 1024))
+                    for item in receipt['files']:
+                        if item['path'] in copies:
+                            item['destination'], item['stamp'] = copies[item['path']]['destination'], copies[item['path']]['stamp']
+                    receipt['relayout'] = {'at': now(), 'renamed': [r for r in renamed if r['volume_id'] == volume_id]}
+                    tree.write_json(receipt_name, receipt)
+        catalog.set('layout_override:' + job_id, override)
+        catalog.event(job_id, 'relayout', {'renamed': renamed})
+    return {'job_id': job_id, 'renamed': renamed}
