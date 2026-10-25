@@ -1,5 +1,7 @@
 # Configuración
 
+Esta configuración pertenece a `n-creator-utils`. No configura el editor externo ni Stalker. El clipper incluido aquí quedó reemplazado; `clipper_font_file`, su modo `debug` y credenciales de IA son opciones históricas mientras exista ese código. Las rutas y ajustes de los otros repos se describen en [manejo de archivos y flujos](file-workflows.md#ubicaciones-y-configuración-actuales).
+
 ## Fuentes y precedencia
 
 `configuration.load_settings()` carga, de menor a mayor prioridad:

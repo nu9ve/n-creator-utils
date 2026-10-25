@@ -1,5 +1,9 @@
 # Importación de media (`save`)
 
+## Alcance frente a Stalker y Clipper
+
+Este importador organiza archivos de cámaras/grabadoras; no entiende sesiones `.stalker`, proyectos `clipper-project.json` ni paquetes de entrega del editor. El recorrido genérico puede mover sus MOV/WAV, renombrarlos y dejar atrás manifests, eventos o sidecars. No lo uses sobre esas carpetas completas. Además, mover fuentes ya importadas puede romper referencias de Clipper. El contrato y los flujos que necesitamos están documentados en [file-workflows.md](file-workflows.md).
+
 ## Contrato actual
 
 `save` organiza un árbol de archivos por categoría, año y mes. Su comportamiento histórico es **mover**, no hacer una copia de sólo lectura. En una operación normal copia con metadata, ajusta fechas, compara tamaños y elimina la fuente. Audio recibe primero una copia secundaria. El flujo genérico también elimina directamente archivos `hprj`, `bmp`, `gyro` y `aae`; estas eliminaciones no tienen copia previa. El bundle Insta360 evita ese clasificador y conserva sus archivos.

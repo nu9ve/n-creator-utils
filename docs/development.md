@@ -1,5 +1,7 @@
 # Desarrollo y verificación
 
+El clipper local quedó reemplazado por [nu9ve/clipper](https://github.com/nu9ve/clipper). Las pruebas e instrucciones de renderer en esta página describen el código histórico aún presente; no son una prioridad para nuevas funciones aquí. La evolución entre repos se centra en [archivos, paquetes y transferencias](file-workflows.md).
+
 ## Preparar el entorno
 
 ```sh

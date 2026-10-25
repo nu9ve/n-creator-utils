@@ -1,4 +1,12 @@
-# Clipper local
+# Clipper antiguo — reemplazado
+
+**Este recortador fue sustituido por [nu9ve/clipper](https://github.com/nu9ve/clipper)**, cuyo checkout de trabajo está en `/Users/nu9ve/code/ai/clipper`. La edición, composición, subtítulos, previews y exports deben evolucionar allí. Stalker produce las capturas que ese editor importa.
+
+El código de esta carpeta y `nu9ve clip` todavía existen, pero no son el flujo vigente. Las instrucciones siguientes se conservan sólo para interpretar trabajos antiguos mientras se retira el módulo en un cambio separado. Su `config.json` no es `clipper-project.json` y no hay conversión automática entre ellos.
+
+La relación actual entre los tres repos se documenta en [manejo de archivos y flujos](../docs/file-workflows.md).
+
+## Referencia histórica
 
 Recorta un video por rangos y genera encuadres mediante FFmpeg. Se invoca desde el comando `nu9ve clip`; también funciona `python3 /ruta/al/repo/nu9ve.py clip ...`. `clipper/clipper.py` define la clase de trabajo, pero no tiene una entrada standalone propia.
 
