@@ -1,10 +1,11 @@
 """Single-request JSON boundary shared by native UI and CLI."""
 from pathlib import Path
+import json
 import time
 import uuid
 
 from .catalog import Catalog
-from .common import MediaError, require, relative
+from .common import MediaError, require, relative, canonical
 from .library import deliver_work, handoff, relayout, resolve, restore, set_work_state, sources, projects
 from .planner import build_plan
 from .transfer import Transfer
@@ -108,10 +109,16 @@ class Service:
                               'camera': next((e['model'] for e in evidence if e.get('model')), '') or next((e['family'] for e in evidence if e.get('family')), ''),
                               **metadata})
             return {'units': units, 'skipped': skipped, 'bytes': sum(f['stamp']['size'] for f in files)}
-        if method == 'plan':
-            return build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
+        if method in {'plan', 'plan_document'}:
+            plan = build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
+            # Native clients display a decoded view but return the original document untouched.
+            return canonical(plan).decode('utf-8') if method == 'plan_document' else plan
         if method == 'apply':
-            return self._apply_ingest(params['plan'], params['digest'])
+            plan = params['plan']
+            if isinstance(plan, str):
+                require(len(plan.encode('utf-8')) <= 12 * 1024 * 1024, 'plan_too_large', 'Plan document exceeds 12 MiB')
+                plan = json.loads(plan)
+            return self._apply_ingest(plan, params['digest'])
         if method == 'recover_catalog':
             from .recovery import recover_catalog
             return recover_catalog(self.catalog, self.backend, params['volume'])
