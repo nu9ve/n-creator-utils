@@ -41,6 +41,7 @@ Do not start by polishing more panels or testing full personal cards. Local fixt
 
 | Feature | Done when |
 | --- | --- |
+| Stalker backup → local release | After all required MEDIA/ESSD copies verify, show a per-session release offer and make it the preferred one-flow path for sessions with no Clipper/queue/consumer references. Preserve the source by default while references exist or are unknown; release only after fresh dependency check and explicit reviewed confirmation. Add a clear policy setting for users who want this after every Stalker backup. Validate on one real, small session before enabling a default. A five-session 1.59 GB local release was verified on 2026-10-26 through the shared service: MEDIA502/ESSD copies remained complete and Clipper reported no references. The reviewed release is still a separate Space action; no automatic cleanup is enabled. |
 | Device/model registry and capture timestamps | Metadata evidence + user-confirmed model/category persist. DJI ambiguity resolved per file/unit, without global brand or residual-directory guesses. Timezone/precision/fallback explicit. |
 | Native onboarding and first-run disk setup | User selects registered archive/work roles and sees identity, free/reserved space and capabilities. No absent-disk fallback. |
 | Stalker operational closeout | Real recording/finalizing/recovery/multi-session events, event loss/remount and CPU/IO contention validated; producer finalization/revision agreement documented. |
