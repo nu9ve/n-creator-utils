@@ -184,56 +184,132 @@ struct UnitPreview: View {
     @Binding var unit: DraftUnit
     let dense: Bool
     @Environment(\.creatorPalette) private var palette
+    @State private var editingProject = false
+    private var effectiveProject: String { unit.project.isEmpty ? model.project : unit.project }
+    private var effectiveProfile: String { unit.profile.isEmpty ? model.profile : unit.profile }
+    private var showsProjectEditor: Bool { unit.category == "stalker" && (effectiveProject.isEmpty || editingProject) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Button {
-                if model.copyChoice == "some" && unit.previewPath != nil { unit.copyForEditing.toggle() }
-            } label: {
-                AssetThumbnail(url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""))
-                    .overlay(alignment: .topTrailing) {
+            ZStack(alignment: .topTrailing) {
+                Button {
+                    if model.copyChoice == "some" && unit.previewPath != nil { unit.copyForEditing.toggle() }
+                } label: {
+                    AssetThumbnail(
+                        url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""),
+                        height: dense ? 92 : 110
+                    )
+                    .overlay(alignment: .bottomLeading) {
+                        if unit.category == "stalker" {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Stalker · " + String(unit.createdAt.prefix(16)))
+                                    .font(.caption2.weight(.semibold)).lineLimit(1)
+                                Text((["\(unit.tracks) pistas"] + (durationLabel(unit.duration).map { [$0] } ?? []) + ["\(unit.paths.count) archivos"]).joined(separator: " · "))
+                                    .font(.caption2).lineLimit(1)
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 4)
+                            .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5).allowsHitTesting(false)
+                        }
+                    }
+                    .overlay(alignment: .topLeading) {
                         if model.copyChoice == "some" && unit.previewPath != nil {
                             Image(systemName: unit.copyForEditing ? "checkmark.circle.fill" : "circle")
                                 .font(.title3).foregroundStyle(unit.copyForEditing ? palette.control : palette.ink)
                                 .padding(5).background(palette.canvas.opacity(0.9), in: Circle()).padding(4)
+                                .allowsHitTesting(false)
                         }
                     }
-            }.buttonStyle(.plain).help("Marcar copia para editar; el respaldo siempre incluye todo")
-            Text(unit.category == "stalker" ? "Stalker · " + String(unit.createdAt.prefix(16)) : URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent).font(.caption.weight(.medium)).lineLimit(1)
-            if unit.category == "stalker" {
-                Text((["\(unit.tracks) pistas"] + (durationLabel(unit.duration).map { [$0] } ?? []) + ["\(unit.paths.count) archivos"]).joined(separator: " · "))
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            else { Text(ByteCountFormatter.string(fromByteCount: Int64(unit.bytes), countStyle: .file) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera)).font(.caption2).foregroundStyle(.secondary) }
-            if !unit.suggestedProject.isEmpty {
-                Button("Sugerido: " + unit.suggestedProject) { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry }.font(.caption)
-            }
-            if unit.category == "stalker" && unit.project.isEmpty && model.project.isEmpty { Text("Sin proyecto asignado").font(.caption).foregroundStyle(.orange) }
-            HStack(spacing: 3) {
-                TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.plain).font(.caption).frame(maxWidth: 175)
-                if unit.category != "stalker" {
-                    Menu {
-                        Button("Usar proyecto del lote") { unit.project = "" }
-                        ForEach(Array(model.recentProjects.prefix(12)), id: \.["project_id"].string) { item in Button(item["project"].string) { unit.project = item["project"].string } }
-                    } label: { Image(systemName: "clock.arrow.circlepath") }.menuStyle(.borderlessButton).fixedSize()
                 }
-            }
-            if unit.category == "stalker" { RecentProjectChips(projects: model.recentProjects, selection: $unit.project) }
-            HStack {
+                .buttonStyle(.plain)
+                .help("Marcar copia para editar; el respaldo siempre incluye todo")
+
                 Menu {
                     Button("Perfil del lote: " + model.profile) { unit.profile = "" }
-                    ForEach(model.profiles, id: \.["id"].string) { item in Button(item["name"].string) { unit.profile = item["id"].string } }
-                } label: { Label(unit.profile.isEmpty ? model.profile : unit.profile, systemImage: "person.crop.square") }.menuStyle(.borderlessButton)
-                if unit.detectedCamera == "dji" || unit.camera != "auto" {
-                    Menu {
-                        ForEach(["auto", "dji-drone", "dji-360", "dji-action", "sony", "canon", "insta360", "generic"], id: \.self) { value in Button(value) { unit.camera = value } }
-                    } label: { Image(systemName: "camera") }.menuStyle(.borderlessButton).help("Clasificar cámara")
+                    ForEach(model.profiles, id: \.["id"].string) { item in
+                        Button(item["name"].string) { unit.profile = item["id"].string }
+                    }
+                } label: {
+                    Label(effectiveProfile, systemImage: "person.crop.square")
+                        .font(.caption2.weight(.medium)).lineLimit(1)
+                        .padding(.horizontal, 6).padding(.vertical, 4)
+                        .background(palette.canvas.opacity(0.92), in: Capsule())
                 }
-            }.font(.caption2)
+                .menuStyle(.borderlessButton)
+                .padding(5)
+            }
+
+            if unit.category == "stalker" {
+                if showsProjectEditor {
+                    HStack(spacing: 4) {
+                        TextField("Proyecto de esta sesión", text: $unit.project)
+                            .textFieldStyle(.plain).font(.caption).frame(maxWidth: .infinity)
+                        if !unit.project.isEmpty {
+                            Button { unit.project = ""; editingProject = false } label: { Image(systemName: "xmark.circle") }
+                                .buttonStyle(.plain).help("Usar el proyecto del lote")
+                        }
+                        if effectiveProject.isEmpty && !unit.suggestedProject.isEmpty {
+                            Button("Sugerido: " + unit.suggestedProject) {
+                                unit.project = unit.suggestedProject
+                                unit.country = unit.suggestedCountry
+                            }
+                            .buttonStyle(CreatorButtonStyle()).font(.caption2).lineLimit(1)
+                        }
+                        if editingProject {
+                            Button { editingProject = false } label: { Image(systemName: "checkmark") }
+                                .buttonStyle(.plain).help("Listo")
+                        }
+                    }
+                    RecentProjectChips(projects: model.recentProjects, selection: $unit.project)
+                } else {
+                    HStack(spacing: 4) {
+                        Text(effectiveProject).font(.caption2.weight(.medium)).lineLimit(1).help(effectiveProject)
+                        if unit.project.isEmpty { Text("lote").font(.system(size: 9)).foregroundStyle(.secondary) }
+                        Spacer(minLength: 0)
+                        Button {
+                            if unit.project.isEmpty { unit.project = model.project }
+                            editingProject = true
+                        } label: { Image(systemName: "pencil") }
+                        .buttonStyle(.plain).font(.caption2).help("Cambiar proyecto de esta sesión")
+                    }
+                    .frame(height: 18)
+                }
+            } else {
+                Text(URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent)
+                    .font(.caption.weight(.medium)).lineLimit(1)
+                Text(ByteCountFormatter.string(fromByteCount: Int64(unit.bytes), countStyle: .file) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
+                    .font(.caption2).foregroundStyle(.secondary)
+                HStack(spacing: 3) {
+                    TextField("Proyecto: " + model.project, text: $unit.project)
+                        .textFieldStyle(.plain).font(.caption).frame(maxWidth: 175)
+                    Menu {
+                        Button("Usar proyecto del lote") { unit.project = "" }
+                        ForEach(Array(model.recentProjects.prefix(12)), id: \.["project_id"].string) { item in
+                            Button(item["project"].string) { unit.project = item["project"].string }
+                        }
+                    } label: { Image(systemName: "clock.arrow.circlepath") }
+                        .menuStyle(.borderlessButton).fixedSize()
+                }
+            }
+
+            if unit.detectedCamera == "dji" || unit.camera != "auto" {
+                Menu {
+                    ForEach(["auto", "dji-drone", "dji-360", "dji-action", "sony", "canon", "insta360", "generic"], id: \.self) { value in
+                        Button(value) { unit.camera = value }
+                    }
+                } label: { Label(unit.camera == "auto" ? unit.detectedCamera : unit.camera, systemImage: "camera") }
+                    .menuStyle(.borderlessButton).font(.caption2).help("Clasificar cámara")
+            }
             if unit.previewPath == nil { Text("Auxiliar · sólo respaldo").font(.caption2).foregroundStyle(.secondary) }
         }
+        .onChange(of: unit.project) { _, _ in model.invalidatePlan() }
+        .onChange(of: unit.profile) { _, _ in model.invalidatePlan() }
+        .onChange(of: unit.country) { _, _ in model.invalidatePlan() }
+        .onChange(of: unit.camera) { _, _ in model.invalidatePlan() }
+        .onChange(of: unit.copyForEditing) { _, _ in model.invalidatePlan() }
     }
 }
-
 struct RecentProjectChips: View {
     let projects: [JSONValue]
     @Binding var selection: String

@@ -131,7 +131,11 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
     retain_stalker_source = catalog.get('retain-stalker-source', False)
     require(isinstance(retain_stalker_source, bool), 'invalid_policy', 'Invalid Stalker source retention setting')
     release_stalker_source = source_kind == 'stalker' and not retain_stalker_source
-    project, profile = slug(project), slug(profile)
+    if source_kind == 'stalker' and isinstance(project, str) and not project.strip():
+        project = ''
+    else:
+        project = slug(project)
+    profile = slug(profile)
     country, city = slug(country), slug(city)
     require(camera is None or camera in CAMERAS, 'invalid_camera', 'Unknown camera category')
     source = Path(source).expanduser().absolute()
@@ -180,7 +184,10 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
             require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
-        unit_project, unit_profile = slug(assignment.get('project', project)), slug(assignment.get('profile', profile))
+        requested_project = assignment.get('project') or project
+        require(isinstance(requested_project, str) and requested_project.strip(), 'missing_project',
+                'Asigna un proyecto a cada sesión Stalker o elige un proyecto para el lote')
+        unit_project, unit_profile = slug(requested_project), slug(assignment.get('profile', profile))
         selected_camera = assignment.get('camera', camera)
         require(selected_camera is None or selected_camera in CAMERAS, 'invalid_camera', 'Unknown assigned camera category')
         evidence = [e for f in members for e in f['evidence']]

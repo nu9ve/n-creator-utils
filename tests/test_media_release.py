@@ -239,6 +239,41 @@ class CaptureWorkflowTests(WorkflowFixture):
         self.assertEqual(len(result['stalker_release']['released']), 2)
         self.assertTrue(all(not folder.exists() for folder, _ in folders))
 
+    def test_stalker_batch_accepts_per_session_projects_without_batch_project(self):
+        folders = [self.session(), self.session()]
+        assignments = {}
+        for folder, _ in folders:
+            for member in folder.rglob('*'):
+                if member.is_file():
+                    assignments[member.relative_to(self.source).as_posix()] = {'project': 'terra-6-1'}
+
+        plan = self.plan(source=str(self.source), source_kind='stalker', cleanup=False,
+                         project='', assignments=assignments)
+
+        sessions = [unit for unit in plan['units'] if unit['kind'] == 'stalker_session']
+        self.assertEqual(len(sessions), 2)
+        self.assertEqual({unit['project'] for unit in sessions}, {'terra-6-1'})
+
+    def test_stalker_batch_project_fills_only_unassigned_sessions(self):
+        assigned, _ = self.session()
+        fallback, _ = self.session()
+        assignments = {
+            member.relative_to(self.source).as_posix(): {'project': 'terra-6-1'}
+            for member in assigned.rglob('*') if member.is_file()
+        }
+
+        plan = self.plan(source=str(self.source), source_kind='stalker', cleanup=False,
+                         project='lote-default', assignments=assignments)
+
+        projects = {Path(unit['paths'][0]).parts[0]: unit['project'] for unit in plan['units'] if unit['kind'] == 'stalker_session'}
+        self.assertEqual(projects[assigned.name], 'terra-6-1')
+        self.assertEqual(projects[fallback.name], 'lote-default')
+
+    def test_stalker_batch_without_any_project_reports_assignment_guidance(self):
+        self.session()
+        with self.assertRaisesRegex(MediaError, 'Asigna un proyecto a cada sesión Stalker'):
+            self.plan(source=str(self.source), source_kind='stalker', cleanup=False, project='')
+
     def test_stalker_setting_or_clipper_blocker_preserves_original(self):
         folder, _ = self.session()
         service = Service(self.catalog, self.backend)
