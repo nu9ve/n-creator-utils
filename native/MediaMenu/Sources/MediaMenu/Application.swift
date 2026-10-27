@@ -17,11 +17,13 @@ struct DraftUnit: Identifiable, Equatable {
     var duration: Double = 0
     var tracks = 0
     var sessionID = ""
+    var manifestPreviewPath = ""
     var country = ""
     var suggestedProject = ""
     var suggestedCountry = ""
     var previewPath: String? {
-        paths.first { path in
+        if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
+        return paths.first { path in
             let lower = path.lowercased()
             return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
         }
@@ -48,6 +50,7 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var captureRoots: [String] = []
     @Published var captureError = ""
     @Published var clipperExecutable = ""
+    @Published var retainStalkerSource = false
     @Published var releasePlan: JSONValue?
     @Published var releaseHistory: [JSONValue] = []
     @Published var coverageResult: JSONValue?
@@ -91,6 +94,7 @@ struct DraftUnit: Identifiable, Equatable {
 
     init() {
         let prefs = UserDefaults.standard
+        prefs.register(defaults: ["showQuickImporter": true])
         if let configURL = Bundle.main.url(forResource: "backend-config", withExtension: "json"),
            let data = try? Data(contentsOf: configURL), let config = try? JSONDecoder().decode(BackendConfiguration.self, from: data) {
             python = config.python
@@ -113,7 +117,8 @@ struct DraftUnit: Identifiable, Equatable {
         guard !busy else { return }
         UserDefaults.standard.set(captureRoot, forKey: "captureRoot")
         operation("Actualizando bibliotecas de Stalker") {
-            _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot), "clipper_executable": .string(self.clipperExecutable)])
+            _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot),
+                "clipper_executable": .string(self.clipperExecutable), "retain_stalker_source": .bool(self.retainStalkerSource)])
         }
     }
     func captureChanged(_ paths: [String]) {
@@ -163,6 +168,7 @@ struct DraftUnit: Identifiable, Equatable {
             releaseHistory = try await client.call("release_plans").array
             let integrations = try await client.call("integration_settings")
             clipperExecutable = integrations["clipper_executable"].string
+            retainStalkerSource = integrations["retain_stalker_source"].bool
             if loadDefaults {
                 if !integrations["capture_override"].string.isEmpty { captureRoot = integrations["capture_override"].string }
                 else if !captureRoot.isEmpty { _ = try await client.call("integration_settings", ["capture_override": .string(captureRoot)]) }
@@ -234,6 +240,7 @@ struct DraftUnit: Identifiable, Equatable {
                 unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
                 unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
                 unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
+                unit.manifestPreviewPath = value["preview_path"].string
                 return unit
             }
             loadedSourceKey = key; plan = nil
@@ -263,6 +270,10 @@ struct DraftUnit: Identifiable, Equatable {
     func prepareSource(_ path: String, kind: String) {
         sourceKind = kind; cleanup = kind == "card"; source = path; selectedTab = 0; plan = nil
         if kind == "stalker" { project = "" }
+    }
+    func prepareCaptureBatch(_ root: String) {
+        prepareSource(root, kind: "stalker")
+        changeMode?(.selection)
     }
     func requestPlan() {
         if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
@@ -311,6 +322,11 @@ struct DraftUnit: Identifiable, Equatable {
             }
             let result = try await self.client!.call("apply", ["plan": reviewed, "digest": reviewed["digest"]])
             self.message = self.stateLabel(result["state"].string)
+            let release = result["stalker_release"]
+            if release["status"].string == "retained" || release["status"].string == "partial" {
+                let reasons = release["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
+                self.error = "Respaldo verificado; se conservó el original Stalker. " + reasons.joined(separator: " · ")
+            }
             if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
             _ = try await self.client!.call("defaults", ["project": .string(self.project), "profile": .string(self.profile),
                 "country": .string(self.country), "city": .string(self.city), "archive": .string(self.archive), "work": .string(self.work)])
@@ -323,9 +339,9 @@ struct DraftUnit: Identifiable, Equatable {
         case "copying": return "Copiando y verificando destinos"
         case "backup_verified": return "Archivo verificado"
         case "cleaning_source": return "Limpiando SD"
-        case "completed": return "Respaldo verificado · SD libre"
+        case "completed": return sourceKind == "stalker" ? "Respaldo verificado · original Stalker liberado" : "Respaldo verificado · SD libre"
         case "camera_action_required": return "Respaldo verificado · libera la tarjeta desde la cámara"
-        case "source_retained": return "Respaldo verificado · origen conservado"
+        case "source_retained": return sourceKind == "stalker" ? "Respaldo verificado · original Stalker conservado" : "Respaldo verificado · origen conservado"
         case "source_has_new_material": return "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados"
         case "paused": return "Pausado; se puede reanudar"
         case "failed": return "Fallo; revisa el job antes de reanudar"
@@ -335,6 +351,9 @@ struct DraftUnit: Identifiable, Equatable {
     func progressLabel(_ job: JSONValue) -> String {
         // Real bytes from Transfer.report; never an invented percentage.
         let p = job["progress"], gb = { (bytes: Double) in String(format: "%.1f", bytes / 1e9) }
+        if p["phase"].string == "releasing_stalker" {
+            return "Revisando Clipper y liberando sesiones Stalker \(Int(p["sessions_done"].double))/\(Int(p["sessions_total"].double))"
+        }
         guard p["bytes_total"].double > 0 else { return stateLabel(job["state"].string) }
         let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
         let files = " · \(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos"
@@ -346,6 +365,10 @@ struct DraftUnit: Identifiable, Equatable {
         }
     }
     func jobLabel(_ job: JSONValue) -> String {
+        if job["source_kind"].string == "stalker" {
+            if job["state"].string == "completed" { return "Respaldo verificado · original Stalker liberado" }
+            if job["state"].string == "source_retained" { return "Respaldo verificado · original Stalker conservado" }
+        }
         // Cards holding Stalker bundles end camera_action_required without any camera step.
         if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "files" {
             return "Respaldo verificado · las sesiones Stalker se conservan en el origen"
@@ -354,6 +377,10 @@ struct DraftUnit: Identifiable, Equatable {
             return "Respaldo verificado · clips borrados de la SD · formatéala en la cámara"
         }
         return stateLabel(job["state"].string)
+    }
+    func jobDetail(_ job: JSONValue) -> String {
+        let reasons = job["stalker_release"]["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
+        return reasons.isEmpty ? job["id"].string : reasons.joined(separator: " · ")
     }
     func useCard(_ path: String) {
         source = path; units = []; plan = nil; project = ""; selectedTab = 0
@@ -470,6 +497,7 @@ struct MainView: View {
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
         }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaInset(edge: .bottom, spacing: 0) { MainActionFooter(model: model) }
     }
     var ingest: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -523,25 +551,19 @@ struct MainView: View {
         VStack(alignment: .leading) {
             if !model.pendingCaptures.isEmpty {
                 HStack {
-                    Text("\(model.pendingCaptures.count) capturas Stalker terminadas pendientes")
-                    Button("Preparar archivo de capturas") { model.selectedTab = 0; model.source = model.captureRoots.first ?? model.captureRoot; model.sourceKind = "stalker"; model.cleanup = false; model.plan = nil }
+                    Text("\(model.pendingCaptures.count) sesiones Stalker pendientes")
+                    Spacer()
+                    Button("Preparar desde Bandeja") { model.selectedTab = 4 }
                 }
             }
             List(model.assets, id: \.["id"].string, selection: $model.selected) { asset in
                 HStack { Text(asset["project"].string); Text(asset["profile"].string).foregroundStyle(.secondary); Spacer(); Text(model.kindLabel(asset["kind"].string)); Text(model.workLabel(asset["work_delivery_status"].string)) }.tag(asset["id"].string)
-            }.modifier(CreatorListSurface())
-            HStack {
-                volumePicker("SSD", role: "work", selection: $model.work)
-                Button("Copiar selección al SSD") { model.deliver() }.disabled(model.selected.isEmpty || model.work.isEmpty)
-                Button("Omitir copias para editar") { model.skip() }.disabled(model.selected.isEmpty)
-                Button("Restaurar…") { model.restoreSelected() }.disabled(model.selected.count != 1)
-                Button("Exportar selección…") { model.exportHandoff() }.disabled(model.selected.isEmpty)
-            }
+            }.modifier(CreatorListSurface()).frame(maxHeight: .infinity)
         }.padding(.top).disabled(model.busy)
     }
     var activity: some View {
         List(model.jobs, id: \.["id"].string) { job in
-            HStack { JobStatusIcon(state: job["state"].string); VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
+            HStack { JobStatusIcon(state: job["state"].string); VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(model.jobDetail(job)).font(.caption).foregroundStyle(.secondary).lineLimit(2) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) || job["state"].string == "source_retained" && job["release_stalker_source"].bool { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
                 if job["state"].string == "camera_action_required" && ["camera_action_required", "sony_clips_then_format"].contains(job["cleanup_profile"].string) { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
         }.modifier(CreatorListSurface()).padding(.top)
     }

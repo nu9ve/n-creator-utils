@@ -95,11 +95,6 @@ struct StorageView: View {
                 }
                 HStack { TextField("Carpeta relativa del proyecto en el SSD", text: $model.auditPath); Button("Elegir carpeta…") { model.chooseAuditFolder() } }
                 TextField("Proyecto que vas a liberar", text: $model.releaseProject)
-                HStack {
-                    Button("Auditar contenido") { model.auditStorage() }.disabled(model.work.isEmpty || model.archive.isEmpty)
-                    Button("Preparar respaldo de esta carpeta") { model.archiveAuditFolder() }.disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty)
-                    Button("Revisar liberar trabajo") { model.prepareWorkRelease() }.disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty || model.archive.isEmpty || model.work.isEmpty)
-                }
                 if let report = model.coverageResult {
                     Text("Cubiertos: \(Int(report["totals"]["in_archive"]["files"].double)) · sólo trabajo: \(Int(report["totals"]["only_work"]["files"].double))").font(.headline)
                     Text(report["report"].string).font(.caption).textSelection(.enabled)
@@ -120,14 +115,6 @@ struct StorageView: View {
                         ForEach(Array(plan["entries"].array.enumerated()), id: \.offset) { _, entry in Text(entry["path"].string + " → " + entry["archive_path"].string).font(.caption).textSelection(.enabled) }
                         ForEach(Array(plan["preserved"].array.enumerated()), id: \.offset) { _, value in Text("Conservar: " + value.string).font(.caption) }
                     }
-                    if plan["state"].string != "completed" {
-                        Button("Actualizar dependencias del plan") { model.reviewRelease() }
-                        if !plan["consumers"]["relinks"].array.isEmpty {
-                            Button("Reenlazar Clipper al destino verificado") { model.relinkRelease() }.disabled(!plan["consumers"]["blockers"].array.isEmpty)
-                        }
-                        Button("Liberar copias del plan…", role: .destructive) { confirmRelease = true }
-                            .disabled(!plan["consumers"]["blockers"].array.isEmpty || !plan["consumers"]["relinks"].array.isEmpty)
-                    }
                 }
                 if !model.releaseHistory.isEmpty {
                     DisclosureGroup("Planes de liberación guardados / reanudar") {
@@ -135,10 +122,33 @@ struct StorageView: View {
                     }
                 }
                 Divider()
-                Button("Respaldar catálogo completo y perfiles en MEDIA") { model.backupMetadata() }.disabled(model.archive.isEmpty)
                 Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
             }.padding(.vertical, 8)
-        }.disabled(model.busy)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ActionFooter {
+                if let plan = model.releasePlan, plan["state"].string != "completed" {
+                    Button("Actualizar dependencias") { model.reviewRelease() }.disabled(model.busy)
+                    if !plan["consumers"]["relinks"].array.isEmpty {
+                        Button("Reenlazar Clipper") { model.relinkRelease() }
+                            .disabled(!plan["consumers"]["blockers"].array.isEmpty || model.busy)
+                    }
+                    Spacer(minLength: 0)
+                    Button("Liberar copias del plan…", role: .destructive) { confirmRelease = true }
+                        .buttonStyle(CreatorButtonStyle(prominent: true))
+                        .disabled(!plan["consumers"]["blockers"].array.isEmpty || !plan["consumers"]["relinks"].array.isEmpty || model.busy)
+                } else {
+                    Button("Auditar") { model.auditStorage() }.disabled(model.work.isEmpty || model.archive.isEmpty || model.busy)
+                    Button("Preparar respaldo") { model.archiveAuditFolder() }.disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty || model.busy)
+                    Button("Respaldar catálogo") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
+                    Spacer(minLength: 0)
+                    Button("Revisar liberar trabajo") { model.prepareWorkRelease() }
+                        .buttonStyle(CreatorButtonStyle(prominent: true))
+                        .disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty || model.archive.isEmpty || model.work.isEmpty || model.busy)
+                }
+            }
+        }
+        .disabled(model.busy)
         .confirmationDialog("¿Retirar las copias locales del plan revisado?", isPresented: $confirmRelease) {
             Button("Liberar espacio", role: .destructive) { model.applyRelease() }
         } message: { Text("Se retirarán sólo los archivos mostrados, tras verificar MEDIA y volver a consultar Clipper. MEDIA puede quedar como única réplica. Esta acción no se deshace desde nüün.") }

@@ -128,6 +128,9 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
     require(source_kind in {'card', 'stalker', 'delivery'}, 'invalid_source_kind', 'Invalid source kind')
     require(isinstance(cleanup, bool), 'invalid_policy', 'cleanup must be boolean')
     require(not cleanup or source_kind == 'card', 'cleanup_not_supported', 'Only card sources support automatic cleanup')
+    retain_stalker_source = catalog.get('retain-stalker-source', False)
+    require(isinstance(retain_stalker_source, bool), 'invalid_policy', 'Invalid Stalker source retention setting')
+    release_stalker_source = source_kind == 'stalker' and not retain_stalker_source
     project, profile = slug(project), slug(profile)
     country, city = slug(country), slug(city)
     require(camera is None or camera in CAMERAS, 'invalid_camera', 'Unknown camera category')
@@ -206,6 +209,7 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
             'source_kind': source_kind, 'archive_id': archive_record['id'], 'work_id': active_work['id'] if active_work else None,
             'expected_work_id': expected_work, 'archive_only_confirmed': archive_only and confirm_archive_only,
             'work_delivery_status': work_decision, 'cleanup': cleanup, 'country': country, 'city': city,
+            'release_stalker_source': release_stalker_source,
             'media_date': timestamp.strftime('%Y/%m'), 'source_name': relative(source.name),
             'files': files, 'units': units, 'bundles': bundles, 'skipped': skipped}
     configured = catalog.get('creative-profiles', {})
@@ -259,6 +263,11 @@ def validate_plan(plan):
         require(isinstance(plan['cleanup'], bool), 'invalid_plan', 'Invalid cleanup policy')
         require(plan['source_kind'] in {'card', 'stalker', 'delivery'}, 'invalid_plan', 'Invalid source type')
         require(not plan['cleanup'] or plan['source_kind'] == 'card', 'invalid_plan', 'Only cards may be cleaned')
+        release_stalker_source = plan.get('release_stalker_source', False)
+        require(isinstance(release_stalker_source, bool)
+                and (not release_stalker_source or plan['source_kind'] == 'stalker'
+                     and any(unit['kind'] == 'stalker_session' for unit in plan['units'])),
+                'invalid_plan', 'Invalid Stalker release policy')
         relative(plan['media_date']); relative(plan['source_name'])
         require('/' not in plan['source_name'], 'invalid_plan', 'Source name must be one component')
         ids = {u['id']: u for u in plan['units']}

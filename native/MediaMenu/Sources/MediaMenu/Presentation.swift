@@ -77,14 +77,18 @@ struct ProfilePicker: View {
 struct ProjectSuggestions: View {
     @ObservedObject var model: Model
     var body: some View {
-        HStack {
-            if !model.lastProject.isEmpty { Button("Último: " + model.lastProject) { model.project = model.lastProject } }
-            Menu("Proyectos recientes") {
-                ForEach(Array(model.recentProjects.prefix(15)), id: \.["project_id"].string) { value in
-                    Button(value["project"].string + " · " + value["profile"].string) { model.project = value["project"].string; model.selectProfile(value["profile"].string) }
+        if model.sourceKind == "stalker" {
+            RecentProjectChips(projects: model.recentProjects, selection: $model.project)
+        } else {
+            HStack {
+                if !model.lastProject.isEmpty { Button("Último: " + model.lastProject) { model.project = model.lastProject } }
+                Menu("Proyectos recientes") {
+                    ForEach(Array(model.recentProjects.prefix(15)), id: \.["project_id"].string) { value in
+                        Button(value["project"].string + " · " + value["profile"].string) { model.project = value["project"].string; model.selectProfile(value["profile"].string) }
+                    }
                 }
-            }
-        }.font(.caption)
+            }.font(.caption)
+        }
     }
 }
 
@@ -136,7 +140,11 @@ struct PlanReview: View {
             if let plan = model.plan {
                 Label("Plan revisable · \(plan["files"].array.count) archivos", systemImage: "checklist").font(.headline)
                 Text(plan["work_id"] == .null ? "Sólo respaldo · " + model.workLabel(plan["work_delivery_status"].string) : "Respaldo y copias para editar verificadas antes de limpiar").font(.caption)
-                Text(!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Después de verificar se borran los clips; termina con formato en cámara." : "La SD se limpiará después de verificar.").font(.caption)
+                Text(plan["source_kind"].string == "stalker"
+                     ? (plan["release_stalker_source"].bool
+                        ? "Después de verificar, se revisa Clipper y se libera el original Stalker. Si la revisión o el reenlace fallan, se conserva."
+                        : "El original Stalker se conservará según Ajustes.")
+                     : (!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Después de verificar se borran los clips; termina con formato en cámara." : "La SD se limpiará después de verificar.")).font(.caption)
                 DisclosureGroup("Rutas definitivas por archivo") {
                     ScrollView { LazyVStack(alignment: .leading, spacing: 8) {
                         ForEach(Array(plan["preview"].array.enumerated()), id: \.offset) { _, row in
@@ -144,13 +152,99 @@ struct PlanReview: View {
                         }
                     } }.frame(maxHeight: 110)
                 }
-                Button { model.apply() } label: { Label("Ejecutar plan revisado", systemImage: "arrow.right.circle.fill") }.buttonStyle(CreatorButtonStyle(prominent: true))
             } else {
-                Button { model.requestPlan() } label: { Label("Revisar plan", systemImage: "checklist") }
-                    .buttonStyle(CreatorButtonStyle(prominent: true))
-                    .disabled(model.source.isEmpty || (model.project.isEmpty && (model.units.isEmpty || model.units.contains { $0.project.isEmpty })) || model.archive.isEmpty || model.discoveryLoading || (model.copyChoice == "some" && model.units.isEmpty))
+                Text("Asigna proyecto, revisa las rutas y prepara un plan antes de copiar.").font(.caption).foregroundStyle(.secondary)
             }
         }.disabled(model.busy)
+    }
+}
+
+struct PlanAction: View {
+    @ObservedObject var model: Model
+    private var canRequestPlan: Bool {
+        !model.source.isEmpty
+            && !(model.project.isEmpty && (model.units.isEmpty || model.units.contains { $0.project.isEmpty }))
+            && !model.archive.isEmpty && !model.discoveryLoading
+            && !(model.copyChoice == "some" && model.units.isEmpty)
+    }
+    var body: some View {
+        if model.plan != nil {
+            Button { model.apply() } label: { Label("Ejecutar plan revisado", systemImage: "arrow.right.circle.fill") }
+                .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy)
+        } else {
+            Button { model.requestPlan() } label: { Label("Revisar plan", systemImage: "checklist") }
+                .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || !canRequestPlan)
+        }
+    }
+}
+
+struct ActionFooter<Content: View>: View {
+    @Environment(\.creatorPalette) private var palette
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View {
+        HStack(spacing: 9) { content }
+            .padding(.horizontal, 20).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(palette.canvas.opacity(0.98))
+            .overlay(alignment: .top) { Rectangle().fill(palette.border.opacity(0.8)).frame(height: 1) }
+    }
+}
+
+struct MainActionFooter: View {
+    @ObservedObject var model: Model
+    private var pendingRoots: [(String, Int)] {
+        model.captureRoots.compactMap { root in
+            let count = model.pendingCaptures.filter { $0["root"].string == root }.count
+            return count > 0 ? (root, count) : nil
+        }
+    }
+    @ViewBuilder var body: some View {
+        if [0, 1, 2, 4].contains(model.selectedTab) {
+          ActionFooter {
+            switch model.selectedTab {
+            case 0:
+                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                Spacer(minLength: 0)
+                PlanAction(model: model)
+            case 1:
+                Picker("SSD", selection: $model.work) {
+                    Text("Sin SSD").tag("")
+                    ForEach(model.volumes.filter { $0["role"].string == "work" }, id: \.["id"].string) { value in
+                        Text(value["name"].string + (value["online"].bool ? "" : " · desconectado")).tag(value["id"].string)
+                    }
+                }.frame(maxWidth: 190)
+                Button("Omitir copias") { model.skip() }.disabled(model.selected.isEmpty || model.busy)
+                Button("Restaurar…") { model.restoreSelected() }.disabled(model.selected.count != 1 || model.busy)
+                Button("Exportar selección…") { model.exportHandoff() }.disabled(model.selected.isEmpty || model.busy)
+                Spacer(minLength: 0)
+                Button("Copiar al SSD", systemImage: "externaldrive.badge.plus") { model.deliver() }
+                    .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.selected.isEmpty || model.work.isEmpty || model.busy)
+            case 2:
+                Button("Actualizar actividad") { Task { await model.refresh() } }.disabled(model.busy)
+                Spacer(minLength: 0)
+                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+            case 4:
+                Button("Actualizar capturas") { model.captureChanged([]) }.disabled(model.busy)
+                Spacer(minLength: 0)
+                if pendingRoots.count == 1, let root = pendingRoots.first {
+                    Button("Preparar lote · \(root.1)", systemImage: "record.circle") { model.prepareCaptureBatch(root.0) }
+                        .buttonStyle(CreatorButtonStyle(prominent: true))
+                } else if !pendingRoots.isEmpty {
+                    Menu {
+                        ForEach(pendingRoots, id: \.0) { item in
+                            Button(URL(fileURLWithPath: item.0).lastPathComponent + " · \(item.1) sesiones") { model.prepareCaptureBatch(item.0) }
+                        }
+                    } label: { Label("Preparar lote · \(model.pendingCaptures.count)", systemImage: "record.circle") }
+                        .buttonStyle(CreatorButtonStyle(prominent: true))
+                } else {
+                    Button("Elegir fuente…") { model.selectedTab = 0; model.chooseSource() }
+                }
+            default:
+                EmptyView()
+            }
+        }
+        }
     }
 }
 
@@ -164,7 +258,8 @@ struct ImporterSurface: View {
             }
             HStack { Text(URL(fileURLWithPath: model.source).lastPathComponent).font(.caption); Spacer(); Button("Elegir fuente…") { model.chooseSource() } }
             SourceKindBadges(model: model)
-            TextField("Nombre del proyecto", text: $model.project)
+            TextField(model.sourceKind == "stalker" ? "Proyecto del lote" : "Nombre del proyecto", text: $model.project)
+                .frame(maxWidth: model.sourceKind == "stalker" ? 300 : .infinity, alignment: .leading)
             ProjectSuggestions(model: model)
             HStack { ProfilePicker(model: model); Spacer(); Text(model.volumes.first { $0["id"].string == model.archive }?["name"].string ?? "Sin disco de respaldo").font(.caption) }
             EditingChoice(model: model, compact: model.presentation == .compact)
@@ -176,8 +271,14 @@ struct ImporterSurface: View {
             Text("Todo se respalda. La selección sólo cambia las copias para editar.").font(.caption).foregroundStyle(.secondary)
             if model.busy { HStack { ProgressView().controlSize(.small); Text(model.message).font(.caption); Button("Cancelar") { model.cancel() } } }
             if !model.error.isEmpty { Text(model.error).font(.caption).foregroundStyle(.red) }
-            PlanReview(model: model)
             if model.presentation == .compact { Spacer(minLength: 0) }
         }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                ActionFooter {
+                    if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                    Spacer(minLength: 0)
+                    PlanAction(model: model)
+                }
+            }
     }
 }

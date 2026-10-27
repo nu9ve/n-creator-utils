@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 import uuid
 
-from .common import digest, MediaError, content_stamp, read_json, require
+from .common import digest, MediaError, content_stamp, read_json, require, relative
+from .layout import stalker_facts
 
 
 def project_hint(manifest):
@@ -11,6 +12,30 @@ def project_hint(manifest):
     if not isinstance(value, dict) or value.get('version') != 1:
         return {}
     return {k: value[k] for k in ('name', 'country') if isinstance(value.get(k), str)}
+
+
+def preview_track_path(manifest):
+    """Return a safe, bundle-relative screen/video track for UI previews."""
+    tracks = manifest.get('tracks')
+    if not isinstance(tracks, list):
+        return ''
+    video_extensions = {'.mov', '.mp4', '.m4v', '.mts', '.m2ts', '.avi', '.mkv', '.webm'}
+    candidates = []
+    for track in tracks:
+        if not isinstance(track, dict):
+            continue
+        raw = track.get('relativePath')
+        if not isinstance(raw, str):
+            continue
+        try:
+            safe_path = relative(raw)
+        except MediaError:
+            continue
+        if Path(safe_path).suffix.lower() not in video_extensions:
+            continue
+        label = ' '.join([raw] + [str(track.get(key, '')) for key in ('name', 'title', 'role', 'kind', 'type', 'trackId', 'id')]).casefold()
+        candidates.append((0 if 'screen' in label or 'display' in label else 1, safe_path))
+    return min(candidates)[1] if candidates else ''
 
 
 def capture_libraries(catalog, override='', registry=None):
@@ -79,13 +104,30 @@ def captures(catalog, root, changed_paths=None):
         marker = folder / 'manifest.json'
         try:
             stamp = content_stamp(os.stat(marker, follow_symlinks=False))
-            if previous.get(raw, {}).get('stamp') == stamp and 'project_hint' in previous[raw]: continue
+            if (previous.get(raw, {}).get('stamp') == stamp
+                    and 'project_hint' in previous[raw]
+                    and 'preview_path' in previous[raw]
+                    and 'duration_seconds' in previous[raw]
+                    and 'created_at_local' in previous[raw]):
+                continue
             manifest = read_json(marker, 1024 * 1024)
             require(manifest.get('producer') == 'stalker' and manifest.get('schemaVersion') in {1, 2, 3}, 'invalid_bundle', 'Unsupported capture')
             sid = str(uuid.UUID(manifest['sessionID']))
+            facts = stalker_facts(manifest, os.stat(marker, follow_symlinks=False).st_mtime_ns)
+            preview_path = preview_track_path(manifest)
+            if preview_path:
+                candidate = folder
+                for component in preview_path.split('/'):
+                    candidate = candidate / component
+                    if candidate.is_symlink():
+                        preview_path = ''
+                        break
+                if preview_path and not candidate.is_file(): preview_path = ''
             previous[raw] = {'path': raw, 'session_id': sid, 'status': manifest.get('status'), 'manifest_digest': digest(manifest), 'stamp': stamp,
                              'project_hint': project_hint(manifest), 'created_at': manifest.get('createdAt'),
-                             'track_count': len(manifest.get('tracks') or [])}
+                             'created_at_local': facts['created'].isoformat(timespec='minutes'),
+                             'track_count': len(manifest.get('tracks') or []), 'duration_seconds': facts.get('seconds'),
+                             'preview_path': preview_path}
         except (OSError, ValueError, KeyError, TypeError, MediaError):
             previous[raw] = {'path': raw, 'status': 'needs_review'}
     if previous != catalog.get(key, {}): catalog.set(key, previous)

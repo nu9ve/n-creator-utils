@@ -206,10 +206,59 @@ class CaptureWorkflowTests(WorkflowFixture):
         root = root or self.source
         folder = root / (str(uuid.uuid4()) + '.stalker'); folder.mkdir()
         data = {'producer': 'stalker', 'schemaVersion': 3, 'status': status, 'sessionID': str(uuid.uuid4()).upper(),
-                'createdAt': '2026-10-26T13:00:00Z', 'tracks': [{'relativePath': 'screen.mov'}]}
+                'createdAt': '2026-10-26T13:00:00Z', 'duration': {'value': 90, 'timescale': 1},
+                'tracks': [{'relativePath': 'screen.mov', 'name': 'screen'}]}
         if project is not None: data['project'] = project
         (folder / 'manifest.json').write_text(json.dumps(data)); (folder / 'screen.mov').write_bytes(b'screen')
         return folder, data
+
+    def test_stalker_ingest_releases_local_bundle_after_verified_backup(self):
+        folder, _ = self.session()
+        plan = self.plan(source=str(self.source), source_kind='stalker', cleanup=False)
+        self.assertTrue(plan['release_stalker_source'])
+        with mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps()):
+            result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
+        self.assertEqual(result['state'], 'completed')
+        self.assertEqual(result['stalker_release']['status'], 'released')
+        self.assertFalse(folder.exists())
+        self.assertTrue(any(self.archive.rglob('manifest.json')))
+        self.assertEqual(self.catalog.job(plan['id'])['stalker_release']['status'], 'released')
+
+    def test_stalker_batch_releases_each_bundle_after_shared_ingest(self):
+        folders = [self.session(), self.session()]
+        assignments = {}
+        for index, (folder, _) in enumerate(folders):
+            for member in folder.rglob('*'):
+                if member.is_file():
+                    assignments[member.relative_to(self.source).as_posix()] = {'project': f'project-{index}'}
+        plan = self.plan(source=str(self.source), source_kind='stalker', cleanup=False, assignments=assignments)
+        self.assertEqual(len([unit for unit in plan['units'] if unit['kind'] == 'stalker_session']), 2)
+        with mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps()):
+            result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
+        self.assertEqual(result['state'], 'completed')
+        self.assertEqual(len(result['stalker_release']['released']), 2)
+        self.assertTrue(all(not folder.exists() for folder, _ in folders))
+
+    def test_stalker_setting_or_clipper_blocker_preserves_original(self):
+        folder, _ = self.session()
+        service = Service(self.catalog, self.backend)
+        settings = service.call('integration_settings', {'retain_stalker_source': True})
+        self.assertTrue(settings['retain_stalker_source'])
+        retained_plan = self.plan(source=str(self.source), source_kind='stalker', cleanup=False)
+        self.assertFalse(retained_plan['release_stalker_source'])
+        retained = service.call('apply', {'plan': retained_plan, 'digest': retained_plan['digest']})
+        self.assertEqual(retained['state'], 'source_retained')
+        self.assertTrue(folder.exists())
+
+        other, _ = self.session()
+        service.call('integration_settings', {'retain_stalker_source': False})
+        release_plan = self.plan(source=str(self.source), project='second', source_kind='stalker', cleanup=False)
+        with mock.patch('media.clipper.dependencies', side_effect=MediaError('clipper_unavailable', 'Clipper offline')):
+            blocked = service.call('apply', {'plan': release_plan, 'digest': release_plan['digest']})
+        self.assertEqual(blocked['state'], 'source_retained')
+        self.assertEqual(blocked['stalker_release']['status'], 'retained')
+        self.assertIn('Clipper offline', blocked['stalker_release']['retained'][0]['reason'])
+        self.assertTrue(folder.exists()); self.assertTrue(other.exists())
 
     def test_registry_current_previous_override_and_missing_paths(self):
         current = self.root / 'new'; current.mkdir()
@@ -225,6 +274,19 @@ class CaptureWorkflowTests(WorkflowFixture):
         self.assertTrue(result['errors'])
         self.assertEqual(next(s for s in result['pending'] if s['path'] == str(one))['project_hint']['name'], 'one')
         self.assertNotIn('name', next(s for s in result['pending'] if s['path'] == str(two))['project_hint'])
+
+    def test_capture_inbox_indexes_screen_preview_and_duration_safely(self):
+        folder, manifest = self.session()
+        manifest['tracks'] = [
+            {'relativePath': '../outside.mov', 'name': 'screen'},
+            {'relativePath': 'screen.mov', 'name': 'screen'},
+        ]
+        (folder / 'manifest.json').write_text(json.dumps(manifest))
+        from media.captures import captures
+        value = captures(self.catalog, self.source)['pending'][0]
+        self.assertEqual(value['preview_path'], 'screen.mov')
+        self.assertEqual(value['duration_seconds'], 90)
+        self.assertRegex(value['created_at_local'], r'^\d{4}-\d\d-\d\dT\d\d:\d\d[+-]\d\d:\d\d$')
 
     def test_suggestions_are_explicit_tags_survive_rename_and_manifest_untouched(self):
         folder, manifest = self.session(project={'version': 1, 'name': 'proposed', 'country': 'us'})

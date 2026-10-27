@@ -1,6 +1,6 @@
 # Compact project context
 
-Snapshot: 2026-10-26, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
+Snapshot: 2026-10-27, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
 
 ## Product and user workflow
 
@@ -17,7 +17,7 @@ Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_pr
 - No registered archive/work destination online: SD insertion is silent, with no deep automatic scan. Manual inspect is still allowed.
 - A completed backup, work readiness, publication and source readiness are different states. Never infer two replicas from two folders on one physical disk.
 - Sony (`sony_clips_then_format`): after verification the engine removes clips, thumbnails and DCIM stills from the card but never its indexes (`AVF_INFO`, `PRIVATE/SONY`, `M4ROOT` databases, AVCHD index); the job ends `camera_action_required` until the camera format, confirmed by `confirm-cleanup` (indexes must have been rewritten). DJI drone/360/action ambiguity requires an explicit category. No persistent device/model registry yet.
-- Stalker must be completed; originals/raw microphone/events stay together. Work with active recording must not copy an incomplete session. Ingest does not rewrite Clipper references. A separate reviewed release may ask Clipper CLI to relink to a verified copy, require its ACK and recheck dependencies before removing original/work raws. Full SQLite snapshots protect human metadata. [Workflow and limits](operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
+- Stalker must be completed; originals/raw microphone/events stay together. Work with active recording must not copy an incomplete session. A reviewed ingest plan verifies required archive/work copies, then defaults to a journaled local release in the same apply flow; it asks Clipper CLI to relink to a verified copy, checks ACK/dependencies and retains the source if any gate fails. Ajustes → Capturas can opt out and keep the original for later release in Espacio. Full SQLite snapshots protect human metadata. [Workflow and limits](operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
 - No silent media staging on the internal drive. Local catalog/journal metadata is expected; local media destinations require explicit registration/choice.
 
 ## Code map

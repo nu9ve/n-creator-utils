@@ -3,7 +3,7 @@ from pathlib import Path
 import uuid
 
 from .catalog import Catalog
-from .common import require, relative
+from .common import MediaError, require, relative
 from .library import deliver_work, handoff, relayout, resolve, restore, set_work_state, sources, projects
 from .planner import build_plan
 from .transfer import Transfer
@@ -35,10 +35,15 @@ class Service:
             return save_capture_tag(self.catalog, **params)
         if method == 'integration_settings':
             if params:
-                require(not set(params) - {'clipper_executable', 'capture_override'} and all(isinstance(v, str) for v in params.values()), 'invalid_settings', 'Invalid integration settings')
+                allowed = {'clipper_executable', 'capture_override', 'retain_stalker_source'}
+                require(not set(params) - allowed
+                        and all(isinstance(v, str) for key, v in params.items() if key != 'retain_stalker_source')
+                        and ('retain_stalker_source' not in params or isinstance(params['retain_stalker_source'], bool)),
+                        'invalid_settings', 'Invalid integration settings')
                 with self.catalog.writer():
                     for key, value in params.items(): self.catalog.set(key.replace('_', '-'), value)
-            return {key: self.catalog.get(key.replace('_', '-'), '') for key in ('clipper_executable', 'capture_override')}
+            return {**{key: self.catalog.get(key.replace('_', '-'), '') for key in ('clipper_executable', 'capture_override')},
+                    'retain_stalker_source': self.catalog.get('retain-stalker-source', False)}
         if method == 'backup_metadata':
             from .metadata_backup import backup_metadata
             return backup_metadata(self.catalog, self.backend, params['archive'], self.cancel)
@@ -78,11 +83,14 @@ class Service:
                 bundle = members[0]['bundle']
                 metadata = {}
                 if bundle is not None:
-                    from .captures import project_hint
+                    from .captures import project_hint, preview_track_path
                     manifest = read_json(Path(params['source']) / ('' if bundle == '.' else bundle) / 'manifest.json', 1024 * 1024)
                     facts = stalker_facts(manifest, min(f['stamp']['mtime_ns'] for f in members))
+                    track_preview = preview_track_path(manifest)
+                    preview_path = ('' if bundle == '.' else bundle + '/') + track_preview if track_preview else ''
                     metadata = {'session_id': manifest['sessionID'], 'created_at': facts['created'].isoformat(),
                                 'duration_seconds': facts.get('seconds'), 'track_count': len(manifest.get('tracks', [])),
+                                'preview_path': preview_path,
                                 'project_hint': project_hint(manifest),
                                 'tag': self.catalog.get('capture-tag:' + str(uuid.UUID(manifest['sessionID'])), {})}
                 units.append({'id': key, 'paths': [f['path'] for f in members],
@@ -94,21 +102,14 @@ class Service:
         if method == 'plan':
             return build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
         if method == 'apply':
-            result = Transfer(self.catalog, self.backend, self.cancel).apply(params['plan'], params['digest'])
-            # A metadata-backup failure must not hide a successfully completed ingest.
-            try:
-                from .metadata_backup import backup_metadata
-                result['metadata_backup'] = backup_metadata(self.catalog, self.backend, params['plan']['archive_id'], self.cancel)
-            except (OSError, RuntimeError) as error:
-                result['metadata_backup_error'] = str(error)
-            return result
+            return self._apply_ingest(params['plan'], params['digest'])
         if method == 'recover_catalog':
             from .recovery import recover_catalog
             return recover_catalog(self.catalog, self.backend, params['volume'])
         if method == 'resume':
             job = self.catalog.job(params['job_id'])
             require(job['state'] != 'recovered', 'source_not_resumable', 'Recovered archive jobs are read-only; use restore or deliver-work')
-            return Transfer(self.catalog, self.backend, self.cancel).apply(job['plan'], job['digest'])
+            return self._apply_ingest(job['plan'], job['digest'])
         if method == 'jobs':
             return self.catalog.jobs()
         if method == 'job':
@@ -170,3 +171,95 @@ class Service:
             is_card = info['external'] and info['mount'] == str(root) and info['removable']
             return {'show': is_card, 'reason': 'card' if is_card else 'not_a_card', 'pending_work': pending}
         require(False, 'unknown_method', 'Unknown media service method: ' + str(method))
+
+    def _apply_ingest(self, plan, reviewed_digest):
+        result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
+        release_summary = None
+        if plan.get('release_stalker_source') and result['state'] in {'source_retained', 'completed'}:
+            release_summary = self._release_stalker_sources(plan)
+            self.catalog.set('stalker-release:' + plan['id'], release_summary)
+            result = self.catalog.job(plan['id'])
+            result['stalker_release'] = release_summary
+        # A metadata-backup failure must not hide a successfully completed ingest.
+        if not (release_summary and release_summary['released']):
+            try:
+                from .metadata_backup import backup_metadata
+                result['metadata_backup'] = backup_metadata(self.catalog, self.backend, plan['archive_id'], self.cancel)
+            except (OSError, RuntimeError) as error:
+                result['metadata_backup_error'] = str(error)
+        return result
+
+    def _release_stalker_sources(self, ingest_plan):
+        """Release Stalker bundles after receipts exist; resume journaled releases on retry."""
+        from .release import apply_release, plan_release, release_plans, relink_release, review_release
+
+        units = [unit for unit in ingest_plan['units'] if unit.get('kind') == 'stalker_session']
+        summary = {'status': 'released', 'released': [], 'retained': []}
+        self.catalog.set('progress:' + ingest_plan['id'], {
+            'job_id': ingest_plan['id'], 'phase': 'releasing_stalker',
+            'sessions_total': len(units), 'sessions_done': 0,
+        })
+        for index, unit in enumerate(units):
+            source = Path(ingest_plan['source']).expanduser().absolute()
+            if unit.get('bundle') and unit['bundle'] != '.':
+                source = source / unit['bundle']
+            project = unit.get('project') or 'Stalker'
+            try:
+                prior = next((candidate for candidate in reversed(release_plans(self.catalog))
+                              if candidate.get('auto_ingest_job_id') == ingest_plan['id']
+                              and candidate.get('capture_manifest_digest') == unit.get('capture_manifest_digest')
+                              and candidate.get('archive_id') == ingest_plan['archive_id']), None)
+                if prior and prior.get('state') == 'completed':
+                    summary['released'].append({'session_id': unit.get('session_id'), 'path': str(source)})
+                    release_plan = None
+                elif prior:
+                    release_plan = review_release(self.catalog, self.backend, prior['id'], prior['digest'])
+                else:
+                    release_plan = plan_release(
+                        self.catalog, self.backend, ingest_plan['archive_id'], source=str(source),
+                        project=project, cancel=self.cancel, auto_ingest_job_id=ingest_plan['id'])
+            except MediaError as error:
+                summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source), 'reason': str(error)})
+                release_plan = None
+
+            try:
+                if release_plan is not None:
+                    consumers = release_plan.get('consumers') or {}
+                    if consumers.get('blockers'):
+                        summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
+                                                    'reason': '; '.join(consumers['blockers'])})
+                    elif consumers.get('relinks'):
+                        try:
+                            relink_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                        except MediaError as error:
+                            summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source), 'reason': str(error)})
+                        else:
+                            completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                            if completed.get('state') == 'completed':
+                                summary['released'].append({'session_id': unit.get('session_id'), 'path': str(source)})
+                            else:
+                                summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
+                                                            'reason': 'La liberación no terminó; el original se conserva para reintentar'})
+                    else:
+                        completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                        if completed.get('state') == 'completed':
+                            summary['released'].append({'session_id': unit.get('session_id'), 'path': str(source)})
+                        else:
+                            summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
+                                                        'reason': 'La liberación no terminó; el original se conserva para reintentar'})
+            finally:
+                self.catalog.set('progress:' + ingest_plan['id'], {
+                    'job_id': ingest_plan['id'], 'phase': 'releasing_stalker',
+                    'sessions_total': len(units), 'sessions_done': index + 1,
+                })
+        if summary['retained']:
+            summary['status'] = 'partial' if summary['released'] else 'retained'
+            self.catalog.state(ingest_plan['id'], 'source_retained')
+        else:
+            summary['status'] = 'released'
+            self.catalog.state(ingest_plan['id'], 'completed')
+        self.catalog.set('progress:' + ingest_plan['id'], {
+            'job_id': ingest_plan['id'], 'phase': 'stalker_release_done',
+            'sessions_total': len(units), 'sessions_done': len(units),
+        })
+        return summary

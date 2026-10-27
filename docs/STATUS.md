@@ -1,6 +1,18 @@
 # Implementation status
 
-Updated: 2026-10-26, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## UI follow-up · 2026-10-27 · code only
+
+Added an AVFoundation video thumbnail path that samples the midpoint, then samples one of six coarse positions when hovering; image thumbnails remain Quick Look and thumbnail concurrency/cache limits remain bounded. Stalker discovery now exposes the manifest's safe screen-video path, duration and local timestamp to the Inbox and ingest grid. Inbox rows show video preview/date/duration/track count, three recent project buttons are directly selectable, the library-level action prepares every pending session under that root in one reviewed plan, and the app has fixed contextual footers for Ingreso, Biblioteca, Actividad, Bandeja and Espacio. The compact/selection importer also pins its plan action in a footer. The mount-popup preference now defaults to enabled for new users; a saved user opt-out still wins.
+
+Checks at that point: **3/3 Stalker engine fixtures**, **9/9 capture workflow fixtures**, and **7/7 Swift tests/build** passed; `git diff --check` passed. The app was not launched or visually inspected, and no personal volumes/media were read, copied or removed. Visual acceptance of video thumbnails/hover and footers, and a real remount-popup check, remain pending. A batch is one library root per plan; separate Stalker roots still require separate plans.
+
+## Stalker backup + local release · 2026-10-27 · installed; visual acceptance pending
+
+`Ejecutar plan revisado` now owns the full Stalker flow: write/verify required MEDIA and optional ESSD copies, inspect Clipper, relink through its public CLI and validate ACK when needed, then run the catalog-recorded release journal for each local `.stalker` bundle. `Ajustes → Capturas → Conservar el original Stalker después del respaldo` defaults off; plans freeze this choice, and turning it on preserves originals for manual release later. Unknown dependencies, queued exports, unavailable Clipper or failed revalidation retain the source and report the reason. An interrupted per-session release resumes from the same recorded plan. This is a journaled workflow, not an ACID transaction across volumes, the catalog and Clipper. New fixture coverage is being added; app installation and focused checks remain pending.
+
+Evidence: **40/40 release/Clipper fixtures**, **64/64 media-engine fixtures**, **7/7 Swift tests**, `compileall` and `git diff --check` passed. The local development bundle `dist/Nu9veMedia-local-20261027-013555-3f10d1.app`, build ID **`ed53ad7dc3da`**, is installed at `~/Applications/nuun.app`. The installer preserved the previous build at `~/Library/Application Support/n-creator-utils/app-backups/3b71b831.app`. The app was not opened or visually inspected; no real volumes or media were accessed. This is not a production/release-ready build.
 
 ## Stalker / espacio · implementación 2026-10-26
 

@@ -93,17 +93,20 @@ def verify_replacements(catalog, backend, plan, cancel=None):
             require(checked_hash(tree, entry['path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Replacement work copy changed')
 
 
-def plan_release(catalog, backend, archive, work=None, path='', source=None, project='', cancel=None):
+def plan_release(catalog, backend, archive, work=None, path='', source=None, project='', cancel=None, auto_ingest_job_id=None):
     archive_record = catalog.volume(archive)
     require(archive_record['role'] == 'archive', 'invalid_role', 'Archive required')
     archive_info = backend.check(archive_record)
     require(bool(source) != bool(work), 'invalid_release', 'Choose one Stalker original or a work folder')
     require(isinstance(project, str) and project.strip(), 'invalid_release', 'Name the project being released')
+    capture_session_id = capture_manifest_digest = None
     if source:
         root = Path(source).expanduser().absolute()
         require(root.suffix.lower() == '.stalker', 'invalid_release', 'Local release only supports one completed Stalker bundle')
         manifest = read_json(root / 'manifest.json', 1024 * 1024)
         require(manifest.get('status') == 'completed' and manifest.get('producer') == 'stalker', 'active_capture', 'Only completed Stalker captures may be released')
+        capture_session_id = str(uuid.UUID(manifest['sessionID']))
+        capture_manifest_digest = digest(manifest)
         matches = catalog.db.execute('SELECT assets.payload FROM assets JOIN sessions ON sessions.asset_id=assets.id WHERE lower(sessions.session_id)=? AND sessions.manifest_digest=?',
                                      (str(uuid.UUID(manifest['sessionID'])), digest(manifest))).fetchall()
         require(matches, 'missing_receipt', 'Back up this exact Stalker revision before releasing it')
@@ -189,7 +192,8 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
     plan = {'schema': 'nu9ve-release/1', 'id': uid(), 'created_at': now(), 'archive_id': archive_record['id'],
             'source_root': str(source_root), 'source_identity': source_info, 'scope': scope, 'work_id': work_id,
             'project': project, 'entries': entries, 'preserved': preserved, 'replacements': replacements,
-            'replacement_checks': replacement_checks,
+            'replacement_checks': replacement_checks, 'capture_session_id': capture_session_id,
+            'capture_manifest_digest': capture_manifest_digest, 'auto_ingest_job_id': auto_ingest_job_id,
             'bytes': sum(e['stamp']['size'] for e in entries), 'consumers': consumers, 'state': 'review', 'cleaned': {}}
     plan['digest'] = digest(plan)
     with catalog.writer():
