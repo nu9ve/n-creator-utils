@@ -1,6 +1,15 @@
 import AppKit
 import SwiftUI
+import AVFoundation
 import QuickLookThumbnailing
+import MediaMenuCore
+
+func durationLabel(_ value: Double) -> String? {
+    guard value.isFinite, value > 0 else { return nil }
+    let seconds = Int(value.rounded())
+    let hours = seconds / 3600, minutes = (seconds % 3600) / 60, remainder = seconds % 60
+    return hours > 0 ? String(format: "%d:%02d:%02d", hours, minutes, remainder) : String(format: "%d:%02d", minutes, remainder)
+}
 
 actor ThumbnailLoader {
     static let shared = ThumbnailLoader()
@@ -8,10 +17,12 @@ actor ThumbnailLoader {
     private var active = 0
     private var waiting: [CheckedContinuation<Void, Never>] = []
     init() { cache.totalCostLimit = 24 * 1024 * 1024; cache.countLimit = 160 }
-    func load(_ url: URL) async -> Data? {
+    func load(_ url: URL, videoPosition: Double = 0.5) async -> Data? {
         let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
         let revision = "\(attributes?[.size] ?? 0)-\(attributes?[.modificationDate] ?? Date.distantPast)"
-        let key = (url.absoluteString + "#" + revision) as NSString
+        let isVideo = Self.isVideo(url)
+        let frame = isVideo ? Int(min(max(videoPosition, 0), 0.999) * 6) : -1
+        let key = (url.absoluteString + "#" + revision + "#" + String(frame)) as NSString
         if let data = cache.object(forKey: key) { return data as Data }
         if active >= 4 { await withCheckedContinuation { waiting.append($0) } }
         else { active += 1 }
@@ -19,34 +30,94 @@ actor ThumbnailLoader {
             if waiting.isEmpty { active -= 1 } else { waiting.removeFirst().resume() }
         }
         guard !Task.isCancelled else { return nil }
+        let data: Data?
+        if isVideo {
+            if let frame = await loadVideoFrame(url, position: videoPosition) { data = frame }
+            else { data = await loadQuickLook(url) }
+        } else {
+            data = await loadQuickLook(url)
+        }
+        if let data { cache.setObject(data as NSData, forKey: key, cost: data.count) }
+        return data
+    }
+
+    private static func isVideo(_ url: URL) -> Bool {
+        ["mov", "mp4", "m4v", "mts", "m2ts", "avi", "mkv", "webm", "insv"].contains(url.pathExtension.lowercased())
+    }
+
+    private func loadVideoFrame(_ url: URL, position: Double) async -> Data? {
+        let asset = AVURLAsset(url: url)
+        guard let duration = try? await asset.load(.duration) else { return nil }
+        let seconds = CMTimeGetSeconds(duration)
+        guard seconds.isFinite, seconds > 0 else { return nil }
+        let fraction = min(max(position, 0), 1)
+        let target = CMTime(seconds: min(seconds, seconds * fraction), preferredTimescale: 600)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 480, height: 320)
+        guard let result = try? await generator.image(at: target) else { return nil }
+        let bitmap = NSBitmapImageRep(cgImage: result.image)
+        return bitmap.representation(using: .png, properties: [:])
+    }
+
+    private func loadQuickLook(_ url: URL) async -> Data? {
         let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 240, height: 160), scale: 1, representationTypes: .thumbnail)
-        let data: Data? = await withCheckedContinuation { continuation in
+        return await withCheckedContinuation { continuation in
             QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { result, _ in
                 guard let result else { continuation.resume(returning: nil); return }
                 let bitmap = NSBitmapImageRep(cgImage: result.cgImage)
                 continuation.resume(returning: bitmap.representation(using: .png, properties: [:]))
             }
         }
-        if let data { cache.setObject(data as NSData, forKey: key, cost: data.count) }
-        return data
     }
 }
 
 struct AssetThumbnail: View {
     let url: URL
+    var height: CGFloat = 110
     @State private var image: NSImage?
     @State private var loading = true
+    @State private var hoverBucket: Int?
     @Environment(\.creatorPalette) private var palette
+    private var isVideo: Bool { ["mov", "mp4", "m4v", "mts", "m2ts", "avi", "mkv", "webm", "insv"].contains(url.pathExtension.lowercased()) }
+    private var thumbnailTaskID: String { url.absoluteString + "#" + String(hoverBucket ?? -1) }
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 6).fill(palette.inset.opacity(0.35))
-            if let image { Image(nsImage: image).resizable().scaledToFit() }
-            else if loading { ProgressView().controlSize(.small) }
-            else { Image(systemName: "doc.richtext").font(.title2).foregroundStyle(.secondary) }
-        }.frame(height: 110).clipped()
-        .task(id: url) {
-            image = nil; loading = true
-            if let data = await ThumbnailLoader.shared.load(url), !Task.isCancelled { image = NSImage(data: data) }
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 6).fill(palette.inset.opacity(0.35))
+                if let image { Image(nsImage: image).resizable().scaledToFit() }
+                else if loading { ProgressView().controlSize(.small) }
+                else { Image(systemName: "doc.richtext").font(.title2).foregroundStyle(.secondary) }
+                if isVideo, let hoverBucket {
+                    HStack(spacing: 3) {
+                        ForEach(0..<6, id: \.self) { index in
+                            Capsule().fill(index == hoverBucket ? palette.control : palette.ink.opacity(0.45)).frame(height: 3)
+                        }
+                    }.padding(.horizontal, 7).padding(.bottom, 6)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .onContinuousHover { phase in
+                guard isVideo, geometry.size.width > 0 else { return }
+                switch phase {
+                case .active(let location):
+                    let fraction = min(max(location.x / geometry.size.width, 0), 0.999)
+                    let next = Int(fraction * 6)
+                    if hoverBucket != next { hoverBucket = next }
+                case .ended:
+                    if hoverBucket != nil { hoverBucket = nil }
+                }
+            }
+            .help(isVideo ? "Video: fotograma central · mueve el cursor para revisar seis momentos" : "Vista previa")
+        }
+        .frame(height: height)
+        .task(id: thumbnailTaskID) {
+            if image == nil { loading = true }
+            if hoverBucket != nil { try? await Task.sleep(for: .milliseconds(120)) }
+            guard !Task.isCancelled else { return }
+            let fraction = hoverBucket.map { (Double($0) + 0.5) / 6 } ?? 0.5
+            if let data = await ThumbnailLoader.shared.load(url, videoPosition: fraction), !Task.isCancelled { image = NSImage(data: data) }
             if !Task.isCancelled { loading = false }
         }
     }
@@ -128,19 +199,25 @@ struct UnitPreview: View {
                     }
             }.buttonStyle(.plain).help("Marcar copia para editar; el respaldo siempre incluye todo")
             Text(unit.category == "stalker" ? "Stalker · " + String(unit.createdAt.prefix(16)) : URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent).font(.caption.weight(.medium)).lineLimit(1)
-            if unit.category == "stalker" { Text("\(unit.tracks) pistas · \(Int(unit.duration)) s · \(unit.paths.count) archivos").font(.caption2).foregroundStyle(.secondary) }
+            if unit.category == "stalker" {
+                Text((["\(unit.tracks) pistas"] + (durationLabel(unit.duration).map { [$0] } ?? []) + ["\(unit.paths.count) archivos"]).joined(separator: " · "))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             else { Text(ByteCountFormatter.string(fromByteCount: Int64(unit.bytes), countStyle: .file) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera)).font(.caption2).foregroundStyle(.secondary) }
             if !unit.suggestedProject.isEmpty {
                 Button("Sugerido: " + unit.suggestedProject) { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry }.font(.caption)
             }
             if unit.category == "stalker" && unit.project.isEmpty && model.project.isEmpty { Text("Sin proyecto asignado").font(.caption).foregroundStyle(.orange) }
             HStack(spacing: 3) {
-                TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.plain).font(.caption)
-                Menu {
-                    Button("Usar proyecto del lote") { unit.project = "" }
-                    ForEach(Array(model.recentProjects.prefix(12)), id: \.["project_id"].string) { item in Button(item["project"].string) { unit.project = item["project"].string } }
-                } label: { Image(systemName: "clock.arrow.circlepath") }.menuStyle(.borderlessButton).fixedSize()
+                TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.plain).font(.caption).frame(maxWidth: 175)
+                if unit.category != "stalker" {
+                    Menu {
+                        Button("Usar proyecto del lote") { unit.project = "" }
+                        ForEach(Array(model.recentProjects.prefix(12)), id: \.["project_id"].string) { item in Button(item["project"].string) { unit.project = item["project"].string } }
+                    } label: { Image(systemName: "clock.arrow.circlepath") }.menuStyle(.borderlessButton).fixedSize()
+                }
             }
+            if unit.category == "stalker" { RecentProjectChips(projects: model.recentProjects, selection: $unit.project) }
             HStack {
                 Menu {
                     Button("Perfil del lote: " + model.profile) { unit.profile = "" }
@@ -157,9 +234,26 @@ struct UnitPreview: View {
     }
 }
 
+struct RecentProjectChips: View {
+    let projects: [JSONValue]
+    @Binding var selection: String
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 4) {
+                ForEach(Array(projects.prefix(3)), id: \.["project_id"].string) { item in
+                    let title = item["project"].string
+                    Button(title) { selection = title }
+                        .buttonStyle(CreatorButtonStyle(prominent: selection == title))
+                        .font(.caption2).lineLimit(1).help(title)
+                }
+            }
+        }.scrollIndicators(.hidden)
+    }
+}
+
 struct QuickImporterSettings: View {
     @ObservedObject var model: Model
-    @AppStorage("showQuickImporter") private var showQuickImporter = false
+    @AppStorage("showQuickImporter") private var showQuickImporter = true
     var body: some View {
         GroupBox("Al conectar una tarjeta") {
             VStack(alignment: .leading) {

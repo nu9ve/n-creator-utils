@@ -494,6 +494,7 @@ class StalkerEngineTests(MediaFixture):
         self.assertEqual(first['units'][0]['category'], 'stalker')
         self.assertEqual(first['units'][0]['track_count'], 1)
         self.assertTrue(first['units'][0]['created_at'])
+        self.assertEqual(first['units'][0]['preview_path'], bundle.name + '/screen.mov')
         self.assertEqual(first['skipped'], ['active.stalker'])
         self.run_plan(self.plan(source_kind='stalker', cleanup=False))
         self.assertEqual(service.call('discover', params)['units'], [])

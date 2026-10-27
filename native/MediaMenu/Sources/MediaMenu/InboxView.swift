@@ -26,11 +26,19 @@ struct InboxView: View {
                 }
                 HStack {
                     Label("Stalker · \(model.pendingCaptures.count) pendientes", systemImage: "record.circle").font(.headline)
-                    Spacer(); Button("Actualizar capturas") { model.captureChanged([]) }
+                    Spacer()
                 }
                 if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
                 ForEach(model.captureRoots, id: \.self) { root in
-                    HStack { Text(root).font(.caption).textSelection(.enabled); Spacer(); Button("Asignar lote") { model.prepareSource(root, kind: "stalker"); model.changeMode?(.selection) } }
+                    let pendingCount = model.pendingCaptures.filter { $0["root"].string == root }.count
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(URL(fileURLWithPath: root).lastPathComponent).font(.caption.weight(.medium))
+                            Text(root).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                        Spacer()
+                        Button("Preparar lote · \(pendingCount)") { model.prepareCaptureBatch(root) }.disabled(pendingCount == 0)
+                    }
                 }
                 ForEach(model.pendingCaptures, id: \.["path"].string) { value in
                     CaptureInboxRow(model: model, capture: value)
@@ -46,11 +54,12 @@ struct InboxView: View {
                 }
                 let pending = model.assets.filter { $0["work_delivery_status"].string == "pending" }
                 if !pending.isEmpty { HStack { Label("\(pending.count) copias para editar pendientes", systemImage: "externaldrive.badge.timemachine"); Spacer(); Button("Abrir biblioteca") { model.selectedTab = 1 } }; Divider() }
-                let blocked = model.jobs.filter { ["failed", "paused", "camera_action_required"].contains($0["state"].string) }
+                let blocked = model.jobs.filter { ["failed", "paused", "camera_action_required"].contains($0["state"].string)
+                    || $0["state"].string == "source_retained" && $0["release_stalker_source"].bool }
                 if !blocked.isEmpty { HStack { Label("\(blocked.count) operaciones requieren atención", systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Spacer(); Button("Abrir actividad") { model.selectedTab = 2 } }; Divider() }
                 if model.cardSuggestions.isEmpty && model.pendingCaptures.isEmpty { ContentUnavailableView("Sin fuentes nuevas sugeridas", systemImage: "tray", description: Text("Conecta una SD o revisa las bibliotecas descubiertas de Stalker.")) }
                 HStack { Button("Elegir otra fuente…") { model.selectedTab = 0; model.chooseSource() }; Button("Configurar capturas y discos") { model.selectedTab = 3 } }
-                Text("Los Stalker archivados ofrecen una revisión independiente para liberar el original local. La SD se limpia sólo después de verificar el plan. Cada biblioteca se procesa por separado.").font(.caption).foregroundStyle(.secondary)
+                Text("Un lote prepara todas las sesiones pendientes de esa biblioteca en un mismo plan; asigna proyectos por sesión antes de respaldar. Si hay varias bibliotecas, cada una requiere su propio plan. Tras verificar el respaldo se libera el original salvo que Ajustes indique conservarlo; Clipper o cualquier bloqueo puede mantenerlo localmente.").font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
         }
     }
@@ -63,18 +72,24 @@ struct CaptureInboxRow: View {
     @State private var project = ""
     @State private var country = "mx"
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(URL(fileURLWithPath: capture["path"].string).lastPathComponent).fontWeight(.medium)
-            Text(String(capture["created_at"].string.prefix(19)) + " · " + String(Int(capture["track_count"].double)) + " pistas").font(.caption).foregroundStyle(.secondary)
-            if capture["tag"]["name"].string.isEmpty {
-                Text(capture["project_hint"]["name"].string.isEmpty ? "Sin proyecto; asígnalo antes de respaldar" : "Sugerencia del manifiesto; confirma el proyecto").font(.caption).foregroundStyle(.orange)
+        HStack(alignment: .top, spacing: 12) {
+            if !capture["preview_path"].string.isEmpty {
+                AssetThumbnail(url: URL(fileURLWithPath: capture["path"].string).appendingPathComponent(capture["preview_path"].string), height: 116)
+                    .frame(width: 190)
             }
-            HStack {
-                TextField("Proyecto", text: $project)
-                Menu("Recientes") { ForEach(Array(model.recentProjects.prefix(15)), id: \.["project_id"].string) { value in Button(value["project"].string) { project = value["project"].string } } }
-                TextField("País", text: $country).frame(width: 70)
-                Button("Guardar") { model.tagCapture(capture, project: project, country: country) }.disabled(project.isEmpty || country.isEmpty)
-                Button("Guardar y preparar") { model.tagCapture(capture, project: project, country: country, prepare: true) }.disabled(project.isEmpty || country.isEmpty)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(URL(fileURLWithPath: capture["path"].string).lastPathComponent).fontWeight(.medium).lineLimit(1)
+                Text(captureDetails).font(.caption).foregroundStyle(.secondary)
+                if capture["tag"]["name"].string.isEmpty {
+                    Text(capture["project_hint"]["name"].string.isEmpty ? "Sin proyecto; asígnalo antes de respaldar" : "Sugerencia del manifiesto; confirma el proyecto").font(.caption).foregroundStyle(.orange)
+                }
+                HStack(spacing: 7) {
+                    TextField("Proyecto", text: $project).frame(maxWidth: 210)
+                    TextField("País", text: $country).frame(width: 70)
+                    Button("Guardar") { model.tagCapture(capture, project: project, country: country) }.disabled(project.isEmpty || country.isEmpty)
+                    Button("Guardar y preparar") { model.tagCapture(capture, project: project, country: country, prepare: true) }.disabled(project.isEmpty || country.isEmpty)
+                }
+                RecentProjectChips(projects: model.recentProjects, selection: $project)
             }
         }
         .onAppear {
@@ -82,5 +97,12 @@ struct CaptureInboxRow: View {
             let saved = capture["tag"]["country"].string.isEmpty ? capture["project_hint"]["country"].string : capture["tag"]["country"].string
             country = saved.isEmpty ? model.country : saved
         }
+    }
+    private var captureDetails: String {
+        let localDate = capture["created_at_local"].string
+        var parts = [localDate.isEmpty ? String(capture["created_at"].string.prefix(19)) : localDate]
+        if let duration = durationLabel(capture["duration_seconds"].double) { parts.append(duration) }
+        parts.append("\(Int(capture["track_count"].double)) pistas")
+        return parts.joined(separator: " · ")
     }
 }

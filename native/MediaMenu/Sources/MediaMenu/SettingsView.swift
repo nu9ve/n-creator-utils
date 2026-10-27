@@ -84,7 +84,10 @@ struct SettingsView: View {
                 if panel.runModal() == .OK { model.clipperExecutable = panel.url!.path; model.watchCaptures() }
             }
             Text("Sin Clipper disponible, proyectos desconectados o exportaciones en cola, liberar espacio queda bloqueado. Guardar usa el botón de arriba.").font(.caption).foregroundStyle(.secondary)
-            Text("La bandeja sólo ofrece sesiones terminadas. Los originales, micrófono, eventos y pistas se conservan juntos; un respaldo de Stalker conserva la fuente.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Conservar el original Stalker después del respaldo", isOn: $model.retainStalkerSource)
+                .onChange(of: model.retainStalkerSource) { _, _ in model.watchCaptures() }
+            Text("Desactivado: tras verificar MEDIA/ESSD, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo.").font(.caption).foregroundStyle(.secondary)
+            Text("La bandeja sólo ofrece sesiones terminadas. Los originales, micrófono, eventos y pistas se conservan juntos dentro del bundle archivado.").font(.caption).foregroundStyle(.secondary)
             Divider(); QuickImporterSettings(model: model)
         }
     }

@@ -131,10 +131,22 @@ class Catalog:
                               'total_files': len(result['plan']['files'])}
         # Live bytes/phase from the running transfer (see Transfer.report); absent for older jobs.
         result['progress'].update(self.get('progress:' + job_id, {}))
+        stalker_release = self.get('stalker-release:' + job_id)
+        if stalker_release is not None:
+            result['stalker_release'] = stalker_release
         return result
 
     def jobs(self):
-        return [dict(row) for row in self.db.execute("SELECT id,state,error,updated_at,json_extract(plan,'$.cleanup_profile') AS cleanup_profile FROM jobs ORDER BY created_at DESC LIMIT 200")]
+        values = [dict(row) for row in self.db.execute(
+            "SELECT id,state,error,updated_at,json_extract(plan,'$.cleanup_profile') AS cleanup_profile,"
+            "json_extract(plan,'$.source_kind') AS source_kind,"
+            "json_extract(plan,'$.release_stalker_source') AS release_stalker_source FROM jobs ORDER BY created_at DESC LIMIT 200")]
+        for value in values:
+            value['release_stalker_source'] = bool(value['release_stalker_source'])
+            summary = self.get('stalker-release:' + value['id'])
+            if summary is not None:
+                value['stalker_release'] = summary
+        return values
 
     def project_for(self, profile, title):
         row = self.db.execute('SELECT project_id FROM project_aliases WHERE profile=? AND alias=?', (profile, title)).fetchone()
