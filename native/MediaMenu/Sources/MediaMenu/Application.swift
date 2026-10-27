@@ -77,7 +77,8 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var jobs: [JSONValue] = []
     @Published var units: [DraftUnit] = []
     @Published var selected: Set<String> = []
-    @Published var plan: JSONValue?
+    var reviewedPlan: ReviewedPlan?
+    @Published var plan: JSONValue? { didSet { if plan == nil { reviewedPlan = nil } } }
     @Published var busy = false
     @Published var message = "Listo"
     @Published var error = ""
@@ -196,7 +197,13 @@ struct DraftUnit: Identifiable, Equatable {
         busy = true; error = ""; message = title; statusChanged?()
         Task {
             do { try await body() }
-            catch { self.error = error.localizedDescription; message = "Operación detenida; revisa el estado" }
+            catch {
+                if let failure = error as? BackendFailure, failure.code == "plan_changed" {
+                    self.plan = nil
+                    self.error = "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. " + failure.message
+                } else { self.error = error.localizedDescription }
+                message = "Operación detenida; revisa el estado"
+            }
             busy = false; monitorTask?.cancel(); monitorTask = nil
             await refresh(); statusChanged?()
 
@@ -337,23 +344,26 @@ struct DraftUnit: Identifiable, Equatable {
                 "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
                 "assignments": .object(assignments)]
             params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork || self.sourceKind == "delivery", deferWork: self.deferWork, work: self.work)) { _, new in new }
-            self.plan = try await self.client!.call("plan", params)
+            let document = try await self.client!.call("plan_document", params).string
+            let reviewed = try ReviewedPlan(document: document)
+            self.plan = reviewed.display
+            self.reviewedPlan = reviewed
             self.message = "Plan listo para revisar; no se ha copiado ni borrado media"
         }
     }
     func apply() {
-        guard let reviewed = plan else { return }
+        guard let reviewed = reviewedPlan else { return }
         operation("Copiando y verificando") {
             self.monitorTask = Task {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(2))
                     if Task.isCancelled { break }
-                    if let job = try? await self.client!.call("job", ["job_id": reviewed["id"]]) {
+                    if let job = try? await self.client!.call("job", ["job_id": reviewed.display["id"]]) {
                         self.message = self.progressLabel(job)
                     }
                 }
             }
-            let result = try await self.client!.call("apply", ["plan": reviewed, "digest": reviewed["digest"]])
+            let result = try await self.client!.call("apply", reviewed.applyParameters)
             self.message = self.stateLabel(result["state"].string)
             let release = result["stalker_release"]
             if release["status"].string == "retained" || release["status"].string == "partial" {

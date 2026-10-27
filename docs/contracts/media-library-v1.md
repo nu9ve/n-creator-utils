@@ -147,3 +147,10 @@ Métodos aditivos de `media rpc`, compartidos por CLI y Swift; no se exponen com
 - `eject_card {source, identity}` requiere el objeto de identidad íntegro de la lista actual. Devuelve `{ejected: true, source}` únicamente al completar una expulsión normal del sistema. Revalida raíz de montaje, UUID, inode/dispositivo y disco físico, rechaza archivo/trabajo y comparte el `writer.lock` de copy/verify/cleanup. Bloquea conservadoramente durante cualquier mutación, aunque use otra tarjeta. `register_volume` también respeta ese bloqueo.
 
 Errores: `job_busy`, `not_a_card`, `destination_volume`, `volume_replaced`, `eject_failed`; `eject_uncertain` tras timeout no afirma que sea seguro retirar la tarjeta. Nunca hay force/fallback ni expulsión desde apply/resume. Fuera de macOS no se ofrece este backend. El bloqueo coordina procesos que usan el mismo catálogo; no es un lease global para aplicaciones ajenas o catálogos independientes. El sistema puede rechazar expulsión si otro proceso tiene archivos abiertos.
+
+
+## Documento de plan para clientes nativos (2026-10-27)
+
+`plan` conserva su respuesta objeto para CLI/clientes existentes. `plan_document` admite los mismos parámetros y devuelve el JSON canónico completo como string. Swift conserva ese documento intacto y decodifica una copia sólo para mostrar la revisión. `apply` acepta en `plan` tanto el objeto histórico como ese string; Python lo decodifica y pasa por la misma validación de digest y política, sin recalcular ni reemplazar el digest enviado por el usuario. Documento limitado a 12 MiB. No añade mutaciones MCP ni cambia el esquema de planes/recibos.
+
+Esto evita que reserializar desde un árbol Codable altere números (`1.0` frente a `1`, precisión, exponentes) y cause un rechazo de un plan revisado. El árbol general de JSON también preserva UInt64 para identidades de volumen. Un documento modificado o un digest de revisión distinto siguen rechazándose antes de crear un job/copiar. Ante `plan_changed`, la UI descarta la revisión y requiere preparar otra; no aplica ni resume saltándose la comprobación.

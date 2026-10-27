@@ -1,13 +1,14 @@
 import Foundation
 
 public enum JSONValue: Codable, Sendable, Equatable {
-    case object([String: JSONValue]), array([JSONValue]), string(String), integer(Int64), number(Double), bool(Bool), null
+    case object([String: JSONValue]), array([JSONValue]), string(String), integer(Int64), unsignedInteger(UInt64), number(Double), bool(Bool), null
     public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if c.decodeNil() { self = .null }
         else if let v = try? c.decode(Bool.self) { self = .bool(v) }
         else if let v = try? c.decode(String.self) { self = .string(v) }
         else if let v = try? c.decode(Int64.self) { self = .integer(v) }
+        else if let v = try? c.decode(UInt64.self) { self = .unsignedInteger(v) }
         else if let v = try? c.decode(Double.self) { self = .number(v) }
         else if let v = try? c.decode([String: JSONValue].self) { self = .object(v) }
         else { self = .array(try c.decode([JSONValue].self)) }
@@ -19,6 +20,7 @@ public enum JSONValue: Codable, Sendable, Equatable {
         case .array(let v): try c.encode(v)
         case .string(let v): try c.encode(v)
         case .integer(let v): try c.encode(v)
+        case .unsignedInteger(let v): try c.encode(v)
         case .number(let v): try c.encode(v)
         case .bool(let v): try c.encode(v)
         case .null: try c.encodeNil()
@@ -28,10 +30,27 @@ public enum JSONValue: Codable, Sendable, Equatable {
     public var string: String { if case .string(let s) = self { return s }; return "" }
     public var bool: Bool { if case .bool(let b) = self { return b }; return false }
     public var double: Double {
-        switch self { case .integer(let i): return Double(i); case .number(let d): return d; default: return 0 }
+        switch self { case .integer(let i): return Double(i); case .unsignedInteger(let i): return Double(i); case .number(let d): return d; default: return 0 }
     }
     public var array: [JSONValue] { if case .array(let a) = self { return a }; return [] }
     public var object: [String: JSONValue] { if case .object(let o) = self { return o }; return [:] }
+}
+
+/// The display tree is deliberately separate from the original reviewed JSON document.
+/// Re-encoding the tree can change integral floats or numbers outside Int64.
+public struct ReviewedPlan: Sendable {
+    public let document: String
+    public let display: JSONValue
+    public init(document: String) throws {
+        self.document = document
+        display = try JSONDecoder().decode(JSONValue.self, from: Data(document.utf8))
+        guard !display["digest"].string.isEmpty else {
+            throw BackendFailure(code: "invalid_plan", message: "El plan recibido no tiene digest")
+        }
+    }
+    public var applyParameters: [String: JSONValue] {
+        ["plan": .string(document), "digest": display["digest"]]
+    }
 }
 
 public struct BackendFailure: LocalizedError, Sendable {

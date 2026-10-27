@@ -320,27 +320,47 @@ struct MainActionFooter: View {
 struct ImporterSurface: View {
     @ObservedObject var model: Model
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            IngestHeader(model: model)
-            BatchProjectPicker(model: model)
-            IngestOptions(model: model)
-            if model.presentation == .selection {
-                SourceSummary(model: model)
-                ImportGrid(model: model, dense: true).frame(minHeight: 160, maxHeight: .infinity)
-            }
-            Text("Todo se respalda. La selección sólo cambia las copias para editar.").font(.caption).foregroundStyle(.secondary)
-            PlanReview(model: model)
-            if !model.error.isEmpty { Text(model.error).font(.caption).foregroundStyle(.red) }
-            if model.presentation == .compact { Spacer(minLength: 0) }
-        }.disabled(model.busy).padding(20).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                ActionFooter {
-                    if model.busy { ProgressView().controlSize(.small) }
-                    Text(model.message).font(.caption).lineLimit(1)
-                    Spacer(minLength: 0)
-                    PlanAction(model: model)
+        ScrollViewReader { proxy in
+          ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                IngestHeader(model: model)
+                BatchProjectPicker(model: model)
+                IngestOptions(model: model)
+                if model.presentation == .selection {
+                    SourceSummary(model: model)
+                    ImportGrid(model: model, dense: true).frame(height: 260)
+                }
+                Text("Todo se respalda. La selección sólo cambia las copias para editar.").font(.caption).foregroundStyle(.secondary)
+                PlanReview(model: model).id("ingest-plan")
+                if !model.error.isEmpty {
+                    Label(model.error, systemImage: "exclamationmark.triangle")
+                        .font(.caption).foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .id("ingest-error")
                 }
             }
+            .disabled(model.busy)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+          .onChange(of: model.error) { _, value in
+              if !value.isEmpty { withAnimation { proxy.scrollTo("ingest-error", anchor: .top) } }
+          }
+          .onChange(of: model.plan) { _, value in
+              if value != nil { withAnimation { proxy.scrollTo("ingest-plan", anchor: .bottom) } }
+          }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ActionFooter {
+                if model.busy { ProgressView().controlSize(.small) }
+                Text(model.message).font(.caption).lineLimit(2)
+                Spacer(minLength: 0)
+                PlanAction(model: model).fixedSize()
+            }
+        }
             .onChange(of: model.project) { _, _ in model.invalidatePlan() }
     }
 }
