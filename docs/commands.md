@@ -4,7 +4,7 @@ La referencia operativa vigente está en [operations](operations.md): registro d
 
 ## Cambio de entrada
 
-- `nu9ve save FUENTE --project ...`: nuevo flujo revisable/verificado. No acepta los antiguos posicionales país/ciudad/perfil.
+- `nu9ve save FUENTE --project ...`: nuevo flujo revisable/verificado. Atajo: `save FUENTE PAIS PROYECTO`; el último texto es proyecto, no ciudad. `--no-work` elige sólo respaldo con trabajo omitido y confirmación por operación; ver [operations](operations.md#sólo-respaldo-sin-archivos-de-trabajo).
 - `nu9ve media ...`: operaciones JSON compartidas por CLI y app. Respuesta `{ok, command, data}`; errores estructurados. El plan exportado puede ser crudo o envoltorio al aplicar.
 - `nu9ve legacy-save DIRECTORIO PAIS CIUDAD PERFIL`, `legacy-save all PAIS CIUDAD` y `legacy-save hijack PAIS CIUDAD`: motor histórico. Mueve originales después de comparar tamaño y elimina algunos auxiliares; no tiene journal/checksums. [Detalle](importing.md).
 - `nu9ve inspect DIRECTORIO`: inventario read-only `nu9ve-inspection/1`; no equivale a plan o verificación.

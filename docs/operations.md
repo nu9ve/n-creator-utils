@@ -45,7 +45,20 @@ nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD \
 nu9ve save all --archive MEDIA502 --work ESSD --project intro
 ```
 
-`save` presenta resumen y pide `GUARDAR`; `--dry-run` muestra el plan y `--yes` omite sólo esa confirmación estándar. Para conservar fuente: `--keep-source`. Formato antiguo `save all mx TEXTO` ya no se interpreta: usar flags; el antiguo motor quedó como `legacy-save`, con sus riesgos intactos.
+`save` presenta resumen, rutas de destino por archivo y pide `GUARDAR`; `--dry-run` muestra el plan y `--yes` omite sólo esa confirmación estándar. Para conservar fuente: `--keep-source`. El atajo `save all mx TEXTO` equivale a `save all --country mx --project TEXTO`: el último texto ahora es **proyecto**, no ciudad. No combinar esos posicionales con `--country`/`--project`; ciudad y perfil se seleccionan con flags separados. El antiguo motor quedó como `legacy-save`, con sus riesgos intactos.
+
+### Sólo respaldo, sin archivos de trabajo
+
+```sh
+nu9ve save all mx kasakarla-electroritual --archive MEDIA502 --no-work
+# Para elegir una sola tarjeta:
+nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA502 --no-work
+# Vista previa: no copia ni limpia. La confirmación explícita permite construir el plan archive-only.
+nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA502 \
+  --no-work --confirm-archive-only --dry-run
+```
+
+`--no-work` elige archive-only con trabajo `skipped`: no copia al SSD, no crea entrega pendiente ni comprueba su disponibilidad. Sigue usando el planner, naming por tipo/año/mes, SHA-256 y journal del motor nuevo. Pide `SOLO MEDIA` para esta operación y después `GUARDAR`; `--confirm-archive-only` sustituye sólo la primera confirmación. `--yes` por sí solo no autoriza archive-only. No cambia la política de trabajo de próximas operaciones ni el SSD predeterminado. Es incompatible con `--work` o `--work-decision pending`. Tras verificar el archivo requerido, limpia la tarjeta según su perfil; `--keep-source` conserva los originales. `all` considera todas las tarjetas elegibles: usar una ruta si sólo quieres una.
 
 Archivo sin SSD, explícito por operación:
 

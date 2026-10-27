@@ -77,6 +77,8 @@ Protocolo futuro, coordinado por app propietaria de referencias:
 4. n-creator registra el ACK; la ubicación antigua se conserva hasta que todas las dependencias conocidas se resuelvan. Una cola inmutable puede retener la ruta antigua, necesitar regeneración o bloquear limpieza; no se promete reescribir todo snapshot a ciegas.
 5. Si falla a mitad o no hay ACK, recuperar/reconciliar; no borrar fuente ni alegar que «relink terminado». Cambiar sólo `item.path` no satisface este protocolo.
 
+Estado 2026-10-25: Clipper CLI/TUI hace relink **local y a pedido** de una fuente importada desde la biblioteca (misma revisión; `sessionID` + digest del manifest o SHA-256), reescribe items, `capture_sessions`, `sync_reference_path` y firmas de placement, e invalida previews. Cada relink publica un ACK (`clipper-relink-ack/1`: `operation_id` idempotente, asset/revisión, `from`/`to`, revisión del proyecto antes/después, `still_pinned` con los exports en cola que conservan la ruta vieja) en `clipper library deps --json`, junto con las dependencias por asset. n-creator-utils aún no lo consume y no hay leases. Ver [adopción Clipper](media-naming-v1.md#adopción-clipper-implementada-2026-10-25).
+
 Un contrato de leases registra uso en proyecto/queue/Final Cut/Atlas, responsable y revisión. Un consumidor offline o no integrado no autoriza limpieza; ofrecer retención manual. Hash igual permite resolver nueva copia, pero el consumidor confirma su propia consistencia. Un asset cambiado invalida sync/transcripts/previews según el editor, no según el archivador.
 
 ## Finalización de Stalker y metadata común
