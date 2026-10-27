@@ -289,7 +289,9 @@ struct DraftUnit: Identifiable, Equatable {
                 if !unit.sessionID.isEmpty {
                     let title = unit.project.isEmpty ? self.project : unit.project
                     let country = unit.country.isEmpty ? self.country : unit.country
-                    _ = try await self.client!.call("save_capture_tag", ["session_id": .string(unit.sessionID), "project": .string(title), "country": .string(country)])
+                    if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        _ = try await self.client!.call("save_capture_tag", ["session_id": .string(unit.sessionID), "project": .string(title), "country": .string(country)])
+                    }
                 }
                 var values: [String: JSONValue] = [:]
                 if !unit.project.isEmpty { values["project"] = .string(unit.project) }
@@ -483,9 +485,7 @@ struct MainView: View {
     let cameras = ["auto", "generic", "sony", "canon", "nikon", "gopro", "h6", "dji-drone", "dji-360", "dji-action", "insta360"]
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Label("nüün", systemImage: "square.stack.3d.up.fill").font(.title2); Spacer(); Text(model.message); Button { model.changeMode?(.compact) } label: { Image(systemName: "arrow.down.right.and.arrow.up.left") }.help("Vista compacta"); if model.busy { ProgressView().controlSize(.small); Button("Cancelar") { model.cancel() } } }
             if !model.error.isEmpty { Text(model.error).foregroundStyle(.red).textSelection(.enabled) }
-            AppNavigation(model: model)
             Group {
                 switch model.selectedTab {
                 case 0: ingest
@@ -506,7 +506,7 @@ struct MainView: View {
             }
             HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() } }
             HStack {
-                TextField("Proyecto", text: $model.project)
+                TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar" : "Proyecto", text: $model.project)
                 if !model.lastProject.isEmpty && model.project != model.lastProject { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
                 ProfilePicker(model: model); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
             HStack {
@@ -538,6 +538,7 @@ struct MainView: View {
         }.padding(.top).disabled(model.busy)
         .onChange(of: model.sourceKind) { _, _ in model.plan = nil }
         .onChange(of: model.deferWork) { _, _ in model.plan = nil }
+        .onChange(of: model.project) { _, _ in model.invalidatePlan() }
     }
     func volumePicker(_ title: String, role: String, selection: Binding<String>) -> some View {
         Picker(title, selection: selection) {
@@ -574,6 +575,7 @@ struct MainView: View {
     let model = Model()
     var status: NSStatusItem!
     var window: NSWindow?
+    var topBarAccessory: NSTitlebarAccessoryViewController?
     var pendingMode: WindowMode?
     var observers: [NSObjectProtocol] = []
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -627,6 +629,16 @@ struct MainView: View {
             host.sizingOptions = []
             host.autoresizingMask = [.width, .height]
             value.contentView = host; value.center(); window = value
+
+            let accessory = NSTitlebarAccessoryViewController()
+            accessory.layoutAttribute = .bottom
+            accessory.fullScreenMinHeight = 50
+            let topBar = NSHostingView(rootView: WindowTopBar(model: model).modifier(CreatorAppearance()))
+            topBar.sizingOptions = []
+            topBar.frame = NSRect(x: 0, y: 0, width: mode.width, height: 50)
+            accessory.view = topBar
+            value.addTitlebarAccessoryViewController(accessory)
+            topBarAccessory = accessory
         }
         guard let window else { return }
         let sameMode = model.presentation == mode && window.isVisible

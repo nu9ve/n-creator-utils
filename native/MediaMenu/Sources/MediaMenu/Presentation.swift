@@ -48,6 +48,53 @@ struct AppNavigation: View {
     }
 }
 
+struct WindowTopBar: View {
+    @ObservedObject var model: Model
+    @Environment(\.creatorPalette) private var palette
+    private var modeButton: some View {
+        Button {
+            if model.presentation == .full {
+                model.changeMode?(.compact)
+            } else {
+                model.selectedTab = 0
+                model.changeMode?(.full)
+            }
+        } label: {
+            Image(systemName: model.presentation == .full ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                .frame(width: 30, height: 28)
+        }
+        .buttonStyle(CreatorButtonStyle())
+        .help(model.presentation == .full ? "Vista compacta" : "Expandir a vista completa")
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(model.presentation == .full ? model.message : "Ingreso · " + model.message)
+                .font(.caption).lineLimit(1).frame(width: 160, alignment: .leading)
+            Spacer(minLength: 2)
+            if model.presentation == .full {
+                AppNavigation(model: model).frame(maxWidth: 760)
+            } else {
+                Spacer(minLength: 0)
+            }
+            Spacer(minLength: 2)
+            HStack(spacing: 8) {
+                if model.busy {
+                    ProgressView().controlSize(.small)
+                    Button("Cancelar") { model.cancel() }.font(.caption)
+                }
+                modeButton
+            }
+            .frame(width: 150, alignment: .trailing)
+        }
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
+        .background(palette.canvas)
+        .overlay(alignment: .bottom) { Rectangle().fill(palette.border.opacity(0.8)).frame(height: 1) }
+    }
+}
+
 struct SourceKindBadges: View {
     @ObservedObject var model: Model
     var body: some View {
@@ -76,9 +123,14 @@ struct ProfilePicker: View {
 
 struct ProjectSuggestions: View {
     @ObservedObject var model: Model
+    private var hasUnassignedStalkerSessions: Bool {
+        model.sourceKind == "stalker" && model.units.contains { $0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
     var body: some View {
         if model.sourceKind == "stalker" {
-            RecentProjectChips(projects: model.recentProjects, selection: $model.project)
+            if hasUnassignedStalkerSessions {
+                RecentProjectChips(projects: model.recentProjects, selection: $model.project)
+            }
         } else {
             HStack {
                 if !model.lastProject.isEmpty { Button("Último: " + model.lastProject) { model.project = model.lastProject } }
@@ -99,12 +151,31 @@ struct SourceSummary: View {
         return "Respaldo: \(target["root"].string)/\(target["prefix"].string) · rutas por tipo y fecha al revisar el plan"
     }
     var workDescription: String {
-        let saved = model.profiles.first { $0["id"].string == model.profile }
-        let raw = saved?["raw_dir"].string ?? "\(model.profile)_raw"
-        let project = model.project.isEmpty ? "PROYECTO" : model.project
+        let paths = Dictionary(grouping: model.units) { unit -> String in
+            let profile = unit.profile.isEmpty ? model.profile : unit.profile
+            let saved = model.profiles.first { $0["id"].string == profile }
+            let raw = saved?["raw_dir"].string ?? "\(profile)_raw"
+            let project = unit.project.isEmpty ? model.project : unit.project
+            return raw + "/" + (project.isEmpty ? "Sin proyecto" : project)
+        }
+        let destinations = paths.keys.sorted().map { path in
+            let count = paths[path, default: []].count
+            return count > 1 ? "\(path) ×\(count)" : path
+        }
         let count = model.units.filter(\.copyForEditing).count
         let scope = model.copyChoice == "all" ? "todo el lote" : "\(count) seleccionadas"
-        return "Editar: \(raw)/\(project) · \(scope)"
+        return "Editar: \(destinations.joined(separator: " · ")) · \(scope)"
+    }
+    var projectSummary: String {
+        let projects = Dictionary(grouping: model.units) { unit in
+            let title = unit.project.isEmpty ? model.project : unit.project
+            return title.isEmpty ? "Sin proyecto" : title
+        }
+        let entries = projects.keys.sorted().map { title in
+            let count = projects[title, default: []].count
+            return count > 1 ? "\(title) (\(count))" : title
+        }
+        return "Proyectos considerados: " + entries.joined(separator: " · ")
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -125,6 +196,7 @@ struct SourceSummary: View {
                 let cameras = Set(model.units.map { $0.camera == "auto" ? $0.detectedCamera : $0.camera }.filter { !$0.isEmpty })
                 if !cameras.isEmpty { Label("Cámara / evidencia: " + cameras.sorted().joined(separator: ", "), systemImage: "camera").font(.caption) }
                 Text(archiveDescription).font(.caption).foregroundStyle(.secondary)
+                if model.sourceKind == "stalker" { Text(projectSummary).font(.caption).foregroundStyle(.secondary) }
                 if !model.noWork {
                     Label(workDescription, systemImage: "externaldrive").font(.caption)
                 }
@@ -139,6 +211,14 @@ struct PlanReview: View {
         VStack(alignment: .leading, spacing: 7) {
             if let plan = model.plan {
                 Label("Plan revisable · \(plan["files"].array.count) archivos", systemImage: "checklist").font(.headline)
+                let projects = Dictionary(grouping: plan["units"].array) { $0["project"].string }
+                if !projects.isEmpty {
+                    let summary = projects.keys.sorted().map { title in
+                        let count = projects[title, default: []].count
+                        return count > 1 ? "\(title) (\(count))" : title
+                    }.joined(separator: " · ")
+                    Text("Proyectos incluidos: " + summary).font(.caption.weight(.medium))
+                }
                 Text(plan["work_id"] == .null ? "Sólo respaldo · " + model.workLabel(plan["work_delivery_status"].string) : "Respaldo y copias para editar verificadas antes de limpiar").font(.caption)
                 Text(plan["source_kind"].string == "stalker"
                      ? (plan["release_stalker_source"].bool
@@ -161,9 +241,16 @@ struct PlanReview: View {
 
 struct PlanAction: View {
     @ObservedObject var model: Model
+    private var projectIsReady: Bool {
+        let hasBatchProject = !model.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard model.sourceKind == "stalker" else { return hasBatchProject }
+        return hasBatchProject || (!model.units.isEmpty && model.units.allSatisfy {
+            !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        })
+    }
     private var canRequestPlan: Bool {
         !model.source.isEmpty
-            && !(model.project.isEmpty && (model.units.isEmpty || model.units.contains { $0.project.isEmpty }))
+            && projectIsReady
             && !model.archive.isEmpty && !model.discoveryLoading
             && !(model.copyChoice == "some" && model.units.isEmpty)
     }
@@ -252,13 +339,9 @@ struct ImporterSurface: View {
     @ObservedObject var model: Model
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Label("nüün · Ingreso", systemImage: "sdcard").font(.title3.weight(.semibold)); Spacer()
-                if model.presentation == .selection { Button { model.changeMode?(.compact) } label: { Image(systemName: "arrow.down.right.and.arrow.up.left") }.help("Compactar") }
-                Button { model.changeMode?(.full); model.selectedTab = 0 } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }.help("Expandir a vista completa")
-            }
             HStack { Text(URL(fileURLWithPath: model.source).lastPathComponent).font(.caption); Spacer(); Button("Elegir fuente…") { model.chooseSource() } }
             SourceKindBadges(model: model)
-            TextField(model.sourceKind == "stalker" ? "Proyecto del lote" : "Nombre del proyecto", text: $model.project)
+            TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar" : "Nombre del proyecto", text: $model.project)
                 .frame(maxWidth: model.sourceKind == "stalker" ? 300 : .infinity, alignment: .leading)
             ProjectSuggestions(model: model)
             HStack { ProfilePicker(model: model); Spacer(); Text(model.volumes.first { $0["id"].string == model.archive }?["name"].string ?? "Sin disco de respaldo").font(.caption) }
@@ -280,5 +363,6 @@ struct ImporterSurface: View {
                     PlanAction(model: model)
                 }
             }
+            .onChange(of: model.project) { _, _ in model.invalidatePlan() }
     }
 }
