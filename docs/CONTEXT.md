@@ -1,6 +1,6 @@
 # Compact project context
 
-Snapshot: 2026-10-25, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
+Snapshot: 2026-10-26, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
 
 ## Product and user workflow
 
@@ -34,6 +34,6 @@ Use [modules](modules.md), [operations](operations.md) and [development](develop
 
 ## Current working state
 
-Implementation is committed in `5346663`; review fixes, UX fixes and CI are uncommitted on top (see [STATUS](STATUS.md)). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
+Current base is `5a60349`; this session adds native identity/menus/themes, thumbnail grid, compact importer and per-unit editing-copy selection on top (see [STATUS](STATUS.md)). The app is installed as **n creator utils**; operation/installation instructions are in [operations](operations.md). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
 
 Next: remaining review items, the first small physical run and real progress/notifications, per [PLAN](../PLAN.md). Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).

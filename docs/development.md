@@ -14,7 +14,7 @@ Lee [CONTEXT](CONTEXT.md) y [STATUS](STATUS.md) antes de cambiar código. [PLAN]
 | Resolución, restore, pendientes y handoff | [library](../media/library.py), [recovery](../media/recovery.py) | Mantener procedencia y relaciones; no editar proyectos ajenos. |
 | Capturas y publicaciones | [captures](../media/captures.py), [publication](../media/publication.py) | Finalización/publicación explícitas; no inferirlas de un MOV o export existente. |
 | Boundary de operaciones | [service](../media/service.py), [cli](../media/cli.py), [save](../media/save.py), [MCP](../media/mcp.py) | JSON estructurado; stdout no mezcla logs. MCP actual sólo lectura. |
-| App nativa | [main.swift](../native/MediaMenu/Sources/MediaMenu/main.swift) | UI/eventos; no reimplementar transferencias. El modelo y las vistas aún deben separarse al crecer. |
+| App nativa | [Application.swift](../native/MediaMenu/Sources/MediaMenu/Application.swift), [ImportViews.swift](../native/MediaMenu/Sources/MediaMenu/ImportViews.swift) | Modelo, menús/eventos y dashboard en Application; grid, Quick Look, apariencia y popup en ImportViews. No reimplementar transferencias; separar más el modelo al crecer. |
 | Puente/runtime/eventos nativos | [Protocol](../native/MediaMenu/Sources/MediaMenuCore/Protocol.swift), [CaptureWatcher](../native/MediaMenu/Sources/MediaMenuCore/CaptureWatcher.swift) | Preservar enteros de 64 bits y errores; cero workers periódicos en idle. |
 | Empaquetado | [builder](../scripts/build_media_app.py), [pyproject](../pyproject.toml) | Artefacto nuevo por build; distinguir runtime externo de bundle distribuible. |
 

@@ -46,10 +46,10 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
             require(work_info['free'] >= needed + 64 * 1024 * 1024, 'insufficient_space', 'Insufficient work space')
             copies = []
             with Tree(archive['root']) as source, Tree(record['root']) as target:
-                files = [f for f in files if destination_path(record, plan, asset, f['path'])]
+                files = [f for f in files if destination_path(record, plan, asset, f['path'], selected_only=False)]
                 override = catalog.get('layout_override:' + plan['id'], {})
                 if 'layout' not in plan:
-                    first_dest = destination_path(record, plan, asset, files[0]['path'])
+                    first_dest = destination_path(record, plan, asset, files[0]['path'], selected_only=False)
                     base = first_dest[:first_dest.index('/' + plan['id'] + '/')] + '/' + plan['id']
                     claim_directory(target, base, {'job_id': plan['id'], 'digest': plan['digest'], 'volume_id': record['id']})
                 for file in files:
@@ -57,7 +57,7 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
                                                (plan['id'], archive['id'], file['path'])).fetchone()
                     require(prior is not None, 'missing_receipt', 'Archive copy is not verified')
                     prior = json.loads(prior[0])
-                    dest = destination_path(record, plan, asset, file['path'])
+                    dest = destination_path(record, plan, asset, file['path'], selected_only=False)
                     if override.get(file['path'], {}).get('work'):
                         dest = record['prefix'] + '/' + override[file['path']]['work']  # Bundle renamed in place after ingest.
                     sha, stamp = engine.copy_file(source, prior['destination'], target, dest, record, expected=prior['sha256'])
@@ -107,7 +107,7 @@ def handoff(catalog, backend, asset_ids):
             copies = {r['path']: r for r in rows if r['path'] in asset['paths']}
             if 'layout' in plan:
                 # Named layouts: each role holds its own subset (no Sony XML on work); hand off editable media only.
-                expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p)}
+                expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p, selected_only=False)}
                 if not expected or set(copies) != expected:
                     continue
                 if asset['kind'] == 'stalker_session':

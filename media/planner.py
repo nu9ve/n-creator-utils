@@ -164,7 +164,8 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
     for key, members in sorted(groups.items()):
         choices = [assignments[f['path']] for f in members if f['path'] in assignments]
         for choice in choices:
-            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'camera'}), 'invalid_assignment', 'Invalid assignment fields')
+            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'camera', 'work'}), 'invalid_assignment', 'Invalid assignment fields')
+            require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
         unit_project, unit_profile = slug(assignment.get('project', project)), slug(assignment.get('profile', profile))
@@ -181,9 +182,13 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
         unit = {'id': unit_id, 'project': unit_project, 'profile': unit_profile, 'camera': selected_camera,
                 'kind': 'delivery' if source_kind == 'delivery' else ('stalker_session' if session else ('camera_bundle' if len(members) > 1 else 'file')),
                 'paths': [f['path'] for f in members], 'bundle': bundle, 'session_id': session['session_id'] if session else None, 'capture_manifest_digest': session['manifest_digest'] if session else None}
+        if 'work' in assignment:
+            unit['work_selected'] = assignment['work']
         units.append(unit)
         for file in members:
             file['unit_id'] = unit_id
+    require(archive_only or any(u.get('work_selected', True) for u in units),
+            'confirmation_required', 'No editing copies selected; explicitly confirm archive-only')
     # A plan ID/digest is stable for an unchanged source, routing and policy.
     timestamp = datetime.datetime.fromtimestamp(max(f['stamp']['mtime_ns'] for f in files) / 1e9, datetime.timezone.utc)
     plan = {'schema': 'nu9ve-ingest-plan/2', 'source': str(source), 'source_identity': source_key,
@@ -273,9 +278,11 @@ def validate_plan(plan):
         raise MediaError('invalid_plan', 'Malformed ingest plan') from error
 
 
-def destination_path(record, plan, unit, source_path):
+def destination_path(record, plan, unit, source_path, selected_only=True):
     """Relative destination below the volume root, or None when this role does not receive the file."""
     relative(record['prefix'])
+    if selected_only and record['role'] == 'work' and unit.get('work_selected') is False:
+        return None
     if 'layout' in plan:
         target = plan['layout'][source_path][record['role']]
         return None if target is None else record['prefix'] + '/' + relative(target)
@@ -299,7 +306,9 @@ def preflight(catalog, backend, plan, reserve=False):
         source, root = Path(plan['source']), Path(record['root'])
         require(source != root and source not in root.parents and root not in source.parents, 'overlapping_roots', 'Overlapping roots')
         block = max(int(info['block_size']), 4096)
-        needed = sum(((f['stamp']['size'] + block - 1) // block) * block for f in plan['files'])
+        units = {u['id']: u for u in plan['units']}
+        needed = sum(((f['stamp']['size'] + block - 1) // block) * block for f in plan['files']
+                     if destination_path(record, plan, units[f['unit_id']], f['path']))
         if reserve:
             require(info['free'] >= needed + max(64 * 1024 * 1024, needed // 20), 'insufficient_space', 'Insufficient free space on ' + record['name'])
         infos.append(info)

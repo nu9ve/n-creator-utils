@@ -9,6 +9,7 @@ import plistlib
 import shutil
 import subprocess
 import sys
+import tempfile
 
 
 def main():
@@ -33,6 +34,10 @@ def main():
     contents = output / 'Contents'
     executable_dir = contents / 'MacOS'; executable_dir.mkdir(parents=True)
     resources = contents / 'Resources'; resources.mkdir()
+    with tempfile.TemporaryDirectory(prefix='creator-icon-') as temporary:
+        iconset = Path(temporary) / 'Creator.iconset'
+        subprocess.run(['swift', str(repo / 'scripts/media_icon.swift'), str(iconset)], check=True)
+        subprocess.run(['/usr/bin/iconutil', '-c', 'icns', str(iconset), '-o', str(resources / 'Creator.icns')], check=True)
     shutil.copy2(binary, executable_dir / 'MediaMenu')
     backend = resources / 'backend'; source = backend / 'source'; source.mkdir(parents=True)
     for name in ['nu9ve.py', 'configuration.py', 'constants.py']:
@@ -56,15 +61,16 @@ def main():
         # Relative to Resources: installation must not retain the build directory path.
         (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': 'backend/source/nu9ve.py'}))
     fingerprint = hashlib.sha256()
-    inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py']]
+    inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift']]
     for folder in ['media', 'manager', 'native/MediaMenu/Sources']:
         inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift'})
     for path in sorted(inputs):
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
-    info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'Nu9ve Media', 'CFBundleDisplayName': 'Nu9ve Media',
+    info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'n creator utils', 'CFBundleDisplayName': 'n creator utils',
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
             'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'LSUIElement': True,
+            'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
             'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
             'Nu9veBuildID': build_id, 'Nu9veBuildDate': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (contents / 'Info.plist').write_bytes(plistlib.dumps(info))

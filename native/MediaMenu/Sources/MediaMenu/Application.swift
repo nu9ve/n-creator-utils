@@ -9,6 +9,13 @@ struct DraftUnit: Identifiable, Equatable {
     var project = ""
     var profile = ""
     var camera = "auto"
+    var copyForEditing = false
+    var previewPath: String? {
+        paths.first { path in
+            let lower = path.lowercased()
+            return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
+        }
+    }
 }
 
 @MainActor final class Model: ObservableObject {
@@ -43,10 +50,12 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var script = ""
     @Published var archiveOnlyPrompt = false
     @Published var deferWork = true
-    @Published var noWork = false
+    @Published var copyChoice = "none"
+    var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
     @Published var packagedBackend = false
     var client: BackendClient?
     var openWindow: (() -> Void)?
+    var openImporter: (() -> Void)?
     var statusChanged: (() -> Void)?
     var eventTask: Task<Void, Never>?
     var monitorTask: Task<Void, Never>?
@@ -98,7 +107,7 @@ struct DraftUnit: Identifiable, Equatable {
         ["file": "Archivo", "camera_bundle": "Captura", "stalker_session": "Stalker", "delivery": "Entrega"][raw] ?? raw
     }
     func workLabel(_ raw: String) -> String {
-        ["pending": "Trabajo pendiente", "ready": "Trabajo listo", "skipped": "Trabajo omitido"][raw] ?? raw
+        ["pending": "Copia para editar pendiente", "ready": "Copias para editar listas", "skipped": "Sólo respaldo · sin copias para editar"][raw] ?? raw
     }
     func configure() {
         guard !busy else { return }
@@ -143,7 +152,7 @@ struct DraftUnit: Identifiable, Equatable {
     }
     func registerVolume(role: String) {
         let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-        panel.message = role == "archive" ? "Elige la raíz del disco de archivo (MEDIA)" : "Elige la raíz del SSD de trabajo"
+        panel.message = role == "archive" ? "Elige la raíz del disco de archivo (MEDIA)" : "Elige la raíz del SSD para editar"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         operation("Registrando disco") {
             _ = try await self.client!.call("register_volume", ["root": .string(url.path), "name": .string(url.lastPathComponent), "role": .string(role)])
@@ -175,6 +184,7 @@ struct DraftUnit: Identifiable, Equatable {
                 if !unit.project.isEmpty { values["project"] = .string(unit.project) }
                 if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
                 if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
+                if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
                 if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
             }
             var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),
@@ -253,22 +263,22 @@ struct DraftUnit: Identifiable, Equatable {
             guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
             let content = UNMutableNotificationContent()
             content.title = "Tarjeta detectada"
-            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre Media para revisar el plan"
+            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre n creator utils para revisar el plan"
             try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }
     }
     func deliver() {
         let ids = selected.sorted()
-        operation("Preparando copias de trabajo") {
+        operation("Preparando copias para editar") {
             _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work)])
-            self.message = "Copias de trabajo verificadas"; self.selected = []
+            self.message = "Copias para editar verificadas"; self.selected = []
         }
     }
     func skip() {
         let ids = selected.sorted()
         operation("Actualizando pendientes") {
             _ = try await self.client!.call("set_work_state", ["asset_ids": .array(ids.map(JSONValue.string)), "state": .string("skipped")])
-            self.message = "Copias de trabajo omitidas"; self.selected = []
+            self.message = "Copias para editar omitidas"; self.selected = []
         }
     }
     func restoreSelected() {
@@ -326,7 +336,10 @@ struct DraftUnit: Identifiable, Equatable {
             let idle = units.isEmpty && plan == nil && (source.isEmpty || !FileManager.default.fileExists(atPath: source))
             for path in shown where !notifiedCards.contains(path) {
                 notifiedCards.insert(path); notifyCard(path)
-                if idle && source != path { useCard(path) }
+                if idle && source != path {
+                    useCard(path)
+                    if UserDefaults.standard.bool(forKey: "showQuickImporter") { openImporter?() }
+                }
             }
             statusChanged?()
             if assets.contains(where: { $0["work_delivery_status"].string == "pending" }) { statusChanged?() }
@@ -339,7 +352,7 @@ struct MainView: View {
     let cameras = ["auto", "generic", "sony", "canon", "nikon", "gopro", "h6", "dji-drone", "dji-360", "dji-action", "insta360"]
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("Media").font(.title2); Spacer(); Text(model.message); if model.busy { ProgressView().controlSize(.small); Button("Cancelar") { model.cancel() } } }
+            HStack { Label("n creator utils", systemImage: "square.stack.3d.up.fill").font(.title2); Spacer(); Text(model.message); if model.busy { ProgressView().controlSize(.small); Button("Cancelar") { model.cancel() } } }
             if !model.error.isEmpty { Text(model.error).foregroundStyle(.red).textSelection(.enabled) }
             TabView(selection: $model.selectedTab) {
                 ingest.tabItem { Label("Ingreso", systemImage: "sdcard") }.tag(0)
@@ -347,12 +360,12 @@ struct MainView: View {
                 activity.tabItem { Label("Actividad", systemImage: "clock") }.tag(2)
                 settings.tabItem { Label("Discos y ajustes", systemImage: "externaldrive") }.tag(3)
             }
-        }.padding().frame(minWidth: 880, minHeight: 620)
+        }.padding().frame(minWidth: 920, minHeight: 740).modifier(CreatorAppearance())
         .alert("Confirmar sólo respaldo", isPresented: $model.archiveOnlyPrompt) {
             Button("Cancelar", role: .cancel) {}
             Button("Confirmar sólo MEDIA") { model.makePlan(archiveOnly: true) }
-        } message: { Text(model.noWork ? "Se copiará y verificará en el disco de archivo elegido. No se creará copia de trabajo ni entrega pendiente. Si activaste limpiar SD, sus archivos se borrarán después de verificar el respaldo." : "Se verificará el respaldo en el disco de archivo elegido. El SSD no recibirá una copia ahora. La decisión pendiente/omitido quedará registrada y la SD podrá limpiarse tras verificar.") }
-        .onChange(of: model.source) { _, _ in model.plan = nil }
+        } message: { Text(model.noWork ? "Se copiará y verificará en el disco de archivo elegido. No se creará copia para editar ni entrega pendiente. Si activaste limpiar SD, sus archivos se borrarán después de verificar el respaldo." : "Se verificará el respaldo en el disco de archivo elegido. El SSD no recibirá una copia ahora. La decisión pendiente/omitido quedará registrada y la SD podrá limpiarse tras verificar.") }
+        .onChange(of: model.source) { _, _ in model.plan = nil; model.units = [] }
         .onChange(of: model.project) { _, _ in model.plan = nil }
         .onChange(of: model.profile) { _, _ in model.plan = nil }
         .onChange(of: model.country) { _, _ in model.plan = nil }
@@ -360,7 +373,7 @@ struct MainView: View {
         .onChange(of: model.archive) { _, _ in model.plan = nil }
         .onChange(of: model.work) { _, _ in model.plan = nil }
         .onChange(of: model.cleanup) { _, _ in model.plan = nil }
-        .onChange(of: model.noWork) { _, _ in model.plan = nil }
+        .onChange(of: model.copyChoice) { _, _ in model.plan = nil }
         .onChange(of: model.units) { _, _ in model.plan = nil }
     }
     var ingest: some View {
@@ -368,24 +381,26 @@ struct MainView: View {
             ForEach(model.cardSuggestions.filter { $0 != model.source }, id: \.self) { path in
                 HStack { Label("Tarjeta detectada: " + URL(fileURLWithPath: path).lastPathComponent, systemImage: "sdcard"); Button("Usar esta tarjeta") { model.useCard(path) } }
             }
-            HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() }; Button("Inspeccionar") { model.discover() }.disabled(model.source.isEmpty) }
+            HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() }; Button("Cargar miniaturas") { model.discover() }.disabled(model.source.isEmpty) }
             HStack {
                 TextField("Proyecto", text: $model.project)
                 if !model.lastProject.isEmpty && model.project != model.lastProject { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
                 TextField("Perfil", text: $model.profile); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
             HStack {
                 volumePicker("Archivo", role: "archive", selection: $model.archive)
-                if !model.noWork { volumePicker("Trabajo", role: "work", selection: $model.work) }
+                if !model.noWork { volumePicker("SSD para editar", role: "work", selection: $model.work) }
             }
-            Toggle("Sólo respaldo · sin copia de trabajo ni pendientes", isOn: $model.noWork)
+            EditingChoice(model: model)
             if model.noWork { Text("Se usará únicamente el disco de archivo seleccionado, aunque el SSD esté conectado.").foregroundStyle(.secondary) }
             HStack {
                 Picker("Fuente", selection: $model.sourceKind) { Text("SD/cámara").tag("card"); Text("Stalker").tag("stalker"); Text("Entrega final").tag("delivery") }
                 Toggle("Limpiar SD tras verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
-                if !model.noWork { Toggle("Trabajo pendiente si falta SSD", isOn: $model.deferWork) }
+                if !model.noWork { Toggle("Preparar copia para editar después si falta SSD", isOn: $model.deferWork) }
             }
             Text("Asigna proyecto/perfil por unidad. Los pares y bundles se mantienen juntos.").foregroundStyle(.secondary)
-            List {
+            ImportGrid(model: model).frame(minHeight: 180)
+            DisclosureGroup("Asignación avanzada · perfil y cámara") {
+            ScrollView { VStack {
                 ForEach($model.units) { $unit in
                     HStack {
                         Text(unit.paths.joined(separator: "\n")).lineLimit(3).frame(maxWidth: .infinity, alignment: .leading)
@@ -394,10 +409,11 @@ struct MainView: View {
                         Picker("Cámara", selection: $unit.camera) { ForEach(cameras, id: \.self) { Text($0).tag($0) } }.frame(width: 150)
                     }
                 }
-            }
+            } }
+            }.frame(maxHeight: 140)
             if let plan = model.plan {
-                Text("\(plan["files"].array.count) archivos · \(plan["units"].array.count) unidades · \(plan["work_id"] == .null ? "sólo archivo confirmado" : "archivo + trabajo")")
-                Text(model.workLabel(plan["work_delivery_status"].string))
+                Text("\(plan["files"].array.count) archivos · \(plan["units"].array.count) unidades · \(plan["work_id"] == .null ? "sólo archivo confirmado" : "respaldo + copias para editar")")
+                Text(plan["work_id"] == .null ? (plan["work_delivery_status"].string == "pending" ? "Copias para editar pendientes de SSD" : "Sólo respaldo · sin copias para editar") : "Se copiarán también al SSD: \(plan["preview"].array.filter { $0["work_path"] != .null }.count) archivos")
                 Text("Tamaño: " + ByteCountFormatter.string(fromByteCount: Int64(plan["files"].array.reduce(0.0) { $0 + $1["stamp"]["size"].double }), countStyle: .file))
                 Text(!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Tras verificar se borran los clips de la SD; después formatéala en la cámara." : plan["cleanup_profile"].string == "camera_action_required" ? "Limpieza pendiente en cámara tras verificar." : "La SD se limpiará después de verificar.")
                 DisclosureGroup("Ver rutas y clasificación del plan") {
@@ -407,7 +423,7 @@ struct MainView: View {
                                 VStack(alignment: .leading) {
                                     Text(row["source"].string + " · " + row["project"].string + " · " + row["camera"].string)
                                     Text("Archivo: " + row["archive_path"].string).font(.caption).textSelection(.enabled)
-                                    if row["work_path"] != .null { Text("Trabajo: " + row["work_path"].string).font(.caption).textSelection(.enabled) }
+                                    if row["work_path"] != .null { Text("Copia para editar: " + row["work_path"].string).font(.caption).textSelection(.enabled) }
                                 }
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
@@ -415,7 +431,7 @@ struct MainView: View {
                 }
                 Button("Ejecutar plan revisado") { model.apply() }.buttonStyle(.borderedProminent)
             } else {
-                Button("Revisar plan") { model.requestPlan() }.disabled(model.source.isEmpty || model.project.isEmpty || model.archive.isEmpty)
+                Button("Revisar plan") { model.requestPlan() }.disabled(model.source.isEmpty || model.project.isEmpty || model.archive.isEmpty || (model.copyChoice == "some" && model.units.isEmpty))
             }
         }.padding(.top).disabled(model.busy)
         .onChange(of: model.sourceKind) { _, _ in model.plan = nil }
@@ -443,7 +459,7 @@ struct MainView: View {
             HStack {
                 volumePicker("SSD", role: "work", selection: $model.work)
                 Button("Copiar selección al SSD") { model.deliver() }.disabled(model.selected.isEmpty || model.work.isEmpty)
-                Button("Omitir trabajo") { model.skip() }.disabled(model.selected.isEmpty)
+                Button("Omitir copias para editar") { model.skip() }.disabled(model.selected.isEmpty)
                 Button("Restaurar…") { model.restoreSelected() }.disabled(model.selected.count != 1)
                 Button("Exportar selección…") { model.exportHandoff() }.disabled(model.selected.isEmpty)
             }
@@ -457,8 +473,10 @@ struct MainView: View {
     }
     var settings: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Button("Registrar MEDIA…") { model.registerVolume(role: "archive") }; Button("Registrar SSD de trabajo…") { model.registerVolume(role: "work") }; Button("Actualizar") { Task { await model.refresh() } } }
-            List(model.volumes, id: \.["id"].string) { volume in HStack { Text(volume["name"].string); Text(volume["role"].string == "archive" ? "Archivo" : "Trabajo"); Spacer(); Text(volume["online"].bool ? "Conectado" : "Desconectado") } }
+            HStack { Button("Registrar MEDIA…") { model.registerVolume(role: "archive") }; Button("Registrar SSD para editar…") { model.registerVolume(role: "work") }; Button("Actualizar") { Task { await model.refresh() } } }
+            List(model.volumes, id: \.["id"].string) { volume in HStack { Text(volume["name"].string); Text(volume["role"].string == "archive" ? "Respaldo" : "SSD para editar"); Spacer(); Text(volume["online"].bool ? "Conectado" : "Desconectado") } }
+            AppearanceSettings()
+            QuickImporterSettings(model: model)
             Text("Runtime").font(.headline)
             TextField("Carpeta Stalker a observar", text: $model.captureRoot)
             Button("Observar capturas terminadas") { model.watchCaptures() }
@@ -471,23 +489,27 @@ struct MainView: View {
     }
 }
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNotificationCenterDelegate {
     let model = Model()
     var status: NSStatusItem!
     var window: NSWindow?
+    var importer: NSWindow?
     var observers: [NSObjectProtocol] = []
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        status.button?.image = NSImage(systemSymbolName: "externaldrive.badge.checkmark", accessibilityDescription: "Media")
+        status.button?.image = NSImage(systemSymbolName: "externaldrive.badge.checkmark", accessibilityDescription: "n creator utils")
         let menu = NSMenu()
-        menu.addItem(withTitle: "Abrir Media…", action: #selector(show), keyEquivalent: "")
+        menu.addItem(withTitle: "Abrir n creator utils…", action: #selector(show), keyEquivalent: "")
+        menu.addItem(withTitle: "Importador rápido…", action: #selector(showImporter), keyEquivalent: "")
         menu.addItem(withTitle: "Cancelar operación", action: #selector(cancel), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Salir", action: #selector(quit), keyEquivalent: "q")
         for item in menu.items { item.target = self }
         status.menu = menu
+        installMenus()
         model.openWindow = { [weak self] in self?.show() }
+        model.openImporter = { [weak self] in self?.showImporter() }
         model.statusChanged = { [weak self] in
             guard let self else { return }
             self.status.button?.title = self.model.busy ? " …" : ((self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty) ? " •" : "")
@@ -510,14 +532,52 @@ struct MainView: View {
     }
     @objc func show() {
         if window == nil {
-            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 720), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-            value.title = "Media · n-creator-utils"; value.isReleasedWhenClosed = false
+            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 840), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            value.title = "n creator utils"; value.delegate = self; value.isReleasedWhenClosed = false
             value.contentView = NSHostingView(rootView: MainView(model: model)); value.center(); window = value
         }
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true); window?.makeKeyAndOrderFront(nil)
     }
+    func installMenus() {
+        let bar = NSMenu()
+        let appItem = NSMenuItem(); bar.addItem(appItem)
+        let appMenu = NSMenu(title: "n creator utils"); appItem.submenu = appMenu
+        appMenu.addItem(withTitle: "Acerca de n creator utils", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Ajustes…", action: #selector(settings), keyEquivalent: ",").target = self
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Ocultar n creator utils", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Salir de n creator utils", action: #selector(quit), keyEquivalent: "q").target = self
+        let fileItem = NSMenuItem(); bar.addItem(fileItem)
+        let file = NSMenu(title: "Archivo"); fileItem.submenu = file
+        file.addItem(withTitle: "Abrir dashboard", action: #selector(show), keyEquivalent: "1").target = self
+        file.addItem(withTitle: "Importador rápido…", action: #selector(showImporter), keyEquivalent: "i").target = self
+        file.addItem(withTitle: "Cerrar ventana", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let editItem = NSMenuItem(); bar.addItem(editItem)
+        let edit = NSMenu(title: "Edición"); editItem.submenu = edit
+        edit.addItem(withTitle: "Deshacer", action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: "Cortar", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copiar", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Pegar", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Seleccionar todo", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        NSApp.mainMenu = bar
+    }
+    @objc func settings() { model.selectedTab = 3; show() }
+    @objc func showImporter() {
+        if importer == nil {
+            let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 614, height: 380), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            panel.title = "n creator utils · Importador"; panel.isReleasedWhenClosed = false; panel.delegate = self
+            panel.contentView = NSHostingView(rootView: CompactImporter(model: model)); panel.center(); importer = panel
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true); importer?.makeKeyAndOrderFront(nil)
+    }
+    func windowWillClose(_ notification: Notification) {
+        let closing = notification.object as? NSWindow
+        if ![window, importer].compactMap({ $0 }).contains(where: { $0 !== closing && $0.isVisible }) { NSApp.setActivationPolicy(.accessory) }
+    }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        await MainActor.run { model.selectedTab = 0; show() }
+        await MainActor.run { model.selectedTab = 0; showImporter() }
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner] }
     @objc func cancel() { model.cancel() }

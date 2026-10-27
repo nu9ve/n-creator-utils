@@ -52,5 +52,14 @@ class AppInstallTests(unittest.TestCase):
         self.assertEqual(plistlib.loads((self.destination / 'Contents/Info.plist').read_bytes())['Nu9veBuildID'], 'old')
         self.assertEqual(list(self.destination.parent.glob('.Nu9veMedia*')), [])
 
+    def test_rename_migrates_old_app_without_launcher_duplicate(self):
+        (self.destination / 'Contents').mkdir(parents=True)
+        (self.destination / 'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier': 'app.nu9ve.media', 'Nu9veBuildID': 'old'}))
+        renamed = self.destination.parent / 'n creator utils.app'
+        with mock.patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
+            installer.install(self.app, renamed)
+        self.assertTrue(renamed.exists())
+        self.assertFalse(self.destination.exists())
+
 
 if __name__ == '__main__': unittest.main()

@@ -139,6 +139,38 @@ class MediaSaveTests(MediaFixture):
 
 
 class MediaEngineTests(MediaFixture):
+    def test_selected_editing_copies_archive_everything_then_clean_card(self):
+        (self.source / 'DCIM/second.JPG').write_bytes(b'second-photo')
+        plan = self.plan(assignments={'DCIM/photo.JPG': {'work': False}})
+        skipped = next(u for u in plan['units'] if 'DCIM/photo.JPG' in u['paths'])
+        self.assertEqual(len(skipped['paths']), 2)  # RAW and JPG always travel together.
+        self.assertTrue(all(row['work_path'] is None for row in plan['preview'] if row['source'] in skipped['paths']))
+        self.assertEqual(self.run_plan(plan)['state'], 'completed')
+        self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 2)
+        self.assertEqual(len(list(self.work.rglob('*.JPG'))), 1)
+        self.assertEqual(len(list(self.work.rglob('*.DNG'))), 0)
+        self.assertFalse((self.source / 'DCIM/photo.JPG').exists())
+        assets = self.catalog.search()
+        self.assertEqual(next(a for a in assets if a['id'] == skipped['id'])['work_delivery_status'], 'skipped')
+        # An explicit later delivery remains possible without the SD.
+        deliver_work(self.catalog, self.backend, [skipped['id']], 'ESSD')
+        self.assertEqual(len(list(self.work.rglob('*.DNG'))), 1)
+        exported = handoff(self.catalog, self.backend, [skipped['id']])
+        self.assertTrue(any(loc['role'] == 'work' for loc in exported['assets'][0]['locations']))
+
+    def test_deferred_selection_keeps_only_selected_assets_pending(self):
+        (self.source / 'DCIM/second.JPG').write_bytes(b'second-photo')
+        plan = self.plan(archive_only=True, confirm_archive_only=True,
+                         assignments={'DCIM/photo.JPG': {'work': False}})
+        with self.assertRaisesRegex(MediaError, 'boolean'):
+            self.plan(assignments={'DCIM/second.JPG': {'work': 'false'}})
+        self.run_plan(plan)
+        self.assertEqual(sorted(a['work_delivery_status'] for a in self.catalog.search()), ['pending', 'skipped'])
+
+    def test_deselecting_entire_batch_requires_archive_only_confirmation(self):
+        with self.assertRaisesRegex(MediaError, 'explicitly confirm archive-only'):
+            self.plan(assignments={'DCIM/photo.JPG': {'work': False}})
+
     def test_verified_both_destinations_then_cleanup_and_idempotent_retry(self):
         plan = self.plan()
         result = self.run_plan(plan)
