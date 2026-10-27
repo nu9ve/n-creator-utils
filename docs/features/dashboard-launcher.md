@@ -23,7 +23,9 @@ Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad té
 
 ## Launcher y menubar
 
-La app se instala como **n creator utils**, con icono y menús nativos. Grid de miniaturas, selección ninguna/todas/algunas copias para editar, importador compacto y apariencia Sistema/Claro/Oscuro + HSV ya existen. El popup al conectar es opt-in y queda pendiente la prueba de reconexión física. La menubar y la instalación local con ruta fija/rollback ya existen; abrir o reabrir desde el launcher muestra la ventana, con hash de build en ajustes. [Instalación y actualización local](../operations.md#app-de-desarrollo-y-launcher). Aún requiere Python externo y actualizar explícitamente desde código. Próximas mejoras útiles:
+La app se presenta como **nüün**, instalada en `nuun.app`, con una ventana compacta/selección/completa, carga automática, bandeja y ajustes por áreas. [Flujo actual y límites](nuun-window.md), [instalación](../operations.md#app-de-desarrollo-y-launcher). Claro + #FFBB5C sigue siendo el preset. Popup al conectar es opt-in y la prueba de reconexión sigue pendiente; no hay updater ni runtime portable.
+
+Próximas mejoras útiles:
 
 - Acción «Respaldar SD» con último proyecto como elección, no asignación silenciosa; atajo y quick actions con nombres claros.
 - Onboarding corto para registrar roles de disco, perfil y defaults. Separar «Sólo copiar» de «Sólo MEDIA».
@@ -37,7 +39,7 @@ Implementar launch-at-login/actualización después de decidir firma/runtime. No
 
 ## Diseño modular de las superficies
 
-Al crecer, separar el actual `Application.swift` en modelo de operación, vistas de ingreso/biblioteca/jobs/settings y coordinador de eventos/ventanas. Mantener `MediaMenuCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
+La presentación ya se separó en Presentation, ImportViews, SettingsView, InboxView y Appearance. El modelo/coordinador aún vive en Application y puede separarse al crecer sin crear ventanas o workers paralelos. Mantener `MediaMenuCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
 
 Una futura UI web/otra plataforma necesita el mismo catálogo de operaciones, capacidades y estados; no acceso directo indiscriminado a SQLite ni serializers que descarten campos. Primero medir si el helper one-shot es suficiente. Un servicio persistente se justifica por costo medido o streaming real, no por estética del dashboard.
 
@@ -46,3 +48,7 @@ Una futura UI web/otra plataforma necesita el mismo catálogo de operaciones, ca
 Ejemplo: «Implementar detalle de job con fases y bytes reales. Leer CONTEXT, STATUS, PLAN y `media/catalog.py`, `service.py`, `MediaMenuCore/Protocol.swift`. No cambiar cleanup ni formato editorial. Añadir campos compatibles de progress y su vista, con prueba de frontera y un smoke test aislado. Actualizar STATUS con evidencia.»
 
 Cada tarea debe declarar: problema concreto, fuente de datos, operación del servicio, estado vacío/offline/error, impacto de contrato, prueba mínima y fuera de alcance. Así pueden avanzar sesiones de UI, launcher y backend sin redefinir las mismas reglas.
+
+## Prioridades después de la aceptación de nüün
+
+El cierre local y la checklist del usuario están en [el registro de build](../releases/2026-10-26-local.md). Antes de extender más paneles: validar cambios rápidos de fuente/modo y reconexión con el mismo nombre; alinear selección/preview para todos los formatos del backend; confirmar fullscreen/pantallas/accesibilidad; medir idle y bibliotecas grandes. Después: planes globales multifuente, recuperación de configuración/perfiles y liberación Stalker con leases/ACK de consumidores. No interpretar la bandeja actual como un scheduler o una transacción de cleanup global.

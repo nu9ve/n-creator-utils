@@ -26,7 +26,8 @@ Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_pr
 nu9ve.py → media/save.py (human save) / media/cli.py (JSON CLI/RPC/MCP)
 media/service.py → planner + volumes + transfer + catalog + library
 media/common.py → safe tree-relative IO, hashes, errors, JSON
-native/MediaMenu → Swift UI / Process JSON bridge / FSEvents
+native/MediaMenu → WindowRoot (3 modes) / Model / JSON bridge / FSEvents
+media/workspaces.py → creative profile registry; planner freezes profile_routes
 manager/file.py → legacy-save + existing downloads/stems
 ```
 
@@ -34,6 +35,6 @@ Use [modules](modules.md), [operations](operations.md) and [development](develop
 
 ## Current working state
 
-Current base is `5a60349`; this session adds native identity/menus/themes, thumbnail grid, compact importer and per-unit editing-copy selection on top (see [STATUS](STATUS.md)). The app is installed as **n creator utils**; operation/installation instructions are in [operations](operations.md). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
+Current checkpoint HEAD is `3ec01d3`; this session adds the unified **nüün** window and profile/discovery boundary on top of the existing working changes (see [STATUS](STATUS.md)). Installed path is `~/Applications/nuun.app`. One `NSWindow` has compact/selection/full modes; source loading is automatic in selection/full. [Window flow and ownership](features/nuun-window.md), [operations](operations.md). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
 
 Next: remaining review items, the first small physical run and real progress/notifications, per [PLAN](../PLAN.md). Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).

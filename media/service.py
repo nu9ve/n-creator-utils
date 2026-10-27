@@ -26,13 +26,39 @@ class Service:
         if method == 'captures':
             from .captures import captures
             return captures(self.catalog, **params)
+        if method == 'profiles':
+            from .workspaces import profiles
+            return profiles(self.catalog)
+        if method == 'save_profile':
+            from .workspaces import save_profile
+            return save_profile(self.catalog, **params)
         if method == 'discover':
-            from .planner import scan, group_key
-            files, bundles, skipped = scan(params['source'], skip_active=True, cancel=self.cancel)
+            from .planner import scan, group_key, pending_stalker_files
+            from .layout import kind_of, stalker_facts
+            from .common import read_json
+            files, bundles, skipped = scan(params['source'], skip_active=True, cancel=self.cancel, stalker_only=params.get('source_kind') == 'stalker')
+            if params.get('source_kind') == 'stalker' and params.get('archive'):
+                files, bundles = pending_stalker_files(self.catalog, self.catalog.volume(params['archive']), files, bundles)
             groups = {}
             for file in files:
                 groups.setdefault(group_key(file), []).append(file)
-            return {'units': [{'id': key, 'paths': [f['path'] for f in members], 'bytes': sum(f['stamp']['size'] for f in members), 'evidence': [e for f in members for e in f['evidence']]} for key, members in groups.items()], 'skipped': skipped}
+            units = []
+            for key, members in groups.items():
+                evidence = [e for f in members for e in f['evidence']]
+                kinds = [kind_of(f['path']) for f in members]
+                bundle = members[0]['bundle']
+                metadata = {}
+                if bundle is not None:
+                    manifest = read_json(Path(params['source']) / ('' if bundle == '.' else bundle) / 'manifest.json', 1024 * 1024)
+                    facts = stalker_facts(manifest, min(f['stamp']['mtime_ns'] for f in members))
+                    metadata = {'session_id': manifest['sessionID'], 'created_at': facts['created'].isoformat(),
+                                'duration_seconds': facts.get('seconds'), 'track_count': len(manifest.get('tracks', []))}
+                units.append({'id': key, 'paths': [f['path'] for f in members],
+                              'bytes': sum(f['stamp']['size'] for f in members), 'evidence': evidence,
+                              'category': 'stalker' if bundle is not None else next((k for k in kinds if k in {'video', 'image', 'raw_image', 'audio'}), 'support'),
+                              'camera': next((e['model'] for e in evidence if e.get('model')), '') or next((e['family'] for e in evidence if e.get('family')), ''),
+                              **metadata})
+            return {'units': units, 'skipped': skipped, 'bytes': sum(f['stamp']['size'] for f in files)}
         if method == 'plan':
             return build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
         if method == 'apply':

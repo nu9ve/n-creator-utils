@@ -139,6 +139,38 @@ class MediaSaveTests(MediaFixture):
 
 
 class MediaEngineTests(MediaFixture):
+    def test_profile_route_is_frozen_in_reviewed_plan(self):
+        service = Service(self.catalog, self.backend)
+        value = dict(id='9logs', name='9logs', raw_dir='9logs_sources', work='ESSD', archive='MEDIA')
+        service.call('save_profile', value)
+        plan = self.plan(profile='9logs')
+        self.assertEqual(plan['profile_routes'], {'9logs': '9logs_sources'})
+        self.assertTrue(all('/9logs_sources/intro/' in row['work_path'] for row in plan['preview']))
+        service.call('save_profile', dict(value, raw_dir='new_sources'))
+        self.run_plan(plan)
+        self.assertTrue((self.work / '001_proyectos/9logs_sources/intro').is_dir())
+        self.assertFalse((self.work / '001_proyectos/new_sources').exists())
+        self.assertEqual(service.call('profiles')[0]['raw_dir'], 'new_sources')
+
+    def test_profile_rejects_escaping_paths_and_wrong_volume_role(self):
+        service = Service(self.catalog, self.backend)
+        for raw in ('../outside', '/absolute', '.', 'a/../b'):
+            with self.assertRaises(MediaError):
+                service.call('save_profile', dict(id='e64', name='e64', raw_dir=raw))
+        with self.assertRaisesRegex(MediaError, 'role'):
+            service.call('save_profile', dict(id='e64', name='e64', raw_dir='e64_raw', work='MEDIA'))
+        self.assertEqual(service.call('profiles'), [])
+
+    def test_discovery_summary_is_read_only_and_groups_pairs(self):
+        before = sorted(str(p) for p in self.source.rglob('*'))
+        result = Service(self.catalog, self.backend).call('discover', {'source': str(self.source)})
+        self.assertEqual(len(result['units']), 1)
+        self.assertIn(result['units'][0]['category'], {'image', 'raw_image'})
+        self.assertEqual(len(result['units'][0]['paths']), 2)
+        self.assertEqual(result['bytes'], 18)
+        self.assertEqual(before, sorted(str(p) for p in self.source.rglob('*')))
+        self.assertEqual(list(self.archive.iterdir()), [])
+
     def test_selected_editing_copies_archive_everything_then_clean_card(self):
         (self.source / 'DCIM/second.JPG').write_bytes(b'second-photo')
         plan = self.plan(assignments={'DCIM/photo.JPG': {'work': False}})
@@ -448,6 +480,24 @@ class StalkerEngineTests(MediaFixture):
             'sessionID': str(uuid.uuid4()), 'status': status,
             'tracks': [{'relativePath': 'screen.mov'}]}))
         return root
+
+    def test_native_discovery_shares_archived_session_filter_and_metadata(self):
+        bundle = self.session()
+        self.session('active.stalker', 'recording')
+        unrelated = self.source / 'unrelated.fcpbundle'; unrelated.mkdir()
+        (unrelated / 'clipper-project.json').write_text('{}')
+        (self.source / 'unrelated-link').symlink_to(unrelated)
+        service = Service(self.catalog, self.backend)
+        params = {'source': str(self.source), 'source_kind': 'stalker', 'archive': 'MEDIA'}
+        first = service.call('discover', params)
+        self.assertEqual(len(first['units']), 1)
+        self.assertEqual(first['units'][0]['category'], 'stalker')
+        self.assertEqual(first['units'][0]['track_count'], 1)
+        self.assertTrue(first['units'][0]['created_at'])
+        self.assertEqual(first['skipped'], ['active.stalker'])
+        self.run_plan(self.plan(source_kind='stalker', cleanup=False))
+        self.assertEqual(service.call('discover', params)['units'], [])
+        self.assertTrue((bundle / 'screen.mov').exists())
 
     def test_stalker_complete_bundle_and_recording_untouched(self):
         bundle = self.session(); recording = self.session('active.stalker', 'recording')

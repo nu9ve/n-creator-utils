@@ -67,4 +67,4 @@ swift test --package-path native/MediaMenu
 
 Las pruebas automatizadas nunca usan MEDIA/ESSD/SDs personales. Los bundles de `dist/` son snapshots ad-hoc de desarrollo, no un instalador final. CI: [.gitlab-ci.yml](.gitlab-ci.yml). Revisar `git status` antes de continuar; el estado exacto está en [STATUS](docs/STATUS.md).
 
-La app macOS se instala como **n creator utils** y se busca por «creator utils» en Spotlight/Raycast. Incluye menús nativos, grid de miniaturas, copias para editar ninguna/todas/seleccionadas, importador compacto (⌘I) y apariencia personalizable. [Instalación, actualización y operación](docs/operations.md#app-de-desarrollo-y-launcher); [evidencia y límites](docs/STATUS.md).
+La app macOS se presenta como **nüün**, instalada como `nuun.app`. Usa una ventana con modos compacto/selección/completo, carga automática y miniaturas bajo demanda, bandeja, perfiles y ajustes por áreas. [Flujo y límites](docs/features/nuun-window.md), [instalación](docs/operations.md#app-de-desarrollo-y-launcher), [evidencia](docs/STATUS.md).

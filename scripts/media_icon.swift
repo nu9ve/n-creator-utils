@@ -8,13 +8,13 @@ for (name, pixels) in [("icon_16x16",16),("icon_16x16@2x",32),("icon_32x32",32),
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
     NSGraphicsContext.current!.cgContext.scaleBy(x: CGFloat(pixels)/1024, y: CGFloat(pixels)/1024)
     let background = NSBezierPath(roundedRect: NSRect(x: 45, y: 45, width: 934, height: 934), xRadius: 212, yRadius: 212)
-    NSGradient(starting: NSColor(srgbRed: 0.17, green: 0.13, blue: 0.42, alpha: 1), ending: NSColor(srgbRed: 0.29, green: 0.43, blue: 0.95, alpha: 1))!.draw(in: background, angle: 55)
+    NSGradient(starting: NSColor(srgbRed: 1, green: 0.733, blue: 0.36, alpha: 1), ending: NSColor(srgbRed: 1, green: 0.87, blue: 0.68, alpha: 1))!.draw(in: background, angle: 55)
     let card = NSBezierPath()
     card.move(to: NSPoint(x: 295, y: 230)); card.line(to: NSPoint(x: 295, y: 680)); card.line(to: NSPoint(x: 420, y: 805)); card.line(to: NSPoint(x: 730, y: 805)); card.line(to: NSPoint(x: 730, y: 230)); card.close()
-    NSColor.white.withAlphaComponent(0.19).setFill(); card.fill()
-    NSColor.white.withAlphaComponent(0.65).setStroke(); card.lineWidth = 18; card.stroke()
-    ("n" as NSString).draw(in: NSRect(x: 378, y: 300, width: 315, height: 410), withAttributes: [.font: NSFont.systemFont(ofSize: 370, weight: .semibold), .foregroundColor: NSColor.white])
-    for x in [470, 540, 610] { NSColor.white.withAlphaComponent(0.7).setFill(); NSBezierPath(roundedRect: NSRect(x: CGFloat(x), y: 704, width: 35, height: 58), xRadius: 9, yRadius: 9).fill() }
+    NSColor.brown.withAlphaComponent(0.10).setFill(); card.fill()
+    NSColor.brown.withAlphaComponent(0.65).setStroke(); card.lineWidth = 18; card.stroke()
+    ("n" as NSString).draw(in: NSRect(x: 378, y: 300, width: 315, height: 410), withAttributes: [.font: NSFont.systemFont(ofSize: 370, weight: .semibold), .foregroundColor: NSColor(srgbRed: 0.24, green: 0.15, blue: 0.08, alpha: 1)])
+    for x in [470, 540, 610] { NSColor.brown.withAlphaComponent(0.7).setFill(); NSBezierPath(roundedRect: NSRect(x: CGFloat(x), y: 704, width: 35, height: 58), xRadius: 9, yRadius: 9).fill() }
     NSGraphicsContext.restoreGraphicsState()
     try bitmap.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent(name + ".png"))
 }

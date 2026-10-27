@@ -8,6 +8,8 @@
 | Install, run, register disks and debug | [Operations](operations.md) |
 | Change code or resume another session | [Development](development.md), root [AGENTS](../AGENTS.md) |
 | Assess a distribution build | [Release gates](release.md) |
+| Understand the three-mode nüün window | [Window flow/limits](features/nuun-window.md) |
+| Review the final local artifact / manual acceptance | [2026-10-26 closeout](releases/2026-10-26-local.md) |
 | Evolve dashboard/launcher | [Feature backlog](features/dashboard-launcher.md) |
 | Change a cross-app boundary | [Contracts index](contracts/README.md) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |

@@ -61,5 +61,16 @@ class AppInstallTests(unittest.TestCase):
         self.assertTrue(renamed.exists())
         self.assertFalse(self.destination.exists())
 
+    def test_nuun_rename_preserves_current_app_and_registers_search_keywords(self):
+        previous = self.destination.parent / 'n creator utils.app'
+        (previous / 'Contents').mkdir(parents=True)
+        (previous / 'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier': 'app.nu9ve.media', 'Nu9veBuildID': 'old'}))
+        renamed = self.destination.parent / 'nuun.app'
+        with mock.patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout='')) as run:
+            installer.install(self.app, renamed)
+        self.assertTrue(renamed.exists())
+        self.assertFalse(previous.exists())
+        self.assertTrue(any(call.args[0][:3] == ['/usr/bin/xattr', '-wx', 'com.apple.metadata:kMDItemKeywords'] for call in run.call_args_list))
+
 
 if __name__ == '__main__': unittest.main()

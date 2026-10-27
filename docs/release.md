@@ -2,6 +2,8 @@
 
 Current verdict: **development implementation, not release ready**. Evidence is in [STATUS](STATUS.md). This checklist defines what closes that gap; it does not claim the gates passed.
 
+Último cierre local para aceptación: [2026-10-26](releases/2026-10-26-local.md).
+
 ## Candidate requirements
 
 | Gate | Required evidence |

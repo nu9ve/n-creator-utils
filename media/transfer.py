@@ -107,7 +107,7 @@ class Transfer:
 
     def validate_source(self, plan):
         self.source_check(plan, full=True)
-        actual, bundles, skipped = scan(plan['source'], skip_active=plan['source_kind'] == 'stalker', cancel=self.cancel)
+        actual, bundles, skipped = scan(plan['source'], skip_active=plan['source_kind'] == 'stalker', cancel=self.cancel, stalker_only=plan['source_kind'] == 'stalker')
         actual_map = {f['path']: f for f in actual}
         expected = {f['path']: f for f in plan['files']}
         if plan['source_kind'] == 'stalker':

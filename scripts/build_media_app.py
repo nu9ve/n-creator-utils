@@ -67,10 +67,11 @@ def main():
     for path in sorted(inputs):
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
-    info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'n creator utils', 'CFBundleDisplayName': 'n creator utils',
+    info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'nüün', 'CFBundleDisplayName': 'nüün',
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
             'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'LSUIElement': True,
             'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
+            'LSHasLocalizedDisplayName': True, 'Nu9veSearchAliases': ['nuun', 'nun', 'creator utils'],
             'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
             'Nu9veBuildID': build_id, 'Nu9veBuildDate': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (contents / 'Info.plist').write_bytes(plistlib.dumps(info))

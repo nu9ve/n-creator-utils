@@ -219,7 +219,7 @@ def build_layout(source, plan, units, files):
     for unit in sorted(units, key=lambda u: u['id']):
         members = sorted(by_unit[unit['id']], key=lambda f: f['path'])
         project = slug(unit['project'])
-        work_root = slug(unit['profile']) + '_raw/' + project
+        work_root = plan.get('profile_routes', {}).get(unit['profile'], slug(unit['profile']) + '_raw') + '/' + project
         label = '{}-{}'.format(tag(plan['country']), tag(project))
         if unit['kind'] == 'stalker_session':
             # The bundle folder takes the dated name so sessions interleave with camera clips; its inside stays byte-identical.
