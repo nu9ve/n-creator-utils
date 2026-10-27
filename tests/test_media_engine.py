@@ -67,6 +67,77 @@ class MediaFixture(unittest.TestCase):
         return Transfer(self.catalog, self.backend, cancel, hook).apply(plan, plan['digest'])
 
 
+class MediaSaveTests(MediaFixture):
+    def save(self, *args, interactive=False, answers=()):
+        from contextlib import redirect_stdout
+        import io
+        from unittest import mock
+        from media.save import main
+        output = io.StringIO()
+        with mock.patch('media.save.Catalog', side_effect=lambda _: Catalog(self.root / 'state')), \
+                mock.patch('media.save.VolumeBackend', return_value=self.backend), \
+                mock.patch('sys.stdin.isatty', return_value=interactive), \
+                mock.patch('builtins.input', side_effect=answers), redirect_stdout(output):
+            result = main([str(self.source), *args])
+        return result, output.getvalue()
+
+    def test_positional_project_is_separate_from_city(self):
+        from media.save import parse_args
+        args = parse_args(['all', 'mx', 'kasakarla-electroritual', '--city', 'guadalajara'])
+        self.assertEqual((args.source, args.country, args.project, args.city),
+                         ('all', 'mx', 'kasakarla-electroritual', 'guadalajara'))
+        self.assertFalse(args.archive_only)
+
+    def test_reject_ambiguous_tags_and_conflicting_work_flags(self):
+        import contextlib
+        import io
+        from media.save import parse_args
+        for argv in (['all', 'mx'], ['all', 'mx', 'intro', 'extra'],
+                     ['all', 'mx', 'intro', '--project', 'other'],
+                     ['all', '--no-work', '--work', 'ESSD'],
+                     ['all', '--no-work', '--work-decision', 'pending']):
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+                parse_args(argv)
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_no_work_preview_has_no_work_destination_or_pending(self):
+        _, output = self.save('mx', 'intro', '--archive', 'MEDIA', '--no-work',
+                              '--confirm-archive-only', '--dry-run')
+        plan = json.loads(output)
+        self.assertIsNone(plan['work_id'])
+        self.assertIsNone(plan['expected_work_id'])
+        self.assertEqual(plan['work_delivery_status'], 'skipped')
+        self.assertTrue(all(row['work_path'] is None for row in plan['preview']))
+        self.assertEqual(list(self.archive.iterdir()), [])
+        self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
+
+    def test_yes_does_not_confirm_no_work(self):
+        with self.assertRaisesRegex(MediaError, 'Confirm archive-only'):
+            self.save('mx', 'intro', '--archive', 'MEDIA', '--no-work', '--yes')
+        self.assertEqual(list(self.archive.iterdir()), [])
+        self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
+
+    def test_no_work_interactive_confirmed_archive_then_cleanup(self):
+        self.catalog.set('defaults', {'work': 'ESSD'})
+        self.backend.offline.add(str(self.work))
+        result, output = self.save('mx', 'intro', '--archive', 'MEDIA', '--no-work',
+                                   interactive=True, answers=['SOLO MEDIA', 'GUARDAR'])
+        self.assertEqual(result, 0)
+        self.assertIn('skipped', output)
+        self.assertEqual(list(self.work.iterdir()), [])
+        self.assertFalse((self.source / 'DCIM/photo.JPG').exists())
+        self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 1)
+        self.assertTrue(all(asset['work_delivery_status'] == 'skipped' for asset in self.catalog.search()))
+        self.assertEqual(self.catalog.get('defaults')['work'], 'ESSD')
+
+    def test_no_work_rejected_confirmation_retains_source(self):
+        with self.assertRaisesRegex(MediaError, 'not confirmed'):
+            self.save('mx', 'intro', '--archive', 'MEDIA', '--no-work',
+                      interactive=True, answers=['NO'])
+        self.assertEqual(list(self.archive.iterdir()), [])
+        self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
+
+
 class MediaEngineTests(MediaFixture):
     def test_verified_both_destinations_then_cleanup_and_idempotent_retry(self):
         plan = self.plan()

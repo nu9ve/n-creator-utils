@@ -1,6 +1,6 @@
 # Naming y carpetas de media v1
 
-Estado: implementado en el productor (`media/layout.py`, planes esquema 2) el 2026-10-25 y usado en el primer respaldo real (`debloateando-mi-tele`). **Stalker lo adoptó en 0.4.0** (2026-10-25, `d88eaf9`, ver [adopción](#adopción-stalker-implementada-2026-10-25)). **Clipper aún no**; su sección es la propuesta para su repo. Índice: [contratos](README.md).
+Estado: implementado en el productor (`media/layout.py`, planes esquema 2) el 2026-10-25 y usado en el primer respaldo real (`debloateando-mi-tele`). **Stalker lo adoptó en 0.4.0** (2026-10-25, `d88eaf9`, ver [adopción](#adopción-stalker-implementada-2026-10-25)). **Clipper lo adoptó en CLI/TUI** el 2026-10-25 (ver [adopción](#adopción-clipper-implementada-2026-10-25)). Índice: [contratos](README.md).
 
 ## Por qué
 
@@ -114,6 +114,24 @@ El usuario borra de la carpeta de trabajo, en Finder y sin avisar, lo que no sir
 3. Guardar en el proyecto el `sessionID`/`asset_id` además de la ruta, y ofrecer relink cuando la ruta cambie (relayout, otro SSD, restauración).
 4. Consumir `creator-media-handoff/1` ([spec](media-library-v1.md)): ubicaciones por volumen/rol. La copia de trabajo es la preferida para editar; el archivo es el respaldo.
 5. No escribir dentro de bundles ni renombrar archivos de media; las ediciones viven en el proyecto Clipper.
+
+Estado: implementada el 2026-10-25 con las decisiones de la sección siguiente. Diferencia con el punto 4: Clipper consume `media sources` (rutas locales) en vez de `creator-media-handoff/1`.
+
+## Adopción: Clipper (implementada 2026-10-25)
+
+Clipper CLI/TUI, working tree sobre `e6981b1` (main, sin commit). Detalle y pasos manuales en Clipper `docs/media-library.md`. Decisiones que afectan a las tres apps:
+
+| # | Decisión | Compatibilidad |
+| --- | --- | --- |
+| 1 | **Import en un paso desde `sources`**, en el orden de `order`. Cámaras como items; cada `.stalker` por el import de sesión (validado por `manifest.json`, `producer`, `sessionID`). Reimportar agrega sólo `asset_id` nuevos; una ruta ya pegada o una sesión ya importada se adopta; otra revisión es conflicto y no se toca. | Sin cambios en el productor. |
+| 2 | **Identidad en el proyecto:** `clipper-project.json` → `media_library` (`clipper-media-library/1`): `project_id`, perfil del catálogo y por `asset_id`: `revision`, `kind`, `session_id` (UUID en minúsculas), `sha256`, `bytes`, `captured_at`, `duration_seconds`, ruta, `source_ids`, estado e historial de relink. Lectura posible para otras apps; Clipper es el único escritor. | Campo opcional; proyectos sin biblioteca no lo llevan. |
+| 3 | **Ubicación:** proyecto en `<prefix>/<perfil>/<proyecto>/clipper/` y finales en `<prefix>/<perfil>/<proyecto>/renders/` (default `/Volumes/ESSD/001_proyectos/e64/…`, configurable). La carpeta `<proyecto>/` sigue siendo del usuario (Final Cut); Clipper sólo borra `clipper/` si se elimina el proyecto. Nunca crea `/Volumes/<X>/…` si `<X>` no está montado. | Pedido en «Pendientes»: no tratar `clipper/` ni `renders/` como raw al liberar trabajo. |
+| 4 | **Borrados y offline:** `removed_from_work`, `offline` y `warnings` se muestran como estado (también sin catálogo, por presencia local). El item no se borra ni se reimporta. | Igual a «Copias de trabajo borradas a mano». |
+| 5 | **Relink sólo a pedido:** a una copia de `alternatives`/`removed_from_work` u otra ruta; requiere la misma `revision` del catálogo y valida `sessionID` + digest de `manifest.json` (Stalker) o SHA-256 (archivos). Conserva cortes, sync y marcas; invalida previews. Sin ACK al catálogo todavía. | Paso previo al protocolo de relocalización de [media-library v1](media-library-v1.md#relocalización-y-dependencias). |
+| 6 | **Agrupar cámara y pantalla:** componentes conexos de intervalos que se solapan o quedan a ≤ 90 s (configurable), con desfase de reloj del Mac por proyecto. Certeza «solape» o «cercanía». Confirmar crea un grupo por cámara con sync de audio contra `mic.wav`; si el audio no resuelve, la pantalla queda `unresolved` con el offset por reloj (si se solapan) o fuera. Deshacer restaura fuentes y bloques. | Caso real: 3 sugerencias (19:57, 20:41–20:52 «cercanía», 20:54). |
+| 7 | **Nombres con `[]` y cualquier `.stalker`:** filtros FFmpeg con escape de opción + comillas del filtergraph; artefactos por fuente calificados con la carpeta del bundle (varias sesiones comparten `screen.mov`/`mic.wav`). Clipper no escribe dentro de bundles ni de media, ni la renombra. | Finder sí puede dejar `.DS_Store` dentro de un bundle (ver «Pendientes»). |
+| 8 | **Dependencias y ACK:** `clipper library deps --json` (`clipper-library-deps/1`) es la lectura oficial de qué usa Clipper: por proyecto enlazado y asset, ruta leída, `in_use`, grupos, exports en cola; proyectos sin montar en `offline_projects`. Cada relink publica un ACK `clipper-relink-ack/1` con `operation_id` idempotente. | Paso 3 del protocolo de [relocalización](media-library-v1.md#relocalización-y-dependencias), sin leases. |
+| 9 | **«Preparar» multicam:** a pedido del usuario (botón o `import --prepare`), análisis → todas las sugerencias confirmadas con sync de audio → transcripción en serie del audio principal (masters y cámaras sueltas). Etapas persistidas en `media_library.prepare`. Sigue siendo decisión del usuario, no un auto-sync silencioso. | Sólo Clipper. |
 
 ## Fuera de alcance
 

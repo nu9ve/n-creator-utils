@@ -40,7 +40,7 @@ nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro --dry
 nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro
 ```
 
-`save` nuevo usa flags y planificación verificada. El importador anterior quedó como **`legacy-save`**, conserva sus movimientos/borrados y no tiene las garantías nuevas. `nu9ve clip` sólo informa el editor sucesor; el módulo histórico fue retirado. No hay migración automática de JSON antiguos de Clipper.
+`save` usa planificación verificada y admite el atajo `save all mx PROYECTO`. Para sólo respaldo, sin copia de trabajo ni pendiente: añadir `--no-work` y confirmar la operación; [ejemplos](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). El importador anterior quedó como **`legacy-save`**, conserva sus movimientos/borrados y no tiene las garantías nuevas. `nu9ve clip` sólo informa el editor sucesor; el módulo histórico fue retirado. No hay migración automática de JSON antiguos de Clipper.
 
 ## Superficies disponibles
 

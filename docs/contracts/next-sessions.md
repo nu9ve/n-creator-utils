@@ -68,6 +68,8 @@ nombre, archivarla desde n-creator-utils y liberarla.
 
 ## 2. Clipper (`~/code/ai/clipper`), después de Stalker
 
+Estado: ejecutada el 2026-10-25 (Clipper, working tree sobre `e6981b1`, sin commit). Resultado en la [fila de adopción](README.md#estado-de-adopción-por-app), en [naming v1](media-naming-v1.md#adopción-clipper-implementada-2026-10-25) y en «Pendientes para n-creator-utils».
+
 ```text
 Eres la sesión de Clipper. Objetivo: terminar la implementación para que Clipper quede dentro del contrato del
 ecosistema de media y coordinado con lo ya implementado en n-creator-utils y en Stalker, con features fluidos:

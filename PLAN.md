@@ -13,6 +13,7 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 | When | Task |
 | --- | --- |
+| Done 2026-10-26 | CLI shorthand `save SOURCE COUNTRY PROJECT` and explicit `--no-work` for archive-only media with no deferred work. Six focused fixture tests; EOS_DIGITAL → MEDIA502 preview only, no physical copy/cleanup. [Usage](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). |
 | Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
 | Next | Stalker session, then Clipper session ([prompts](docs/contracts/next-sessions.md)); each updates its adoption row and «Pendientes para n-creator-utils» in [contracts](docs/contracts/README.md). Then implement those pending items here. |
 | Tonight | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
