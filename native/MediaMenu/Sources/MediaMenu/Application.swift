@@ -354,14 +354,50 @@ struct DraftUnit: Identifiable, Equatable {
         // Real bytes from Transfer.report; never an invented percentage.
         let p = job["progress"], gb = { (bytes: Double) in String(format: "%.1f", bytes / 1e9) }
         if p["phase"].string == "releasing_stalker" {
-            return "Revisando Clipper y liberando sesiones Stalker \(Int(p["sessions_done"].double))/\(Int(p["sessions_total"].double))"
+            let session = "Sesión \(Int(p["session_index"].double))/\(Int(p["sessions_total"].double))"
+            let name = p["session_name"].string
+            let stage: String
+            switch p["stage"].string {
+            case "preparing": stage = "Preparando liberación"
+            case "hashing_source": stage = "Verificando archivos del original"
+            case "matching_archive": stage = "Comparando con el respaldo"
+            case "validating_bundle": stage = "Validando bundle Stalker"
+            case "inspecting_clipper": stage = "Revisando dependencias de Clipper"
+            case "verifying_work_copy": stage = "Verificando copia de trabajo"
+            case "revalidating_source": stage = "Revalidando origen"
+            case "revalidating_clipper": stage = "Revalidando dependencias de Clipper"
+            case "verifying_archive": stage = "Revalidando respaldo"
+            case "metadata_backup_before", "metadata_backup_after": stage = "Guardando snapshot del catálogo"
+            case "relinking": stage = "Actualizando referencias de Clipper"
+            case "releasing_originals": stage = "Liberando archivos originales"
+            case "relink_complete": stage = "Referencias actualizadas"
+            case "release_complete", "session_finished": stage = "Sesión liberada"
+            default: stage = "Liberando sesión Stalker"
+            }
+            var parts = [stage, session]
+            if !name.isEmpty { parts.append(name) }
+            if p["files_total"].double > 0 {
+                parts.append("\(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos")
+            }
+            if p["bytes_total"].double > 0 {
+                parts.append("\(gb(p["bytes_done"].double)) / \(gb(p["bytes_total"].double)) GB")
+            }
+            let path = p["path"].string
+            if !path.isEmpty { parts.append((path as NSString).lastPathComponent) }
+            return parts.joined(separator: " · ")
         }
         guard p["bytes_total"].double > 0 else { return stateLabel(job["state"].string) }
         let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
         let files = " · \(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos"
+        let destinations = p["destinations"].array.compactMap { destination -> String? in
+            let name = destination["name"].string
+            guard !name.isEmpty else { return nil }
+            return "\(name) \(Int(destination["files_done"].double))/\(Int(destination["files_total"].double))"
+        }.joined(separator: " · ")
+        let destinationStatus = destinations.isEmpty ? "" : " · " + destinations
         switch p["phase"].string {
-        case "copying": return "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB" + rate + files
-        case "verifying": return "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB" + files
+        case "copying": return "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB" + rate + files + destinationStatus
+        case "verifying": return "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB" + files + destinationStatus
         case "cleaning": return "Limpiando SD tras verificar"
         default: return stateLabel(job["state"].string)
         }

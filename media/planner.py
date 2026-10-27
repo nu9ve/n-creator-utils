@@ -15,6 +15,31 @@ from .layout import build_layout
 CAMERAS = {'sony', 'canon', 'nikon', 'gopro', 'h6', 'dji-drone', 'dji-360', 'dji-action', 'insta360', 'generic'}
 
 
+def finder_only_residue(folder, max_entries=256, max_depth=12):
+    """True only for a manifest-less folder containing Finder metadata and empty dirs."""
+    pending = [(Path(folder), 0)]
+    visited = 0
+    while pending:
+        current, depth = pending.pop()
+        if depth > max_depth:
+            return False
+        try:
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    visited += 1
+                    if visited > max_entries or entry.is_symlink():
+                        return False
+                    if entry.is_dir(follow_symlinks=False):
+                        pending.append((Path(entry.path), depth + 1))
+                    elif entry.is_file(follow_symlinks=False) and (entry.name in {'.DS_Store', '.localized'} or entry.name.startswith('._')):
+                        continue
+                    else:
+                        return False
+        except OSError:
+            return False
+    return True
+
+
 def scan(root, skip_active=False, cancel=None, stalker_only=False):
     files, bundles, skipped = [], {}, []
     root = Path(root).absolute()
@@ -24,7 +49,12 @@ def scan(root, skip_active=False, cancel=None, stalker_only=False):
             require(not (folder / 'clipper-project.json').exists() and folder.suffix.lower() not in {'.fcpbundle', '.fcpcache'},
                     'editor_project', 'Do not ingest an editor project with camera media')
             if folder.suffix.lower() == '.stalker':
-                manifest = read_json(folder / 'manifest.json', 1024 * 1024)
+                manifest_path = folder / 'manifest.json'
+                if skip_active and not manifest_path.exists() and finder_only_residue(folder):
+                    # Release deliberately ignores Finder metadata. A directory left with only
+                    # .DS_Store/AppleDouble is not a capture and must not break rediscovery.
+                    return
+                manifest = read_json(manifest_path, 1024 * 1024)
                 require(isinstance(manifest, dict), 'invalid_bundle', 'Invalid Stalker manifest')
                 if manifest.get('status') != 'completed':
                     require(skip_active, 'active_capture', 'Stalker session is not completed')

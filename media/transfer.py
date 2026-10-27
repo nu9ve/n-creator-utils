@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import threading
 import time
 import uuid
 
@@ -82,6 +83,7 @@ class Transfer:
         self.volume_tokens = {}
         self.source_token = None
         self.progress = None
+        self.progress_lock = threading.Lock()
         self.progress_started = self.progress_flushed = time.monotonic()
 
     def check_volume(self, record, full=False):
@@ -129,15 +131,18 @@ class Transfer:
 
     def report(self, force=False, **changes):
         """Progress for observers (app/CLI `job`); written from this thread at most once per second."""
-        if self.progress is None:
-            return
-        self.progress.update(changes)
         moment = time.monotonic()
-        if force or moment - self.progress_flushed >= 1:
+        with self.progress_lock:
+            if self.progress is None:
+                return
+            self.progress.update(changes)
+            if not (force or moment - self.progress_flushed >= 1):
+                return
             elapsed = max(moment - self.progress_started, 0.001)
             self.progress.update(updated_at=now(), bytes_per_second=int(self.progress['copied_bytes'] / elapsed))
-            self.catalog.set('progress:' + self.progress['job_id'], self.progress)
+            snapshot = dict(self.progress)
             self.progress_flushed = moment
+        self.catalog.set('progress:' + snapshot['job_id'], snapshot)
 
     def copy_file(self, source_tree, source_rel, target_tree, target_rel, record, expected=None, source_stamp=None):
         return self.copy_many(source_tree, source_rel, [(target_tree, target_rel, record)], expected, source_stamp)[0]
@@ -162,7 +167,8 @@ class Transfer:
                 # Identical bytes (an earlier run or ingest) are adopted; anything else is never touched.
                 try:
                     wanted = wanted or hash_fd(src, self.cancel)
-                    require(hash_fd(existing, self.cancel) == wanted, 'destination_conflict', 'A different file already exists at ' + target_rel)
+                    require(hash_fd(existing, self.cancel, self.count_verified) == wanted,
+                            'destination_conflict', 'A different file already exists at ' + target_rel)
                     require(content_stamp(os.fstat(src)) == content_stamp(initial), 'source_changed', 'Source changed during comparison')
                     results[index] = (wanted, content_stamp(os.fstat(existing)))
                 finally:
@@ -250,8 +256,9 @@ class Transfer:
             os.close(src)
 
     def count_verified(self, size):
-        if self.progress:
-            self.progress['verified_bytes'] += size  # Plain int update from verifier threads; flushed by the caller.
+        with self.progress_lock:
+            if self.progress:
+                self.progress['verified_bytes'] += size
 
     def apply(self, plan, expected_digest):
         validate_plan(plan)
@@ -282,9 +289,17 @@ class Transfer:
         verified_in_run = []
         self.catalog.state(plan['id'], 'copying')
         total = sum(f['stamp']['size'] for f in plan['files'])
+        destination_progress = []
+        for record in records:
+            destination_files = [f for f in plan['files']
+                                 if destination_path(record, plan, units[f['unit_id']], f['path'])]
+            if destination_files:
+                destination_progress.append({'id': record['id'], 'name': record['name'], 'role': record['role'],
+                                             'files_total': len(destination_files), 'files_done': 0})
         self.progress = {'job_id': plan['id'], 'phase': 'copying', 'files_total': len(plan['files']), 'files_done': 0,
                          'bytes_total': total, 'copied_bytes': 0, 'verified_bytes': 0,
-                         'verify_total': sum(f['stamp']['size'] for f in plan['files'] for r in records if destination_path(r, plan, units[f['unit_id']], f['path']))}
+                         'verify_total': sum(f['stamp']['size'] for f in plan['files'] for r in records if destination_path(r, plan, units[f['unit_id']], f['path'])),
+                         'destinations': destination_progress}
         self.progress_started = time.monotonic()
         self.report(force=True)
         with Tree(plan['source']) as source_tree, contextlib.ExitStack() as stack:
@@ -315,7 +330,8 @@ class Transfer:
                         data = json.loads(prior[0])
                         fd = target.open(dest)
                         try:
-                            require(hash_fd(fd, self.cancel) == data['sha256'], 'checksum_mismatch', 'Previously verified copy is corrupt')
+                            require(hash_fd(fd, self.cancel, self.count_verified) == data['sha256'],
+                                'checksum_mismatch', 'Previously verified copy is corrupt')
                             done[record['id']] = (dest, data['sha256'], content_stamp(os.fstat(fd)))
                         finally:
                             os.close(fd)
@@ -351,9 +367,12 @@ class Transfer:
                             (plan['id'], record['id'], file['path'], sha, canonical(receipt).decode()))
                     receipts[record['id']].append(receipt); verified_in_run.append((record, dest, stamp, file['path']))
                     self.checkpoint('after_file_verified', receipt)
+                    destination = next((value for value in destination_progress if value['id'] == record['id']), None)
+                    if destination:
+                        destination['files_done'] += 1
                 if not pending:
                     self.progress['copied_bytes'] += file['stamp']['size']
-                self.report(files_done=self.progress['files_done'] + 1, file=file['path'])
+                self.report(files_done=self.progress['files_done'] + 1, file=file['path'], destinations=destination_progress)
             for record in records:
                 target = trees[record['id']]
                 self.check_volume(record)
@@ -436,7 +455,7 @@ class Transfer:
                 unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp']]
                 final = 'source_has_new_material' if unexpected else ('camera_action_required' if sony else 'completed')
             self.catalog.state(plan['id'], final)
-            self.report(force=True, phase=final)
+            self.report(force=True, phase=final, destinations=destination_progress)
         return self.catalog.job(plan['id'])
 
     def _index(self, plan):

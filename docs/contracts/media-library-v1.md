@@ -97,6 +97,12 @@ No deducir publicación por existencia en Downloads o por terminar render. `subi
 
 Fase 1: archivos JSON + helper local de una sola ejecución, stdout estructurado/stderr logs. Futuro NDJSON de progreso con versión, `event_id`, `job_id`, secuencia, fecha, fase y bytes por destino; el cliente recupera estado por job y tolera eventos repetidos/faltantes. No prometer exactly-once por notificaciones.
 
+### Progreso local de ingest (n-creator-utils · 2026-10-27)
+
+`job` devuelve progreso observable durante transferencia y liberación Stalker. En transferencia, `phase` distingue copia, verificación, limpieza y estado terminal; `copied_bytes`/`bytes_total` cuentan cada archivo una vez para la etapa de copia (aunque ya tenga recibos al reanudar), `verified_bytes`/`verify_total` cuentan lecturas de verificación de todos los destinos, y `destinations[]` muestra nombre/rol más archivos verificados de cada destino. La copia puede alimentar varios destinos desde una sola lectura; no sumar `copied_bytes` como si fuese el total escrito en cada volumen.
+
+Durante liberación, `phase=releasing_stalker` se acompaña de `stage`, sesión actual y `sessions_done/sessions_total`; cuando una etapa lee archivos también informa ruta actual, `files_done/files_total` y bytes leídos del archivo actual. Las etapas incluyen hash/compare de origen y respaldo, revisión de bundle, dependencias/reenlace Clipper, revalidación de copias, snapshot de catálogo y liberación por archivo. Son lecturas/recibos reales, no porcentajes estimados. El servicio guarda cambios al cambiar de etapa y limita actualizaciones dentro de una etapa a aproximadamente una por segundo. Es progreso local de consulta, no un protocolo portable ni promesa de NDJSON.
+
 Fase 2: API/MCP local `catalog.search`, `asset.resolve`, `ingest.plan`, `ingest.apply`, `job.status`, `restore.plan`, `delivery.register` y operaciones separadas de limpieza, todos nombres conceptuales aún inexistentes. IDs/digest, permisos y dedupe iguales a CLI; herramientas de lectura no inician jobs. Sin webhook remoto ni HTTP público para resolver el flujo local.
 
 Fase 3: paths absolutos sólo en respuestas locales del adaptador; manifests usan IDs/rutas relativas. Windows necesita resolver volumen GUID/letra y restricciones de nombres; Linux su montaje. Un consumidor rechaza capacidades requeridas no soportadas. No convertir bookmarks macOS en contrato portable.

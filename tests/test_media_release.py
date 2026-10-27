@@ -60,6 +60,20 @@ class ReleaseTests(WorkflowFixture):
         self.assertTrue(list(self.archive.glob('.ncreator/catalog-backups/*.sqlite3')))
         self.assertEqual(self.apply(plan)['state'], 'completed')
 
+    def test_release_reports_hashing_revalidation_and_cleanup_stages(self):
+        plan_events, apply_events = [], []
+        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path=self.folder, project='intro',
+                            progress=lambda stage, **details: plan_events.append((stage, details)))
+        self.assertIn('hashing_source', {stage for stage, _ in plan_events})
+        self.assertIn('matching_archive', {stage for stage, _ in plan_events})
+        self.assertTrue(any(details.get('bytes_total', 0) > 0 for _, details in plan_events))
+        result = self.apply(plan, progress=lambda stage, **details: apply_events.append((stage, details)))
+        self.assertEqual(result['state'], 'completed')
+        stages = {stage for stage, _ in apply_events}
+        self.assertTrue({'revalidating_clipper', 'verifying_archive', 'metadata_backup_before',
+                         'releasing_originals', 'release_complete'} <= stages)
+        self.assertTrue(any(details.get('files_total', 0) > 0 for _, details in apply_events))
+
     def test_archive_disconnected_before_apply_retains_everything(self):
         plan = self.release(); self.backend.offline.add(str(self.archive))
         with self.assertRaises(MediaError): self.apply(plan)
