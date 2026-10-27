@@ -13,6 +13,7 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 | When | Task |
 | --- | --- |
+| Done 2026-10-26 | Native “Sólo respaldo” + plan with work omitted/cleanup enabled. Local installer rebuilds both surfaces to one registered app path, preserves prior bundle and rejects running instances. 7 Swift + 3 installer tests passed; installed build `c4820e569776` reviewed in UI at plan stage only. Portable release runtime/updater remain pending. |
 | Done 2026-10-26 | CLI shorthand `save SOURCE COUNTRY PROJECT` and explicit `--no-work` for archive-only media with no deferred work. Six focused fixture tests; EOS_DIGITAL → MEDIA502 preview only, no physical copy/cleanup. [Usage](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). |
 | Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
 | Next | Stalker session, then Clipper session ([prompts](docs/contracts/next-sessions.md)); each updates its adoption row and «Pendientes para n-creator-utils» in [contracts](docs/contracts/README.md). Then implement those pending items here. |

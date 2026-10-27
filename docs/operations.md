@@ -98,6 +98,20 @@ Stalker: `save CARPETA --source-kind stalker --keep-source`; sólo sesiones term
 
 ## App de desarrollo y launcher
 
+Instalación local y actualización al código actual (no ejecuta backups):
+
+```sh
+python3 scripts/install_media_app.py --python /usr/bin/python3
+```
+
+Reconstruye Swift en release y empaqueta el motor Python actual; instala en `~/Applications/Nu9ve Media.app` y registra esa ruta en LaunchServices para Spotlight/Raycast. Cierra Media desde su menú antes de actualizar: el instalador rechaza cualquier instancia abierta, sin cancelarla ni interrumpir un job. Conserva el bundle anterior fuera de Applications, en `~/Library/Application Support/n-creator-utils/app-backups/`. El catálogo y las preferencias se conservan; el reemplazo del bundle usa staging y restaura el anterior si falla el intercambio. Las copias anteriores no se borran automáticamente.
+
+Busca **Nu9ve Media** en Spotlight/Raycast. Abrir o reabrir la app muestra la ventana; cerrarla mantiene la menubar. `--background` permite inicio sólo en menubar. La build instalada contiene un snapshot del código: para incorporar cambios futuros vuelve a ejecutar el instalador; abrirla no recompila ni descarga actualizaciones. En «Discos y ajustes» se muestra el hash del build y las rutas efectivas. El Python externo aún es requisito de esta instalación local, sin Developer ID/notarización; no es un instalador portable de distribución.
+
+En «Ingreso», elige fuente/proyecto/MEDIA y activa **Sólo respaldo · sin copia de trabajo ni pendientes** para omitir el ESSD incluso conectado. Activa **Limpiar SD tras verificar**, revisa el plan y confirma sólo respaldo. La confirmación prepara el plan; **Ejecutar plan revisado** es la acción que copia, verifica y después limpia. Si la verificación falla, no se autoriza la limpieza. Sony conserva su tratamiento especial. Ver el resumen de bytes, trabajo omitido y rutas por archivo antes de ejecutar.
+
+Para construir un artefacto separado sin instalar:
+
 ```sh
 swift test --package-path native/MediaMenu
 python3 scripts/build_media_app.py --output dist/Media-dev-NUEVO.app \
@@ -105,7 +119,7 @@ python3 scripts/build_media_app.py --output dist/Media-dev-NUEVO.app \
 open dist/Media-dev-NUEVO.app --args --show
 ```
 
-El builder no sobrescribe outputs existentes. `--skip-build` exige binario ya compilado; omitirlo para compilar. Arranque normal sólo deja menubar; `--show` abre la ventana de forma explícita. El launcher/instalador/autostart definitivo están en [backlog](features/dashboard-launcher.md).
+El builder no sobrescribe outputs existentes. `--skip-build` exige binario ya compilado; omitirlo para compilar. El script del motor se resuelve dentro de Resources al mover la app; las preferencias de runtimes antiguos no sustituyen ese snapshot. El updater/autostart de distribución siguen en [backlog](features/dashboard-launcher.md).
 
 Build de distribución: runtime relocatable proporcionado con `--runtime`, licencia y firma explícita; todavía requiere [gates de release](release.md). No distribuir un bundle de desarrollo con Python/ruta del checkout externos.
 

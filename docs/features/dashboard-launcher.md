@@ -23,7 +23,7 @@ Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad té
 
 ## Launcher y menubar
 
-La menubar actual existe. Próximas mejoras útiles:
+La menubar y la instalación local con ruta fija/rollback ya existen; abrir o reabrir desde el launcher muestra la ventana, con hash de build en ajustes. [Instalación y actualización local](../operations.md#app-de-desarrollo-y-launcher). Aún requiere Python externo y actualizar explícitamente desde código. Próximas mejoras útiles:
 
 - Acción «Respaldar SD» con último proyecto como elección, no asignación silenciosa; atajo y quick actions con nombres claros.
 - Onboarding corto para registrar roles de disco, perfil y defaults. Separar «Sólo copiar» de «Sólo MEDIA».
