@@ -26,20 +26,25 @@ def install(app, destination):
     staged = destination.parent / ('.Nu9veMedia-install-' + token + '.app')
     # Keep the old bundle outside Applications so launchers do not index a duplicate.
     backup = destination.parent.parent / 'Library/Application Support/n-creator-utils/app-backups' / (token + '.app')
-    if destination.exists():
-        old = plistlib.loads((destination / 'Contents/Info.plist').read_bytes())
+    previous = destination
+    legacy = destination.parent / 'Nu9ve Media.app'
+    if not destination.exists() and destination.name == 'n creator utils.app' and legacy.exists():
+        previous = legacy
+    if previous.is_symlink(): raise ValueError('Previous app must not be a symlink')
+    if previous.exists():
+        old = plistlib.loads((previous / 'Contents/Info.plist').read_bytes())
         if old.get('CFBundleIdentifier') != 'app.nu9ve.media':
             raise ValueError('Destination belongs to another app')
     try:
         shutil.copytree(app, staged, symlinks=True)
         subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(staged)], check=True)
-        if destination.exists():
+        if previous.exists():
             backup.parent.mkdir(parents=True, exist_ok=True)
-            destination.rename(backup)
+            previous.rename(backup)
         try:
             staged.rename(destination)
         except BaseException:
-            if backup.exists(): backup.rename(destination)
+            if backup.exists(): backup.rename(previous)
             raise
     finally:
         if staged.exists(): shutil.rmtree(staged)
@@ -52,7 +57,7 @@ def install(app, destination):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--python', default=sys.executable, help='External Python for this local development install')
-    parser.add_argument('--destination', default=str(Path.home() / 'Applications/Nu9ve Media.app'))
+    parser.add_argument('--destination', default=str(Path.home() / 'Applications/n creator utils.app'))
     parser.add_argument('--app', help='Install an already-built signed bundle; otherwise rebuild current source')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]

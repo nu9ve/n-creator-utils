@@ -23,7 +23,7 @@ Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad té
 
 ## Launcher y menubar
 
-La menubar y la instalación local con ruta fija/rollback ya existen; abrir o reabrir desde el launcher muestra la ventana, con hash de build en ajustes. [Instalación y actualización local](../operations.md#app-de-desarrollo-y-launcher). Aún requiere Python externo y actualizar explícitamente desde código. Próximas mejoras útiles:
+La app se instala como **n creator utils**, con icono y menús nativos. Grid de miniaturas, selección ninguna/todas/algunas copias para editar, importador compacto y apariencia Sistema/Claro/Oscuro + HSV ya existen. El popup al conectar es opt-in y queda pendiente la prueba de reconexión física. La menubar y la instalación local con ruta fija/rollback ya existen; abrir o reabrir desde el launcher muestra la ventana, con hash de build en ajustes. [Instalación y actualización local](../operations.md#app-de-desarrollo-y-launcher). Aún requiere Python externo y actualizar explícitamente desde código. Próximas mejoras útiles:
 
 - Acción «Respaldar SD» con último proyecto como elección, no asignación silenciosa; atajo y quick actions con nombres claros.
 - Onboarding corto para registrar roles de disco, perfil y defaults. Separar «Sólo copiar» de «Sólo MEDIA».
@@ -37,7 +37,7 @@ Implementar launch-at-login/actualización después de decidir firma/runtime. No
 
 ## Diseño modular de las superficies
 
-Al crecer, separar el actual `main.swift` en modelo de operación, vistas de ingreso/biblioteca/jobs/settings y coordinador de eventos/ventanas. Mantener `MediaMenuCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
+Al crecer, separar el actual `Application.swift` en modelo de operación, vistas de ingreso/biblioteca/jobs/settings y coordinador de eventos/ventanas. Mantener `MediaMenuCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
 
 Una futura UI web/otra plataforma necesita el mismo catálogo de operaciones, capacidades y estados; no acceso directo indiscriminado a SQLite ni serializers que descarten campos. Primero medir si el helper one-shot es suficiente. Un servicio persistente se justifica por costo medido o streaming real, no por estética del dashboard.
 

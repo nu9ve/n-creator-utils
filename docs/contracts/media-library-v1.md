@@ -119,3 +119,9 @@ Fase 3: paths absolutos sólo en respuestas locales del adaptador; manifests usa
 | SSD de trabajo reconectado | Ofrece pendientes; entrega desde archivo con verificación/idempotencia o registra omisión. No requiere SD ni insiste sobre omitidos. |
 | SD conectada sin MEDIA ni SSD de trabajo registrados montados | Sin popup/notificación/escaneo profundo ni jobs; acceso manual disponible. |
 | Espacio insuficiente en destino requerido del plan efectivo | Bloquea antes del primer byte; no sustituye discos ni cambia política silenciosamente. |
+
+## Selección de copias para editar en ingest (2026-10-26)
+
+La entrada compartida `plan.assignments` admite por ruta relativa `{project, profile, camera, work}`; `work` es un booleano opcional (por defecto true para mantener compatibilidad). Pares/sidecars y bundles son indivisibles: elecciones contradictorias bloquean el plan. La unidad planeada registra `work_selected` si hubo elección explícita; false excluye sólo su copia al SSD. Cada archivo sigue requiriendo respaldo verificado en archivo antes de limpiar el origen. `preview.work_path` describe el destino efectivo de esa ejecución; `layout` puede conservar la receta de destino para una entrega explícita posterior.
+
+En un lote mixto, seleccionados quedan ready o pending según la política; deseleccionados quedan skipped. Deseleccionar el lote completo requiere archive-only confirmado por operación. `deliver_work` explícito puede entregar posteriormente desde archivo también una unidad omitida; la omisión inicial no prohíbe editarla en el futuro. La selección pertenece al ingest, no es un queue ni estado editorial de Clipper. No cambia el JSON de Stalker/Clipper/Atlas ni demuestra adopción por sus consumidores.
