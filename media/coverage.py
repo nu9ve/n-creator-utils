@@ -36,21 +36,12 @@ def coverage(catalog, backend, work, archive, path='', hash_matches=True, cancel
     require(work_record['role'] == 'work' and archive_record['role'] == 'archive', 'invalid_role', 'Compare a work volume against an archive volume')
     backend.check(work_record); backend.check(archive_record)
     start = relative(path) if path else ''
-    # Files this tool ingested carry a verified archive receipt; no rehash needed for them.
-    receipted = set()
-    for row in catalog.db.execute('SELECT payload FROM copies'):
-        copy = json.loads(row[0])
-        if copy['volume_id'] == work_record['id']:
-            archived = catalog.db.execute('SELECT 1 FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
-                                          (copy['job_id'], archive_record['id'], copy['path'])).fetchone()
-            if archived:
-                receipted.add(copy['destination'])
     report = {'schema': 'nu9ve-coverage/1', 'created_at': now(), 'work': work_record['name'], 'archive': archive_record['name'],
               'path': start, 'hashed': hash_matches, 'folders': {}, 'only_work': [], 'links_or_special': []}
     with Tree(work_record['root']) as work_tree, Tree(archive_record['root']) as archive_tree:
         by_size = {}
         for rel, size in walk(archive_tree, cancel=cancel):
-            if size:
+            if size is not None:
                 by_size.setdefault(size, []).append(rel)
         archive_hashes = {}
 
@@ -72,9 +63,7 @@ def coverage(catalog, backend, work, archive, path='', hash_matches=True, cancel
             if size is None:
                 report['links_or_special'].append(rel)
                 continue
-            if rel in receipted:
-                status, match = 'in_archive', 'receipt'
-            elif size == 0 or size not in by_size:
+            if size not in by_size:
                 status, match = 'only_work', None
             elif not hash_matches:
                 status, match = 'size_match', by_size[size][0]

@@ -16,6 +16,10 @@ struct DraftUnit: Identifiable, Equatable {
     var createdAt = ""
     var duration: Double = 0
     var tracks = 0
+    var sessionID = ""
+    var country = ""
+    var suggestedProject = ""
+    var suggestedCountry = ""
     var previewPath: String? {
         paths.first { path in
             let lower = path.lowercased()
@@ -39,7 +43,17 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var bundledRuntime = false
     @Published var captureRoot = ""
     @Published var pendingCaptures: [JSONValue] = []
-    var captureWatcher: CaptureWatcher?
+    var captureWatchers: [CaptureWatcher] = []
+    @Published var captureSessions: [JSONValue] = []
+    @Published var captureRoots: [String] = []
+    @Published var captureError = ""
+    @Published var clipperExecutable = ""
+    @Published var releasePlan: JSONValue?
+    @Published var releaseHistory: [JSONValue] = []
+    @Published var coverageResult: JSONValue?
+    @Published var auditPath = ""
+    @Published var releaseProject = ""
+    var watchedCaptureRoots: [String] = []
     var captureTask: Task<Void, Never>?
     @Published var project = ""
     @Published var lastProject = ""
@@ -94,28 +108,35 @@ struct DraftUnit: Identifiable, Equatable {
         }
         captureRoot = prefs.string(forKey: "captureRoot") ?? ""
         configure()
-        watchCaptures()
     }
     func watchCaptures() {
         guard !busy else { return }
-        captureWatcher = nil
         UserDefaults.standard.set(captureRoot, forKey: "captureRoot")
-        guard !captureRoot.isEmpty, FileManager.default.fileExists(atPath: captureRoot) else { return }
-        captureWatcher = CaptureWatcher(root: captureRoot) { [weak self] paths in
-            Task { @MainActor in self?.captureChanged(paths) }
+        operation("Actualizando bibliotecas de Stalker") {
+            _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot), "clipper_executable": .string(self.clipperExecutable)])
         }
-        captureChanged([])
     }
     func captureChanged(_ paths: [String]) {
         captureTask?.cancel()
         captureTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled, !busy, let client, client.configuration.usable, !captureRoot.isEmpty else { return }
+            guard !Task.isCancelled, !busy, let client, client.configuration.usable else { return }
             do {
-                let data = try await client.call("captures", ["root": .string(captureRoot), "changed_paths": .array(paths.map(JSONValue.string))])
-                pendingCaptures = data["pending"].array
-                if !pendingCaptures.isEmpty { message = "\(pendingCaptures.count) capturas terminadas pendientes de archivo"; statusChanged?() }
-            } catch { /* A disconnected capture library is retried on mount, not polled. */ }
+                let data = try await client.call("capture_libraries", ["override": .string(captureRoot)])
+                guard !Task.isCancelled else { return }
+                pendingCaptures = data["pending"].array; captureSessions = data["sessions"].array
+                captureRoots = data["roots"].array.map(\.string)
+                captureError = data["errors"].array.map(\.string).joined(separator: "\n")
+                let registry = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Stalker").path
+                let roots = Array(Set(captureRoots + [registry])).filter { FileManager.default.fileExists(atPath: $0) }.sorted()
+                if roots != watchedCaptureRoots {
+                    watchedCaptureRoots = roots
+                    captureWatchers = roots.map { root in CaptureWatcher(root: root) { [weak self] paths in
+                        Task { @MainActor in self?.captureChanged(paths) }
+                    } }
+                }
+                statusChanged?()
+            } catch { if !Task.isCancelled { captureError = error.localizedDescription } }
         }
     }
     func kindLabel(_ raw: String) -> String {
@@ -139,7 +160,12 @@ struct DraftUnit: Identifiable, Equatable {
             jobs = try await client.call("jobs").array
             profiles = try await client.call("profiles").array
             recentProjects = try await client.call("projects").array
+            releaseHistory = try await client.call("release_plans").array
+            let integrations = try await client.call("integration_settings")
+            clipperExecutable = integrations["clipper_executable"].string
             if loadDefaults {
+                if !integrations["capture_override"].string.isEmpty { captureRoot = integrations["capture_override"].string }
+                else if !captureRoot.isEmpty { _ = try await client.call("integration_settings", ["capture_override": .string(captureRoot)]) }
                 let values = try await client.call("defaults")
                 // Offered via "Usar último"; a new card never inherits it silently.
                 lastProject = values["project"].string
@@ -151,6 +177,7 @@ struct DraftUnit: Identifiable, Equatable {
             }
             if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
             if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
+            captureChanged([])
         } catch { self.error = error.localizedDescription }
     }
     func operation(_ title: String, _ body: @escaping @MainActor () async throws -> Void) {
@@ -161,6 +188,7 @@ struct DraftUnit: Identifiable, Equatable {
             catch { self.error = error.localizedDescription; message = "Operación detenida; revisa el estado" }
             busy = false; monitorTask?.cancel(); monitorTask = nil
             await refresh(); statusChanged?()
+            if presentation != .compact { await loadSource() }
         }
     }
     func chooseSource() {
@@ -196,6 +224,13 @@ struct DraftUnit: Identifiable, Equatable {
             let existing = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0) })
             units = data["units"].array.map { value in
                 var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
+                unit.sessionID = value["session_id"].string
+                unit.suggestedProject = value["project_hint"]["name"].string
+                unit.suggestedCountry = value["project_hint"]["country"].string
+                if existing[value["id"].string] == nil {
+                    unit.project = value["tag"]["name"].string
+                    unit.country = value["tag"]["country"].string
+                }
                 unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
                 unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
                 unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
@@ -227,6 +262,7 @@ struct DraftUnit: Identifiable, Equatable {
     }
     func prepareSource(_ path: String, kind: String) {
         sourceKind = kind; cleanup = kind == "card"; source = path; selectedTab = 0; plan = nil
+        if kind == "stalker" { project = "" }
     }
     func requestPlan() {
         if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
@@ -239,9 +275,15 @@ struct DraftUnit: Identifiable, Equatable {
         operation("Preparando plan") {
             var assignments: [String: JSONValue] = [:]
             for unit in self.units {
+                if !unit.sessionID.isEmpty {
+                    let title = unit.project.isEmpty ? self.project : unit.project
+                    let country = unit.country.isEmpty ? self.country : unit.country
+                    _ = try await self.client!.call("save_capture_tag", ["session_id": .string(unit.sessionID), "project": .string(title), "country": .string(country)])
+                }
                 var values: [String: JSONValue] = [:]
                 if !unit.project.isEmpty { values["project"] = .string(unit.project) }
                 if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
+                if !unit.country.isEmpty { values["country"] = .string(unit.country) }
                 if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
                 if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
                 if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
@@ -269,9 +311,10 @@ struct DraftUnit: Identifiable, Equatable {
             }
             let result = try await self.client!.call("apply", ["plan": reviewed, "digest": reviewed["digest"]])
             self.message = self.stateLabel(result["state"].string)
+            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
             _ = try await self.client!.call("defaults", ["project": .string(self.project), "profile": .string(self.profile),
                 "country": .string(self.country), "city": .string(self.city), "archive": .string(self.archive), "work": .string(self.work)])
-            self.lastProject = self.project; self.plan = nil
+            self.lastProject = self.project; self.plan = nil; self.loadedSourceKey = ""
         }
     }
     func cancel() { client?.cancel(); message = "Cancelando en un punto recuperable…" }
@@ -367,12 +410,14 @@ struct DraftUnit: Identifiable, Equatable {
         operation("Comprobando tarjeta formateada") {
             let result = try await self.client!.call("confirm_camera_cleanup", ["job_id": .string(id), "source": .string(url.path)])
             self.message = self.stateLabel(result["state"].string)
+            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
         }
     }
     func resume(_ id: String) {
         operation("Reanudando job") {
             let result = try await self.client!.call("resume", ["job_id": .string(id)])
             self.message = self.stateLabel(result["state"].string)
+            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
         }
     }
     func mountChanged() {
@@ -420,6 +465,7 @@ struct MainView: View {
                 case 1: library
                 case 2: activity
                 case 3: SettingsView(model: model)
+                case 5: StorageView(model: model)
                 default: InboxView(model: model)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -478,7 +524,7 @@ struct MainView: View {
             if !model.pendingCaptures.isEmpty {
                 HStack {
                     Text("\(model.pendingCaptures.count) capturas Stalker terminadas pendientes")
-                    Button("Preparar archivo de capturas") { model.selectedTab = 0; model.source = model.captureRoot; model.sourceKind = "stalker"; model.cleanup = false; model.plan = nil }
+                    Button("Preparar archivo de capturas") { model.selectedTab = 0; model.source = model.captureRoots.first ?? model.captureRoot; model.sourceKind = "stalker"; model.cleanup = false; model.plan = nil }
                 }
             }
             List(model.assets, id: \.["id"].string, selection: $model.selected) { asset in

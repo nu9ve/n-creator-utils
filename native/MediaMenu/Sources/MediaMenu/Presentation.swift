@@ -38,7 +38,7 @@ struct AppNavigation: View {
     @Environment(\.creatorPalette) private var palette
     var body: some View {
         HStack(spacing: 5) {
-            ForEach([(4,"Bandeja","tray.full"),(0,"Ingreso","sdcard"),(1,"Biblioteca","square.stack"),(2,"Actividad","clock.arrow.circlepath"),(3,"Ajustes","slider.horizontal.3")], id: \.0) { id, title, icon in
+            ForEach([(4,"Bandeja","tray.full"),(0,"Ingreso","sdcard"),(1,"Biblioteca","square.stack"),(2,"Actividad","clock.arrow.circlepath"),(5,"Espacio","externaldrive.badge.checkmark"),(3,"Ajustes","slider.horizontal.3")], id: \.0) { id, title, icon in
                 Button { model.selectedTab = id } label: { Label(title, systemImage: icon).padding(.vertical, 3).frame(maxWidth: .infinity) }
                     .buttonStyle(CreatorButtonStyle(prominent: model.selectedTab == id))
             }
@@ -148,7 +148,7 @@ struct PlanReview: View {
             } else {
                 Button { model.requestPlan() } label: { Label("Revisar plan", systemImage: "checklist") }
                     .buttonStyle(CreatorButtonStyle(prominent: true))
-                    .disabled(model.source.isEmpty || model.project.isEmpty || model.archive.isEmpty || model.discoveryLoading || (model.copyChoice == "some" && model.units.isEmpty))
+                    .disabled(model.source.isEmpty || (model.project.isEmpty && (model.units.isEmpty || model.units.contains { $0.project.isEmpty })) || model.archive.isEmpty || model.discoveryLoading || (model.copyChoice == "some" && model.units.isEmpty))
             }
         }.disabled(model.busy)
     }

@@ -2,6 +2,14 @@
 
 Updated: 2026-10-26, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Stalker / espacio · implementación 2026-10-26
+
+Bandeja descubre `stalker-library/1` actual + anteriores, muestra sesiones sin proyecto y guarda etiquetas por UUID sin reescribir manifests. Sugerencia de proyecto/país versión 1 confirmable y asignación por unidad. Espacio agrega auditoría con rehash actual, planes registrados de liberación por carpeta de raws/original Stalker, revisión de Clipper vía CLI/ACK, preferencia de ESSD verificado para reenlace local y bloqueo por colas/proyectos offline/antiguos no adoptados. Backup completo SQLite/perfiles/tags/decisiones a MEDIA, verificado, explícito y antes/después del retiro; también tras ingreso por `apply`.
+
+[Uso y límites](operations.md#bandeja-stalker-proyectos-y-liberar-espacio). Sólo fixtures: no se abrió la app ni se hicieron pruebas visuales, inventarios de discos reales, copias/borrados de medios ni ejecución del Clipper personal. No significa aceptación física ni release de producción. La fila de Clipper del contrato documenta CLI/TUI ya implementados; aún no hay lease compartido ni garantía para proyectos/consumidores fuera de registros conocidos. Los proyectos antiguos no adoptados bloquean el retiro y requieren resolver su enlace en Clipper. No se archivan/retiran proyectos editoriales ni renders desde el nuevo plan de raws.
+
+Evidencia final de este cambio: **134/134 Python** (`python3 -m unittest discover -s tests -v`, 37.848 s; 36 pruebas nuevas de este flujo), **7/7 Swift** y build release/firma ad-hoc verificados. `compileall`, `git diff --check` y 115 enlaces locales revisados. Artefacto `dist/nuun-stalker-space-20261026.app`, build **`affd140113f9`**, instalado en `~/Applications/nuun.app` después de que el usuario cerró la instancia anterior; no se abrió después. [Cierre y aceptación pendiente](releases/2026-10-26-stalker-space.md).
+
 ## Implemented
 
 | Capability | Owner | Current limit |
@@ -63,8 +71,8 @@ The review app was opened using the isolated `NU9VE_MEDIA_HOME`; its development
 
 1. Remaining review items: plan digest is unauthenticated, so `apply` trusts plan-time checks (DJI review, archive-only confirmation) a caller could skip — record reviewed digests in the catalog or re-run checks; jobs have no owner/lease, so a killed run looks active; `progress.verified_copies` also counts delivery/recovery rows. Fresh package pass and physical SD/ExFAT disconnect trials remain necessary.
 2. Sony cleanup acceptance and samples/rules for the actual DJI models; full metadata dates and device persistence are not implemented.
-3. Catalog backup of later human decisions, secondary-job location resolution, recovery/work ownership reconciliation and active-consumer leases need hardening. Receipt recovery is valuable but is not a complete backup policy for local SQLite.
-4. Clipper consumer/relink is not implemented in its repo. Handoff remains a draft; no guarantee of queue/source relocation. Atlas/FCP integrations are design only.
+3. Full SQLite snapshots now back up human decisions/profiles; automatic retention and in-app full-state restoration remain open. Secondary-job location resolution, recovery/work ownership reconciliation and active-consumer leases still need hardening. Receipt recovery alone is not a complete backup of human metadata.
+4. Clipper CLI/TUI has library sources/relink/deps (see its adoption row); nüün now requests relinks and validates ACKs. Handoff v1 consumption, consumer leases and real cross-app acceptance remain open. Old unadopted projects block release. Atlas/FCP integrations are design only.
 5. No automatic archive of published deliveries or complete dashboard/launcher/onboarding. No runtime provisioning, notarization, Gatekeeper signoff or reproducible installer. Python package/native app versioning must be aligned before release.
 6. Windows/Linux product support is not validated. Current secure IO/locking and native UI are macOS/Unix-oriented.
 

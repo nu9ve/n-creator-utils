@@ -17,7 +17,7 @@ Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_pr
 - No registered archive/work destination online: SD insertion is silent, with no deep automatic scan. Manual inspect is still allowed.
 - A completed backup, work readiness, publication and source readiness are different states. Never infer two replicas from two folders on one physical disk.
 - Sony (`sony_clips_then_format`): after verification the engine removes clips, thumbnails and DCIM stills from the card but never its indexes (`AVF_INFO`, `PRIVATE/SONY`, `M4ROOT` databases, AVCHD index); the job ends `camera_action_required` until the camera format, confirmed by `confirm-cleanup` (indexes must have been rewritten). DJI drone/360/action ambiguity requires an explicit category. No persistent device/model registry yet.
-- Stalker must be completed; originals/raw microphone/events stay together. Work with active recording must not copy an incomplete session. Archive does not rewrite Clipper references.
+- Stalker must be completed; originals/raw microphone/events stay together. Work with active recording must not copy an incomplete session. Ingest does not rewrite Clipper references. A separate reviewed release may ask Clipper CLI to relink to a verified copy, require its ACK and recheck dependencies before removing original/work raws. Full SQLite snapshots protect human metadata. [Workflow and limits](operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
 - No silent media staging on the internal drive. Local catalog/journal metadata is expected; local media destinations require explicit registration/choice.
 
 ## Code map
@@ -37,4 +37,4 @@ Use [modules](modules.md), [operations](operations.md) and [development](develop
 
 Current checkpoint HEAD is `3ec01d3`; this session adds the unified **nüün** window and profile/discovery boundary on top of the existing working changes (see [STATUS](STATUS.md)). Installed path is `~/Applications/nuun.app`. One `NSWindow` has compact/selection/full modes; source loading is automatic in selection/full. [Window flow and ownership](features/nuun-window.md), [operations](operations.md). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
 
-Next: remaining review items, the first small physical run and real progress/notifications, per [PLAN](../PLAN.md). Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).
+Latest local update: build `affd140113f9` adds multi-library Stalker discovery, catalog tags/project hints and reviewed storage release with Clipper checks plus full catalog snapshots. Installed without opening the app; [closeout](releases/2026-10-26-stalker-space.md). Next: small explicit acceptance of this flow, consumer leases and remaining review items, per [PLAN](../PLAN.md). Exact tests, artifacts and known limitations are in [STATUS](STATUS.md).

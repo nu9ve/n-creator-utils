@@ -130,6 +130,10 @@ struct UnitPreview: View {
             Text(unit.category == "stalker" ? "Stalker · " + String(unit.createdAt.prefix(16)) : URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent).font(.caption.weight(.medium)).lineLimit(1)
             if unit.category == "stalker" { Text("\(unit.tracks) pistas · \(Int(unit.duration)) s · \(unit.paths.count) archivos").font(.caption2).foregroundStyle(.secondary) }
             else { Text(ByteCountFormatter.string(fromByteCount: Int64(unit.bytes), countStyle: .file) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera)).font(.caption2).foregroundStyle(.secondary) }
+            if !unit.suggestedProject.isEmpty {
+                Button("Sugerido: " + unit.suggestedProject) { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry }.font(.caption)
+            }
+            if unit.category == "stalker" && unit.project.isEmpty && model.project.isEmpty { Text("Sin proyecto asignado").font(.caption).foregroundStyle(.orange) }
             HStack(spacing: 3) {
                 TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.plain).font(.caption)
                 Menu {

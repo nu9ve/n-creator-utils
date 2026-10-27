@@ -24,7 +24,7 @@ Al entrar en selección/completo, la fuente elegida se inspecciona automáticame
 
 Las miniaturas visibles cargan con Quick Look y un loader por elemento, cuatro peticiones activas, caché de 24 MB/160 entradas y clave path/tamaño/mtime. El grid usa imágenes y metadatos sin tarjeta de fondo por archivo. Los contadores representan unidades/pares/bundles; no siempre equivalen al número de archivos físicos. Dron/360 sólo se muestran cuando se clasifican explícitamente; no se interpreta toda marca DJI como dron. El resumen previo muestra tipos, evidencia de cámara y raíz de respaldo; las rutas definitivas, con fecha/modelo/clasificación, pertenecen al plan. EXIF/registro persistente de cámaras sigue pendiente.
 
-Stalker muestra fecha/duración/pistas cuando el manifiesto las ofrece; sesiones activas se omiten. En una biblioteca compartida sólo se visitan bundles `.stalker` de su primer nivel (o un bundle elegido directamente); archivos/editor projects ajenos no se recorren. Discovery y planner comparten el filtro de sesiones ya archivadas en el destino seleccionado. La carpeta de la biblioteca se configura explícitamente en Ajustes → Capturas. Un proyecto distinto por sesión/unidad se asigna en el grid; también hay sugerencias de proyectos existentes y texto para uno nuevo.
+Stalker muestra fecha/duración/pistas cuando el manifiesto las ofrece; sesiones activas se omiten. En una biblioteca compartida sólo se visitan bundles `.stalker` de su primer nivel (o un bundle elegido directamente); archivos/editor projects ajenos no se recorren. Discovery y planner comparten el filtro de sesiones ya archivadas en el destino seleccionado. Las bibliotecas actual y anteriores se descubren por el registro de Stalker; Ajustes → Capturas permite añadir una carpeta manual. Un proyecto distinto por sesión/unidad se asigna en el grid; también hay sugerencias de proyectos existentes y texto para uno nuevo.
 
 ## Perfiles y ubicaciones
 
@@ -34,6 +34,6 @@ Los perfiles guardados tienen ID, etiqueta, carpeta relativa de raws y discos su
 
 ## Bandeja y siguientes pasos
 
-Bandeja reúne tarjetas sugeridas, Stalker terminado pendiente, trabajo diferido y operaciones bloqueadas. Cada fuente prepara su plan: no hay aún una transacción global que copie/limpie todas las filas. No se elimina una captura Stalker desde esta UI; faltan política de retención y coordinación con consumidores antes de ofrecer «respaldar y borrar».
+Bandeja reúne tarjetas sugeridas, Stalker terminado pendiente, trabajo diferido y operaciones bloqueadas. Cada fuente prepara su plan: no hay aún una transacción global que copie/limpie todas las filas. Las capturas archivadas con original local ofrecen un plan independiente en Espacio para verificar y retirar ese original. Se consulta Clipper, se pide relink mediante su CLI/ACK cuando corresponde y se bloquean dependencias desconocidas; no hay borrado automático al respaldar. [Operación y límites](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
 
 Pendientes de aceptación: reconexión real/popup, bibliotecas y tarjetas enormes, pérdidas de eventos, benchmarks de CPU/memoria, fullscreen/Spaces en diferentes pantallas y matriz de accesibilidad/contraste. La instalación usa runtime Python externo y no implica release portable/notarizado.

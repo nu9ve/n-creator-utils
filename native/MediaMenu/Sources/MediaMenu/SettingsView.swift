@@ -73,7 +73,17 @@ struct SettingsView: View {
                 let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
                 if panel.runModal() == .OK { model.captureRoot = panel.url!.path; model.watchCaptures() }
             }
-            Button("Observar capturas terminadas") { model.watchCaptures() }
+            Button("Guardar y redescubrir bibliotecas") { model.watchCaptures() }
+            Text("Vacío: biblioteca publicada por Stalker. Una carpeta manual se añade a la actual y a las anteriores.").font(.caption)
+            ForEach(model.captureRoots, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
+            if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
+            Divider()
+            TextField("Ejecutable de Clipper (para dependencias y reenlace)", text: $model.clipperExecutable)
+            Button("Elegir ejecutable Clipper…") {
+                let panel = NSOpenPanel(); panel.canChooseFiles = true; panel.canChooseDirectories = false; panel.showsHiddenFiles = true
+                if panel.runModal() == .OK { model.clipperExecutable = panel.url!.path; model.watchCaptures() }
+            }
+            Text("Sin Clipper disponible, proyectos desconectados o exportaciones en cola, liberar espacio queda bloqueado. Guardar usa el botón de arriba.").font(.caption).foregroundStyle(.secondary)
             Text("La bandeja sólo ofrece sesiones terminadas. Los originales, micrófono, eventos y pistas se conservan juntos; un respaldo de Stalker conserva la fuente.").font(.caption).foregroundStyle(.secondary)
             Divider(); QuickImporterSettings(model: model)
         }
