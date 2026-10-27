@@ -9,17 +9,19 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
-## Now · next sessions (2026-10-25)
+## Now · next sessions (2026-10-26)
 
 | When | Task |
 | --- | --- |
+| Done 2026-10-26 | nüün: una ventana con tres modos animados, carga automática, previews sin cards, bandeja, ajustes por áreas y perfiles guardados/rutas congeladas. [Flujo/límites](docs/features/nuun-window.md), evidencia en STATUS. |
+| Done 2026-10-26 | Shared surface palette and NSWindow chrome; light + #FFBB5C defaults, themed cards/fields/buttons, vertical compact importer. Native build/signing and visual validation; no ingest behavior changed. |
 | Done 2026-10-26 | n creator utils identity/icon/native menus, theme + HSV, thumbnail grid, compact importer and explicit none/all/selected editing copies. 93 Python / 7 Swift tests; installed build `1cc34b5f090f`. Remaining: physical reconnect-popup trial, large-card UI/performance/accessibility and release gates. |
 | Done 2026-10-26 | Native “Sólo respaldo” + plan with work omitted/cleanup enabled. Local installer rebuilds both surfaces to one registered app path, preserves prior bundle and rejects running instances. 7 Swift + 3 installer tests passed; installed build `c4820e569776` reviewed in UI at plan stage only. Portable release runtime/updater remain pending. |
 | Done 2026-10-26 | CLI shorthand `save SOURCE COUNTRY PROJECT` and explicit `--no-work` for archive-only media with no deferred work. Six focused fixture tests; EOS_DIGITAL → MEDIA502 preview only, no physical copy/cleanup. [Usage](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). |
 | Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
 | Next | Stalker session, then Clipper session ([prompts](docs/contracts/next-sessions.md)); each updates its adoption row and «Pendientes para n-creator-utils» in [contracts](docs/contracts/README.md). Then implement those pending items here. |
-| Tonight | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
-| Tomorrow | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
+| Operational pending (manual) | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
+| After coverage review | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
 | First new card | Measure the parallel copy speed against the 829 s / 6.35 GB baseline. |
 
 ## P0 · close the current implementation

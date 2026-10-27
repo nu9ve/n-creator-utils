@@ -27,9 +27,12 @@ def install(app, destination):
     # Keep the old bundle outside Applications so launchers do not index a duplicate.
     backup = destination.parent.parent / 'Library/Application Support/n-creator-utils/app-backups' / (token + '.app')
     previous = destination
-    legacy = destination.parent / 'Nu9ve Media.app'
-    if not destination.exists() and destination.name == 'n creator utils.app' and legacy.exists():
-        previous = legacy
+    legacy_names = ['n creator utils.app', 'Nu9ve Media.app'] if destination.name == 'nuun.app' else ['Nu9ve Media.app'] if destination.name == 'n creator utils.app' else []
+    for legacy_name in legacy_names:
+        legacy = destination.parent / legacy_name
+        if not destination.exists() and legacy.exists():
+            previous = legacy
+            break
     if previous.is_symlink(): raise ValueError('Previous app must not be a symlink')
     if previous.exists():
         old = plistlib.loads((previous / 'Contents/Info.plist').read_bytes())
@@ -49,6 +52,10 @@ def install(app, destination):
     finally:
         if staged.exists(): shutil.rmtree(staged)
     subprocess.run(['/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', '-f', str(destination)], check=True)
+    if destination.name == 'nuun.app':
+        keywords = plistlib.dumps(['nüün', 'nuun', 'nun', 'creator utils'], fmt=plistlib.FMT_BINARY).hex()
+        subprocess.run(['/usr/bin/xattr', '-wx', 'com.apple.metadata:kMDItemKeywords', keywords, str(destination)], check=True)
+        subprocess.run(['/usr/bin/mdimport', str(destination)], check=False, capture_output=True)
     print('Installed: ' + str(destination))
     print('Build: ' + str(info.get('Nu9veBuildID', 'unknown')))
     if backup.exists(): print('Previous build: ' + str(backup))
@@ -57,7 +64,7 @@ def install(app, destination):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--python', default=sys.executable, help='External Python for this local development install')
-    parser.add_argument('--destination', default=str(Path.home() / 'Applications/n creator utils.app'))
+    parser.add_argument('--destination', default=str(Path.home() / 'Applications/nuun.app'), help='ASCII filename makes nuun searchable; display name is nüün')
     parser.add_argument('--app', help='Install an already-built signed bundle; otherwise rebuild current source')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]

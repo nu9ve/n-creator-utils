@@ -15,7 +15,7 @@ from .layout import build_layout
 CAMERAS = {'sony', 'canon', 'nikon', 'gopro', 'h6', 'dji-drone', 'dji-360', 'dji-action', 'insta360', 'generic'}
 
 
-def scan(root, skip_active=False, cancel=None):
+def scan(root, skip_active=False, cancel=None, stalker_only=False):
     files, bundles, skipped = [], {}, []
     root = Path(root).absolute()
     with Tree(root) as tree:
@@ -54,6 +54,10 @@ def scan(root, skip_active=False, cancel=None):
             with os.scandir(folder) as entries:
                 entries = sorted(entries, key=lambda e: e.name)
             for entry in entries:
+                # A Stalker library may share Downloads with editor projects and arbitrary exports.
+                # Visit only immediate capture bundles; once inside a bundle preserve its complete tree.
+                if stalker_only and bundle is None and not entry.name.lower().endswith('.stalker'):
+                    continue
                 rel = '/'.join(p for p in [prefix, entry.name] if p)
                 relative(rel)
                 require(not entry.is_symlink(), 'unsafe_file', 'Symlink in source: ' + rel)
@@ -81,6 +85,40 @@ def group_key(file):
     if path.suffix.lower() == '.xml' and stem.endswith('M01'):
         stem = stem[:-3]
     return str(path.parent) + '/' + stem
+
+
+def pending_stalker_files(catalog, archive_record, files, bundles):
+    # Completed sessions already verified at this archive are not copied again.
+    candidates = []
+    present_bundles = {}
+    for file in files:
+        if file['bundle'] is None:
+            continue
+        session = bundles[file['bundle']]
+        if file['bundle'] in present_bundles:
+            if not present_bundles[file['bundle']]: candidates.append(file)
+            continue
+        archived = [json.loads(row[0]) for row in catalog.db.execute('SELECT assets.payload FROM assets JOIN sessions ON sessions.asset_id=assets.id WHERE sessions.session_id=? AND sessions.manifest_digest=?', (session['session_id'], session['manifest_digest']))]
+        present = False
+        for asset in archived:
+            paths = asset['paths']
+            rows = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (asset['job_id'], archive_record['id'])).fetchall()
+            copies = {r['path']: r for r in [json.loads(row[0]) for row in rows] if r['path'] in paths}
+            if set(copies) != set(paths):
+                continue
+            try:
+                with Tree(archive_record['root']) as target:
+                    present = all(content_stamp(target.stat(c['destination'])) == c['stamp'] for c in copies.values())
+            except (OSError, RuntimeError):
+                present = False
+            if present: break
+        present_bundles[file['bundle']] = present
+        if not present:
+            candidates.append(file)
+    files = candidates
+    retained_bundles = {f['bundle'] for f in files}
+    bundles = {k: v for k, v in bundles.items() if k in retained_bundles}
+    return files, bundles
 
 
 def build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
@@ -118,38 +156,9 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
         root = Path(target['root']).absolute()
         require(source != root and source not in root.parents and root not in source.parents,
                 'overlapping_roots', 'Source and destination roots must not overlap')
-    files, bundles, skipped = scan(source, skip_active=source_kind == 'stalker', cancel=cancel)
+    files, bundles, skipped = scan(source, skip_active=source_kind == 'stalker', cancel=cancel, stalker_only=source_kind == 'stalker')
     if source_kind == 'stalker':
-        # Completed sessions already verified at this archive are not copied again.
-        candidates = []
-        present_bundles = {}
-        for file in files:
-            if file['bundle'] is None:
-                continue
-            session = bundles[file['bundle']]
-            if file['bundle'] in present_bundles:
-                if not present_bundles[file['bundle']]: candidates.append(file)
-                continue
-            archived = [json.loads(row[0]) for row in catalog.db.execute('SELECT assets.payload FROM assets JOIN sessions ON sessions.asset_id=assets.id WHERE sessions.session_id=? AND sessions.manifest_digest=?', (session['session_id'], session['manifest_digest']))]
-            present = False
-            for asset in archived:
-                paths = asset['paths']
-                rows = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (asset['job_id'], archive_record['id'])).fetchall()
-                copies = {r['path']: r for r in [json.loads(row[0]) for row in rows] if r['path'] in paths}
-                if set(copies) != set(paths):
-                    continue
-                try:
-                    with Tree(archive_record['root']) as target:
-                        present = all(content_stamp(target.stat(c['destination'])) == c['stamp'] for c in copies.values())
-                except (OSError, RuntimeError):
-                    present = False
-                if present: break
-            present_bundles[file['bundle']] = present
-            if not present:
-                candidates.append(file)
-        files = candidates
-        retained_bundles = {f['bundle'] for f in files}
-        bundles = {k: v for k, v in bundles.items() if k in retained_bundles}
+        files, bundles = pending_stalker_files(catalog, archive_record, files, bundles)
     require(files, 'empty_source', 'No completed files to ingest')
     require(not cleanup or not skipped, 'active_capture', 'Cannot clean a source with active captures')
     assignments = assignments or {}
@@ -197,6 +206,10 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
             'work_delivery_status': work_decision, 'cleanup': cleanup, 'country': country, 'city': city,
             'media_date': timestamp.strftime('%Y/%m'), 'source_name': relative(source.name),
             'files': files, 'units': units, 'bundles': bundles, 'skipped': skipped}
+    configured = catalog.get('creative-profiles', {})
+    routes = {u['profile']: configured[u['profile']]['raw_dir'] for u in units if u['profile'] in configured}
+    if routes:
+        plan['profile_routes'] = routes
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)
     sony = any('/private/m4root/' in ('/' + f['path']).lower() or '/private/avchd/' in ('/' + f['path']).lower()

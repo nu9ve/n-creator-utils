@@ -35,29 +35,51 @@ actor ThumbnailLoader {
 struct AssetThumbnail: View {
     let url: URL
     @State private var image: NSImage?
+    @State private var loading = true
+    @Environment(\.creatorPalette) private var palette
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+            RoundedRectangle(cornerRadius: 6).fill(palette.inset.opacity(0.35))
             if let image { Image(nsImage: image).resizable().scaledToFit() }
-            else { Image(systemName: "photo.on.rectangle.angled").font(.largeTitle).foregroundStyle(.secondary) }
+            else if loading { ProgressView().controlSize(.small) }
+            else { Image(systemName: "doc.richtext").font(.title2).foregroundStyle(.secondary) }
         }.frame(height: 110).clipped()
         .task(id: url) {
-            image = nil
+            image = nil; loading = true
             if let data = await ThumbnailLoader.shared.load(url), !Task.isCancelled { image = NSImage(data: data) }
+            if !Task.isCancelled { loading = false }
         }
     }
 }
 
 struct EditingChoice: View {
     @ObservedObject var model: Model
+    @Environment(\.creatorPalette) private var palette
+    var compact = false
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Picker("Copiar también al SSD para editar", selection: $model.copyChoice) {
-                Text("Ninguno · sólo respaldo").tag("none")
-                Text("Todo el lote").tag("all")
-                Text("Elegir archivos").tag("some")
-            }.pickerStyle(.segmented)
-            Text(model.copyChoice == "none" ? "Todo se respalda en MEDIA. No se crean copias para editar ni pendientes." : model.copyChoice == "all" ? "Todo se respalda y los archivos editables se copian también al SSD." : "Todo se respalda. Sólo los marcados se copian al SSD para editar.").font(.caption).foregroundStyle(.secondary)
+            Text("Copiar también al SSD para editar").font(.subheadline.weight(.semibold))
+            let choices = [("none", "Ninguno · sólo respaldo", "externaldrive"), ("all", "Todo el lote", "square.stack"), ("some", "Elegir archivos", "checkmark.square")]
+            if compact {
+                VStack(spacing: 8) {
+                    ForEach(choices, id: \.0) { key, label, symbol in
+                        Button { model.selectCopyChoice(key) } label: {
+                            HStack { Image(systemName: symbol).accessibilityHidden(true); Text(label); Spacer(); Image(systemName: model.copyChoice == key ? "checkmark.circle.fill" : "circle").accessibilityHidden(true) }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(4)
+                        }.buttonStyle(CreatorButtonStyle(prominent: model.copyChoice == key))
+                            .accessibilityLabel(label).accessibilityValue(model.copyChoice == key ? "Seleccionado" : "No seleccionado")
+                    }
+                }
+            } else {
+                HStack(spacing: 6) {
+                    ForEach(choices, id: \.0) { key, label, symbol in
+                        Button { model.selectCopyChoice(key) } label: { Label(label, systemImage: symbol).frame(maxWidth: .infinity) }
+                            .buttonStyle(CreatorButtonStyle(prominent: model.copyChoice == key))
+                    }
+                }
+            }
+            Text(model.copyChoice == "none" ? "Todo se respalda en MEDIA. No se crean copias para editar ni pendientes." : model.copyChoice == "all" ? "Todo se respalda y los archivos editables se copian también al SSD." : "Todo se respalda. Sólo los marcados se copian al SSD para editar.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if model.copyChoice == "some" {
                 HStack {
                     Text("\(model.units.filter(\.copyForEditing).count) de \(model.units.count) unidades para editar")
@@ -71,72 +93,63 @@ struct EditingChoice: View {
 
 struct ImportGrid: View {
     @ObservedObject var model: Model
+    var dense = false
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 185, maximum: 250))], spacing: 12) {
-                ForEach($model.units) { $unit in
-                    VStack(alignment: .leading, spacing: 6) {
-                        AssetThumbnail(url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""))
-                        Text(unit.paths.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: " + ")).font(.caption).lineLimit(2).help(unit.paths.joined(separator: "\n"))
-                        if model.copyChoice == "some" { Toggle("Copiar para editar", isOn: $unit.copyForEditing).font(.caption).disabled(unit.previewPath == nil) }
-                        if unit.previewPath == nil { Text("Auxiliar · sólo respaldo").font(.caption2).foregroundStyle(.secondary) }
-                        TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.roundedBorder)
-                    }.padding(8).background(.background, in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(unit.copyForEditing && model.copyChoice == "some" ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: 1))
-                }
-            }.padding(4)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: dense ? 155 : 185, maximum: 250))], alignment: .leading, spacing: 18) {
+                ForEach($model.units) { $unit in UnitPreview(model: model, unit: $unit, dense: dense) }
+            }.padding(.vertical, 4)
         }
-        .overlay { if model.units.isEmpty { ContentUnavailableView("Revisa el contenido", systemImage: "photo.stack", description: Text("Pulsa Cargar miniaturas. Elegir archivos sólo afecta las copias para editar: todo el lote se respalda.")) } }
-    }
-}
-
-struct CreatorAppearance: ViewModifier {
-    @AppStorage("appearance") private var appearance = "system"
-    @AppStorage("accentHue") private var hue = 0.63
-    @AppStorage("accentSaturation") private var saturation = 0.7
-    @AppStorage("accentBrightness") private var brightness = 0.9
-    func body(content: Content) -> some View {
-        content.tint(Color(hue: hue, saturation: saturation, brightness: brightness))
-            .preferredColorScheme(appearance == "system" ? nil : appearance == "dark" ? .dark : .light)
-    }
-}
-
-struct AppearanceSettings: View {
-    @AppStorage("appearance") private var appearance = "system"
-    @AppStorage("accentHue") private var hue = 0.63
-    @AppStorage("accentSaturation") private var saturation = 0.7
-    @AppStorage("accentBrightness") private var brightness = 0.9
-    var body: some View {
-        GroupBox("Apariencia") {
-            VStack {
-                Picker("Tema", selection: $appearance) { Text("Sistema").tag("system"); Text("Claro").tag("light"); Text("Oscuro").tag("dark") }
-                HStack { Text("Matiz (H)").frame(width: 105); Slider(value: $hue, in: 0...1) }
-                HStack { Text("Saturación (S)").frame(width: 105); Slider(value: $saturation, in: 0...1) }
-                HStack { Text("Brillo (V)").frame(width: 105); Slider(value: $brightness, in: 0.15...1) }
-                Button("Restaurar apariencia") { appearance = "system"; hue = 0.63; saturation = 0.7; brightness = 0.9 }
-            }.padding(6)
+        .overlay {
+            if model.units.isEmpty && !model.discoveryLoading {
+                ContentUnavailableView("Sin archivos disponibles", systemImage: "photo.stack", description: Text(model.source.isEmpty ? "Elige una fuente para comenzar." : "No hay capturas terminadas nuevas en esta fuente."))
+            }
         }
     }
 }
 
-struct CompactImporter: View {
+struct UnitPreview: View {
     @ObservedObject var model: Model
+    @Binding var unit: DraftUnit
+    let dense: Bool
+    @Environment(\.creatorPalette) private var palette
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Respaldar tarjeta", systemImage: "sdcard.fill").font(.title2)
-            Text(model.source.isEmpty ? "Selecciona una tarjeta" : model.source).font(.caption).textSelection(.enabled)
-            HStack { TextField("Nombre del proyecto", text: $model.project); Button("Elegir SD…") { model.chooseSource() } }
-            if !model.lastProject.isEmpty { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
-            EditingChoice(model: model)
-            Toggle("Dejar la SD limpia tras verificar", isOn: $model.cleanup)
-            Text("Primero copia y verifica. La limpieza sólo ocurre al ejecutar el plan revisado.").font(.caption).foregroundStyle(.secondary)
-            HStack { Button("Cargar miniaturas y revisar…") { model.openWindow?(); if !model.source.isEmpty { model.discover() } }; Spacer() }
-            Text("Disco de respaldo: " + (model.volumes.first { $0["id"].string == model.archive }?["name"].string ?? "Selecciona en la vista completa"))
-            Text(model.message).font(.caption)
-        }.padding(22).frame(width: 570).modifier(CreatorAppearance())
-        .onChange(of: model.copyChoice) { _, _ in model.plan = nil }
-        .onChange(of: model.project) { _, _ in model.plan = nil }
-        .onChange(of: model.cleanup) { _, _ in model.plan = nil }
+        VStack(alignment: .leading, spacing: 5) {
+            Button {
+                if model.copyChoice == "some" && unit.previewPath != nil { unit.copyForEditing.toggle() }
+            } label: {
+                AssetThumbnail(url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""))
+                    .overlay(alignment: .topTrailing) {
+                        if model.copyChoice == "some" && unit.previewPath != nil {
+                            Image(systemName: unit.copyForEditing ? "checkmark.circle.fill" : "circle")
+                                .font(.title3).foregroundStyle(unit.copyForEditing ? palette.control : palette.ink)
+                                .padding(5).background(palette.canvas.opacity(0.9), in: Circle()).padding(4)
+                        }
+                    }
+            }.buttonStyle(.plain).help("Marcar copia para editar; el respaldo siempre incluye todo")
+            Text(unit.category == "stalker" ? "Stalker · " + String(unit.createdAt.prefix(16)) : URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent).font(.caption.weight(.medium)).lineLimit(1)
+            if unit.category == "stalker" { Text("\(unit.tracks) pistas · \(Int(unit.duration)) s · \(unit.paths.count) archivos").font(.caption2).foregroundStyle(.secondary) }
+            else { Text(ByteCountFormatter.string(fromByteCount: Int64(unit.bytes), countStyle: .file) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera)).font(.caption2).foregroundStyle(.secondary) }
+            HStack(spacing: 3) {
+                TextField("Proyecto: " + model.project, text: $unit.project).textFieldStyle(.plain).font(.caption)
+                Menu {
+                    Button("Usar proyecto del lote") { unit.project = "" }
+                    ForEach(Array(model.recentProjects.prefix(12)), id: \.["project_id"].string) { item in Button(item["project"].string) { unit.project = item["project"].string } }
+                } label: { Image(systemName: "clock.arrow.circlepath") }.menuStyle(.borderlessButton).fixedSize()
+            }
+            HStack {
+                Menu {
+                    Button("Perfil del lote: " + model.profile) { unit.profile = "" }
+                    ForEach(model.profiles, id: \.["id"].string) { item in Button(item["name"].string) { unit.profile = item["id"].string } }
+                } label: { Label(unit.profile.isEmpty ? model.profile : unit.profile, systemImage: "person.crop.square") }.menuStyle(.borderlessButton)
+                if unit.detectedCamera == "dji" || unit.camera != "auto" {
+                    Menu {
+                        ForEach(["auto", "dji-drone", "dji-360", "dji-action", "sony", "canon", "insta360", "generic"], id: \.self) { value in Button(value) { unit.camera = value } }
+                    } label: { Image(systemName: "camera") }.menuStyle(.borderlessButton).help("Clasificar cámara")
+                }
+            }.font(.caption2)
+            if unit.previewPath == nil { Text("Auxiliar · sólo respaldo").font(.caption2).foregroundStyle(.secondary) }
+        }
     }
 }
 

@@ -10,6 +10,12 @@ struct DraftUnit: Identifiable, Equatable {
     var profile = ""
     var camera = "auto"
     var copyForEditing = false
+    var category = "support"
+    var detectedCamera = ""
+    var bytes: Double = 0
+    var createdAt = ""
+    var duration: Double = 0
+    var tracks = 0
     var previewPath: String? {
         paths.first { path in
             let lower = path.lowercased()
@@ -19,8 +25,17 @@ struct DraftUnit: Identifiable, Equatable {
 }
 
 @MainActor final class Model: ObservableObject {
-    @Published var selectedTab = 0
-    @Published var source = ""
+    @Published var selectedTab = 4
+    @Published var presentation: WindowMode = .full
+    @Published var profiles: [JSONValue] = []
+    @Published var recentProjects: [JSONValue] = []
+    @Published var discoveryLoading = false
+    @Published var discoveryError = ""
+    var loadedSourceKey = ""
+    var pendingSourceKey = ""
+    var pendingReadID: UUID?
+    var changeMode: ((WindowMode) -> Void)?
+    @Published var source = "" { didSet { if source != oldValue { units = []; plan = nil; loadedSourceKey = "" } } }
     @Published var bundledRuntime = false
     @Published var captureRoot = ""
     @Published var pendingCaptures: [JSONValue] = []
@@ -122,6 +137,8 @@ struct DraftUnit: Identifiable, Equatable {
             volumes = try await client.call("volumes").array
             assets = try await client.call("library").array
             jobs = try await client.call("jobs").array
+            profiles = try await client.call("profiles").array
+            recentProjects = try await client.call("projects").array
             if loadDefaults {
                 let values = try await client.call("defaults")
                 // Offered via "Usar último"; a new card never inherits it silently.
@@ -159,15 +176,57 @@ struct DraftUnit: Identifiable, Equatable {
             self.message = "Disco registrado"
         }
     }
-    func discover() {
-        operation("Inspeccionando fuente") {
-            let data = try await self.client!.call("discover", ["source": .string(self.source)])
-            self.units = data["units"].array.map { value in
-                DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
+    var sourceKey: String { source + "|" + sourceKind + "|" + archive }
+    func discover() { loadedSourceKey = ""; Task { await loadSource() } }
+    func loadSource() async {
+        let key = sourceKey, path = source
+        guard !path.isEmpty, !busy, loadedSourceKey != key,
+              let client, client.configuration.usable else { return }
+        let readID = UUID()
+        pendingReadID = readID
+        pendingSourceKey = key; discoveryLoading = true; discoveryError = ""
+        let reader = BackendClient(configuration: client.configuration)
+        defer { if pendingReadID == readID { pendingSourceKey = ""; pendingReadID = nil; discoveryLoading = false } }
+        do {
+            try await Task.sleep(for: .milliseconds(250))
+            let data = try await withTaskCancellationHandler {
+                try await reader.call("discover", ["source": .string(path), "source_kind": .string(sourceKind), "archive": .string(archive)])
+            } onCancel: { reader.cancel() }
+            guard !Task.isCancelled, sourceKey == key, pendingReadID == readID else { return }
+            let existing = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0) })
+            units = data["units"].array.map { value in
+                var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
+                unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
+                unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
+                unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
+                return unit
             }
-            self.plan = nil
-            self.message = "\(self.units.count) unidades; \(data["skipped"].array.count) sesiones activas omitidas"
+            loadedSourceKey = key; plan = nil
+            message = "\(units.count) unidades · \(data["skipped"].array.count) capturas activas omitidas"
+        } catch {
+            if !Task.isCancelled, sourceKey == key, pendingReadID == readID { discoveryError = error.localizedDescription }
         }
+    }
+    func selectCopyChoice(_ choice: String) {
+        invalidatePlan(); copyChoice = choice
+        if choice == "some", presentation == .compact { changeMode?(.selection) }
+    }
+    func invalidatePlan() {
+        if plan != nil {
+            plan = nil
+            if !busy { message = "Cambios pendientes · revisa el plan de nuevo" }
+        }
+    }
+    func selectProfile(_ id: String) {
+        profile = id
+        if let value = profiles.first(where: { $0["id"].string == id }) {
+            if !value["work"].string.isEmpty { work = value["work"].string }
+            if !value["archive"].string.isEmpty { archive = value["archive"].string }
+        }
+        plan = nil
+    }
+    func prepareSource(_ path: String, kind: String) {
+        sourceKind = kind; cleanup = kind == "card"; source = path; selectedTab = 0; plan = nil
     }
     func requestPlan() {
         if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
@@ -263,7 +322,7 @@ struct DraftUnit: Identifiable, Equatable {
             guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
             let content = UNMutableNotificationContent()
             content.title = "Tarjeta detectada"
-            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre n creator utils para revisar el plan"
+            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre nüün para revisar el plan"
             try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }
     }
@@ -352,40 +411,30 @@ struct MainView: View {
     let cameras = ["auto", "generic", "sony", "canon", "nikon", "gopro", "h6", "dji-drone", "dji-360", "dji-action", "insta360"]
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Label("n creator utils", systemImage: "square.stack.3d.up.fill").font(.title2); Spacer(); Text(model.message); if model.busy { ProgressView().controlSize(.small); Button("Cancelar") { model.cancel() } } }
+            HStack { Label("nüün", systemImage: "square.stack.3d.up.fill").font(.title2); Spacer(); Text(model.message); Button { model.changeMode?(.compact) } label: { Image(systemName: "arrow.down.right.and.arrow.up.left") }.help("Vista compacta"); if model.busy { ProgressView().controlSize(.small); Button("Cancelar") { model.cancel() } } }
             if !model.error.isEmpty { Text(model.error).foregroundStyle(.red).textSelection(.enabled) }
-            TabView(selection: $model.selectedTab) {
-                ingest.tabItem { Label("Ingreso", systemImage: "sdcard") }.tag(0)
-                library.tabItem { Label("Biblioteca y pendientes", systemImage: "square.stack") }.tag(1)
-                activity.tabItem { Label("Actividad", systemImage: "clock") }.tag(2)
-                settings.tabItem { Label("Discos y ajustes", systemImage: "externaldrive") }.tag(3)
-            }
-        }.padding().frame(minWidth: 920, minHeight: 740).modifier(CreatorAppearance())
-        .alert("Confirmar sólo respaldo", isPresented: $model.archiveOnlyPrompt) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Confirmar sólo MEDIA") { model.makePlan(archiveOnly: true) }
-        } message: { Text(model.noWork ? "Se copiará y verificará en el disco de archivo elegido. No se creará copia para editar ni entrega pendiente. Si activaste limpiar SD, sus archivos se borrarán después de verificar el respaldo." : "Se verificará el respaldo en el disco de archivo elegido. El SSD no recibirá una copia ahora. La decisión pendiente/omitido quedará registrada y la SD podrá limpiarse tras verificar.") }
-        .onChange(of: model.source) { _, _ in model.plan = nil; model.units = [] }
-        .onChange(of: model.project) { _, _ in model.plan = nil }
-        .onChange(of: model.profile) { _, _ in model.plan = nil }
-        .onChange(of: model.country) { _, _ in model.plan = nil }
-        .onChange(of: model.city) { _, _ in model.plan = nil }
-        .onChange(of: model.archive) { _, _ in model.plan = nil }
-        .onChange(of: model.work) { _, _ in model.plan = nil }
-        .onChange(of: model.cleanup) { _, _ in model.plan = nil }
-        .onChange(of: model.copyChoice) { _, _ in model.plan = nil }
-        .onChange(of: model.units) { _, _ in model.plan = nil }
+            AppNavigation(model: model)
+            Group {
+                switch model.selectedTab {
+                case 0: ingest
+                case 1: library
+                case 2: activity
+                case 3: SettingsView(model: model)
+                default: InboxView(model: model)
+                }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     var ingest: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(model.cardSuggestions.filter { $0 != model.source }, id: \.self) { path in
                 HStack { Label("Tarjeta detectada: " + URL(fileURLWithPath: path).lastPathComponent, systemImage: "sdcard"); Button("Usar esta tarjeta") { model.useCard(path) } }
             }
-            HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() }; Button("Cargar miniaturas") { model.discover() }.disabled(model.source.isEmpty) }
+            HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() } }
             HStack {
                 TextField("Proyecto", text: $model.project)
                 if !model.lastProject.isEmpty && model.project != model.lastProject { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
-                TextField("Perfil", text: $model.profile); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
+                ProfilePicker(model: model); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
             HStack {
                 volumePicker("Archivo", role: "archive", selection: $model.archive)
                 if !model.noWork { volumePicker("SSD para editar", role: "work", selection: $model.work) }
@@ -393,11 +442,11 @@ struct MainView: View {
             EditingChoice(model: model)
             if model.noWork { Text("Se usará únicamente el disco de archivo seleccionado, aunque el SSD esté conectado.").foregroundStyle(.secondary) }
             HStack {
-                Picker("Fuente", selection: $model.sourceKind) { Text("SD/cámara").tag("card"); Text("Stalker").tag("stalker"); Text("Entrega final").tag("delivery") }
+                SourceKindBadges(model: model)
                 Toggle("Limpiar SD tras verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
                 if !model.noWork { Toggle("Preparar copia para editar después si falta SSD", isOn: $model.deferWork) }
             }
-            Text("Asigna proyecto/perfil por unidad. Los pares y bundles se mantienen juntos.").foregroundStyle(.secondary)
+            SourceSummary(model: model)
             ImportGrid(model: model).frame(minHeight: 180)
             DisclosureGroup("Asignación avanzada · perfil y cámara") {
             ScrollView { VStack {
@@ -411,28 +460,7 @@ struct MainView: View {
                 }
             } }
             }.frame(maxHeight: 140)
-            if let plan = model.plan {
-                Text("\(plan["files"].array.count) archivos · \(plan["units"].array.count) unidades · \(plan["work_id"] == .null ? "sólo archivo confirmado" : "respaldo + copias para editar")")
-                Text(plan["work_id"] == .null ? (plan["work_delivery_status"].string == "pending" ? "Copias para editar pendientes de SSD" : "Sólo respaldo · sin copias para editar") : "Se copiarán también al SSD: \(plan["preview"].array.filter { $0["work_path"] != .null }.count) archivos")
-                Text("Tamaño: " + ByteCountFormatter.string(fromByteCount: Int64(plan["files"].array.reduce(0.0) { $0 + $1["stamp"]["size"].double }), countStyle: .file))
-                Text(!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Tras verificar se borran los clips de la SD; después formatéala en la cámara." : plan["cleanup_profile"].string == "camera_action_required" ? "Limpieza pendiente en cámara tras verificar." : "La SD se limpiará después de verificar.")
-                DisclosureGroup("Ver rutas y clasificación del plan") {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(Array(plan["preview"].array.enumerated()), id: \.offset) { _, row in
-                                VStack(alignment: .leading) {
-                                    Text(row["source"].string + " · " + row["project"].string + " · " + row["camera"].string)
-                                    Text("Archivo: " + row["archive_path"].string).font(.caption).textSelection(.enabled)
-                                    if row["work_path"] != .null { Text("Copia para editar: " + row["work_path"].string).font(.caption).textSelection(.enabled) }
-                                }
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }.frame(maxHeight: 150)
-                }
-                Button("Ejecutar plan revisado") { model.apply() }.buttonStyle(.borderedProminent)
-            } else {
-                Button("Revisar plan") { model.requestPlan() }.disabled(model.source.isEmpty || model.project.isEmpty || model.archive.isEmpty || (model.copyChoice == "some" && model.units.isEmpty))
-            }
+            PlanReview(model: model)
         }.padding(.top).disabled(model.busy)
         .onChange(of: model.sourceKind) { _, _ in model.plan = nil }
         .onChange(of: model.deferWork) { _, _ in model.plan = nil }
@@ -455,7 +483,7 @@ struct MainView: View {
             }
             List(model.assets, id: \.["id"].string, selection: $model.selected) { asset in
                 HStack { Text(asset["project"].string); Text(asset["profile"].string).foregroundStyle(.secondary); Spacer(); Text(model.kindLabel(asset["kind"].string)); Text(model.workLabel(asset["work_delivery_status"].string)) }.tag(asset["id"].string)
-            }
+            }.modifier(CreatorListSurface())
             HStack {
                 volumePicker("SSD", role: "work", selection: $model.work)
                 Button("Copiar selección al SSD") { model.deliver() }.disabled(model.selected.isEmpty || model.work.isEmpty)
@@ -467,40 +495,25 @@ struct MainView: View {
     }
     var activity: some View {
         List(model.jobs, id: \.["id"].string) { job in
-            HStack { VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
+            HStack { JobStatusIcon(state: job["state"].string); VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(job["id"].string).font(.caption).foregroundStyle(.secondary) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
                 if job["state"].string == "camera_action_required" && ["camera_action_required", "sony_clips_then_format"].contains(job["cleanup_profile"].string) { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
-        }.padding(.top)
+        }.modifier(CreatorListSurface()).padding(.top)
     }
-    var settings: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Button("Registrar MEDIA…") { model.registerVolume(role: "archive") }; Button("Registrar SSD para editar…") { model.registerVolume(role: "work") }; Button("Actualizar") { Task { await model.refresh() } } }
-            List(model.volumes, id: \.["id"].string) { volume in HStack { Text(volume["name"].string); Text(volume["role"].string == "archive" ? "Respaldo" : "SSD para editar"); Spacer(); Text(volume["online"].bool ? "Conectado" : "Desconectado") } }
-            AppearanceSettings()
-            QuickImporterSettings(model: model)
-            Text("Runtime").font(.headline)
-            TextField("Carpeta Stalker a observar", text: $model.captureRoot)
-            Button("Observar capturas terminadas") { model.watchCaptures() }
-            Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).font(.caption).textSelection(.enabled)
-            TextField("Python ejecutable", text: $model.python).disabled(model.bundledRuntime || model.packagedBackend)
-            TextField("nu9ve.py", text: $model.script).disabled(model.bundledRuntime || model.packagedBackend)
-            if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }
-            Text(model.bundledRuntime ? "Runtime incluido en la app." : "Desarrollo: runtime externo explícito. Distribución: empaquetar runtime, firmar y notarizar antes de release.").foregroundStyle(.secondary)
-        }.padding(.top).disabled(model.busy)
-    }
+
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNotificationCenterDelegate {
     let model = Model()
     var status: NSStatusItem!
     var window: NSWindow?
-    var importer: NSWindow?
+    var pendingMode: WindowMode?
     var observers: [NSObjectProtocol] = []
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        status.button?.image = NSImage(systemSymbolName: "externaldrive.badge.checkmark", accessibilityDescription: "n creator utils")
+        status.button?.image = NSImage(systemSymbolName: "externaldrive.badge.checkmark", accessibilityDescription: "nüün")
         let menu = NSMenu()
-        menu.addItem(withTitle: "Abrir n creator utils…", action: #selector(show), keyEquivalent: "")
+        menu.addItem(withTitle: "Abrir nüün…", action: #selector(show), keyEquivalent: "")
         menu.addItem(withTitle: "Importador rápido…", action: #selector(showImporter), keyEquivalent: "")
         menu.addItem(withTitle: "Cancelar operación", action: #selector(cancel), keyEquivalent: "")
         menu.addItem(.separator())
@@ -508,6 +521,7 @@ struct MainView: View {
         for item in menu.items { item.target = self }
         status.menu = menu
         installMenus()
+        model.changeMode = { [weak self] mode in self?.present(mode) }
         model.openWindow = { [weak self] in self?.show() }
         model.openImporter = { [weak self] in self?.showImporter() }
         model.statusChanged = { [weak self] in
@@ -527,27 +541,49 @@ struct MainView: View {
         // Mounts never open windows; explicit launcher opens do. No recurring idle timer.
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        show()
+        if let window, window.isVisible { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
+        else { present(model.presentation) }
         return true
     }
-    @objc func show() {
+    @objc func show() { present(.full) }
+    func present(_ mode: WindowMode) {
+        if let window, window.styleMask.contains(.fullScreen), mode != .full {
+            pendingMode = mode; window.toggleFullScreen(nil); return
+        }
         if window == nil {
-            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 840), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-            value.title = "n creator utils"; value.delegate = self; value.isReleasedWhenClosed = false
-            value.contentView = NSHostingView(rootView: MainView(model: model)); value.center(); window = value
+            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            value.title = "nüün"; value.delegate = self; value.isReleasedWhenClosed = false
+            value.collectionBehavior.insert(.fullScreenPrimary)
+            let host = NSHostingView(rootView: WindowRoot(model: model))
+            // AppKit owns the three sizes; transient SwiftUI branch measurements must not resize the window.
+            host.sizingOptions = []
+            host.autoresizingMask = [.width, .height]
+            value.contentView = host; value.center(); window = value
+        }
+        guard let window else { return }
+        let sameMode = model.presentation == mode && window.isVisible
+        window.minSize = NSSize(width: mode == .full ? 920 : mode == .selection ? 680 : 408, height: mode == .full ? 720 : 580)
+        withAnimation(.easeInOut(duration: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.22)) { model.presentation = mode }
+        if !sameMode && !window.styleMask.contains(.fullScreen) {
+            let visible = window.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
+            let width = min(mode.width, visible.width), height = min(mode.height, visible.height)
+            let frame = NSRect(x: min(max(visible.minX, window.frame.midX - width / 2), visible.maxX - width), y: min(max(visible.minY, window.frame.maxY - height), visible.maxY - height), width: width, height: height)
+            NSAnimationContext.runAnimationGroup { context in context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.24; window.animator().setFrame(frame, display: true) }
         }
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true); window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
     }
+    func windowDidExitFullScreen(_ notification: Notification) { if let mode = pendingMode { pendingMode = nil; present(mode) } }
+    func windowWillEnterFullScreen(_ notification: Notification) { model.presentation = .full; model.selectedTab = 0 }
     func installMenus() {
         let bar = NSMenu()
         let appItem = NSMenuItem(); bar.addItem(appItem)
-        let appMenu = NSMenu(title: "n creator utils"); appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "Acerca de n creator utils", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let appMenu = NSMenu(title: "nüün"); appItem.submenu = appMenu
+        appMenu.addItem(withTitle: "Acerca de nüün", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(withTitle: "Ajustes…", action: #selector(settings), keyEquivalent: ",").target = self
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Ocultar n creator utils", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Salir de n creator utils", action: #selector(quit), keyEquivalent: "q").target = self
+        appMenu.addItem(withTitle: "Ocultar nüün", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Salir de nüün", action: #selector(quit), keyEquivalent: "q").target = self
         let fileItem = NSMenuItem(); bar.addItem(fileItem)
         let file = NSMenu(title: "Archivo"); fileItem.submenu = file
         file.addItem(withTitle: "Abrir dashboard", action: #selector(show), keyEquivalent: "1").target = self
@@ -563,19 +599,8 @@ struct MainView: View {
         NSApp.mainMenu = bar
     }
     @objc func settings() { model.selectedTab = 3; show() }
-    @objc func showImporter() {
-        if importer == nil {
-            let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 614, height: 380), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            panel.title = "n creator utils · Importador"; panel.isReleasedWhenClosed = false; panel.delegate = self
-            panel.contentView = NSHostingView(rootView: CompactImporter(model: model)); panel.center(); importer = panel
-        }
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true); importer?.makeKeyAndOrderFront(nil)
-    }
-    func windowWillClose(_ notification: Notification) {
-        let closing = notification.object as? NSWindow
-        if ![window, importer].compactMap({ $0 }).contains(where: { $0 !== closing && $0.isVisible }) { NSApp.setActivationPolicy(.accessory) }
-    }
+    @objc func showImporter() { present(.compact) }
+    func windowWillClose(_ notification: Notification) { NSApp.setActivationPolicy(.accessory) }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         await MainActor.run { model.selectedTab = 0; showImporter() }
     }
