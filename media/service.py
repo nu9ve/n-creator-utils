@@ -18,13 +18,20 @@ class Service:
     def call(self, method, params=None):
         params = params or {}
         require(isinstance(params, dict), 'invalid_request', 'params must be an object')
+        if method == 'source_cards':
+            from .volumes import source_cards
+            return source_cards(self.catalog, self.backend)
+        if method == 'eject_card':
+            from .volumes import eject_card
+            return eject_card(self.catalog, self.backend, params.get('source'), params.get('identity'))
         if method == 'volumes':
             return [dict(v, online=bool(self.backend.online(v))) for v in self.catalog.volumes()]
         if method == 'register_volume':
             root = Path(params['root']).expanduser().absolute()
             info = self.backend.describe(root, external_required=not params.get('allow_local', False))
             prefix = params.get('prefix') or ('001_raw' if params['role'] == 'archive' else '001_proyectos')
-            return self.catalog.register(params['name'], params['role'], root, info, prefix)
+            with self.catalog.writer():
+                return self.catalog.register(params['name'], params['role'], root, info, prefix)
         if method == 'captures':
             from .captures import captures
             return captures(self.catalog, **params)

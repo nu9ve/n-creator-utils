@@ -33,6 +33,7 @@ struct DraftUnit: Identifiable, Equatable {
 @MainActor final class Model: ObservableObject {
     @Published var selectedTab = 4
     @Published var presentation: WindowMode = .full
+    @Published var windowIsFullscreen = false
     @Published var profiles: [JSONValue] = []
     @Published var recentProjects: [JSONValue] = []
     @Published var discoveryLoading = false
@@ -40,8 +41,9 @@ struct DraftUnit: Identifiable, Equatable {
     var loadedSourceKey = ""
     var pendingSourceKey = ""
     var pendingReadID: UUID?
+    var sourceReadTask: Task<Void, Never>?
     var changeMode: ((WindowMode) -> Void)?
-    @Published var source = "" { didSet { if source != oldValue { units = []; plan = nil; loadedSourceKey = "" } } }
+    @Published var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; units = []; plan = nil; loadedSourceKey = "" } } }
     @Published var bundledRuntime = false
     @Published var captureRoot = ""
     @Published var pendingCaptures: [JSONValue] = []
@@ -61,6 +63,7 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var project = ""
     @Published var lastProject = ""
     @Published var cardSuggestions: [String] = []
+    @Published var sourceCards: [JSONValue] = []
     var notifiedCards: Set<String> = []
     @Published var profile = "e64"
     @Published var country = "mx"
@@ -184,6 +187,8 @@ struct DraftUnit: Identifiable, Equatable {
             if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
             if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
             captureChanged([])
+            do { sourceCards = try await client.call("source_cards").array }
+            catch { sourceCards = []; self.error = "No se pudieron actualizar las SDs: " + error.localizedDescription }
         } catch { self.error = error.localizedDescription }
     }
     func operation(_ title: String, _ body: @escaping @MainActor () async throws -> Void) {
@@ -194,12 +199,28 @@ struct DraftUnit: Identifiable, Equatable {
             catch { self.error = error.localizedDescription; message = "Operación detenida; revisa el estado" }
             busy = false; monitorTask?.cancel(); monitorTask = nil
             await refresh(); statusChanged?()
-            if presentation != .compact { await loadSource() }
+
         }
     }
     func chooseSource() {
         let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
         if panel.runModal() == .OK { source = panel.url?.path ?? ""; units = []; plan = nil }
+    }
+    var selectedCard: JSONValue? { sourceCards.first { $0["path"].string == source && sourceKind == "card" } }
+    func ejectSource() {
+        guard !discoveryLoading, let card = selectedCard else { return }
+        let path = source
+        operation("Expulsando SD") {
+            _ = try await self.client!.call("eject_card", ["source": .string(path), "identity": card["identity"]])
+            if self.source == path { self.source = "" }
+            self.sourceCards.removeAll { $0["path"].string == path }
+            self.cardSuggestions.removeAll { $0 == path }
+            self.message = "SD expulsada · puedes retirarla"
+        }
+    }
+    func inspectSource() {
+        if presentation == .compact { changeMode?(.selection) }
+        discover()
     }
     func registerVolume(role: String) {
         let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
@@ -211,7 +232,10 @@ struct DraftUnit: Identifiable, Equatable {
         }
     }
     var sourceKey: String { source + "|" + sourceKind + "|" + archive }
-    func discover() { loadedSourceKey = ""; Task { await loadSource() } }
+    func discover() {
+        sourceReadTask?.cancel(); loadedSourceKey = ""
+        sourceReadTask = Task { await loadSource() }
+    }
     func loadSource() async {
         let key = sourceKey, path = source
         guard !path.isEmpty, !busy, loadedSourceKey != key,
@@ -251,7 +275,10 @@ struct DraftUnit: Identifiable, Equatable {
     }
     func selectCopyChoice(_ choice: String) {
         invalidatePlan(); copyChoice = choice
-        if choice == "some", presentation == .compact { changeMode?(.selection) }
+        if choice == "some" {
+            if presentation == .compact { changeMode?(.selection) }
+            if !source.isEmpty && loadedSourceKey != sourceKey { discover() }
+        }
     }
     func invalidatePlan() {
         if plan != nil {
@@ -274,8 +301,12 @@ struct DraftUnit: Identifiable, Equatable {
     func prepareCaptureBatch(_ root: String) {
         prepareSource(root, kind: "stalker")
         changeMode?(.selection)
+        discover()
     }
     func requestPlan() {
+        guard sourceKind != "stalker" || (loadedSourceKey == sourceKey && !units.isEmpty) else {
+            error = "Inspecciona las sesiones para conservar sus proyectos antes de revisar el plan"; return
+        }
         if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
         if noWork { archiveOnlyPrompt = true; return }
         let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
@@ -421,7 +452,7 @@ struct DraftUnit: Identifiable, Equatable {
         return reasons.isEmpty ? job["id"].string : reasons.joined(separator: " · ")
     }
     func useCard(_ path: String) {
-        source = path; units = []; plan = nil; project = ""; selectedTab = 0
+        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; selectedTab = 0
     }
     func notifyCard(_ path: String) {
         guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
@@ -537,25 +568,9 @@ struct MainView: View {
     }
     var ingest: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(model.cardSuggestions.filter { $0 != model.source }, id: \.self) { path in
-                HStack { Label("Tarjeta detectada: " + URL(fileURLWithPath: path).lastPathComponent, systemImage: "sdcard"); Button("Usar esta tarjeta") { model.useCard(path) } }
-            }
-            HStack { TextField("Fuente", text: $model.source); Button("Elegir…") { model.chooseSource() } }
-            HStack {
-                TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar" : "Proyecto", text: $model.project)
-                if !model.lastProject.isEmpty && model.project != model.lastProject { Button("Usar último: " + model.lastProject) { model.project = model.lastProject } }
-                ProfilePicker(model: model); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
-            HStack {
-                volumePicker("Archivo", role: "archive", selection: $model.archive)
-                if !model.noWork { volumePicker("SSD para editar", role: "work", selection: $model.work) }
-            }
-            EditingChoice(model: model)
-            if model.noWork { Text("Se usará únicamente el disco de archivo seleccionado, aunque el SSD esté conectado.").foregroundStyle(.secondary) }
-            HStack {
-                SourceKindBadges(model: model)
-                Toggle("Limpiar SD tras verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
-                if !model.noWork { Toggle("Preparar copia para editar después si falta SSD", isOn: $model.deferWork) }
-            }
+            IngestHeader(model: model)
+            BatchProjectPicker(model: model)
+            IngestOptions(model: model)
             SourceSummary(model: model)
             ImportGrid(model: model).frame(minHeight: 180)
             DisclosureGroup("Asignación avanzada · perfil y cámara") {
@@ -575,14 +590,6 @@ struct MainView: View {
         .onChange(of: model.sourceKind) { _, _ in model.plan = nil }
         .onChange(of: model.deferWork) { _, _ in model.plan = nil }
         .onChange(of: model.project) { _, _ in model.invalidatePlan() }
-    }
-    func volumePicker(_ title: String, role: String, selection: Binding<String>) -> some View {
-        Picker(title, selection: selection) {
-            Text("Sin seleccionar").tag("")
-            ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { value in
-                Text(value["name"].string + (value["online"].bool ? "" : " · desconectado")).tag(value["id"].string)
-            }
-        }
     }
     var library: some View {
         VStack(alignment: .leading) {
@@ -658,7 +665,7 @@ struct MainView: View {
         }
         if window == nil {
             let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-            value.title = "nüün"; value.delegate = self; value.isReleasedWhenClosed = false
+            value.title = "nüün"; value.titleVisibility = .hidden; value.delegate = self; value.isReleasedWhenClosed = false
             value.collectionBehavior.insert(.fullScreenPrimary)
             let host = NSHostingView(rootView: WindowRoot(model: model))
             // AppKit owns the three sizes; transient SwiftUI branch measurements must not resize the window.
@@ -667,11 +674,11 @@ struct MainView: View {
             value.contentView = host; value.center(); window = value
 
             let accessory = NSTitlebarAccessoryViewController()
-            accessory.layoutAttribute = .bottom
-            accessory.fullScreenMinHeight = 50
+            accessory.layoutAttribute = .right
+            accessory.fullScreenMinHeight = 38
             let topBar = NSHostingView(rootView: WindowTopBar(model: model).modifier(CreatorAppearance()))
             topBar.sizingOptions = []
-            topBar.frame = NSRect(x: 0, y: 0, width: mode.width, height: 50)
+            topBar.frame = NSRect(x: 0, y: 0, width: mode.width - 90, height: 38)
             accessory.view = topBar
             value.addTitlebarAccessoryViewController(accessory)
             topBarAccessory = accessory
@@ -684,13 +691,43 @@ struct MainView: View {
             let visible = window.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
             let width = min(mode.width, visible.width), height = min(mode.height, visible.height)
             let frame = NSRect(x: min(max(visible.minX, window.frame.midX - width / 2), visible.maxX - width), y: min(max(visible.minY, window.frame.maxY - height), visible.maxY - height), width: width, height: height)
-            NSAnimationContext.runAnimationGroup { context in context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.24; window.animator().setFrame(frame, display: true) }
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.24
+                window.animator().setFrame(frame, display: true)
+            } completionHandler: { [weak self] in
+                Task { @MainActor in self?.layoutTitlebar() }
+            }
         }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
     }
-    func windowDidExitFullScreen(_ notification: Notification) { if let mode = pendingMode { pendingMode = nil; present(mode) } }
-    func windowWillEnterFullScreen(_ notification: Notification) { model.presentation = .full; model.selectedTab = 0 }
+    func layoutTitlebar() {
+        guard let window, let topBarAccessory, !model.windowIsFullscreen,
+              let index = window.titlebarAccessoryViewControllers.firstIndex(of: topBarAccessory) else { return }
+        // AppKit keeps the right accessory's old clipping width after an animated shrink.
+        // Reattach once at the final size; never rebuild it for every animation frame.
+        window.removeTitlebarAccessoryViewController(at: index)
+        topBarAccessory.view.setFrameSize(NSSize(width: max(300, window.frame.width - 90), height: 38))
+        window.addTitlebarAccessoryViewController(topBarAccessory)
+    }
+    func windowDidEndLiveResize(_ notification: Notification) { layoutTitlebar() }
+    func windowDidResize(_ notification: Notification) {
+        guard let window, let topBarAccessory else { return }
+        topBarAccessory.view.setFrameSize(NSSize(width: max(300, window.frame.width - 90), height: 38))
+    }
+    func windowDidExitFullScreen(_ notification: Notification) {
+        model.windowIsFullscreen = false
+        topBarAccessory?.isHidden = false
+        layoutTitlebar()
+        if let mode = pendingMode { pendingMode = nil; present(mode) }
+    }
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        // macOS auto-hides the native titlebar in fullscreen. Keep the same controls
+        // pinned in the content safe area there, without a second visible toolbar.
+        topBarAccessory?.isHidden = true
+        model.windowIsFullscreen = true
+        model.presentation = .full
+    }
     func installMenus() {
         let bar = NSMenu()
         let appItem = NSMenuItem(); bar.addItem(appItem)

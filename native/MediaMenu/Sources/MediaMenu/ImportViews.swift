@@ -21,7 +21,7 @@ actor ThumbnailLoader {
         let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
         let revision = "\(attributes?[.size] ?? 0)-\(attributes?[.modificationDate] ?? Date.distantPast)"
         let isVideo = Self.isVideo(url)
-        let frame = isVideo ? Int(min(max(videoPosition, 0), 0.999) * 6) : -1
+        let frame = isVideo ? (videoPosition == 0.5 ? 6 : Int(min(max(videoPosition, 0), 0.999) * 6)) : -1
         let key = (url.absoluteString + "#" + revision + "#" + String(frame)) as NSString
         if let data = cache.object(forKey: key) { return data as Data }
         if active >= 4 { await withCheckedContinuation { waiting.append($0) } }
@@ -30,6 +30,8 @@ actor ThumbnailLoader {
             if waiting.isEmpty { active -= 1 } else { waiting.removeFirst().resume() }
         }
         guard !Task.isCancelled else { return nil }
+        // Another visible cell may have populated this frame while we waited for a slot.
+        if let data = cache.object(forKey: key) { return data as Data }
         let data: Data?
         if isVideo {
             if let frame = await loadVideoFrame(url, position: videoPosition) { data = frame }
@@ -77,6 +79,7 @@ struct AssetThumbnail: View {
     var height: CGFloat = 110
     @State private var image: NSImage?
     @State private var loading = true
+    @State private var displayedURL: URL?
     @State private var hoverBucket: Int?
     @Environment(\.creatorPalette) private var palette
     private var isVideo: Bool { ["mov", "mp4", "m4v", "mts", "m2ts", "avi", "mkv", "webm", "insv"].contains(url.pathExtension.lowercased()) }
@@ -91,9 +94,9 @@ struct AssetThumbnail: View {
                 if isVideo, let hoverBucket {
                     HStack(spacing: 3) {
                         ForEach(0..<6, id: \.self) { index in
-                            Capsule().fill(index == hoverBucket ? palette.control : palette.ink.opacity(0.45)).frame(height: 3)
+                            Capsule().fill(index == hoverBucket ? .white : .white.opacity(0.4)).frame(height: 3)
                         }
-                    }.padding(.horizontal, 7).padding(.bottom, 6)
+                    }.padding(7).background(.black.opacity(0.65))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -113,6 +116,7 @@ struct AssetThumbnail: View {
         }
         .frame(height: height)
         .task(id: thumbnailTaskID) {
+            if displayedURL != url { image = nil; loading = true; displayedURL = url }
             if image == nil { loading = true }
             if hoverBucket != nil { try? await Task.sleep(for: .milliseconds(120)) }
             guard !Task.isCancelled else { return }
@@ -166,14 +170,18 @@ struct ImportGrid: View {
     @ObservedObject var model: Model
     var dense = false
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: dense ? 155 : 185, maximum: 250))], alignment: .leading, spacing: 18) {
-                ForEach($model.units) { $unit in UnitPreview(model: model, unit: $unit, dense: dense) }
-            }.padding(.vertical, 4)
+        GeometryReader { geometry in
+            let minimum: CGFloat = dense ? 155 : 185
+            let count = min(max(1, model.units.count), max(1, Int((geometry.size.width + 18) / (minimum + 18))))
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 18), count: count), alignment: .leading, spacing: 18) {
+                    ForEach($model.units) { $unit in UnitPreview(model: model, unit: $unit, dense: dense) }
+                }.padding(.vertical, 4)
+            }
         }
         .overlay {
             if model.units.isEmpty && !model.discoveryLoading {
-                ContentUnavailableView("Sin archivos disponibles", systemImage: "photo.stack", description: Text(model.source.isEmpty ? "Elige una fuente para comenzar." : "No hay capturas terminadas nuevas en esta fuente."))
+                ContentUnavailableView("Sin archivos disponibles", systemImage: "photo.stack", description: Text(model.source.isEmpty ? "Elige una fuente para comenzar." : model.loadedSourceKey != model.sourceKey ? "Inspecciona la fuente para ver sus archivos." : "No hay capturas terminadas nuevas en esta fuente."))
             }
         }
     }
@@ -195,10 +203,12 @@ struct UnitPreview: View {
                 Button {
                     if model.copyChoice == "some" && unit.previewPath != nil { unit.copyForEditing.toggle() }
                 } label: {
-                    AssetThumbnail(
-                        url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""),
-                        height: dense ? 92 : 110
-                    )
+                    GeometryReader { geometry in
+                        AssetThumbnail(
+                            url: URL(fileURLWithPath: model.source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? ""),
+                            height: geometry.size.height
+                        )
+                    }.aspectRatio(16.0 / 9.0, contentMode: .fit)
                     .overlay(alignment: .bottomLeading) {
                         if unit.category == "stalker" {
                             VStack(alignment: .leading, spacing: 2) {
@@ -207,10 +217,11 @@ struct UnitPreview: View {
                                 Text((["\(unit.tracks) pistas"] + (durationLabel(unit.duration).map { [$0] } ?? []) + ["\(unit.paths.count) archivos"]).joined(separator: " · "))
                                     .font(.caption2).lineLimit(1)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6).padding(.vertical, 4)
                             .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
-                            .padding(5).allowsHitTesting(false)
+                            .padding(5).padding(.bottom, 10).allowsHitTesting(false)
                         }
                     }
                     .overlay(alignment: .topLeading) {
@@ -234,9 +245,11 @@ struct UnitPreview: View {
                     Label(effectiveProfile, systemImage: "person.crop.square")
                         .font(.caption2.weight(.medium)).lineLimit(1)
                         .padding(.horizontal, 6).padding(.vertical, 4)
-                        .background(palette.canvas.opacity(0.92), in: Capsule())
                 }
                 .menuStyle(.borderlessButton)
+                .foregroundStyle(.white).tint(.white)
+                .fixedSize()
+                .background(.black.opacity(0.8), in: Capsule())
                 .padding(5)
             }
 

@@ -62,7 +62,9 @@ Enlaces a STATUS, contrato o nota de decisión:
 
 En otra sesión: leer CONTEXT → STATUS → tarea de PLAN → módulos relevantes. Revisar `git status` antes de editar; este checkpoint tiene cambios anteriores staged y trabajo nuevo sin seguimiento. No asumir un checkout limpio ni restagear todo.
 
-## Prompt próxima sesión: Ingreso compacto y expulsión de SD
+## Prompt histórico: Ingreso compacto y expulsión de SD (implementado 2026-10-27)
+
+Conservado como contexto de la solicitud; no es la siguiente tarea. La evidencia y aceptación restante viven en [STATUS](STATUS.md) y la prioridad vigente en [PLAN](../PLAN.md).
 
 ```text
 Trabaja en /Users/nu9ve/code/nu9ve/n-creator-utils. Lee primero las instrucciones de AGENTS.md, docs/CONTEXT.md, docs/STATUS.md y la fila vigente de PLAN.md; luego docs/features/nuun-window.md y sólo los Swift/services necesarios. Conserva todo el trabajo staged, unstaged y untracked que ya existe. No lo limpies ni lo restages en bloque.

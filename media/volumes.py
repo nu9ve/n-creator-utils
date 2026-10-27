@@ -53,6 +53,37 @@ class VolumeBackend:
                 'external': False, 'physical': str(st.st_dev), 'filesystem': 'local', 'block_size': 4096,
                 'root_inode': st.st_ino, 'device': st.st_dev, 'free': shutil.disk_usage(root).free, 'removable': False}
 
+    def mounted_roots(self):
+        """Only mount metadata; never recurse into source media."""
+        if sys.platform != 'darwin':
+            return []
+        try:
+            result = subprocess.run(['/usr/sbin/diskutil', 'list', '-plist', 'external'],
+                                    capture_output=True, timeout=30)
+        except subprocess.TimeoutExpired as error:
+            raise MediaError('volume_identity_unavailable', 'Mount listing timed out; retry shortly') from error
+        require(result.returncode == 0, 'volume_identity_unavailable', 'Cannot list external mounts')
+        def mounts(nodes):
+            for node in nodes:
+                if node.get('MountPoint'):
+                    yield node['MountPoint']
+                for key in ('Partitions', 'APFSVolumes'):
+                    yield from mounts(node.get(key, []))
+        return sorted(set(mounts(plistlib.loads(result.stdout).get('AllDisksAndPartitions', []))))
+
+    def eject(self, root, expected):
+        require(sys.platform == 'darwin', 'unsupported_platform', 'Safe eject requires macOS')
+        current = self.describe(root, external_required=True)
+        validate_card(root, current)
+        require(card_identity(current) == expected, 'volume_replaced', 'Card identity changed; select it again')
+        # Normal eject only: no force, no fallback unmount, no arbitrary disk identifier from the caller.
+        try:
+            result = subprocess.run(['/usr/sbin/diskutil', 'eject', current['mount']],
+                                    capture_output=True, text=True, timeout=30)
+        except subprocess.TimeoutExpired as error:
+            raise MediaError('eject_uncertain', 'Eject did not answer; refresh mounts before removing the card') from error
+        require(result.returncode == 0, 'eject_failed', 'Could not eject card; close files and retry')
+
     def fast_check(self, root, token):
         st = os.stat(str(root), follow_symlinks=False)
         require(st.st_dev == token['device'] and st.st_ino == token['root_inode'],
@@ -79,3 +110,53 @@ def independent(first, second):
     left = set(first.get('physical_disks') or [first['physical']])
     right = set(second.get('physical_disks') or [second['physical']])
     return left.isdisjoint(right)
+
+
+def card_identity(info):
+    return {key: info.get(key) for key in
+            ('mode', 'volume_uuid', 'disk_uuid', 'mount', 'physical', 'root_inode', 'device')}
+
+
+def validate_card(root, info):
+    require(info.get('external') and info.get('removable') and not info.get('disk_image')
+            and info.get('mount') == str(Path(root).absolute()),
+            'not_a_card', 'Choose the root of a mounted removable SD/camera card')
+
+
+def destination_identities(catalog, backend):
+    # disk numbers change on remount: compare current physical stores when available.
+    return [backend.online(record) or record['identity'] for record in catalog.volumes()]
+
+
+def reject_destination(info, identities):
+    require(all(info.get('volume_uuid') != identity.get('volume_uuid')
+                and independent(info, identity) for identity in identities),
+            'destination_volume', 'Archive/work disks cannot be ejected from Ingreso')
+
+
+def source_cards(catalog, backend):
+    result = []
+    protected = destination_identities(catalog, backend)
+    for root in backend.mounted_roots():
+        try:
+            info = backend.describe(root)
+            validate_card(root, info)
+            reject_destination(info, protected)
+        except (OSError, MediaError, subprocess.SubprocessError, ValueError):
+            continue
+        result.append({'path': str(root), 'name': Path(root).name, 'kind': 'card',
+                       'identity': card_identity(info)})
+    return result
+
+
+def eject_card(catalog, backend, source, identity):
+    require(isinstance(source, str) and isinstance(identity, dict), 'invalid_request', 'Source and identity required')
+    # The same interprocess lock as copy/verify/cleanup. Conservatively blocks during any mutation.
+    with catalog.writer():
+        root = Path(source).expanduser().absolute()
+        info = backend.describe(root, external_required=True)
+        validate_card(root, info)
+        reject_destination(info, destination_identities(catalog, backend))
+        require(card_identity(info) == identity, 'volume_replaced', 'Card identity changed; select it again')
+        backend.eject(root, identity)
+    return {'ejected': True, 'source': str(root)}

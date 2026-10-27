@@ -10,10 +10,10 @@ struct WindowRoot: View {
             else { ImporterSurface(model: model) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .modifier(CreatorAppearance())
-        .task(id: model.presentation == .compact ? "" : model.sourceKey) {
-            if model.presentation != .compact { await model.loadSource() }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if model.windowIsFullscreen { WindowTopBar(model: model) }
         }
+        .modifier(CreatorAppearance())
         .alert("Confirmar sólo respaldo", isPresented: $model.archiveOnlyPrompt) {
             Button("Cancelar", role: .cancel) {}
             Button("Confirmar sólo respaldo") { model.makePlan(archiveOnly: true) }
@@ -26,8 +26,9 @@ struct WindowRoot: View {
         .onChange(of: model.city) { _, _ in model.invalidatePlan() }
         .onChange(of: model.archive) { _, _ in model.invalidatePlan() }
         .onChange(of: model.work) { _, _ in model.invalidatePlan() }
-        .onChange(of: model.sourceKind) { _, _ in model.invalidatePlan(); model.loadedSourceKey = "" }
+        .onChange(of: model.sourceKind) { _, _ in model.invalidatePlan(); model.loadedSourceKey = ""; model.units = [] }
         .onChange(of: model.cleanup) { _, _ in model.invalidatePlan() }
+        .onChange(of: model.deferWork) { _, _ in model.invalidatePlan() }
         .onChange(of: model.copyChoice) { _, _ in model.invalidatePlan() }
         .onChange(of: model.units) { _, _ in model.invalidatePlan() }
     }
@@ -39,12 +40,11 @@ struct AppNavigation: View {
     var body: some View {
         HStack(spacing: 5) {
             ForEach([(4,"Bandeja","tray.full"),(0,"Ingreso","sdcard"),(1,"Biblioteca","square.stack"),(2,"Actividad","clock.arrow.circlepath"),(5,"Espacio","externaldrive.badge.checkmark"),(3,"Ajustes","slider.horizontal.3")], id: \.0) { id, title, icon in
-                Button { model.selectedTab = id } label: { Label(title, systemImage: icon).padding(.vertical, 3).frame(maxWidth: .infinity) }
+                Button { model.selectedTab = id } label: { Label(title, systemImage: icon).font(.caption).frame(maxWidth: .infinity) }
                     .buttonStyle(CreatorButtonStyle(prominent: model.selectedTab == id))
             }
-        }.padding(6)
+        }.padding(3)
         .background(palette.inset.opacity(0.5), in: RoundedRectangle(cornerRadius: 13))
-        .padding(.bottom, 5) // Leave room for native shadows/focus rings; no clipped TabView toolbar.
     }
 }
 
@@ -69,8 +69,10 @@ struct WindowTopBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(model.presentation == .full ? model.message : "Ingreso · " + model.message)
-                .font(.caption).lineLimit(1).frame(width: 160, alignment: .leading)
+            HStack(spacing: 5) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 22, height: 22)
+                Text("nüün").font(.system(size: 15, weight: .semibold, design: .rounded))
+            }.help(model.message)
             Spacer(minLength: 2)
             if model.presentation == .full {
                 AppNavigation(model: model).frame(maxWidth: 760)
@@ -85,11 +87,11 @@ struct WindowTopBar: View {
                 }
                 modeButton
             }
-            .frame(width: 150, alignment: .trailing)
+            .fixedSize()
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
-        .frame(height: 50)
+        .frame(height: 38)
         .background(palette.canvas)
         .overlay(alignment: .bottom) { Rectangle().fill(palette.border.opacity(0.8)).frame(height: 1) }
     }
@@ -116,31 +118,9 @@ struct ProfilePicker: View {
             }
             if model.profiles.isEmpty { Text("Sin perfiles guardados") }
             Button("Administrar perfiles…") { model.selectedTab = 3; model.changeMode?(.full) }
-        } label: { Label(model.profile, systemImage: "person.crop.square") }
+        } label: { Label(model.profile, systemImage: "person.crop.square").lineLimit(1) }
+        .fixedSize()
         .help("Perfil creativo y espacio de trabajo")
-    }
-}
-
-struct ProjectSuggestions: View {
-    @ObservedObject var model: Model
-    private var hasUnassignedStalkerSessions: Bool {
-        model.sourceKind == "stalker" && model.units.contains { $0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    }
-    var body: some View {
-        if model.sourceKind == "stalker" {
-            if hasUnassignedStalkerSessions {
-                RecentProjectChips(projects: model.recentProjects, selection: $model.project)
-            }
-        } else {
-            HStack {
-                if !model.lastProject.isEmpty { Button("Último: " + model.lastProject) { model.project = model.lastProject } }
-                Menu("Proyectos recientes") {
-                    ForEach(Array(model.recentProjects.prefix(15)), id: \.["project_id"].string) { value in
-                        Button(value["project"].string + " · " + value["profile"].string) { model.project = value["project"].string; model.selectProfile(value["profile"].string) }
-                    }
-                }
-            }.font(.caption)
-        }
     }
 }
 
@@ -253,6 +233,7 @@ struct PlanAction: View {
             && projectIsReady
             && !model.archive.isEmpty && !model.discoveryLoading
             && !(model.copyChoice == "some" && model.units.isEmpty)
+            && (model.sourceKind != "stalker" || model.loadedSourceKey == model.sourceKey)
     }
     var body: some View {
         if model.plan != nil {
@@ -291,7 +272,8 @@ struct MainActionFooter: View {
           ActionFooter {
             switch model.selectedTab {
             case 0:
-                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                if model.busy { ProgressView().controlSize(.small) }
+                Text(model.message).font(.caption).lineLimit(1)
                 Spacer(minLength: 0)
                 PlanAction(model: model)
             case 1:
@@ -339,30 +321,164 @@ struct ImporterSurface: View {
     @ObservedObject var model: Model
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Text(URL(fileURLWithPath: model.source).lastPathComponent).font(.caption); Spacer(); Button("Elegir fuente…") { model.chooseSource() } }
-            SourceKindBadges(model: model)
-            TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar" : "Nombre del proyecto", text: $model.project)
-                .frame(maxWidth: model.sourceKind == "stalker" ? 300 : .infinity, alignment: .leading)
-            ProjectSuggestions(model: model)
-            HStack { ProfilePicker(model: model); Spacer(); Text(model.volumes.first { $0["id"].string == model.archive }?["name"].string ?? "Sin disco de respaldo").font(.caption) }
-            EditingChoice(model: model, compact: model.presentation == .compact)
+            IngestHeader(model: model)
+            BatchProjectPicker(model: model)
+            IngestOptions(model: model)
             if model.presentation == .selection {
                 SourceSummary(model: model)
                 ImportGrid(model: model, dense: true).frame(minHeight: 160, maxHeight: .infinity)
             }
-            Toggle("Limpiar SD después de verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
             Text("Todo se respalda. La selección sólo cambia las copias para editar.").font(.caption).foregroundStyle(.secondary)
-            if model.busy { HStack { ProgressView().controlSize(.small); Text(model.message).font(.caption); Button("Cancelar") { model.cancel() } } }
+            PlanReview(model: model)
             if !model.error.isEmpty { Text(model.error).font(.caption).foregroundStyle(.red) }
             if model.presentation == .compact { Spacer(minLength: 0) }
-        }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }.disabled(model.busy).padding(20).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ActionFooter {
-                    if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                    if model.busy { ProgressView().controlSize(.small) }
+                    Text(model.message).font(.caption).lineLimit(1)
                     Spacer(minLength: 0)
                     PlanAction(model: model)
                 }
             }
             .onChange(of: model.project) { _, _ in model.invalidatePlan() }
+    }
+}
+
+
+// Shared controls: changing presentation never creates another draft/model.
+struct IngestHeader: View {
+    @ObservedObject var model: Model
+    private var sourceName: String {
+        model.source.isEmpty ? "Elegir fuente" : URL(fileURLWithPath: model.source).lastPathComponent
+    }
+    private var sourcePicker: some View {
+        HStack(spacing: 4) {
+            Menu {
+                ForEach(model.sourceCards, id: \.["path"].string) { card in
+                    Button("SD · " + card["name"].string) { model.useCard(card["path"].string) }
+                }
+                if !model.captureRoots.isEmpty {
+                    Divider()
+                    ForEach(model.captureRoots, id: \.self) { root in
+                        Button("Stalker · " + URL(fileURLWithPath: root).lastPathComponent) { model.prepareSource(root, kind: "stalker") }
+                    }
+                }
+                Divider()
+                Button("Otra…") { model.chooseSource() }
+                Button("Actualizar fuentes") { Task { await model.refresh() } }
+            } label: { Label(sourceName, systemImage: model.sourceKind == "stalker" ? "record.circle" : "sdcard").lineLimit(1) }
+            .help(model.source.isEmpty ? "SDs conectadas y bibliotecas conocidas" : model.source)
+            if model.selectedCard != nil {
+                Button { model.ejectSource() } label: { Image(systemName: "eject") }
+                    .help("Expulsar SD de forma segura").accessibilityLabel("Expulsar SD de forma segura")
+                    .disabled(model.busy || model.discoveryLoading)
+            }
+        }
+    }
+    private func destination(_ title: String, role: String, selection: Binding<String>) -> some View {
+        Picker(title, selection: selection) {
+            Text("Sin seleccionar").tag("")
+            ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { volume in
+                Text(volume["name"].string + (volume["online"].bool ? "" : " · desconectado")).tag(volume["id"].string)
+            }
+        }.lineLimit(1)
+    }
+    private var location: some View {
+        HStack(spacing: 8) {
+            ProfilePicker(model: model)
+            TextField("País", text: $model.country).frame(width: model.presentation == .compact ? 38 : 48).help("País")
+            TextField("Ciudad", text: $model.city).frame(width: model.presentation == .compact ? 85 : 120).help("Ciudad")
+        }
+    }
+    private var destinations: some View {
+        HStack(spacing: 10) {
+            destination("Archivo", role: "archive", selection: $model.archive)
+            destination("SSD", role: "work", selection: $model.work)
+        }
+    }
+    var body: some View {
+        Group {
+            if model.presentation == .full {
+                HStack(spacing: 14) {
+                    sourcePicker.frame(maxWidth: .infinity, alignment: .leading)
+                    location.frame(maxWidth: .infinity)
+                    destinations.frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack(spacing: 10) {
+                        sourcePicker.frame(maxWidth: .infinity, alignment: .leading)
+                        location.fixedSize(horizontal: true, vertical: false)
+                    }
+                    destinations
+                }
+            }
+        }.disabled(model.busy)
+    }
+}
+
+struct BatchProjectPicker: View {
+    @ObservedObject var model: Model
+    @State private var manual = false
+    private var otherProjects: some View {
+        HStack(spacing: 6) {
+            if model.recentProjects.count > 3 {
+                Menu("Más recientes") {
+                    ForEach(Array(model.recentProjects.dropFirst(3)), id: \.["project_id"].string) { item in
+                        Button(item["project"].string) { model.project = item["project"].string }
+                    }
+                }.fixedSize().font(.caption)
+            }
+            Button("Otro…") { manual.toggle() }.font(.caption)
+        }
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if model.presentation == .compact {
+                HStack {
+                    Text("Proyecto").font(.caption).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    otherProjects
+                }
+                RecentProjectChips(projects: model.recentProjects, selection: $model.project)
+            } else {
+                HStack(spacing: 6) {
+                    Text("Proyecto").font(.caption).foregroundStyle(.secondary)
+                    RecentProjectChips(projects: model.recentProjects, selection: $model.project)
+                    otherProjects
+                }
+            }
+            if manual {
+                HStack {
+                    TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar" : "Nombre del proyecto", text: $model.project)
+                    Button("Listo") { manual = false }.disabled(model.project.isEmpty)
+                }
+            } else if !model.project.isEmpty && !model.recentProjects.prefix(3).contains(where: { $0["project"].string == model.project }) {
+                Button(model.project, systemImage: "pencil") { manual = true }.font(.caption)
+            }
+            if model.sourceKind == "stalker" {
+                Text("Se aplica sólo a sesiones sin proyecto propio.").font(.caption2).foregroundStyle(.secondary)
+            }
+        }.disabled(model.busy)
+    }
+}
+
+struct IngestOptions: View {
+    @ObservedObject var model: Model
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            SourceKindBadges(model: model)
+            EditingChoice(model: model, compact: model.presentation == .compact)
+            Toggle("Limpiar SD después de verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
+            if !model.noWork {
+                Toggle("Preparar copia para editar después si falta SSD", isOn: $model.deferWork)
+            }
+            HStack {
+                Button(model.units.isEmpty ? "Inspeccionar archivos" : "Actualizar archivos", systemImage: "photo.stack") { model.inspectSource() }
+                    .disabled(model.source.isEmpty || model.discoveryLoading)
+                if model.units.isEmpty { Text("Elegir fuente no recorre sus archivos.").font(.caption2).foregroundStyle(.secondary) }
+            }
+        }.disabled(model.busy)
     }
 }
