@@ -1,5 +1,6 @@
 """Single-request JSON boundary shared by native UI and CLI."""
 from pathlib import Path
+import time
 import uuid
 
 from .catalog import Catalog
@@ -49,6 +50,7 @@ class Service:
             return backup_metadata(self.catalog, self.backend, params['archive'], self.cancel)
         if method == 'plan_release':
             from .release import plan_release
+            require('progress' not in params, 'invalid_request', 'Progress callbacks are internal to the local service')
             return plan_release(self.catalog, self.backend, cancel=self.cancel, **params)
         if method in {'apply_release', 'relink_release'}:
             from .release import apply_release, relink_release
@@ -195,15 +197,29 @@ class Service:
 
         units = [unit for unit in ingest_plan['units'] if unit.get('kind') == 'stalker_session']
         summary = {'status': 'released', 'released': [], 'retained': []}
-        self.catalog.set('progress:' + ingest_plan['id'], {
-            'job_id': ingest_plan['id'], 'phase': 'releasing_stalker',
-            'sessions_total': len(units), 'sessions_done': 0,
-        })
+        last_progress = {'at': 0.0, 'stage': None}
         for index, unit in enumerate(units):
             source = Path(ingest_plan['source']).expanduser().absolute()
             if unit.get('bundle') and unit['bundle'] != '.':
                 source = source / unit['bundle']
             project = unit.get('project') or 'Stalker'
+            base_progress = {'job_id': ingest_plan['id'], 'phase': 'releasing_stalker',
+                             'sessions_total': len(units), 'sessions_done': index,
+                             'session_index': index + 1, 'session_name': source.name,
+                             'files_total': len(unit.get('paths', [])), 'files_done': 0}
+
+            def update_progress(stage, **details):
+                current = time.monotonic()
+                force = stage != last_progress['stage']
+                if not force and current - last_progress['at'] < 1:
+                    return
+                value = dict(base_progress)
+                value.update(details)
+                value['stage'] = stage
+                self.catalog.set('progress:' + ingest_plan['id'], value)
+                last_progress.update(at=current, stage=stage)
+
+            update_progress('preparing')
             try:
                 prior = next((candidate for candidate in reversed(release_plans(self.catalog))
                               if candidate.get('auto_ingest_job_id') == ingest_plan['id']
@@ -217,7 +233,8 @@ class Service:
                 else:
                     release_plan = plan_release(
                         self.catalog, self.backend, ingest_plan['archive_id'], source=str(source),
-                        project=project, cancel=self.cancel, auto_ingest_job_id=ingest_plan['id'])
+                        project=project, cancel=self.cancel, auto_ingest_job_id=ingest_plan['id'],
+                        progress=update_progress)
             except MediaError as error:
                 summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source), 'reason': str(error)})
                 release_plan = None
@@ -230,18 +247,21 @@ class Service:
                                                     'reason': '; '.join(consumers['blockers'])})
                     elif consumers.get('relinks'):
                         try:
-                            relink_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                            relink_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'],
+                                           self.cancel, progress=update_progress)
                         except MediaError as error:
                             summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source), 'reason': str(error)})
                         else:
-                            completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                            completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'],
+                                                      self.cancel, progress=update_progress)
                             if completed.get('state') == 'completed':
                                 summary['released'].append({'session_id': unit.get('session_id'), 'path': str(source)})
                             else:
                                 summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
                                                             'reason': 'La liberación no terminó; el original se conserva para reintentar'})
                     else:
-                        completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'], self.cancel)
+                        completed = apply_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'],
+                                                  self.cancel, progress=update_progress)
                         if completed.get('state') == 'completed':
                             summary['released'].append({'session_id': unit.get('session_id'), 'path': str(source)})
                         else:
@@ -249,9 +269,10 @@ class Service:
                                                         'reason': 'La liberación no terminó; el original se conserva para reintentar'})
             finally:
                 self.catalog.set('progress:' + ingest_plan['id'], {
-                    'job_id': ingest_plan['id'], 'phase': 'releasing_stalker',
-                    'sessions_total': len(units), 'sessions_done': index + 1,
+                    **base_progress, 'sessions_done': index + 1, 'stage': 'session_finished',
                 })
+                last_progress['stage'] = 'session_finished'
+                last_progress['at'] = time.monotonic()
         if summary['retained']:
             summary['status'] = 'partial' if summary['released'] else 'retained'
             self.catalog.state(ingest_plan['id'], 'source_retained')

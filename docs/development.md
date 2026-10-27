@@ -62,6 +62,24 @@ Enlaces a STATUS, contrato o nota de decisión:
 
 En otra sesión: leer CONTEXT → STATUS → tarea de PLAN → módulos relevantes. Revisar `git status` antes de editar; este checkpoint tiene cambios anteriores staged y trabajo nuevo sin seguimiento. No asumir un checkout limpio ni restagear todo.
 
+## Prompt próxima sesión: Ingreso compacto y expulsión de SD
+
+```text
+Trabaja en /Users/nu9ve/code/nu9ve/n-creator-utils. Lee primero las instrucciones de AGENTS.md, docs/CONTEXT.md, docs/STATUS.md y la fila vigente de PLAN.md; luego docs/features/nuun-window.md y sólo los Swift/services necesarios. Conserva todo el trabajo staged, unstaged y untracked que ya existe. No lo limpies ni lo restages en bloque.
+
+Objetivo: implementar el rediseño de Ingreso solicitado el 2026-10-27. La captura actual tiene un campo de path siempre visible y los controles se distribuyen en muchas filas.
+
+1. En el caso común, mostrar SDs/cámaras conectadas y fuentes configuradas en un selector; «Otra…» abre el selector de carpeta/ruta. No mostrar el path como un text field permanente. Reusa los gates actuales de montaje/destino: la sugerencia no inicia deep scan hasta que el usuario elige la fuente.
+2. Componer origen, perfil general, país, ciudad, archivo y SSD de trabajo en un encabezado que use como máximo dos renglones. Perfil, país/ciudad, proyecto y destino siguen siendo conceptos separados.
+3. Mostrar los tres proyectos recientes como badges; «Otro…» revela entrada manual. El proyecto del lote sólo rellena las unidades sin proyecto individual y nunca sobrescribe proyectos Stalker específicos.
+4. Dejar debajo las opciones existentes `Ninguno`, `Todo el lote`, `Elegir archivos` y la decisión de liberar/limpiar después de verificar. Mantener «Revisar plan» como acción primaria del pie fijo.
+5. Agregar expulsión segura explícita para SD/cámara antes o después de un job. Bloquearla mientras un job la tenga como origen; no expulsar automáticamente al empezar ni al terminar, y no ofrecer la acción para MEDIA/SSD de trabajo. Actualmente no existe esta operación en el servicio: revisa primero `media/volumes.py` y crea un método estrecho en el boundary compartido que valide montaje/identidad y que no sea un destino registrado; Swift no invoca `diskutil` directamente. No añadas un borrado ni una expulsión a la ruta de transferencia.
+
+El flujo sigue siendo seleccionar → descubrir/resumir → revisar el plan/digest → copiar y verificar destinos → limpiar/liberar sólo según el plan y ajustes. La UI no debe reimplementar planner, transfer ni limpieza. Empieza por los owners Swift listados en docs/development.md y revisa el contrato/service boundary antes de crear operaciones nuevas.
+
+Acepta primero con fixtures temporales/estado aislado; nunca uses una SD personal como fixture. Corre checks enfocados de Python y Swift, compila un bundle nuevo y no abras/instales la app sin coordinar si hay una instancia operativa. Actualiza STATUS y PLAN con evidencia real y deja la aceptación visual de selección, compacto/completo y bloqueo de expulsión claramente indicada.
+```
+
 Para trabajo simultáneo, definir superficie y archivos antes de empezar. UI/dashboard y revisión del motor pueden avanzar en sesiones distintas si el protocolo se mantiene; cambios en `service`, catálogo o schemas requieren acordar el boundary. Los agentes de Stalker/Clipper/Atlas revisan sus propios contratos; no enviarles mensajes ni editar sus repos sin autorización del usuario.
 
 ## Mantener documentación viva

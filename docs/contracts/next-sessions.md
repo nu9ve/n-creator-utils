@@ -7,6 +7,15 @@ Escritos el 2026-10-25. Son dos sesiones separadas que se corren en este orden:
 
 Las dos pueden y deben actualizar el contrato en este repo según las [reglas](README.md#cómo-actualizan-este-contrato-otras-sesiones).
 
+## Seguimiento nuevo para la próxima sesión de Stalker · 2026-10-27
+
+La sesión de implementación descrita abajo ya ocurrió. Antes de continuar con Clipper, revisa estos dos hallazgos del lote reciente de dos sesiones y deja evidencia en tu propio repo; actualiza sólo `docs/contracts/*.md` de n-creator-utils siguiendo la fila Stalker de adopción y las reglas de este repo.
+
+1. **Nombre de carpeta.** Las capturas se ven con nombres `Stalker_yyyy-MM-dd_HH-mm-ss.stalker` aunque se les asignó `terra-6-1` al preparar el lote. Reproduce con fixtures y sigue el orden de guardado de proyecto, finalización, escritura durable de `completed` y rename. Aclara si asignar el proyecto en nüün cambia metadata del productor (no debería: el tag del archivador vive en su catálogo) o si el nombre genérico es esperado cuando Stalker no recibió proyecto durante la captura. Confirma cuándo se aplica la gramática final, el comportamiento con colisión/error/interrupción y que `sessionID` + digest siguen siendo la identidad aunque el nombre quede genérico. No edites sesiones reales ni reescribas bundles completados para investigarlo.
+2. **Tamaño del micrófono.** En las mismas sesiones, compara el archivo de pantalla y la pista de micrófono: bytes, duración, bitrate efectivo, contenedor, codec, sample rate, canales y profundidad de bits, además de los ajustes de grabación que eligió el código en runtime. Determina si la pista es PCM/no comprimida u otra codificación y explica cuánto tamaño sería esperable para esa duración. No reduzcas calidad ni cambies codec hasta identificar la causa y proponer una comparación de captura controlada.
+
+Entrega: hallazgos reproducibles con fixtures o mediciones no destructivas, explicación de si cada comportamiento es correcto o requiere fix, límites, y cualquier petición para el productor en «Pendientes para n-creator-utils». No marques el contrato adoptado por una suposición ni alteres el manifiesto de una sesión archivada.
+
 ## 1. Stalker (`~/code/ai/stalker`)
 
 Estado: ejecutada el 2026-10-25 (Stalker `ecb18f1` y `d88eaf9`, main). Resultado en la [fila de adopción](README.md#estado-de-adopción-por-app) y en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25).

@@ -234,6 +234,8 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual((progress['copied_bytes'], progress['bytes_total']), (18, 18))
         self.assertEqual((progress['verified_bytes'], progress['verify_total']), (36, 36))
         self.assertEqual((progress['files_done'], progress['phase']), (2, 'completed'))
+        self.assertEqual([(d['name'], d['files_done'], d['files_total']) for d in progress['destinations']],
+                         [('ESSD', 2, 2), ('MEDIA', 2, 2)])
 
     def test_no_media_writes_by_plan_and_stable_plan_digest(self):
         first = self.plan(cleanup=False)
@@ -499,6 +501,19 @@ class StalkerEngineTests(MediaFixture):
         self.run_plan(self.plan(source_kind='stalker', cleanup=False))
         self.assertEqual(service.call('discover', params)['units'], [])
         self.assertTrue((bundle / 'screen.mov').exists())
+
+    def test_discovery_ignores_finder_only_residue_but_not_manifestless_media(self):
+        residue = self.source / 'released.stalker'; residue.mkdir()
+        (residue / '.DS_Store').write_bytes(b'finder metadata')
+        service = Service(self.catalog, self.backend)
+        found = service.call('discover', {'source': str(self.source), 'source_kind': 'stalker'})
+        self.assertEqual((found['units'], found['skipped']), ([], []))
+        self.assertTrue(residue.exists())  # Discovery is read-only; the journal owns media cleanup.
+
+        broken = self.source / 'unexpected.stalker'; broken.mkdir()
+        (broken / 'mic.wav').write_bytes(b'audio')
+        with self.assertRaises(FileNotFoundError):
+            service.call('discover', {'source': str(self.source), 'source_kind': 'stalker'})
 
     def test_stalker_complete_bundle_and_recording_untouched(self):
         bundle = self.session(); recording = self.session('active.stalker', 'recording')

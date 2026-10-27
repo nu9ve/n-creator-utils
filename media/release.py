@@ -12,15 +12,35 @@ from .metadata_backup import backup_metadata
 from .volumes import independent
 
 
-def checked_hash(tree, path, cancel=None):
+def checked_hash(tree, path, cancel=None, progress=None):
     fd = tree.open(path)
     try:
         before = content_stamp(os.fstat(fd))
-        value = hash_fd(uncached(fd), cancel or (lambda: False))
+        value = hash_fd(uncached(fd), cancel or (lambda: False), progress)
         require(content_stamp(os.fstat(fd)) == before, 'source_changed', 'File changed while hashing: ' + path)
         return value, before
     finally:
         os.close(fd)
+
+
+def report(progress, stage, **details):
+    if progress:
+        progress(stage, **details)
+
+
+def checked_hash_progress(tree, path, cancel, progress, stage, files_done=0, files_total=0):
+    if not progress:
+        return checked_hash(tree, path, cancel)
+    size = tree.stat(path).st_size
+    read = 0
+
+    def advance(delta):
+        nonlocal read
+        read += delta
+        report(progress, stage, path=path, bytes_done=read, bytes_total=size,
+               files_done=files_done, files_total=files_total)
+
+    return checked_hash(tree, path, cancel, advance)
 
 
 def protected(path):
@@ -47,7 +67,7 @@ def bundle_root(path):
     return None
 
 
-def prefer_work(catalog, backend, archive, entries, replacements, cancel=None):
+def prefer_work(catalog, backend, archive, entries, replacements, cancel=None, progress=None):
     """A local capture should leave Clipper on its existing verified SSD copy when possible."""
     checks = []
     archive_copies = {json.loads(row[0])['destination']: json.loads(row[0]) for row in
@@ -61,7 +81,7 @@ def prefer_work(catalog, backend, archive, entries, replacements, cancel=None):
             candidate, verified = None, []
             try:
                 with Tree(volume['root']) as tree:
-                    for entry in related:
+                    for index, entry in enumerate(related):
                         archive_copy = archive_copies.get(entry['archive_path'])
                         require(archive_copy, 'missing_receipt', 'Archive receipt missing')
                         row = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
@@ -70,7 +90,9 @@ def prefer_work(catalog, backend, archive, entries, replacements, cancel=None):
                         copy = json.loads(row[0])
                         root = bundle_root(copy['destination'])
                         require(root and (candidate is None or candidate == root), 'revision_mismatch', 'Work bundle mismatch')
-                        require(checked_hash(tree, copy['destination'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Work changed')
+                        require(checked_hash_progress(tree, copy['destination'], cancel, progress,
+                                                      'verifying_work_copy', index, len(related))[0] == entry['sha256'],
+                                'checksum_mismatch', 'Work changed')
                         candidate = root
                         verified.append({'volume_id': volume['id'], 'path': copy['destination'], 'sha256': entry['sha256']})
                 if candidate:
@@ -85,15 +107,20 @@ def prefer_work(catalog, backend, archive, entries, replacements, cancel=None):
     return checks
 
 
-def verify_replacements(catalog, backend, plan, cancel=None):
-    for entry in plan.get('replacement_checks', []):
+def verify_replacements(catalog, backend, plan, cancel=None, progress=None):
+    checks = plan.get('replacement_checks', [])
+    report(progress, 'verifying_work_copy', files_done=0, files_total=len(checks))
+    for index, entry in enumerate(checks):
         record = catalog.volume(entry['volume_id'])
         backend.check(record)
         with Tree(record['root']) as tree:
-            require(checked_hash(tree, entry['path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Replacement work copy changed')
+            require(checked_hash_progress(tree, entry['path'], cancel, progress,
+                                          'verifying_work_copy', index, len(checks))[0] == entry['sha256'],
+                    'checksum_mismatch', 'Replacement work copy changed')
 
 
-def plan_release(catalog, backend, archive, work=None, path='', source=None, project='', cancel=None, auto_ingest_job_id=None):
+def plan_release(catalog, backend, archive, work=None, path='', source=None, project='', cancel=None, auto_ingest_job_id=None, progress=None):
+    report(progress, 'preparing')
     archive_record = catalog.volume(archive)
     require(archive_record['role'] == 'archive', 'invalid_role', 'Archive required')
     archive_info = backend.check(archive_record)
@@ -128,6 +155,7 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
     with Tree(source_root) as origin, Tree(archive_record['root']) as target:
         paths, preserved = selected_files(origin, scope, bool(source), cancel)
         require(paths, 'empty_selection', 'No editable media to release in this folder')
+        report(progress, 'hashing_source', files_done=0, files_total=len(paths), bytes_done=0, bytes_total=sum(origin.stat(path).st_size for path in paths))
         # First prefer receipts. Legacy files are matched by content, even after historical renames.
         receipt_candidates = {}
         for row in catalog.db.execute('SELECT payload FROM copies WHERE volume_id=?', (archive_record['id'],)):
@@ -135,8 +163,10 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
             receipt_candidates.setdefault(copy['sha256'], []).append(copy['destination'])
         legacy_by_size = None
         cache = {}
-        for path in paths:
-            sha, stamp = checked_hash(origin, path, cancel)
+        for index, path in enumerate(paths):
+            report(progress, 'hashing_source', path=path, files_done=index, files_total=len(paths),
+                   bytes_done=0, bytes_total=origin.stat(path).st_size)
+            sha, stamp = checked_hash_progress(origin, path, cancel, progress, 'hashing_source', index, len(paths))
             candidates = receipt_candidates.get(sha, [])
             if source:
                 inner = path[len(scope) + 1:]
@@ -157,7 +187,9 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
             match = None
             for candidate in candidates:
                 try:
-                    if candidate not in cache: cache[candidate] = checked_hash(target, candidate, cancel)
+                    if candidate not in cache:
+                        cache[candidate] = checked_hash_progress(target, candidate, cancel, progress,
+                                                                 'matching_archive', index, len(paths))
                     if cache[candidate][0] == sha:
                         match = candidate
                         break
@@ -174,7 +206,9 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
             require(original not in replacements or replacements[original] == replacement, 'invalid_release', 'Bundle members resolve to different archive bundles')
             replacements[original] = replacement
         # Validate every complete capture on both sides; no partial legacy bundle releases.
-        for original, replacement in replacements.items():
+        report(progress, 'validating_bundle', files_done=0, files_total=len(replacements))
+        for index, (original, replacement) in enumerate(replacements.items()):
+            report(progress, 'validating_bundle', path=original, files_done=index, files_total=len(replacements))
             if original.lower().endswith('.stalker'):
                 left = read_json(Path(original) / 'manifest.json', 1024 * 1024)
                 right = read_json(Path(replacement) / 'manifest.json', 1024 * 1024)
@@ -184,7 +218,8 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
                 left_files, _, _ = scan(original)
                 right_files, _, _ = scan(replacement)
                 require({f['path'] for f in left_files} == {f['path'] for f in right_files}, 'revision_mismatch', 'Stalker bundle membership differs')
-    replacement_checks = prefer_work(catalog, backend, archive_record, entries, replacements, cancel) if source else []
+    replacement_checks = prefer_work(catalog, backend, archive_record, entries, replacements, cancel, progress) if source else []
+    report(progress, 'inspecting_clipper')
     try:
         consumers = clipper.inspect(catalog, replacements)
     except (RuntimeError, OSError, ValueError, KeyError, TypeError) as error:
@@ -229,31 +264,41 @@ def validate_remaining(tree, plan, cancel=None):
             require(content_stamp(tree.stat(path)) == entry['stamp'], 'source_changed', 'Release source changed: ' + path)
 
 
-def relink_release(catalog, backend, plan_id, digest, cancel=None):
+def relink_release(catalog, backend, plan_id, digest, cancel=None, progress=None):
     with catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
         require(plan['state'] in {'review', 'applying'}, 'invalid_state', 'Release already completed')
+        report(progress, 'revalidating_source')
         check_source(backend, plan)
         archive = catalog.volume(plan['archive_id'])
         backend.check(archive)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
-            for entry in plan['entries']:
-                require(checked_hash(target, entry['archive_path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Archive changed before relink')
+            report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
+            for index, entry in enumerate(plan['entries']):
+                require(checked_hash_progress(target, entry['archive_path'], cancel, progress,
+                                              'verifying_archive', index, len(plan['entries']))[0] == entry['sha256'],
+                        'checksum_mismatch', 'Archive changed before relink')
+        report(progress, 'inspecting_clipper')
         consumers = clipper.inspect(catalog, plan['replacements'])
         require(not consumers['blockers'], 'dependencies_blocked', '; '.join(consumers['blockers']))
-        verify_replacements(catalog, backend, plan, cancel)
+        verify_replacements(catalog, backend, plan, cancel, progress)
+        report(progress, 'metadata_backup_before')
         backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
         acks = []
         for request in consumers['relinks']:
+            report(progress, 'relinking', project=request['project'])
             operation_id = str(uuid.uuid5(uuid.UUID(plan_id), request['project'] + ':' + request['asset_id'] + ':' + request['to']))
             acks.append(clipper.relink(catalog, request, operation_id))
+        report(progress, 'revalidating_clipper')
         consumers = clipper.inspect(catalog, plan['replacements'])
         require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Clipper still references released paths')
         catalog.set('release-acks:' + plan_id, acks)
         plan['consumers'] = consumers
         catalog.set('release:' + plan_id, plan)
+        report(progress, 'metadata_backup_after')
         backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
+        report(progress, 'relink_complete')
         return {'acks': acks, 'consumers': consumers}
 
 
@@ -270,26 +315,33 @@ def review_release(catalog, backend, plan_id, digest):
         return plan
 
 
-def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None):
+def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None):
     with catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
         if plan['state'] == 'completed': return plan
+        report(progress, 'revalidating_source')
         check_source(backend, plan)
         archive = catalog.volume(plan['archive_id'])
         backend.check(archive)
         if plan['work_id']: backend.check(catalog.volume(plan['work_id']))
+        report(progress, 'revalidating_clipper')
         consumers = clipper.inspect(catalog, plan['replacements'])
         require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Resolve Clipper references/queues/offline projects before releasing')
-        verify_replacements(catalog, backend, plan, cancel)
+        verify_replacements(catalog, backend, plan, cancel, progress)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
             # All archive copies must verify again before the first deletion.
-            for entry in plan['entries']:
-                require(checked_hash(target, entry['archive_path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Archive changed before release')
+            report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
+            for index, entry in enumerate(plan['entries']):
+                require(checked_hash_progress(target, entry['archive_path'], cancel, progress,
+                                              'verifying_archive', index, len(plan['entries']))[0] == entry['sha256'],
+                        'checksum_mismatch', 'Archive changed before release')
+            report(progress, 'metadata_backup_before')
             backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
             plan['state'] = 'applying'
             catalog.set('release:' + plan_id, plan)
-            for entry in plan['entries']:
+            report(progress, 'releasing_originals', files_done=0, files_total=len(plan['entries']))
+            for index, entry in enumerate(plan['entries']):
                 path = entry['path']
                 if plan['cleaned'].get(path) == 'done': continue
                 require(not (cancel and cancel()), 'cancelled', 'Release paused; review and resume the same plan')
@@ -301,7 +353,8 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None):
                 require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Clipper dependencies changed during release')
                 require(checked_hash(target, entry['archive_path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Archive changed during release')
                 try:
-                    sha, stamp = checked_hash(origin, path, cancel)
+                    sha, stamp = checked_hash_progress(origin, path, cancel, progress,
+                                                       'releasing_originals', index, len(plan['entries']))
                 except FileNotFoundError:
                     require(plan['cleaned'].get(path) == 'intent', 'source_changed', 'Unexpected missing release source')
                 else:
@@ -312,6 +365,8 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None):
                 plan['cleaned'][path] = 'done'
                 catalog.set('release:' + plan_id, plan)
                 if hook: hook('after_unlink', entry)
+                report(progress, 'releasing_originals', path=path, files_done=index + 1,
+                       files_total=len(plan['entries']))
             validate_remaining(origin, plan, cancel)
             # Remove only empty directories through descriptor-relative IO. Ignored Finder metadata stays.
             parents = {str(Path(e['path']).parent) for e in plan['entries']}
@@ -326,6 +381,7 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None):
                         break
                     path = str(Path(path).parent)
         if hook: hook('before_complete', None)
+        report(progress, 'metadata_backup_after')
         plan['state'] = 'completed'
         if plan['work_id']:
             removed = {entry['path'] for entry in plan['entries']}
@@ -342,6 +398,7 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None):
         except (OSError, RuntimeError) as error:
             plan['metadata_backup_error'] = str(error)
         catalog.set('release:' + plan_id, plan)
+        report(progress, 'release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
         return plan
 
 
