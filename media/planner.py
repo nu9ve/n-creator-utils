@@ -173,7 +173,7 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
     for key, members in sorted(groups.items()):
         choices = [assignments[f['path']] for f in members if f['path'] in assignments]
         for choice in choices:
-            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'camera', 'work'}), 'invalid_assignment', 'Invalid assignment fields')
+            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'country', 'camera', 'work'}), 'invalid_assignment', 'Invalid assignment fields')
             require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
@@ -193,6 +193,8 @@ def build_plan(catalog, backend, source, archive, work=None, project='', profile
                 'paths': [f['path'] for f in members], 'bundle': bundle, 'session_id': session['session_id'] if session else None, 'capture_manifest_digest': session['manifest_digest'] if session else None}
         if 'work' in assignment:
             unit['work_selected'] = assignment['work']
+        if 'country' in assignment:
+            unit['country'] = slug(assignment['country'])
         units.append(unit)
         for file in members:
             file['unit_id'] = unit_id

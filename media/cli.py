@@ -42,6 +42,21 @@ def parser():
     listing = commands.add_parser('sources', help='Read-only: a project\'s editable sources in capture order with local paths (editor quick import)')
     listing.add_argument('--project', required=True); listing.add_argument('--purpose', choices=['edit', 'archive'], default='edit')
     commands.add_parser('captures', help='Read-only: completed Stalker sessions in a library and whether each is archived').add_argument('root')
+    libraries = commands.add_parser('capture-libraries', help='Discover the producer registry and previous Stalker libraries')
+    libraries.add_argument('--override', default='')
+    tag = commands.add_parser('tag-capture', help='Save a catalog tag without rewriting a Stalker manifest')
+    tag.add_argument('session_id'); tag.add_argument('project'); tag.add_argument('--country', default='mx')
+    metadata = commands.add_parser('backup-metadata', help='Verified full catalog/profile snapshot on the archive')
+    metadata.add_argument('--archive', required=True)
+    release = commands.add_parser('plan-release', help='Hash and review one raw project folder or completed original Stalker')
+    release.add_argument('--archive', required=True); release.add_argument('--project', required=True)
+    source_choice = release.add_mutually_exclusive_group(required=True)
+    source_choice.add_argument('--source'); source_choice.add_argument('--work')
+    release.add_argument('--path', default='')
+    for name in ('apply-release', 'relink-release'):
+        action = commands.add_parser(name)
+        action.add_argument('plan_id'); action.add_argument('--digest', required=True)
+    commands.add_parser('release-plans')
     audit = commands.add_parser('coverage', help='Read-only: which work-disk files already exist byte-identical on the archive')
     audit.add_argument('--work', required=True); audit.add_argument('--archive', required=True)
     audit.add_argument('--path', help='Only this folder of the work disk'); audit.add_argument('--no-hash', action='store_true', help='Size matches only (fast, probable)')
@@ -90,7 +105,9 @@ def main(argv=None):
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup'}.get(method, method)
+            method = {'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
+                      'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
+                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans'}.get(method, method)
         data = service.call(method, params)
         print(json.dumps({'ok': True, 'command': method, 'data': data}, ensure_ascii=False, indent=2))
         return 0

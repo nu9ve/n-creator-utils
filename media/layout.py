@@ -220,12 +220,13 @@ def build_layout(source, plan, units, files):
         members = sorted(by_unit[unit['id']], key=lambda f: f['path'])
         project = slug(unit['project'])
         work_root = plan.get('profile_routes', {}).get(unit['profile'], slug(unit['profile']) + '_raw') + '/' + project
-        label = '{}-{}'.format(tag(plan['country']), tag(project))
+        country = unit.get('country', plan['country'])
+        label = '{}-{}'.format(tag(country), tag(project))
         if unit['kind'] == 'stalker_session':
             # The bundle folder takes the dated name so sessions interleave with camera clips; its inside stays byte-identical.
             prefix = '' if unit['bundle'] == '.' else unit['bundle'] + '/'
             manifest = json.loads((source / (prefix + 'manifest.json')).read_bytes())
-            name, created = stalker_bundle_name(manifest, min(f['stamp']['mtime_ns'] for f in members), plan['country'], project)
+            name, created = stalker_bundle_name(manifest, min(f['stamp']['mtime_ns'] for f in members), country, project)
             name = claim(created.strftime('%Y/%m') + '/' + name).split('/', 2)[2]
             first_capture = created if first_capture is None or created < first_capture else first_capture
             for file in members:

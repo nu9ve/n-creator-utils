@@ -13,15 +13,16 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 | When | Task |
 | --- | --- |
+| Done 2026-10-26 · fixtures; aceptación real pendiente | Bandeja Stalker actual/anteriores + tags/sugerencias; Espacio con auditoría hash, liberación explícita de raws/originales, Clipper deps/ACK y snapshots completos del catálogo. [Uso/límites](docs/operations.md#bandeja-stalker-proyectos-y-liberar-espacio); evidencia en STATUS. |
 | Done 2026-10-26 | nüün: una ventana con tres modos animados, carga automática, previews sin cards, bandeja, ajustes por áreas y perfiles guardados/rutas congeladas. [Flujo/límites](docs/features/nuun-window.md), evidencia en STATUS. |
 | Done 2026-10-26 | Shared surface palette and NSWindow chrome; light + #FFBB5C defaults, themed cards/fields/buttons, vertical compact importer. Native build/signing and visual validation; no ingest behavior changed. |
 | Done 2026-10-26 | n creator utils identity/icon/native menus, theme + HSV, thumbnail grid, compact importer and explicit none/all/selected editing copies. 93 Python / 7 Swift tests; installed build `1cc34b5f090f`. Remaining: physical reconnect-popup trial, large-card UI/performance/accessibility and release gates. |
 | Done 2026-10-26 | Native “Sólo respaldo” + plan with work omitted/cleanup enabled. Local installer rebuilds both surfaces to one registered app path, preserves prior bundle and rejects running instances. 7 Swift + 3 installer tests passed; installed build `c4820e569776` reviewed in UI at plan stage only. Portable release runtime/updater remain pending. |
 | Done 2026-10-26 | CLI shorthand `save SOURCE COUNTRY PROJECT` and explicit `--no-work` for archive-only media with no deferred work. Six focused fixture tests; EOS_DIGITAL → MEDIA502 preview only, no physical copy/cleanup. [Usage](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). |
 | Done | Sony cycle closed 2026-10-25 (backup → camera format → `confirm-cleanup`). Camera format stays the Sony cleanup; see [sony-validation](docs/sony-validation.md). Next card types: H6, DJI, GoPro. |
-| Next | Stalker session, then Clipper session ([prompts](docs/contracts/next-sessions.md)); each updates its adoption row and «Pendientes para n-creator-utils» in [contracts](docs/contracts/README.md). Then implement those pending items here. |
+| Next | Aceptar con una sesión pequeña el nuevo flujo Stalker → MEDIA/ESSD → reenlace → retiro local. Las adopciones CLI/TUI de Stalker/Clipper ya constan en [contratos](docs/contracts/README.md); quedan leases, proyectos antiguos no adoptados y demás pedidos abiertos. |
 | Operational pending (manual) | Run `media coverage --work ESSD --archive MEDIA502` (read-only, hours). Review its report before any deletion. |
-| After coverage review | (3) Archive what is only on ESSD to MEDIA via verified jobs. (4) «Liberar trabajo» per project: delete ESSD copies only when verified on MEDIA. (5) Periodic MEDIA rehash + catalog export to MEDIA. Policy: [backup/work](docs/features/replication-policy.md). |
+| After coverage review | Usar los planes implementados para archivar raws que sólo estén en ESSD y liberar por proyecto, revisando dependencias. Auditoría/liberación real aún no ejecutadas; backups de proyectos editoriales, rehash periódico y retención de snapshots siguen pendientes. Policy: [backup/work](docs/features/replication-policy.md). |
 | First new card | Measure the parallel copy speed against the 829 s / 6.35 GB baseline. |
 
 ## P0 · close the current implementation
@@ -45,7 +46,7 @@ Do not start by polishing more panels or testing full personal cards. Local fixt
 | Stalker operational closeout | Real recording/finalizing/recovery/multi-session events, event loss/remount and CPU/IO contention validated; producer finalization/revision agreement documented. |
 | Work delivery and restoration UX | Pending/skipped/ready clear by project/selection, preview before large jobs, offline requests retained, order preserved. |
 | Clipper handoff/relink adoption | Consumer accepts the library contract and ACKs complete session/voice/tracks/queue updates. No direct JSON edits here. Coordinated in Clipper's repo. |
-| Work release and single-archive safeguards | Per [policy](docs/features/replication-policy.md) (MEDIA = backup, ESSD = work, decided 2026-10-25): coverage audit, archive ESSD-only material, explicit per-project release, MEDIA rehash and catalog export. A second replica stays a future option. |
+| Work release and single-archive safeguards | Auditoría con hash, planes de liberación de raws y snapshots SQLite implementados (fixtures); aceptar en hardware y mantener revisión humana para consumidores no registrados. Falta backup de proyectos editoriales, retención y rehash periódico. [Policy](docs/features/replication-policy.md). |
 | Stalker/Clipper naming adoption | Stalker names sessions per [naming v1](docs/contracts/media-naming-v1.md) at finalization; Clipper library picker keeps capture order and resolves bundles by manifest/IDs. Coordinated in their repos. |
 | Deliveries and published archive | Bundle chosen variants/thumbnails/copy; explicit per-channel publication; `subidos` convention only a configurable suggestion. Idempotent verified archive into final collections. |
 

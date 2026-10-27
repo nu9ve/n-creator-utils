@@ -1,5 +1,6 @@
 """Single-request JSON boundary shared by native UI and CLI."""
 from pathlib import Path
+import uuid
 
 from .catalog import Catalog
 from .common import require, relative
@@ -26,6 +27,34 @@ class Service:
         if method == 'captures':
             from .captures import captures
             return captures(self.catalog, **params)
+        if method == 'capture_libraries':
+            from .captures import capture_libraries
+            return capture_libraries(self.catalog, params.get('override') or self.catalog.get('capture-override', ''))
+        if method == 'save_capture_tag':
+            from .captures import save_capture_tag
+            return save_capture_tag(self.catalog, **params)
+        if method == 'integration_settings':
+            if params:
+                require(not set(params) - {'clipper_executable', 'capture_override'} and all(isinstance(v, str) for v in params.values()), 'invalid_settings', 'Invalid integration settings')
+                with self.catalog.writer():
+                    for key, value in params.items(): self.catalog.set(key.replace('_', '-'), value)
+            return {key: self.catalog.get(key.replace('_', '-'), '') for key in ('clipper_executable', 'capture_override')}
+        if method == 'backup_metadata':
+            from .metadata_backup import backup_metadata
+            return backup_metadata(self.catalog, self.backend, params['archive'], self.cancel)
+        if method == 'plan_release':
+            from .release import plan_release
+            return plan_release(self.catalog, self.backend, cancel=self.cancel, **params)
+        if method in {'apply_release', 'relink_release'}:
+            from .release import apply_release, relink_release
+            action = apply_release if method == 'apply_release' else relink_release
+            return action(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel)
+        if method == 'release_plans':
+            from .release import release_plans
+            return release_plans(self.catalog)
+        if method == 'review_release':
+            from .release import review_release
+            return review_release(self.catalog, self.backend, params['plan_id'], params['digest'])
         if method == 'profiles':
             from .workspaces import profiles
             return profiles(self.catalog)
@@ -49,10 +78,13 @@ class Service:
                 bundle = members[0]['bundle']
                 metadata = {}
                 if bundle is not None:
+                    from .captures import project_hint
                     manifest = read_json(Path(params['source']) / ('' if bundle == '.' else bundle) / 'manifest.json', 1024 * 1024)
                     facts = stalker_facts(manifest, min(f['stamp']['mtime_ns'] for f in members))
                     metadata = {'session_id': manifest['sessionID'], 'created_at': facts['created'].isoformat(),
-                                'duration_seconds': facts.get('seconds'), 'track_count': len(manifest.get('tracks', []))}
+                                'duration_seconds': facts.get('seconds'), 'track_count': len(manifest.get('tracks', [])),
+                                'project_hint': project_hint(manifest),
+                                'tag': self.catalog.get('capture-tag:' + str(uuid.UUID(manifest['sessionID'])), {})}
                 units.append({'id': key, 'paths': [f['path'] for f in members],
                               'bytes': sum(f['stamp']['size'] for f in members), 'evidence': evidence,
                               'category': 'stalker' if bundle is not None else next((k for k in kinds if k in {'video', 'image', 'raw_image', 'audio'}), 'support'),
@@ -62,7 +94,14 @@ class Service:
         if method == 'plan':
             return build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
         if method == 'apply':
-            return Transfer(self.catalog, self.backend, self.cancel).apply(params['plan'], params['digest'])
+            result = Transfer(self.catalog, self.backend, self.cancel).apply(params['plan'], params['digest'])
+            # A metadata-backup failure must not hide a successfully completed ingest.
+            try:
+                from .metadata_backup import backup_metadata
+                result['metadata_backup'] = backup_metadata(self.catalog, self.backend, params['plan']['archive_id'], self.cancel)
+            except (OSError, RuntimeError) as error:
+                result['metadata_backup_error'] = str(error)
+            return result
         if method == 'recover_catalog':
             from .recovery import recover_catalog
             return recover_catalog(self.catalog, self.backend, params['volume'])
