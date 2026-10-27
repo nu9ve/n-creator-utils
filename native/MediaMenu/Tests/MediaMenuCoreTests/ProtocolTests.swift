@@ -7,6 +7,21 @@ import Testing
     #expect(!ProtocolBoundary.shouldOfferCard(destinationsOnline: true, sourceIsDestination: true, removableExternal: true))
     #expect(ProtocolBoundary.shouldOfferCard(destinationsOnline: true, sourceIsDestination: false, removableExternal: true))
 }
+@Test func archiveOnlyNeverRequiresConnectedWorkOrCreatesPending() {
+    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: true, deferWork: true, work: "ESSD")
+    #expect(params["archive_only"] == .bool(true))
+    #expect(params["confirm_archive_only"] == .bool(true))
+    #expect(params["work_decision"] == .string("skipped"))
+    #expect(params["work"] == nil)
+}
+@Test func unavailableWorkCanRemainPendingAfterConfirmation() {
+    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: false, deferWork: true, work: "ESSD")
+    #expect(params["work_decision"] == .string("pending"))
+    #expect(params["work"] == .string("ESSD"))
+    let normal = IngestPolicy.parameters(archiveOnly: false, skipWork: false, deferWork: true, work: "ESSD")
+    #expect(normal["archive_only"] == .bool(false))
+    #expect(normal["work"] == .string("ESSD"))
+}
 @Test func jsonBoundaryPreservesReviewedPlan() throws {
     let raw = Data(#"{"ok":true,"data":{"digest":"abc","cleanup":true,"paths":["a b.mov"]}}"#.utf8)
     let result = try ProtocolBoundary.response(raw)

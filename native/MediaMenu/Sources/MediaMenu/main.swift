@@ -43,6 +43,8 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var script = ""
     @Published var archiveOnlyPrompt = false
     @Published var deferWork = true
+    @Published var noWork = false
+    @Published var packagedBackend = false
     var client: BackendClient?
     var openWindow: (() -> Void)?
     var statusChanged: (() -> Void)?
@@ -53,14 +55,16 @@ struct DraftUnit: Identifiable, Equatable {
         let prefs = UserDefaults.standard
         if let configURL = Bundle.main.url(forResource: "backend-config", withExtension: "json"),
            let data = try? Data(contentsOf: configURL), let config = try? JSONDecoder().decode(BackendConfiguration.self, from: data) {
-            python = config.python; script = config.script
+            python = config.python
+            script = config.script.hasPrefix("/") ? config.script : Bundle.main.resourceURL!.appendingPathComponent(config.script).path
+            packagedBackend = true
         }
         if let resources = Bundle.main.resourceURL {
             let bundledPython = resources.appendingPathComponent("backend/runtime/bin/python3").path
             let bundledScript = resources.appendingPathComponent("backend/source/nu9ve.py").path
             if FileManager.default.isExecutableFile(atPath: bundledPython) { python = bundledPython; script = bundledScript; bundledRuntime = true }
         }
-        if !bundledRuntime {
+        if !bundledRuntime && !packagedBackend {
             python = prefs.string(forKey: "python") ?? python
             script = prefs.string(forKey: "script") ?? script
         }
@@ -158,6 +162,7 @@ struct DraftUnit: Identifiable, Equatable {
     }
     func requestPlan() {
         if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
+        if noWork { archiveOnlyPrompt = true; return }
         let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
         if !onlineWork { archiveOnlyPrompt = true }
         else { makePlan(archiveOnly: false) }
@@ -175,9 +180,8 @@ struct DraftUnit: Identifiable, Equatable {
             var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),
                 "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
                 "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
-                "archive_only": .bool(archiveOnly), "confirm_archive_only": .bool(archiveOnly),
-                "work_decision": .string(self.sourceKind == "delivery" ? "skipped" : (self.deferWork ? "pending" : "skipped")), "assignments": .object(assignments)]
-            if !self.work.isEmpty { params["work"] = .string(self.work) }
+                "assignments": .object(assignments)]
+            params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork || self.sourceKind == "delivery", deferWork: self.deferWork, work: self.work)) { _, new in new }
             self.plan = try await self.client!.call("plan", params)
             self.message = "Plan listo para revisar; no se ha copiado ni borrado media"
         }
@@ -344,10 +348,10 @@ struct MainView: View {
                 settings.tabItem { Label("Discos y ajustes", systemImage: "externaldrive") }.tag(3)
             }
         }.padding().frame(minWidth: 880, minHeight: 620)
-        .alert("Respaldar sin disco de trabajo", isPresented: $model.archiveOnlyPrompt) {
+        .alert("Confirmar sólo respaldo", isPresented: $model.archiveOnlyPrompt) {
             Button("Cancelar", role: .cancel) {}
             Button("Confirmar sólo MEDIA") { model.makePlan(archiveOnly: true) }
-        } message: { Text("Se verificará el archivo en MEDIA. El SSD no recibirá una copia ahora. La decisión pendiente/omitido elegida abajo quedará registrada y la SD podrá limpiarse tras verificar el archivo.") }
+        } message: { Text(model.noWork ? "Se copiará y verificará en el disco de archivo elegido. No se creará copia de trabajo ni entrega pendiente. Si activaste limpiar SD, sus archivos se borrarán después de verificar el respaldo." : "Se verificará el respaldo en el disco de archivo elegido. El SSD no recibirá una copia ahora. La decisión pendiente/omitido quedará registrada y la SD podrá limpiarse tras verificar.") }
         .onChange(of: model.source) { _, _ in model.plan = nil }
         .onChange(of: model.project) { _, _ in model.plan = nil }
         .onChange(of: model.profile) { _, _ in model.plan = nil }
@@ -356,6 +360,7 @@ struct MainView: View {
         .onChange(of: model.archive) { _, _ in model.plan = nil }
         .onChange(of: model.work) { _, _ in model.plan = nil }
         .onChange(of: model.cleanup) { _, _ in model.plan = nil }
+        .onChange(of: model.noWork) { _, _ in model.plan = nil }
         .onChange(of: model.units) { _, _ in model.plan = nil }
     }
     var ingest: some View {
@@ -370,12 +375,14 @@ struct MainView: View {
                 TextField("Perfil", text: $model.profile); TextField("País", text: $model.country); TextField("Ciudad", text: $model.city) }
             HStack {
                 volumePicker("Archivo", role: "archive", selection: $model.archive)
-                volumePicker("Trabajo", role: "work", selection: $model.work)
+                if !model.noWork { volumePicker("Trabajo", role: "work", selection: $model.work) }
             }
+            Toggle("Sólo respaldo · sin copia de trabajo ni pendientes", isOn: $model.noWork)
+            if model.noWork { Text("Se usará únicamente el disco de archivo seleccionado, aunque el SSD esté conectado.").foregroundStyle(.secondary) }
             HStack {
                 Picker("Fuente", selection: $model.sourceKind) { Text("SD/cámara").tag("card"); Text("Stalker").tag("stalker"); Text("Entrega final").tag("delivery") }
                 Toggle("Limpiar SD tras verificar", isOn: $model.cleanup).disabled(model.sourceKind != "card")
-                Toggle("Trabajo pendiente si falta SSD", isOn: $model.deferWork)
+                if !model.noWork { Toggle("Trabajo pendiente si falta SSD", isOn: $model.deferWork) }
             }
             Text("Asigna proyecto/perfil por unidad. Los pares y bundles se mantienen juntos.").foregroundStyle(.secondary)
             List {
@@ -390,6 +397,8 @@ struct MainView: View {
             }
             if let plan = model.plan {
                 Text("\(plan["files"].array.count) archivos · \(plan["units"].array.count) unidades · \(plan["work_id"] == .null ? "sólo archivo confirmado" : "archivo + trabajo")")
+                Text(model.workLabel(plan["work_delivery_status"].string))
+                Text("Tamaño: " + ByteCountFormatter.string(fromByteCount: Int64(plan["files"].array.reduce(0.0) { $0 + $1["stamp"]["size"].double }), countStyle: .file))
                 Text(!plan["cleanup"].bool ? "El origen se conservará." : plan["cleanup_profile"].string == "sony_clips_then_format" ? "Tras verificar se borran los clips de la SD; después formatéala en la cámara." : plan["cleanup_profile"].string == "camera_action_required" ? "Limpieza pendiente en cámara tras verificar." : "La SD se limpiará después de verificar.")
                 DisclosureGroup("Ver rutas y clasificación del plan") {
                     ScrollView {
@@ -453,9 +462,10 @@ struct MainView: View {
             Text("Runtime").font(.headline)
             TextField("Carpeta Stalker a observar", text: $model.captureRoot)
             Button("Observar capturas terminadas") { model.watchCaptures() }
-            TextField("Python ejecutable", text: $model.python).disabled(model.bundledRuntime)
-            TextField("nu9ve.py", text: $model.script).disabled(model.bundledRuntime)
-            Button("Aplicar runtime") { model.configure() }.disabled(model.bundledRuntime)
+            Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).font(.caption).textSelection(.enabled)
+            TextField("Python ejecutable", text: $model.python).disabled(model.bundledRuntime || model.packagedBackend)
+            TextField("nu9ve.py", text: $model.script).disabled(model.bundledRuntime || model.packagedBackend)
+            if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }
             Text(model.bundledRuntime ? "Runtime incluido en la app." : "Desarrollo: runtime externo explícito. Distribución: empaquetar runtime, firmar y notarizar antes de release.").foregroundStyle(.secondary)
         }.padding(.top).disabled(model.busy)
     }
@@ -490,8 +500,13 @@ struct MainView: View {
             })
         }
         if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().delegate = self }
-        if CommandLine.arguments.contains("--show") { show() }
-        // Normal startup has no popup or recurring idle timer. Initial catalog read only.
+        if !CommandLine.arguments.contains("--background") { show() }
+        model.mountChanged()
+        // Mounts never open windows; explicit launcher opens do. No recurring idle timer.
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        show()
+        return true
     }
     @objc func show() {
         if window == nil {

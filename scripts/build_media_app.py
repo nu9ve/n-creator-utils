@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Build a reviewable .app. Distribution requires a supplied relocatable runtime."""
 import argparse
+import datetime
+import hashlib
 import json
 from pathlib import Path
 import plistlib
@@ -51,11 +53,20 @@ def main():
     else:
         python = Path(args.python).expanduser().absolute()
         subprocess.run([str(python), '-S', '-c', 'import sqlite3, hashlib, json'], check=True)
-        (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': str(source / 'nu9ve.py')}))
+        # Relative to Resources: installation must not retain the build directory path.
+        (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': 'backend/source/nu9ve.py'}))
+    fingerprint = hashlib.sha256()
+    inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py']]
+    for folder in ['media', 'manager', 'native/MediaMenu/Sources']:
+        inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift'})
+    for path in sorted(inputs):
+        fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
+    build_id = fingerprint.hexdigest()[:12]
     info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'Nu9ve Media', 'CFBundleDisplayName': 'Nu9ve Media',
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
             'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'LSUIElement': True,
-            'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.'}
+            'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
+            'Nu9veBuildID': build_id, 'Nu9veBuildDate': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
     identity = args.identity or '-'
     if args.runtime:
