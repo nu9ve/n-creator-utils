@@ -19,6 +19,15 @@ class Service:
     def call(self, method, params=None):
         params = params or {}
         require(isinstance(params, dict), 'invalid_request', 'params must be an object')
+        if method == 'retitle_capture':
+            from .retitle import retitle
+            return retitle(self.catalog, **params)
+        if method == 'cancel_plan':
+            from .retitle import cancel_plan
+            return cancel_plan(self.catalog, params['plan_id'])
+        if method == 'retitle_operations':
+            from .retitle import records
+            return records(self.catalog, 'retitle:')
         if method == 'source_cards':
             from .volumes import source_cards
             return source_cards(self.catalog, self.backend)
@@ -44,14 +53,14 @@ class Service:
             return save_capture_tag(self.catalog, **params)
         if method == 'integration_settings':
             if params:
-                allowed = {'clipper_executable', 'capture_override', 'retain_stalker_source'}
+                allowed = {'clipper_executable', 'stalker_executable', 'capture_override', 'retain_stalker_source'}
                 require(not set(params) - allowed
                         and all(isinstance(v, str) for key, v in params.items() if key != 'retain_stalker_source')
                         and ('retain_stalker_source' not in params or isinstance(params['retain_stalker_source'], bool)),
                         'invalid_settings', 'Invalid integration settings')
                 with self.catalog.writer():
                     for key, value in params.items(): self.catalog.set(key.replace('_', '-'), value)
-            return {**{key: self.catalog.get(key.replace('_', '-'), '') for key in ('clipper_executable', 'capture_override')},
+            return {**{key: self.catalog.get(key.replace('_', '-'), '') for key in ('clipper_executable', 'stalker_executable', 'capture_override')},
                     'retain_stalker_source': self.catalog.get('retain-stalker-source', False)}
         if method == 'backup_metadata':
             from .metadata_backup import backup_metadata

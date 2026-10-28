@@ -264,6 +264,10 @@ class Transfer:
         validate_plan(plan)
         require(expected_digest == plan['digest'], 'plan_changed', 'Apply requires the reviewed plan digest')
         with self.catalog.writer():
+            from .retitle import check_plan
+            check_plan(self.catalog, plan)
+            reviewed = self.catalog.get('reviewed-plan:' + plan['id'])
+            require(not reviewed or not reviewed.get('cancelled'), 'plan_cancelled', 'Review a new plan before applying')
             existing = self.catalog.db.execute('SELECT digest,state FROM jobs WHERE id=?', (plan['id'],)).fetchone()
             require(existing is None or existing['digest'] == expected_digest, 'job_conflict', 'Job ID reused with another plan')
             if existing and existing['state'] in {'completed', 'camera_action_required', 'source_retained', 'source_has_new_material'}:

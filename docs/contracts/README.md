@@ -2,6 +2,20 @@
 
 Actualización 2026-10-27: hay productor de handoff, recibos, servicio JSON y MCP read-only en este repo. El contrato entre apps sigue **en revisión**; Stalker y Clipper (CLI/TUI) ya lo adoptaron con los límites de su fila. Estado completo: [STATUS](../STATUS.md). Propuesta inicial: 2026-10-24. Este directorio es el índice central de almacenamiento e intercambio entre n-creator-utils, Stalker y Clipper; Atlas participa como consumidor adicional. No declara adopción de cambios en los otros repos.
 
+## Cierre productor · 2026-10-28
+
+Nüün implementa metadata aditiva de reloj/procedencia, editable_members/media_bytes,
+manifest_sha256, revisiones explícitas y mapping opaco clipper_profile. Handoff,
+schema y ejemplo generado describen miembros por volumen/recibo. Detalle vigente:
+[productor](media-library-v1.md#productor-aditivo-de-biblioteca--28-octubre-2026).
+El coordinador de retitle ya existe; **Stalker debe adoptar la capability antes
+de usarlo**. `archived:false` solo ya no autoriza cambiar completed.
+[APIs, schema, fixtures, errores y aceptación para Stalker](stalker-retitle-v1.md).
+Clipper mantiene su adopción anterior; campos nuevos/portable handoff aún no
+adoptados aquí. Evidencia de esta implementación en [STATUS](../STATUS.md).
+Las filas históricas de pendientes abajo conservan origen/fecha; esta sección
+sustituye el estado pendiente de reloj, miembros, manifest y mapping.
+
 ## Autoridad y compatibilidad
 
 | Contrato | Autoridad | Estado |
@@ -29,7 +43,7 @@ Cada sesión de Stalker o Clipper actualiza **su fila** al terminar, con fecha y
 
 | App | Contrato / sección | Estado | Fecha · commit | Notas y límites |
 | --- | --- | --- | --- | --- |
-| n-creator-utils | Productor: naming v1, handoff v1, interfaz local; consumidor de biblioteca Stalker y Clipper deps/ACK | Implementado en fixtures; aceptación cruzada real pendiente | 2026-10-26 | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Sin lease; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
+| n-creator-utils | Productor naming/handoff/sources aditivos y retitle coordinado; Clipper deps/ACK/media-release-lock/1 | Implementado en fixtures; capability Stalker y adopción de campos nuevos pendientes | 2026-10-28 · working tree sobre `3360d1d` | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Exclusión host-local; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
 | Stalker | naming v1 «Adopción: Stalker», estado de archivo, `stalker-clipper/1` rev. 1.2 | Implementado (0.4.0, sin validar con grabación real) | 2026-10-25 · `d88eaf9` (main, sin push) | Biblioteca `~/Movies/Stalker` publicada en `library.json` (con `recentSession`); `manifest.project` opcional, escrito antes, durante o después de grabar; con proyecto renombra a `…_STALKER_MM-SS_PAIS-PROYECTO[].stalker` antes de `completed` (durable y atómica); después sólo mientras `captures` diga `archived: false`; «Liberar» vía `captures` (app y `stalker-session archived --trash`). Límites: las 3 sesiones de `debloateando mi tele` en `~/Downloads` se movieron a la Papelera tras confirmar `archived: true`; las 2 no archivadas siguen ahí; sesiones `interrupted`/`failed` conservan `Stalker_fecha`; 63 pruebas automatizadas, la de `archived: true` usa respuesta simulada (la real sólo cubre `archived: false`). Decisiones en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25). |
 | Clipper | naming v1, interfaz local projects/sources, Stalker 1.3, deps/ACK y media-release-lock/1 | Implementado CLI/TUI; validación cruzada con fixtures, aceptación física pendiente | 2026-10-28 · working tree sobre `3a156f5` | Preparación compartida CLI/TUI (`library prepare`, auto/multicam/tutorial/screen), lector único de eventos, PID/origen civil y PCM/ALAC. Relink en una mutación con revisión, pins de snapshots reintentables y bundles. Capability de exclusión host-local adoptada por nüün; ambos procesos deben reiniciarse/actualizarse. 146 pruebas dirigidas de Clipper y 44 de liberación de nüün; puente CLI real con catálogo/JSON aislados. Sin consumo de handoff v1 ni UI Studio. [Entrega](../../../../ai/clipper/docs/2026-10-28-contract-hardening.md). |
 | Atlas | library v1 como consumidor | Sin iniciar | — | — |
@@ -48,6 +62,7 @@ python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media <comando>   # o `
 | `projects` | Selector de proyectos | `[{project, project_id, profile, assets, updated_at}]`, más reciente primero. |
 | `sources --project P [--purpose edit\|archive]` | Quick import de un proyecto | `sources[]` en orden de captura: `order, asset_id, revision, kind (file\|camera_bundle\|stalker_session), session_id, path` (absoluto: archivo o carpeta `.stalker`), `name, volume, role, online, bytes, sha256` (de archivos), `captured_at` (hora local de inicio, sin zona) y `duration_seconds` (leídos del nombre fechado; `null` si no lo es), `alternatives[]` y `missing[]`. Aparte vienen `offline[]`, `removed_from_work[]` (borradas a mano de trabajo; apuntan al archivo) y `warnings[]` (`archive_copy_missing`). Prefiere la copia de trabajo en línea y comprueba presencia y tamaño, sin hashear. |
 | `captures ROOT` | Estado de archivo de una biblioteca Stalker | `sessions[{path, session_id, status, archived}]`, `pending[]`. |
+| `retitle-capture …`, `retitle-operations`, `cancel-plan ID` | Coordinación explícita; no son lectura/import automático | [API y capability requerida](stalker-retitle-v1.md). |
 | `handoff ASSET…` | Intercambio portable `creator-media-handoff/1` | Ver [media-library-v1](media-library-v1.md). |
 | `resolve ASSET` | Ubicaciones de un asset | Lento (identidad de cada volumen); preferir `sources`. |
 
@@ -105,6 +120,7 @@ El límite histórico «nüün no lee ACK» de la adopción del 25 queda sustitu
 por la implementación de `media/clipper.py`. La exclusión actual es
 `media-release-lock/1` por usuario/host, no un lease distribuido ni adopción por
 Final Cut. [Protocolo](media-library-v1.md#exclusión-local-de-liberación--28-octubre-2026),
-[evidencia actual](../STATUS.md). Quedan abiertos zona de cámaras, miembros/
-media_bytes, hash/revisión explícita de manifest, mapping de perfiles,
-handoff consumidor y coordinación de retitle del productor.
+[evidencia actual](../STATUS.md). Productor de zona/evidencia, miembros/media_bytes, hash/revisión de manifest,
+mapping y coordinador de retitle implementados posteriormente en este working
+tree; ver cierre productor al inicio. Quedan adopción del productor Stalker,
+campos nuevos en Clipper, handoff consumidor y aceptación física.

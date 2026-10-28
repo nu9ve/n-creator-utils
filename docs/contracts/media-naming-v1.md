@@ -2,6 +2,18 @@
 
 Estado: implementado en el productor (`media/layout.py`, planes esquema 2) el 2026-10-25 y usado en el primer respaldo real (`debloateando-mi-tele`). **Stalker lo adoptó en 0.4.0** (2026-10-25, `d88eaf9`, ver [adopción](#adopción-stalker-implementada-2026-10-25)). **Clipper lo adoptó en CLI/TUI** el 2026-10-25 (ver [adopción](#adopción-clipper-implementada-2026-10-25)). Índice: [contratos](README.md).
 
+## Regla vigente de retitle · 2026-10-28
+
+El permiso histórico «completed + archived:false» queda sustituido por
+[retitle coordinado](stalker-retitle-v1.md). Nüün conserva exclusión de catálogo
++ Clipper durante comprobación y mutación; Stalker sigue siendo único escritor
+y necesita `stalker-coordinated-retitle/1`. Sin capability, se bloquea. Los tags
+asignados desde nüün no renombran por sí solos la captura original. El naming
+legacy conserva su fallback civil; la evidencia absoluta y zona se publican
+por separado en [capture_time](media-library-v1.md#reloj-y-procedencia), sin
+atribuir la zona del Mac a cámaras desconocidas. Este cambio no renombra media
+existente ni habilita una operación sobre sesiones archivadas.
+
 ## Por qué
 
 Una carpeta de proyecto debe poder recorrerse con flecha abajo y ver todo lo grabado en orden: clips de cámara y sesiones de pantalla intercalados por hora de inicio. Los nombres son para humanos y orden; **la identidad nunca es el nombre** (ver abajo).

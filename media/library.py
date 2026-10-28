@@ -92,62 +92,75 @@ def resolve(catalog, backend, asset_id):
     return {'asset': asset, 'locations': locations}
 
 
+def clipper_profile(catalog, profile):
+    return catalog.get('creative-profiles', {}).get(profile, {}).get('clipper_profile')
+
+
+def receipt_metadata(catalog, asset, copies):
+    """Use stored receipts only. Old catalogs deliberately report unknown civil time."""
+    from .evidence import capture_time
+    rows = {r['path']: r for group in copies.values() for r in group.values()}
+    prefix = '' if asset.get('bundle') in {None, '.'} else asset['bundle'] + '/'
+    editable = [p for p in asset['paths'] if kind_of(p) in MEDIA_KINDS]
+    members = [{'path': p, 'bytes': rows[p]['bytes'], 'sha256': rows[p]['sha256']} for p in sorted(editable) if p in rows]
+    return {'content_revision': str(uuid.uuid5(uuid.NAMESPACE_URL, asset['revision'])),
+            'manifest_sha256': rows.get(prefix + 'manifest.json', {}).get('sha256') if asset['kind'] == 'stalker_session' else None,
+            'media_bytes': sum(m['bytes'] for m in members), 'editable_members': members,
+            'capture_time': asset.get('capture_time') or capture_time(),
+            'clipper_profile': clipper_profile(catalog, asset['profile'])}
+
+
 def handoff(catalog, backend, asset_ids):
     require(asset_ids and len(set(asset_ids)) == len(asset_ids), 'invalid_selection', 'Select distinct assets')
     assets = [asset_record(catalog, value) for value in asset_ids]
     require(len({(a['project_id'], a['profile']) for a in assets}) == 1, 'mixed_project', 'Handoff must be one project/profile')
-    project, profile = assets[0]['project'], assets[0]['profile']
     result = {'schema': 'creator-media-handoff/1', 'handoff_id': uid(), 'created_at': now(),
-              'project_id': assets[0]['project_id'], 'profile_id': profile, 'assets': []}
+              'project_id': assets[0]['project_id'], 'profile_id': assets[0]['profile'],
+              'clipper_profile': clipper_profile(catalog, assets[0]['profile']), 'assets': []}
     for order, asset in enumerate(assets):
         plan = catalog.job(asset['job_id'])['plan']
-        locations, member_list = [], None
+        locations, groups = [], {}
         for record in catalog.volumes():
-            rows = [json.loads(row[0]) for row in catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (plan['id'], record['id']))]
+            rows = [json.loads(r[0]) for r in catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (plan['id'], record['id']))]
             copies = {r['path']: r for r in rows if r['path'] in asset['paths']}
-            if 'layout' in plan:
-                # Named layouts: each role holds its own subset (no Sony XML on work); hand off editable media only.
-                expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p, selected_only=False)}
-                if not expected or set(copies) != expected:
-                    continue
-                if asset['kind'] == 'stalker_session':
-                    prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
-                    sample = next(iter(copies.values()))
-                    location_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
-                    members = [{'relative_path': row['destination'][len(location_path) + 1:], 'bytes': row['bytes'], 'sha256': row['sha256']}
-                               for _, row in sorted(copies.items())]
-                else:
-                    media = [row for _, row in sorted(copies.items()) if kind_of(row['path']) in MEDIA_KINDS] or [row for _, row in sorted(copies.items())]
-                    location_path = media[0]['destination']
-                    members = [{'relative_path': Path(row['destination']).name, 'bytes': row['bytes'], 'sha256': row['sha256']} for row in media]
-                    sample = media[0]
-            elif set(copies) != set(asset['paths']):
+            groups[record['id']] = copies
+            expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p, selected_only=False)}
+            if not expected or set(copies) != expected:
                 continue
-            elif asset['kind'] == 'file':
-                sample = next(iter(copies.values()))
+            selected = [r for p, r in sorted(copies.items()) if asset['kind'] == 'stalker_session' or kind_of(p) in MEDIA_KINDS]
+            if not selected:
+                selected = [r for _, r in sorted(copies.items())]
+            sample = selected[0]
+            if asset['kind'] == 'stalker_session':
+                prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
+                location_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
+                member_path = lambda r: r['destination'][len(location_path) + 1:]
+                path_kind = 'directory'
+            else:
+                # File locations identify the primary file; each member also carries a volume-relative path.
                 location_path = sample['destination']
-                members = [{'relative_path': Path(location_path).name, 'bytes': sample['bytes'], 'sha256': sample['sha256']}]
-            else:
-                # Schema-1 unit-exclusive container; bundle root is preserved beneath it.
-                sample = next(iter(copies.values()))
-                marker = '/' + asset['id'] + '/'
-                base = sample['destination'].split(marker)[0] + marker + plan['source_name']
-                if asset['bundle'] not in {None, '.'}:
-                    base += '/' + asset['bundle']
-                location_path = base
-                members = [{'relative_path': row['destination'][len(base) + 1:], 'bytes': row['bytes'], 'sha256': row['sha256']}
-                           for _, row in sorted(copies.items())]
-            if member_list is None:
-                member_list = members
-            else:
-                require(member_list == members, 'revision_mismatch', 'Replica membership differs')
-            locations.append({'volume_id': record['id'], 'relative_path': location_path, 'role': record['role'],
+                member_path = lambda r: Path(r['destination']).name
+                path_kind = 'file'
+            members = [{'relative_path': member_path(r), 'original_path': r['path'], 'bytes': r['bytes'],
+                        'sha256': r['sha256'], 'volume_relative_path': r['destination']} for r in selected]
+            locations.append({'volume_id': record['id'], 'relative_path': location_path, 'path_kind': path_kind,
+                              'role': record['role'], 'members': members,
                               'receipt_id': sample.get('receipt_id') or str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id']))})
         require(locations, 'missing_receipt', 'No complete verified location')
-        item = {'asset_id': asset['id'], 'content_revision': str(uuid.uuid5(uuid.NAMESPACE_URL, asset['revision'])),
-                'kind': asset['kind'], 'order': order, 'members': member_list, 'locations': locations}
-        if asset['session_id']:
-            item['capture_session_id'] = asset['session_id']
+        # Replicas may have different names, but a shared original member must have identical bytes/hash.
+        seen = {}
+        for location in locations:
+            for member in location['members']:
+                identity = (member['bytes'], member['sha256'])
+                require(member['original_path'] not in seen or seen[member['original_path']] == identity,
+                        'revision_mismatch', 'Replica content differs')
+                seen[member['original_path']] = identity
+        item = {'asset_id': asset['id'], 'revision': asset['revision'], 'kind': asset['kind'], 'order': order,
+                'members': locations[0]['members'], 'locations': locations,
+                'bytes': sum(f['stamp']['size'] for f in plan['files'] if f['path'] in asset['paths']),
+                **receipt_metadata(catalog, asset, groups)}
+        if asset.get('session_id'):
+            item['capture_session_id'] = str(uuid.UUID(asset['session_id']))
         result['assets'].append(item)
     return result
 
@@ -305,7 +318,7 @@ def sources(catalog, backend, project, purpose='edit'):
                 relative_path = sample['destination'][:-len(sample['path'][len(prefix):]) - 1]
             else:
                 relative_path = sample['destination']
-            location = {'volume': volume['name'], 'role': volume['role'], 'online': volume['online'], 'path': str(Path(volume['root']) / relative_path)}
+            location = {'volume_id': volume_id, 'receipt_id': sample.get('receipt_id') or str(uuid.uuid5(uuid.NAMESPACE_URL, asset['job_id'] + ':' + volume_id)), 'volume': volume['name'], 'role': volume['role'], 'online': volume['online'], 'path': str(Path(volume['root']) / relative_path)}
             if volume['online'] and not all(present(volume['root'], row) for row in rows.values()):
                 # Deleted or edited by hand (e.g. an unusable clip removed in Finder): report it, never fail or resurrect it.
                 missing.append(location)
@@ -321,8 +334,12 @@ def sources(catalog, backend, project, purpose='edit'):
                  # Wall-clock capture start (seconds precision, no zone) and rounded duration, for time-based grouping.
                  **(parse_name(name) or {'captured_at': None, 'duration_seconds': None}),
                  'alternatives': [c[2] for c in candidates[1:]], 'missing': missing}
+        entry.update(receipt_metadata(catalog, asset, copies))
         if candidates:
-            entry.update({k: candidates[0][2][k] for k in ('path', 'volume', 'role', 'online')})
+            selected_rows = copies[candidates[0][2]['volume_id']]
+            entry['editable_members'] = [dict(m, local_path=str(Path(volumes[candidates[0][2]['volume_id']]['root']) / selected_rows[m['path']]['destination']))
+                                         for m in entry['editable_members'] if m['path'] in selected_rows]
+            entry.update({k: candidates[0][2][k] for k in ('path', 'volume', 'volume_id', 'receipt_id', 'role', 'online')})
         if any(m['role'] == 'archive' for m in missing):
             warnings.append({'asset_id': asset['id'], 'name': name, 'problem': 'archive_copy_missing', 'locations': missing})
         if purpose == 'edit' and any(m['role'] == 'work' for m in missing):
@@ -338,7 +355,7 @@ def sources(catalog, backend, project, purpose='edit'):
     for order, entry in enumerate(result):
         entry['order'] = order
     return {'project': assets[0]['project'], 'project_id': assets[0]['project_id'], 'profile': assets[0]['profile'],
-            'purpose': purpose, 'sources': result, 'offline': offline, 'removed_from_work': removed, 'warnings': warnings}
+            'clipper_profile': clipper_profile(catalog, assets[0]['profile']), 'purpose': purpose, 'sources': result, 'offline': offline, 'removed_from_work': removed, 'warnings': warnings}
 
 
 def projects(catalog):
@@ -348,7 +365,7 @@ def projects(catalog):
         if asset['kind'] != 'stalker_session' and not any(kind_of(p) in MEDIA_KINDS for p in asset['paths']):
             continue  # Camera indexes/thumbnails are not sources.
         entry = found.setdefault(asset['project_id'], {'project': asset['project'], 'project_id': asset['project_id'],
-                                                       'profile': asset['profile'], 'assets': 0, 'jobs': set()})
+                                                       'profile': asset['profile'], 'clipper_profile': clipper_profile(catalog, asset['profile']), 'assets': 0, 'jobs': set()})
         entry['assets'] += 1
         entry['jobs'].add(asset['job_id'])
     for entry in found.values():

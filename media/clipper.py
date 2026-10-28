@@ -14,6 +14,7 @@ import sys
 from .common import MediaError, read_json, require
 
 _RELEASE_TOKEN = contextvars.ContextVar('clipper_release_token', default=None)
+_RELEASE_FD = contextvars.ContextVar('clipper_release_fd', default=None)
 
 
 def executable(catalog):
@@ -186,7 +187,7 @@ def release_guard(catalog):
     crashed release cannot leave a time-based stale lease behind.
     """
     if _RELEASE_TOKEN.get():
-        yield
+        yield _RELEASE_FD.get()
         return
     lock = Path.home()/'.cache/clipper/.media-access.lock'
     lock.parent.mkdir(parents=True, exist_ok=True)
@@ -201,11 +202,13 @@ def release_guard(catalog):
             handle.write(json.dumps({'pid': os.getpid(), 'token': token}))
             handle.flush()
             reset = _RELEASE_TOKEN.set(token)
+            fd_reset = _RELEASE_FD.set(handle.fileno())
             try:
                 require('media-release-lock/1' in dependencies(catalog).get('capabilities', []),
                         'clipper_upgrade_required', 'Actualiza y reinicia Clipper para liberar media con exclusión coordinada')
-                yield
+                yield handle.fileno()
             finally:
+                _RELEASE_FD.reset(fd_reset)
                 _RELEASE_TOKEN.reset(reset)
     except OSError as error:
         raise MediaError('clipper_unavailable', 'No se pudo bloquear Clipper; se conserva el origen: ' + str(error)) from error

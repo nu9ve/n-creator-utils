@@ -60,6 +60,8 @@ def sony_xml(path):
         name = element.tag.split('}')[-1]
         if name == 'CreationDate' and element.get('value'):
             found['created'] = datetime.datetime.fromisoformat(element.get('value'))
+            from .evidence import capture_time
+            found['capture_time'] = capture_time(element.get('value'), 'sony.CreationDate')
         elif name == 'Duration' and element.get('value', '').isdigit():
             found['frames'] = int(element.get('value'))
         elif name == 'VideoFrame':
@@ -94,7 +96,10 @@ def probe(path):
     created = (fmt.get('tags') or {}).get('creation_time')
     if created:
         try:
-            found['created'] = datetime.datetime.fromisoformat(created.replace('Z', '+00:00')).astimezone()
+            parsed = datetime.datetime.fromisoformat(created.replace('Z', '+00:00'))
+            found['created'] = parsed.astimezone() if parsed.tzinfo else parsed
+            from .evidence import capture_time
+            found['capture_time'] = capture_time(created, 'ffprobe.creation_time')
         except ValueError:
             pass
     widths = [s.get('width') for s in data.get('streams') or [] if s.get('codec_type') == 'video' and s.get('width')]
@@ -226,6 +231,8 @@ def build_layout(source, plan, units, files):
             # The bundle folder takes the dated name so sessions interleave with camera clips; its inside stays byte-identical.
             prefix = '' if unit['bundle'] == '.' else unit['bundle'] + '/'
             manifest = json.loads((source / (prefix + 'manifest.json')).read_bytes())
+            from .evidence import stalker_time
+            unit['capture_time'] = stalker_time(manifest)
             name, created = stalker_bundle_name(manifest, min(f['stamp']['mtime_ns'] for f in members), country, project)
             name = claim(created.strftime('%Y/%m') + '/' + name).split('/', 2)[2]
             first_capture = created if first_capture is None or created < first_capture else first_capture
@@ -243,6 +250,11 @@ def build_layout(source, plan, units, files):
             kind = kind_of(file['path'])
             found = facts(source, file)
             created = found['created']
+            if 'capture_time' not in unit and found.get('capture_time'):
+                unit['capture_time'] = found['capture_time']
+            # Naive camera civil evidence remains unknown; naming uses the legacy host display only.
+            if created.tzinfo is None:
+                created = created.astimezone()
             first_capture = created if first_capture is None or created < first_capture else first_capture
             parts = [stamp(created), model_for(unit, file, found)]
             if kind in {'video', 'audio'}:
