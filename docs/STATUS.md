@@ -2,6 +2,57 @@
 
 Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Cierre productor Stalker/Clipper · 2026-10-28 · fixtures, sin instalación
+
+Implementación en working tree sobre HEAD `3360d1d`. Se preservaron `.gitlab-ci.yml`
+y `.vscode/` preexistentes sin editar; no commits/restage/reset. No se escribieron
+repos/proyectos Clipper ni manifests Stalker externos, no se usaron SD, MEDIA,
+ESSD o capturas personales. Nombres MEDIA/ESSD en tests son identidades fixture.
+
+- `capture_time` aditivo en sources/handoff congela evidencia original y origen,
+  instante absoluto sólo con offset, zona IANA/offset cuando existen. Prioridad
+  Stalker epochWallClock → createdAt, Sony/ffprobe con procedencia. mtime/nombre
+  legacy no inventan UTC; catálogos sin evidencia siguen legibles con null.
+- `editable_members`, `media_bytes`, total `bytes`, hash crudo de manifest,
+  revision/content_revision explícitos y mapping opaco `clipper_profile` (sin
+  heurística, guardado por RPC de perfil, omisión de cliente antiguo lo conserva).
+  Listar usa recibos/stat; no abre manifests ni hashea media para la lista.
+- Handoff/schema/ejemplo real sintético: identidad, selección/orden y miembros
+  por volumen con sus paths/hashes/recibos. No exige nombres iguales entre
+  réplicas; mantiene documentos v1 anteriores. No es prueba de presencia actual.
+- `retitle_capture`, `retitle_operations`, `cancel_plan` implementados en servicio
+  y CLI. Archivo verificado de cualquier revisión, jobs/planes revisados activos,
+  planes de release sin completar, referencias/colas/offline/desconocidos bloquean.
+  Exclusión existente Clipper + writer de catálogo durante checks/mutación;
+  ambos FDs heredados mantienen locks en el productor si muere nüün. Intent
+  durable pending, recuperación mismo operation_id por status, validación CAS/ACK,
+  publicación atómica de resultado + invalidación de planes anteriores. Nüün no
+  escribe manifests ni adopta la revisión nueva en Clipper/catálogo de assets.
+
+Evidencia: **174/174 Python** (`python3 -m unittest discover -s tests -q`,
+27.048 s, pase final). Incluye **16 contratos** y **44 de liberación**, también
+ejecutados de forma dirigida durante el cierre. Hay subprocess productor sintético
+real, muerte de coordinador mientras el hijo retiene ambos locks, recuperación
+sin repetir apply, muerte de propietario del writer, referencias/cola/offline,
+planes cancelados/antiguos, CAS/ACK inconsistente, idempotencia/conflicto,
+Stalker 1/2/3 y rechazo major desconocido, schema y handoff v1 antiguo. JSON Schema
+con herramienta ya instalada, sin dependencia runtime nueva. El ejecutable fixture
+sólo escribe su raíz temporal y no sustituye el journal/fsync de Stalker.
+Los mensajes “Installed” de la suite son tests de instalador **simulados en tmp**;
+no se construyó, instaló ni abrió una app real. Sin cambios Swift; no se ejecutó
+captura, export, relink o limpieza personal. Compileall y `git diff --check` correctos; 119 enlaces locales revisados sin destinos faltantes.
+
+**Límites / siguiente dueño:** Stalker todavía debe implementar/anunciar
+`stalker-coordinated-retitle/1` (capabilities/status/apply, CAS propio, journal
+manifest/rename/library y FDs heredados). Sin capability el coordinador bloquea
+con guía; `archived:false` no autoriza. Clipper tiene que adoptar campos nuevos;
+handoff portable aún sin consumidor. Exclusión de usuario/host/catálogo y apps
+participantes; no cubre procesos viejos, otro catálogo/host ni Final Cut/Atlas.
+No hay validación física ni nueva build instalada ni declaración de release.
+[Contrato productor](contracts/media-library-v1.md#productor-aditivo-de-biblioteca--28-octubre-2026),
+[handoff Stalker/API/schema/fixtures/aceptación](contracts/stalker-retitle-v1.md),
+[siguientes dos sesiones](contracts/next-sessions.md#prioridad-vigente--2026-10-28).
+
 ## Contrato con Clipper · 2026-10-28 · backend instalado; aceptación física pendiente
 
 `media/clipper.py` y `release.py` coordinan relink/retiro con Clipper mediante

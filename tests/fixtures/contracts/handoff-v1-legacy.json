@@ -1,0 +1,30 @@
+{
+  "schema": "creator-media-handoff/1",
+  "handoff_id": "b009108e-f01e-4b17-a96d-e7b7945b5f03",
+  "created_at": "2026-10-25T05:00:00Z",
+  "project_id": "51782354-3a15-4a39-9364-07f199956c76",
+  "profile_id": "erikiado64",
+  "assets": [
+    {
+      "asset_id": "e1a8f55e-a818-4f3f-8175-4610c4bb90b2",
+      "content_revision": "1858139b-804f-46fe-b095-be69379a4f19",
+      "kind": "file",
+      "order": 0,
+      "members": [
+        {
+          "relative_path": "source.mp4",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "locations": [
+        {
+          "volume_id": "83d8a1bd-9066-4b4d-a25d-5b2b9dcd6a4c",
+          "relative_path": "001_proyectos/e64_raw/ejemplo/source.mp4",
+          "role": "work",
+          "receipt_id": "2bf642c5-3cc6-474a-b83d-a24f4e72bb49"
+        }
+      ]
+    }
+  ]
+}

@@ -151,7 +151,7 @@ def pending_stalker_files(catalog, archive_record, files, bundles):
     return files, bundles
 
 
-def build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
+def _build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
                archive_only=False, confirm_archive_only=False, work_decision='pending', cleanup=False,
                assignments=None, camera=None, source_kind='card', cancel=None):
     require(isinstance(archive_only, bool) and isinstance(confirm_archive_only, bool), 'invalid_policy', 'Archive-only flags must be boolean')
@@ -374,3 +374,14 @@ def preflight(catalog, backend, plan, reserve=False):
             require(info['free'] >= needed + max(64 * 1024 * 1024, needed // 20), 'insufficient_space', 'Insufficient free space on ' + record['name'])
         infos.append(info)
     require(len(infos) == 1 or independent(infos[0], infos[1]), 'same_physical_disk', 'Destinations share a physical disk')
+
+
+def build_plan(catalog, backend, *args, **kwargs):
+    # A reviewed plan reserves its Stalker sessions until apply or explicit cancellation.
+    from .retitle import check_plan
+    with catalog.writer():
+        plan = _build_plan(catalog, backend, *args, **kwargs)
+        check_plan(catalog, plan)
+        catalog.set('reviewed-plan:' + plan['id'], {'id': plan['id'], 'digest': plan['digest'],
+                    'sessions': [str(uuid.UUID(u['session_id'])) for u in plan['units'] if u.get('session_id')], 'cancelled': False})
+        return plan

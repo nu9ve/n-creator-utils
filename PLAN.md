@@ -14,10 +14,18 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 Exclusión de liberación con Clipper implementada/probada e instalada en build
 9a2c9764c7eb; ver [STATUS](docs/STATUS.md). Antes de habilitar retiro en operación
 real, reiniciar CLI/TUI y validar el ciclo pequeño con cola/relink y ambas builds
-actualizadas. Conserva los gates operativos/SD de abajo. Pendientes comunes:
-zona de cámaras, miembros/media_bytes y hash de manifest en sources, mapping
-explícito de perfiles y coordinación de retitle Stalker; no declarar que el
-handoff portable ya tiene consumidor.
+actualizadas. Conserva los gates operativos/SD de abajo. Cierre productor posterior en este working tree: evidencia de tiempo sin
+inventar zona, miembros/media_bytes, hash/revisiones de manifest, mapping de
+Clipper y retitle coordinado implementados. Evidencia y límites en
+[STATUS](docs/STATUS.md); [handoff para las siguientes sesiones](docs/contracts/stalker-retitle-v1.md).
+
+1. Stalker debe implementar `stalker-coordinated-retitle/1` (capabilities/status/apply,
+   FDs heredados, CAS y journal/recuperación), eliminar autorización por consulta
+   `archived:false` sola y actualizar su adopción. Hasta entonces retitle bloquea.
+2. Clipper debe adoptar los campos aditivos de sources con fixtures antiguas;
+   nueva revisión exige decisión explícita. Portable handoff aún sin consumidor.
+3. Sólo después: aceptación física pequeña autorizada, builds reiniciadas y
+   gates operativos de abajo. No se instaló/abrió una app en este cierre.
 
 ## Now · next sessions (2026-10-27)
 

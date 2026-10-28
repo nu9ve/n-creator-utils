@@ -1,5 +1,22 @@
 # Próximas sesiones: Stalker y luego Clipper
 
+## Prioridad vigente · 2026-10-28
+
+1. **Stalker:** adoptar `stalker-coordinated-retitle/1` mediante las tres APIs
+   exactas capabilities/status/apply, herencia de locks y journal recuperable.
+   Leer primero el [handoff compacto y especificación](stalker-retitle-v1.md),
+   [schema](stalker-retitle.schema.json) y fixtures enlazadas. El coordinador
+   de nüün ya está implementado; no duplicar deps/ACK/relink. Mantener inmutable
+   el manifest archivado; `archived:false` no autoriza. No usar capturas reales.
+2. **Clipper:** consumir campos aditivos de sources descritos en
+   [productor](media-library-v1.md#productor-aditivo-de-biblioteca--28-octubre-2026),
+   conservar compatibilidad con v1 anterior y rechazo de revisión nueva sin
+   adopción explícita. No asumir que implementó el handoff portable. Validar
+   con las mismas fixtures, sin modificar manifests de Stalker.
+
+Los prompts de 2026-10-25 y hallazgos de abajo son históricos; no sustituyen
+esta prioridad ni autorizan instalación, captura, copia o liberación física.
+
 Escritos el 2026-10-25. Son dos sesiones separadas que se corren en este orden:
 
 1. **Stalker** fija primero cómo nacen las sesiones: nombre, biblioteca, metadata y señal de archivo.

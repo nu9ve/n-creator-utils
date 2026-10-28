@@ -38,6 +38,12 @@ def parser():
     recover = commands.add_parser('recover-catalog'); recover.add_argument('volume')
     confirm = commands.add_parser('confirm-cleanup', help='After formatting a card in the camera, close its backup job')
     confirm.add_argument('job_id'); confirm.add_argument('source')
+    commands.add_parser('cancel-plan').add_argument('plan_id')
+    commands.add_parser('retitle-operations')
+    retitle = commands.add_parser('retitle-capture')
+    for name in ('operation_id', 'path', 'session_id', 'expected_manifest_sha256'):
+        retitle.add_argument(name)
+    retitle.add_argument('--project', required=True, help='JSON {version:1,name,country}')
     commands.add_parser('projects', help='Read-only: projects with ingested sources, newest first')
     listing = commands.add_parser('sources', help='Read-only: a project\'s editable sources in capture order with local paths (editor quick import)')
     listing.add_argument('--project', required=True); listing.add_argument('--purpose', choices=['edit', 'archive'], default='edit')
@@ -102,10 +108,12 @@ def main(argv=None):
                 if method == 'volumes': params = {}
             elif method == 'plan' and params['assignments']:
                 params['assignments'] = read_json(params['assignments'])
+            elif method == 'retitle-capture':
+                params['project'] = json.loads(params['project'])
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
+            method = {'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans'}.get(method, method)
         data = service.call(method, params)

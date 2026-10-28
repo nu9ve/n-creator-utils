@@ -106,7 +106,7 @@ class Catalog:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error:
                 raise MediaError('job_busy', 'Another media operation is running') from error
-            yield
+            yield fd
         finally:
             os.close(fd)
 

@@ -184,3 +184,109 @@ No cubre otros hosts/usuarios ni consumidores que no participan, como Final
 Cut o el retitle de Stalker. La mutación del proyecto/ACK es atómica en
 Clipper; la operación completa entre catálogo, discos y editor sigue siendo
 journalizada y recuperable, no una transacción ACID única.
+
+## Productor aditivo de biblioteca · 28 octubre 2026
+
+Esta sección sustituye las descripciones históricas de campos pendientes arriba.
+Implementación: `media/evidence.py`, `layout.py`, `library.py`, `workspaces.py`.
+Clipper sigue consumiendo `sources`; **no se declara adopción de estos campos
+nuevos ni del handoff portable**. Se mantiene `creator-media-handoff/1`; todos
+los campos nuevos son aditivos/opcionales en el schema para aceptar documentos
+v1 anteriores. Un consumidor debe comprobar el major antes de interpretar.
+
+### Reloj y procedencia
+
+`sources[].capture_time` y `handoff.assets[].capture_time` contienen:
+
+| Campo | Semántica |
+| --- | --- |
+| `original`, `provenance` | Texto original elegido y campo de origen (`manifest.epochWallClock`, `manifest.createdAt`, `sony.CreationDate`, `ffprobe.creation_time`), o null. |
+| `originals` | Evidencia original adicional de Stalker: `epochWallClock`, `createdAt`, `captureTimeZone`, incluidos valores inválidos. |
+| `captured_at_absolute` | Inicio RFC3339 normalizado a UTC **sólo si el valor original tiene offset/Z**; de lo contrario null. |
+| `time_zone` | IANA válida declarada por productor, si además hay instante absoluto; null si falta/es inválida. |
+| `offset_seconds` | Offset en ese instante de la IANA válida, o del timestamp original; null si desconocido. |
+
+Stalker: `epochWallClock` válido con offset gana; después `createdAt` con offset.
+No se aplica la zona del Mac a una cámara sin zona, ni se resuelve una hora
+naive por una IANA potencialmente ambigua. La zona y el texto originales se
+conservan. El reloj civil no hace sync acústico. Sony conserva CreationDate;
+ffprobe conserva creation_time. mtime sólo sigue siendo fallback del naming,
+**no evidencia de inicio absoluto**. El plan congela la evidencia y la incluye
+en su digest; pasa a assets/recibos. Los catálogos/planes antiguos sin evidencia
+emiten null: listar no abre manifests ni probea o hashea la biblioteca.
+
+`captured_at` y `duration_seconds` actuales de `sources` conservan su semántica
+legacy: civil naive y duración redondeada **del nombre**. No equivalen al nuevo
+instante. `sources` conserva el orden lexicográfico de nombres actual (y `order`
+consecutivo); no es una garantía de orden absoluto entre meses/zonas. El handoff
+preserva exactamente el orden explícito de selección de IDs, desde cero.
+
+### Miembros, revisiones y perfiles
+
+- `bytes` de sources y handoff es el total de los miembros del asset en el
+  plan, incluidos sidecars. `media_bytes` suma sólo `editable_members`:
+  `{path,bytes,sha256}`; paths originales relativos al origen. Editables son
+  archivos clasificados video/audio/imagen/raw_image por `layout.kind_of`;
+  incluye las representaciones/raw de un Stalker, sin decidir mezcla editorial.
+  No incluye manifest, eventos, XML ni soporte de cámara. Sources añade `volume_id`/`receipt_id` en ubicación elegida y alternativas, y
+  `local_path` por miembro disponible en la ubicación elegida.
+- `manifest_sha256` es SHA-256 de **bytes crudos** de manifest.json en recibos
+  verificados, no el digest de un JSON reserializado. Se publica también en
+  catálogos antiguos con recibos. En cámara/archivo: null.
+- `revision` sigue siendo el SHA-256 legacy de JSON canónico de la lista
+  ordenada según `asset.paths` de `{path,sha256}` de **todos** los miembros.
+  Incluye los paths originales relativos al origen y el hash crudo del manifest.
+  `content_revision = UUIDv5(NAMESPACE_URL, revision)` es la representación
+  histórica portable de la misma revisión, ahora expuesta también en sources.
+  No es una revisión editorial ni un contador de Stalker. Cambiar proyecto
+  dentro del manifest cambia ambas revisiones; cambiar tags/título del catálogo,
+  mapping de perfil o rutas de destino no las cambia. Renombrar el bundle de
+  origen puede cambiar paths/asset ID al reingestar; `sessionID` sigue siendo la
+  identidad de captura que permite relacionarlos. No prometer UUID de asset
+  idéntico entre imports independientes: hoy deriva de identidad de origen y
+  stamps/membresía del plan. `relayout` de copias conserva asset/revisión.
+- `capture_manifest_digest` interno / `captures.manifest_digest` siguen siendo
+  SHA-256 del JSON canónico parseado del manifest; pueden diferir de
+  `manifest_sha256`. No intercambiarlos en CAS ni ACK de Clipper.
+- `save_profile` RPC acepta `clipper_profile: string|null`: referencia opaca
+  explícita; no importa schema ni configura un perfil de Clipper. Se publica en
+  `projects`, sources (nivel proyecto y asset) y handoff. Ausente/null significa
+  sin mapping; **no se infiere e64 → erikiado64**. Omitirlo al guardar desde un cliente antiguo conserva el mapping; null lo
+  elimina. Es metadata vigente del catálogo; no modifica rutas congeladas ni content_revision. `profile_id` del
+  handoff es el ID local (p.ej. e64), no el ID de Clipper.
+
+### Ubicaciones y recibos portables
+
+El [schema](media-handoff.schema.json) y el [ejemplo generado por código con
+fixtures](examples/handoff.json) incluyen camera_bundle y Stalker. El ejemplo
+no identifica volúmenes reales y no prueba existencia actual de sus rutas.
+`locations[]` identifica volumen por UUID, rol y receipt_id real del recibo de
+transferencia/trabajo. Representa verificación **histórica**, no rehash/presencia
+actual. Las rutas son relativas a la raíz registrada del volumen.
+
+Cada ubicación nueva lleva `path_kind` (`file` o `directory`) y `members` con
+`original_path`, `relative_path`, `bytes`, `sha256`, `volume_relative_path`.
+Este último resuelve inequívocamente cada archivo desde su volumen, incluso
+pares JPG/DNG con múltiples archivos. En Stalker `relative_path` es interior
+al bundle; en una ubicación file es el basename. `location.relative_path` es
+el archivo primario o raíz del bundle. `asset.members` conserva la proyección
+de la primera ubicación para lectores antiguos; para resolver otras copias,
+usar **sus propios members**. Archivo/trabajo pueden tener basenames distintos.
+El productor compara bytes/hash por original_path, nunca igualdad de nombres.
+Handoff incluye todo Stalker; en cámara sólo media editable, no sidecars. Total
+de camera_bundle y revisión siguen incluyendo los sidecars del original.
+
+El schema valida forma. El receptor valida traversal, symlinks, colisiones,
+UUID/major, identidad del volumen, bytes y hashes antes de adoptar o borrar.
+Los campos nuevos son opcionales para documentos antiguos; no derivar una
+ubicación múltiple a partir de un único path legacy sin verificarla.
+
+## Retitle completado coordinado · implementación nüün, productor pendiente
+
+Protocolo, errores, recuperación y aceptación exactos en
+[handoff para Stalker](stalker-retitle-v1.md),
+[schema de request/result/capabilities](stalker-retitle.schema.json).
+`archived:false` es sólo observación. **No autoriza mutación**. El acuerdo
+histórico que permitía renombrar con esa consulta suelta queda sustituido por
+este protocolo. Nüün no escribe manifests ni proyectos Clipper; tampoco
+reenlaza/adopta automáticamente una nueva revisión.
