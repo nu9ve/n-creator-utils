@@ -290,3 +290,17 @@ Protocolo, errores, recuperación y aceptación exactos en
 histórico que permitía renombrar con esa consulta suelta queda sustituido por
 este protocolo. Nüün no escribe manifests ni proyectos Clipper; tampoco
 reenlaza/adopta automáticamente una nueva revisión.
+
+
+### Adopción Clipper CLI/TUI de los campos aditivos y handoff · 2026-10-28
+
+Clipper sobre `e4f73d1` incorpora tiempo/procedencia/zona (unknown explícito),
+media_bytes/miembros, hashes crudos/revisiones y clipper_profile sin inferencias.
+CLI y F6 comparten consumidor handoff: volumen registrado/online, recibo real,
+hash actual, confinamiento, límites, identidad y reintento durable. Sources y
+pegado conservan compatibilidad. Handoff delivery no es fuente editorial
+soportada; ubicaciones legacy múltiples ambiguas fallan cerrado. Retitle no
+adopta otra revisión por UUID ni introduce una migración metadata-only.
+[Pruebas, matriz y pendientes](../../../../ai/clipper/docs/2026-10-28-cli-tui-contract-adoption.md).
+Esta nota sustituye sólo el estado histórico «Clipper pendiente» de las
+secciones de campos aditivos; no cambia semántica, schemas ni el productor.
