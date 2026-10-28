@@ -2,6 +2,31 @@
 
 Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Contrato con Clipper · 2026-10-28 · backend instalado; aceptación física pendiente
+
+`media/clipper.py` y `release.py` coordinan relink/retiro con Clipper mediante
+`media-release-lock/1`: nüün posee el flock exclusivo durante comprobaciones y
+mutación; token de operación autoriza sólo sus subprocesses. CLI anterior sin
+capability y trabajo activo bloquean conservando origen. Cierre/crash libera
+el lock del kernel. Requiere actualizar/reiniciar consumidores; otros hosts,
+Final Cut y retitle de Stalker no participan. No cambia planner, hashes,
+política de limpieza ni los gates de corrupción/SD documentados abajo.
+
+Evidencia: 44/44 pruebas de `test_media_release.py` (20.294 s), con guard
+inyectado en fixtures del motor; pruebas de protocolo real en Clipper dentro
+de 146/146 dirigidas (41.69 s), incluyendo deps → relink por CLI → ACK → deps,
+versión anterior, exclusión y recuperación después de kill. Todo con carpetas
+sintéticas/catálogo aislado; sin copias ni limpieza de media personal.
+
+Build release **9a2c9764c7eb**, `/private/tmp/nuun-contract-20261028.app`, firmado
+ad-hoc y verificado, instalado en `~/Applications/nuun.app` sin abrirlo.
+Anterior: `~/Library/Application Support/n-creator-utils/app-backups/fc442411.app`.
+Backend de `media/clipper.py`/`media/release.py` coincide byte a byte entre repo,
+bundle de revisión e instalación. Runtime externo `/usr/bin/python3`, sin
+notarización. Sin cambios Swift, sin aceptación GUI/física ni declaración de
+production-ready. [Contrato](contracts/media-library-v1.md#exclusión-local-de-liberación--28-octubre-2026),
+[entrega Clipper](../../../ai/clipper/docs/2026-10-28-contract-hardening.md).
+
 ## Incidente operativo Untitled · 2026-10-27 · corrupción confirmada; preservación pendiente
 
 Solicitud explícita del usuario: tarjeta antes legible ahora inaccesible. macOS detecta SD USB removible de 127,865,454,592 B, partición ExFAT `disk4s1`, UUID `C8BF5026-0077-3F03-AA08-019E0A1DC444`, sin MountPoint. `/Volumes/Untitled` no existe. El tamaño/espacio de volumen reportado como cero mientras está desmontada no demuestra que esté vacía. No se pudo listar su contenido ni confirmar borrado/formateo.

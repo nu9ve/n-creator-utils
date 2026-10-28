@@ -1,5 +1,10 @@
 """The Clipper CLI is the only writer of Clipper projects. Fail closed on unknown dependencies."""
 import json
+import contextvars
+import functools
+import fcntl
+import secrets
+from contextlib import contextmanager
 import os
 from pathlib import Path
 import shutil
@@ -7,6 +12,8 @@ import subprocess
 import sys
 
 from .common import MediaError, read_json, require
+
+_RELEASE_TOKEN = contextvars.ContextVar('clipper_release_token', default=None)
 
 
 def executable(catalog):
@@ -19,7 +26,9 @@ def executable(catalog):
 
 def invoke(catalog, args):
     try:
-        result = subprocess.run([executable(catalog), 'library', *args, '--json'], capture_output=True, timeout=120)
+        env = os.environ.copy()
+        if _RELEASE_TOKEN.get():env['CLIPPER_MEDIA_RELEASE_TOKEN'] = _RELEASE_TOKEN.get()
+        result = subprocess.run([executable(catalog), 'library', *args, '--json'], capture_output=True, timeout=120, env=env)
         require(result.returncode == 0, 'clipper_failed', 'Clipper no pudo comprobar/actualizar sus dependencias; no se libera el origen')
         require(len(result.stdout) <= 16 * 1024 * 1024, 'clipper_invalid', 'Clipper response too large')
         return json.loads(result.stdout)
@@ -167,3 +176,44 @@ def relink(catalog, request, operation_id):
             'clipper_ack_invalid', 'Clipper no confirmó un reenlace completo y libre de exportaciones')
     catalog.set('clipper-ack:' + operation_id, ack)
     return ack
+
+
+@contextmanager
+def release_guard(catalog):
+    """Hold Clipper's kernel exclusion through checks/relinks/release.
+
+    Older/unavailable Clipper fails closed. Parent death closes the pipe, so a
+    crashed release cannot leave a time-based stale lease behind.
+    """
+    if _RELEASE_TOKEN.get():
+        yield
+        return
+    lock = Path.home()/'.cache/clipper/.media-access.lock'
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with lock.open('a+') as handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise MediaError('clipper_busy', 'Clipper tiene trabajo activo; se conserva el origen') from None
+            token = secrets.token_hex(32)
+            handle.seek(0);handle.truncate()
+            handle.write(json.dumps({'pid': os.getpid(), 'token': token}))
+            handle.flush()
+            reset = _RELEASE_TOKEN.set(token)
+            try:
+                require('media-release-lock/1' in dependencies(catalog).get('capabilities', []),
+                        'clipper_upgrade_required', 'Actualiza y reinicia Clipper para liberar media con exclusión coordinada')
+                yield
+            finally:
+                _RELEASE_TOKEN.reset(reset)
+    except OSError as error:
+        raise MediaError('clipper_unavailable', 'No se pudo bloquear Clipper; se conserva el origen: ' + str(error)) from error
+
+
+def guarded_release(function):
+    @functools.wraps(function)
+    def wrapped(catalog, *args, **kwargs):
+        with release_guard(catalog):
+            return function(catalog, *args, **kwargs)
+    return wrapped

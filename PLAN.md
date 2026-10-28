@@ -9,6 +9,16 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Actualización de contrato · 2026-10-28
+
+Exclusión de liberación con Clipper implementada/probada e instalada en build
+9a2c9764c7eb; ver [STATUS](docs/STATUS.md). Antes de habilitar retiro en operación
+real, reiniciar CLI/TUI y validar el ciclo pequeño con cola/relink y ambas builds
+actualizadas. Conserva los gates operativos/SD de abajo. Pendientes comunes:
+zona de cámaras, miembros/media_bytes y hash de manifest en sources, mapping
+explícito de perfiles y coordinación de retitle Stalker; no declarar que el
+handoff portable ya tiene consumidor.
+
 ## Now · next sessions (2026-10-27)
 
 | When | Task |

@@ -264,6 +264,7 @@ def validate_remaining(tree, plan, cancel=None):
             require(content_stamp(tree.stat(path)) == entry['stamp'], 'source_changed', 'Release source changed: ' + path)
 
 
+@clipper.guarded_release
 def relink_release(catalog, backend, plan_id, digest, cancel=None, progress=None):
     with catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
@@ -315,6 +316,7 @@ def review_release(catalog, backend, plan_id, digest):
         return plan
 
 
+@clipper.guarded_release
 def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None):
     with catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
