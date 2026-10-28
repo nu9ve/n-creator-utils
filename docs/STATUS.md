@@ -2,6 +2,16 @@
 
 Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Instalación solicitada · 2026-10-28
+
+Build release local `b0c413211b4d`, compilada desde el working tree actual,
+firmada ad-hoc y verificada por builder/instalador. Instalada a petición del
+usuario en `~/Applications/nuun.app`, sin abrirla; backend Python instalado
+comparado byte a byte con el repo. Artefacto `/private/tmp/nuun-latest-20261028.app`;
+anterior conservada en `~/Library/Application Support/n-creator-utils/app-backups/55eaeaec.app`.
+Runtime externo `/usr/bin/python3`, sin notarización ni nueva aceptación física.
+Los límites de adopción Stalker/Clipper del cierre siguiente permanecen vigentes.
+
 ## Cierre productor Stalker/Clipper · 2026-10-28 · fixtures, sin instalación
 
 Implementación en working tree sobre HEAD `3360d1d`. Se preservaron `.gitlab-ci.yml`
