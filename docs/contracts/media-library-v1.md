@@ -154,3 +154,33 @@ Errores: `job_busy`, `not_a_card`, `destination_volume`, `volume_replaced`, `eje
 `plan` conserva su respuesta objeto para CLI/clientes existentes. `plan_document` admite los mismos parámetros y devuelve el JSON canónico completo como string. Swift conserva ese documento intacto y decodifica una copia sólo para mostrar la revisión. `apply` acepta en `plan` tanto el objeto histórico como ese string; Python lo decodifica y pasa por la misma validación de digest y política, sin recalcular ni reemplazar el digest enviado por el usuario. Documento limitado a 12 MiB. No añade mutaciones MCP ni cambia el esquema de planes/recibos.
 
 Esto evita que reserializar desde un árbol Codable altere números (`1.0` frente a `1`, precisión, exponentes) y cause un rechazo de un plan revisado. El árbol general de JSON también preserva UInt64 para identidades de volumen. Un documento modificado o un digest de revisión distinto siguen rechazándose antes de crear un job/copiar. Ante `plan_changed`, la UI descarta la revisión y requiere preparar otra; no aplica ni resume saltándose la comprobación.
+
+
+## Exclusión local de liberación · 28 octubre 2026
+
+Adición compatible a `clipper-library-deps/1`:
+`capabilities: ["media-release-lock/1"]`. Implementada por Clipper CLI/TUI
+sobre `3a156f5` y por este repo sobre `d634e71` (cambios locales).
+
+`~/.cache/clipper/.media-access.lock` es una ruta fija por usuario/host.
+Clipper adquiere flock compartido para trabajo, escrituras de proyecto y
+encolar/reintentar/ejecutar variantes. `relink_release` y `apply_release` de
+nüün conservan exclusivo desde las comprobaciones hasta terminar su operación.
+Antes de continuar exigen la capability del CLI real. Un proceso viejo o
+ocupado bloquea retiro con guía; no se reduce el contrato para continuar.
+
+nüün escribe `{pid, token}` bajo el exclusivo; token aleatorio de 32 bytes
+codificado en hex. Lo transmite sólo a sus subprocesses de Clipper mediante
+`CLIPPER_MEDIA_RELEASE_TOKEN`. Clipper permite el relink autorizado bajo ese
+exclusivo; otros escritores rechazan el trabajo. El propietario es el proceso
+de liberación mismo, no un helper con vida independiente. EOF de un proceso
+no es un ACK; el kernel libera el flock al cerrar/morir el propietario. La
+metadata residual del archivo nunca bloquea por sí sola ni actúa como TTL.
+
+El lock no reemplaza verificación de hashes/revisión, ACK, deps frescos, pins
+de cola, offline ni referencias antiguas. Versiones previas de nüün no lo
+usan: actualizar ambos lados y reiniciar procesos existentes es obligatorio.
+No cubre otros hosts/usuarios ni consumidores que no participan, como Final
+Cut o el retitle de Stalker. La mutación del proyecto/ACK es atómica en
+Clipper; la operación completa entre catálogo, discos y editor sigue siendo
+journalizada y recuperable, no una transacción ACID única.

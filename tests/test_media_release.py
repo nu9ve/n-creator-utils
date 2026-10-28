@@ -23,6 +23,9 @@ def empty_deps():
 
 class WorkflowFixture(MediaFixture):
     def setUp(self):
+        from contextlib import nullcontext
+        guard = mock.patch('media.clipper.release_guard', side_effect=lambda _: nullcontext())
+        guard.start(); self.addCleanup(guard.stop)
         super().setUp()
         patcher = mock.patch('pathlib.Path.home', return_value=self.root)
         patcher.start(); self.addCleanup(patcher.stop)
