@@ -2,6 +2,47 @@
 
 Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Instalación de recuperación pending · 2026-10-28
+
+A petición del usuario se compiló e instaló la build local `4b0c31b7e4a5` en
+`~/Applications/nuun.app`, con el despacho de recuperación pending. Builder e
+instalador verificaron firma ad-hoc; backend media/manager instalado comparado
+byte a byte contra el repo. Artefacto `/private/tmp/nuun-pending-recovery-20261028.app`.
+Anterior preservada en `~/Library/Application Support/n-creator-utils/app-backups/3a73d024.app`.
+No se abrió la app ni se ejecutaron operaciones de media. Runtime externo
+`/usr/bin/python3`, sin notarización; aceptación física sigue pendiente.
+Esta instalación sustituye el límite de build anterior de la entrada siguiente.
+
+## Recuperación Stalker pending · 2026-10-28 · implementada, sin reinstalar
+
+Se cerró el pedido del índice común tras la adopción del productor Stalker.
+`media/retitle.py` valida el resultado journalizado pending (IDs, proyecto,
+SHA-256 anterior/nuevo y destino seguro en el mismo parent), revalida archivo,
+planes y dependencias para origen **y destino**, y repite apply con el request
+original y ambos FDs heredados, bajo la misma exclusión. No exige que siga
+existiendo la ruta vieja. El resultado de recuperación debe conservar destino
+/hash journalizados y pasa la validación final existente antes de publicarse.
+Fallos/colas/referencias conservan pending; no se escribe ningún manifest desde
+nüün ni se adopta automáticamente otra revisión en Clipper.
+
+Evidencia: **177/177 Python** (30.997 s); tras la comprobación adicional de
+coincidencia con el journal, **19/19 contratos** (4.932 s) y **22/22 puente real**
+(13.992 s). Incluye diez SIGKILL y muerte del coordinador con locks retenidos,
+recuperados por reintento normal (sin apply manual), bytes de media/eventos
+comparados por la suite del productor. Puente repetible añadido en
+`scripts/test_stalker_retitle_bridge.py`: carga sólo lectura la suite del repo
+Stalker y reemplaza su recuperación manual histórica por el despacho nüün.
+Catálogos, dependencias/colas y sesiones exclusivamente temporales.
+Compileall y diff check correctos. Schema actualizado para exigir campos
+journalizados en pending; contratos y PLAN actualizados.
+
+No se modificó el repo Stalker ni Clipper, ni capturas/catalogo personales.
+Sin commits, compilación/instalación/apertura de apps: la instalación previa
+`b0c413211b4d` todavía no incluye este ajuste. Los mensajes Installed de la suite
+corresponden sólo a fixtures de instalador en tmp. Adopción física, builds
+reiniciadas y consumidores externos siguen siendo gates separados.
+[Protocolo vigente](contracts/stalker-retitle-v1.md#recuperación-pending-adoptada-por-nüün--2026-10-28).
+
 ## Instalación solicitada · 2026-10-28
 
 Build release local `b0c413211b4d`, compilada desde el working tree actual,

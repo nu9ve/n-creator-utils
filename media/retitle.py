@@ -137,8 +137,28 @@ def retitle(catalog, operation_id, path, session_id, expected_manifest_sha256, p
         result = producer(catalog, 'status', request)
         require(result.get('schema') == 'stalker-retitle-result/1' and result.get('operation_id') == operation_id
                 and result.get('session_id') == sid, 'stalker_invalid', 'Invalid producer status; operation remains pending')
-        require(result.get('status') in {'not_found', 'applied'}, 'retitle_recovery_required', 'Producer operation is unresolved; retain session and recover in Stalker')
-        if result['status'] == 'not_found':
+        require(result.get('status') in {'not_found', 'pending', 'applied'}, 'retitle_recovery_required', 'Producer operation is unresolved; retain session and recover in Stalker')
+        if result['status'] == 'pending':
+            # The old directory may already have moved. Only Stalker can replay its journal.
+            target = result.get('path')
+            require(isinstance(target, str) and '\x00' not in target and Path(target).is_absolute()
+                    and '..' not in Path(target).parts and Path(target).parent == Path(path).parent
+                    and Path(target).suffix == '.stalker'
+                    and not any(p.is_symlink() for p in (Path(target), *Path(target).parents))
+                    and result.get('project') == project
+                    and result.get('previous_manifest_sha256') == expected_manifest_sha256
+                    and isinstance(result.get('manifest_sha256'), str)
+                    and len(result['manifest_sha256']) == 64
+                    and all(c in '0123456789abcdef' for c in result['manifest_sha256']),
+                    'stalker_invalid', 'Invalid pending journal result; operation remains pending')
+            blockers(catalog, request)
+            if target != path:
+                blockers(catalog, dict(request, path=target))
+            journal_sha = result['manifest_sha256']
+            result = producer(catalog, 'apply', request)
+            require(result.get('path') == target and result.get('manifest_sha256') == journal_sha,
+                    'stalker_invalid', 'Recovery result differs from the pending journal; operation remains pending')
+        elif result['status'] == 'not_found':
             blockers(catalog, request)
             manifest, sha = manifest_at(path)
             require(sha == expected_manifest_sha256 and str(uuid.UUID(manifest['sessionID'])) == sid,

@@ -373,3 +373,60 @@ with mock.patch('pathlib.Path.home', return_value=root), mock.patch('media.clipp
         envelope = json.loads(child.stdout)
         self.assertTrue(envelope['ok'])
         self.assertEqual(envelope['data'][0]['state'], 'applied')
+
+    def pending_setup(self):
+        request = self.request()
+        def crash(action, req):
+            if action == 'apply': raise RuntimeError('crash')
+            return self.producer_fixture(action, req)
+        with self.mocked_boundary(producer=crash):
+            with self.assertRaisesRegex(RuntimeError, 'crash'): retitle(self.catalog, **request)
+        target = Path(request['path']).with_name('renamed.stalker')
+        Path(request['path']).rename(target)
+        value = json.loads((target / 'manifest.json').read_bytes())
+        value['project'] = request['project']
+        (target / 'manifest.json').write_bytes(canonical(value))
+        pending = dict(schema='stalker-retitle-result/1', status='pending', operation_id=request['operation_id'],
+                       session_id=request['session_id'].lower(), path=str(target), project=request['project'],
+                       previous_manifest_sha256=request['expected_manifest_sha256'],
+                       manifest_sha256=hashlib.sha256(canonical(value)).hexdigest())
+        return request, pending
+
+    def test_pending_dispatch_after_rename_checks_both_paths_and_is_idempotent(self):
+        request, pending = self.pending_setup()
+        def recover(action, req):
+            if action == 'status': return pending
+            if action == 'apply': return dict(pending, status='applied')
+            return self.producer_fixture(action, req)
+        with self.mocked_boundary(producer=recover) as producer, mock.patch('media.clipper.inspect', return_value=self.empty_inspect()) as inspect:
+            result = retitle(self.catalog, **request)
+            self.assertEqual(result['state'], 'applied')
+            self.assertEqual([list(c.args[1])[0] for c in inspect.call_args_list], [request['path'], pending['path']])
+            self.assertEqual([c.args[1] for c in producer.call_args_list], ['capabilities','status','apply'])
+            self.assertEqual(retitle(self.catalog, **request), result)
+            self.assertEqual(producer.call_count, 3)
+
+    def test_pending_target_dependencies_or_invalid_result_never_dispatch(self):
+        request, pending = self.pending_setup()
+        def recover(action, req):
+            if action == 'status': return pending
+            self.assertNotEqual(action, 'apply')
+            return self.producer_fixture(action, req)
+        with self.mocked_boundary(producer=recover), mock.patch('media.clipper.inspect', side_effect=[self.empty_inspect(),dict(self.empty_inspect(), blockers=['target queued'])]):
+            with self.assertRaisesRegex(MediaError, 'target queued'): retitle(self.catalog, **request)
+        for field, value in [('path',str(self.root / 'elsewhere.stalker')), ('previous_manifest_sha256','0'*64), ('project',{}), ('manifest_sha256','invalid')]:
+            bad = dict(pending, **{field:value})
+            with self.mocked_boundary(producer=lambda a,r: bad if a == 'status' else self.producer_fixture(a,r)) as producer:
+                with self.assertRaisesRegex(MediaError, 'Invalid pending'): retitle(self.catalog, **request)
+                self.assertNotIn('apply', [c.args[1] for c in producer.call_args_list])
+        self.assertEqual(self.catalog.get('retitle:' + request['operation_id'])['state'], 'pending')
+
+    def test_pending_recovery_failure_remains_pending(self):
+        request, pending = self.pending_setup()
+        def recover(action, req):
+            if action == 'status': return pending
+            if action == 'apply': raise RuntimeError('producer failed')
+            return self.producer_fixture(action, req)
+        with self.mocked_boundary(producer=recover):
+            with self.assertRaisesRegex(RuntimeError, 'producer failed'): retitle(self.catalog, **request)
+        self.assertEqual(self.catalog.get('retitle:' + request['operation_id'])['state'], 'pending')
