@@ -1,5 +1,10 @@
 # Próximas sesiones: Stalker y luego Clipper
 
+Actualización 2026-10-28: Stalker ya implementó el productor coordinado y nüün
+ya despacha recuperación pending. Ver [protocolo vigente](stalker-retitle-v1.md#recuperación-pending-adoptada-por-nüün--2026-10-28)
+y evidencia en STATUS. Las instrucciones previas de implementar esa capability
+son históricas; falta adopción operativa/física con builds actualizadas.
+
 ## Prioridad vigente · 2026-10-28
 
 1. **Stalker:** adoptar `stalker-coordinated-retitle/1` mediante las tres APIs

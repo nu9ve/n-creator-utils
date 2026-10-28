@@ -6,6 +6,32 @@ repo. Clipper deps/ACK/relink y `media-release-lock/1` se reutilizan. No se ha
 modificado código, manifest ni proyecto de otra app. Validación sólo sintética;
 no autoriza operaciones sobre capturas reales.
 
+## Recuperación pending adoptada por nüün · 2026-10-28
+
+Stalker ya implementó el productor/UI/CLI ([entrega](../../../../ai/stalker/docs/2026-10-28-coordinated-retitle.md)).
+El coordinador ahora acepta status pending con IDs coincidentes, proyecto exacto,
+hash anterior esperado, hash nuevo SHA-256 y destino absoluto `.stalker` en el
+mismo parent, sin traversal ni symlinks. Revalida archivo/jobs/planes y deps
+frescos para **ambas rutas**, incluso si el origen ya fue renombrado. Después
+repite el apply existente con el request original, mismo ID y ambos FDs vivos;
+Stalker valida/reproduce su journal. Nüün no exige el manifest viejo en su ruta
+anterior ni escribe/reconstruye el manifest durante recuperación. El ACK final
+pasa la misma comprobación de hash, identidad y cambio exclusivo de project.
+Errores, resultado inválido, apply que aún responde pending o blockers conservan
+la intención pending; jamás publican éxito parcial. Failed sigue requiriendo
+recuperación del productor. Reintentar tras applied reconcilia sin otro apply.
+
+El schema exige path/project/ambos hashes también en pending. Sin journal
+verificable no se despacha recuperación. La especificación histórica de abajo
+que detenía todo pending queda sustituida por esta sección. No cambia la
+adopción de nuevas revisiones en Clipper ni la aceptación física.
+
+Puente repetible: `python3 scripts/test_stalker_retitle_bridge.py` desde nüün,
+con checkout/binario debug de Stalker existente. Carga su suite sólo lectura y
+sustituye el paso histórico de recuperación manual por reintento del coordinador;
+prueba los diez SIGKILL con el productor real y estado temporal, sin editar el
+repo Stalker ni compilar/instalar/abrir apps.
+
 ## Para retomar
 
 Nüün ya coordina; Stalker implementa `nuun-retitle capabilities|status|apply --json`

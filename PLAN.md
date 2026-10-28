@@ -19,9 +19,9 @@ inventar zona, miembros/media_bytes, hash/revisiones de manifest, mapping de
 Clipper y retitle coordinado implementados. Evidencia y límites en
 [STATUS](docs/STATUS.md); [handoff para las siguientes sesiones](docs/contracts/stalker-retitle-v1.md).
 
-1. Stalker debe implementar `stalker-coordinated-retitle/1` (capabilities/status/apply,
-   FDs heredados, CAS y journal/recuperación), eliminar autorización por consulta
-   `archived:false` sola y actualizar su adopción. Hasta entonces retitle bloquea.
+1. Stalker ya implementó capability/UI/CLI y nüün ya despacha recuperación
+   `status:pending` bajo locks, revalidando origen y destino. Validar con builds
+   actualizadas en el ciclo pequeño autorizado; fixtures no sustituyen aceptación física.
 2. Clipper debe adoptar los campos aditivos de sources con fixtures antiguas;
    nueva revisión exige decisión explícita. Portable handoff aún sin consumidor.
 3. Sólo después: aceptación física pequeña autorizada, builds reiniciadas y
