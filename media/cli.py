@@ -39,6 +39,13 @@ def parser():
     confirm = commands.add_parser('confirm-cleanup', help='After formatting a card in the camera, close its backup job')
     confirm.add_argument('job_id'); confirm.add_argument('source')
     commands.add_parser('cancel-plan').add_argument('plan_id')
+    commands.add_parser('asset-revisions').add_argument('asset_id')
+    revision = commands.add_parser('publish-revision', help='Explicit project-only revision on a separate archive copy; retains previous revision')
+    for name in ('operation_id', 'asset_id', 'expected_revision'):
+        revision.add_argument(name)
+    revision.add_argument('--project', required=True, help='JSON {version:1,name,country}')
+    revision.add_argument('--archive', required=True)
+    commands.add_parser('integration-capabilities')
     commands.add_parser('retitle-operations')
     retitle = commands.add_parser('retitle-capture')
     for name in ('operation_id', 'path', 'session_id', 'expected_manifest_sha256'):
@@ -73,11 +80,11 @@ def parser():
     commands.add_parser('jobs')
     job = commands.add_parser('job'); job.add_argument('job_id')
     library = commands.add_parser('library'); library.add_argument('--project'); library.add_argument('--work-state', choices=['pending', 'ready', 'skipped'])
-    resolve = commands.add_parser('resolve'); resolve.add_argument('asset_id')
+    resolve = commands.add_parser('resolve'); resolve.add_argument('asset_id'); resolve.add_argument('--revision')
     deliver = commands.add_parser('deliver'); deliver.add_argument('asset_ids', nargs='+'); deliver.add_argument('--work', required=True)
     state = commands.add_parser('work-state'); state.add_argument('asset_ids', nargs='+'); state.add_argument('--state', choices=['pending', 'skipped'], required=True)
     restore = commands.add_parser('restore'); restore.add_argument('asset_id'); restore.add_argument('destination')
-    handoff = commands.add_parser('handoff'); handoff.add_argument('asset_ids', nargs='+')
+    handoff = commands.add_parser('handoff'); handoff.add_argument('asset_ids', nargs='+'); handoff.add_argument('--volume-id', help='Select exactly this verified destination volume')
     return root
 
 
@@ -108,12 +115,12 @@ def main(argv=None):
                 if method == 'volumes': params = {}
             elif method == 'plan' and params['assignments']:
                 params['assignments'] = read_json(params['assignments'])
-            elif method == 'retitle-capture':
+            elif method in {'retitle-capture', 'publish-revision'}:
                 params['project'] = json.loads(params['project'])
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
+            method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans'}.get(method, method)
         data = service.call(method, params)

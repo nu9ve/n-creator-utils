@@ -1,6 +1,6 @@
 # Biblioteca, handoff y relocalización v1
 
-Estado: contrato borrador `creator-media-handoff/1`, revisión 0.1; productor y operaciones básicas ya existen en `media/`, consumidor Clipper pendiente. Los nombres conceptuales de secciones futuras no garantizan una operación instalada. Ver [STATUS](../STATUS.md) y [operations](../operations.md). Términos DEBE/NO DEBE fijan criterios de implementación futura; no afirman garantías del `save` legado.
+Estado vigente: `creator-media-handoff/1` producido por nüün y consumido por Clipper CLI/TUI. El [cierre del 29 octubre 2026](#cierre-productor-clitui--29-octubre-2026) documenta delivery completo, relink y publicación de revisiones con historial; sustituye los pendientes históricos de esas secciones. No implica instalación ni aceptación física. Ver [STATUS](../STATUS.md) y [operations](../operations.md). Las secciones de diseño conservan criterios futuros; no afirman garantías del `save` legado.
 
 ## Identidad y archivo
 
@@ -334,3 +334,125 @@ Audio por contribuciones y refinamiento PCM pertenecen a Clipper; no modifican
 reloj, eventos, captura ni bytes archivados. Corrección afín de drift, delivery
 multiarchivo, UI de adopción y aceptación larga/física siguen separados.
 Autoridad y evidencia: [entrega de Clipper](../../../../ai/clipper/docs/2026-10-29-contract-coordination.md).
+
+## Cierre productor CLI/TUI · 29 octubre 2026
+
+Esta sección sustituye los límites anteriores de delivery multiarchivo y registro
+simulado de revisiones. Autoridad del consumidor actual:
+[cierre Clipper CLI/TUI](../../../../ai/clipper/docs/2026-10-29-cli-tui-contract-closure.md).
+La implementación de nüün no importa módulos de las otras apps ni escribe sus
+proyectos o manifests. Studio permanece fuera de este contrato.
+
+### Delivery completo y reenlace
+
+`sources` incluye `kind:delivery`. `media_members[]` publica **todos** los miembros,
+auxiliares incluidos: `{original_path,path,bytes,sha256}` con ruta absoluta exacta
+de la ubicación seleccionada. No hay inferencia por basename; `path` del asset
+sigue siendo su archivo primario, no representa el paquete completo. Se exige
+recibo para cada `asset.paths`; presencia/tamaño se comprueban al listar y el
+consumidor revalida hashes antes de importar/reenlazar. Parciales se reportan como
+faltantes; offline conserva evidencia histórica. `media_bytes` suma media, `bytes`
+el paquete. En delivery sources se omite el campo opcional `editable_members`:
+el consumidor actual compara ese campo contra la membresía completa del handoff;
+`media_members` proporciona la evidencia completa sin confundir auxiliares con
+media editable. Handoff sí conserva su proyección de `editable_members` y todos
+los miembros en `members`/`locations[].members`.
+
+`media handoff ASSET… --volume-id UUID` / RPC `handoff {asset_ids,volume_id}`
+restringe las ubicaciones a **ese** volumen. No es preferencia ni fallback.
+El adaptador de retiro usa `clipper library relink PROYECTO ASSET --handoff JSON
+--operation-id UUID --json` para delivery, incluso con auxiliares. El documento y
+su ID se journalizan antes de invocar el consumidor y se reutilizan en reintentos.
+La ubicación se identifica contra destinos exactos de recibos. Se exige ACK de
+la revisión, from/to, operación, todos los `member_targets` y `still_pinned:[]`.
+Clipper comprueba el paquete completo aunque el plan de retiro seleccione sólo
+algunos medios. Las reglas existentes de retiro raw preservan auxiliares fuera
+de bundles; no se amplía aquí la política de borrado.
+
+Deps conserva cada fila histórica por revisión/ruta. Una cola de cualquier fila
+del asset candidato bloquea; nunca se deduplican filas antes de comprobar colas.
+Los relinks solicitados al proyecto vigente se agrupan sólo después de esos
+checks. Se conserva `media-release-lock/1`, revalidación tras ACK y antes de cada
+unlink. Un fallo/incompatibilidad/ACK parcial retiene los originales.
+
+### Publicación explícita de revisión project-only
+
+```text
+nu9ve media publish-revision OPERATION_UUID ASSET_UUID REVISION_ANTERIOR --archive ARCHIVE --project '{"version":1,"name":"corregido","country":"mx"}'
+nu9ve media asset-revisions ASSET_UUID
+nu9ve media resolve ASSET_UUID --revision REVISION_ANTERIOR
+nu9ve media handoff ASSET_UUID --volume-id ARCHIVE_UUID
+```
+
+RPC equivalente: `publish_revision {operation_id,asset_id,expected_revision,project,
+archive}`, `asset_revisions {asset_id}`, `resolve {asset_id,revision}`. Se exige
+asset Stalker vigente y copia **completa verificada** en el archivo seleccionado.
+`expected_revision` es CAS de la revisión del catálogo; project debe cambiar.
+La operación explícita crea una revisión en el archivo y deja trabajo pendiente;
+no elimina ni sobrescribe ninguna ubicación anterior. `deliver` puede preparar
+más tarde una copia de trabajo de la nueva revisión en su ruta separada.
+
+1. Bajo exclusión de editor y writer del catálogo, se valida capability real de
+   Stalker y se guarda intención `nuun-revision-publication/1` pending, keyed por
+   UUID/request completo. Se congelan asset/manifiesto/recibos anteriores.
+2. Se rehashea la copia anterior y se copia su bundle completo mediante el motor
+   existente a `<archive-prefix>/revisions/OPERATION_UUID/revision.stalker`.
+   Nunca se prepara media en el disco interno como fallback.
+3. El coordinador llama al **escritor Stalker existente** `nuun-retitle
+   capabilities|status|apply --json`, con CAS crudo, mismo operation ID y ambos
+   FDs heredados. Su request apunta exclusivamente a esa copia nueva sin
+   referencias. Stalker calcula el nombre y actualiza su journal/registro según
+   su protocolo. El retitle in-place existente mantiene todos sus bloqueos de
+   archivo, planes y referencias; no se le añade una excepción por UUID/archived.
+4. Se verifica ACK, identidad, diff de manifest limitado a project, membresía
+   exacta y hashes/tamaños de **todos** los archivos; se revalida la copia vieja.
+   Reloj, campos opcionales desconocidos, tracks, audio y eventos quedan intactos.
+5. Se escribe/sincroniza un recibo portable `nu9ve-transfer-receipt/1` real con
+   nuevo job, plan de catálogo no resumible (`recovered`), hashes y evidencia
+   `revision_publication {previous_asset,asset,operation_id}`. Después una sola
+   transacción SQLite agrega historial `asset_revisions`, nuevo job/miembros/
+   copias, sesión/digest y operación published, y avanza el asset vigente.
+   Conserva asset/session/proyecto de catálogo/perfil y paths originales lógicos;
+   cambia revision/content_revision y la ruta física de la copia nueva.
+
+Los jobs/copias/recibos viejos permanecen intactos. `asset_revisions` representa
+historia mínima por `(asset_id,revision)` y `asset_jobs` vincula sus jobs. Resolve
+histórico usa sus propios recibos. Recovery rehashea ambos recibos y aplica las
+publicaciones después de leerlos, independiente del orden de nombres UUID;
+rechaza historia sin el recibo anterior. No hay transacción ACID entre Stalker,
+filesystem y SQLite: el journal anterior a la copia y el recibo anterior al
+commit permiten recuperación hacia delante con **el mismo request/ID**.
+Pending de Stalker se valida y reproduce bajo los mismos FDs; applied se
+reconcilia sin reescribir. Un conflicto, hash/media modificada, disco ausente o
+resultado incierto conserva pending y ambas copias. No se limpia staging ambiguo
+automáticamente ni se fabrica un recibo de una copia aún sin verificar.
+
+La respuesta published confirma publicación de catálogo, **no adopción editorial**.
+Se exporta el handoff nuevo y el usuario solicita `clipper library adopt-revision`
+para plan/confirmación explícita. Su ACK sigue siendo
+`clipper-revision-adoption/1`, nunca se convierte en ACK de relink/retiro.
+Colas anteriores permanecen fijadas y visibles en deps tras adoptar; fallos de
+adopción conservan las dos revisiones sin liberar nada. No se añade un diálogo
+de publicación nativo en esta entrega; la acción explícita está en CLI/RPC y
+la revisión/confirmación editorial pertenece al CLI/TUI existente de Clipper.
+
+### Integraciones opcionales
+
+Guardar/copiar/verificar/listar/handoff propios no requieren instalar ni iniciar
+Clipper o Stalker. `integration-capabilities` / RPC `integration_capabilities`
+consulta capacidades con timeout breve y devuelve indisponibilidad por app sin
+romper el refresh de datos propios; la UI oculta Reenlazar Clipper cuando falta
+su capability. Publicación requiere el escritor Stalker y exclusión aplicable.
+No hay instalación/arranque automático ni imports cruzados en runtime.
+
+Un Clipper nunca configurado y sin ejecutable/registro/cola conocido permite
+los checks locales bajo el mismo lock. Configuración explícita, ejecutable
+previamente descubierto (`clipper-known` durable, incluso incompatible), registro enlazado o cola hacen al
+consumidor **conocido**: ausente/offline/incompatible continúa bloqueando retiro.
+Un CLI instalado que falla no se considera ausente. Se mantienen comprobaciones
+read-only de proyectos legacy, snapshots y raíces enlazadas. Si discovery falla
+después de una copia segura, el ingreso puede terminar con origen retenido;
+no se convierte la ausencia de respuesta en permiso para limpiar.
+
+Validación y límites efectivos: [STATUS](../STATUS.md). No implica build instalada,
+aceptación física, otros hosts/catálogos ni consumidores externos como Final Cut.

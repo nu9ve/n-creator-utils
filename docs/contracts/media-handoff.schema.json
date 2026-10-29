@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:nu9ve:creator-media-handoff:1",
-  "title": "Creator media library handoff (draft, not yet adopted)",
+  "title": "Creator media library handoff v1",
   "type": "object",
   "required": [
     "schema",

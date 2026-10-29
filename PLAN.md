@@ -101,10 +101,14 @@ Use [development handoff](docs/development.md#cerrar-y-retomar-una-sesión). Cho
 
 ## Coordinación editorial · 2026-10-29
 
-Handoff y zoom sostenido ya adoptados por Clipper CLI/TUI: no reimplementarlos.
-Delivery de un archivo y consumidor de adopción project-only disponibles; ver
-[contrato común](docs/contracts/media-library-v1.md#consumidor-clipper--extensión-del-29-octubre-2026).
-Siguiente paso productor: diseñar el registro/publicación de revisión metadata-only
-bajo un mismo asset con recibos y ambas copias conservadas, y su recorrido UI.
-No relajar retitle con referencias ni la protección de colas para adelantarlo.
-La aceptación física/builds efectivas sigue pendiente, independiente de fixtures.
+Contratos cerrados en código de nüün: delivery completo, reenlace integral por
+handoff destino/ACK y publicación project-only mediante nueva copia, escritor
+Stalker y recibos/historial conservados. Probado con CLIs reales y catálogos
+fixture; [contrato](docs/contracts/media-library-v1.md#cierre-productor-clitui--29-octubre-2026),
+[evidencia/limites](docs/STATUS.md). Integraciones opcionales; conocidos offline
+siguen bloqueando retiro. No hay cambios en Studio ni adopción editorial automática.
+
+Siguiente gate: revisar/instalar builds efectivas de los consumidores y nüün,
+reiniciarlos y aceptar un ciclo físico pequeño autorizado. Publicación explícita
+en CLI/RPC; no se añadió diálogo de publicación nativo. No relajar retitle,
+colas ni hashes para adelantar esa aceptación. Sin media personal en fixtures.

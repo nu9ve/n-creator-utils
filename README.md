@@ -54,7 +54,7 @@ nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro
 | Agentes | `media mcp`: servidor stdio de sólo lectura, sin puerto HTTP ni herramientas destructivas. |
 | Otros brazos | `download`, `split`, prototipos hardware/Bash conservados. Aún no comparten todo el nuevo ciclo de assets. |
 
-Stalker se archiva completo y finalizado; no se limpia su única biblioteca local automáticamente. La relocalización integral de Clipper y las integraciones Atlas/Final Cut siguen pendientes de adopción en sus repos.
+Stalker se archiva completo y finalizado; no se limpia su única biblioteca local automáticamente. El reenlace integral y la adopción explícita de revisiones están probados con Clipper CLI/TUI en fixtures; Atlas/Final Cut y la aceptación física siguen pendientes. [Contrato vigente](docs/contracts/media-library-v1.md#cierre-productor-clitui--29-octubre-2026).
 
 ## Desarrollo y distribución
 

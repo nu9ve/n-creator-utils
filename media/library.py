@@ -11,10 +11,15 @@ from .planner import destination_path
 from .transfer import Transfer, claim_directory
 
 
-def asset_record(catalog, asset_id):
+def asset_record(catalog, asset_id, revision=None):
     row = catalog.db.execute('SELECT payload FROM assets WHERE id=?', (asset_id,)).fetchone()
     require(row is not None, 'unknown_asset', 'Asset not found')
-    return json.loads(row[0])
+    asset = json.loads(row[0])
+    if revision is not None and asset['revision'] != revision:
+        row = catalog.db.execute('SELECT payload FROM asset_revisions WHERE asset_id=? AND revision=?', (asset_id, revision)).fetchone()
+        require(row is not None, 'unknown_revision', 'Asset revision not found')
+        asset = json.loads(row[0])
+    return asset
 
 
 def set_work_state(catalog, asset_ids, state):
@@ -76,8 +81,8 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
     return {'delivered': delivered, 'volume_id': record['id']}
 
 
-def resolve(catalog, backend, asset_id):
-    asset = asset_record(catalog, asset_id)
+def resolve(catalog, backend, asset_id, revision=None):
+    asset = asset_record(catalog, asset_id, revision)
     locations = []
     for volume in catalog.volumes():
         rows = [json.loads(row[0]) for row in catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (asset['job_id'], volume['id']))]
@@ -110,7 +115,7 @@ def receipt_metadata(catalog, asset, copies):
             'clipper_profile': clipper_profile(catalog, asset['profile'])}
 
 
-def handoff(catalog, backend, asset_ids):
+def handoff(catalog, backend, asset_ids, volume_id=None):
     require(asset_ids and len(set(asset_ids)) == len(asset_ids), 'invalid_selection', 'Select distinct assets')
     assets = [asset_record(catalog, value) for value in asset_ids]
     require(len({(a['project_id'], a['profile']) for a in assets}) == 1, 'mixed_project', 'Handoff must be one project/profile')
@@ -121,15 +126,19 @@ def handoff(catalog, backend, asset_ids):
         plan = catalog.job(asset['job_id'])['plan']
         locations, groups = [], {}
         for record in catalog.volumes():
+            if volume_id is not None and record['id'] != volume_id:
+                continue
             rows = [json.loads(r[0]) for r in catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=?', (plan['id'], record['id']))]
             copies = {r['path']: r for r in rows if r['path'] in asset['paths']}
             groups[record['id']] = copies
             expected = {p for p in asset['paths'] if destination_path(record, plan, asset, p, selected_only=False)}
             if not expected or set(copies) != expected:
                 continue
-            selected = [r for p, r in sorted(copies.items()) if asset['kind'] == 'stalker_session' or kind_of(p) in MEDIA_KINDS]
+            selected = [r for p, r in sorted(copies.items()) if asset['kind'] in {'stalker_session', 'delivery'} or kind_of(p) in MEDIA_KINDS]
             if not selected:
                 selected = [r for _, r in sorted(copies.items())]
+            if asset['kind'] == 'delivery':
+                selected.sort(key=lambda r: (kind_of(r['path']) not in MEDIA_KINDS, r['path']))
             sample = selected[0]
             if asset['kind'] == 'stalker_session':
                 prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
@@ -290,7 +299,7 @@ def present(root, copy):
 def sources(catalog, backend, project, purpose='edit'):
     """Editable sources of a project in capture order, one call, for an editor's quick import (read-only)."""
     require(purpose in {'edit', 'archive'}, 'invalid_purpose', 'Purpose must be edit or archive')
-    assets = [a for a in catalog.search(project) if a['kind'] in {'stalker_session', 'camera_bundle', 'file'}]
+    assets = [a for a in catalog.search(project) if a['kind'] in {'stalker_session', 'camera_bundle', 'file', 'delivery'}]
     require(assets, 'unknown_project', 'No ingested assets for project ' + str(project))
     volumes = {v['id']: dict(v, online=bool(backend.online(v))) for v in catalog.volumes()}
     preference = ('work', 'archive') if purpose == 'edit' else ('archive', 'work')
@@ -305,12 +314,12 @@ def sources(catalog, backend, project, purpose='edit'):
             prefix = '' if asset['bundle'] == '.' else asset['bundle'] + '/'
             primary = [prefix + 'manifest.json']
         else:
-            primary = [p for p in asset['paths'] if kind_of(p) in MEDIA_KINDS]
+            primary = sorted(p for p in asset['paths'] if kind_of(p) in MEDIA_KINDS)
         if not primary:
             continue  # Camera indexes/thumbnails are never editor sources.
         candidates, missing = [], []
         for volume_id, rows in copies.items():
-            if not all(p in rows for p in primary):
+            if not all(p in rows for p in (asset['paths'] if asset['kind'] in {'delivery', 'stalker_session'} else primary)):
                 continue
             volume = volumes[volume_id]
             sample = rows[primary[0]]
@@ -339,6 +348,13 @@ def sources(catalog, backend, project, purpose='edit'):
             selected_rows = copies[candidates[0][2]['volume_id']]
             entry['editable_members'] = [dict(m, local_path=str(Path(volumes[candidates[0][2]['volume_id']]['root']) / selected_rows[m['path']]['destination']))
                                          for m in entry['editable_members'] if m['path'] in selected_rows]
+            if asset['kind'] == 'delivery':
+                root = Path(volumes[candidates[0][2]['volume_id']]['root'])
+                entry['media_members'] = [dict(original_path=p, path=str(root / selected_rows[p]['destination']),
+                                                bytes=selected_rows[p]['bytes'], sha256=selected_rows[p]['sha256']) for p in asset['paths']]
+                # The current handoff consumer compares this field against ALL supplied members.
+                # Complete delivery evidence lives in media_members; media_bytes remains media-only.
+                entry.pop('editable_members', None)
             entry.update({k: candidates[0][2][k] for k in ('path', 'volume', 'volume_id', 'receipt_id', 'role', 'online')})
         if any(m['role'] == 'archive' for m in missing):
             warnings.append({'asset_id': asset['id'], 'name': name, 'problem': 'archive_copy_missing', 'locations': missing})

@@ -1,10 +1,13 @@
 # Handoff Stalker · retitle de completed · 2026-10-28
 
-Estado: coordinador implementado en nüün (`media/retitle.py`, servicio JSON y
-CLI); **capability de Stalker aún requerida**, sin adopción declarada en su
-repo. Clipper deps/ACK/relink y `media-release-lock/1` se reutilizan. No se ha
-modificado código, manifest ni proyecto de otra app. Validación sólo sintética;
-no autoriza operaciones sobre capturas reales.
+Estado vigente: coordinador y recuperación implementados en nüün; Stalker ya
+implementa `stalker-coordinated-retitle/1`, probado con su CLI real en fixtures.
+El [cierre de publicación](#publicación-sobre-una-copia-nueva--2026-10-29) usa ese
+escritor sobre una copia nueva, conservando la anterior. El retitle in-place
+mantiene sus guardas. Clipper deps/ACK y `media-release-lock/1` se reutilizan.
+Sin instalación ni aceptación física nueva; evidencia en [STATUS](../STATUS.md).
+Las instrucciones históricas de implementación de abajo no indican tareas aún
+pendientes del productor.
 
 ## Recuperación pending adoptada por nüün · 2026-10-28
 
@@ -207,3 +210,16 @@ rechazo de manifest diferente y pedir adopción/reimport explícito. Portable
 handoff sigue pendiente de consumidor. Luego acordar ciclo físico pequeño
 **autorizado aparte** con ambas apps reiniciadas; fixtures no certifican captura,
 sync/escucha, desconexión/remount ni retiro de originales reales.
+
+## Publicación sobre una copia nueva · 2026-10-29
+
+El retitle in-place de este documento conserva sus bloqueos. La operación
+separada `publish-revision` crea/verifica una copia nueva en un archivo registrado,
+antes de llamar al mismo escritor Stalker y conservar sus FDs/CAS/journal.
+Stalker recibe sólo la ruta nueva sin referencias; nunca la copia archivada o
+referenciada anterior. Nüün verifica project-only y publica recibos/historial
+bajo el mismo asset; el editor adopta explícitamente después.
+[Secuencia, CLI, recuperación y límites](media-library-v1.md#publicación-explícita-de-revisión-project-only).
+El escritor actual actualiza también su registro library según su protocolo;
+esta operación explícita no cambia la configuración de biblioteca de nüün.
+No se necesita una capability nueva ni relajar `archived:false` o referencias.

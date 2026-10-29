@@ -56,6 +56,7 @@ class Catalog:
           CREATE TABLE IF NOT EXISTS publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,
             url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));
           CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));
           CREATE TABLE IF NOT EXISTS work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,
             target TEXT, updated_at TEXT NOT NULL);
         ''')

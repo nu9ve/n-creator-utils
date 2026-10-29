@@ -52,6 +52,7 @@ struct DraftUnit: Identifiable, Equatable {
     @Published var captureRoots: [String] = []
     @Published var captureError = ""
     @Published var clipperExecutable = ""
+    @Published var clipperAvailable = false
     @Published var retainStalkerSource = false
     @Published var releasePlan: JSONValue?
     @Published var releaseHistory: [JSONValue] = []
@@ -170,6 +171,9 @@ struct DraftUnit: Identifiable, Equatable {
             profiles = try await client.call("profiles").array
             recentProjects = try await client.call("projects").array
             releaseHistory = try await client.call("release_plans").array
+            if let capabilities = try? await client.call("integration_capabilities") {
+                clipperAvailable = capabilities["clipper"]["available"].bool
+            } else { clipperAvailable = false }
             let integrations = try await client.call("integration_settings")
             clipperExecutable = integrations["clipper_executable"].string
             retainStalkerSource = integrations["retain_stalker_source"].bool
