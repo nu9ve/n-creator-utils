@@ -77,7 +77,7 @@ Protocolo futuro, coordinado por app propietaria de referencias:
 4. n-creator registra el ACK; la ubicación antigua se conserva hasta que todas las dependencias conocidas se resuelvan. Una cola inmutable puede retener la ruta antigua, necesitar regeneración o bloquear limpieza; no se promete reescribir todo snapshot a ciegas.
 5. Si falla a mitad o no hay ACK, recuperar/reconciliar; no borrar fuente ni alegar que «relink terminado». Cambiar sólo `item.path` no satisface este protocolo.
 
-Estado 2026-10-25: Clipper CLI/TUI hace relink **local y a pedido** de una fuente importada desde la biblioteca (misma revisión; `sessionID` + digest del manifest o SHA-256), reescribe items, `capture_sessions`, `sync_reference_path` y firmas de placement, e invalida previews. Cada relink publica un ACK (`clipper-relink-ack/1`: `operation_id` idempotente, asset/revisión, `from`/`to`, revisión del proyecto antes/después, `still_pinned` con los exports en cola que conservan la ruta vieja) en `clipper library deps --json`, junto con las dependencias por asset. n-creator-utils aún no lo consume y no hay leases. Ver [adopción Clipper](media-naming-v1.md#adopción-clipper-implementada-2026-10-25).
+Estado histórico 2026-10-25 (sustituido por las adopciones posteriores abajo): Clipper CLI/TUI hace relink **local y a pedido** de una fuente importada desde la biblioteca (misma revisión; `sessionID` + digest del manifest o SHA-256), reescribe items, `capture_sessions`, `sync_reference_path` y firmas de placement, e invalida previews. Cada relink publica un ACK (`clipper-relink-ack/1`: `operation_id` idempotente, asset/revisión, `from`/`to`, revisión del proyecto antes/después, `still_pinned` con los exports en cola que conservan la ruta vieja) en `clipper library deps --json`, junto con las dependencias por asset. n-creator-utils aún no lo consume y no hay leases. Ver [adopción Clipper](media-naming-v1.md#adopción-clipper-implementada-2026-10-25).
 
 Un contrato de leases registra uso en proyecto/queue/Final Cut/Atlas, responsable y revisión. Un consumidor offline o no integrado no autoriza limpieza; ofrecer retención manual. Hash igual permite resolver nueva copia, pero el consumidor confirma su propia consistencia. Un asset cambiado invalida sync/transcripts/previews según el editor, no según el archivador.
 
@@ -298,9 +298,39 @@ Clipper sobre `e4f73d1` incorpora tiempo/procedencia/zona (unknown explícito),
 media_bytes/miembros, hashes crudos/revisiones y clipper_profile sin inferencias.
 CLI y F6 comparten consumidor handoff: volumen registrado/online, recibo real,
 hash actual, confinamiento, límites, identidad y reintento durable. Sources y
-pegado conservan compatibilidad. Handoff delivery no es fuente editorial
-soportada; ubicaciones legacy múltiples ambiguas fallan cerrado. Retitle no
-adopta otra revisión por UUID ni introduce una migración metadata-only.
+pegado conservan compatibilidad. A esa fecha delivery y adopción de revisión
+no estaban soportados; su extensión del 29 se describe abajo. Ubicaciones legacy
+múltiples ambiguas y adopción implícita por UUID siguen rechazadas.
 [Pruebas, matriz y pendientes](../../../../ai/clipper/docs/2026-10-28-cli-tui-contract-adoption.md).
 Esta nota sustituye sólo el estado histórico «Clipper pendiente» de las
 secciones de campos aditivos; no cambia semántica, schemas ni el productor.
+
+
+### Consumidor Clipper · extensión del 29 octubre 2026
+
+Handoff mantiene major 1: Clipper importa delivery de un único archivo de audio/video
+con probe, miembros/recibos y hash verificados. Un delivery de varios miembros no
+se convierte implícitamente en un clip. Nüün ya produce delivery mediante ingest
+source_kind=delivery; no se cambia su formato ni se añade copia desde el editor.
+
+Clipper define `clipper-revision-adoption/1` como ACK de su operación explícita
+`library adopt-revision`, separada de relink/import y del retitle productor.
+Sólo cambia project del manifest Stalker: mismo asset/session/proyecto/perfil,
+recibos completos, bytes/membresía intactos salvo manifest, CAS editorial y
+operation ID idempotente. El consumidor no escribe manifests ni catálogo.
+La publicación de una revisión verificada bajo un asset lógico existente es
+responsabilidad del catálogo y todavía requiere cerrar su recorrido operativo;
+el fixture cruzado simula ese registro, sin alegar una UI implementada.
+
+Deps puede devolver filas adicionales de la revisión/ruta histórica de un mismo
+asset_id mientras una cola las fije (`status=historical_revision`,
+`queued_exports` no vacío). No deduplicar únicamente por asset_id. El guard
+actual de nüün ya bloquea estas filas por la cola; no se transforma un ACK de
+adopción en un ACK de relink ni se permite liberar esa copia.
+
+Retitle productor sigue bloqueado con referencias de Clipper, incluso inactivas.
+La nueva adopción no autoriza retitle ni cambia el coordinador/locks de Stalker.
+Audio por contribuciones y refinamiento PCM pertenecen a Clipper; no modifican
+reloj, eventos, captura ni bytes archivados. Corrección afín de drift, delivery
+multiarchivo, UI de adopción y aceptación larga/física siguen separados.
+Autoridad y evidencia: [entrega de Clipper](../../../../ai/clipper/docs/2026-10-29-contract-coordination.md).

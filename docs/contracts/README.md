@@ -1,6 +1,6 @@
 # Contratos del ecosistema de media
 
-Actualización 2026-10-27: hay productor de handoff, recibos, servicio JSON y MCP read-only en este repo. El contrato entre apps sigue **en revisión**; Stalker y Clipper (CLI/TUI) ya lo adoptaron con los límites de su fila. Estado completo: [STATUS](../STATUS.md). Propuesta inicial: 2026-10-24. Este directorio es el índice central de almacenamiento e intercambio entre n-creator-utils, Stalker y Clipper; Atlas participa como consumidor adicional. No declara adopción de cambios en los otros repos.
+Actualización 2026-10-29: hay productor de handoff, recibos, servicio JSON y MCP read-only en este repo. El contrato entre apps sigue **en revisión**; Stalker y Clipper (CLI/TUI) ya lo adoptaron con los límites de su fila. Estado completo: [STATUS](../STATUS.md). Propuesta inicial: 2026-10-24. Este directorio es el índice central de almacenamiento e intercambio entre n-creator-utils, Stalker y Clipper; Atlas participa como consumidor adicional. No declara adopción de cambios en los otros repos.
 
 ## Cierre productor · 2026-10-28
 
@@ -11,8 +11,8 @@ schema y ejemplo generado describen miembros por volumen/recibo. Detalle vigente
 El coordinador de retitle y el despacho de recuperación pending están implementados;
 Stalker ya adoptó la capability en fixtures (ver su fila y STATUS). `archived:false` solo ya no autoriza cambiar completed.
 [APIs, schema, fixtures, errores y aceptación para Stalker](stalker-retitle-v1.md).
-Clipper mantiene su adopción anterior; campos nuevos/portable handoff aún no
-adoptados aquí. Evidencia de esta implementación en [STATUS](../STATUS.md).
+Clipper CLI/TUI ya adoptó campos nuevos y portable handoff; ver su fila vigente
+y el cierre posterior. Evidencia del productor en [STATUS](../STATUS.md).
 Las filas históricas de pendientes abajo conservan origen/fecha; esta sección
 sustituye el estado pendiente de reloj, miembros, manifest y mapping.
 
@@ -23,17 +23,18 @@ incluir flancos agregados y posición del cursor habilitado; encabezado opcional
 `modifierTracking: "physical-fn/1"`. [Semántica y límites](../../../../ai/stalker/docs/input-events.md#ctrlfn-mantenidos-para-zoom-y-seguimiento).
 Nüün conserva el bundle completo sin interpretar ni reescribir eventos.
 No cambia naming, sessionID, digest, retitle ni la política de archivo/retiro.
-El lector de Clipper acepta la adición; implementar el efecto Ctrl+Fn sostenido
-es un pendiente de Clipper, no una adopción declarada por este índice.
+Clipper CLI/TUI ya implementa el efecto Ctrl+Fn y Ctrl+Option sostenido, opt-in.
+[Contrato y evidencia del consumidor](../../../../ai/clipper/docs/dynamic-framing.md#zoom-sostenido-del-cursor).
+No implica controles de Studio ni aceptación larga del ecosistema.
 
 ## Autoridad y compatibilidad
 
 | Contrato | Autoridad | Estado |
 | --- | --- | --- |
 | Captura, archivos, reloj y audio `stalker-clipper/1`, revisión 1.4 | [Stalker](../../../../ai/stalker/docs/clipper-contract.md), considerar notas locales actuales | Implementado por productor/consumidor con límites documentados en sus repos. No duplicar ese schema aquí. |
-| Proyecto/timeline/perfiles y App Services | [Clipper](https://github.com/nu9ve/clipper/blob/e6981b1/apps/APP_CONTRACT.md) y [servicios](https://github.com/nu9ve/clipper/blob/e6981b1/apps/APP_SERVICES_CONTRACT.md) | Contratos existentes; no escribir proyectos desde el archivador. |
+| Proyecto/timeline/perfiles y App Services | [Clipper](../../../../ai/clipper/apps/APP_CONTRACT.md) y [servicios](../../../../ai/clipper/apps/APP_SERVICES_CONTRACT.md) | Contratos existentes; no escribir proyectos desde el archivador. |
 | Descubrimiento `nu9ve-inspection/1` | [inventory.py](../../manager/inventory.py) | Implementado aquí; observaciones sin garantía de importabilidad/integridad ni destinos. |
-| Handoff de biblioteca `creator-media-handoff/1` | [Especificación](media-library-v1.md) + [schema](media-handoff.schema.json) | Productor `media/library.py` implementado; sin consumidor implementado (Clipper usa `sources`, ver su fila). [Ejemplo](examples/handoff.json) usa datos ficticios. |
+| Handoff de biblioteca `creator-media-handoff/1` | [Especificación](media-library-v1.md) + [schema](media-handoff.schema.json) | Productor `media/library.py` y consumidor Clipper CLI/F6 implementados. Sources sigue disponible. Límites de tipos/revisiones en la fila Clipper. [Ejemplo](examples/handoff.json) usa datos ficticios. |
 | Naming y carpetas de media v1 | [Especificación](media-naming-v1.md), productor [layout.py](../../media/layout.py) | Implementado aquí (planes esquema 2, `relayout`) y usado en el primer respaldo real. Stalker lo adoptó en 0.4 y Clipper CLI/TUI el 2026-10-25 (ver filas de adopción). |
 | Transferencia, resolución, relink, dependencias y publicación | [Especificación común](media-library-v1.md) | Deps/ACK/relink y exclusión host-local de liberación implementados; lease distribuido y automatización de publicación pendientes. |
 
@@ -53,9 +54,9 @@ Cada sesión de Stalker o Clipper actualiza **su fila** al terminar, con fecha y
 
 | App | Contrato / sección | Estado | Fecha · commit | Notas y límites |
 | --- | --- | --- | --- | --- |
-| n-creator-utils | Productor naming/handoff/sources aditivos y retitle coordinado; Clipper deps/ACK/media-release-lock/1 | Implementado en fixtures; capability Stalker y adopción de campos nuevos pendientes | 2026-10-28 · working tree sobre `3360d1d` | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Exclusión host-local; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
-| Stalker | naming v1, `stalker-clipper/1` rev. 1.4 y `stalker-coordinated-retitle/1` | Productor/UI/CLI instalados; gesto sostenido pendiente de consumo Clipper | 2026-10-28 · working tree sobre `e15918b` | Stalker 0.5.0/build 7 en `~/Applications/Stalker.app`, CLI firmada estable. Modificadores Ctrl/Fn con flancos agregados, Fn físico y ancla opt-in de cursor; reset en gaps. 87 pruebas Swift, lector real Clipper acepta fixture y 22 casos del puente contra CLI/backend nüün instalados. Naming, identidad, audio, reloj, locks/CAS y archivo sin cambio. Zoom sostenido todavía sin implementar en Clipper; Fn en teclado real y captura/export largo pendientes. [Revisión y evidencia](../../../../ai/stalker/docs/2026-10-28-input-contract-review.md). |
-| Clipper | naming v1, sources aditivo, creator-media-handoff/1 editable, Stalker 1.3, deps/ACK/media-release-lock/1 | Adoptado en CLI/TUI; fixtures y CLIs reales; físico/distribución pendientes | 2026-10-28 · working tree sobre `e4f73d1` | Mapping explícito sin abreviaturas; tiempo/procedencia/zona, miembros/media_bytes y revisiones preservados. Handoff CLI/F6 valida catálogo, volúmenes, recibos/hash y reintento durable. UUID de sesión no adopta otra revisión. Retitle permitido/bloqueado con deps reales y ciclo handoff → prepare → cola → relink/ACK → liberar fixture. `delivery` y migración editorial de otra revisión pendientes; sin Studio. [Matriz/evidencia](../../../../ai/clipper/docs/2026-10-28-cli-tui-contract-adoption.md). |
+| n-creator-utils | Productor naming/handoff/sources aditivos y retitle coordinado; Clipper deps/ACK/media-release-lock/1 | Productor y coordinación implementados; aceptación física/distribución pendientes | 2026-10-28 · working tree sobre `3360d1d` | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Exclusión host-local; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
+| Stalker | naming v1, `stalker-clipper/1` rev. 1.4 y `stalker-coordinated-retitle/1` | Productor/UI/CLI instalados; gesto sostenido consumido por Clipper CLI/TUI | 2026-10-28 · working tree sobre `e15918b` | Stalker 0.5.0/build 7 en `~/Applications/Stalker.app`, CLI firmada estable. Modificadores Ctrl/Fn con flancos agregados, Fn físico y ancla opt-in de cursor; reset en gaps. 87 pruebas Swift, lector real Clipper acepta fixture y 22 casos del puente contra CLI/backend nüün instalados. Naming, identidad, audio, reloj, locks/CAS y archivo sin cambio. Zoom sostenido ya implementado por Clipper; evidencia corta real del 29 en su repo. Captura/export largo siguen pendientes. [Revisión y evidencia](../../../../ai/stalker/docs/2026-10-28-input-contract-review.md). |
+| Clipper | naming v1, sources/handoff, Stalker 1.4, deps/ACK/media-release-lock/1 | CLI/TUI: adoptado; delivery de un archivo, adopción explícita de metadata y plan de audio | 2026-10-29 · working tree sobre `393da49` | Handoff con recibos/hash; zoom sostenido opt-in; audio de varias sesiones por grupo/rango; refinamiento PCM. Adopción de project con evidencia completa y CAS; no autoriza retitle con referencias. Delivery de varios miembros, publicación operativa de revisiones, corrección afín de drift y aceptación física/distribución siguen separados; sin Studio. [Entrega y límites](../../../../ai/clipper/docs/2026-10-29-contract-coordination.md). |
 | Atlas | library v1 como consumidor | Sin iniciar | — | — |
 
 ## Interfaz local estable para las apps (sólo lectura)
@@ -119,7 +120,7 @@ Una sesión de Stalker o Clipper **puede editar `docs/contracts/*.md` de este re
 Conservar la edición y las colas detenidas durante el retiro: aún falta un lease inter-app. El guard adicional lee proyectos/colas estándar/enlazados de Clipper para bloquear rutas antiguas ausentes en `deps`; no migra esos proyectos ni cubre consumidores desconocidos. Validación con fixtures; no declarar adopción probada en medios reales. [Procedimiento completo](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
 
 
-### Cierre CLI/TUI del 28 de octubre de 2026
+### Cierre CLI/TUI del 28 de octubre de 2026 (histórico, anterior a la adopción posterior)
 
 Autoridad de captura vigente: Stalker `stalker-clipper/1` revisión 1.3, en su
 working tree 0.5 sobre `d88eaf9`; su fila del 25 conserva evidencia histórica.
@@ -142,7 +143,8 @@ La fila anterior sustituye la limitación histórica «sin consumidor handoff» 
 «campos nuevos pendientes en Clipper». El productor y la recuperación pending
 de Stalker/nüün ya existen; no se adoptan revisiones editoriales automáticamente.
 La evidencia actual y los límites viven en la [entrega Clipper](../../../../ai/clipper/docs/2026-10-28-cli-tui-contract-adoption.md).
-No implica distribución ni aceptación física. `delivery` portable aún falla
-como tipo no soportado en el editor. Retitle con referencias de Clipper sigue
-bloqueado por el contrato vigente; no hay protocolo implementado de migración
-metadata-only conservando identidad editorial entre revisiones.
+No implica distribución ni aceptación física. `delivery` de un archivo de audio/video ya se admite; multiarchivo sigue fuera.
+El consumidor de adopción explícita project-only ya existe, con recibos, CAS y
+colas preservadas. Retitle con referencias sigue bloqueado: esa operación no
+publica nuevas revisiones desde Stalker/nüün ni implica un flujo UI de retitle.
+[Estado y contratos actuales](../../../../ai/clipper/docs/2026-10-29-contract-coordination.md).
