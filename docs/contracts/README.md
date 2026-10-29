@@ -16,11 +16,21 @@ adoptados aquí. Evidencia de esta implementación en [STATUS](../STATUS.md).
 Las filas históricas de pendientes abajo conservan origen/fecha; esta sección
 sustituye el estado pendiente de reloj, miembros, manifest y mapping.
 
+## Señal sostenida de Stalker · 2026-10-28
+
+Revisión aditiva 1.4 del contrato propietario de captura: `mods` ahora puede
+incluir flancos agregados y posición del cursor habilitado; encabezado opcional
+`modifierTracking: "physical-fn/1"`. [Semántica y límites](../../../../ai/stalker/docs/input-events.md#ctrlfn-mantenidos-para-zoom-y-seguimiento).
+Nüün conserva el bundle completo sin interpretar ni reescribir eventos.
+No cambia naming, sessionID, digest, retitle ni la política de archivo/retiro.
+El lector de Clipper acepta la adición; implementar el efecto Ctrl+Fn sostenido
+es un pendiente de Clipper, no una adopción declarada por este índice.
+
 ## Autoridad y compatibilidad
 
 | Contrato | Autoridad | Estado |
 | --- | --- | --- |
-| Captura, archivos, reloj y audio `stalker-clipper/1`, revisión 1.3 | [Stalker](../../../../ai/stalker/docs/clipper-contract.md), considerar notas locales actuales | Implementado por productor/consumidor con límites documentados en sus repos. No duplicar ese schema aquí. |
+| Captura, archivos, reloj y audio `stalker-clipper/1`, revisión 1.4 | [Stalker](../../../../ai/stalker/docs/clipper-contract.md), considerar notas locales actuales | Implementado por productor/consumidor con límites documentados en sus repos. No duplicar ese schema aquí. |
 | Proyecto/timeline/perfiles y App Services | [Clipper](https://github.com/nu9ve/clipper/blob/e6981b1/apps/APP_CONTRACT.md) y [servicios](https://github.com/nu9ve/clipper/blob/e6981b1/apps/APP_SERVICES_CONTRACT.md) | Contratos existentes; no escribir proyectos desde el archivador. |
 | Descubrimiento `nu9ve-inspection/1` | [inventory.py](../../manager/inventory.py) | Implementado aquí; observaciones sin garantía de importabilidad/integridad ni destinos. |
 | Handoff de biblioteca `creator-media-handoff/1` | [Especificación](media-library-v1.md) + [schema](media-handoff.schema.json) | Productor `media/library.py` implementado; sin consumidor implementado (Clipper usa `sources`, ver su fila). [Ejemplo](examples/handoff.json) usa datos ficticios. |
@@ -44,7 +54,7 @@ Cada sesión de Stalker o Clipper actualiza **su fila** al terminar, con fecha y
 | App | Contrato / sección | Estado | Fecha · commit | Notas y límites |
 | --- | --- | --- | --- | --- |
 | n-creator-utils | Productor naming/handoff/sources aditivos y retitle coordinado; Clipper deps/ACK/media-release-lock/1 | Implementado en fixtures; capability Stalker y adopción de campos nuevos pendientes | 2026-10-28 · working tree sobre `3360d1d` | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Exclusión host-local; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
-| Stalker | naming v1, `stalker-clipper/1` rev. 1.3 y `stalker-coordinated-retitle/1` | Productor/UI/CLI instalados; recuperación pending probada con nüün actualizado | 2026-10-28 · working tree sobre `61a9fd2` | Stalker 0.5.0/build 6 en `~/Applications/Stalker.app`, CLI firmada en el bundle y `stalker_executable` configurado mediante API oficial. Captura/audio/eventos 0.5 preservados; único escritor, CAS crudo, ambos FDs y journal durable. 83 pruebas Swift + 22 del puente contra CLI y backend nüün instalados, con diez SIGKILL y recuperación por el coordinador, comparaciones byte a byte. Firma local estable; respaldo de app anterior; Stalker quedó cerrado. Sin cambiar capturas/tags/recibos; sólo ajuste de integración autorizado. Aceptación física/consumidores externos pendientes. [Entrega e instalación](../../../../ai/stalker/docs/2026-10-28-coordinated-retitle.md). |
+| Stalker | naming v1, `stalker-clipper/1` rev. 1.4 y `stalker-coordinated-retitle/1` | Productor/UI/CLI instalados; gesto sostenido pendiente de consumo Clipper | 2026-10-28 · working tree sobre `e15918b` | Stalker 0.5.0/build 7 en `~/Applications/Stalker.app`, CLI firmada estable. Modificadores Ctrl/Fn con flancos agregados, Fn físico y ancla opt-in de cursor; reset en gaps. 87 pruebas Swift, lector real Clipper acepta fixture y 22 casos del puente contra CLI/backend nüün instalados. Naming, identidad, audio, reloj, locks/CAS y archivo sin cambio. Zoom sostenido todavía sin implementar en Clipper; Fn en teclado real y captura/export largo pendientes. [Revisión y evidencia](../../../../ai/stalker/docs/2026-10-28-input-contract-review.md). |
 | Clipper | naming v1, sources aditivo, creator-media-handoff/1 editable, Stalker 1.3, deps/ACK/media-release-lock/1 | Adoptado en CLI/TUI; fixtures y CLIs reales; físico/distribución pendientes | 2026-10-28 · working tree sobre `e4f73d1` | Mapping explícito sin abreviaturas; tiempo/procedencia/zona, miembros/media_bytes y revisiones preservados. Handoff CLI/F6 valida catálogo, volúmenes, recibos/hash y reintento durable. UUID de sesión no adopta otra revisión. Retitle permitido/bloqueado con deps reales y ciclo handoff → prepare → cola → relink/ACK → liberar fixture. `delivery` y migración editorial de otra revisión pendientes; sin Studio. [Matriz/evidencia](../../../../ai/clipper/docs/2026-10-28-cli-tui-contract-adoption.md). |
 | Atlas | library v1 como consumidor | Sin iniciar | — | — |
 
