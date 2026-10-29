@@ -262,3 +262,19 @@ The review app was opened using the isolated `NU9VE_MEDIA_HOME`; its development
 6. Windows/Linux product support is not validated. Current secure IO/locking and native UI are macOS/Unix-oriented.
 
 Do not use this status to authorize live media operations. Registration and backup runs must use the user's chosen disks and reviewed plans; automated tests stay in fixtures. No changes were made to the other repositories or sent to other chats.
+
+
+## Coordinación documental con Clipper · 2026-10-29
+
+Índice común alineado con adopción efectiva de handoff y zoom sostenido Stalker
+1.4 en Clipper CLI/TUI. Se enlazan delivery de un archivo, adopción explícita
+project-only, audio por contribuciones y refinamiento PCM implementados en
+Clipper. Se conserva la separación entre adopción del consumidor y publicación
+productora de una nueva revisión; retitle con referencias permanece bloqueado.
+Deps histórico de una revisión fijada en cola sigue bloqueando retiro mediante
+el guard existente, sin modificar backend nüün. Evidencia de la sesión Clipper:
+96 pruebas dirigidas de biblioteca/relink/preparación/audio/sync aprobadas;
+incluyen delivery con ingest/recibos/handoff reales y adopción con registro de
+revisión simulado únicamente en el catálogo fixture. No se ejecutaron nuevas
+operaciones físicas ni instalaciones, ni la suite completa del productor.
+[Entrega actual](../../../ai/clipper/docs/2026-10-29-contract-coordination.md).

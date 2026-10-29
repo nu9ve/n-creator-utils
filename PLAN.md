@@ -97,3 +97,14 @@ Windows/Linux require their own volume identity/events/safe IO/locking, path and
 ## Parallel sessions / task ownership
 
 Use [development handoff](docs/development.md#cerrar-y-retomar-una-sesión). Choose one vertical feature/module, state files in scope, contract changes and validation. Separate UI work from transfer integrity review; shared protocol/catalog changes need coordination. Respect current staged/unstaged work. Update STATUS and this plan when a priority actually changes.
+
+
+## Coordinación editorial · 2026-10-29
+
+Handoff y zoom sostenido ya adoptados por Clipper CLI/TUI: no reimplementarlos.
+Delivery de un archivo y consumidor de adopción project-only disponibles; ver
+[contrato común](docs/contracts/media-library-v1.md#consumidor-clipper--extensión-del-29-octubre-2026).
+Siguiente paso productor: diseñar el registro/publicación de revisión metadata-only
+bajo un mismo asset con recibos y ambas copias conservadas, y su recorrido UI.
+No relajar retitle con referencias ni la protección de colas para adelantarlo.
+La aceptación física/builds efectivas sigue pendiente, independiente de fixtures.
