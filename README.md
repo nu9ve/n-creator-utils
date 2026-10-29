@@ -1,72 +1,64 @@
-# n-creator-utils
+# nüün
 
-Ingreso, respaldo verificado, catálogo y preparación de media para trabajar. CLI Python y app nativa de barra de menú en macOS. Stalker graba, [Clipper](https://github.com/nu9ve/clipper) edita y Atlas procesa imágenes de dron; este repo conecta almacenamiento y flujos, sin mantener otro editor.
+**Una multiherramienta para creadores:** organiza archivos, almacenamiento y pequeños flujos que conectan el trabajo creativo con sus herramientas y dispositivos.
 
-**Estado: implementación de desarrollo; todavía no es una release de producción.** Hay motor, catálogo y app funcionales con pruebas, pero quedan validación física, hardening e instalación/distribución. La evidencia exacta y los límites están en [STATUS](docs/STATUS.md).
+nüün es la app para macOS de este repositorio, `n-creator-utils`. Hoy su área más desarrollada es **media**: ingresar, respaldar y preparar video, audio, fotos y capturas para trabajar. También hay utilidades de línea de comandos para música y audio; a futuro, el proyecto puede crecer hacia dispositivos, iluminación y automatización.
 
-## Para continuar en otra sesión
+> **En desarrollo.** El motor de media y la app tienen pruebas y una instalación local de desarrollo, pero aún faltan validación física, endurecimiento y distribución. Consulta el [estado actual](docs/STATUS.md) y los [requisitos para una release](docs/release.md).
 
-1. [Contexto compacto](docs/CONTEXT.md): producto, flujo real e invariantes.
-2. [Estado actual](docs/STATUS.md): qué existe, qué se probó y qué no.
-3. [Plan priorizado](PLAN.md): siguiente trabajo y criterios de aceptación.
+<img src="docs/images/nuun-compacto.png" alt="Vista compacta de ingreso de nüün" width="440">
 
-[Índice completo](docs/README.md) · [Desarrollo modular](docs/development.md) · [Dashboard/launcher](docs/features/dashboard-launcher.md) · [Contratos entre apps](docs/contracts/README.md).
+*La vista compacta permite preparar el ingreso y revisar las opciones de respaldo.*
 
-## Flujo principal
+## Media y almacenamiento
 
-**SD → plan revisado → copias requeridas → lectura SHA-256 de destinos → recibos → limpiar SD.** El objetivo es dejarla libre para el siguiente proyecto. Sony devuelve «acción en cámara pendiente» hasta validar un procedimiento compatible con sus índices.
+Desde nüün o la CLI puedes revisar una fuente, asignar archivos a proyectos y preparar un plan antes de ejecutarlo. El flujo principal cubre:
 
-Normalmente: MEDIA + ESSD para video, MEDIA + SSD1 para audio. Si MEDIA está y falta el SSD, se puede confirmar sólo archivo por operación y dejar trabajo pendiente u omitido. Después se copia desde MEDIA, sin necesitar la SD original. Sin destinos registrados online, insertar SD no provoca popup ni escaneo profundo automático.
+- **Ingreso y respaldo:** copia a los destinos elegidos y verifica su contenido con SHA-256. La limpieza de la fuente sigue la política del plan y sólo ocurre después de verificar los destinos requeridos.
+- **Copias de trabajo:** prepara material para edición en un SSD o registra una entrega pendiente desde el archivo. El respaldo sin copia de trabajo requiere una decisión explícita por operación.
+- **Biblioteca y espacio:** consulta el catálogo, recupera o entrega archivos, revisa pendientes y prepara auditorías y planes de liberación de espacio.
+- **Capturas Stalker:** reúne sesiones finalizadas en una bandeja, conserva sus bundles completos y permite asignarlas a proyectos. La liberación del original depende de las verificaciones y de las dependencias de edición.
 
-Proyecto, perfil, país y ciudad son campos distintos. SDs mixtas admiten asignación por unidad; pares y bundles se preservan. DJI requiere categoría explícita cuando es ambiguo. Layout (plan esquema 2, [layout.py](media/layout.py)): nombres históricos `26OCT24-194650_SONYA6400_08-24_MX-PROYECTO[].MP4` desde el XML Sony/ffprobe/mtime. MEDIA por tipo/año/mes (`videos/`, `v4k/`, `recordings/`, `images/`, `stalker/`; XML en `metadata/sony/`, índices y miniaturas en `metadata/sony/support/`). Trabajo plano en `e64_raw/<proyecto>/` sólo con clips y bundles Stalker.
+La app ofrece modos compacto, selección y completo, con vista previa de archivos, actividad, biblioteca y ajustes. La CLI y la app usan el mismo motor de planificación y transferencia.
+
+[Conocer la app](docs/features/nuun-window.md) · [Guía de uso y almacenamiento](docs/operations.md) · [Política de copias](docs/features/replication-policy.md)
+
+## Un ecosistema de herramientas
+
+nüün se ocupa de almacenamiento y coordinación; cada herramienta conserva la responsabilidad de sus propios datos:
+
+- **Stalker** graba sesiones y mantiene sus manifiestos. nüün puede descubrir y archivar sesiones terminadas.
+- **[Clipper](https://github.com/nu9ve/clipper)** gestiona edición y colas. Hay coordinación para entregar y reenlazar archivos mediante su CLI; las pruebas de integración usan datos temporales y la aceptación física sigue pendiente.
+- **Final Cut** participa en la edición manual. **Atlas** trabaja con información geoespacial e imágenes de dron. Sus flujos requieren revisión humana y no se presentan como integraciones automáticas completas.
+
+Las integraciones con Stalker y Clipper son opcionales para el funcionamiento básico de media. [Contratos y estado de adopción](docs/contracts/README.md).
+
+## Más utilidades y hacia dónde puede crecer
+
+El repositorio también conserva comandos para **descargar video, canciones o samples** y **separar audio en stems**. Son flujos anteriores con configuración y dependencias propias; todavía no comparten todo el ciclo del catálogo de media. [Comandos y límites](docs/commands.md#descargas-y-stems) · [Configuración](docs/configuration.md).
+
+Hay código experimental para **controladores MIDI**. Iluminación, IoT, Raspberry Pi y conexiones entre dispositivos son parte de la visión para explorar, no funciones integradas de la app hoy. La intención es que nüün pueda reunir utilidades distintas sin que cada idea tenga que convertirse en una función de media.
 
 ## Empezar
 
-Python 3.9+. El motor de copia usa biblioteca estándar; las utilidades de video/download/stems pueden necesitar programas adicionales.
+Para explorar la CLI desde el código necesitas Python 3.9 o posterior:
 
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
+nu9ve --help
 nu9ve media --help
 ```
 
-Registrar discos elegidos, revisar y ejecutar un plan: [guía operativa](docs/operations.md). Ejemplos:
+Para compilar e instalar la app localmente se necesita macOS 14+ y Swift 6. Antes de operar con archivos, registra tus destinos y revisa el plan y sus opciones de limpieza. La [guía operativa](docs/operations.md) explica la instalación, los discos, el respaldo y la recuperación. Algunas utilidades de audio y video requieren herramientas adicionales.
 
-```sh
-nu9ve media volumes register MEDIA502 /Volumes/MEDIA502 --role archive --prefix 001_raw
-nu9ve media volumes register ESSD /Volumes/ESSD --role work --prefix 001_proyectos
-nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro --dry-run
-nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro
-```
+El importador anterior sigue disponible como `legacy-save` y tiene garantías distintas; consulta la [referencia de comandos](docs/commands.md) antes de usarlo.
 
-`save` usa planificación verificada y admite el atajo `save all mx PROYECTO`. Para sólo respaldo, sin copia de trabajo ni pendiente: añadir `--no-work` y confirmar la operación; [ejemplos](docs/operations.md#sólo-respaldo-sin-archivos-de-trabajo). El importador anterior quedó como **`legacy-save`**, conserva sus movimientos/borrados y no tiene las garantías nuevas. `nu9ve clip` sólo informa el editor sucesor; el módulo histórico fue retirado. No hay migración automática de JSON antiguos de Clipper.
+## Documentación
 
-## Superficies disponibles
-
-| Área | Entrada / alcance |
-| --- | --- |
-| Observación | `inspect DIRECTORIO`, sin transferencias; `doctor` sigue describiendo configuración/herramientas del legado. |
-| Ingreso seguro | `save` humano; `media plan/apply`, `jobs`, `resume` y JSON RPC. |
-| Biblioteca | `media library/resolve/restore/handoff`, pendientes y entrega al SSD, recuperación desde recibos. |
-| Publicación | Estado local por variante/canal; no sube archivos ni automatiza todavía `subidos`. |
-| App macOS | Menubar, ingreso/asignación/preview, jobs, biblioteca, discos/runtime y observación configurada de Stalker. |
-| Agentes | `media mcp`: servidor stdio de sólo lectura, sin puerto HTTP ni herramientas destructivas. |
-| Otros brazos | `download`, `split`, prototipos hardware/Bash conservados. Aún no comparten todo el nuevo ciclo de assets. |
-
-Stalker se archiva completo y finalizado; no se limpia su única biblioteca local automáticamente. El reenlace integral y la adopción explícita de revisiones están probados con Clipper CLI/TUI en fixtures; Atlas/Final Cut y la aceptación física siguen pendientes. [Contrato vigente](docs/contracts/media-library-v1.md#cierre-productor-clitui--29-octubre-2026).
-
-## Desarrollo y distribución
-
-```sh
-python3 -m unittest discover -s tests -v
-swift test --package-path native/MediaMenu
-```
-
-[Desarrollo y handoff](docs/development.md) · [Build/debug/instalación](docs/operations.md) · [Gates de release](docs/release.md).
-
-Las pruebas automatizadas nunca usan MEDIA/ESSD/SDs personales. Los bundles de `dist/` son snapshots ad-hoc de desarrollo, no un instalador final. CI: [.gitlab-ci.yml](.gitlab-ci.yml). Revisar `git status` antes de continuar; el estado exacto está en [STATUS](docs/STATUS.md).
-
-La app macOS se presenta como **nüün**, instalada como `nuun.app`. Usa una ventana con modos compacto/selección/completo, inspección explícita de fuentes, una bandeja Stalker con preview de pantalla, duración y asignación por lote, y pies fijos con acciones contextuales en Ingreso/Biblioteca/Actividad/Bandeja/Espacio. Los videos muestran el fotograma central; al pasar el cursor por seis zonas se solicita una muestra de ese tramo. Al conectar una SD, el importador rápido se abre por defecto cuando hay destinos registrados en línea; se puede desactivar en Ajustes → Capturas. El lote procesa todas las sesiones pendientes de una biblioteca en un plan; bibliotecas distintas requieren planes separados. Tras verificar el respaldo Stalker, el mismo plan libera el original si Clipper permite reenlazarlo y no hay dependencias bloqueantes; Ajustes → Capturas permite conservar el original para liberarlo después desde Espacio. [Flujo y límites](docs/features/nuun-window.md), [instalación](docs/operations.md#app-de-desarrollo-y-launcher), [evidencia y aceptación pendiente](docs/STATUS.md).
-
-Desde Bandeja se descubren las bibliotecas actual/anteriores de Stalker y se asigna proyecto por sesión, con sugerencias del manifiesto. **Espacio** ofrece auditoría ESSD→MEDIA por contenido, planes explícitos para liberar raws/originales Stalker y backup completo del catálogo/perfiles. Retirar copias exige verificar MEDIA y resolver dependencias de Clipper; no reorganiza ni elimina proyectos editoriales. [Flujo y límites](docs/operations.md#bandeja-stalker-proyectos-y-liberar-espacio). El caso `EOS_DIGITAL` / `kasakarla-electroritual` sigue pendiente de la operación real, según [STATUS](docs/STATUS.md).
+- [Contexto del proyecto](docs/CONTEXT.md): flujo actual y decisiones importantes.
+- [Estado y evidencia](docs/STATUS.md): implementación, pruebas y límites pendientes.
+- [Plan de trabajo](PLAN.md): prioridades y próximos pasos.
+- [Operación e instalación](docs/operations.md): app, CLI, discos y recuperación.
+- [Desarrollo](docs/development.md) · [Contratos entre apps](docs/contracts/README.md) · [Índice completo](docs/README.md).
