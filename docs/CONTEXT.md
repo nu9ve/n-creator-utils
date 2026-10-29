@@ -4,7 +4,7 @@ Snapshot: 2026-10-27, America/Hermosillo. Start here, then [STATUS](STATUS.md) a
 
 ## Product and user workflow
 
-n-creator-utils manages creative media: SD ingest, verified archive, working copies, discovery/catalog and retrieval. macOS is first. Stalker captures; Clipper edits/syncs/exports; Final Cut finishes manual edits; Atlas consumes drone images. Downloads/stems remain separate utility arms; the old embedded Clipper was removed.
+nüün is the macOS app in n-creator-utils, envisioned as a multitool for creative workflows. Its most developed area today is media: SD ingest, verified archive, working copies, discovery/catalog and retrieval. Stalker captures; Clipper edits/syncs/exports; Final Cut finishes manual edits; Atlas consumes drone images. Downloads/stems remain separate utility arms; the old embedded Clipper was removed. MIDI code is experimental; lighting, IoT and Raspberry Pi connections are future directions, not integrated app features.
 
 Typical video flow: SD → MEDIA archive + ESSD working raw → Clipper → Final Cut → finals → published → MEDIA finals. Audio normally needs MEDIA + SSD1. Projects/profiles can be mixed on one card; project/country/city/profile are independent fields. Preserve selection order, sidecars and complete Stalker bundles.
 
@@ -35,6 +35,4 @@ Use [modules](modules.md), [operations](operations.md) and [development](develop
 
 ## Current working state
 
-Current checkpoint HEAD is `3ec01d3`; this session adds the unified **nüün** window and profile/discovery boundary on top of the existing working changes (see [STATUS](STATUS.md)). Installed path is `~/Applications/nuun.app`. One `NSWindow` has compact/selection/full modes; source inspection is explicit; choosing a source or mode does not deep-scan. [Window flow and ownership](features/nuun-window.md), [operations](operations.md). `.vscode/` is unrelated. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.
-
-Latest local update: build `4e3c1fd0214b` fixes native reviewed-plan transport by retaining the original JSON document for apply, plus scrollable compact/selection content with a fixed footer and readable errors. Tests reproduce numeric reserialization mismatch and verify original/tampered document behavior; the exact failed personal-card document was not retained for field comparison. Installed at `~/Applications/nuun.app` without opening the main app. Next: review a fresh plan for the reported case, then a small explicit physical cycle and measured performance, per [PLAN](../PLAN.md); evidence/limits in [STATUS](STATUS.md).
+The unified **nüün** window has compact/selection/full modes; source inspection is explicit, and choosing a source or mode does not deep-scan. The local development app installs at `~/Applications/nuun.app`. See [STATUS](STATUS.md) for current evidence and installation limits, [PLAN](../PLAN.md) for the next gates, and [window flow and ownership](features/nuun-window.md) for details. Check Git status and HEAD before resuming. Automated tests never use MEDIA/ESSD/SDs; any live backup is an explicit, user-requested operational run with a reviewed plan.

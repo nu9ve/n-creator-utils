@@ -1,6 +1,20 @@
 # Implementation status
 
-Updated: 2026-10-29, America/Hermosillo. Current checkpoint HEAD: `5a8fdf4`; current contract closure is recorded below. Older entries describe their own snapshots/builds. See the Git diff before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## Presentación del proyecto · 2026-10-29
+
+README reorganizado para presentar nüün como multiherramienta para creadores,
+con media como área más desarrollada y audio, MIDI y futuras conexiones de
+dispositivos diferenciados por su estado. Cambio de documentación, sin cambios
+de comportamiento ni nueva validación de producto. La revisión local y la consulta
+del remoto encontraron únicamente la rama `master` en `e149503`; los hashes de
+otras entradas de este documento identifican snapshots históricos.
+
+Se añadió una captura de la vista compacta de la app abierta para ilustrar el
+README; no se ejecutó un plan ni una operación de media.
+El [flujo de capturas](development.md#capturas-del-producto) pide consultar al
+usuario cuando cambios importantes justifiquen actualizarlas.
 
 ## Instalación del cierre contractual · 2026-10-29
 

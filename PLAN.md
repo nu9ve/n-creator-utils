@@ -4,6 +4,11 @@ Current implementation/evidence lives in [STATUS](docs/STATUS.md); product invar
 
 ## General direction
 
+The broader vision is nüün as a multitool for creators, spanning media, audio
+and eventually devices or automation. Lighting, IoT and Raspberry Pi are
+exploratory directions, not commitments or implemented integrations. The
+following priorities remain focused on the existing media workflow:
+
 1. Ship a trustworthy macOS ingest vertical slice: plan → verify required copies → clean SD, with archive-only exception and deferred work.
 2. Make catalog, recovery, Stalker and editor handoffs dependable without moving old terabytes.
 3. Grow the dashboard and launcher on the same service boundary.

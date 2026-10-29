@@ -86,6 +86,25 @@ Para trabajo simultáneo, definir superficie y archivos antes de empezar. UI/das
 
 ## Mantener documentación viva
 
+### Capturas del producto
+
+La captura del README vive en `docs/images/nuun-compacto.png`. Al cambiar una
+función importante o el diseño visible, revisa si las imágenes siguen mostrando
+el producto fielmente y pregunta al usuario si quiere actualizarlas; no es
+necesario hacerlo por cada ajuste pequeño. La autorización para un cambio
+concreto de capturas permite completarlo sin volver a preguntar.
+
+Para actualizarlas, usa la app real y prepara una vista representativa; prefiere
+datos de ejemplo o una pantalla sin contenido personal. Revisa rutas, nombres de
+proyectos, ubicaciones y miniaturas antes de guardar cualquier imagen en el
+repositorio. Evita usar tarjetas o discos personales como fixtures y no ejecutes
+planes de copia o limpieza para obtener una captura. Guarda los archivos en
+`docs/images/`, enlázalos desde el README con texto alternativo y comprueba su
+presentación y los enlaces. Si no puede obtenerse una vista apropiada sin exponer
+contenido privado, pide al usuario una vista segura antes de incorporarla.
+
+### Documentos de referencia
+
 - CONTEXT: objetivo, invariantes, mapa breve; cambiar sólo cuando cambia el producto.
 - STATUS: hechos, evidencia, artefactos y límites de la última entrega; actualizar al cerrar sesión.
 - PLAN: prioridades y aceptación, sin repetir toda la historia.

@@ -18,5 +18,6 @@ Start with [docs/CONTEXT.md](docs/CONTEXT.md) and [docs/STATUS.md](docs/STATUS.m
 3. Run focused checks appropriate to changed behavior. After a relevant pass, broaden only for unresolved risk/new changes. For docs-only changes, check links/consistency; no need to launch apps or run camera flows.
 4. Update [STATUS](docs/STATUS.md) with actual evidence and remaining gates; [PLAN](PLAN.md) for priorities; owner contract for changed semantics. Link rather than copying the same status into many files.
 5. Use [session handoff](docs/development.md#cerrar-y-retomar-una-sesión) when handing work to another chat. Do not send messages to other chats without user authorization.
+6. When a major feature or visible UI change makes product screenshots stale, ask the user whether to refresh them; follow the [screenshot workflow](docs/development.md#capturas-del-producto). Do not capture or replace them automatically.
 
 Do not label a build “production/release ready” based only on fixtures. No new dependencies, platform rewrites or service daemon are needed just to add a dashboard view.
