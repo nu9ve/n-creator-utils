@@ -108,7 +108,10 @@ fixture; [contrato](docs/contracts/media-library-v1.md#cierre-productor-clitui--
 [evidencia/limites](docs/STATUS.md). Integraciones opcionales; conocidos offline
 siguen bloqueando retiro. No hay cambios en Studio ni adopción editorial automática.
 
-Siguiente gate: revisar/instalar builds efectivas de los consumidores y nüün,
+Nüün actualizado a build local `969812829241` el 2026-10-29; firma/backend
+verificados, sin abrir la app ni ejecutar media. [Instalación](docs/STATUS.md#instalación-del-cierre-contractual--2026-10-29).
+
+Siguiente gate: revisar/instalar builds efectivas de los consumidores,
 reiniciarlos y aceptar un ciclo físico pequeño autorizado. Publicación explícita
 en CLI/RPC; no se añadió diálogo de publicación nativo. No relajar retitle,
 colas ni hashes para adelantar esa aceptación. Sin media personal en fixtures.
