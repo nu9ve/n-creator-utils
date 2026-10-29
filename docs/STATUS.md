@@ -2,6 +2,21 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current checkpoint HEAD: `5a8fdf4`; current contract closure is recorded below. Older entries describe their own snapshots/builds. See the Git diff before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Instalación del cierre contractual · 2026-10-29
+
+A petición del usuario se compiló en release y se instaló la build local
+`969812829241` en `~/Applications/nuun.app`. Artefacto firmado ad-hoc:
+`/private/tmp/nuun-contract-closure-20261029-a91e.app`. Anterior conservada en
+`~/Library/Application Support/n-creator-utils/app-backups/1f00446c.app`.
+Builder/instalador y verificación posterior comprobaron la firma. Los 32 archivos
+del backend instalado coinciden byte a byte con el repo; binario nativo idéntico
+al artefacto. El CLI instalado con `/usr/bin/python3` publica `publish-revision`
+e `integration-capabilities` en su ayuda. No se abrió la app ni se ejecutaron
+operaciones de media; el instalador comprobó ausencia de instancias activas.
+Runtime externo `/usr/bin/python3`, sin notarización ni aceptación física nueva.
+Esta instalación sustituye el límite «sin nueva instalación» del cierre siguiente;
+no actualiza ni certifica las instalaciones de Clipper/Stalker.
+
 ## Cierre nüün / Clipper CLI-TUI / Stalker · 2026-10-29
 
 Implementado en working tree sobre `5a8fdf4`, siguiendo el bloque «Para nüün»
