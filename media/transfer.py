@@ -472,11 +472,15 @@ class Transfer:
             project_id = self.catalog.project_for(unit['profile'], unit['project'])
             asset = dict(unit, project_id=project_id, job_id=plan['id'], source=plan['source'], revision=digest(hashes), country=plan['country'], city=plan['city'])
             with self.catalog.db:
+                self.catalog.db.execute('INSERT OR IGNORE INTO asset_revisions VALUES(?,?,?)', (unit['id'], asset['revision'], canonical(asset).decode()))
                 self.catalog.db.execute('INSERT OR IGNORE INTO assets VALUES(?,?,?)', (unit['id'], plan['id'], canonical(asset).decode()))
                 self.catalog.db.execute('INSERT OR IGNORE INTO asset_projects VALUES(?,?)', (unit['id'], project_id))
                 self.catalog.db.execute('INSERT OR IGNORE INTO asset_jobs VALUES(?,?)', (unit['id'], plan['id']))
                 if unit.get('session_id') and unit.get('capture_manifest_digest'):
                     self.catalog.db.execute('INSERT OR IGNORE INTO sessions VALUES(?,?,?)', (unit['session_id'], unit['capture_manifest_digest'], unit['id']))
+                current = json.loads(self.catalog.db.execute('SELECT payload FROM assets WHERE id=?', (unit['id'],)).fetchone()[0])
+                if current['revision'] != asset['revision']:
+                    continue  # Recovering an old job must not replace the current revision's work state.
                 # Camera indexes/thumbnails have no work copy in a named layout; never leave them pending.
                 needs_work = any(destination_path({'role': 'work', 'prefix': 'x'}, plan, unit, p) for p in unit['paths'])
                 self.catalog.db.execute('INSERT OR IGNORE INTO work VALUES(?,?,?,?)',

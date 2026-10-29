@@ -51,18 +51,18 @@ def cancel_plan(catalog, plan_id):
     return {'plan_id': plan_id, 'cancelled': True}
 
 
-def producer(catalog, action, request):
+def producer(catalog, action, request, timeout=60):
     executable = catalog.get('stalker-executable')
     require(isinstance(executable, str) and Path(executable).is_absolute() and os.access(executable, os.X_OK),
             'stalker_upgrade_required', 'Configure stalker_executable implementing ' + CAPABILITY + '; archived:false is insufficient. See docs/contracts/stalker-retitle-v1.md')
     try:
         result = subprocess.run([executable, 'nuun-retitle', action, '--json'], input=canonical(request),
-                                capture_output=True, timeout=60, pass_fds=_COORDINATOR_FDS.get(), env={**os.environ,
+                                capture_output=True, timeout=timeout, pass_fds=_COORDINATOR_FDS.get(), env={**os.environ,
                                     'NUUN_RETITLE_LOCK_FDS': ','.join(map(str, _COORDINATOR_FDS.get())),
                                     'CLIPPER_MEDIA_RELEASE_TOKEN': clipper._RELEASE_TOKEN.get() or ''})
         require(result.returncode == 0 and len(result.stdout) <= 1024 * 1024,
                 'stalker_upgrade_required' if action == 'capabilities' else 'stalker_failed',
-                'Stalker must implement ' + CAPABILITY + ' (docs/contracts/stalker-retitle-v1.md); retry the same operation_id to reconcile')
+                'Stalker must implement ' + CAPABILITY + ' (docs/contracts/stalker-retitle-v1.md); retry the same operation_id to reconcile: ' + result.stderr.decode('utf-8', errors='replace')[:2000])
         data = json.loads(result.stdout)
         require(isinstance(data, dict), 'stalker_invalid', 'Invalid Stalker response')
         return data

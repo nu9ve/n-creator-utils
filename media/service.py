@@ -19,6 +19,17 @@ class Service:
     def call(self, method, params=None):
         params = params or {}
         require(isinstance(params, dict), 'invalid_request', 'params must be an object')
+        if method == 'publish_revision':
+            from .revisions import publish_revision
+            return publish_revision(self.catalog, self.backend, cancel=self.cancel, **params)
+        if method == 'asset_revisions':
+            from .library import asset_record
+            current = asset_record(self.catalog, params['asset_id'])
+            history = [json.loads(r[0]) for r in self.catalog.db.execute('SELECT payload FROM asset_revisions WHERE asset_id=?', (current['id'],))]
+            return history or [current]
+        if method == 'integration_capabilities':
+            from .integrations import capabilities
+            return capabilities(self.catalog)
         if method == 'retitle_capture':
             from .retitle import retitle
             return retitle(self.catalog, **params)
@@ -142,7 +153,7 @@ class Service:
         if method == 'library':
             return self.catalog.search(params.get('project'), params.get('work_state'))
         if method == 'resolve':
-            return resolve(self.catalog, self.backend, params['asset_id'])
+            return resolve(self.catalog, self.backend, params['asset_id'], params.get('revision'))
         if method == 'deliver_work':
             return deliver_work(self.catalog, self.backend, params['asset_ids'], params['work'], self.cancel)
         if method == 'set_work_state':
@@ -163,7 +174,7 @@ class Service:
         if method == 'relayout':
             return relayout(self.catalog, self.backend, params['job_id'])
         if method == 'handoff':
-            return handoff(self.catalog, self.backend, params['asset_ids'])
+            return handoff(self.catalog, self.backend, params['asset_ids'], params.get('volume_id'))
         if method == 'rename_project':
             return self.catalog.rename_project(params['project_id'], params['title'])
         if method == 'set_publication':

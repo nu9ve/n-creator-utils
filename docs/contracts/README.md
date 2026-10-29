@@ -2,6 +2,19 @@
 
 Actualización 2026-10-29: hay productor de handoff, recibos, servicio JSON y MCP read-only en este repo. El contrato entre apps sigue **en revisión**; Stalker y Clipper (CLI/TUI) ya lo adoptaron con los límites de su fila. Estado completo: [STATUS](../STATUS.md). Propuesta inicial: 2026-10-24. Este directorio es el índice central de almacenamiento e intercambio entre n-creator-utils, Stalker y Clipper; Atlas participa como consumidor adicional. No declara adopción de cambios en los otros repos.
 
+## Cierre contractual vigente · 2026-10-29
+
+Nüün incluye delivery completo en sources/handoff, reenlaza por handoff de destino
+con ACK de todos los miembros y publica revisiones Stalker project-only bajo el
+mismo asset, conservando copias/recibos/historia. Usa el escritor Stalker existente
+sobre una copia nueva; retitle in-place conserva sus guardas. La adopción editorial
+sigue siendo explícita en Clipper CLI/TUI. Integraciones opcionales y consumidores
+conocidos offline se distinguen. [Contrato exacto](media-library-v1.md#cierre-productor-clitui--29-octubre-2026),
+[evidencia y límites](../STATUS.md). Las notas/filas anteriores a este cierre
+conservan la evidencia de sus fechas; el consumidor multiarchivo actual consta en
+[Clipper](../../../../ai/clipper/docs/2026-10-29-cli-tui-contract-closure.md).
+Sin cambios de Studio, instalación nueva ni aceptación física.
+
 ## Cierre productor · 2026-10-28
 
 Nüün implementa metadata aditiva de reloj/procedencia, editable_members/media_bytes,
@@ -54,7 +67,7 @@ Cada sesión de Stalker o Clipper actualiza **su fila** al terminar, con fecha y
 
 | App | Contrato / sección | Estado | Fecha · commit | Notas y límites |
 | --- | --- | --- | --- | --- |
-| n-creator-utils | Productor naming/handoff/sources aditivos y retitle coordinado; Clipper deps/ACK/media-release-lock/1 | Productor y coordinación implementados; aceptación física/distribución pendientes | 2026-10-28 · working tree sobre `3360d1d` | Registro Stalker actual/anteriores; tags locales/sugerencias confirmables; planes de retiro registrados + Clipper CLI/ACK. Exclusión host-local; proyectos antiguos no adoptados/colas/desconectados bloquean. [STATUS](../STATUS.md), [operación](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). |
+| n-creator-utils | Sources/handoff delivery completo, relink integral/ACK, publicación project-only con historial/recibos; integraciones opcionales | Implementado y probado con CLIs reales en catálogos temporales; no instalado ni aceptado físicamente | 2026-10-29 · working tree sobre `5a8fdf4` | Retitle sobre copia nueva con escritor Stalker/FDs; ambas revisiones conservadas; adopción Clipper explícita y cola histórica bloqueante. [Contrato](media-library-v1.md#cierre-productor-clitui--29-octubre-2026), [STATUS](../STATUS.md). |
 | Stalker | naming v1, `stalker-clipper/1` rev. 1.4 y `stalker-coordinated-retitle/1` | Productor/UI/CLI instalados; gesto sostenido consumido por Clipper CLI/TUI | 2026-10-28 · working tree sobre `e15918b` | Stalker 0.5.0/build 7 en `~/Applications/Stalker.app`, CLI firmada estable. Modificadores Ctrl/Fn con flancos agregados, Fn físico y ancla opt-in de cursor; reset en gaps. 87 pruebas Swift, lector real Clipper acepta fixture y 22 casos del puente contra CLI/backend nüün instalados. Naming, identidad, audio, reloj, locks/CAS y archivo sin cambio. Zoom sostenido ya implementado por Clipper; evidencia corta real del 29 en su repo. Captura/export largo siguen pendientes. [Revisión y evidencia](../../../../ai/stalker/docs/2026-10-28-input-contract-review.md). |
 | Clipper | naming v1, sources/handoff, Stalker 1.4, deps/ACK/media-release-lock/1 | CLI/TUI: adoptado; delivery de un archivo, adopción explícita de metadata y plan de audio | 2026-10-29 · working tree sobre `393da49` | Handoff con recibos/hash; zoom sostenido opt-in; audio de varias sesiones por grupo/rango; refinamiento PCM. Adopción de project con evidencia completa y CAS; no autoriza retitle con referencias. Delivery de varios miembros, publicación operativa de revisiones, corrección afín de drift y aceptación física/distribución siguen separados; sin Studio. [Entrega y límites](../../../../ai/clipper/docs/2026-10-29-contract-coordination.md). |
 | Atlas | library v1 como consumidor | Sin iniciar | — | — |
@@ -71,11 +84,13 @@ python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media <comando>   # o `
 | Comando | Para qué | Datos |
 | --- | --- | --- |
 | `projects` | Selector de proyectos | `[{project, project_id, profile, assets, updated_at}]`, más reciente primero. |
-| `sources --project P [--purpose edit\|archive]` | Quick import de un proyecto | `sources[]` en orden de captura: `order, asset_id, revision, kind (file\|camera_bundle\|stalker_session), session_id, path` (absoluto: archivo o carpeta `.stalker`), `name, volume, role, online, bytes, sha256` (de archivos), `captured_at` (hora local de inicio, sin zona) y `duration_seconds` (leídos del nombre fechado; `null` si no lo es), `alternatives[]` y `missing[]`. Aparte vienen `offline[]`, `removed_from_work[]` (borradas a mano de trabajo; apuntan al archivo) y `warnings[]` (`archive_copy_missing`). Prefiere la copia de trabajo en línea y comprueba presencia y tamaño, sin hashear. |
+| `sources --project P [--purpose edit\|archive]` | Quick import de un proyecto | `sources[]` en orden de captura: `order, asset_id, revision, kind (file\|camera_bundle\|stalker_session\|delivery), session_id, path` (absoluto: archivo o carpeta `.stalker`), `name, volume, role, online, bytes, sha256` (de archivos), `captured_at` (hora local de inicio, sin zona) y `duration_seconds` (leídos del nombre fechado; `null` si no lo es), `alternatives[]` y `missing[]`. Aparte vienen `offline[]`, `removed_from_work[]` (borradas a mano de trabajo; apuntan al archivo) y `warnings[]` (`archive_copy_missing`). Prefiere la copia de trabajo en línea y comprueba presencia y tamaño, sin hashear. |
+| `publish-revision …`, `asset-revisions ASSET` | Publicación explícita / historia | [API y límites](media-library-v1.md#publicación-explícita-de-revisión-project-only). |
+| `integration-capabilities` | Discovery opcional con errores aislados | Capacidades disponibles de Clipper/Stalker; no instala/inicia apps. |
 | `captures ROOT` | Estado de archivo de una biblioteca Stalker | `sessions[{path, session_id, status, archived}]`, `pending[]`. |
 | `retitle-capture …`, `retitle-operations`, `cancel-plan ID` | Coordinación explícita; no son lectura/import automático | [API y capability requerida](stalker-retitle-v1.md). |
-| `handoff ASSET…` | Intercambio portable `creator-media-handoff/1` | Ver [media-library-v1](media-library-v1.md). |
-| `resolve ASSET` | Ubicaciones de un asset | Lento (identidad de cada volumen); preferir `sources`. |
+| `handoff ASSET… [--volume-id UUID]` | Intercambio portable `creator-media-handoff/1` | Ver [media-library-v1](media-library-v1.md). |
+| `resolve ASSET [--revision HASH]` | Ubicaciones de un asset | Lento (identidad de cada volumen); preferir `sources`. |
 
 Los comandos que mutan (`plan`, `apply`, `relayout`, `confirm-cleanup`, `deliver`, `restore`) sólo los inicia el usuario con un plan revisado; otra app no los llama sin esa revisión. Un campo nuevo opcional no rompe a nadie. Quitar o cambiar el significado de un campo exige nueva versión y nota aquí.
 

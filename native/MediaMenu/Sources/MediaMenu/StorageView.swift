@@ -129,7 +129,7 @@ struct StorageView: View {
             ActionFooter {
                 if let plan = model.releasePlan, plan["state"].string != "completed" {
                     Button("Actualizar dependencias") { model.reviewRelease() }.disabled(model.busy)
-                    if !plan["consumers"]["relinks"].array.isEmpty {
+                    if model.clipperAvailable && !plan["consumers"]["relinks"].array.isEmpty {
                         Button("Reenlazar Clipper") { model.relinkRelease() }
                             .disabled(!plan["consumers"]["blockers"].array.isEmpty || model.busy)
                     }

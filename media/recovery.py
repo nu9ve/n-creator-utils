@@ -13,7 +13,7 @@ def recover_catalog(catalog, backend, volume):
     record = catalog.volume(volume)
     require(record['role'] == 'archive', 'invalid_role', 'Recover from an archive volume')
     backend.check(record)
-    restored = []
+    restored, publications = [], []
     with catalog.writer(), Tree(record['root']) as tree:
         with tree.parent('.ncreator/receipts/entry.json') as (fd, _):
             names = sorted(os.listdir(fd))
@@ -65,7 +65,43 @@ def recover_catalog(catalog, backend, volume):
                 for copy in verified:
                     catalog.db.execute('INSERT OR IGNORE INTO members(job_id,relative_path,sha256) VALUES(?,?,?)', (plan['id'], copy['path'], copy['sha256']))
                     catalog.db.execute('INSERT OR REPLACE INTO copies VALUES(?,?,?,?,?)', (plan['id'], record['id'], copy['path'], copy['sha256'], canonical(copy).decode()))
-            Transfer(catalog, backend)._index(plan)
+            if receipt.get('revision_publication'):
+                publications.append((receipt['revision_publication'], plan))
+            else:
+                Transfer(catalog, backend)._index(plan)
             catalog.event(plan['id'], 'catalog_recovered', {'volume_id': record['id']})
             restored.append(plan['id'])
+        # Index publication history only after its predecessor receipt has verified.
+        # UUID filename order does not encode revision order.
+        pending = list(publications)
+        while pending:
+            progress = False
+            for publication, plan in list(pending):
+                old, new = publication['previous_asset'], publication['asset']
+                row = catalog.db.execute('SELECT payload FROM asset_revisions WHERE asset_id=? AND revision=?',
+                                         (old['id'], old['revision'])).fetchone()
+                if row is None:
+                    continue
+                require(json.loads(row[0])['job_id'] == old['job_id'], 'invalid_receipt', 'Predecessor job differs')
+                require(new['id'] == old['id'] and new['job_id'] == plan['id']
+                        and new['project_id'] == old['project_id'] and new['profile'] == old['profile']
+                        and new['session_id'] == old['session_id'], 'invalid_receipt', 'Publication identity differs')
+                Transfer(catalog, backend)._index(plan)
+                indexed = catalog.db.execute('SELECT payload FROM asset_revisions WHERE asset_id=? AND revision=?',
+                                             (new['id'], new['revision'])).fetchone()
+                require(indexed is not None and json.loads(indexed[0])['job_id'] == new['job_id'],
+                        'invalid_receipt', 'Publication revision differs from verified members')
+                pending.remove((publication, plan)); progress = True
+            require(progress, 'missing_receipt', 'Recover predecessor receipts before publishing revision history')
+        predecessors = {p['previous_asset']['revision'] for p, _ in publications}
+        with catalog.db:
+            for publication, _ in publications:
+                new = publication['asset']
+                if new['revision'] not in predecessors:
+                    current = json.loads(catalog.db.execute('SELECT payload FROM assets WHERE id=?', (new['id'],)).fetchone()[0])
+                    if current['revision'] in predecessors:
+                        catalog.db.execute('UPDATE assets SET job_id=?,payload=? WHERE id=?',
+                                           (new['job_id'], canonical(new).decode(), new['id']))
+                        catalog.db.execute('UPDATE work SET state=?,target=NULL,updated_at=? WHERE asset_id=?',
+                                           ('pending', now(), new['id']))
     return {'recovered_jobs': restored, 'verified': True}

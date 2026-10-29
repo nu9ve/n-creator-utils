@@ -1,6 +1,66 @@
 # Implementation status
 
-Updated: 2026-10-27, America/Hermosillo. Checkpoint HEAD: `3ec01d3`; this session extends existing working changes with the unified window/profile/discovery work and the UI follow-up below. See the current Git diff before resuming. Older entries record the evidence and working state at their own dates. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-10-29, America/Hermosillo. Current checkpoint HEAD: `5a8fdf4`; current contract closure is recorded below. Older entries describe their own snapshots/builds. See the Git diff before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## Cierre nüün / Clipper CLI-TUI / Stalker · 2026-10-29
+
+Implementado en working tree sobre `5a8fdf4`, siguiendo el bloque «Para nüün»
+del [prompt de cierre](../../../ai/clipper/docs/2026-10-29-nuun-stalker-contract-prompts.md).
+Se conservaron `.gitlab-ci.yml` y `.vscode/` preexistentes; sin commits/restage/reset,
+sin editar los repos de Clipper/Stalker, sin cambios en Studio ni media personal.
+
+- Delivery completo en sources (`media_members` con rutas exactas, hashes/tamaños)
+  y handoff (todos los auxiliares). Selección de volumen de handoff explícita.
+  Retiro solicita `library relink --handoff`, journaliza el documento/operación,
+  exige ACK de todos los miembros y bloquea colas de filas históricas del asset.
+- `publish-revision` CLI/RPC: copia nueva verificada en archivo registrado →
+  escritor real Stalker con CAS/operation ID/dos FDs → validación project-only y
+  hashes/membresía completos → recibo portable durable → publicación SQLite
+  transaccional. Mismo asset/session/proyecto de catálogo/perfil; revisión vieja,
+  jobs/copias/recibos intactos. Historial `asset_revisions`, resolve histórico y
+  recovery desde ambos recibos; copia de trabajo nueva diferida vía `deliver`.
+  El retitle in-place no recibe excepciones. El productor Stalker conserva su
+  journal y actualiza su registro según el protocolo existente.
+- Discovery opcional con timeout breve y errores por integración. La UI oculta
+  Reenlazar Clipper sin capability. Ingest/catálogo/verificación/handoff funcionan
+  sin esas apps; consumidor configurado/descubierto previamente, registro o cola
+  conocidos siguen bloqueando retiro si quedan offline/incompatibles. No se
+  instalan/inician apps ni se importan sus repos en runtime.
+
+Evidencia: `python3 -m unittest discover -s tests -q`: **183/183** (68.345 s).
+Suite de cierre real **6/6** (39.432 s), posterior al ajuste de recovery/work;
+con catálogos/identidades exclusivamente temporales y FFmpeg sintético. Incluye
+sources/import y handoff, dos videos + auxiliar, nombres/carpetas diferentes
+entre réplicas, parcial/hash diferente/offline y reintento; cola real → bloqueo →
+relink integral/ACK → deps → liberación fixture. Check final adicional del recorrido
+delivery: **1/1** (13.990 s), con ACK incompleto rechazado y reintento real
+idempotente del mismo operation ID. Publicación real → plan/adopción
+por CLI Clipper → cola vieja intacta y bloqueante → desbloqueo al retirarla.
+Cinco interrupciones de publicación (coordinador en copy_verified, producer_applied,
+receipt_durable y published, más SIGKILL del escritor Stalker en manifest), mismo
+ID y conflicto de payload; reconstrucción de seis revisiones desde recibos.
+Capacidad ausente, major desconocido, standalone y conocido offline cubiertos.
+No se simula el registro de la revisión en catálogo ni se modifica JSON editorial
+para preparar estos recorridos: análisis/colas/adopción usan los CLIs reales.
+
+Puente `python3 scripts/test_stalker_retitle_bridge.py`: **22/22** (10.617 s),
+incluye diez SIGKILL y muerte del coordinador con ambos locks heredados retenidos.
+`swift test --package-path native/MediaMenu`: **9/9**, compiló los cambios de UI.
+Compileall y `git diff --check` correctos; 152 enlaces locales comprobados sin faltantes.
+Los mensajes Installed de la suite son fixtures del instalador en tmp.
+
+**Implementado/probado, sin nueva instalación ni aceptación física.** Publicación
+explícita disponible por CLI/RPC; no se añadió diálogo nativo de publicación.
+El usuario planea/confirma la adopción en Clipper CLI/TUI; published no es ACK
+editorial y un fallo no libera las copias. Nuevo archivo/revisión queda en el
+volumen elegido, con trabajo pendiente; no hay staging interno ni limpieza de
+copias ambiguas. Consumidor antiguo sin `--handoff` falla reteniendo el origen.
+Exclusión limitada a apps participantes del mismo usuario/host/catálogo; Final
+Cut/Atlas, procesos antiguos y hardware siguen fuera. No se ejecutó ASR remoto,
+export largo ni captura/retiro personal. Siguiente gate: builds efectivas
+reiniciadas y ciclo físico pequeño autorizado, según [PLAN](../PLAN.md).
+[Contrato](contracts/media-library-v1.md#cierre-productor-clitui--29-octubre-2026),
+[índice/adopción](contracts/README.md#cierre-contractual-vigente--2026-10-29).
 
 ## Instalación de recuperación pending · 2026-10-28
 
