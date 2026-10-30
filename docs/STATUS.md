@@ -2,6 +2,51 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Implementación de la revisión · 2026-10-29
+
+Implementado en working tree sobre `f3d1651` (sin commit) a partir de la
+[revisión](features/app-review-2026-10.md#implementado-el-2026-10-29): toolbar
+nativa con pestañas también en fullscreen, Ingreso en cinco pasos (rápido/guiado),
+selección múltiple y asignación masiva, Biblioteca con tabla/búsqueda, Actividad con
+progreso, Inicio con recomendaciones por tarjeta, Ajustes en ventana propia, `snapshot`
+y lector persistente de sólo lectura, `@Observable`, bloqueo por ámbito, inglés/español.
+Flujo vigente: [nuun-window](features/nuun-window.md#ingreso-por-pasos-2026-10-29);
+métodos nuevos: [contrato](contracts/media-library-v1.md#fuentes-y-expulsión-local-2026-10-27).
+
+Evidencia: `python3 -m unittest discover -s tests -q` **188/188** (100.8 s; 5 nuevas
+de snapshot/huellas/lector), `compileall`, `swift test` **10/10** (nuevo: lector
+persistente con catálogo aislado), `scripts/check_localization.py` 418 claves sin
+faltantes, `git diff --check`. QA con build debug, catálogo aislado
+(`NU9VE_MEDIA_HOME`) y media sintética de ffmpeg: render offscreen de cada pestaña,
+paso y modo en español e inglés; `--qa-fullscreen` en la pantalla real registró la
+toolbar visible a y=1045 de 1080 y sin `autoHideToolbar` en fullscreen; `--qa-ingest`
+con el motor real recorrió fuente → contenido → asignación masiva → sólo respaldo
+confirmado → ejecutar: 9/9 archivos verificados en carpetas temporales, dos proyectos,
+origen conservado. El motor rechazó correctamente archivo y SSD en el mismo disco físico.
+
+Instalado en `~/Applications/nuun.app`: build release **`eb9c719514fb`**, artefacto
+`/private/tmp/nuun-steps-20261029-61fa.app`, firma ad-hoc verificada, binario idéntico,
+backend `media/` idéntico al repo; anterior en
+`~/Library/Application Support/n-creator-utils/app-backups/5f8fa2ad.app`. La instancia
+abierta estaba inactiva (sin procesos hijos) y se cerró desde su menú antes de instalar;
+se volvió a abrir. Sin planes ni operaciones de media reales, sin SDs/MEDIA/ESSD.
+El sistema tiene `en-MX` primero, así que la app sigue al sistema en inglés salvo que se
+elija Español en Ajustes → Idioma.
+
+Pendiente: aceptación visual/interactiva del usuario (clics reales, hojas, Quick Look,
+atajos), matriz de pantallas/Spaces y accesibilidad, ciclo físico pequeño autorizado y
+los gates de release; DiskArbitration, eventos de progreso empujados, agrupación de la
+grilla y miniaturas de cámara siguen como propuesta.
+
+## Revisión de app y propuestas · 2026-10-29
+
+Revisión de código (sin abrir la app ni usar volúmenes) de ventana, navegación,
+Ingreso, detección de SD, puente RPC, estilo, idiomas y plataformas:
+[propuestas](features/app-review-2026-10.md). Bug reportado por el usuario: en
+fullscreen con la barra de menús en ocultación automática las pestañas sólo aparecen
+al revelar la barra; **no reproducido**, causa probable y corrección propuesta en el
+documento. Sin cambios de comportamiento.
+
 ## Presentación del proyecto · 2026-10-29
 
 README reorganizado para presentar nüün como multiherramienta para creadores,

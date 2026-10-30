@@ -4,75 +4,75 @@ import MediaMenuCore
 
 extension Model {
     func tagCapture(_ capture: JSONValue, project: String, country: String, prepare: Bool = false) {
-        operation("Guardando proyecto de la captura") {
+        operation(String(localized: "Guardando proyecto de la captura"), scope: .settings) {
             _ = try await self.client!.call("save_capture_tag", ["session_id": capture["session_id"], "project": .string(project), "country": .string(country)])
             if prepare {
                 self.prepareSource(capture["path"].string, kind: "stalker")
-                self.project = project; self.country = country; self.changeMode?(.selection)
+                self.project = project; self.country = country; self.goToStep(.content)
             }
-            self.message = "Proyecto guardado; el bundle original no se modifica"
+            self.message = String(localized: "Proyecto guardado; el bundle original no se modifica")
         }
     }
     func prepareLocalRelease(_ capture: JSONValue) {
         let title = capture["tag"]["name"].string.isEmpty ? capture["project_hint"]["name"].string : capture["tag"]["name"].string
-        operation("Verificando respaldo y dependencias") {
+        operation(String(localized: "Verificando respaldo y dependencias"), scope: .space) {
             self.releasePlan = try await self.client!.call("plan_release", ["source": capture["path"], "archive": .string(self.archive), "project": .string(title.isEmpty ? URL(fileURLWithPath: capture["path"].string).lastPathComponent : title)])
-            self.selectedTab = 5; self.changeMode?(.full)
+            self.route = .space; self.changeMode?(.full)
         }
     }
     func auditStorage() {
         coverageResult = nil
-        operation("Comparando ESSD con MEDIA por contenido") {
+        operation(String(localized: "Comparando ESSD con MEDIA por contenido"), scope: .space) {
             self.coverageResult = try await self.client!.call("coverage", ["work": .string(self.work), "archive": .string(self.archive), "path": .string(self.auditPath)])
-            self.message = "Auditoría terminada; no se borró ningún archivo"
+            self.message = String(localized: "Auditoría terminada; no se borró ningún archivo")
         }
     }
     func prepareWorkRelease() {
-        operation("Preparando liberación del proyecto") {
+        operation(String(localized: "Preparando liberación del proyecto"), scope: .space) {
             self.releasePlan = try await self.client!.call("plan_release", ["work": .string(self.work), "archive": .string(self.archive), "path": .string(self.auditPath), "project": .string(self.releaseProject)])
         }
     }
     func relinkRelease() {
         guard let reviewed = releasePlan else { return }
-        operation("Reenlazando mediante Clipper") {
+        operation(String(localized: "Reenlazando mediante Clipper"), scope: .space) {
             let result = try await self.client!.call("relink_release", ["plan_id": reviewed["id"], "digest": reviewed["digest"]])
             var updated = reviewed.object
             updated["consumers"] = result["consumers"]; self.releasePlan = .object(updated)
-            self.message = "Clipper confirmó los reenlaces; ya puedes revisar la liberación"
+            self.message = String(localized: "Clipper confirmó los reenlaces; ya puedes revisar la liberación")
         }
     }
     func applyRelease() {
         guard let reviewed = releasePlan else { return }
-        operation("Liberando copias verificadas") {
+        operation(String(localized: "Liberando copias verificadas"), scope: .space) {
             self.releasePlan = try await self.client!.call("apply_release", ["plan_id": reviewed["id"], "digest": reviewed["digest"]])
-            self.message = "Espacio liberado; respaldo y catálogo conservados en MEDIA"
+            self.message = String(localized: "Espacio liberado; respaldo y catálogo conservados en MEDIA")
             if let result = self.releasePlan, !result["metadata_backup_error"].string.isEmpty {
-                self.message = "Espacio liberado; catálogo previo conservado"
-                self.error = "Falta respaldar el estado final del catálogo: " + result["metadata_backup_error"].string
+                self.message = String(localized: "Espacio liberado; catálogo previo conservado")
+                self.error = String(localized: "Falta respaldar el estado final del catálogo: ") + result["metadata_backup_error"].string
             }
             self.loadedSourceKey = ""; self.units = []; self.plan = nil
         }
     }
     func reviewRelease() {
         guard let reviewed = releasePlan else { return }
-        operation("Actualizando dependencias del plan") {
+        operation(String(localized: "Actualizando dependencias del plan"), scope: .space) {
             self.releasePlan = try await self.client!.call("review_release", ["plan_id": reviewed["id"], "digest": reviewed["digest"]])
         }
     }
     func backupMetadata() {
-        operation("Respaldando catálogo y perfiles") {
+        operation(String(localized: "Respaldando catálogo y perfiles"), scope: .space) {
             let result = try await self.client!.call("backup_metadata", ["archive": .string(self.archive)])
-            self.message = "Catálogo completo verificado en " + result["path"].string
+            self.message = String(localized: "Catálogo completo verificado en ") + result["path"].string
         }
     }
     func chooseAuditFolder() {
-        let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-        guard panel.runModal() == .OK, let url = panel.url,
-              let volume = volumes.first(where: { $0["id"].string == work }) else { return }
+        guard let volume = volumes.first(where: { $0["id"].string == work }) else { return }
         let root = volume["root"].string + "/"
-        guard url.path.hasPrefix(root) else { error = "Elige una carpeta dentro del SSD seleccionado"; return }
-        auditPath = String(url.path.dropFirst(root.count)); releaseProject = url.lastPathComponent
-        coverageResult = nil; releasePlan = nil
+        pickURL(message: String(localized: "Elige la carpeta del proyecto en el SSD"), directory: URL(fileURLWithPath: root)) { url in
+            guard url.path.hasPrefix(root) else { self.error = String(localized: "Elige una carpeta dentro del SSD seleccionado"); return }
+            self.auditPath = String(url.path.dropFirst(root.count)); self.releaseProject = url.lastPathComponent
+            self.coverageResult = nil; self.releasePlan = nil
+        }
     }
     func archiveAuditFolder() {
         guard let volume = volumes.first(where: { $0["id"].string == work }), !auditPath.isEmpty else { return }
@@ -82,13 +82,13 @@ extension Model {
 }
 
 struct StorageView: View {
-    @ObservedObject var model: Model
+    @Bindable var model: Model
     @State private var confirmRelease = false
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Label("Respaldo y espacio", systemImage: "externaldrive.badge.checkmark").font(.title2)
-                Text("Audita un proyecto, archiva lo que falte y revisa qué copias puedes retirar. La limpieza de la SD sigue en Ingreso.").foregroundStyle(.secondary)
+                PageHeader(title: "Respaldo y espacio", subtitle: "Audita un proyecto, archiva lo que falte y revisa qué copias puedes retirar. La limpieza de la SD sigue en Ingreso.")
+                ErrorBanner(model: model)
                 HStack {
                     Picker("MEDIA", selection: $model.archive) { Text("Elegir").tag(""); ForEach(model.volumes.filter { $0["role"].string == "archive" }, id: \.["id"].string) { Text($0["name"].string).tag($0["id"].string) } }
                     Picker("SSD", selection: $model.work) { Text("Elegir").tag(""); ForEach(model.volumes.filter { $0["role"].string == "work" }, id: \.["id"].string) { Text($0["name"].string).tag($0["id"].string) } }
@@ -98,7 +98,7 @@ struct StorageView: View {
                 if let report = model.coverageResult {
                     Text("Cubiertos: \(Int(report["totals"]["in_archive"]["files"].double)) · sólo trabajo: \(Int(report["totals"]["only_work"]["files"].double))").font(.headline)
                     Text(report["report"].string).font(.caption).textSelection(.enabled)
-                    ForEach(Array(report["only_work_sample"].array.enumerated()), id: \.offset) { _, value in Text("Falta en MEDIA: " + value["path"].string).font(.caption) }
+                    ForEach(Array(report["only_work_sample"].array.enumerated()), id: \.offset) { _, value in Text("Falta en MEDIA: \(value["path"].string)").font(.caption) }
                 }
                 Divider()
                 if let plan = model.releasePlan {
@@ -113,7 +113,7 @@ struct StorageView: View {
                     }
                     DisclosureGroup("Archivos y destinos verificados") {
                         ForEach(Array(plan["entries"].array.enumerated()), id: \.offset) { _, entry in Text(entry["path"].string + " → " + entry["archive_path"].string).font(.caption).textSelection(.enabled) }
-                        ForEach(Array(plan["preserved"].array.enumerated()), id: \.offset) { _, value in Text("Conservar: " + value.string).font(.caption) }
+                        ForEach(Array(plan["preserved"].array.enumerated()), id: \.offset) { _, value in Text("Conservar: \(value.string)").font(.caption) }
                     }
                 }
                 if !model.releaseHistory.isEmpty {
@@ -148,7 +148,6 @@ struct StorageView: View {
                 }
             }
         }
-        .disabled(model.busy)
         .confirmationDialog("¿Retirar las copias locales del plan revisado?", isPresented: $confirmRelease) {
             Button("Liberar espacio", role: .destructive) { model.applyRelease() }
         } message: { Text("Se retirarán sólo los archivos mostrados, tras verificar MEDIA y volver a consultar Clipper. MEDIA puede quedar como única réplica. Esta acción no se deshace desde nüün.") }

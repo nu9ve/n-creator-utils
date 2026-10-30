@@ -3,657 +3,40 @@ import SwiftUI
 import UserNotifications
 import MediaMenuCore
 
-struct DraftUnit: Identifiable, Equatable {
-    var id: String
-    var paths: [String]
-    var project = ""
-    var profile = ""
-    var camera = "auto"
-    var copyForEditing = false
-    var category = "support"
-    var detectedCamera = ""
-    var bytes: Double = 0
-    var createdAt = ""
-    var duration: Double = 0
-    var tracks = 0
-    var sessionID = ""
-    var manifestPreviewPath = ""
-    var country = ""
-    var suggestedProject = ""
-    var suggestedCountry = ""
-    var previewPath: String? {
-        if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
-        return paths.first { path in
-            let lower = path.lowercased()
-            return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
-        }
-    }
+private extension NSToolbarItem.Identifier {
+    static let shellBar = NSToolbarItem.Identifier("nuun.shell")
 }
 
-@MainActor final class Model: ObservableObject {
-    @Published var selectedTab = 4
-    @Published var presentation: WindowMode = .full
-    @Published var windowIsFullscreen = false
-    @Published var profiles: [JSONValue] = []
-    @Published var recentProjects: [JSONValue] = []
-    @Published var discoveryLoading = false
-    @Published var discoveryError = ""
-    var loadedSourceKey = ""
-    var pendingSourceKey = ""
-    var pendingReadID: UUID?
-    var sourceReadTask: Task<Void, Never>?
-    var changeMode: ((WindowMode) -> Void)?
-    @Published var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; units = []; plan = nil; loadedSourceKey = "" } } }
-    @Published var bundledRuntime = false
-    @Published var captureRoot = ""
-    @Published var pendingCaptures: [JSONValue] = []
-    var captureWatchers: [CaptureWatcher] = []
-    @Published var captureSessions: [JSONValue] = []
-    @Published var captureRoots: [String] = []
-    @Published var captureError = ""
-    @Published var clipperExecutable = ""
-    @Published var clipperAvailable = false
-    @Published var retainStalkerSource = false
-    @Published var releasePlan: JSONValue?
-    @Published var releaseHistory: [JSONValue] = []
-    @Published var coverageResult: JSONValue?
-    @Published var auditPath = ""
-    @Published var releaseProject = ""
-    var watchedCaptureRoots: [String] = []
-    var captureTask: Task<Void, Never>?
-    @Published var project = ""
-    @Published var lastProject = ""
-    @Published var cardSuggestions: [String] = []
-    @Published var sourceCards: [JSONValue] = []
-    var notifiedCards: Set<String> = []
-    @Published var profile = "e64"
-    @Published var country = "mx"
-    @Published var city = "hermosillo"
-    @Published var archive = ""
-    @Published var work = ""
-    @Published var sourceKind = "card"
-    @Published var cleanup = true
-    @Published var volumes: [JSONValue] = []
-    @Published var assets: [JSONValue] = []
-    @Published var jobs: [JSONValue] = []
-    @Published var units: [DraftUnit] = []
-    @Published var selected: Set<String> = []
-    var reviewedPlan: ReviewedPlan?
-    @Published var plan: JSONValue? { didSet { if plan == nil { reviewedPlan = nil } } }
-    @Published var busy = false
-    @Published var message = "Listo"
-    @Published var error = ""
-    @Published var python = ""
-    @Published var script = ""
-    @Published var archiveOnlyPrompt = false
-    @Published var deferWork = true
-    @Published var copyChoice = "none"
-    var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
-    @Published var packagedBackend = false
-    var client: BackendClient?
-    var openWindow: (() -> Void)?
-    var openImporter: (() -> Void)?
-    var statusChanged: (() -> Void)?
-    var eventTask: Task<Void, Never>?
-    var monitorTask: Task<Void, Never>?
-
-    init() {
-        let prefs = UserDefaults.standard
-        prefs.register(defaults: ["showQuickImporter": true])
-        if let configURL = Bundle.main.url(forResource: "backend-config", withExtension: "json"),
-           let data = try? Data(contentsOf: configURL), let config = try? JSONDecoder().decode(BackendConfiguration.self, from: data) {
-            python = config.python
-            script = config.script.hasPrefix("/") ? config.script : Bundle.main.resourceURL!.appendingPathComponent(config.script).path
-            packagedBackend = true
-        }
-        if let resources = Bundle.main.resourceURL {
-            let bundledPython = resources.appendingPathComponent("backend/runtime/bin/python3").path
-            let bundledScript = resources.appendingPathComponent("backend/source/nu9ve.py").path
-            if FileManager.default.isExecutableFile(atPath: bundledPython) { python = bundledPython; script = bundledScript; bundledRuntime = true }
-        }
-        if !bundledRuntime && !packagedBackend {
-            python = prefs.string(forKey: "python") ?? python
-            script = prefs.string(forKey: "script") ?? script
-        }
-        captureRoot = prefs.string(forKey: "captureRoot") ?? ""
-        configure()
-    }
-    func watchCaptures() {
-        guard !busy else { return }
-        UserDefaults.standard.set(captureRoot, forKey: "captureRoot")
-        operation("Actualizando bibliotecas de Stalker") {
-            _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot),
-                "clipper_executable": .string(self.clipperExecutable), "retain_stalker_source": .bool(self.retainStalkerSource)])
-        }
-    }
-    func captureChanged(_ paths: [String]) {
-        captureTask?.cancel()
-        captureTask = Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled, !busy, let client, client.configuration.usable else { return }
-            do {
-                let data = try await client.call("capture_libraries", ["override": .string(captureRoot)])
-                guard !Task.isCancelled else { return }
-                pendingCaptures = data["pending"].array; captureSessions = data["sessions"].array
-                captureRoots = data["roots"].array.map(\.string)
-                captureError = data["errors"].array.map(\.string).joined(separator: "\n")
-                let registry = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Stalker").path
-                let roots = Array(Set(captureRoots + [registry])).filter { FileManager.default.fileExists(atPath: $0) }.sorted()
-                if roots != watchedCaptureRoots {
-                    watchedCaptureRoots = roots
-                    captureWatchers = roots.map { root in CaptureWatcher(root: root) { [weak self] paths in
-                        Task { @MainActor in self?.captureChanged(paths) }
-                    } }
-                }
-                statusChanged?()
-            } catch { if !Task.isCancelled { captureError = error.localizedDescription } }
-        }
-    }
-    func kindLabel(_ raw: String) -> String {
-        ["file": "Archivo", "camera_bundle": "Captura", "stalker_session": "Stalker", "delivery": "Entrega"][raw] ?? raw
-    }
-    func workLabel(_ raw: String) -> String {
-        ["pending": "Copia para editar pendiente", "ready": "Copias para editar listas", "skipped": "Sólo respaldo · sin copias para editar"][raw] ?? raw
-    }
-    func configure() {
-        guard !busy else { return }
-        UserDefaults.standard.set(python, forKey: "python")
-        UserDefaults.standard.set(script, forKey: "script")
-        client = BackendClient(configuration: .init(python: python, script: script))
-        Task { await refresh(loadDefaults: true) }
-    }
-    func refresh(loadDefaults: Bool = false) async {
-        guard let client, client.configuration.usable else { return }
-        do {
-            volumes = try await client.call("volumes").array
-            assets = try await client.call("library").array
-            jobs = try await client.call("jobs").array
-            profiles = try await client.call("profiles").array
-            recentProjects = try await client.call("projects").array
-            releaseHistory = try await client.call("release_plans").array
-            if let capabilities = try? await client.call("integration_capabilities") {
-                clipperAvailable = capabilities["clipper"]["available"].bool
-            } else { clipperAvailable = false }
-            let integrations = try await client.call("integration_settings")
-            clipperExecutable = integrations["clipper_executable"].string
-            retainStalkerSource = integrations["retain_stalker_source"].bool
-            if loadDefaults {
-                if !integrations["capture_override"].string.isEmpty { captureRoot = integrations["capture_override"].string }
-                else if !captureRoot.isEmpty { _ = try await client.call("integration_settings", ["capture_override": .string(captureRoot)]) }
-                let values = try await client.call("defaults")
-                // Offered via "Usar último"; a new card never inherits it silently.
-                lastProject = values["project"].string
-                profile = values["profile"].string.isEmpty ? "e64" : values["profile"].string
-                country = values["country"].string.isEmpty ? "mx" : values["country"].string
-                city = values["city"].string.isEmpty ? "hermosillo" : values["city"].string
-                archive = values["archive"].string
-                work = values["work"].string
-            }
-            if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
-            if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
-            captureChanged([])
-            do { sourceCards = try await client.call("source_cards").array }
-            catch { sourceCards = []; self.error = "No se pudieron actualizar las SDs: " + error.localizedDescription }
-        } catch { self.error = error.localizedDescription }
-    }
-    func operation(_ title: String, _ body: @escaping @MainActor () async throws -> Void) {
-        guard !busy else { return }
-        busy = true; error = ""; message = title; statusChanged?()
-        Task {
-            do { try await body() }
-            catch {
-                if let failure = error as? BackendFailure, failure.code == "plan_changed" {
-                    self.plan = nil
-                    self.error = "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. " + failure.message
-                } else { self.error = error.localizedDescription }
-                message = "Operación detenida; revisa el estado"
-            }
-            busy = false; monitorTask?.cancel(); monitorTask = nil
-            await refresh(); statusChanged?()
-
-        }
-    }
-    func chooseSource() {
-        let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-        if panel.runModal() == .OK { source = panel.url?.path ?? ""; units = []; plan = nil }
-    }
-    var selectedCard: JSONValue? { sourceCards.first { $0["path"].string == source && sourceKind == "card" } }
-    func ejectSource() {
-        guard !discoveryLoading, let card = selectedCard else { return }
-        let path = source
-        operation("Expulsando SD") {
-            _ = try await self.client!.call("eject_card", ["source": .string(path), "identity": card["identity"]])
-            if self.source == path { self.source = "" }
-            self.sourceCards.removeAll { $0["path"].string == path }
-            self.cardSuggestions.removeAll { $0 == path }
-            self.message = "SD expulsada · puedes retirarla"
-        }
-    }
-    func inspectSource() {
-        if presentation == .compact { changeMode?(.selection) }
-        discover()
-    }
-    func registerVolume(role: String) {
-        let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-        panel.message = role == "archive" ? "Elige la raíz del disco de archivo (MEDIA)" : "Elige la raíz del SSD para editar"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        operation("Registrando disco") {
-            _ = try await self.client!.call("register_volume", ["root": .string(url.path), "name": .string(url.lastPathComponent), "role": .string(role)])
-            self.message = "Disco registrado"
-        }
-    }
-    var sourceKey: String { source + "|" + sourceKind + "|" + archive }
-    func discover() {
-        sourceReadTask?.cancel(); loadedSourceKey = ""
-        sourceReadTask = Task { await loadSource() }
-    }
-    func loadSource() async {
-        let key = sourceKey, path = source
-        guard !path.isEmpty, !busy, loadedSourceKey != key,
-              let client, client.configuration.usable else { return }
-        let readID = UUID()
-        pendingReadID = readID
-        pendingSourceKey = key; discoveryLoading = true; discoveryError = ""
-        let reader = BackendClient(configuration: client.configuration)
-        defer { if pendingReadID == readID { pendingSourceKey = ""; pendingReadID = nil; discoveryLoading = false } }
-        do {
-            try await Task.sleep(for: .milliseconds(250))
-            let data = try await withTaskCancellationHandler {
-                try await reader.call("discover", ["source": .string(path), "source_kind": .string(sourceKind), "archive": .string(archive)])
-            } onCancel: { reader.cancel() }
-            guard !Task.isCancelled, sourceKey == key, pendingReadID == readID else { return }
-            let existing = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0) })
-            units = data["units"].array.map { value in
-                var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
-                unit.sessionID = value["session_id"].string
-                unit.suggestedProject = value["project_hint"]["name"].string
-                unit.suggestedCountry = value["project_hint"]["country"].string
-                if existing[value["id"].string] == nil {
-                    unit.project = value["tag"]["name"].string
-                    unit.country = value["tag"]["country"].string
-                }
-                unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
-                unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
-                unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
-                unit.manifestPreviewPath = value["preview_path"].string
-                return unit
-            }
-            loadedSourceKey = key; plan = nil
-            message = "\(units.count) unidades · \(data["skipped"].array.count) capturas activas omitidas"
-        } catch {
-            if !Task.isCancelled, sourceKey == key, pendingReadID == readID { discoveryError = error.localizedDescription }
-        }
-    }
-    func selectCopyChoice(_ choice: String) {
-        invalidatePlan(); copyChoice = choice
-        if choice == "some" {
-            if presentation == .compact { changeMode?(.selection) }
-            if !source.isEmpty && loadedSourceKey != sourceKey { discover() }
-        }
-    }
-    func invalidatePlan() {
-        if plan != nil {
-            plan = nil
-            if !busy { message = "Cambios pendientes · revisa el plan de nuevo" }
-        }
-    }
-    func selectProfile(_ id: String) {
-        profile = id
-        if let value = profiles.first(where: { $0["id"].string == id }) {
-            if !value["work"].string.isEmpty { work = value["work"].string }
-            if !value["archive"].string.isEmpty { archive = value["archive"].string }
-        }
-        plan = nil
-    }
-    func prepareSource(_ path: String, kind: String) {
-        sourceKind = kind; cleanup = kind == "card"; source = path; selectedTab = 0; plan = nil
-        if kind == "stalker" { project = "" }
-    }
-    func prepareCaptureBatch(_ root: String) {
-        prepareSource(root, kind: "stalker")
-        changeMode?(.selection)
-        discover()
-    }
-    func requestPlan() {
-        guard sourceKind != "stalker" || (loadedSourceKey == sourceKey && !units.isEmpty) else {
-            error = "Inspecciona las sesiones para conservar sus proyectos antes de revisar el plan"; return
-        }
-        if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
-        if noWork { archiveOnlyPrompt = true; return }
-        let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
-        if !onlineWork { archiveOnlyPrompt = true }
-        else { makePlan(archiveOnly: false) }
-    }
-    func makePlan(archiveOnly: Bool) {
-        operation("Preparando plan") {
-            var assignments: [String: JSONValue] = [:]
-            for unit in self.units {
-                if !unit.sessionID.isEmpty {
-                    let title = unit.project.isEmpty ? self.project : unit.project
-                    let country = unit.country.isEmpty ? self.country : unit.country
-                    if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        _ = try await self.client!.call("save_capture_tag", ["session_id": .string(unit.sessionID), "project": .string(title), "country": .string(country)])
-                    }
-                }
-                var values: [String: JSONValue] = [:]
-                if !unit.project.isEmpty { values["project"] = .string(unit.project) }
-                if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
-                if !unit.country.isEmpty { values["country"] = .string(unit.country) }
-                if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
-                if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
-                if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
-            }
-            var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),
-                "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
-                "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
-                "assignments": .object(assignments)]
-            params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork || self.sourceKind == "delivery", deferWork: self.deferWork, work: self.work)) { _, new in new }
-            let document = try await self.client!.call("plan_document", params).string
-            let reviewed = try ReviewedPlan(document: document)
-            self.plan = reviewed.display
-            self.reviewedPlan = reviewed
-            self.message = "Plan listo para revisar; no se ha copiado ni borrado media"
-        }
-    }
-    func apply() {
-        guard let reviewed = reviewedPlan else { return }
-        operation("Copiando y verificando") {
-            self.monitorTask = Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(2))
-                    if Task.isCancelled { break }
-                    if let job = try? await self.client!.call("job", ["job_id": reviewed.display["id"]]) {
-                        self.message = self.progressLabel(job)
-                    }
-                }
-            }
-            let result = try await self.client!.call("apply", reviewed.applyParameters)
-            self.message = self.stateLabel(result["state"].string)
-            let release = result["stalker_release"]
-            if release["status"].string == "retained" || release["status"].string == "partial" {
-                let reasons = release["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
-                self.error = "Respaldo verificado; se conservó el original Stalker. " + reasons.joined(separator: " · ")
-            }
-            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
-            _ = try await self.client!.call("defaults", ["project": .string(self.project), "profile": .string(self.profile),
-                "country": .string(self.country), "city": .string(self.city), "archive": .string(self.archive), "work": .string(self.work)])
-            self.lastProject = self.project; self.plan = nil; self.loadedSourceKey = ""
-        }
-    }
-    func cancel() { client?.cancel(); message = "Cancelando en un punto recuperable…" }
-    func stateLabel(_ state: String) -> String {
-        switch state {
-        case "copying": return "Copiando y verificando destinos"
-        case "backup_verified": return "Archivo verificado"
-        case "cleaning_source": return "Limpiando SD"
-        case "completed": return sourceKind == "stalker" ? "Respaldo verificado · original Stalker liberado" : "Respaldo verificado · SD libre"
-        case "camera_action_required": return "Respaldo verificado · libera la tarjeta desde la cámara"
-        case "source_retained": return sourceKind == "stalker" ? "Respaldo verificado · original Stalker conservado" : "Respaldo verificado · origen conservado"
-        case "source_has_new_material": return "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados"
-        case "paused": return "Pausado; se puede reanudar"
-        case "failed": return "Fallo; revisa el job antes de reanudar"
-        default: return state
-        }
-    }
-    func progressLabel(_ job: JSONValue) -> String {
-        // Real bytes from Transfer.report; never an invented percentage.
-        let p = job["progress"], gb = { (bytes: Double) in String(format: "%.1f", bytes / 1e9) }
-        if p["phase"].string == "releasing_stalker" {
-            let session = "Sesión \(Int(p["session_index"].double))/\(Int(p["sessions_total"].double))"
-            let name = p["session_name"].string
-            let stage: String
-            switch p["stage"].string {
-            case "preparing": stage = "Preparando liberación"
-            case "hashing_source": stage = "Verificando archivos del original"
-            case "matching_archive": stage = "Comparando con el respaldo"
-            case "validating_bundle": stage = "Validando bundle Stalker"
-            case "inspecting_clipper": stage = "Revisando dependencias de Clipper"
-            case "verifying_work_copy": stage = "Verificando copia de trabajo"
-            case "revalidating_source": stage = "Revalidando origen"
-            case "revalidating_clipper": stage = "Revalidando dependencias de Clipper"
-            case "verifying_archive": stage = "Revalidando respaldo"
-            case "metadata_backup_before", "metadata_backup_after": stage = "Guardando snapshot del catálogo"
-            case "relinking": stage = "Actualizando referencias de Clipper"
-            case "releasing_originals": stage = "Liberando archivos originales"
-            case "relink_complete": stage = "Referencias actualizadas"
-            case "release_complete", "session_finished": stage = "Sesión liberada"
-            default: stage = "Liberando sesión Stalker"
-            }
-            var parts = [stage, session]
-            if !name.isEmpty { parts.append(name) }
-            if p["files_total"].double > 0 {
-                parts.append("\(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos")
-            }
-            if p["bytes_total"].double > 0 {
-                parts.append("\(gb(p["bytes_done"].double)) / \(gb(p["bytes_total"].double)) GB")
-            }
-            let path = p["path"].string
-            if !path.isEmpty { parts.append((path as NSString).lastPathComponent) }
-            return parts.joined(separator: " · ")
-        }
-        guard p["bytes_total"].double > 0 else { return stateLabel(job["state"].string) }
-        let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
-        let files = " · \(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos"
-        let destinations = p["destinations"].array.compactMap { destination -> String? in
-            let name = destination["name"].string
-            guard !name.isEmpty else { return nil }
-            return "\(name) \(Int(destination["files_done"].double))/\(Int(destination["files_total"].double))"
-        }.joined(separator: " · ")
-        let destinationStatus = destinations.isEmpty ? "" : " · " + destinations
-        switch p["phase"].string {
-        case "copying": return "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB" + rate + files + destinationStatus
-        case "verifying": return "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB" + files + destinationStatus
-        case "cleaning": return "Limpiando SD tras verificar"
-        default: return stateLabel(job["state"].string)
-        }
-    }
-    func jobLabel(_ job: JSONValue) -> String {
-        if job["source_kind"].string == "stalker" {
-            if job["state"].string == "completed" { return "Respaldo verificado · original Stalker liberado" }
-            if job["state"].string == "source_retained" { return "Respaldo verificado · original Stalker conservado" }
-        }
-        // Cards holding Stalker bundles end camera_action_required without any camera step.
-        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "files" {
-            return "Respaldo verificado · las sesiones Stalker se conservan en el origen"
-        }
-        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "sony_clips_then_format" {
-            return "Respaldo verificado · clips borrados de la SD · formatéala en la cámara"
-        }
-        return stateLabel(job["state"].string)
-    }
-    func jobDetail(_ job: JSONValue) -> String {
-        let reasons = job["stalker_release"]["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
-        return reasons.isEmpty ? job["id"].string : reasons.joined(separator: " · ")
-    }
-    func useCard(_ path: String) {
-        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; selectedTab = 0
-    }
-    func notifyCard(_ path: String) {
-        guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
-        Task {
-            let center = UNUserNotificationCenter.current()
-            guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
-            let content = UNMutableNotificationContent()
-            content.title = "Tarjeta detectada"
-            content.body = URL(fileURLWithPath: path).lastPathComponent + " · abre nüün para revisar el plan"
-            try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
-        }
-    }
-    func deliver() {
-        let ids = selected.sorted()
-        operation("Preparando copias para editar") {
-            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work)])
-            self.message = "Copias para editar verificadas"; self.selected = []
-        }
-    }
-    func skip() {
-        let ids = selected.sorted()
-        operation("Actualizando pendientes") {
-            _ = try await self.client!.call("set_work_state", ["asset_ids": .array(ids.map(JSONValue.string)), "state": .string("skipped")])
-            self.message = "Copias para editar omitidas"; self.selected = []
-        }
-    }
-    func restoreSelected() {
-        guard selected.count == 1, let id = selected.first else { return }
-        let panel = NSOpenPanel(); panel.canChooseDirectories = true; panel.canChooseFiles = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        operation("Restaurando selección") {
-            let result = try await self.client!.call("restore", ["asset_id": .string(id), "destination": .string(url.path)])
-            self.message = "Restauración verificada"
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: result["path"].string)])
-        }
-    }
-    func exportHandoff() {
-        let panel = NSSavePanel(); panel.nameFieldStringValue = "media-handoff.json"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let ids = selected.sorted()
-        operation("Preparando selección de biblioteca") {
-            let data = try await self.client!.call("handoff", ["asset_ids": .array(ids.map(JSONValue.string))])
-            try JSONEncoder().encode(data).write(to: url, options: .atomic)
-            self.message = "Selección exportada; requiere soporte de biblioteca en Clipper"
-        }
-    }
-    func confirmCleanup(_ id: String) {
-        let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
-        panel.directoryURL = URL(fileURLWithPath: "/Volumes"); panel.message = "Elige la tarjeta ya formateada en la cámara"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        operation("Comprobando tarjeta formateada") {
-            let result = try await self.client!.call("confirm_camera_cleanup", ["job_id": .string(id), "source": .string(url.path)])
-            self.message = self.stateLabel(result["state"].string)
-            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
-        }
-    }
-    func resume(_ id: String) {
-        operation("Reanudando job") {
-            let result = try await self.client!.call("resume", ["job_id": .string(id)])
-            self.message = self.stateLabel(result["state"].string)
-            if !result["metadata_backup_error"].string.isEmpty { self.error = "Respaldo de media terminado; falta respaldar catálogo: " + result["metadata_backup_error"].string }
-        }
-    }
-    func mountChanged() {
-        eventTask?.cancel()
-        eventTask = Task {
-            try? await Task.sleep(for: .milliseconds(800))
-            guard !Task.isCancelled, !busy, let client, client.configuration.usable else { return }
-            await refresh()
-            captureChanged([])
-            guard volumes.contains(where: { $0["online"].bool }) else { cardSuggestions = []; notifiedCards = []; statusChanged?(); return }
-            let mounted = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeIsInternalKey], options: [.skipHiddenVolumes]) ?? []
-            var shown: [String] = []
-            for url in mounted {
-                guard (try? url.resourceValues(forKeys: [.volumeIsInternalKey]).volumeIsInternal) == false else { continue }
-                if let suggestion = try? await client.call("suggest", ["source": .string(url.path)]), suggestion["show"].bool { shown.append(url.path) }
-            }
-            // A mount event notifies once per insertion; it never opens the window or replaces work in progress.
-            cardSuggestions = shown
-            notifiedCards.formIntersection(shown)
-            let idle = units.isEmpty && plan == nil && (source.isEmpty || !FileManager.default.fileExists(atPath: source))
-            for path in shown where !notifiedCards.contains(path) {
-                notifiedCards.insert(path); notifyCard(path)
-                if idle && source != path {
-                    useCard(path)
-                    if UserDefaults.standard.bool(forKey: "showQuickImporter") { openImporter?() }
-                }
-            }
-            statusChanged?()
-            if assets.contains(where: { $0["work_delivery_status"].string == "pending" }) { statusChanged?() }
-        }
-    }
-}
-
-struct MainView: View {
-    @ObservedObject var model: Model
-    let cameras = ["auto", "generic", "sony", "canon", "nikon", "gopro", "h6", "dji-drone", "dji-360", "dji-action", "insta360"]
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if !model.error.isEmpty { Text(model.error).foregroundStyle(.red).textSelection(.enabled) }
-            Group {
-                switch model.selectedTab {
-                case 0: ingest
-                case 1: library
-                case 2: activity
-                case 3: SettingsView(model: model)
-                case 5: StorageView(model: model)
-                default: InboxView(model: model)
-                }
-            }.frame(maxWidth: .infinity, maxHeight: .infinity)
-        }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaInset(edge: .bottom, spacing: 0) { MainActionFooter(model: model) }
-    }
-    var ingest: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            IngestHeader(model: model)
-            BatchProjectPicker(model: model)
-            IngestOptions(model: model)
-            SourceSummary(model: model)
-            ImportGrid(model: model).frame(minHeight: 180)
-            DisclosureGroup("Asignación avanzada · perfil y cámara") {
-            ScrollView { VStack {
-                ForEach($model.units) { $unit in
-                    HStack {
-                        Text(unit.paths.joined(separator: "\n")).lineLimit(3).frame(maxWidth: .infinity, alignment: .leading)
-                        TextField("Proyecto general", text: $unit.project).frame(width: 150)
-                        TextField("Perfil general", text: $unit.profile).frame(width: 100)
-                        Picker("Cámara", selection: $unit.camera) { ForEach(cameras, id: \.self) { Text($0).tag($0) } }.frame(width: 150)
-                    }
-                }
-            } }
-            }.frame(maxHeight: 140)
-            PlanReview(model: model)
-        }.padding(.top).disabled(model.busy)
-        .onChange(of: model.sourceKind) { _, _ in model.plan = nil }
-        .onChange(of: model.deferWork) { _, _ in model.plan = nil }
-        .onChange(of: model.project) { _, _ in model.invalidatePlan() }
-    }
-    var library: some View {
-        VStack(alignment: .leading) {
-            if !model.pendingCaptures.isEmpty {
-                HStack {
-                    Text("\(model.pendingCaptures.count) sesiones Stalker pendientes")
-                    Spacer()
-                    Button("Preparar desde Bandeja") { model.selectedTab = 4 }
-                }
-            }
-            List(model.assets, id: \.["id"].string, selection: $model.selected) { asset in
-                HStack { Text(asset["project"].string); Text(asset["profile"].string).foregroundStyle(.secondary); Spacer(); Text(model.kindLabel(asset["kind"].string)); Text(model.workLabel(asset["work_delivery_status"].string)) }.tag(asset["id"].string)
-            }.modifier(CreatorListSurface()).frame(maxHeight: .infinity)
-        }.padding(.top).disabled(model.busy)
-    }
-    var activity: some View {
-        List(model.jobs, id: \.["id"].string) { job in
-            HStack { JobStatusIcon(state: job["state"].string); VStack(alignment: .leading) { Text(model.jobLabel(job)); Text(model.jobDetail(job)).font(.caption).foregroundStyle(.secondary).lineLimit(2) }; Spacer(); if ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string) || job["state"].string == "source_retained" && job["release_stalker_source"].bool { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
-                if job["state"].string == "camera_action_required" && ["camera_action_required", "sony_clips_then_format"].contains(job["cleanup_profile"].string) { Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy) } }
-        }.modifier(CreatorListSurface()).padding(.top)
-    }
-
-}
-
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNotificationCenterDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSToolbarDelegate, NSMenuItemValidation, UNUserNotificationCenterDelegate {
     let model = Model()
     var status: NSStatusItem!
     var window: NSWindow?
-    var topBarAccessory: NSTitlebarAccessoryViewController?
+    var settingsWindow: NSWindow?
     var pendingMode: WindowMode?
     var observers: [NSObjectProtocol] = []
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         status.button?.image = NSImage(systemSymbolName: "externaldrive.badge.checkmark", accessibilityDescription: "nüün")
         let menu = NSMenu()
-        menu.addItem(withTitle: "Abrir nüün…", action: #selector(show), keyEquivalent: "")
-        menu.addItem(withTitle: "Importador rápido…", action: #selector(showImporter), keyEquivalent: "")
-        menu.addItem(withTitle: "Cancelar operación", action: #selector(cancel), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Abrir nüün…"), action: #selector(show), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Importador rápido…"), action: #selector(showImporter), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Cancelar operación"), action: #selector(cancel), keyEquivalent: "")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Salir", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: String(localized: "Ajustes…"), action: #selector(settings), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Salir"), action: #selector(quit), keyEquivalent: "q")
         for item in menu.items { item.target = self }
         status.menu = menu
         installMenus()
         model.changeMode = { [weak self] mode in self?.present(mode) }
         model.openWindow = { [weak self] in self?.show() }
         model.openImporter = { [weak self] in self?.showImporter() }
+        model.openSettings = { [weak self] section in self?.openSettings(section) }
         model.statusChanged = { [weak self] in
             guard let self else { return }
-            self.status.button?.title = self.model.busy ? " …" : ((self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty) ? " •" : "")
+            let attention = self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty
+            self.status.button?.title = self.model.busy ? " …" : (attention ? " •" : "")
             self.status.button?.toolTip = self.model.message
         }
         let center = NSWorkspace.shared.notificationCenter
@@ -663,122 +46,224 @@ struct MainView: View {
             })
         }
         if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().delegate = self }
+        #if DEBUG
+        if QASnapshots.run(self) { return }
+        #endif
         if !CommandLine.arguments.contains("--background") { show() }
         model.mountChanged()
-        // Mounts never open windows; explicit launcher opens do. No recurring idle timer.
+        // Mounts never open windows by themselves except the opt-in quick importer; no idle timer.
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if let window, window.isVisible { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
         else { present(model.presentation) }
         return true
     }
+
+    // MARK: Main window
+
     @objc func show() { present(.full) }
+    @objc func showImporter() { model.route = .ingest; present(.compact) }
+    func makeWindow(_ mode: WindowMode) -> NSWindow {
+        let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height),
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        value.title = "nüün"; value.titleVisibility = .hidden; value.delegate = self; value.isReleasedWhenClosed = false
+        value.collectionBehavior.insert(.fullScreenPrimary)
+        let host = NSHostingView(rootView: WindowRoot(model: model))
+        // AppKit owns the three sizes; transient SwiftUI branch measurements must not resize the window.
+        host.sizingOptions = []
+        value.contentView = host
+        // One native toolbar in the titlebar row, in a window and in fullscreen alike.
+        let toolbar = NSToolbar(identifier: "nuun.main")
+        toolbar.delegate = self
+        toolbar.displayMode = .iconOnly
+        toolbar.allowsUserCustomization = false
+        value.toolbar = toolbar
+        value.toolbarStyle = .unifiedCompact
+        value.center()
+        return value
+    }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.shellBar] }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.shellBar] }
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+        let bar = NSHostingView(rootView: WindowTopBar(model: model).modifier(CreatorAppearance()))
+        bar.sizingOptions = []
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        // A flexible item: the toolbar sizes it between these bounds to fill the row.
+        NSLayoutConstraint.activate([bar.heightAnchor.constraint(equalToConstant: 30),
+                                     bar.widthAnchor.constraint(greaterThanOrEqualToConstant: 260),
+                                     bar.widthAnchor.constraint(lessThanOrEqualToConstant: 10000)])
+        item.view = bar
+        item.visibilityPriority = .high
+        return item
+    }
     func present(_ mode: WindowMode) {
         if let window, window.styleMask.contains(.fullScreen), mode != .full {
             pendingMode = mode; window.toggleFullScreen(nil); return
         }
-        if window == nil {
-            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-            value.title = "nüün"; value.titleVisibility = .hidden; value.delegate = self; value.isReleasedWhenClosed = false
-            value.collectionBehavior.insert(.fullScreenPrimary)
-            let host = NSHostingView(rootView: WindowRoot(model: model))
-            // AppKit owns the three sizes; transient SwiftUI branch measurements must not resize the window.
-            host.sizingOptions = []
-            host.autoresizingMask = [.width, .height]
-            value.contentView = host; value.center(); window = value
-
-            let accessory = NSTitlebarAccessoryViewController()
-            accessory.layoutAttribute = .right
-            accessory.fullScreenMinHeight = 38
-            let topBar = NSHostingView(rootView: WindowTopBar(model: model).modifier(CreatorAppearance()))
-            topBar.sizingOptions = []
-            topBar.frame = NSRect(x: 0, y: 0, width: mode.width - 90, height: 38)
-            accessory.view = topBar
-            value.addTitlebarAccessoryViewController(accessory)
-            topBarAccessory = accessory
-        }
+        if window == nil { window = makeWindow(mode) }
         guard let window else { return }
         let sameMode = model.presentation == mode && window.isVisible
-        window.minSize = NSSize(width: mode == .full ? 920 : mode == .selection ? 680 : 408, height: mode == .full ? 720 : 580)
+        if model.presentation != mode && window.isVisible && !window.styleMask.contains(.fullScreen) { saveFrame() }
+        window.minSize = NSSize(width: mode == .full ? 760 : mode == .selection ? 640 : 400, height: mode == .full ? 600 : 560)
         withAnimation(.easeInOut(duration: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.22)) { model.presentation = mode }
         if !sameMode && !window.styleMask.contains(.fullScreen) {
-            let visible = window.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
-            let width = min(mode.width, visible.width), height = min(mode.height, visible.height)
-            let frame = NSRect(x: min(max(visible.minX, window.frame.midX - width / 2), visible.maxX - width), y: min(max(visible.minY, window.frame.maxY - height), visible.maxY - height), width: width, height: height)
+            let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
+            let frame = savedFrame(mode, in: visible) ?? {
+                let width = min(mode.width, visible.width), height = min(mode.height, visible.height)
+                return NSRect(x: min(max(visible.minX, window.frame.midX - width / 2), visible.maxX - width),
+                              y: min(max(visible.minY, window.frame.maxY - height), visible.maxY - height), width: width, height: height)
+            }()
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.24
+                context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !window.isVisible ? 0 : 0.24
                 window.animator().setFrame(frame, display: true)
-            } completionHandler: { [weak self] in
-                Task { @MainActor in self?.layoutTitlebar() }
             }
         }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
     }
-    func layoutTitlebar() {
-        guard let window, let topBarAccessory, !model.windowIsFullscreen,
-              let index = window.titlebarAccessoryViewControllers.firstIndex(of: topBarAccessory) else { return }
-        // AppKit keeps the right accessory's old clipping width after an animated shrink.
-        // Reattach once at the final size; never rebuild it for every animation frame.
-        window.removeTitlebarAccessoryViewController(at: index)
-        topBarAccessory.view.setFrameSize(NSSize(width: max(300, window.frame.width - 90), height: 38))
-        window.addTitlebarAccessoryViewController(topBarAccessory)
+    /// Each mode remembers its own last frame, only while it still fits the screen.
+    func savedFrame(_ mode: WindowMode, in visible: NSRect) -> NSRect? {
+        guard let text = UserDefaults.standard.string(forKey: "frame." + mode.rawValue) else { return nil }
+        let frame = NSRectFromString(text)
+        return visible.contains(frame) && frame.width >= 300 ? frame : nil
     }
-    func windowDidEndLiveResize(_ notification: Notification) { layoutTitlebar() }
-    func windowDidResize(_ notification: Notification) {
-        guard let window, let topBarAccessory else { return }
-        topBarAccessory.view.setFrameSize(NSSize(width: max(300, window.frame.width - 90), height: 38))
+    func saveFrame() {
+        guard let window, window.isVisible, !window.styleMask.contains(.fullScreen) else { return }
+        UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: "frame." + model.presentation.rawValue)
     }
-    func windowDidExitFullScreen(_ notification: Notification) {
-        model.windowIsFullscreen = false
-        topBarAccessory?.isHidden = false
-        layoutTitlebar()
-        if let mode = pendingMode { pendingMode = nil; present(mode) }
+    func windowDidEndLiveResize(_ notification: Notification) { if notification.object as? NSWindow === window { saveFrame() } }
+    func windowDidMove(_ notification: Notification) { if notification.object as? NSWindow === window { saveFrame() } }
+    // Keep the toolbar (tabs) on screen in fullscreen; only the menu bar auto-hides.
+    func window(_ window: NSWindow, willUseFullScreenPresentationOptions proposedOptions: NSApplication.PresentationOptions = []) -> NSApplication.PresentationOptions {
+        proposedOptions.subtracting(.autoHideToolbar)
     }
     func windowWillEnterFullScreen(_ notification: Notification) {
-        // macOS auto-hides the native titlebar in fullscreen. Keep the same controls
-        // pinned in the content safe area there, without a second visible toolbar.
-        topBarAccessory?.isHidden = true
-        model.windowIsFullscreen = true
-        model.presentation = .full
+        if model.presentation != .full { model.presentation = .full }
     }
+    func windowDidExitFullScreen(_ notification: Notification) {
+        if let mode = pendingMode { pendingMode = nil; present(mode) }
+    }
+    func windowWillClose(_ notification: Notification) {
+        if notification.object as? NSWindow === window { saveFrame(); NSApp.setActivationPolicy(.accessory) }
+    }
+
+    // MARK: Settings window
+
+    @objc func settings() { openSettings("") }
+    func openSettings(_ section: String) {
+        if !section.isEmpty { UserDefaults.standard.set(section, forKey: "settingsSection") }
+        if settingsWindow == nil {
+            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 600), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            value.title = String(localized: "Ajustes de nüün"); value.isReleasedWhenClosed = false
+            value.minSize = NSSize(width: 620, height: 440)
+            let host = NSHostingView(rootView: SettingsView(model: model).modifier(CreatorAppearance()))
+            host.sizingOptions = []
+            value.contentView = host
+            value.setFrameAutosaveName("nuun.settings")
+            if !value.setFrameUsingName("nuun.settings") { value.center() }
+            settingsWindow = value
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: Menus and shortcuts
+
     func installMenus() {
         let bar = NSMenu()
-        let appItem = NSMenuItem(); bar.addItem(appItem)
-        let appMenu = NSMenu(title: "nüün"); appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "Acerca de nüün", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
-        appMenu.addItem(withTitle: "Ajustes…", action: #selector(settings), keyEquivalent: ",").target = self
-        appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Ocultar nüün", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Salir de nüün", action: #selector(quit), keyEquivalent: "q").target = self
-        let fileItem = NSMenuItem(); bar.addItem(fileItem)
-        let file = NSMenu(title: "Archivo"); fileItem.submenu = file
-        file.addItem(withTitle: "Abrir dashboard", action: #selector(show), keyEquivalent: "1").target = self
-        file.addItem(withTitle: "Importador rápido…", action: #selector(showImporter), keyEquivalent: "i").target = self
-        file.addItem(withTitle: "Cerrar ventana", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        let editItem = NSMenuItem(); bar.addItem(editItem)
-        let edit = NSMenu(title: "Edición"); editItem.submenu = edit
-        edit.addItem(withTitle: "Deshacer", action: Selector(("undo:")), keyEquivalent: "z")
-        edit.addItem(withTitle: "Cortar", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Copiar", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Pegar", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Seleccionar todo", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        func submenu(_ title: String) -> NSMenu {
+            let item = NSMenuItem(); bar.addItem(item)
+            let menu = NSMenu(title: title); item.submenu = menu
+            return menu
+        }
+        func add(_ menu: NSMenu, _ title: String, _ action: Selector, _ key: String, _ modifiers: NSEvent.ModifierFlags = .command, tag: Int = 0, target: AnyObject? = nil) {
+            let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = modifiers; item.tag = tag; item.target = target
+        }
+        let app = submenu("nüün")
+        add(app, String(localized: "Acerca de nüün"), #selector(NSApplication.orderFrontStandardAboutPanel(_:)), "")
+        add(app, String(localized: "Ajustes…"), #selector(settings), ",", target: self)
+        app.addItem(.separator())
+        add(app, String(localized: "Ocultar nüün"), #selector(NSApplication.hide(_:)), "h")
+        add(app, String(localized: "Salir de nüün"), #selector(quit), "q", target: self)
+        let file = submenu(String(localized: "Archivo"))
+        add(file, String(localized: "Nueva ingesta"), #selector(newIngest), "n", target: self)
+        add(file, String(localized: "Elegir fuente…"), #selector(chooseSource), "o", target: self)
+        add(file, String(localized: "Importador rápido…"), #selector(showImporter), "i", target: self)
+        add(file, String(localized: "Expulsar SD"), #selector(eject), "e", target: self)
+        file.addItem(.separator())
+        add(file, String(localized: "Cerrar ventana"), #selector(NSWindow.performClose(_:)), "w")
+        let edit = submenu(String(localized: "Edición"))
+        add(edit, String(localized: "Deshacer"), Selector(("undo:")), "z")
+        add(edit, String(localized: "Rehacer"), Selector(("redo:")), "z", [.command, .shift])
+        edit.addItem(.separator())
+        add(edit, String(localized: "Cortar"), #selector(NSText.cut(_:)), "x")
+        add(edit, String(localized: "Copiar"), #selector(NSText.copy(_:)), "c")
+        add(edit, String(localized: "Pegar"), #selector(NSText.paste(_:)), "v")
+        add(edit, String(localized: "Seleccionar todo"), #selector(NSText.selectAll(_:)), "a")
+        let view = submenu(String(localized: "Ver"))
+        for (index, route) in Route.allCases.enumerated() {
+            add(view, routeTitle(route), #selector(goRoute(_:)), String(index + 1), tag: index, target: self)
+        }
+        view.addItem(.separator())
+        add(view, String(localized: "Vista compacta / completa"), #selector(toggleMode), "\\", target: self)
+        add(view, String(localized: "Pantalla completa"), #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
+        let ingest = submenu(String(localized: "Ingreso"))
+        add(ingest, String(localized: "Paso anterior"), #selector(previousStep), "[", target: self)
+        add(ingest, String(localized: "Siguiente paso"), #selector(nextStep), "]", target: self)
+        add(ingest, String(localized: "Revisar plan"), #selector(reviewPlan), "r", target: self)
+        add(ingest, String(localized: "Ejecutar plan revisado…"), #selector(applyPlan), "\r", target: self)
+        add(ingest, String(localized: "Cancelar operación"), #selector(cancel), ".", target: self)
+        let windowMenu = submenu(String(localized: "Ventana"))
+        add(windowMenu, String(localized: "Minimizar"), #selector(NSWindow.performMiniaturize(_:)), "m")
+        NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = bar
     }
-    @objc func settings() { model.selectedTab = 3; show() }
-    @objc func showImporter() { present(.compact) }
-    func windowWillClose(_ notification: Notification) { NSApp.setActivationPolicy(.accessory) }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        await MainActor.run { model.selectedTab = 0; showImporter() }
+    func routeTitle(_ route: Route) -> String {
+        switch route {
+        case .home: String(localized: "Inicio")
+        case .ingest: String(localized: "Ingreso")
+        case .library: String(localized: "Biblioteca")
+        case .activity: String(localized: "Actividad")
+        case .space: String(localized: "Espacio")
+        }
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner] }
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(reviewPlan): return !model.busy && model.planBlockers.isEmpty
+        case #selector(applyPlan): return !model.busy && model.plan != nil
+        case #selector(eject): return !model.busy && model.selectedCard != nil
+        case #selector(cancel): return model.busy
+        case #selector(previousStep), #selector(nextStep): return model.route == .ingest && !model.ingestLocked
+        case #selector(chooseSource), #selector(newIngest): return !model.ingestLocked
+        default: return true
+        }
+    }
+    @objc func goRoute(_ sender: NSMenuItem) { model.route = Route.allCases[sender.tag]; if model.presentation != .full { present(.full) } else { show() } }
+    @objc func toggleMode() { present(model.presentation == .full ? .compact : .full) }
+    @objc func newIngest() { model.newIngest(); model.route = .ingest; show() }
+    @objc func chooseSource() { model.chooseSource() }
+    @objc func eject() { model.ejectSource() }
+    @objc func previousStep() { model.previousStep() }
+    @objc func nextStep() { model.nextStep() }
+    @objc func reviewPlan() { model.route = .ingest; model.reviewPlan() }
+    @objc func applyPlan() { model.route = .ingest; model.ingestStep = .review; model.confirmApply = true }
     @objc func cancel() { model.cancel() }
     @objc func quit() { NSApp.terminate(nil) }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        await MainActor.run { model.route = .ingest; showImporter() }
+    }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner] }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard model.busy else { return .terminateNow }
+        saveFrame()
+        guard model.busy else { model.reader?.stop(); return .terminateNow }
         model.cancel()
         Task {
             while model.busy { try? await Task.sleep(for: .milliseconds(200)) }
+            model.reader?.stop()
             NSApp.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater

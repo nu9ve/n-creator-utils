@@ -89,3 +89,24 @@ import Testing
         Issue.record("Tampered plan unexpectedly applied")
     } catch let error as BackendFailure { #expect(error.code == "plan_changed") }
 }
+
+@Test func persistentReaderAnswersReadsInOrderAndRefusesMutations() async throws {
+    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-reader-swift-" + UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: state) }
+    let reader = PersistentReader(configuration: .init(python: "/usr/bin/python3", script: repo.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path))
+    defer { reader.stop() }
+    async let first = reader.call("snapshot", ["cards": .bool(false)])
+    async let second = reader.call("suggest", ["source": .string("/does/not/exist")])
+    let (snapshot, suggestion) = try await (first, second)
+    #expect(snapshot["volumes"].array.isEmpty)
+    #expect(snapshot["defaults"]["profile"].string == "e64")
+    #expect(suggestion["reason"].string == "no_registered_destinations")
+    do {
+        _ = try await reader.call("defaults", ["project": .string("x")])
+        Issue.record("A mutation unexpectedly reached the read-only server")
+    } catch let error as BackendFailure { #expect(error.code == "read_only") }
+    // After stopping, the next read restarts the child transparently.
+    reader.stop()
+    #expect(try await reader.call("jobs").array.isEmpty)
+}

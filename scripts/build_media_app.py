@@ -39,6 +39,9 @@ def main():
         subprocess.run(['swift', str(repo / 'scripts/media_icon.swift'), str(iconset)], check=True)
         subprocess.run(['/usr/bin/iconutil', '-c', 'icns', str(iconset), '-o', str(resources / 'Creator.icns')], check=True)
     shutil.copy2(binary, executable_dir / 'MediaMenu')
+    # Spanish is the development language (keys); other languages ship as .lproj tables.
+    for table in sorted((repo / 'native/MediaMenu/Localization').glob('*.lproj')):
+        shutil.copytree(table, resources / table.name)
     backend = resources / 'backend'; source = backend / 'source'; source.mkdir(parents=True)
     for name in ['nu9ve.py', 'configuration.py', 'constants.py']:
         shutil.copy2(repo / name, source / name)
@@ -62,14 +65,14 @@ def main():
         (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': 'backend/source/nu9ve.py'}))
     fingerprint = hashlib.sha256()
     inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift']]
-    for folder in ['media', 'manager', 'native/MediaMenu/Sources']:
-        inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift'})
+    for folder in ['media', 'manager', 'native/MediaMenu/Sources', 'native/MediaMenu/Localization']:
+        inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift', '.strings', '.stringsdict'})
     for path in sorted(inputs):
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
     info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'nüün', 'CFBundleDisplayName': 'nüün',
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
-            'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'LSUIElement': True,
+            'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'CFBundleDevelopmentRegion': 'es', 'CFBundleLocalizations': ['es', 'en'], 'LSUIElement': True,
             'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
             'LSHasLocalizedDisplayName': True, 'Nu9veSearchAliases': ['nuun', 'nun', 'creator utils'],
             'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
