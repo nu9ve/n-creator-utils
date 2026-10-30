@@ -6,9 +6,9 @@ nüün es la app para macOS de este repositorio, `n-creator-utils`. Hoy su área
 
 > **En desarrollo.** El motor de media y la app tienen pruebas y una instalación local de desarrollo, pero aún faltan validación física, endurecimiento y distribución. Consulta el [estado actual](docs/STATUS.md) y los [requisitos para una release](docs/release.md).
 
-<img src="docs/images/nuun-compacto.png" alt="Vista compacta de ingreso de nüün" width="440">
+<img src="docs/images/nuun-compacto.png" alt="Vista compacta de nüün en el paso Fuente y proyecto, con tarjetas SD sugeridas, proyecto y resumen de destinos" width="440">
 
-*La vista compacta permite preparar el ingreso y revisar las opciones de respaldo.*
+*Ingreso por pasos en la vista compacta: eliges la tarjeta, nombras el proyecto y revisas el plan. Datos de ejemplo.*
 
 ## Media y almacenamiento
 
@@ -19,7 +19,7 @@ Desde nüün o la CLI puedes revisar una fuente, asignar archivos a proyectos y 
 - **Biblioteca y espacio:** consulta el catálogo, recupera o entrega archivos, revisa pendientes y prepara auditorías y planes de liberación de espacio.
 - **Capturas Stalker:** reúne sesiones finalizadas en una bandeja, conserva sus bundles completos y permite asignarlas a proyectos. La liberación del original depende de las verificaciones y de las dependencias de edición.
 
-La app ofrece modos compacto, selección y completo, con vista previa de archivos, actividad, biblioteca y ajustes. La CLI y la app usan el mismo motor de planificación y transferencia.
+La app ofrece modos compacto, selección y completo con un ingreso por pasos (fuente y proyecto, contenido, destinos, revisión y copia), asignación por lotes, vista previa de archivos, actividad, biblioteca y ajustes, en español e inglés. La CLI y la app usan el mismo motor de planificación y transferencia.
 
 [Conocer la app](docs/features/nuun-window.md) · [Guía de uso y almacenamiento](docs/operations.md) · [Política de copias](docs/features/replication-policy.md)
 

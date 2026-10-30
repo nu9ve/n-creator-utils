@@ -34,7 +34,7 @@ struct AppNavigation: View {
                     }
                     .font(.callout.weight(model.route == route ? .semibold : .regular))
                     .padding(.horizontal, compact ? 8 : 10).padding(.vertical, 4)
-                    .background(model.route == route ? palette.card : .clear, in: RoundedRectangle(cornerRadius: 7))
+                    .background(model.route == route ? palette.accent.opacity(0.32) : .clear, in: Capsule())
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -44,7 +44,7 @@ struct AppNavigation: View {
             }
         }
         .padding(2)
-        .background(palette.inset.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
+        .modifier(GlassSurface(shape: Capsule()))
     }
     private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) }
 }
@@ -56,7 +56,7 @@ struct WindowTopBar: View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
                 Text("nüün").font(.system(size: 14, weight: .semibold, design: .serif))
-                    .padding(.leading, 4).help(model.message)
+                    .padding(.leading, 8).help(model.message)
                 if model.presentation == .full {
                     Spacer(minLength: 4)
                     AppNavigation(model: model, compact: geometry.size.width < 760)
@@ -141,11 +141,12 @@ struct ActionFooter<Content: View>: View {
     let content: Content
     init(@ViewBuilder content: () -> Content) { self.content = content() }
     var body: some View {
+        // A floating bar: content scrolls underneath it (glass on macOS 26, opaque before).
         HStack(spacing: 9) { content }
-            .padding(.horizontal, 20).padding(.vertical, 10)
+            .padding(.horizontal, 14).padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.canvas.opacity(0.98))
-            .overlay(alignment: .top) { Rectangle().fill(palette.border.opacity(0.8)).frame(height: 1) }
+            .modifier(GlassSurface(shape: RoundedRectangle(cornerRadius: 16)))
+            .padding(.horizontal, 12).padding(.bottom, 10).padding(.top, 4)
     }
 }
 

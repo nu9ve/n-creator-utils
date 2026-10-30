@@ -103,6 +103,27 @@ struct CreatorTextFieldStyle: TextFieldStyle {
     }
 }
 
+/// Liquid Glass on macOS 26 for floating controls; the same shape stays opaque on earlier systems.
+struct GlassSurface<S: Shape>: ViewModifier {
+    let shape: S
+    /// Glass is composited by the window server; offscreen QA renders draw the fallback instead.
+    static var offscreenQA: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("--qa-snapshots")
+        #else
+        false
+        #endif
+    }
+    @Environment(\.creatorPalette) private var palette
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *), !GlassSurface<Rectangle>.offscreenQA {
+            content.glassEffect(.regular.tint(palette.canvas.opacity(0.35)), in: shape)
+        } else {
+            content.background(palette.card.opacity(0.95), in: shape).overlay(shape.stroke(palette.border.opacity(0.5)))
+        }
+    }
+}
+
 struct CreatorListSurface: ViewModifier {
     @Environment(\.creatorPalette) private var palette
     func body(content: Content) -> some View {

@@ -79,6 +79,7 @@ private extension NSToolbarItem.Identifier {
         toolbar.allowsUserCustomization = false
         value.toolbar = toolbar
         value.toolbarStyle = .unifiedCompact
+        value.titlebarSeparatorStyle = .none
         value.center()
         return value
     }
@@ -95,6 +96,8 @@ private extension NSToolbarItem.Identifier {
                                      bar.widthAnchor.constraint(lessThanOrEqualToConstant: 10000)])
         item.view = bar
         item.visibilityPriority = .high
+        // macOS 26 wraps custom view items in one large glass platter; the bar places its own glass.
+        item.isBordered = false
         return item
     }
     func present(_ mode: WindowMode) {
