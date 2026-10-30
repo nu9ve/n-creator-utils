@@ -79,6 +79,7 @@ struct InboxView: View {
                 }
                 if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && blocked.isEmpty {
                     ContentUnavailableView("Todo al día", systemImage: "checkmark.circle", description: Text("Conecta una SD o termina una sesión de Stalker para verla aquí."))
+                        .frame(maxWidth: .infinity)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 14)
         }

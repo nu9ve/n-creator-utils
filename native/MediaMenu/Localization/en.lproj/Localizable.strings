@@ -462,3 +462,5 @@
 "· datos de la última conexión" = "· data from the last connection";
 "Mixto" = "Mixed";
 "Conecta y analiza tu disco de respaldo para saber qué ya tiene copia." = "Connect and analyze your backup disk to see what already has a copy.";
+"Esta Mac" = "This Mac";
+"Se leen sólo nombres, tamaños y fechas. No se abre ningún archivo. Puede tardar varios minutos y macOS puede pedirte permisos." = "Only names, sizes and dates are read. No file is opened. It can take several minutes and macOS may ask for permissions.";

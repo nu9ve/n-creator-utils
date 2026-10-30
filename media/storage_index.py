@@ -38,6 +38,9 @@ PACKAGE_KIND = {'.stalker': 'capture', '.fcpbundle': 'editable', '.logicx': 'edi
 DERIVED_DIRS = {'node_modules', '__pycache__', '.venv', 'venv', '.build', 'DerivedData', 'Caches', '.cache', '.next',
                 'Render Files', 'Transcoded Media', 'Proxy Media', 'Peak Files', 'Thumbnail Media'}
 OPAQUE_DIRS = {'.git', '.Trashes', '.Trash', '.Spotlight-V100', '.fseventsd', '.DocumentRevisions-V100', '.TemporaryItems'}
+THIS_MAC = 'this-mac'
+# The data volume holds everything on the internal disk that is not the sealed system; other disks appear as mounts and stay out.
+THIS_MAC_ROOT = '/System/Volumes/Data'
 SYSTEM_ROOTS = ('/System', '/Library', '/private', '/usr', '/bin', '/sbin', '/etc', '/var', '/dev', '/cores', '/opt')
 
 
@@ -147,7 +150,10 @@ def _exclusive(catalog):
 
 def targets(catalog):
     registered = [dict(v, observed=False) for v in catalog.volumes()]
-    return registered + [dict(v, observed=True) for v in catalog.get(OBSERVED_KEY, [])]
+    found = registered + [dict(v, observed=True) for v in catalog.get(OBSERVED_KEY, [])]
+    if os.path.isdir(THIS_MAC_ROOT):
+        found.append({'id': THIS_MAC, 'name': 'Mac', 'role': 'observed', 'root': THIS_MAC_ROOT, 'prefix': '', 'identity': {}, 'observed': True, 'builtin': True})
+    return found
 
 
 def _target(catalog, name):
@@ -163,7 +169,7 @@ def _online(backend, target):
         info = backend.describe(target['root'])
     except (OSError, MediaError, ValueError):
         return None
-    return info if info.get('root_inode') == target['identity'].get('root_inode') else None
+    return info if target.get('builtin') or info.get('root_inode') == target['identity'].get('root_inode') else None
 
 
 def add_folder(catalog, backend, root, name=None):
@@ -186,7 +192,7 @@ def add_folder(catalog, backend, root, name=None):
 def remove_folder(catalog, db, target):
     """Forgets a chosen folder and its index; the folder itself is not touched."""
     found = _target(catalog, target)
-    require(found['observed'], 'invalid_role', 'Only chosen folders can be removed from the index')
+    require(found['observed'] and not found.get('builtin'), 'invalid_role', 'Only chosen folders can be removed from the index')
     catalog.set(OBSERVED_KEY, [v for v in catalog.get(OBSERVED_KEY, []) if v['id'] != found['id']])
     with db:
         for table in ('entries', 'folders', 'safety', 'hashes', 'indexes', 'runs'):
@@ -648,7 +654,7 @@ def overview(catalog, backend, db):
         info = _online(backend, target)
         index = db.execute('SELECT * FROM indexes WHERE target_id=?', (target['id'],)).fetchone()
         last = _run_view(db.execute('SELECT * FROM runs WHERE target_id=? ORDER BY id DESC LIMIT 1', (target['id'],)).fetchone())
-        value = {'id': target['id'], 'name': target['name'], 'role': target['role'], 'root': target['root'], 'observed': target['observed'],
+        value = {'id': target['id'], 'name': target['name'], 'role': target['role'], 'root': target['root'], 'observed': target['observed'], 'builtin': bool(target.get('builtin')),
                  'online': info is not None, 'indexed': index is not None, 'last_run': last}
         usage = None
         if info is not None:

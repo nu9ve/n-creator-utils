@@ -2,6 +2,10 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Esta Mac en Discos y mensajes vacíos · 2026-10-30
+
+Reporte del usuario sobre la build anterior: faltaba el disco de la Mac y «Todo al día» salía a la izquierda. **Esta Mac** ya aparece siempre y analiza `/System/Volumes/Data`; nunca es destino ni se puede olvidar. El mensaje de Inicio se centró y se revisaron con capturas offscreen Inicio, Contenido, Archivos y Discos vacíos. Corrida real de sólo lectura con catálogo temporal, ya borrado: 11,230,064 archivos en 424 s, 952 de 985 GB contados, 347 carpetas sin acceso, índice de 8 MB. Pruebas: Python **220 OK, 4 omitidas**, Swift **12/12**, localización 464 claves sin faltantes. Instalada la build **`d3760d868bff`** (`/private/tmp/nuun-discos-20261030b.app`, firma verificada, binario y backend idénticos); la instancia estaba inactiva y se reabrió. Clics reales pendientes.
+
 ## Mapa de discos, fase 1 · 2026-10-30
 
 Implementado en working tree sobre `b501864`, sin commit: [mapa de almacenamiento](features/storage-map.md), [navegación](features/product-flows.md#navegación). Biblioteca tiene subtabs Archivos, Discos y Actividad; Espacio desapareció y la liberación es una hoja abierta desde Discos, Inicio o Actividad, sobre el mismo plan. Sin cambios en planner, transferencia ni liberación.
