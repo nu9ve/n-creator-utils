@@ -74,6 +74,15 @@ def parser():
     audit = commands.add_parser('coverage', help='Read-only: which work-disk files already exist byte-identical on the archive')
     audit.add_argument('--work', required=True); audit.add_argument('--archive', required=True)
     audit.add_argument('--path', help='Only this folder of the work disk'); audit.add_argument('--no-hash', action='store_true', help='Size matches only (fast, probable)')
+    commands.add_parser('storage-overview', help='Read-only: each disk, its index date and how its space divides')
+    storage_tree = commands.add_parser('storage-tree', help='Read-only: largest folders and files of an indexed disk')
+    storage_tree.add_argument('target'); storage_tree.add_argument('--path', default=''); storage_tree.add_argument('--limit', type=int, default=200)
+    commands.add_parser('storage-scan', help='Index a disk from directory metadata; opens no file').add_argument('target')
+    storage_compare = commands.add_parser('storage-compare', help='Hash what may already be on the backup; hashes are kept, nothing is modified')
+    storage_compare.add_argument('target'); storage_compare.add_argument('--path', default='')
+    storage_add = commands.add_parser('storage-add-folder', help='See a folder in the index; never a destination')
+    storage_add.add_argument('root'); storage_add.add_argument('--name')
+    commands.add_parser('storage-remove-folder', help='Forget a chosen folder and its index; the folder is not touched').add_argument('target')
     commands.add_parser('relayout', help='Rename finished Stalker bundle copies to the dated name in place').add_argument('job_id')
     rename = commands.add_parser('rename-project'); rename.add_argument('project_id'); rename.add_argument('title')
     publication = commands.add_parser('publication'); publication.add_argument('asset_id'); publication.add_argument('variant'); publication.add_argument('--channel', required=True); publication.add_argument('--state', choices=['candidate','approved','published'], required=True); publication.add_argument('--url')
@@ -91,7 +100,8 @@ def parser():
 
 # Mutations keep one process per request so cancellation interrupts exactly that operation.
 READ_METHODS = {'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'profiles',
-                'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions'}
+                'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions',
+                'storage_overview', 'storage_progress', 'storage_tree'}
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
 
 
@@ -152,7 +162,9 @@ def main(argv=None):
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
             method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
-                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans'}.get(method, method)
+                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans',
+                      'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
+                      'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
         data = service.call(method, params)
         print(json.dumps({'ok': True, 'command': method, 'data': data}, ensure_ascii=False, indent=2))
         return 0

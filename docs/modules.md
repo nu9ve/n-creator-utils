@@ -6,6 +6,7 @@ El mapa de ownership y reglas de cambio está en [development](development.md#d�
 nu9ve.py
   save → media.save → planner / transfer / catalog
   media → cli / service → ingest, library, recovery, publication, captures
+    storage_index → mapa de discos: índice derivado, sólo lectura de los discos
     rpc → una petición JSON; mcp → herramientas de lectura por stdio
   inspect → manager.inventory
   doctor → configuration / constants / herramientas del legado

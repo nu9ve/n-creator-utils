@@ -109,7 +109,7 @@ struct GlassSurface<S: Shape>: ViewModifier {
     /// Glass is composited by the window server; offscreen QA renders draw the fallback instead.
     static var offscreenQA: Bool {
         #if DEBUG
-        CommandLine.arguments.contains("--qa-snapshots")
+        CommandLine.arguments.contains("--qa-snapshots") || CommandLine.arguments.contains("--qa-disks")
         #else
         false
         #endif

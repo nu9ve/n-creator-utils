@@ -39,10 +39,10 @@ struct InboxView: View {
                     SectionTitle("Requiere atención")
                     VStack(alignment: .leading, spacing: 8) {
                         if !blocked.isEmpty {
-                            HStack { Label("\(blocked.count) operaciones requieren atención", systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Spacer(); Button("Abrir actividad") { model.route = .activity } }
+                            HStack { Label("\(blocked.count) operaciones requieren atención", systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Spacer(); Button("Abrir actividad") { model.open(.activity) } }
                         }
                         if pendingWork > 0 {
-                            HStack { Label("\(pendingWork) copias para editar pendientes", systemImage: "externaldrive.badge.timemachine"); Spacer(); Button("Abrir biblioteca") { model.route = .library } }
+                            HStack { Label("\(pendingWork) copias para editar pendientes", systemImage: "externaldrive.badge.timemachine"); Spacer(); Button("Abrir biblioteca") { model.open(.files) } }
                         }
                     }.modifier(Panel())
                 }

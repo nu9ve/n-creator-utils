@@ -14,6 +14,17 @@ following priorities remain focused on the existing media workflow:
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Prioridad de producto · 2026-10-30
+
+Fases y criterios: [flujos y cierre](docs/features/product-flows.md) y [mapa de almacenamiento](docs/features/storage-map.md). Decisión del 2026-10-30: una copia de respaldo basta; redundancia y nube son para más adelante. Orden:
+
+1. **Operativa, en paralelo:** ciclo físico pequeño (abajo) y `media coverage --no-hash` de ESSD contra MEDIA.
+2. **Ver (sólo lectura):** implementado, con evidencia en [STATUS](docs/STATUS.md). Biblioteca con subtabs Archivos/Discos/Actividad, índice sin hash y mapa de discos. Falta aceptación en la app y analizar MEDIA502.
+3. **Cerrar:** ciclo de vida del proyecto, entregas/publicación en UI y cierre sobre la liberación existente.
+4. **Carpetas vivas:** música y samples, editables, regenerables y salidas de `0000_acomodar`.
+5. **Tipos:** fotos con Kyū, audio, dron, conservar selección y descartes.
+6. **Flujos:** recetas en Ajustes; después, vista de bloques. Generan planes; no sustituyen plan, digest ni verificación.
+
 ## Actualización de contrato · 2026-10-28
 
 Exclusión de liberación con Clipper implementada/probada e instalada en build

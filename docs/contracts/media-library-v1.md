@@ -153,6 +153,15 @@ Métodos aditivos de `media rpc`, compartidos por CLI y Swift; no se exponen com
 Errores: `job_busy`, `not_a_card`, `destination_volume`, `volume_replaced`, `eject_failed`; `eject_uncertain` tras timeout no afirma que sea seguro retirar la tarjeta. Nunca hay force/fallback ni expulsión desde apply/resume. Fuera de macOS no se ofrece este backend. El bloqueo coordina procesos que usan el mismo catálogo; no es un lease global para aplicaciones ajenas o catálogos independientes. El sistema puede rechazar expulsión si otro proceso tiene archivos abiertos.
 
 
+## Índice de discos local (2026-10-30)
+
+Métodos `storage_*` de `media rpc`, sólo para nüün y agentes locales; las otras apps no dependen de ellos. Semántica y límites: [mapa de almacenamiento](../features/storage-map.md).
+
+- El índice es derivado, vive en `storage-index.sqlite3`, fuera de las instantáneas del catálogo, y puede reconstruirse.
+- Un escaneo no abre archivos ni escribe en el disco. Una comparación lee contenido y guarda hashes en el índice; tampoco escribe en el disco.
+- **Ninguna clase del índice autoriza a borrar.** «En respaldo» es evidencia para mostrar; `plan_release` vuelve a leer los bytes actuales de origen y destino.
+- Las carpetas elegidas no son `volumes`: no cuentan como destino, no aparecen en planes y no activan el aviso de tarjetas.
+
 ## Documento de plan para clientes nativos (2026-10-27)
 
 `plan` conserva su respuesta objeto para CLI/clientes existentes. `plan_document` admite los mismos parámetros y devuelve el JSON canónico completo como string. Swift conserva ese documento intacto y decodifica una copia sólo para mostrar la revisión. `apply` acepta en `plan` tanto el objeto histórico como ese string; Python lo decodifica y pasa por la misma validación de digest y política, sin recalcular ni reemplazar el digest enviado por el usuario. Documento limitado a 12 MiB. No añade mutaciones MCP ni cambia el esquema de planes/recibos.

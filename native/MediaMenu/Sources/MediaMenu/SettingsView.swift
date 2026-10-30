@@ -75,6 +75,8 @@ struct SettingsView: View {
                 }.padding(.vertical, 6)
                 Divider()
             }
+            Button("Respaldar catálogo y perfiles") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
+            Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
         }
     }
     var captures: some View {

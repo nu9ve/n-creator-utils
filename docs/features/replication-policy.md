@@ -26,4 +26,8 @@ Por volumen (ESSD tenía 434 GB al 2026-10-25) la corrida completa con hash toma
 
 ## Opciones futuras (no decididas)
 
-Si más adelante hay otro disco o nube fría: job `replicate` verificado MEDIA → segundo destino, cobertura por asset y rehash programado. Nube fría sólo para finales y catálogo (~40 GB) sería la opción más barata sin disco nuevo.
+Confirmado el 2026-10-30: una copia de respaldo basta por ahora; la redundancia no es prioridad.
+
+Próximamente, para quien tenga varios discos: segundo destino configurable con job `replicate` verificado MEDIA → segundo destino, cobertura por asset y rehash programado.
+
+La nube podría ofrecerse como producto de paga para redundancia y otras funciones; sólo finales y catálogo (~40 GB) sería el punto de partida más barato. Es una idea de producto, sin diseño ni compromiso.

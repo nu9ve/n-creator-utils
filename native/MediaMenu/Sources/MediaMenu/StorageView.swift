@@ -17,14 +17,7 @@ extension Model {
         let title = capture["tag"]["name"].string.isEmpty ? capture["project_hint"]["name"].string : capture["tag"]["name"].string
         operation(String(localized: "Verificando respaldo y dependencias"), scope: .space) {
             self.releasePlan = try await self.client!.call("plan_release", ["source": capture["path"], "archive": .string(self.archive), "project": .string(title.isEmpty ? URL(fileURLWithPath: capture["path"].string).lastPathComponent : title)])
-            self.route = .space; self.changeMode?(.full)
-        }
-    }
-    func auditStorage() {
-        coverageResult = nil
-        operation(String(localized: "Comparando ESSD con MEDIA por contenido"), scope: .space) {
-            self.coverageResult = try await self.client!.call("coverage", ["work": .string(self.work), "archive": .string(self.archive), "path": .string(self.auditPath)])
-            self.message = String(localized: "Auditoría terminada; no se borró ningún archivo")
+            self.open(.disks); self.showRelease = true; self.changeMode?(.full)
         }
     }
     func prepareWorkRelease() {
@@ -65,15 +58,6 @@ extension Model {
             self.message = String(localized: "Catálogo completo verificado en ") + result["path"].string
         }
     }
-    func chooseAuditFolder() {
-        guard let volume = volumes.first(where: { $0["id"].string == work }) else { return }
-        let root = volume["root"].string + "/"
-        pickURL(message: String(localized: "Elige la carpeta del proyecto en el SSD"), directory: URL(fileURLWithPath: root)) { url in
-            guard url.path.hasPrefix(root) else { self.error = String(localized: "Elige una carpeta dentro del SSD seleccionado"); return }
-            self.auditPath = String(url.path.dropFirst(root.count)); self.releaseProject = url.lastPathComponent
-            self.coverageResult = nil; self.releasePlan = nil
-        }
-    }
     func archiveAuditFolder() {
         guard let volume = volumes.first(where: { $0["id"].string == work }), !auditPath.isEmpty else { return }
         prepareSource(URL(fileURLWithPath: volume["root"].string).appendingPathComponent(auditPath).path, kind: "card")
@@ -81,79 +65,64 @@ extension Model {
     }
 }
 
-struct StorageView: View {
+/// Same reviewed plan as always, opened from Discos, Inicio or Actividad.
+struct ReleaseSheet: View {
     @Bindable var model: Model
+    @Environment(\.dismiss) private var dismiss
     @State private var confirmRelease = false
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                PageHeader(title: "Respaldo y espacio", subtitle: "Audita un proyecto, archiva lo que falte y revisa qué copias puedes retirar. La limpieza de la SD sigue en Ingreso.")
-                ErrorBanner(model: model)
-                HStack {
-                    Picker("MEDIA", selection: $model.archive) { Text("Elegir").tag(""); ForEach(model.volumes.filter { $0["role"].string == "archive" }, id: \.["id"].string) { Text($0["name"].string).tag($0["id"].string) } }
-                    Picker("SSD", selection: $model.work) { Text("Elegir").tag(""); ForEach(model.volumes.filter { $0["role"].string == "work" }, id: \.["id"].string) { Text($0["name"].string).tag($0["id"].string) } }
-                }
-                HStack { TextField("Carpeta relativa del proyecto en el SSD", text: $model.auditPath); Button("Elegir carpeta…") { model.chooseAuditFolder() } }
-                TextField("Proyecto que vas a liberar", text: $model.releaseProject)
-                if let report = model.coverageResult {
-                    Text("Cubiertos: \(Int(report["totals"]["in_archive"]["files"].double)) · sólo trabajo: \(Int(report["totals"]["only_work"]["files"].double))").font(.headline)
-                    Text(report["report"].string).font(.caption).textSelection(.enabled)
-                    ForEach(Array(report["only_work_sample"].array.enumerated()), id: \.offset) { _, value in Text("Falta en MEDIA: \(value["path"].string)").font(.caption) }
-                }
-                Divider()
+        VStack(alignment: .leading, spacing: 12) {
+            PageHeader(title: "Revisar liberación", subtitle: "Comprueba las copias actuales antes de retirar nada. No se borra sin tu confirmación.")
+            ErrorBanner(model: model)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let plan = model.releasePlan {
+                        Text(plan["state"].string == "completed" ? "Liberación completada" : "Revisar liberación · " + plan["project"].string).font(.headline)
+                        Text(plan["source_root"].string + "/" + plan["scope"].string).font(.caption).textSelection(.enabled)
+                        Text("\(plan["entries"].array.count) archivos · " + ByteCountFormatter.string(fromByteCount: Int64(plan["bytes"].double), countStyle: .file))
+                        Text("El destino se vuelve a leer y verificar antes de retirar cada archivo. Se conservan carpetas de Clipper, renders y archivos auxiliares ajenos. Retirar estas copias puede dejar MEDIA como única réplica.").font(.caption)
+                        Text("Cierra la edición y las exportaciones de Clipper mientras liberas; aún no existe un bloqueo compartido entre ambas apps.").font(.caption).foregroundStyle(.secondary)
+                        ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+                        ForEach(Array(plan["consumers"]["relinks"].array.enumerated()), id: \.offset) { _, value in
+                            VStack(alignment: .leading) { Text("Clipper: " + value["project"].string); Text(value["from"].string + " → " + value["to"].string).textSelection(.enabled) }.font(.caption)
+                        }
+                        DisclosureGroup("Archivos y destinos verificados") {
+                            ForEach(Array(plan["entries"].array.enumerated()), id: \.offset) { _, entry in Text(entry["path"].string + " → " + entry["archive_path"].string).font(.caption).textSelection(.enabled) }
+                            ForEach(Array(plan["preserved"].array.enumerated()), id: \.offset) { _, value in Text("Conservar: \(value.string)").font(.caption) }
+                        }
+                    } else {
+                        Picker("MEDIA", selection: $model.archive) { Text("Elegir").tag(""); ForEach(model.volumes.filter { $0["role"].string == "archive" }, id: \.["id"].string) { Text($0["name"].string).tag($0["id"].string) } }
+                        Text(model.auditPath).font(.caption).textSelection(.enabled)
+                        TextField("Proyecto que vas a liberar", text: $model.releaseProject)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: 9) {
+                Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer(minLength: 0)
+                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
                 if let plan = model.releasePlan {
-                    Text(plan["state"].string == "completed" ? "Liberación completada" : "Revisar liberación · " + plan["project"].string).font(.headline)
-                    Text(plan["source_root"].string + "/" + plan["scope"].string).font(.caption).textSelection(.enabled)
-                    Text("\(plan["entries"].array.count) archivos · " + ByteCountFormatter.string(fromByteCount: Int64(plan["bytes"].double), countStyle: .file))
-                    Text("El destino se vuelve a leer y verificar antes de retirar cada archivo. Se conservan carpetas de Clipper, renders y archivos auxiliares ajenos. Retirar estas copias puede dejar MEDIA como única réplica.").font(.caption)
-                    Text("Cierra la edición y las exportaciones de Clipper mientras liberas; aún no existe un bloqueo compartido entre ambas apps.").font(.caption).foregroundStyle(.secondary)
-                    ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
-                    ForEach(Array(plan["consumers"]["relinks"].array.enumerated()), id: \.offset) { _, value in
-                        VStack(alignment: .leading) { Text("Clipper: " + value["project"].string); Text(value["from"].string + " → " + value["to"].string).textSelection(.enabled) }.font(.caption)
+                    if plan["state"].string != "completed" {
+                        Button("Actualizar dependencias") { model.reviewRelease() }.disabled(model.busy)
+                        if model.clipperAvailable && !plan["consumers"]["relinks"].array.isEmpty {
+                            Button("Reenlazar Clipper") { model.relinkRelease() }
+                                .disabled(!plan["consumers"]["blockers"].array.isEmpty || model.busy)
+                        }
+                        Button("Liberar copias del plan…", role: .destructive) { confirmRelease = true }
+                            .buttonStyle(CreatorButtonStyle(prominent: true))
+                            .disabled(!plan["consumers"]["blockers"].array.isEmpty || !plan["consumers"]["relinks"].array.isEmpty || model.busy)
                     }
-                    DisclosureGroup("Archivos y destinos verificados") {
-                        ForEach(Array(plan["entries"].array.enumerated()), id: \.offset) { _, entry in Text(entry["path"].string + " → " + entry["archive_path"].string).font(.caption).textSelection(.enabled) }
-                        ForEach(Array(plan["preserved"].array.enumerated()), id: \.offset) { _, value in Text("Conservar: \(value.string)").font(.caption) }
-                    }
-                }
-                if !model.releaseHistory.isEmpty {
-                    DisclosureGroup("Planes de liberación guardados / reanudar") {
-                        ForEach(model.releaseHistory, id: \.["id"].string) { value in Button(value["project"].string + " · " + value["state"].string) { model.releasePlan = value } }
-                    }
-                }
-                Divider()
-                Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
-            }.padding(.vertical, 8)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            ActionFooter {
-                if let plan = model.releasePlan, plan["state"].string != "completed" {
-                    Button("Actualizar dependencias") { model.reviewRelease() }.disabled(model.busy)
-                    if model.clipperAvailable && !plan["consumers"]["relinks"].array.isEmpty {
-                        Button("Reenlazar Clipper") { model.relinkRelease() }
-                            .disabled(!plan["consumers"]["blockers"].array.isEmpty || model.busy)
-                    }
-                    Spacer(minLength: 0)
-                    Button("Liberar copias del plan…", role: .destructive) { confirmRelease = true }
-                        .buttonStyle(CreatorButtonStyle(prominent: true))
-                        .disabled(!plan["consumers"]["blockers"].array.isEmpty || !plan["consumers"]["relinks"].array.isEmpty || model.busy)
                 } else {
-                    Button("Auditar") { model.auditStorage() }.disabled(model.work.isEmpty || model.archive.isEmpty || model.busy)
-                    Button("Preparar respaldo") { model.archiveAuditFolder() }.disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty || model.busy)
-                    Button("Respaldar catálogo") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
-                    Spacer(minLength: 0)
                     Button("Revisar liberar trabajo") { model.prepareWorkRelease() }
                         .buttonStyle(CreatorButtonStyle(prominent: true))
                         .disabled(model.auditPath.isEmpty || model.releaseProject.isEmpty || model.archive.isEmpty || model.work.isEmpty || model.busy)
                 }
             }
         }
+        .padding(20)
+        .frame(width: 640, height: 520)
         .confirmationDialog("¿Retirar las copias locales del plan revisado?", isPresented: $confirmRelease) {
             Button("Liberar espacio", role: .destructive) { model.applyRelease() }
         } message: { Text("Se retirarán sólo los archivos mostrados, tras verificar MEDIA y volver a consultar Clipper. MEDIA puede quedar como única réplica. Esta acción no se deshace desde nüün.") }
-        .onChange(of: model.auditPath) { _, _ in model.coverageResult = nil; model.releasePlan = nil }
-        .onChange(of: model.releaseProject) { _, _ in model.releasePlan = nil }
-        .onChange(of: model.archive) { _, _ in model.coverageResult = nil; model.releasePlan = nil }
-        .onChange(of: model.work) { _, _ in model.coverageResult = nil; model.releasePlan = nil }
     }
 }

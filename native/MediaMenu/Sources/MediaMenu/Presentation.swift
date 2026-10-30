@@ -13,6 +13,7 @@ struct WindowRoot: View {
         .modifier(CreatorAppearance())
         .sheet(isPresented: $model.archiveOnlyPrompt) { ArchiveOnlySheet(model: model).modifier(CreatorAppearance()) }
         .sheet(isPresented: $model.confirmApply) { ApplyConfirmation(model: model).modifier(CreatorAppearance()) }
+        .sheet(isPresented: $model.showRelease) { ReleaseSheet(model: model).modifier(CreatorAppearance()) }
     }
 }
 
@@ -66,8 +67,12 @@ struct WindowTopBar: View {
                     Spacer(minLength: 0)
                 }
                 if model.busy {
-                    ProgressView().controlSize(.small)
+                    Button { model.open(.activity); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
+                        .buttonStyle(.plain).help("Ver actividad")
                     Button("Cancelar") { model.cancel() }.controlSize(.small)
+                } else if model.storageRunning {
+                    Button { model.open(.disks); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
+                        .buttonStyle(.plain).help("Analizando disco · ver Discos")
                 }
                 Button { model.openSettings?("") } label: { Image(systemName: "gearshape") }
                     .buttonStyle(.borderless).help("Ajustes (⌘,)").accessibilityLabel("Ajustes")
@@ -91,13 +96,32 @@ struct MainView: View {
         Group {
             switch model.route {
             case .ingest: IngestFlow(model: model)
-            case .library: LibraryView(model: model)
-            case .activity: ActivityView(model: model)
-            case .space: StorageView(model: model).padding(.horizontal, 20)
+            case .library: LibraryShell(model: model)
             case .home: InboxView(model: model)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct LibraryShell: View {
+    @Bindable var model: Model
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Sección", selection: $model.librarySection) {
+                ForEach(LibrarySection.allCases) { section in Label(section.title, systemImage: section.symbol).tag(section) }
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            .padding(.top, 8)
+            Group {
+                switch model.librarySection {
+                case .files: LibraryView(model: model)
+                case .disks: DisksView(model: model)
+                case .activity: ActivityView(model: model)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
@@ -287,6 +311,13 @@ struct ActivityView: View {
             }
             .modifier(CreatorListSurface())
             .overlay { if model.jobs.isEmpty { ContentUnavailableView("Sin actividad", systemImage: "clock") } }
+            if !model.releaseHistory.isEmpty {
+                DisclosureGroup("Planes de liberación guardados / reanudar") {
+                    ForEach(model.releaseHistory, id: \.["id"].string) { value in
+                        Button(value["project"].string + " · " + value["state"].string) { model.releasePlan = value; model.showRelease = true }.buttonStyle(.link)
+                    }
+                }
+            }
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
     }

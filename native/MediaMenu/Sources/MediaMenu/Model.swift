@@ -36,15 +36,13 @@ struct DraftUnit: Identifiable, Equatable {
 }
 
 enum Route: String, CaseIterable, Identifiable {
-    case home, ingest, library, activity, space
+    case home, ingest, library
     var id: String { rawValue }
     var title: LocalizedStringKey {
         switch self {
         case .home: "Inicio"
         case .ingest: "Ingreso"
         case .library: "Biblioteca"
-        case .activity: "Actividad"
-        case .space: "Espacio"
         }
     }
     var symbol: String {
@@ -52,8 +50,25 @@ enum Route: String, CaseIterable, Identifiable {
         case .home: "tray.full"
         case .ingest: "sdcard"
         case .library: "square.stack"
+        }
+    }
+}
+
+enum LibrarySection: String, CaseIterable, Identifiable {
+    case files, disks, activity
+    var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .files: "Archivos"
+        case .disks: "Discos"
+        case .activity: "Actividad"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .files: "square.stack"
+        case .disks: "externaldrive"
         case .activity: "clock.arrow.circlepath"
-        case .space: "externaldrive.badge.checkmark"
         }
     }
 }
@@ -100,6 +115,7 @@ enum OperationScope { case ingest, library, space, settings, source }
 
 @MainActor @Observable final class Model {
     var route: Route = .home
+    var librarySection: LibrarySection = .files
     var presentation: WindowMode = .full
     var profiles: [JSONValue] = []
     var recentProjects: [JSONValue] = []
@@ -122,9 +138,19 @@ enum OperationScope { case ingest, library, space, settings, source }
     var retainStalkerSource = false
     var releasePlan: JSONValue?
     var releaseHistory: [JSONValue] = []
-    var coverageResult: JSONValue?
+    var showRelease = false
     var auditPath = ""
     var releaseProject = ""
+    var storageTargets: [JSONValue] = []
+    var storageTargetID = UserDefaults.standard.string(forKey: "storageTarget") ?? "" { didSet { UserDefaults.standard.set(storageTargetID, forKey: "storageTarget") } }
+    var storagePath = ""
+    var storageTree: JSONValue?
+    var storageSelection: String?
+    var storageRun: JSONValue?
+    var storageError = ""
+    @ObservationIgnored var storageClient: BackendClient?
+    @ObservationIgnored var storageMonitor: Task<Void, Never>?
+    @ObservationIgnored var storageFixture = false
     @ObservationIgnored var watchedCaptureRoots: [String] = []
     @ObservationIgnored var captureTask: Task<Void, Never>?
     var project = "" { didSet { if project != oldValue { invalidatePlan() } } }
@@ -252,6 +278,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func operation(_ title: String, scope: OperationScope = .ingest, _ body: @escaping @MainActor () async throws -> Void) {
         guard !busy else { return }
+        if scope != .settings { yieldStorageToTransfer() }
         activeScope = scope; error = ""; message = title; statusChanged?()
         Task {
             do { try await body() }
@@ -410,6 +437,7 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     // MARK: Sources
 
+    func open(_ section: LibrarySection) { route = .library; librarySection = section }
     func chooseSource() {
         pickURL(message: String(localized: "Elige la carpeta o tarjeta de origen")) { url in
             self.route = .ingest; self.source = url.path; self.ingestStep = .source
@@ -749,6 +777,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let reader, reader.configuration.usable else { return }
             await refresh()
+            if route == .library && librarySection == .disks { await loadStorage() }
             // No registered destination online: mounts stay silent (no popup, no content hints).
             guard volumes.contains(where: { $0["online"].bool }) else { cardSuggestions = []; notifiedCards = []; statusChanged?(); return }
             let shown = sourceCards.map { $0["path"].string }

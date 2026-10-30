@@ -10,6 +10,8 @@ TOOLS = {
     'media_jobs': ('jobs', {}, []),
     'media_job_status': ('job', {'job_id': {'type': 'string'}}, ['job_id']),
     'media_volumes': ('volumes', {}, []),
+    'media_storage_overview': ('storage_overview', {}, []),
+    'media_storage_tree': ('storage_tree', {'target': {'type': 'string'}, 'path': {'type': 'string'}}, ['target']),
 }
 
 
