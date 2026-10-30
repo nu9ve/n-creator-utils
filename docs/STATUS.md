@@ -2,6 +2,29 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Barra superior y Liquid Glass · 2026-10-29
+
+El usuario reportó en macOS 26.5 que la barra quedaba dentro de una burbuja de vidrio
+grande (con borde oscuro y sombra en fullscreen). Causa confirmada en la jerarquía:
+macOS 26 envuelve los ítems de toolbar con vista propia en `NSToolbarPlatterView` +
+`NSGlassEffectView`. Corrección: `isBordered = false` en el ítem (la jerarquía ya no
+tiene platter), sin separador de titlebar y más margen para el nombre. El vidrio se
+aplica a propósito con `GlassSurface`: pestañas, barra de pasos y pies de acción
+flotantes; en macOS 14–15 cae a superficies opacas. Plurales es/en con
+`Localizable.stringsdict` (verificado: «1 operación requiere atención» / «1 operation
+needs attention»).
+
+Evidencia: `swift test` 10/10, `test_media_snapshot` + `test_media_install` 10/10,
+`check_localization.py` 418 claves sin faltantes, `--qa-fullscreen` con la barra
+visible en fullscreen y sin platter. Instalada la build release **`7a8069ed3042`**
+(`/private/tmp/nuun-glass-20261029-7534.app`, firma verificada, binario idéntico;
+anterior en `app-backups/f046a6f7.app`); la instancia abierta sólo tenía su lector
+`rpc-serve`, se cerró y se reabrió. Después de instalar sólo cambió
+`QASnapshots.swift` (sólo debug, para la imagen del README), por eso el fingerprint
+del árbol ya no coincide con ese build ID. El vidrio real no se puede renderizar fuera
+de pantalla: su aspecto queda a aceptación visual del usuario. La captura
+`docs/images/nuun-compacto.png` se regeneró con ese render y datos de ejemplo.
+
 ## Implementación de la revisión · 2026-10-29
 
 Implementado en working tree sobre `f3d1651` (sin commit) a partir de la

@@ -103,6 +103,11 @@ import MediaMenuCore
             await render(WindowTopBar(model: model), size: NSSize(width: width, height: 30), to: folder.appendingPathComponent("topbar-\(Int(width)).png"))
         }
         await render(SettingsView(model: model), size: NSSize(width: 760, height: 600), to: folder.appendingPathComponent("settings.png"))
+        // README image: compact window, fixture data only (no real libraries, sessions or paths).
+        model.captureRoots = ["/Users/demo/Stalker"]; model.pendingCaptures = []; model.captureSessions = []
+        if model.units.count > 1 { model.units[1].camera = "dji-drone" }
+        model.gridSelection = []; model.error = ""; model.route = .ingest; model.presentation = .compact; model.ingestStep = .source
+        await render(ReadmeFrame(model: model), size: NSSize(width: 440, height: 730), to: folder.appendingPathComponent("readme-compact.png"))
         print("QA snapshots written to \(folder.path)")
         NSApp.terminate(nil)
     }
@@ -150,6 +155,20 @@ import MediaMenuCore
         NSApp.terminate(nil)
     }
 
+    struct ReadmeFrame: View {
+        let model: Model
+        @Environment(\.creatorPalette) private var palette
+        var body: some View {
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    ForEach([Color.red, .yellow, .green], id: \.self) { Circle().fill($0.opacity(0.85)).frame(width: 12, height: 12) }
+                    WindowTopBar(model: model).frame(height: 30)
+                }.padding(.horizontal, 12).frame(height: 34)
+                WindowRoot(model: model)
+            }
+        }
+    }
+
     static func fullscreen(_ delegate: AppDelegate) async {
         delegate.show()
         try? await Task.sleep(for: .seconds(1))
@@ -162,6 +181,11 @@ import MediaMenuCore
             print("QA \(label): fullscreen=\(window.styleMask.contains(.fullScreen)) toolbarVisible=\(window.toolbar?.isVisible ?? false) barWindowVisible=\(barWindow?.isVisible ?? false) barOnScreen=\(barWindow?.occlusionState.contains(.visible) ?? false) barFrame=\(frame) screen=\(window.screen?.frame ?? .zero) options=\(NSApp.currentSystemPresentationOptions.rawValue) autoHideToolbar=\(NSApp.currentSystemPresentationOptions.contains(.autoHideToolbar))")
         }
         report("windowed")
+        func dump(_ view: NSView, _ depth: Int) {
+            print("QA tree " + String(repeating: "  ", count: depth) + String(describing: type(of: view)) + " \(view.frame)")
+            if depth < 6 { view.subviews.forEach { dump($0, depth + 1) } }
+        }
+        if let viewer = window.toolbar?.items.first?.view?.superview { dump(viewer.superview ?? viewer, 0) }
         window.toggleFullScreen(nil)
         try? await Task.sleep(for: .seconds(3))
         report("fullscreen")

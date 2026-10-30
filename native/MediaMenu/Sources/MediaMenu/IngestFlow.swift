@@ -13,7 +13,6 @@ struct IngestFlow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             StepBar(model: model, compact: compact).padding(.horizontal, compact ? 14 : 20).padding(.vertical, 10)
-            Divider().opacity(0.5)
             if model.ingestStep == .content {
                 // The grid scrolls by itself and takes the remaining height.
                 VStack(alignment: .leading, spacing: 12) {
@@ -70,16 +69,17 @@ struct StepBar: View {
                     }
                     .font(.callout.weight(current ? .semibold : .regular))
                     .padding(.horizontal, 9).padding(.vertical, 5)
-                    .background(current ? palette.card : .clear, in: Capsule())
-                    .overlay(Capsule().stroke(current ? palette.border : .clear))
+                    .background(current ? palette.accent.opacity(0.32) : .clear, in: Capsule())
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .disabled(model.ingestLocked || (step == .run && model.lastResult == nil && !model.busy))
                 if step != .run { Image(systemName: "chevron.compact.right").foregroundStyle(palette.muted.opacity(0.6)) }
             }
-            Spacer(minLength: 0)
         }
+        .padding(3)
+        .modifier(GlassSurface(shape: Capsule()))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
