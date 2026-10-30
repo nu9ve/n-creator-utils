@@ -189,6 +189,31 @@ import MediaMenuCore
         window.toggleFullScreen(nil)
         try? await Task.sleep(for: .seconds(3))
         report("fullscreen")
+        if let bar = window.toolbar?.items.first?.view, let barWindow = bar.window, let root = barWindow.contentView?.superview {
+            func describe(_ view: NSView, _ depth: Int) {
+                let layer = view.layer
+                let bg = layer?.backgroundColor.flatMap { NSColor(cgColor: $0)?.usingColorSpace(.sRGB) }.map { String(format: "%.2f,%.2f,%.2f,%.2f", $0.redComponent, $0.greenComponent, $0.blueComponent, $0.alphaComponent) } ?? "-"
+                print("QA px " + String(repeating: "  ", count: depth) + "\(type(of: view)) hidden=\(view.isHidden) alpha=\(view.alphaValue) opaque=\(view.isOpaque) bg=\(bg) contents=\(layer?.contents != nil) sublayers=\(layer?.sublayers?.count ?? 0) frame=\(view.frame)")
+                if depth < 5, !String(describing: type(of: view)).hasPrefix("NSHostingView") { view.subviews.forEach { describe($0, depth + 1) } }
+            }
+            describe(root, 0)
+            print("QA px window bg=\(barWindow.backgroundColor) transparentTitlebar=\(barWindow.titlebarAppearsTransparent) alpha=\(barWindow.alphaValue) style=\(barWindow.styleMask.rawValue)")
+            if let bitmap = root.bitmapImageRepForCachingDisplay(in: root.bounds) {
+                root.cacheDisplay(in: root.bounds, to: bitmap)
+                let out = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nuun-fs-toolbar.png")
+                try? bitmap.representation(using: .png, properties: [:])?.write(to: out)
+                print("QA px png \(out.path)")
+            }
+        }
+        if let bar = window.toolbar?.items.first?.view, let barWindow = bar.window {
+            print("QA fs window \(type(of: barWindow)) bg=\(barWindow.backgroundColor.description) opaque=\(barWindow.isOpaque) appearance=\(barWindow.appearance?.name.rawValue ?? "nil") effective=\(barWindow.effectiveAppearance.name.rawValue) frame=\(barWindow.frame)")
+            var chain: [NSView] = []; var current: NSView? = bar
+            while let view = current { chain.append(view); current = view.superview }
+            for view in chain.reversed() {
+                let layer = view.layer
+                print("QA fs chain \(type(of: view)) hiddenChildren=\(view.subviews.filter(\.isHidden).map { String(describing: type(of: $0)) }) frame=\(view.frame) layerBg=\(layer?.backgroundColor.map { String(describing: $0) } ?? "nil") subviews=\(view.subviews.map { String(describing: type(of: $0)) })")
+            }
+        }
         window.toggleFullScreen(nil)
         try? await Task.sleep(for: .seconds(2))
         report("restored")
