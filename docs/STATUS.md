@@ -2,6 +2,29 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Borde negro de la barra en fullscreen · 2026-10-29
+
+En fullscreen la toolbar vive en `NSToolbarFullScreenWindow`; su fondo ya era el
+canvas, pero el sistema pinta encima dos `NSVisualEffectView`, `NSTitlebarBackgroundView`
+y `_NSTitlebarDecorationView`, que alrededor de la barra dejan ver el fondo negro de
+fullscreen (reporte del usuario con captura). `flattenFullScreenToolbar()` oculta sólo
+esas capas del sistema al entrar en fullscreen (y otra vez 400 ms después), sin tocar
+la vista de la barra. `--qa-fullscreen` confirmó las capas ocultas y la barra visible;
+el color final no se puede capturar sin permiso de pantalla y queda a aceptación visual.
+`swift test` 10/10. Instalada build **`54638498ad9e`**
+(`/private/tmp/nuun-fsbar-20261029-698b.app`, firma verificada, binario idéntico); la
+instancia abierta sólo tenía su lector `rpc-serve` y se reabrió.
+
+Seguimiento: el usuario aún veía negro alrededor de la barra (con la barra de menús
+revelada u oculta). Un render fuera de pantalla de esa ventana sale crema, así que el
+negro viene del compositor: `NSGlassContainerView` (1920×40) muestrea el fondo negro
+detrás de la ventana y sólo la vista de la barra quedaba crema con esquinas redondeadas.
+Ahora también se oculta ese contenedor y se inserta una capa del color del canvas bajo
+la barra y los botones de ventana, que se retira al salir de fullscreen. QA: capas
+ocultas, relleno presente, barra visible; `swift test` 10/10. Instalada build
+**`81fac0c9cf40`** (`/private/tmp/nuun-fsfill-20261029-70d5.app`, firma verificada,
+binario idéntico). Aceptación visual pendiente del usuario.
+
 ## Barra superior y Liquid Glass · 2026-10-29
 
 El usuario reportó en macOS 26.5 que la barra quedaba dentro de una burbuja de vidrio

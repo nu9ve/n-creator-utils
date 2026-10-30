@@ -144,7 +144,39 @@ private extension NSToolbarItem.Identifier {
     func windowWillEnterFullScreen(_ notification: Notification) {
         if model.presentation != .full { model.presentation = .full }
     }
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        flattenFullScreenToolbar()
+        // AppKit can rebuild the overlay after the transition settles.
+        Task { @MainActor in try? await Task.sleep(for: .milliseconds(400)); self.flattenFullScreenToolbar() }
+    }
+    /// In fullscreen the toolbar moves to a system window whose material and glass container sample
+    /// the black fullscreen backdrop around the bar. Hide only that window's own material/glass
+    /// layers; the window background is already the app canvas.
+    func flattenFullScreenToolbar() {
+        guard let window, window.styleMask.contains(.fullScreen),
+              let barWindow = window.toolbar?.items.first?.view?.window, barWindow !== window,
+              let root = barWindow.contentView?.superview else { return }
+        func visit(_ view: NSView) {
+            for child in view.subviews where !(String(describing: type(of: child)).hasPrefix("NSToolbarItemViewer")) {
+                if child is NSVisualEffectView || ["NSTitlebarBackgroundView", "_NSTitlebarDecorationView", "NSGlassContainerView"].contains(String(describing: type(of: child))) { child.isHidden = true }
+                else { visit(child) }
+            }
+        }
+        visit(root)
+        // An app-colored fill under the item and the window buttons, in case the system view draws its own backdrop.
+        guard let toolbarView = window.toolbar?.items.first?.view?.superview?.superview else { return }
+        let fillID = NSUserInterfaceItemIdentifier("nuun.fullscreen.fill")
+        let fill = toolbarView.subviews.first { $0.identifier == fillID } ?? {
+            let view = NSView(frame: toolbarView.bounds)
+            view.identifier = fillID; view.autoresizingMask = [.width, .height]; view.wantsLayer = true
+            toolbarView.addSubview(view, positioned: .below, relativeTo: nil)
+            return view
+        }()
+        fill.layer?.backgroundColor = barWindow.backgroundColor.cgColor
+    }
     func windowDidExitFullScreen(_ notification: Notification) {
+        window?.toolbar?.items.first?.view?.superview?.superview?.subviews
+            .filter { $0.identifier == NSUserInterfaceItemIdentifier("nuun.fullscreen.fill") }.forEach { $0.removeFromSuperview() }
         if let mode = pendingMode { pendingMode = nil; present(mode) }
     }
     func windowWillClose(_ notification: Notification) {
