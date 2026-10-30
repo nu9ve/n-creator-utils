@@ -75,25 +75,29 @@ struct CreatorGroupBoxStyle: GroupBoxStyle {
     }
 }
 
+/// One filled primary per view; secondary buttons stay light so the screen reads calmly.
 struct CreatorButtonStyle: ButtonStyle {
     @Environment(\.creatorPalette) private var palette
     @Environment(\.isEnabled) private var enabled
+    @Environment(\.controlSize) private var size
     var prominent = false
     func makeBody(configuration: Configuration) -> some View {
+        let small = size == .small || size == .mini
         configuration.label
-            .fontWeight(prominent ? .semibold : .medium)
-            .padding(.horizontal, 12).padding(.vertical, 7)
+            .fontWeight(prominent ? .semibold : .regular)
+            .padding(.horizontal, small ? 8 : 11).padding(.vertical, small ? 3 : 5)
             .foregroundStyle(configuration.role == .destructive ? Color.red : (prominent ? palette.accentInk : palette.ink))
-            .background(prominent ? palette.accent : (configuration.isPressed ? palette.inset : palette.card), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+            .background(prominent ? palette.accent : (configuration.isPressed ? palette.inset : palette.card.opacity(0.75)), in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(palette.border.opacity(prominent ? 0.9 : 0.5), lineWidth: 1))
             .opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
+            .contentShape(RoundedRectangle(cornerRadius: 7))
     }
 }
 
 struct CreatorTextFieldStyle: TextFieldStyle {
     @Environment(\.creatorPalette) private var palette
     func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration.textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 6)
+        configuration.textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 5)
             .background(palette.card, in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(palette.border, lineWidth: 1))
     }

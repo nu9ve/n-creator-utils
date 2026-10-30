@@ -15,6 +15,7 @@ def parser():
     commands = root.add_subparsers(dest='command', required=True)
     commands.add_parser('mcp', help='Read-only local MCP stdio server')
     commands.add_parser('rpc', help='One JSON request on stdin; one JSON envelope on stdout')
+    commands.add_parser('rpc-serve', help='Read-only requests as JSON lines; one JSON line per response (native shell)')
     volumes = commands.add_parser('volumes')
     sub = volumes.add_subparsers(dest='action', required=True)
     sub.add_parser('list')
@@ -88,6 +89,33 @@ def parser():
     return root
 
 
+# Mutations keep one process per request so cancellation interrupts exactly that operation.
+READ_METHODS = {'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'profiles',
+                'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions'}
+READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
+
+
+def serve_reads(service, stdin=None, stdout=None):
+    stdin, stdout = stdin or sys.stdin, stdout or sys.stdout
+    for line in stdin:
+        if not line.strip():
+            continue
+        identifier = None
+        try:
+            require(len(line) <= 1024 * 1024, 'request_too_large', 'Request line exceeds 1 MiB')
+            request = json.loads(line)
+            require(isinstance(request, dict) and isinstance(request.get('method'), str), 'invalid_request', 'Expected id/method/params JSON')
+            identifier, method, params = request.get('id'), request['method'], request.get('params') or {}
+            require(method in READ_METHODS or (method in READ_WHEN_EMPTY and not params), 'read_only', 'rpc-serve only answers reads: ' + method)
+            envelope = {'id': identifier, 'ok': True, 'data': service.call(method, params)}
+        except (MediaError, OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
+            code = error.code if isinstance(error, MediaError) else 'operation_failed'
+            envelope = {'id': identifier, 'ok': False, 'error': {'code': code, 'message': str(error)}}
+        stdout.write(json.dumps(envelope, ensure_ascii=False) + '\n')
+        stdout.flush()
+    return 0
+
+
 def main(argv=None):
     args = parser().parse_args(argv)
     cancelled = [False]
@@ -101,6 +129,8 @@ def main(argv=None):
         if args.command == 'mcp':
             from .mcp import serve
             return serve(service)
+        if args.command == 'rpc-serve':
+            return serve_reads(service)
         if args.command == 'rpc':
             raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')

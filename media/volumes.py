@@ -134,9 +134,87 @@ def reject_destination(info, identities):
             'destination_volume', 'Archive/work disks cannot be ejected from Ingreso')
 
 
-def source_cards(catalog, backend):
+class CachedBackend:
+    """Read-only memo for one request: each mounted root is described once (df/diskutil are slow)."""
+
+    def __init__(self, backend):
+        self._backend, self._described = backend, {}
+
+    def __getattr__(self, name):
+        return getattr(self._backend, name)
+
+    def describe(self, root, external_required=False):
+        key = (str(Path(root).absolute()), bool(external_required))
+        if key not in self._described:
+            self._described[key] = self._backend.describe(root, external_required)
+        return self._described[key]
+
+    def online(self, record):
+        try:
+            return self.check(record)
+        except (OSError, MediaError, subprocess.SubprocessError, ValueError):
+            return None
+
+    def check(self, record):
+        current = self.describe(record['root'], record['identity']['external'])
+        for key in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode'):
+            require(current.get(key) == record['identity'].get(key), 'volume_replaced', 'Registered volume identity changed: ' + record['name'])
+        return current
+
+
+# Top two directory levels only. A hint suggests a flow; it never classifies files (DJI stays ambiguous).
+CARD_SIGNATURES = (
+    ('stalker', lambda top, second: any(name.endswith('.stalker') for name in top)),
+    ('sony', lambda top, second: 'private' in top and 'm4root' in second.get('private', set()) or 'avf_info' in top),
+    ('h6', lambda top, second: any(name.startswith(('zoom', 'folder')) for name in top) or 'h6_settings' in top),
+    ('gopro', lambda top, second: any(name.endswith('gopro') for name in second.get('dcim', set()))),
+    ('insta360', lambda top, second: any(name.endswith('insta360') or name.startswith('camera') for name in second.get('dcim', set()))
+                                     and 'misc' in top),
+    ('dji', lambda top, second: any(name.startswith('dji') for name in top | second.get('dcim', set()))),
+    ('canon', lambda top, second: any(name.endswith('canon') or name.startswith('eos') for name in second.get('dcim', set()))),
+)
+RECOMMENDATIONS = {'sony': 'sony_format_in_camera', 'h6': 'audio_needs_work_disk', 'dji': 'dji_choose_category',
+                   'stalker': 'stalker_batch', 'gopro': 'archive_and_work', 'insta360': 'dji_choose_category'}
+
+
+def card_hint(root, catalog=None, identity=None):
+    root = Path(root)
+    def names(path):
+        try:
+            with os.scandir(path) as entries:
+                return {entry.name.lower() for entry in entries if not entry.name.startswith('.') or entry.name.endswith('.stalker')}
+        except OSError:
+            return set()
+    top, second = names(root), {}
+    if top & {'dcim', 'private'}:
+        with os.scandir(root) as entries:
+            for entry in entries:
+                if entry.name.lower() in {'dcim', 'private'} and entry.is_dir(follow_symlinks=False):
+                    second[entry.name.lower()] = names(entry.path)
+    family = next((key for key, matches in CARD_SIGNATURES if matches(top, second)), 'generic')
+    try:
+        usage = shutil.disk_usage(root)
+        used, capacity = usage.used, usage.total
+    except OSError:
+        used = capacity = 0
+    hint = {'family': family, 'recommendation': RECOMMENDATIONS.get(family, 'archive_and_work'),
+            'used_bytes': used, 'capacity_bytes': capacity}
+    if catalog is not None and identity and identity.get('volume_uuid'):
+        row = catalog.db.execute(
+            "SELECT json_extract(plan,'$.units[0].project') AS project, json_extract(plan,'$.units[0].profile') AS profile "
+            "FROM jobs WHERE json_extract(plan,'$.source_identity.volume_uuid')=? ORDER BY created_at DESC LIMIT 1",
+            (identity['volume_uuid'],)).fetchone()
+        if row and row['project']:
+            hint['last_project'], hint['last_profile'] = row['project'], row['profile'] or ''
+    return hint
+
+
+def source_cards(catalog, backend, hints=None):
     result = []
     protected = destination_identities(catalog, backend)
+    # Without a registered destination online, mounts stay silent: no listing of card contents.
+    if hints is None:
+        hints = any(backend.online(record) for record in catalog.volumes())
     for root in backend.mounted_roots():
         try:
             info = backend.describe(root)
@@ -144,8 +222,10 @@ def source_cards(catalog, backend):
             reject_destination(info, protected)
         except (OSError, MediaError, subprocess.SubprocessError, ValueError):
             continue
-        result.append({'path': str(root), 'name': Path(root).name, 'kind': 'card',
-                       'identity': card_identity(info)})
+        card = {'path': str(root), 'name': Path(root).name, 'kind': 'card', 'identity': card_identity(info)}
+        if hints:
+            card['hint'] = card_hint(root, catalog, info)
+        result.append(card)
     return result
 
 

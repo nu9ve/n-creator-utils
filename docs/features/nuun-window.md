@@ -28,7 +28,19 @@ Stalker muestra preview del video de pantalla, fecha, duración y pistas cuando 
 
 En lotes Stalker, el proyecto del lote queda como fallback para sesiones sin proyecto. Si todas ya tienen uno, el campo global puede quedar vacío; el resumen enumera los proyectos/rutas incluidos. Las tarjetas ponen fecha, duración, pistas y perfil sobre el video para ahorrar altura; proyecto asignado queda en una línea con lápiz, y las sugerencias rápidas aparecen en la sesión sin asignar o al editarla. Cambiar asignaciones invalida un plan revisado.
 
-La barra nativa usa un accesorio derecho de 38 pt: icono/nombre nüün, pestañas en completo y control de modo al extremo derecho, en el mismo renglón que los controles del sistema. Compacto/selección omiten pestañas. El pie muestra también el estado final de la operación. En compacto/selección, el contenido de Ingreso es desplazable: plan, disclosure de rutas y errores crecen dentro del scroll, con el pie fijo fuera. Preparar revisión o recibir error desplaza hacia ese contenido; el texto de error se puede seleccionar. En fullscreen, donde macOS oculta la barra nativa, los mismos controles se fijan arriba del contenido y se oculta el accesorio para evitar duplicados. Al salir vuelve la barra nativa. La revisión básica con estado aislado no sustituye la matriz de pantallas/Spaces/accesibilidad.
+La barra superior es un `NSToolbar` nativo (estilo compacto unificado) en el mismo renglón que los controles de la ventana: nombre, pestañas Inicio/Ingreso/Biblioteca/Actividad/Espacio en completo (sólo iconos en anchos pequeños), ajustes y control de modo. En pantalla completa la ventana pide ocultar sólo la barra de menús, no la toolbar, así que las pestañas siguen visibles sin revelar la barra de menús (corrige el reporte del 2026-10-29). Ajustes es una ventana propia (⌘,). Atajos: ⌘1…⌘5 pestañas, ⌘\\ modo, ⌘[ / ⌘] pasos, ⌘R revisar plan, ⌘↩ ejecutar (con confirmación), ⌘E expulsar, ⌘N nueva ingesta. Cada modo recuerda su último marco mientras quepa en pantalla. La revisión con estado aislado no sustituye la matriz de pantallas/Spaces/accesibilidad.
+
+## Ingreso por pasos (2026-10-29)
+
+Ingreso es un flujo de cinco pasos visibles en una barra superior: **Fuente y proyecto → Contenido → Destinos → Revisar → Copiar**. Se puede saltar a cualquier paso; lo único que bloquea «Revisar plan» es lo que el planner necesita (fuente, proyecto del lote o de cada sesión, disco de respaldo, clasificar DJI y, con «Elegir archivos», marcar alguno). Compacto, selección y completo usan el mismo flujo con distinta densidad; al abrir Contenido desde compacto la ventana pasa a selección.
+
+- **Rápido** (por defecto): fuente + proyecto y luego revisar; destinos se resumen con «Cambiar». **Guiado**: recorre todos los pasos. Se elige en Ajustes → Ingreso, junto con leer el contenido al elegir una SD (desactivado: elegir fuente no recorre archivos).
+- **Fuente**: SDs conectadas como tarjetas con familia detectada, uso/capacidad, flujo recomendado y último proyecto usado con esa tarjeta (sugerencia); bibliotecas Stalker y «Otra carpeta…».
+- **Contenido**: grilla con filtros por tipo (incluye «DJI sin clasificar»), selección estándar (clic, ⌘, ⇧), vista rápida con espacio o doble clic y panel para asignar proyecto, perfil, cámara, país y copia al SSD a la selección o a todo lo visible.
+- **Revisar** muestra el plan; **Ejecutar…** abre una hoja que nombra copias, destinos y la limpieza/liberación antes de continuar. «Sólo respaldo» también se confirma en una hoja.
+- **Copiar** muestra progreso medido por fase y destino; mientras tanto se puede navegar por Biblioteca, Actividad e Inicio (sólo se bloquea la edición de esa ingesta). Al terminar ofrece expulsar, abrir biblioteca/actividad o una nueva ingesta.
+
+La app lee el estado en reposo con una sola llamada `snapshot` a un lector persistente de sólo lectura; mutaciones siguen un proceso por petición ([contrato](../contracts/media-library-v1.md#fuentes-y-expulsión-local-2026-10-27)). Las miniaturas se guardan decodificadas.
 
 ## Perfiles y ubicaciones
 
@@ -37,6 +49,8 @@ Los perfiles guardados tienen ID, etiqueta, carpeta relativa de raws y discos su
 `profile_routes` congela las carpetas usadas en el digest/recibo del plan; cambiar un perfil no cambia copias anteriores ni un plan revisado. El registro de perfiles/etiquetas/sugerencias vive en el catálogo local y requiere la política de backup de metadata pendiente; los recibos conservan la ruta de cada job, no restauran toda la configuración.
 
 ## Ingreso · selección de fuente y expulsión (2026-10-27)
+
+Histórico: el layout de este apartado lo reemplaza «Ingreso por pasos»; las reglas de expulsión y de plan siguen vigentes.
 
 El encabezado completo usa un renglón: SD/fuente y expulsión a la izquierda, perfil/país/ciudad al centro, archivo y SSD a la derecha. Compacto/selección usan dos. El selector ofrece SDs removibles conectadas y bibliotecas Stalker configuradas; «Otra…» abre el selector nativo de carpeta (incluye navegación por ruta). La consulta de montajes no recorre media ni cambia los gates de popup/destinos. Elegir una fuente no inicia discovery.
 

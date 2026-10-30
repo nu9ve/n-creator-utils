@@ -36,6 +36,7 @@ Clipper y retitle coordinado implementados. Evidencia y límites en
 
 | When | Task |
 | --- | --- |
+| Instalado 2026-10-29 · aceptación del usuario pendiente | Toolbar/fullscreen, Ingreso por pasos, asignación masiva, snapshot + lector persistente, Biblioteca/Actividad/Inicio nuevos, Ajustes en ventana, inglés/español. Build `eb9c719514fb`. Probar con una SD pequeña y revisar la matriz de pantallas; luego DiskArbitration, progreso empujado y agrupación de grilla. [Revisión](docs/features/app-review-2026-10.md#implementado-el-2026-10-29), [evidencia](docs/STATUS.md#implementación-de-la-revisión--2026-10-29). |
 | Implementado 2026-10-27 · fixtures y QA visual aislada; aceptación física pendiente | Ingreso: SDs/fuentes conocidas, una fila en completo y dos en compacto/selección, tres proyectos directos + Más recientes/Otro…, fallback por unidad, inspección explícita y expulsión segura por el servicio compartido. Barra nativa en el mismo renglón y navegación persistente en fullscreen. [Flujo](docs/features/nuun-window.md), evidencia/build en [STATUS](docs/STATUS.md). |
 | Corregido 2026-10-27 · regresión en fixtures y QA aislada | Transporte del plan como documento original, sin reserialización Swift; digest alterado sigue bloqueado. Ingreso compacto/selección desplaza revisión/errores sin cortar el pie. La suite Swift ahora prueba plan → apply real con números problemáticos y documentos alterados. Reintentar el caso reportado con una revisión nueva; no se ejecutó la tarjeta del usuario. Evidencia en [STATUS](docs/STATUS.md). |
 | Prioridad operativa · Untitled inaccesible | Resolver el fallo de montaje ExFAT reportado por el usuario antes de retomar pruebas físicas. Sin job reciente/limpieza registrada; `fsck_exfat -n` ejecutado por el usuario confirma corrupción de boot/bitmap/directorio. Imagen completa en MEDIA502 propuesta, pendiente de autorización y ejecución. No reparar/formatear ni usar como fixture. Evidencia en [STATUS](docs/STATUS.md). |
@@ -85,6 +86,9 @@ Do not start by polishing more panels or testing full personal cards. Local fixt
 ## P2 · dashboard, launcher and maintainability
 
 Detailed, prioritized ideas: [dashboard/launcher backlog](docs/features/dashboard-launcher.md).
+App shell, step-based Ingreso, RPC/reactivity, SD detection, i18n and platform options
+(2026-10-29 review, phased): [app review](docs/features/app-review-2026-10.md). Its
+phase 1 includes the reported fullscreen tabs bug, which is a defect, not polish.
 
 - Action center for blocked jobs, missing destinations, work pending and final deliveries pending archive.
 - Storage/coverage view for logical versus allocated bytes, online/offline snapshots, replication and space reservation.

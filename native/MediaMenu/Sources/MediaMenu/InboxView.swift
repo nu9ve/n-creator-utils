@@ -14,31 +14,56 @@ struct JobStatusIcon: View {
 }
 
 struct InboxView: View {
-    @ObservedObject var model: Model
+    @Bindable var model: Model
+    @Environment(\.creatorPalette) private var palette
+    private var blocked: [JSONValue] {
+        model.jobs.filter { ["failed", "paused", "camera_action_required"].contains($0["state"].string)
+            || $0["state"].string == "source_retained" && $0["release_stalker_source"].bool }
+    }
+    private var pendingWork: Int { model.assets.filter { $0["work_delivery_status"].string == "pending" }.count }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Label("Bandeja", systemImage: "tray.full").font(.title2)
-                Text("Fuentes que puedes revisar y respaldar. Cada acción prepara un plan; nada se mueve automáticamente.").foregroundStyle(.secondary)
-                ForEach(model.cardSuggestions, id: \.self) { path in
-                    HStack { Image(systemName: "sdcard.fill").foregroundStyle(.orange); VStack(alignment: .leading) { Text("Tarjeta · " + URL(fileURLWithPath: path).lastPathComponent).fontWeight(.semibold); Text(path).font(.caption) }; Spacer(); Button("Revisar") { model.prepareSource(path, kind: "card") }; Button("Ingreso rápido") { model.prepareSource(path, kind: "card"); model.changeMode?(.compact) } }
-                    Divider()
+                PageHeader(title: "Inicio", subtitle: "Lo que puedes respaldar o atender ahora. Nada se mueve sin un plan revisado.") {
+                    Button("Elegir fuente…", systemImage: "folder") { model.chooseSource() }
+                }
+                ErrorBanner(model: model)
+                DiskStrip(model: model)
+                if !model.sourceCards.isEmpty {
+                    SectionTitle("Tarjetas conectadas")
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 12, alignment: .top)], alignment: .leading, spacing: 12) {
+                        ForEach(model.sourceCards, id: \.["path"].string) { card in CardSuggestion(model: model, card: card) }
+                    }
+                }
+                if !blocked.isEmpty || pendingWork > 0 {
+                    SectionTitle("Requiere atención")
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !blocked.isEmpty {
+                            HStack { Label("\(blocked.count) operaciones requieren atención", systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Spacer(); Button("Abrir actividad") { model.route = .activity } }
+                        }
+                        if pendingWork > 0 {
+                            HStack { Label("\(pendingWork) copias para editar pendientes", systemImage: "externaldrive.badge.timemachine"); Spacer(); Button("Abrir biblioteca") { model.route = .library } }
+                        }
+                    }.modifier(Panel())
                 }
                 HStack {
-                    Label("Stalker · \(model.pendingCaptures.count) pendientes", systemImage: "record.circle").font(.headline)
+                    SectionTitle("Stalker")
+                    Text("\(model.pendingCaptures.count) pendientes").foregroundStyle(.secondary)
                     Spacer()
+                    Button("Actualizar", systemImage: "arrow.clockwise") { model.captureChanged([]) }.controlSize(.small)
                 }
                 if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
                 ForEach(model.captureRoots, id: \.self) { root in
                     let pendingCount = model.pendingCaptures.filter { $0["root"].string == root }.count
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(URL(fileURLWithPath: root).lastPathComponent).font(.caption.weight(.medium))
+                            Text(URL(fileURLWithPath: root).lastPathComponent).font(.callout.weight(.medium))
                             Text(root).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
                         }
                         Spacer()
-                        Button("Preparar lote · \(pendingCount)") { model.prepareCaptureBatch(root) }.disabled(pendingCount == 0)
-                    }
+                        Button("Preparar lote · \(pendingCount)") { model.prepareCaptureBatch(root) }
+                            .buttonStyle(CreatorButtonStyle(prominent: pendingCount > 0)).disabled(pendingCount == 0)
+                    }.modifier(Panel())
                 }
                 ForEach(model.pendingCaptures, id: \.["path"].string) { value in
                     CaptureInboxRow(model: model, capture: value)
@@ -48,26 +73,83 @@ struct InboxView: View {
                 if !archived.isEmpty {
                     DisclosureGroup("\(archived.count) sesiones archivadas con original local") {
                         ForEach(archived, id: \.["path"].string) { value in
-                            HStack { Text(URL(fileURLWithPath: value["path"].string).lastPathComponent).font(.caption); Spacer(); Button("Revisar liberar local…") { model.prepareLocalRelease(value) }.disabled(model.archive.isEmpty) }
+                            HStack { Text(URL(fileURLWithPath: value["path"].string).lastPathComponent).font(.caption); Spacer(); Button("Revisar liberar local…") { model.prepareLocalRelease(value) }.disabled(model.archive.isEmpty || model.busy) }
                         }
                     }
                 }
-                let pending = model.assets.filter { $0["work_delivery_status"].string == "pending" }
-                if !pending.isEmpty { HStack { Label("\(pending.count) copias para editar pendientes", systemImage: "externaldrive.badge.timemachine"); Spacer(); Button("Abrir biblioteca") { model.selectedTab = 1 } }; Divider() }
-                let blocked = model.jobs.filter { ["failed", "paused", "camera_action_required"].contains($0["state"].string)
-                    || $0["state"].string == "source_retained" && $0["release_stalker_source"].bool }
-                if !blocked.isEmpty { HStack { Label("\(blocked.count) operaciones requieren atención", systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Spacer(); Button("Abrir actividad") { model.selectedTab = 2 } }; Divider() }
-                if model.cardSuggestions.isEmpty && model.pendingCaptures.isEmpty { ContentUnavailableView("Sin fuentes nuevas sugeridas", systemImage: "tray", description: Text("Conecta una SD o revisa las bibliotecas descubiertas de Stalker.")) }
-                HStack { Button("Elegir otra fuente…") { model.selectedTab = 0; model.chooseSource() }; Button("Configurar capturas y discos") { model.selectedTab = 3 } }
-                Text("Un lote prepara todas las sesiones pendientes de esa biblioteca en un mismo plan; asigna proyectos por sesión antes de respaldar. Si hay varias bibliotecas, cada una requiere su propio plan. Tras verificar el respaldo se libera el original salvo que Ajustes indique conservarlo; Clipper o cualquier bloqueo puede mantenerlo localmente.").font(.caption).foregroundStyle(.secondary)
-            }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
+                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && blocked.isEmpty {
+                    ContentUnavailableView("Todo al día", systemImage: "checkmark.circle", description: Text("Conecta una SD o termina una sesión de Stalker para verla aquí."))
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 14)
         }
     }
 }
 
+struct Panel: ViewModifier {
+    @Environment(\.creatorPalette) private var palette
+    func body(content: Content) -> some View {
+        content.padding(12).frame(maxWidth: .infinity, alignment: .leading)
+            .background(palette.card, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(palette.border.opacity(0.5)))
+    }
+}
+
+struct DiskStrip: View {
+    @Bindable var model: Model
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(model.volumes, id: \.["id"].string) { value in
+                    let online = value["online"].bool
+                    HStack(spacing: 6) {
+                        Image(systemName: online ? "externaldrive.fill.badge.checkmark" : "externaldrive.badge.xmark").foregroundStyle(online ? .green : .secondary)
+                        Text(value["name"].string).font(.caption.weight(.semibold))
+                        Text(online ? (value["free"] == .null ? String(localized: "conectado") : String(localized: "\(bytesLabel(value["free"].double)) libres")) : String(localized: "desconectado"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .modifier(Chip())
+                }
+                Button("Discos…") { model.openSettings?("disks") }.buttonStyle(.link).font(.caption)
+            }
+        }.scrollIndicators(.hidden)
+    }
+}
+
+struct Chip: ViewModifier {
+    @Environment(\.creatorPalette) private var palette
+    func body(content: Content) -> some View { content.background(palette.inset.opacity(0.5), in: Capsule()) }
+}
+
+struct CardSuggestion: View {
+    @Bindable var model: Model
+    let card: JSONValue
+    var body: some View {
+        let hint = card["hint"], path = card["path"].string
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(card["name"].string).font(.headline)
+                    Text(model.familyLabel(hint["family"].string) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button { model.eject(path) } label: { Image(systemName: "eject") }.buttonStyle(.borderless).help("Expulsar SD de forma segura").disabled(model.busy)
+            }
+            if hint != .null { Label(model.recommendationLabel(hint["recommendation"].string), systemImage: "lightbulb").font(.callout) }
+            if !hint["last_project"].string.isEmpty { Text("Usada antes en: \(hint["last_project"].string)").font(.caption).foregroundStyle(.secondary) }
+            HStack {
+                Button("Ingreso rápido") { model.useCard(path); model.changeMode?(.compact) }
+                Spacer()
+                Button("Ingresar", systemImage: "arrow.right") { model.useCard(path) }.buttonStyle(CreatorButtonStyle(prominent: true))
+            }
+        }.modifier(Panel())
+    }
+}
 
 struct CaptureInboxRow: View {
-    @ObservedObject var model: Model
+    @Bindable var model: Model
     let capture: JSONValue
     @State private var project = ""
     @State private var country = "mx"

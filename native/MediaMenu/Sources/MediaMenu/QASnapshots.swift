@@ -1,0 +1,174 @@
+#if DEBUG
+import AppKit
+import SwiftUI
+import MediaMenuCore
+
+/// Debug-only visual QA without screen-recording permission: `--qa-snapshots DIR` renders each
+/// route/step with fixture data to PNG; `--qa-fullscreen` logs whether the toolbar stays visible.
+@MainActor enum QASnapshots {
+    static func run(_ delegate: AppDelegate) -> Bool {
+        let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--qa-snapshots"), index + 1 < arguments.count {
+            Task { await snapshots(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
+        if let index = arguments.firstIndex(of: "--qa-ingest"), index + 1 < arguments.count {
+            Task { await ingest(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
+        if arguments.contains("--qa-fullscreen") {
+            Task { await fullscreen(delegate) }
+            return true
+        }
+        return false
+    }
+
+    static func fixture(_ model: Model, media: URL) {
+        model.volumes = [
+            .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12), "root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw")]),
+            .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "online": .bool(true), "free": .number(4.2e11), "root": .string("/Volumes/ESSD"), "prefix": .string("001_proyectos")]),
+            .object(["id": .string("s"), "name": .string("SSD1"), "role": .string("work"), "online": .bool(false), "free": .null, "root": .string("/Volumes/SSD1"), "prefix": .string("001_proyectos")])]
+        model.archive = "a"; model.work = "w"
+        model.sourceCards = [
+            .object(["path": .string(media.path), "name": .string("A7IV_64"), "hint": .object(["family": .string("sony"), "recommendation": .string("sony_format_in_camera"), "used_bytes": .number(38e9), "capacity_bytes": .number(64e9), "last_project": .string("mercado-norte")])]),
+            .object(["path": .string("/Volumes/DJI"), "name": .string("MINI4"), "hint": .object(["family": .string("dji"), "recommendation": .string("dji_choose_category"), "used_bytes": .number(12e9), "capacity_bytes": .number(128e9)])])]
+        model.cardSuggestions = model.sourceCards.map { $0["path"].string }
+        model.captureRoots = ["/Users/demo/Stalker"]
+        model.recentProjects = ["mercado-norte", "taller-luz", "entrevista-ana", "clip-intro", "viaje-sonora", "podcast-07", "demo"].enumerated().map { index, title in
+            .object(["project_id": .string("p\(index)"), "project": .string(title)]) }
+        model.profiles = [.object(["id": .string("e64"), "name": .string("e64"), "raw_dir": .string("e64_raw")]), .object(["id": .string("9logs"), "name": .string("9logs"), "raw_dir": .string("9logs_raw")])]
+        model.assets = (0..<14).map { index in .object(["id": .string("asset\(index)"), "project": .string(["mercado-norte", "taller-luz", "entrevista-ana"][index % 3]), "profile": .string("e64"), "kind": .string(index % 4 == 0 ? "camera_bundle" : "file"), "camera": .string(index % 2 == 0 ? "ILCE-6400" : "dji-drone"), "country": .string("mx"), "city": .string("hermosillo"), "paths": .array([.string("a"), .string("b")]), "work_delivery_status": .string(["pending", "ready", "skipped"][index % 3])]) }
+        model.jobs = [
+            .object(["id": .string("job-1"), "state": .string("copying"), "updated_at": .string("2026-10-29T10:12:00"), "cleanup_profile": .string("files")]),
+            .object(["id": .string("job-2"), "state": .string("camera_action_required"), "updated_at": .string("2026-10-28T18:40:00"), "cleanup_profile": .string("sony_clips_then_format")]),
+            .object(["id": .string("job-3"), "state": .string("completed"), "updated_at": .string("2026-10-27T09:02:00"), "cleanup_profile": .string("files")])]
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: media.path))?.sorted() ?? []
+        model.source = media.path
+        model.units = files.enumerated().map { index, name in
+            var unit = DraftUnit(id: name, paths: [name])
+            unit.category = name.lowercased().hasSuffix(".mov") || name.lowercased().hasSuffix(".mp4") ? "video" : "image"
+            unit.detectedCamera = index == 1 ? "dji" : "ILCE-6400"
+            unit.bytes = Double(120_000_000 + index * 9_000_000)
+            unit.copyForEditing = index % 2 == 0
+            if index == 2 { unit.project = "taller-luz" }
+            return unit
+        }
+        model.loadedSourceKey = model.sourceKey
+        model.gridSelection = Set(files.prefix(2))
+        model.project = "mercado-norte"
+    }
+
+    static func render<V: View>(_ view: V, size: NSSize, to url: URL) async {
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+        let host = NSHostingView(rootView: view.modifier(CreatorAppearance()).frame(width: size.width, height: size.height))
+        host.frame = NSRect(origin: .zero, size: size)
+        window.contentView = host
+        for _ in 0..<12 { host.layoutSubtreeIfNeeded(); try? await Task.sleep(for: .milliseconds(150)) }
+        guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+    }
+
+    static func snapshots(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? await Task.sleep(for: .seconds(2))  // let the isolated snapshot refresh settle first
+        fixture(model, media: folder.appendingPathComponent("media"))
+        let full = NSSize(width: 1180, height: 860), selection = NSSize(width: 780, height: 820), compact = NSSize(width: 440, height: 700)
+        model.presentation = .full
+        for route in Route.allCases where route != .ingest {
+            model.route = route
+            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-\(route.rawValue).png"))
+        }
+        model.route = .ingest
+        for step in IngestStep.allCases where step != .run {
+            model.ingestStep = step
+            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("ingest-\(step.rawValue)-\(step).png"))
+        }
+        model.ingestStep = .run; model.activeScope = .ingest; model.activeJobID = "job-1"
+        model.jobProgress = .object(["state": .string("copying"), "progress": .object(["phase": .string("copying"), "copied_bytes": .number(21e9), "bytes_total": .number(38e9), "bytes_per_second": .number(180e6), "files_done": .integer(120), "files_total": .integer(212),
+            "destinations": .array([.object(["name": .string("MEDIA502"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("ESSD"), "files_done": .integer(96), "files_total": .integer(110)])])])])
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("ingest-4-run.png"))
+        model.activeScope = nil
+        model.presentation = .compact
+        for step in [IngestStep.source, .destinations] {
+            model.ingestStep = step
+            await render(WindowRoot(model: model), size: compact, to: folder.appendingPathComponent("compact-\(step).png"))
+        }
+        model.presentation = .selection; model.ingestStep = .content
+        await render(WindowRoot(model: model), size: selection, to: folder.appendingPathComponent("selection-content.png"))
+        model.presentation = .full
+        for width in [1180.0, 700.0, 430.0] {
+            model.presentation = width < 600 ? .compact : .full
+            await render(WindowTopBar(model: model), size: NSSize(width: width, height: 30), to: folder.appendingPathComponent("topbar-\(Int(width)).png"))
+        }
+        await render(SettingsView(model: model), size: NSSize(width: 760, height: 600), to: folder.appendingPathComponent("settings.png"))
+        print("QA snapshots written to \(folder.path)")
+        NSApp.terminate(nil)
+    }
+
+    /// Real engine, isolated state, local fixture folders: source → review → run → result.
+    static func ingest(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ label: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<300 { if condition() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+            print("QA ingest timeout: \(label) error=\(model.error) message=\(model.message)"); return false
+        }
+        do {
+            try? await Task.sleep(for: .seconds(1))
+            for (name, role) in [("QA-MEDIA", "archive"), ("QA-ESSD", "work")] {
+                let root = folder.appendingPathComponent(name)
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+                _ = try await model.client!.call("register_volume", ["root": .string(root.path), "name": .string(name), "role": .string(role), "allow_local": .bool(true)])
+            }
+            await model.refresh()
+            model.archive = model.volumes.first { $0["role"].string == "archive" }?["id"].string ?? ""
+            model.work = model.volumes.first { $0["role"].string == "work" }?["id"].string ?? ""
+            print("QA ingest volumes=\(model.volumes.count) online=\(model.volumes.filter { $0["online"].bool }.count)")
+            model.route = .ingest
+            model.prepareSource(folder.appendingPathComponent("card").path, kind: "card")
+            model.cleanup = false; model.copyChoice = "none"; model.project = "qa-flujo"
+            print("QA ingest blockers=\(model.planBlockers)")
+            model.goToStep(.content)
+            guard await wait("discover", { model.contentLoaded && !model.discoveryLoading }) else { NSApp.terminate(nil); return }
+            print("QA ingest units=\(model.units.count)")
+            model.gridSelection = [model.units[0].id]
+            model.updateTargets { $0.project = "qa-otro" }
+            model.reviewPlan()
+            // Archive-only is confirmed explicitly per operation, as the sheet does.
+            guard await wait("confirmation", { model.archiveOnlyPrompt }) else { NSApp.terminate(nil); return }
+            model.archiveOnlyPrompt = false
+            model.makePlan(archiveOnly: true)
+            guard await wait("plan", { model.plan != nil && !model.busy }) else { NSApp.terminate(nil); return }
+            print("QA ingest step=\(model.ingestStep) files=\(model.plan?["files"].array.count ?? 0) projects=\(Set(model.plan?["units"].array.map { $0["project"].string } ?? []).sorted())")
+            model.apply()
+            guard await wait("apply", { model.lastResult != nil && !model.busy }) else { NSApp.terminate(nil); return }
+            print("QA ingest result=\(model.lastResult?["state"].string ?? "") label=\(model.jobLabel(model.lastResult!)) step=\(model.ingestStep) error=\(model.error)")
+            await model.refresh()
+            print("QA ingest library=\(model.assets.count) jobs=\(model.jobs.count) pendingWork=\(model.assets.filter { $0["work_delivery_status"].string == "pending" }.count)")
+        } catch { print("QA ingest failed: \(error)") }
+        NSApp.terminate(nil)
+    }
+
+    static func fullscreen(_ delegate: AppDelegate) async {
+        delegate.show()
+        try? await Task.sleep(for: .seconds(1))
+        guard let window = delegate.window else { print("QA: no window"); NSApp.terminate(nil); return }
+        func report(_ label: String) {
+            let item = window.toolbar?.items.first
+            let barWindow = item?.view?.window
+            let frame = item?.view.map { $0.convert($0.bounds, to: nil) }.flatMap { rect in barWindow?.convertToScreen(rect) } ?? .zero
+            print("QA \(label) items=\(window.toolbar?.items.count ?? -1) visible=\(window.toolbar?.visibleItems?.count ?? -1) viewFrame=\(item?.view?.frame ?? .zero) superview=\(String(describing: item?.view?.superview.map { type(of: $0) })) fitting=\(item?.view?.fittingSize ?? .zero)")
+            print("QA \(label): fullscreen=\(window.styleMask.contains(.fullScreen)) toolbarVisible=\(window.toolbar?.isVisible ?? false) barWindowVisible=\(barWindow?.isVisible ?? false) barOnScreen=\(barWindow?.occlusionState.contains(.visible) ?? false) barFrame=\(frame) screen=\(window.screen?.frame ?? .zero) options=\(NSApp.currentSystemPresentationOptions.rawValue) autoHideToolbar=\(NSApp.currentSystemPresentationOptions.contains(.autoHideToolbar))")
+        }
+        report("windowed")
+        window.toggleFullScreen(nil)
+        try? await Task.sleep(for: .seconds(3))
+        report("fullscreen")
+        window.toggleFullScreen(nil)
+        try? await Task.sleep(for: .seconds(2))
+        report("restored")
+        NSApp.terminate(nil)
+    }
+}
+#endif

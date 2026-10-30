@@ -42,6 +42,8 @@ class Service:
         if method == 'source_cards':
             from .volumes import source_cards
             return source_cards(self.catalog, self.backend)
+        if method == 'snapshot':
+            return self._snapshot(params)
         if method == 'eject_card':
             from .volumes import eject_card
             return eject_card(self.catalog, self.backend, params.get('source'), params.get('identity'))
@@ -207,6 +209,33 @@ class Service:
             is_card = info['external'] and info['mount'] == str(root) and info['removable']
             return {'show': is_card, 'reason': 'card' if is_card else 'not_a_card', 'pending_work': pending}
         require(False, 'unknown_method', 'Unknown media service method: ' + str(method))
+
+    def _snapshot(self, params):
+        """Everything the native shell shows at rest, in one read; each mounted volume is described once."""
+        from .integrations import capabilities
+        from .release import release_plans
+        from .volumes import CachedBackend, source_cards
+        from .workspaces import profiles
+        backend = CachedBackend(self.backend)
+        volumes = []
+        for record in self.catalog.volumes():
+            current = backend.online(record)
+            volumes.append(dict(record, online=bool(current), free=current['free'] if current else None))
+        result = {'volumes': volumes, 'library': self.catalog.search(None, None), 'jobs': self.catalog.jobs(),
+                  'profiles': profiles(self.catalog), 'projects': projects(self.catalog),
+                  'release_plans': release_plans(self.catalog),
+                  'integration_settings': self.call('integration_settings'),
+                  'defaults': self.call('defaults'), 'errors': {}}
+        try:
+            result['capabilities'] = capabilities(self.catalog)
+        except (MediaError, OSError, ValueError, RuntimeError) as error:
+            result['capabilities'], result['errors']['capabilities'] = {}, str(error)
+        if params.get('cards', True):
+            try:
+                result['source_cards'] = source_cards(self.catalog, backend, any(v['online'] for v in volumes))
+            except (MediaError, OSError, ValueError) as error:
+                result['source_cards'], result['errors']['source_cards'] = [], str(error)
+        return result
 
     def _apply_ingest(self, plan, reviewed_digest):
         result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)

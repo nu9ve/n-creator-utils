@@ -83,6 +83,102 @@ public struct BackendConfiguration: Codable, Sendable {
     }
 }
 
+/// One long-lived `rpc-serve` child for reads (snapshot, progress, suggestions). Mutations stay
+/// one process per request so cancelling interrupts exactly that operation. Any transport failure
+/// falls back to a per-request process; the server refuses non-read methods itself.
+public final class PersistentReader: @unchecked Sendable {
+    public let configuration: BackendConfiguration
+    private let lock = NSLock()
+    private var process: Process?
+    private var input: FileHandle?
+    private var buffer = Data()
+    private var nextID = 0
+    private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
+    private let fallback: BackendClient
+    public init(configuration: BackendConfiguration) {
+        self.configuration = configuration
+        fallback = BackendClient(configuration: configuration)
+    }
+    deinit { stop() }
+
+    public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
+        do { return try await send(method, params) }
+        catch let failure as BackendFailure where failure.code != "reader_unavailable" { throw failure }
+        catch { return try await fallback.call(method, params) }
+    }
+
+    public func stop() { stop(only: nil) }
+
+    /// `only` keeps a late termination of an old child from stopping its replacement.
+    private func stop(only child: Process?) {
+        lock.lock()
+        if let child, child !== process { lock.unlock(); return }
+        let running = process, handle = input, waiting = pending
+        process = nil; input = nil; pending = [:]; buffer = Data()
+        lock.unlock()
+        try? handle?.close()
+        if let running, running.isRunning { running.terminate() }
+        for continuation in waiting.values {
+            continuation.resume(throwing: BackendFailure(code: "reader_unavailable", message: "Lector reiniciado"))
+        }
+    }
+
+    private func send(_ method: String, _ params: [String: JSONValue]) async throws -> JSONValue {
+        try await withCheckedThrowingContinuation { continuation in
+            lock.lock()
+            do {
+                let handle = try startLocked()
+                nextID += 1
+                let id = nextID
+                var line = try JSONEncoder().encode(JSONValue.object(["id": .integer(Int64(id)), "method": .string(method), "params": .object(params)]))
+                line.append(0x0A)
+                pending[id] = continuation
+                lock.unlock()
+                do { try handle.write(contentsOf: line) }
+                catch { stop(only: process) }
+            } catch {
+                lock.unlock()
+                continuation.resume(throwing: BackendFailure(code: "reader_unavailable", message: error.localizedDescription))
+            }
+        }
+    }
+
+    private func startLocked() throws -> FileHandle {
+        if let process, process.isRunning, let input { return input }
+        guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
+        let child = Process(), stdin = Pipe(), stdout = Pipe()
+        child.executableURL = URL(fileURLWithPath: configuration.python)
+        child.arguments = ["-S", configuration.script, "media"] + (configuration.stateDirectory.map { ["--state-dir", $0] } ?? []) + ["rpc-serve"]
+        child.standardInput = stdin; child.standardOutput = stdout; child.standardError = FileHandle.nullDevice
+        child.qualityOfService = .userInitiated
+        stdout.fileHandleForReading.readabilityHandler = { [weak self, weak child] handle in
+            let data = handle.availableData
+            if data.isEmpty { handle.readabilityHandler = nil; if let child { self?.stop(only: child) }; return }
+            self?.receive(data)
+        }
+        child.terminationHandler = { [weak self] ended in self?.stop(only: ended) }
+        try child.run()
+        process = child; input = stdin.fileHandleForWriting; buffer = Data()
+        return stdin.fileHandleForWriting
+    }
+
+    private func receive(_ data: Data) {
+        lock.lock()
+        buffer.append(data)
+        var ready: [(CheckedContinuation<JSONValue, Error>, Result<JSONValue, Error>)] = []
+        while let newline = buffer.firstIndex(of: 0x0A) {
+            let line = buffer[buffer.startIndex..<newline]
+            buffer.removeSubrange(buffer.startIndex...newline)
+            guard let envelope = try? JSONDecoder().decode(JSONValue.self, from: Data(line)) else { continue }
+            let id = Int(envelope["id"].double)
+            guard let continuation = pending.removeValue(forKey: id) else { continue }
+            ready.append((continuation, Result { try ProtocolBoundary.response(Data(line)) }))
+        }
+        lock.unlock()
+        for (continuation, result) in ready { continuation.resume(with: result) }
+    }
+}
+
 private final class CollectedData: @unchecked Sendable {
     private let lock = NSLock()
     private var value = Data()
