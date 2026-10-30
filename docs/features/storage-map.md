@@ -88,7 +88,9 @@ Dos carpetas en un mismo disco físico nunca cuentan como réplica. Esto se preg
 
 Un nombre como `Caches` o `node_modules` sólo produce una sugerencia; nada se retira por su nombre. La vista por proyecto llega con la fase 2.
 
-**Carpetas elegidas:** **Añadir carpeta…** permite ver el interno u otro disco. Viven fuera de la tabla de discos, así que nunca pueden elegirse como archivo o trabajo ni activan el aviso de tarjetas. Se rechazan la raíz, las carpetas del sistema, las tarjetas y lo que se solape con otro disco.
+**Esta Mac** siempre aparece en la lista. Analiza el volumen de datos del disco interno (`/System/Volumes/Data`): todo menos el sistema sellado. Se trata como una carpeta elegida, sin poder olvidarla.
+
+**Carpetas elegidas:** **Añadir carpeta…** permite ver otra carpeta u otro disco. Viven fuera de la tabla de discos, así que nunca pueden elegirse como archivo o trabajo ni activan el aviso de tarjetas. Se rechazan la raíz, las carpetas del sistema, las tarjetas y lo que se solape con otro disco.
 
 El uso real del sistema de archivos menos lo recorrido se muestra como **«Sin contar»**: sistema, instantáneas, purgable o carpetas fuera de alcance. Mejor un hueco explícito que un total que no cuadra.
 

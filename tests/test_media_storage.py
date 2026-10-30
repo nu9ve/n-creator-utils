@@ -371,6 +371,18 @@ class ObservedFolderTests(StorageFixture):
         with self.assertRaises(MediaError):
             self.catalog.volume(added['id'])
 
+    def test_this_mac_is_always_listed_and_never_a_destination(self):
+        with mock.patch.object(storage_index, 'THIS_MAC_ROOT', str(self.home)):
+            write(self.home, 'Users/me/song.wav', b'a' * 4096)
+            target = self.target('Mac')
+            self.assertTrue(target['builtin'] and target['observed'] and target['online'])
+            self.assertEqual({v['name'] for v in self.call('volumes')}, {'MEDIA', 'ESSD'})
+            self.assertEqual(self.call('storage_scan', target=storage_index.THIS_MAC)['state'], 'finished')
+            self.assertEqual(self.target('Mac')['files'], 1)
+            with self.assertRaises(MediaError) as caught:
+                self.call('storage_remove_folder', target=storage_index.THIS_MAC)
+            self.assertEqual(caught.exception.code, 'invalid_role')
+
     def test_small_files_stay_in_rollups_only(self):
         write(self.home, 'Music/big.wav', b'a' * (2 * 1024 * 1024))
         write(self.home, 'Music/small.wav', b'b' * 4096)

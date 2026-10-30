@@ -140,6 +140,18 @@ import MediaMenuCore
         if model.units.count > 1 { model.units[1].camera = "dji-drone" }
         model.gridSelection = []; model.error = ""; model.route = .ingest; model.presentation = .compact; model.ingestStep = .source
         await render(ReadmeFrame(model: model), size: NSSize(width: 440, height: 730), to: folder.appendingPathComponent("readme-compact.png"))
+        // Empty states: nothing connected, nothing backed up.
+        model.storageTargets = []; model.storageTargetID = ""; model.storageTree = nil; model.assets = []; model.jobs = []
+        model.sourceCards = []; model.cardSuggestions = []; model.pendingCaptures = []; model.captureRoots = []; model.source = ""; model.units = []
+        model.presentation = .full; model.route = .home
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("empty-home.png"))
+        model.route = .library
+        for section in LibrarySection.allCases {
+            model.librarySection = section
+            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("empty-\(section.rawValue).png"))
+        }
+        model.route = .ingest; model.ingestStep = .content
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("empty-content.png"))
         print("QA snapshots written to \(folder.path)")
         NSApp.terminate(nil)
     }

@@ -5,6 +5,7 @@ import MediaMenuCore
 extension Model {
     var storageTarget: JSONValue? { storageTargets.first { $0["id"].string == storageTargetID } }
     var storageRunning: Bool { storageRun != nil }
+    func storageName(_ target: JSONValue) -> String { target["builtin"].bool ? String(localized: "Esta Mac") : target["name"].string }
     /// What the footer acts on: the selected row, otherwise the folder on screen.
     var storageActionPath: String { storageSelection ?? storagePath }
     var storageArchiveReady: Bool { storageTargets.contains { $0["role"].string == "archive" && $0["online"].bool && $0["indexed"].bool } }
@@ -142,11 +143,12 @@ extension Model {
     }
     func storageRunLabel(_ run: JSONValue) -> String {
         let name = storageTargets.first { $0["id"] == run["target_id"] }?["name"].string ?? ""
+        let shown = storageTargets.first { $0["id"] == run["target_id"] }.map(storageName) ?? name
         if run["kind"].string == "compare" {
             let done = Int(run["files"].double), total = Int(run["total_files"].double)
             return String(localized: "Comparando con el respaldo · \(done) de \(total) archivos · \(bytesLabel(run["allocated"].double)) leídos")
         }
-        return String(localized: "Analizando \(name) · \(Int(run["files"].double)) archivos · \(bytesLabel(run["allocated"].double))")
+        return String(localized: "Analizando \(shown) · \(Int(run["files"].double)) archivos · \(bytesLabel(run["allocated"].double))")
     }
 }
 
@@ -324,9 +326,13 @@ struct DisksView: View {
     }
     private func notIndexed(_ target: JSONValue) -> some View {
         ContentUnavailableView {
-            Label(target["online"].bool ? String(localized: "\(target["name"].string) aún no se ha analizado") : String(localized: "\(target["name"].string) está desconectado"), systemImage: "externaldrive")
+            Label(target["online"].bool ? String(localized: "\(model.storageName(target)) aún no se ha analizado") : String(localized: "\(model.storageName(target)) está desconectado"), systemImage: "externaldrive")
         } description: {
-            Text(target["online"].bool ? "Se leen sólo nombres, tamaños y fechas. No se abre ningún archivo." : "Conéctalo para analizarlo. Después podrás consultarlo aunque esté guardado.")
+            if target["builtin"].bool {
+                Text("Se leen sólo nombres, tamaños y fechas. No se abre ningún archivo. Puede tardar varios minutos y macOS puede pedirte permisos.")
+            } else {
+                Text(target["online"].bool ? "Se leen sólo nombres, tamaños y fechas. No se abre ningún archivo." : "Conéctalo para analizarlo. Después podrás consultarlo aunque esté guardado.")
+            }
         } actions: {
             if target["online"].bool {
                 Button("Analizar") { model.scanStorage() }.buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.storageRunning)
@@ -336,7 +342,7 @@ struct DisksView: View {
     private var navigation: some View {
         HStack(spacing: 4) {
             let parts = model.storagePath.isEmpty ? [] : model.storagePath.split(separator: "/").map(String.init)
-            Button(model.storageTarget?["name"].string ?? "") { model.openStorageFolder("") }.buttonStyle(.link).font(.callout)
+            Button(model.storageTarget.map(model.storageName) ?? "") { model.openStorageFolder("") }.buttonStyle(.link).font(.callout)
             ForEach(parts.indices, id: \.self) { index in
                 Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.secondary)
                 Button(parts[index]) { model.openStorageFolder(parts[0...index].joined(separator: "/")) }
@@ -381,7 +387,7 @@ struct DisksView: View {
                 Text(model.storageRunLabel(run)).font(.caption).monospacedDigit().lineLimit(1)
                 if model.storageClient != nil { Button("Cancelar") { model.cancelStorage() } }
             } else {
-                if target?["observed"].bool == true, let id = target?["id"].string {
+                if target?["observed"].bool == true, target?["builtin"].bool != true, let id = target?["id"].string {
                     Button("Olvidar carpeta") { model.forgetStorageFolder(id) }
                 }
                 if indexed {
@@ -414,9 +420,9 @@ struct TargetStrip: View {
                     let selected = target["id"].string == model.storageTargetID
                     Button { model.selectStorageTarget(target["id"].string) } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: target["observed"].bool ? "folder" : target["online"].bool ? "externaldrive.fill" : "externaldrive.badge.xmark")
+                            Image(systemName: target["builtin"].bool ? "laptopcomputer" : target["observed"].bool ? "folder" : target["online"].bool ? "externaldrive.fill" : "externaldrive.badge.xmark")
                                 .foregroundStyle(target["online"].bool ? palette.ink : .secondary)
-                            Text(target["name"].string).font(.caption.weight(.semibold))
+                            Text(model.storageName(target)).font(.caption.weight(.semibold))
                             Text(usage(target)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                         }
                         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -442,7 +448,7 @@ struct DiskSummary: View {
     private var parts: [(key: String, bytes: Double)] {
         lens == .safety ? amounts(target["safety"], order: safetyOrder) : amounts(target["kinds"], order: kindOrder)
     }
-    private var uncountedTitle: String { target["observed"].bool ? String(localized: "Resto del disco") : String(localized: "Sin contar") }
+    private var uncountedTitle: String { target["observed"].bool && !target["builtin"].bool ? String(localized: "Resto del disco") : String(localized: "Sin contar") }
     var body: some View {
         let total = max(1, target["fs_total"].double), uncounted = target["uncounted"].double
         VStack(alignment: .leading, spacing: 6) {
@@ -555,7 +561,7 @@ struct TreemapView: View {
 struct SelectionDetail: View {
     @Bindable var model: Model
     let row: DiskRow?
-    private var folderName: String { model.storageTree?["name"].string ?? "" }
+    private var folderName: String { model.storagePath.isEmpty ? (model.storageTarget.map(model.storageName) ?? "") : (model.storageTree?["name"].string ?? "") }
     var body: some View {
         let safety = row?.isFolder == false ? JSONValue.null : (row?.value["safety"] ?? model.storageTree?["safety"] ?? .null)
         VStack(alignment: .leading, spacing: 2) {
