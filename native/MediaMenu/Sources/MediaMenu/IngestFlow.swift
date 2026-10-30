@@ -642,14 +642,14 @@ struct RunStep: View {
                 }
                 HStack {
                     if model.selectedCard != nil { Button("Expulsar SD", systemImage: "eject") { model.ejectSource() } }
-                    Button("Abrir biblioteca") { model.route = .library; model.changeMode?(.full) }
-                    Button("Abrir actividad") { model.route = .activity; model.changeMode?(.full) }
+                    Button("Abrir biblioteca") { model.open(.files); model.changeMode?(.full) }
+                    Button("Abrir actividad") { model.open(.activity); model.changeMode?(.full) }
                 }
             } else {
                 Text("La operación se detuvo. Revisa el mensaje y el estado en Actividad.").foregroundStyle(.secondary)
                 HStack {
                     Button("Volver a revisar") { model.goToStep(.review) }
-                    Button("Abrir actividad") { model.route = .activity; model.changeMode?(.full) }
+                    Button("Abrir actividad") { model.open(.activity); model.changeMode?(.full) }
                 }
             }
         }

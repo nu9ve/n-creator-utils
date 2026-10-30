@@ -239,8 +239,10 @@ private extension NSToolbarItem.Identifier {
         add(edit, String(localized: "Pegar"), #selector(NSText.paste(_:)), "v")
         add(edit, String(localized: "Seleccionar todo"), #selector(NSText.selectAll(_:)), "a")
         let view = submenu(String(localized: "Ver"))
-        for (index, route) in Route.allCases.enumerated() {
-            add(view, routeTitle(route), #selector(goRoute(_:)), String(index + 1), tag: index, target: self)
+        // ⌘4 and ⌘5 keep pointing where Actividad and Espacio always were.
+        let destinations = [String(localized: "Inicio"), String(localized: "Ingreso"), String(localized: "Archivos"), String(localized: "Actividad"), String(localized: "Discos")]
+        for (index, title) in destinations.enumerated() {
+            add(view, title, #selector(goRoute(_:)), String(index + 1), tag: index, target: self)
         }
         view.addItem(.separator())
         add(view, String(localized: "Vista compacta / completa"), #selector(toggleMode), "\\", target: self)
@@ -256,15 +258,6 @@ private extension NSToolbarItem.Identifier {
         NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = bar
     }
-    func routeTitle(_ route: Route) -> String {
-        switch route {
-        case .home: String(localized: "Inicio")
-        case .ingest: String(localized: "Ingreso")
-        case .library: String(localized: "Biblioteca")
-        case .activity: String(localized: "Actividad")
-        case .space: String(localized: "Espacio")
-        }
-    }
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(reviewPlan): return !model.busy && model.planBlockers.isEmpty
@@ -276,7 +269,16 @@ private extension NSToolbarItem.Identifier {
         default: return true
         }
     }
-    @objc func goRoute(_ sender: NSMenuItem) { model.route = Route.allCases[sender.tag]; if model.presentation != .full { present(.full) } else { show() } }
+    @objc func goRoute(_ sender: NSMenuItem) {
+        switch sender.tag {
+        case 0: model.route = .home
+        case 1: model.route = .ingest
+        case 2: model.open(.files)
+        case 3: model.open(.activity)
+        default: model.open(.disks)
+        }
+        if model.presentation != .full { present(.full) } else { show() }
+    }
     @objc func toggleMode() { present(model.presentation == .full ? .compact : .full) }
     @objc func newIngest() { model.newIngest(); model.route = .ingest; show() }
     @objc func chooseSource() { model.chooseSource() }
@@ -294,6 +296,7 @@ private extension NSToolbarItem.Identifier {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions { [.banner] }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         saveFrame()
+        model.cancelStorage()
         guard model.busy else { model.reader?.stop(); return .terminateNow }
         model.cancel()
         Task {

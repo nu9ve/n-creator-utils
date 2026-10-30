@@ -19,6 +19,9 @@ class Service:
     def call(self, method, params=None):
         params = params or {}
         require(isinstance(params, dict), 'invalid_request', 'params must be an object')
+        if method.startswith('storage_'):
+            from .storage_index import call
+            return call(self.catalog, self.backend, method, params, self.cancel)
         if method == 'publish_revision':
             from .revisions import publish_revision
             return publish_revision(self.catalog, self.backend, cancel=self.cancel, **params)

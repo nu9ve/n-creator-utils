@@ -10,6 +10,8 @@
 | Assess a distribution build | [Release gates](release.md) |
 | Understand the three-mode nüün window | [Window flow/limits](features/nuun-window.md) |
 | Review the final local artifact / manual acceptance | [2026-10-26 closeout](releases/2026-10-26-local.md) |
+| Close the product loop: navigation, project lifecycle, per-type flows, recipes | [Product flows](features/product-flows.md) (proposal) |
+| Understand what fills the disks and what is safe to free | [Storage map](features/storage-map.md) |
 | Evolve dashboard/launcher | [Feature backlog](features/dashboard-launcher.md) |
 | Improve app shell, flows, performance, i18n, platforms | [App review 2026-10](features/app-review-2026-10.md) |
 | Change a cross-app boundary | [Contracts index](contracts/README.md) |

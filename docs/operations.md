@@ -166,6 +166,26 @@ No hay aún un comando que exporte un bundle completo de diagnóstico/redacción
 
 MCP local: `nu9ve media mcp`; stdio JSON-RPC, sólo búsqueda/resolución/jobs/volúmenes. No abre un puerto ni expone escritura. [Boundary y herramientas](../media/mcp.py).
 
+### Mapa de discos
+
+**Biblioteca → Discos** muestra qué ocupa cada disco registrado y cualquier carpeta añadida con **Añadir carpeta…**. Esa carpeta nunca es destino ni activa el aviso de tarjetas. La especificación está en [mapa de almacenamiento](features/storage-map.md).
+
+- **Analizar / Actualizar** sólo lee nombres, tamaños y fechas. No abre archivos ni escribe en el disco; el índice vive en `storage-index.sqlite3`, junto al catálogo, y se puede borrar sin perder nada más que los hashes guardados.
+- **Comprobar** lee contenido sólo de lo que puede coincidir con el respaldo, empezando por lo más grande, y guarda cada hash. Requiere el respaldo conectado y analizado. Se detiene si inicias una copia; lo ya calculado se conserva.
+- Un disco desconectado se sigue consultando con los datos de su último análisis y su fecha. **Sin contar** es el uso del disco que el recorrido no alcanzó.
+
+```bash
+nu9ve media storage-scan ESSD
+```
+
+```bash
+nu9ve media storage-tree ESSD --path 0000_acomodar
+```
+
+```bash
+nu9ve media storage-compare ESSD --path 0000_acomodar
+```
+
 ### Bandeja Stalker, proyectos y liberar espacio
 
 La bandeja lee `~/Library/Application Support/Stalker/library.json` (`stalker-library/1`) y revisa la biblioteca actual y `previous[]`. Una carpeta manual de Ajustes → Capturas se añade a esas ubicaciones; no oculta las antiguas. Si no hay registro ni carpeta elegida, prueba `~/Movies/Stalker`. Sólo se inspeccionan bundles del primer nivel; las rutas ausentes/errores son visibles y hay actualización manual. Los eventos de las bibliotecas y del registro actualizan la bandeja sin sondeo periódico. Un registro creado cuando su directorio padre aún no existía requiere actualizar manualmente o reabrir.
@@ -175,24 +195,24 @@ Cada sesión terminada pendiente muestra preview de su video de pantalla, fecha,
 1. En Bandeja, asignar proyectos y preparar la sesión/biblioteca.
 2. En Ingreso, elegir MEDIA y ninguna/todas/algunas copias de trabajo; revisar el plan. Por defecto, **Ejecutar plan revisado** copia, verifica y después revisa Clipper/reenlaza con ACK antes de retirar cada original local. El bundle completo queda en MEDIA y, si se eligió, ESSD.
 3. Ajustes → Capturas → **Conservar el original Stalker después del respaldo** deja esa sesión para liberarla manualmente después. También se conserva automáticamente si Clipper no está disponible, hay proyectos/colas desconocidos, falla el reenlace o cambia una copia/origen durante la revisión. La respuesta del plan muestra por sesión qué se liberó y qué quedó retenido.
-4. Para una sesión archivada anteriormente o retenida por la política/una compuerta, abrir **Espacio** → «sesiones archivadas con original local» → **Revisar liberar local…**. En **Espacio**, revisar rutas, bytes y bloqueos. Si hace falta, **Reenlazar Clipper al destino verificado** pide el cambio al CLI de Clipper y valida su ACK. Para un original Stalker se prefiere una copia completa y verificada del ESSD; si no existe, se propone MEDIA. No se editan JSON de Clipper desde nüün.
+4. Para una sesión archivada anteriormente o retenida por la política/una compuerta, abrir **Inicio** → «sesiones archivadas con original local» → **Revisar liberar local…**. En la hoja de liberación, revisar rutas, bytes y bloqueos. Si hace falta, **Reenlazar Clipper al destino verificado** pide el cambio al CLI de Clipper y valida su ACK. Para un original Stalker se prefiere una copia completa y verificada del ESSD; si no existe, se propone MEDIA. No se editan JSON de Clipper desde nüün.
 5. **Liberar copias del plan…** es la acción manual para esos casos y pide una confirmación propia. Sólo retira archivos mostrados tras rehash de MEDIA, relectura del origen y comprobación actual de dependencias; el registro permite reanudar tras interrupción. Las carpetas vacías se retiran; metadata Finder ignorada puede dejar una carpeta mínima.
 
 La aplicación no puede hacer una transacción ACID entre discos, catálogo y Clipper. Es un flujo único y journalizado: las copias se verifican primero, Clipper confirma los relinks después, y cada retiro se registra antes de borrar. Si se detiene a mitad, el respaldo permanece y el original que falte se conserva o se reanuda desde el mismo plan.
 
 **Antes de liberar, cerrar edición y exportaciones de Clipper.** No hay un lease compartido con consumidores; no es seguro editar/importar fuentes simultáneamente durante el retiro. Los proyectos/consumidores externos no registrados (por ejemplo Final Cut) requieren revisión humana.
 
-Ajustes → Capturas permite elegir el **ejecutable de Clipper** (por ejemplo el `bin/clipper` de su entorno), o se busca `clipper` en PATH, `~/.local/bin` y Homebrew. Sin CLI válido, proyectos desconectados, colas que aún fijan originales, respuestas desconocidas o ACK incompleto, la liberación automática queda bloqueada y conserva el original. «Actualizar dependencias del plan» permite revalidar después de resolver el bloqueo. Los planes pendientes siguen en Espacio → Planes guardados / reanudar.
+Ajustes → Capturas permite elegir el **ejecutable de Clipper** (por ejemplo el `bin/clipper` de su entorno), o se busca `clipper` en PATH, `~/.local/bin` y Homebrew. Sin CLI válido, proyectos desconectados, colas que aún fijan originales, respuestas desconocidas o ACK incompleto, la liberación automática queda bloqueada y conserva el original. «Actualizar dependencias del plan» permite revalidar después de resolver el bloqueo. Los planes pendientes siguen en Actividad → Planes guardados / reanudar.
 
 El guard de proyectos antiguos revisa sólo lectura los proyectos del directorio estándar `~/Downloads/clipper-projects` (o `CLIPPER_PROJECTS_ROOT`), los del primer nivel de Downloads, el registro de proyectos enlazados y snapshots de la cola. Un proyecto antiguo que usa una ruta pero no está adoptado en la biblioteca **bloquea** la liberación: requiere adopción/relink en Clipper; nüün no lo migra silenciosamente. Un proyecto en una ubicación desconocida/no registrada no puede descubrirse de forma garantizada. Jobs fallidos/cancelados con snapshots conservados se tratan conservadoramente como dependencias; terminar o retirar la cola antes de liberar.
 
 ### Material anterior en ESSD y catálogo completo
 
-En **Espacio**, elegir MEDIA/SSD y una carpeta de proyecto. **Auditar contenido** compara SHA-256 incluso cuando existen recibos antiguos; no basta una coincidencia de tamaño o un recibo si los bytes ya no están. El informe completo queda en el catálogo y la UI muestra resumen y muestra de lo que falta. Se puede auditar todo ESSD dejando la carpeta vacía; la liberación requiere una carpeta explícita dentro del prefijo de trabajo.
+En **Biblioteca → Discos**, elegir una carpeta de un SSD registrado. **Comprobar** compara su contenido con MEDIA, aunque los nombres difieran; ver [Mapa de discos](#mapa-de-discos). **Respaldar…** lleva al ingreso con limpieza desactivada y sólo archivo: sirve para una carpeta de raws que admita el planner. Carpetas de proyectos de editor/Final Cut siguen rechazadas por ese planner; no es un backup general de bibliotecas editoriales. Antes de liberar cualquier archivo sin cobertura, archivarlo primero. **Revisar liberación…** verifica contenido actual en MEDIA, incluso con nombres históricos diferentes. Retira sólo media editable/bundles completos; conserva `clipper/`, `renders/`, bibliotecas FCP y auxiliares ajenos. No es una eliminación recursiva del proyecto. Las ubicaciones de trabajo retiradas siguen en los recibos históricos y `sources` las reporta como retiradas.
 
-**Preparar respaldo de esta carpeta** lleva al ingreso con limpieza desactivada y sólo archivo: sirve para una carpeta de raws que admita el planner. Carpetas de proyectos de editor/Final Cut siguen rechazadas por ese planner; no es un backup general de bibliotecas editoriales. Antes de liberar cualquier archivo sin cobertura, archivarlo primero. **Revisar liberar trabajo** verifica contenido actual en MEDIA, incluso con nombres históricos diferentes. Retira sólo media editable/bundles completos; conserva `clipper/`, `renders/`, bibliotecas FCP y auxiliares ajenos. No es una eliminación recursiva del proyecto. Las ubicaciones de trabajo retiradas siguen en los recibos históricos y `sources` las reporta como retiradas.
+La auditoría por CLI `media coverage` sigue disponible y no reutiliza hashes entre corridas.
 
-**Respaldar catálogo completo y perfiles en MEDIA** guarda una instantánea consistente SQLite en `.ncreator/catalog-backups/`, con recibo SHA-256 y lectura de verificación. Incluye todas las tablas: proyectos/aliases/asociaciones, perfiles, etiquetas Stalker, configuración de integración, decisiones de trabajo/publicación, operaciones y ACKs. También se genera tras `apply` de ingreso y antes/después de liberar. Si falla el backup previo, no comienza el retiro; si falla el posterior, se informa que el retiro ya terminó y que falta guardar el estado final. No incluye preferencias visuales de macOS, informes derivados ni bases privadas de Stalker/Clipper. No hay rotación automática de snapshots.
+**Ajustes → Discos → Respaldar catálogo y perfiles** guarda una instantánea consistente SQLite en `.ncreator/catalog-backups/`, con recibo SHA-256 y lectura de verificación. Incluye todas las tablas: proyectos/aliases/asociaciones, perfiles, etiquetas Stalker, configuración de integración, decisiones de trabajo/publicación, operaciones y ACKs. También se genera tras `apply` de ingreso y antes/después de liberar. Si falla el backup previo, no comienza el retiro; si falla el posterior, se informa que el retiro ya terminó y que falta guardar el estado final. No incluye preferencias visuales de macOS, informes derivados ni bases privadas de Stalker/Clipper. No hay rotación automática de snapshots.
 
 Para recuperar esas decisiones, con nüün y sus workers cerrados: verificar SHA-256 contra el recibo y `PRAGMA integrity_check` del snapshot; copiarlo como `catalog.sqlite3` a un **directorio de estado nuevo**, sin mezclar WAL/SHM anteriores, y elegir ese estado mediante `--state-dir` / `NU9VE_MEDIA_HOME`. Conserva rutas e identidades de los discos registrados. `recover-catalog` desde recibos sigue siendo una alternativa con menos metadata humana; no sustituye esa instantánea.
 

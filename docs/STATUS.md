@@ -2,6 +2,31 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Mapa de discos, fase 1 · 2026-10-30
+
+Implementado en working tree sobre `b501864`, sin commit: [mapa de almacenamiento](features/storage-map.md), [navegación](features/product-flows.md#navegación). Biblioteca tiene subtabs Archivos, Discos y Actividad; Espacio desapareció y la liberación es una hoja abierta desde Discos, Inicio o Actividad, sobre el mismo plan. Sin cambios en planner, transferencia ni liberación.
+
+Evidencia: `python3 -m unittest discover -s tests -q` **219 OK, 4 omitidas** (78 s; 31 nuevas en `test_media_storage.py`), `swift test` **12/12** (nuevas: treemap y frontera real), `check_localization.py` 462 claves sin faltantes ni sobrantes, `compileall`, `git diff --check`, 108 enlaces sin faltantes. QA offscreen de la vista con fixture y con datos reales (`--qa-disks`).
+
+Corridas reales de sólo lectura, con **una copia temporal del catálogo**, ya borrada; el catálogo real no se tocó y no se escribió en los discos:
+
+| Disco | Archivos | Tiempo | Usado / contado | Índice |
+| --- | --- | --- | --- | --- |
+| ESSD | 79,939 | 5.8 s | 482.8 / 481.7 GB; 1.1 GB sin contar y 4 carpetas de sistema sin acceso | 62 MB |
+| Carpeta personal | 8,759,049 | 355 s | 763 GB de 985 GB; el resto queda fuera de esa carpeta o sin acceso | 5.9 MB |
+
+Los recibos clasifican 20.5 GB de ESSD como «En respaldo» sin hashear. SIGINT real durante un escaneo de ESSD: estado `cancelled`, índice anterior intacto. La primera corrida en la carpeta personal encontró un índice de más de 600 MB; de ahí salieron los límites de carpetas elegidas, la recuperación de espacio y el alto con poco disco.
+
+**Sin probar:** clics reales en la app (la QA es offscreen), Comprobar contra el MEDIA502 real, que estaba desconectado, y cuánto tarda el HDD. Artefacto release `/private/tmp/nuun-discos-20261030.app`, build **`0d873c96934f`**, firma ad-hoc verificada. Instalado a petición del usuario en `~/Applications/nuun.app`, con binario y backend idénticos al artefacto; anterior en `~/Library/Application Support/n-creator-utils/app-backups/9ca5fc40.app`. La instancia abierta estaba inactiva, se cerró desde AppleScript y se reabrió; el motor instalado respondió `storage_overview`. Runtime externo `/usr/bin/python3`, sin notarizar. No es una build de producción: siguen los [gates de release](release.md) y el ciclo físico pendiente.
+
+Límite conocido: **Revisar liberación…** rechaza carpetas fuera del prefijo de trabajo como `0000_acomodar`; esa salida llega en la fase 3.
+
+## Propuesta de flujos y almacenamiento · 2026-10-30
+
+Sólo documentación, sin cambios de comportamiento: [flujos y cierre](features/product-flows.md), [mapa de almacenamiento](features/storage-map.md) y nuevas prioridades en [PLAN](../PLAN.md). Compara la landing y Kyū contra el código.
+
+Observado en lectura de código, sin ejecutarlo: Kyū sólo importa `kind: file`, por lo que los pares RAW+JPG (`camera_bundle`) no le llegan. Medido en sólo lectura, sin escribir en discos: ESSD 445 de 465 GB con 80,061 archivos, recorrido de metadatos en 10.4 s; el catálogo conoce 19.1 GB de ESSD; el interno tiene 12 GB disponibles. MEDIA502 estaba desconectado. La auditoría de cobertura sigue sin correrse sobre discos reales.
+
 ## Borde negro de la barra en fullscreen · 2026-10-29
 
 En fullscreen la toolbar vive en `NSToolbarFullScreenWindow`; su fondo ya era el

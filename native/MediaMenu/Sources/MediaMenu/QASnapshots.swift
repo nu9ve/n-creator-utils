@@ -16,6 +16,10 @@ import MediaMenuCore
             Task { await ingest(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
         }
+        if let index = arguments.firstIndex(of: "--qa-disks"), index + 1 < arguments.count {
+            Task { await disks(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if arguments.contains("--qa-fullscreen") {
             Task { await fullscreen(delegate) }
             return true
@@ -58,6 +62,26 @@ import MediaMenuCore
         model.project = "mercado-norte"
     }
 
+    /// Invented folders and sizes, for the look only: the real reading goes through the engine.
+    static func diskFixture(_ model: Model) {
+        model.storageFixture = true
+        func folder(_ name: String, _ gb: Double, _ safety: [String: Double], kind: String = "", opaque: Bool = false) -> JSONValue {
+            .object(["path": .string(name), "name": .string(name), "files": .integer(Int64(gb * 40)), "allocated": .number(gb * 1e9), "bytes": .number(gb * 1e9), "kind": .string(kind), "opaque": .bool(opaque),
+                     "kinds": .object(["video": .number(gb * 0.8e9), "audio": .number(gb * 0.2e9)]), "safety": .object(safety.mapValues { .number($0 * 1e9) })])
+        }
+        model.storageTargets = [
+            .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "root": .string("/Volumes/ESSD"), "online": .bool(true), "indexed": .bool(true), "observed": .bool(false), "indexed_at": .string("2026-10-30T10:00:00.000000Z"), "files": .integer(80061), "allocated": .number(445e9), "fs_total": .number(465e9), "fs_free": .number(20e9), "uncounted": .number(2e9), "unreadable": .integer(2), "samples": .array([.string(".Spotlight-V100")]),
+                     "safety": .object(["only_here": .number(130e9), "probable": .number(60e9), "unknown": .number(150e9), "verified": .number(85e9), "derived": .number(20e9)]),
+                     "kinds": .object(["video": .number(310e9), "image": .number(40e9), "audio": .number(35e9), "editable": .number(40e9), "other": .number(20e9)])]),
+            .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "root": .string("/Volumes/MEDIA502"), "online": .bool(false), "indexed": .bool(true), "observed": .bool(false), "fs_total": .number(5e12), "fs_free": .number(2.7e12)]),
+            .object(["id": .string("new"), "name": .string("Música"), "role": .string("observed"), "root": .string("/Users/demo/Music"), "online": .bool(true), "indexed": .bool(false), "observed": .bool(true), "fs_total": .number(1e12), "fs_free": .number(12e9)])]
+        model.storageTargetID = "w"; model.storagePath = ""; model.storageSelection = "acomodar"
+        model.storageTree = .object(["name": .string("ESSD"), "allocated": .number(445e9), "rest": .number(4e9), "safety": model.storageTargets[0]["safety"], "files": .array([
+            .object(["path": .string("entrevista.mov"), "name": .string("entrevista.mov"), "allocated": .number(12e9), "kind": .string("video"), "state": .string("verified"), "copy": .object(["volume": .string("MEDIA502"), "path": .string("001_raw/videos/entrevista.mov"), "origin": .string("computed")])])]),
+            "folders": .array([folder("proyectos", 230, ["only_here": 80, "verified": 85, "probable": 45, "derived": 20]), folder("acomodar", 140, ["unknown": 140]),
+                               folder("finales", 43, ["only_here": 28, "probable": 15]), folder("recuerdos", 14, ["only_here": 14]), folder("edicion.fcpbundle", 2, ["only_here": 2], kind: "editable", opaque: true)])])
+    }
+
     static func render<V: View>(_ view: V, size: NSSize, to url: URL) async {
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
         let host = NSHostingView(rootView: view.modifier(CreatorAppearance()).frame(width: size.width, height: size.height))
@@ -76,10 +100,18 @@ import MediaMenuCore
         fixture(model, media: folder.appendingPathComponent("media"))
         let full = NSSize(width: 1180, height: 860), selection = NSSize(width: 780, height: 820), compact = NSSize(width: 440, height: 700)
         model.presentation = .full
-        for route in Route.allCases where route != .ingest {
-            model.route = route
-            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-\(route.rawValue).png"))
+        model.route = .home
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
+        model.route = .library
+        for section in LibrarySection.allCases where section != .disks {
+            model.librarySection = section
+            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("library-\(section.rawValue).png"))
         }
+        model.librarySection = .disks
+        diskFixture(model)
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("library-disks.png"))
+        model.storageTargetID = "new"; model.storageTree = nil
+        await render(MainView(model: model), size: full, to: folder.appendingPathComponent("library-disks-empty.png"))
         model.route = .ingest
         for step in IngestStep.allCases where step != .run {
             model.ingestStep = step
@@ -109,6 +141,32 @@ import MediaMenuCore
         model.gridSelection = []; model.error = ""; model.route = .ingest; model.presentation = .compact; model.ingestStep = .source
         await render(ReadmeFrame(model: model), size: NSSize(width: 440, height: 730), to: folder.appendingPathComponent("readme-compact.png"))
         print("QA snapshots written to \(folder.path)")
+        NSApp.terminate(nil)
+    }
+
+    /// Real engine and real Model paths on whatever `NU9VE_MEDIA_HOME` registers: scans each online disk, read-only.
+    static func disks(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        model.python = "/usr/bin/python3"; model.script = ProcessInfo.processInfo.environment["NUUN_QA_SCRIPT"] ?? ""
+        model.configure()
+        await model.refresh()
+        model.route = .library; model.librarySection = .disks; model.presentation = .full
+        await model.loadStorage()
+        let size = NSSize(width: 1180, height: 860)
+        for target in model.storageTargets where target["online"].bool {
+            model.selectStorageTarget(target["id"].string, reload: false)
+            model.scanStorage()
+            for _ in 0..<1200 where model.storageRunning { try? await Task.sleep(for: .milliseconds(250)) }
+            print("QA disks \(target["name"].string) error=\(model.storageError) folders=\(model.storageTree?["folders"].array.count ?? -1)")
+            let slug = target["name"].string
+            await render(MainView(model: model), size: size, to: folder.appendingPathComponent("disks-\(slug)-safety.png"))
+            if let first = model.storageTree?["folders"].array.first {
+                model.openStorageFolder(first["path"].string)
+                try? await Task.sleep(for: .seconds(1))
+                await render(MainView(model: model), size: size, to: folder.appendingPathComponent("disks-\(slug)-folder.png"))
+            }
+        }
         NSApp.terminate(nil)
     }
 

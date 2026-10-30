@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import MediaMenuCore
@@ -109,4 +110,45 @@ import Testing
     // After stopping, the next read restarts the child transparently.
     reader.stop()
     #expect(try await reader.call("jobs").array.isEmpty)
+}
+
+@Test func treemapFillsTheBoundsProportionallyAndKeepsInputOrder() {
+    let bounds = CGRect(x: 10, y: 20, width: 600, height: 300)
+    let values = [5.0, 120, 0, 40, 40, 300, 1]
+    let rects = Treemap.layout(values, in: bounds)
+    #expect(rects.count == values.count)
+    #expect(rects[2] == .zero)
+    let scale = Double(bounds.width * bounds.height) / values.reduce(0, +)
+    for (value, rect) in zip(values, rects) where value > 0 {
+        #expect(abs(Double(rect.width * rect.height) - value * scale) < 0.01)
+        #expect(bounds.insetBy(dx: -0.01, dy: -0.01).contains(rect))
+    }
+    for first in rects.indices where values[first] > 0 {
+        for second in rects.indices where second > first && values[second] > 0 {
+            #expect(rects[first].insetBy(dx: 0.01, dy: 0.01).intersection(rects[second].insetBy(dx: 0.01, dy: 0.01)).isEmpty)
+        }
+    }
+    #expect(Treemap.layout([], in: bounds).isEmpty)
+    #expect(Treemap.layout([1, 2], in: .zero) == [.zero, .zero])
+}
+@Test func diskIndexCrossesTheRealBoundary() async throws {
+    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    let scratch = URL(fileURLWithPath: "/private/tmp")
+    let state = scratch.appendingPathComponent(UUID().uuidString)
+    let folder = scratch.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: state); try? FileManager.default.removeItem(at: folder) }
+    try FileManager.default.createDirectory(at: folder.appendingPathComponent("Music"), withIntermediateDirectories: true)
+    try Data(count: 2 * 1024 * 1024).write(to: folder.appendingPathComponent("Music/song.wav"))
+    let configuration = BackendConfiguration(python: "/usr/bin/python3", script: repo.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path)
+    let client = BackendClient(configuration: configuration), reader = PersistentReader(configuration: configuration)
+    defer { reader.stop() }
+    _ = try await client.call("register_volume", ["root": .string(folder.path), "name": .string("QA"), "role": .string("work"), "allow_local": .bool(true)])
+    let scan = try await client.call("storage_scan", ["target": .string("QA")])
+    #expect(scan["state"].string == "finished")
+    #expect(scan["files"].double == 1)
+    let overview = try await reader.call("storage_overview")
+    #expect(overview["targets"].array.first?["indexed"].bool == true)
+    let tree = try await reader.call("storage_tree", ["target": .string("QA")])
+    #expect(tree["folders"].array.first?["name"].string == "Music")
+    await #expect(throws: BackendFailure.self) { _ = try await reader.call("storage_scan", ["target": .string("QA")]) }
 }
