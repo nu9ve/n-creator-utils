@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var id = ""
     @State private var name = ""
     @State private var raw = ""
+    @State private var clipperProfile = ""
     @State private var work = ""
     @State private var archive = ""
     private let sections: [(String, LocalizedStringKey, String)] = [("profiles", "Perfiles", "person.crop.square"), ("disks", "Discos", "externaldrive"),
@@ -43,7 +44,12 @@ struct SettingsView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(20)
             }
         }
-        .onAppear { if id.isEmpty { id = model.profile; name = model.profile; raw = model.profile + "_raw"; work = model.work; archive = model.archive } }
+        .onAppear {
+            guard id.isEmpty else { return }
+            // Saving must not blank what the current profile already has.
+            if let saved = model.profiles.first(where: { $0["id"].string == model.profile }) { load(saved) }
+            else { id = model.profile; name = model.profile; raw = model.profile + "_raw"; work = model.work; archive = model.archive }
+        }
     }
     var profiles: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -54,10 +60,12 @@ struct SettingsView: View {
                 Divider()
             }
             if model.profiles.isEmpty { Text("Aún no hay perfiles guardados. e64 usa e64_raw hasta que lo configures.").font(.caption) }
-            HStack { Text("Configurar perfil").font(.headline); Spacer(); Button("Nuevo") { id = ""; name = ""; raw = ""; work = model.work; archive = model.archive } }
+            HStack { Text("Configurar perfil").font(.headline); Spacer(); Button("Nuevo") { id = ""; name = ""; raw = ""; clipperProfile = ""; work = model.work; archive = model.archive } }
             HStack { TextField("ID: 9logs", text: $id); TextField("Nombre: 9logs", text: $name) }
             TextField("Carpeta de raws: 9logs_raw", text: $raw)
             Text("Ruta relativa dentro del espacio de trabajo del SSD. Se añade /PROYECTO. Cambiarla no mueve copias anteriores ni cambia planes ya revisados.").font(.caption).foregroundStyle(.secondary)
+            TextField("Perfil en Clipper: erikiado64", text: $clipperProfile)
+            Text("Cómo se llama este perfil en Clipper. Vacío: sin indicar, y Clipper decide por su cuenta. No cambia rutas ni copias anteriores.").font(.caption).foregroundStyle(.secondary)
             volume("SSD sugerido", role: "work", value: $work)
             volume("Respaldo sugerido", role: "archive", value: $archive)
             Button("Guardar perfil") { save() }.disabled(id.isEmpty || name.isEmpty || raw.isEmpty)
@@ -117,9 +125,10 @@ struct SettingsView: View {
     func volume(_ title: String, role: String, value: Binding<String>) -> some View {
         Picker(title, selection: value) { Text("Sin sugerencia").tag(""); ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { item in Text(item["name"].string).tag(item["id"].string) } }
     }
-    func load(_ value: JSONValue) { id = value["id"].string; name = value["name"].string; raw = value["raw_dir"].string; work = value["work"].string; archive = value["archive"].string }
+    func load(_ value: JSONValue) { id = value["id"].string; name = value["name"].string; raw = value["raw_dir"].string; work = value["work"].string; archive = value["archive"].string; clipperProfile = value["clipper_profile"].string }
     func save() {
-        let params: [String: JSONValue] = ["id": .string(id), "name": .string(name), "raw_dir": .string(raw), "work": .string(work), "archive": .string(archive)]
+        let params: [String: JSONValue] = ["id": .string(id), "name": .string(name), "raw_dir": .string(raw), "work": .string(work), "archive": .string(archive),
+                                             "clipper_profile": clipperProfile.trimmingCharacters(in: .whitespaces).isEmpty ? .null : .string(clipperProfile.trimmingCharacters(in: .whitespaces))]
         model.operation(String(localized: "Guardando perfil"), scope: .settings) { _ = try await model.client!.call("save_profile", params); model.message = String(localized: "Perfil guardado; los planes anteriores no cambian") }
     }
 }

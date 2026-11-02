@@ -20,6 +20,10 @@ import MediaMenuCore
             Task { await disks(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
         }
+        if let index = arguments.firstIndex(of: "--qa-finals"), index + 1 < arguments.count {
+            Task { await finalsRoute(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-projects"), index + 1 < arguments.count {
             Task { await projects(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -52,12 +56,12 @@ import MediaMenuCore
                      "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z")]) }
         model.pendingCaptures = (0..<3).map { index in
             .object(["path": .string("/Users/demo/Stalker/Stalker_2026-11-01_1\(index)-20-08.stalker"), "root": .string("/Users/demo/Stalker"), "session_id": .string("00000000-0000-4000-8000-00000000000\(index)"), "status": .string("completed"), "archived": .bool(false),
-                     "created_at_local": .string("2026-11-01T1\(index):20-07:00"), "duration_seconds": .number(125), "track_count": .integer(3),
+                     "created_at_local": .string("2026-11-01T1\(index):20-07:00"), "duration_seconds": .number(125), "track_count": .integer(3), "preview_path": .string("screen.mov"),
                      "tag": index == 0 ? .object(["name": .string("mercado-norte"), "country": .string("mx")]) : .object([:]), "project_hint": .object([:])]) }
         model.lastTagged = "mercado-norte"
-        model.finals = .object(["archive": .string("MEDIA502"), "groups": .array([.object(["work": .string("ESSD"), "profile": .string("e64"), "folder": .string("/Volumes/ESSD/002_finales/e64"), "destination": .string("MEDIA502/002_finales/e64"), "total": .integer(74), "pending": .integer(3), "pending_bytes": .number(2.4e9), "files": .array([.object(["path": .string("/Volumes/ESSD/002_finales/e64/02_shorts/corto_1.mov"), "name": .string("02_shorts/corto_1.mov"), "bytes": .number(8e8)])])])])])
+        model.finals = .object(["archive": .string("MEDIA502"), "groups": .array([.object(["work": .string("ESSD"), "profile": .string("e64"), "folder": .string("/Volumes/ESSD/002_finales/e64"), "destination": .string("MEDIA502/002_finales/e64"), "published_folder": .string("03_subidos"), "subfolders": .array([.string("02_shorts"), .string("02_thumbnails"), .string("03_subidos")]), "total": .integer(74), "published_total": .integer(3), "pending": .integer(3), "pending_bytes": .number(2.4e9), "waiting": .integer(42), "waiting_bytes": .number(1.09e10), "in_archive": .integer(29), "in_archive_bytes": .number(8e9), "files": .array([.object(["path": .string("/Volumes/ESSD/002_finales/e64/02_shorts/corto_1.mov"), "name": .string("02_shorts/corto_1.mov"), "bytes": .number(8e8)])])])])])
         model.finalsCheckedAt = Date()
-        model.profiles = [.object(["id": .string("e64"), "name": .string("e64"), "raw_dir": .string("e64_raw")]), .object(["id": .string("9logs"), "name": .string("9logs"), "raw_dir": .string("9logs_raw")])]
+        model.profiles = [.object(["id": .string("e64"), "name": .string("erikiado64"), "clipper_profile": .string("erikiado64"), "raw_dir": .string("e64_raw")]), .object(["id": .string("9logs"), "name": .string("9logs"), "raw_dir": .string("9logs_raw")])]
         model.assets = (0..<14).map { index in .object(["id": .string("asset\(index)"), "project": .string(["mercado-norte", "taller-luz", "entrevista-ana"][index % 3]), "profile": .string("e64"), "kind": .string(index % 4 == 0 ? "camera_bundle" : "file"), "camera": .string(index % 2 == 0 ? "ILCE-6400" : "dji-drone"), "country": .string("mx"), "city": .string("hermosillo"), "paths": .array([.string("a"), .string("b")]), "work_delivery_status": .string(["pending", "ready", "skipped"][index % 3])]) }
         model.jobs = [
             .object(["id": .string("job-1"), "state": .string("copying"), "updated_at": .string("2026-10-29T10:12:00"), "cleanup_profile": .string("files")]),
@@ -121,6 +125,11 @@ import MediaMenuCore
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
         await render(InboxView(model: model), size: NSSize(width: 1180, height: 1500), to: folder.appendingPathComponent("route-home-full.png"))
         await render(VStack { ForEach(model.projectIndex.prefix(4), id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 500), to: folder.appendingPathComponent("project-details.png"))
+        model.route = .flows
+        for flow in model.productFlows {
+            model.flowSelection = flow.id
+            await render(MainView(model: model), size: full, to: folder.appendingPathComponent("flows-\(flow.id).png"))
+        }
         model.route = .library
         for section in LibrarySection.allCases where section != .disks {
             model.librarySection = section
@@ -149,7 +158,7 @@ import MediaMenuCore
         model.presentation = .selection; model.ingestStep = .content
         await render(WindowRoot(model: model), size: selection, to: folder.appendingPathComponent("selection-content.png"))
         model.presentation = .full
-        for width in [1180.0, 700.0, 430.0] {
+        for width in [1400.0, 1180.0, 900.0, 700.0, 430.0] {
             model.presentation = width < 600 ? .compact : .full
             await render(WindowTopBar(model: model), size: NSSize(width: width, height: 30), to: folder.appendingPathComponent("topbar-\(Int(width)).png"))
         }
@@ -247,6 +256,62 @@ import MediaMenuCore
         NSApp.terminate(nil)
     }
 
+    /// Real engine, isolated state, invented files in temporary folders: detect → plan → review → copy and verify → settled.
+    static func finalsRoute(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ label: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<300 { if condition() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+            print("QA finals FAILED \(label) error=\(model.error) message=\(model.message)"); return false
+        }
+        do {
+            try? await Task.sleep(for: .seconds(1))
+            for (name, role) in [("QA-MEDIA", "archive"), ("QA-ESSD", "work")] {
+                let root = folder.appendingPathComponent(name)
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+                _ = try await model.client!.call("register_volume", ["root": .string(root.path), "name": .string(name), "role": .string(role), "allow_local": .bool(true)])
+            }
+            let finals = folder.appendingPathComponent("QA-ESSD/002_finales/e64")
+            for (path, size) in [("03_subidos/26-10-27-master.mov", 300), ("03_subidos/shorts/corto.mov", 200), ("02_shorts/en-uso.mov", 400)] {
+                let file = finals.appendingPathComponent(path)
+                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try Data(count: size).write(to: file)
+            }
+            await model.refresh()
+            model.archive = model.volumes.first { $0["role"].string == "archive" }?["id"].string ?? ""
+            model.work = model.volumes.first { $0["role"].string == "work" }?["id"].string ?? ""
+            model.checkFinals(force: true)
+            guard await wait("status", { !model.finalsChecking && !(model.finals?["groups"].array.isEmpty ?? true) }) else { NSApp.terminate(nil); return }
+            let group = model.finals!["groups"].array[0]
+            print("QA finals status folder=\(group["published_folder"].string) due=\(group["pending"].double) waiting=\(group["waiting"].double)")
+            model.planFinals(group)
+            guard await wait("same disk refused", { !model.busy && !model.error.isEmpty }) else { NSApp.terminate(nil); return }
+            print("QA finals moveOnOneDisk error=\(model.error) copiedAnything=\(FileManager.default.fileExists(atPath: folder.appendingPathComponent("QA-MEDIA/002_finales").path))")
+            model.error = ""; model.finalsKeepSource = true
+            model.planFinals(group)
+            guard await wait("plan", { model.plan != nil && !model.busy }) else { NSApp.terminate(nil); return }
+            print("QA finals plan step=\(model.ingestStep) files=\(model.plan!["files"].array.count) cleanup=\(model.plan!["cleanup"].bool) kind=\(model.plan!["source_kind"].string)")
+            print("QA finals routes=\(model.plan!["preview"].array.map { String($0["archive_path"].string.split(separator: "/").suffix(4).joined(separator: "/")) })")
+            await render(MainView(model: model), size: NSSize(width: 1180, height: 860), to: folder.appendingPathComponent("finals-review.png"))
+            // Reviewing again has to stay on the finals route.
+            model.plan = nil; model.reviewedPlan = nil; model.reviewPlan()
+            guard await wait("replan", { model.plan != nil && !model.busy }) else { NSApp.terminate(nil); return }
+            print("QA finals replan layout=\(model.plan!["layout"].object.count)")
+            model.apply()
+            guard await wait("apply", { model.lastResult != nil && !model.busy }) else { NSApp.terminate(nil); return }
+            print("QA finals result=\(model.lastResult?["state"].string ?? "") label=\(model.jobLabel(model.lastResult!)) error=\(model.error)")
+            let target = folder.appendingPathComponent("QA-MEDIA/002_finales/e64")
+            print("QA finals copied master=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("2026/26-10-27-master.mov").path)) short=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("shorts/corto.mov").path)) waitingCopied=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("02_shorts/en-uso.mov").path)) sourceKept=\(FileManager.default.fileExists(atPath: finals.appendingPathComponent("03_subidos/shorts/corto.mov").path))")
+            await render(MainView(model: model), size: NSSize(width: 1180, height: 860), to: folder.appendingPathComponent("finals-done.png"))
+            model.checkFinals(force: true)
+            guard await wait("settled", { !model.finalsChecking && model.finals!["groups"].array[0]["pending"].double == 0 }) else { NSApp.terminate(nil); return }
+            await model.refresh()
+            print("QA finals settled inArchive=\(model.finals!["groups"].array[0]["in_archive"].double) waiting=\(model.finals!["groups"].array[0]["waiting"].double) picks=\(model.recentProjects.map { $0["project"].string }) projects=\(model.projectIndex.map { $0["project"].string + ":" + $0["stage"].string })")
+            UserDefaults.standard.removeObject(forKey: "finalsKeepSource")
+            print("QA finals OK")
+        } catch { print("QA finals failed: \(error)") }
+        NSApp.terminate(nil)
+    }
+
     /// Real engine, isolated state, invented bundles: assign → reuse → rename → bump → finish → dismiss.
     static func projects(_ delegate: AppDelegate, _ folder: URL) async {
         let model = delegate.model
@@ -289,6 +354,23 @@ import MediaMenuCore
             let source = folder.appendingPathComponent("card")
             try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
             print("QA projects kinds stalker=\(Model.holdsStalkerSessions(root)) bundle=\(Model.holdsStalkerSessions(root.appendingPathComponent("Stalker_0.stalker"))) folder=\(Model.holdsStalkerSessions(source))")
+            // The real bundle-to-Trash path on an invented session; only this invented bundle is ever touched.
+            let name = "QA-discard-" + UUID().uuidString + ".stalker"
+            let doomed = root.appendingPathComponent(name)
+            try FileManager.default.createDirectory(at: doomed, withIntermediateDirectories: true)
+            let manifest: [String: Any] = ["producer": "stalker", "schemaVersion": 3, "sessionID": UUID().uuidString, "status": "completed", "createdAt": "2026-11-01T13:00:00Z", "tracks": []]
+            try JSONSerialization.data(withJSONObject: manifest).write(to: doomed.appendingPathComponent("manifest.json"))
+            model.captureChanged([])
+            guard await wait("discard candidate", { model.pendingCaptures.contains { $0["path"].string == doomed.path } }) else { NSApp.terminate(nil); return }
+            let candidate = model.pendingCaptures.first { $0["path"].string == doomed.path }!
+            guard let review = await model.reviewDiscard(candidate) else { print("QA projects FAILED review \(model.error)"); NSApp.terminate(nil); return }
+            print("QA projects discard review bytes=\(review["bytes"].double) blockers=\(review["blockers"].array.map(\.string)) warnings=\(review["warnings"].array.map(\.string))")
+            model.discardCapture(review)
+            guard await wait("discard", { !model.busy && !FileManager.default.fileExists(atPath: doomed.path) && !model.pendingCaptures.contains { $0["path"].string == doomed.path } }) else { NSApp.terminate(nil); return }
+            let trash = try FileManager.default.url(for: .trashDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent(name)
+            let inTrash = FileManager.default.fileExists(atPath: trash.path)
+            if inTrash { try? FileManager.default.removeItem(at: trash) }
+            print("QA projects discarded inTrash=\(inTrash) cleaned=\(!FileManager.default.fileExists(atPath: trash.path)) message=\(model.message)")
             print("QA projects OK")
         } catch { print("QA projects failed: \(error)") }
         NSApp.terminate(nil)

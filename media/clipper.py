@@ -17,6 +17,9 @@ _RELEASE_TOKEN = contextvars.ContextVar('clipper_release_token', default=None)
 _RELEASE_FD = contextvars.ContextVar('clipper_release_fd', default=None)
 
 
+OFFLINE_PROJECTS = 'Hay proyectos Clipper desconectados; dependencias desconocidas'
+
+
 def executable(catalog):
     configured = catalog.get('clipper-executable', '')
     candidates = [configured] if configured else [shutil.which('clipper'), str(Path.home() / '.local/bin/clipper'), '/opt/homebrew/bin/clipper']
@@ -84,7 +87,7 @@ def inspect(catalog, paths, targets=None):
     data = dependencies(catalog)
     blockers, relinks = [], []
     if data['offline_projects']:
-        blockers.append('Hay proyectos Clipper desconectados; dependencias desconocidas')
+        blockers.append(OFFLINE_PROJECTS)
     active_queue = queue_ids()
     for project in data['projects']:
         # A queued snapshot may keep the old path even after the live asset was relinked.

@@ -35,10 +35,10 @@ La landing no se modificó. Cambiar su copy es trabajo de su propio repo.
 
 ## Navegación
 
-Tres pestañas, con Biblioteca como centro de lo que ya existe. Implementado, incluida una primera versión de Proyectos (2026-11-01) con etapa, estado declarado y renombrar; sin hoja de cierre ni liberación por proyecto:
+Cuatro pestañas desde el 2026-11-01, con Biblioteca como centro de lo que ya existe y Flujos como pestaña principal. Implementado, incluida una primera versión de Proyectos (2026-11-01) con etapa, estado declarado y renombrar; sin hoja de cierre ni liberación por proyecto:
 
 ```text
-Inicio · Ingreso · Biblioteca
+Inicio · Ingreso · Flujos · Biblioteca
                    ├─ Proyectos   qué tengo y en qué estado (fase 2, será la vista por defecto)
                    ├─ Archivos    la tabla actual (disco, tamaño y disponibilidad en fase 2)
                    ├─ Discos      mapa de almacenamiento (reemplaza Espacio)
@@ -53,7 +53,7 @@ Inicio · Ingreso · Biblioteca
 | Respaldar catálogo | Ajustes → Discos |
 | Progreso de una operación | Indicador global en la toolbar; al mover Actividad a un subtab no debe perderse de vista |
 
-Inicio sigue siendo la bandeja de lo que requiere atención y en la fase 2 gana una fila: «Parece terminado». En código, `Route` queda en tres casos y se añade `LibrarySection`, con el mismo `Model`. ⌘1 Inicio, ⌘2 Ingreso, ⌘3 Archivos, ⌘4 Actividad y ⌘5 Discos: los dos últimos siguen donde estaban Actividad y Espacio.
+Inicio sigue siendo la bandeja de lo que requiere atención y en la fase 2 gana una fila: «Parece terminado». En código, `Route` tiene cuatro casos y `LibrarySection` las secciones de Biblioteca, con el mismo `Model`. ⌘1 Inicio, ⌘2 Ingreso, ⌘3 Archivos, ⌘4 Actividad, ⌘5 Discos y ⌘6 Flujos: Actividad y Discos siguen donde estaban Actividad y Espacio.
 
 ## Proyecto: ciclo de vida y cierre
 
@@ -155,6 +155,27 @@ Falta, por dueño:
 
 Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan revisable. La aceptación con RAW reales sigue pendiente en ambos repos.
 
+### Finales y `subidos`
+
+`002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`e64/03_subidos`, `9logs/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es una señal de la persona: no registra canal ni prueba publicación.
+
+**Ruta implementada (2026-11-01):** **Mover al respaldo…** arma un plan normal con SHA-256 y, en la misma ejecución, libera el disco de edición con la limpieza verificada de las tarjetas: vuelve a leer cada original, comprueba la copia y lo borra, con registro por archivo. Por defecto mueve, porque respaldar lo publicado es para recuperar espacio; **Conservar en el disco de edición**, en la revisión, lo evita. Mover exige discos físicos distintos y se bloquea si Clipper reporta que usa esos archivos. Si Clipper no responde no bloquea: la copia ya está verificada.
+
+| En el SSD | En el respaldo |
+| --- | --- |
+| `e64/03_subidos/26-10-27-terra-6-1.mov` | `e64/2026/`, con el año del nombre o, si no lo trae, de la fecha de creación, porque un re-export cambia las fechas |
+| `e64/03_subidos/shorts/…` | `e64/shorts/…` |
+| `e64/03_subidos/thumbnails/…`, con sus `.txt` | `e64/thumbnails/…` |
+
+- Un idéntico en el destino se adopta tras verificarlo. Uno de tamaño distinto bloquea el plan y dos finales al mismo destino también.
+- Lo que el respaldo del perfil ya tiene en otra carpeta con igual nombre y tamaño no se duplica ni se borra, porque esta operación no lo verificó: el plan lo lista en `already_archived` y se queda en la carpeta.
+- Sólo sale lo planeado. Un final que llegue durante la copia se queda y se avisa; las carpetas no se borran.
+- El proyecto del catálogo es `finales`, por perfil. No adivina a qué proyecto pertenece cada final y no aparece entre los proyectos rápidos.
+
+**Falta:** «Ya en respaldo» fuera de `subidos` compara nombre y tamaño; liberarlo exige el rehash del plan de liberación, no esta lectura.
+
+**Prioridad siguiente, en sesión propia:** liberar un proyecto completo. Cuando sus horizontales y verticales estén publicados y respaldados, proponer también sus archivos de trabajo e intermedios: raws en `e64_raw`, renders, `001_proyectos/e64/<proyecto>` y el proyecto de Clipper. Requiere relacionar finales con proyecto, que hoy no existe, y archivar o decidir sobre lo editable antes de borrar, como en [qué significa eliminar trabajo completado](#qué-significa-eliminar-trabajo-completado).
+
 ### Carpetas vivas: música y samples
 
 Las fotos y el video de cámara **no** son carpetas vivas: siguen el respaldo general por tipo que ya aplica [layout.py](../../media/layout.py) (`images/`, `rimages/`, `360/images/`, por año y mes). Las selecciones terminadas de fotos son entregas y van a finales, organizadas por fecha y nombre de proyecto.
@@ -185,7 +206,9 @@ La fase 1 ya responde «ya lo tengo»; las otras dos salidas llegan en las fases
 
 Selección por vuelo con «Conservar selección»; pares JPG+DNG juntos. Atlas es dueño de GPS, vuelos y derivados: nüün entrega por handoff y nunca dispara procesamiento por montar un disco. Los derivados de Atlas sólo cuentan como regenerables si Atlas o la persona lo declaran.
 
-## Ajustes → Flujos
+## Flujos
+
+Pestaña principal por decisión del usuario (2026-11-01), en lugar de una sección de Ajustes: va a crecer y necesita espacio para entenderse. **Implementado:** vista de sólo lectura con los flujos actuales dibujados como bloques y líneas, con los discos reales y un estado honesto por bloque (automático, lo confirmas en el plan, lo haces tú, aún no disponible). **Sin implementar:** recetas editables, los niveles de abajo sobre datos guardados y registro de cámaras.
 
 Tres niveles sobre un mismo dato. Cada uno es opcional y no se necesita el siguiente para usar el anterior.
 
@@ -257,6 +280,13 @@ Reversibles; se documentan para no volver a discutirlas sin un motivo nuevo.
 - **Fotos:** se quedan en el respaldo general por tipo. Las selecciones terminadas van a finales, por fecha y proyecto.
 - **`0000_acomodar`:** nada hasta verla en el mapa; después, [revisarla por partes](#por-acomodar).
 
+## Decisiones del usuario · 2026-11-01
+
+- **Flujos es una pestaña principal**, con bloques y líneas.
+- **Finales:** sólo se respalda y libera lo que está en la carpeta de publicados, en una sola acción y moviendo por defecto. El año de un master sale del nombre y, si no lo trae, de la fecha de creación.
+- **Perfil:** `e64` sigue como ID y carpeta y `erikiado64` es su nombre visible; no se renombran carpetas. `000_acomodar/erikiado64` se revisa aparte.
+
 ## Pendiente de decidir
+
 
 Destino en MEDIA para música y samples. Se decide al implementar la fase 3, con la carpeta real a la vista.

@@ -253,7 +253,7 @@ struct UnitPreview: View {
                         .help("Copiar también al SSD para editar")
                     }
                 }
-                Text(effectiveProfile)
+                Text(model.profileName(effectiveProfile))
                     .font(.caption2.weight(.medium)).lineLimit(1)
                     .padding(.horizontal, 6).padding(.vertical, 3)
                     .foregroundStyle(.white)

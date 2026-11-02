@@ -101,10 +101,10 @@ class Transfer:
         if self.source_token is not None and not full:
             info = self.backend.fast_check(plan['source'], self.source_token)
         else:
-            info = self.backend.describe(plan['source'], external_required=plan['cleanup'])
+            info = self.backend.describe(plan['source'], external_required=plan['cleanup'] and plan['source_kind'] == 'card')
             self.source_token = info
         require(all(info.get(k) == v for k, v in plan['source_identity'].items()), 'source_replaced', 'Source volume/directory identity changed')
-        require(not plan['cleanup'] or info['external'] and Path(info['mount']) == Path(plan['source']),
+        require(not plan['cleanup'] or plan['source_kind'] != 'card' or info['external'] and Path(info['mount']) == Path(plan['source']),
                 'card_root_required', 'Cleanup requires the registered card root identity')
 
     def validate_source(self, plan):
@@ -119,6 +119,11 @@ class Transfer:
                 prefix = key + '/' if key != '.' else ''
                 require({p for p in actual_map if p.startswith(prefix)} == {p for p in expected if p.startswith(prefix)},
                         'source_changed', 'Stalker bundle membership changed')
+        elif plan['source_kind'] == 'delivery' and 'layout' in plan:
+            # A living folder: more finals may arrive during a long copy, and only planned files ever leave.
+            removed = {row['relative_path'] for row in self.catalog.db.execute(
+                'SELECT relative_path FROM members WHERE job_id=? AND cleaned IN (1,-1)', (plan['id'],))}
+            require(set(expected) - set(actual_map) <= removed, 'source_changed', 'A planned final is missing from its folder')
         else:
             removed = {row['relative_path'] for row in self.catalog.db.execute(
                 'SELECT relative_path FROM members WHERE job_id=? AND cleaned IN (1,-1)', (plan['id'],))}
@@ -456,7 +461,7 @@ class Transfer:
                 remaining, _, _ = scan(plan['source'])
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
                 kept = {f['path']: f['stamp'] for f in plan['files'] if f not in removable}
-                unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp']]
+                unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp'] and f['path'] not in plan.get('already_archived', [])]
                 final = 'source_has_new_material' if unexpected else ('camera_action_required' if sony else 'completed')
             self.catalog.state(plan['id'], final)
             self.report(force=True, phase=final, destinations=destination_progress)

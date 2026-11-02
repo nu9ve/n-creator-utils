@@ -1,9 +1,10 @@
 """Incremental manifest discovery for a configured Stalker library."""
+import json
 import os
 from pathlib import Path
 import uuid
 
-from .common import digest, MediaError, content_stamp, read_json, require, relative
+from .common import digest, MediaError, content_stamp, now, read_json, require, relative
 from .layout import stalker_facts
 
 
@@ -100,6 +101,52 @@ def save_capture_tags(catalog, session_ids, project, country='mx'):
 
 def save_capture_tag(catalog, session_id, project, country='mx'):
     return save_capture_tags(catalog, [session_id], project, country)
+
+
+def discard_check(catalog, path, override='', registry=None, common=None):
+    """What throwing away a never-backed-up session means. The app moves it to the Trash; nothing here deletes."""
+    from . import clipper
+    folder = Path(path)
+    require(folder.is_absolute() and folder.suffix.lower() == '.stalker' and folder.is_dir() and not folder.is_symlink(),
+            'capture_not_found', 'Stalker session not found')
+    libraries = capture_libraries(catalog, override, registry, common)
+    session = next((s for s in libraries['sessions'] if s['path'] == str(folder)), None)
+    require(session is not None, 'capture_not_found', 'That folder is not a session of a known Stalker library')
+    require(session.get('status') == 'completed', 'capture_not_completed', 'Only finished sessions can be discarded')
+    # A backed-up original has its own path: the release plan checks the copies and relinks first.
+    require(not session['archived'], 'capture_archived', 'This session is backed up; review its local release instead')
+    for state, plan in catalog.db.execute("SELECT state,plan FROM jobs WHERE state IN ('planned','copying','verifying','cleaning','paused','failed')"):
+        plan = json.loads(plan)
+        members = [Path(plan.get('source', '/')) / item['path'] for item in plan.get('files', [])]
+        require(not any(folder == member or folder in member.parents for member in members),
+                'capture_in_use', 'An unfinished operation includes this session')
+    files = size = 0
+    for parent, _, names in os.walk(folder, followlinks=False):
+        for name in names:
+            try:
+                size += os.stat(os.path.join(parent, name), follow_symlinks=False).st_size
+                files += 1
+            except OSError:
+                pass
+    blockers, warnings = [], []
+    try:
+        report = clipper.inspect(catalog, {str(folder): None})
+        blockers = [value for value in report['blockers'] if value != clipper.OFFLINE_PROJECTS]
+        if len(blockers) != len(report['blockers']):
+            warnings.append('offline_projects')
+    except MediaError:
+        warnings.append('clipper_unknown')
+    return {'path': str(folder), 'session_id': session['session_id'], 'manifest_digest': session['manifest_digest'],
+            'name': folder.name, 'bytes': size, 'files': files, 'tracks': session.get('track_count', 0),
+            'project': session.get('tag', {}).get('name', ''), 'blockers': blockers, 'warnings': warnings}
+
+
+def record_discard(catalog, session_id, name, trash_path, size):
+    """A note of the decision; the tag stays so a session restored from the Trash keeps its project."""
+    session = str(uuid.UUID(session_id))
+    value = {'name': name, 'trash_path': trash_path, 'bytes': size, 'discarded_at': now()}
+    catalog.set('capture-discarded:' + session, value)
+    return value
 
 
 def captures(catalog, root, changed_paths=None):

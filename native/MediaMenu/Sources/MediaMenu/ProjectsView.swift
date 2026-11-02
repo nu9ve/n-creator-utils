@@ -20,7 +20,7 @@ struct ProjectsView: View {
     private func count(_ key: String) -> Int { model.projectIndex.filter { matches($0, key) }.count }
     private var rows: [JSONValue] {
         model.projectIndex.filter { item in
-            matches(item, filter) && (query.isEmpty || ([item["project"].string, item["profile"].string] + item["aliases"].array.map(\.string)).contains { $0.localizedCaseInsensitiveContains(query) })
+            matches(item, filter) && (query.isEmpty || ([item["project"].string, item["profile"].string, model.profileName(item["profile"].string)] + item["aliases"].array.map(\.string)).contains { $0.localizedCaseInsensitiveContains(query) })
         }
     }
     var body: some View {
@@ -78,7 +78,7 @@ struct ProjectRow: View {
     private var symbol: String { kinds.max { $0.count < $1.count }?.symbol ?? "record.circle" }
     private var summary: String {
         var parts: [String] = []
-        if !item["profile"].string.isEmpty { parts.append(item["profile"].string) }
+        if !item["profile"].string.isEmpty { parts.append(model.profileName(item["profile"].string)) }
         if item["assets"].double > 0 { parts.append(String(localized: "Respaldados: \(Int(item["assets"].double))")) }
         if pendingSessions > 0 { parts.append(String(localized: "Sesiones por respaldar: \(pendingSessions)")) }
         if item["work_pending"].double > 0 { parts.append(String(localized: "Copias pendientes: \(Int(item["work_pending"].double))")) }
