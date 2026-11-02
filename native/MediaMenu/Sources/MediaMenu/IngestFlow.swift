@@ -298,13 +298,18 @@ struct ProfilePicker: View {
             if model.profiles.isEmpty { Text("Sin perfiles guardados") }
             Divider()
             Button("Administrar perfiles…") { model.openSettings?("profiles") }
-        } label: { Label(model.profile, systemImage: "person.crop.square").lineLimit(1) }
+        } label: { Label(model.profileName(model.profile), systemImage: "person.crop.square").lineLimit(1) }
         .fixedSize()
         .help("Perfil creativo y espacio de trabajo")
     }
 }
 
 extension Model {
+    /// The ID stays in folders and receipts; people read the name they gave it.
+    func profileName(_ id: String) -> String {
+        let name = profiles.first { $0["id"].string == id }?["name"].string ?? ""
+        return name.isEmpty ? id : name
+    }
     func selectProfile(_ id: String) {
         profile = id
         if let value = profiles.first(where: { $0["id"].string == id }) {
@@ -456,7 +461,7 @@ struct AssignPanel: View {
     }
     @ViewBuilder private var metadataMenus: some View {
         Menu {
-            Button("Perfil del lote: \(model.profile)") { model.updateTargets { $0.profile = "" } }
+            Button("Perfil del lote: \(model.profileName(model.profile))") { model.updateTargets { $0.profile = "" } }
             ForEach(model.profiles, id: \.["id"].string) { item in
                 Button(item["name"].string) { model.updateTargets { $0.profile = item["id"].string } }
             }
@@ -588,6 +593,15 @@ struct PlanReview: View {
                     Label(cleanupText(plan), systemImage: plan["cleanup"].bool || plan["release_stalker_source"].bool ? "exclamationmark.triangle" : "lock")
                         .foregroundStyle(plan["cleanup"].bool || plan["release_stalker_source"].bool ? Color.orange : palette.ink)
                 }.font(.callout)
+                if plan["source_kind"].string == "delivery" {
+                    Toggle("Conservar en el disco de edición", isOn: Binding(get: { model.finalsKeepSource }, set: { value in
+                        model.finalsKeepSource = value
+                        if let group = model.finalsGroup { model.planFinals(group) }
+                    }))
+                    .toggleStyle(.checkbox).font(.callout).disabled(model.busy)
+                    let skipped = plan["already_archived"].array.count
+                    if skipped > 0 { Label("Ya en el respaldo con igual nombre y tamaño; se quedan en la carpeta: \(skipped)", systemImage: "equal.circle").font(.callout) }
+                }
                 DisclosureGroup("Rutas definitivas por archivo") {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         ForEach(Array(plan["preview"].array.prefix(400).enumerated()), id: \.offset) { _, row in
@@ -610,6 +624,7 @@ struct PlanReview: View {
                 : String(localized: "El original Stalker se conserva según Ajustes.")
         }
         if !plan["cleanup"].bool { return String(localized: "El origen se conserva.") }
+        if plan["source_kind"].string == "delivery" { return String(localized: "Después de verificar y volver a leer cada archivo, se borra del disco de edición. Las carpetas se quedan.") }
         return plan["cleanup_profile"].string == "sony_clips_then_format"
             ? String(localized: "Después de verificar se borran los clips; termina con formato en la cámara.")
             : String(localized: "La SD se limpia después de verificar.")

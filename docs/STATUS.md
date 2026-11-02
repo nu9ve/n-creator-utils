@@ -2,6 +2,31 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Perfil erikiado64 y ruta de finales · 2026-11-01
+
+**Perfil, instalado:** build `58384ccdb046` en `~/Applications/nuun.app` a petición del usuario, con la app ya cerrada por él: firma verificada, binario y backend idénticos; anterior en `app-backups/b1747bc6.app`. Incluye lo de la entrada siguiente. Ingreso, Proyectos, Archivos, Finales y Flujos muestran el nombre del perfil; Ajustes → Perfiles edita el perfil de Clipper y ya no lo borra al guardar sin cargar. Guardado en el catálogo real: ID `e64`, nombre `erikiado64`, `e64_raw`, ESSD, MEDIA502, `clipper_profile: erikiado64`. No se movieron ni renombraron carpetas.
+
+**Mover finales e Inicio, instalado:** build **`79b37ccee200`** en `~/Applications/nuun.app`, con la app ya cerrada por el usuario: firma verificada, binario y backend idénticos; anterior en `app-backups/2dabac18.app`. **Mover al respaldo…** copia, verifica y libera en una sola acción, con opción de conservar. En Inicio, un proyecto asignado se resume en un badge con icono para cambiarlo. [Reglas](features/product-flows.md#finales-y-subidos). Plan real de e64 en modo mover, con copia del catálogo y sin ejecutar: 34 archivos, sin bloqueos de discos ni de Clipper, y los archivos de MEDIA502 y `03_subidos` quedaron iguales. El primer movimiento real sigue sin correrse. Plan real de e64 con copia del catálogo, sin copiar: 34 archivos, 12.86 GB, 21 a `shorts`, 10 a `thumbnails` y 3 a `2026`, sin conflictos; MEDIA502 quedó con los mismos 1,571 archivos en `e64`.
+
+Evidencia: `python3 -m unittest discover -s tests` **255 OK**, `swift test` **14/14**, localización sin faltantes, `compileall`, `git diff --check`. `--qa-finals` con motor real y archivos inventados en carpetas temporales: detectar → plan → volver a revisar en la misma ruta → copiar y verificar → estado al día, origen conservado y lo no publicado sin copiar. **Sin probar:** clics reales, el primer plan real con discos y tema oscuro. La firma ad-hoc cambia en cada build, así que macOS puede volver a pedir permisos de discos. No es una build de producción.
+
+## Flujos, discos en la barra, sesiones y finales · 2026-11-01
+
+Pedido del usuario, en working tree sobre `9ee6121`, sin commit. **Barra:** los discos pasaron de Inicio a la barra en modo completo, junto a Ajustes; sin espacio libre al angostar, ocultos antes que las pestañas, y abren Discos. **Sesiones en Inicio:** Vista rápida con Quick Look (botón, doble clic, o seleccionar y espacio) y **Mover a la Papelera…**. No borra: `capture_discard_check` exige sesión terminada de una biblioteca conocida, sin respaldo, sin operación abierta que la incluya y sin uso reportado por Clipper; Clipper desconocido sólo avisa porque la Papelera se puede deshacer. Se vuelve a comprobar antes de mover y se guarda nota de la decisión. **Finales:** sólo lo que está en la carpeta de publicados cuenta como por respaldar; se detecta y se elige por perfil. **Corrige la entrada de abajo:** «e64 74 de 74» mezclaba material aún en uso. **Flujos:** pestaña principal de sólo lectura con bloques y líneas; todavía no se edita. [Propuesta y ruta de finales](features/product-flows.md#finales-y-subidos).
+
+Finales reales con copia del catálogo, sin escribir en discos, 1.2 s contra MEDIA502, nombre y tamaño:
+
+| Perfil | Publicados | Por respaldar | Esperan publicarse | Ya en respaldo |
+| --- | --- | --- | --- | --- |
+| e64 | `03_subidos` | 32 · 12.86 GB | 42 · 10.91 GB | 0 |
+| 9logs | `subidos` | 0 | 5 · 4.18 GB | 0 |
+| 9sets | ninguna | 0 | 0 | 43 · 17.86 GB |
+| a9sets | ninguna | 0 | 0 | 2 · 2.15 GB |
+| fractos | ninguna | 0 | 0 | 1 · 0.05 GB |
+| nu9vexyz | ninguna | 1 · 0.29 GB | 0 | 0 |
+
+Evidencia: `python3 -m unittest discover -s tests` **242 OK**, `swift test` **14/14**, `check_localization.py` 591 claves sin faltantes ni sobrantes, `compileall`, `git diff --check`. Capturas offscreen revisadas de Flujos, Inicio y barra a varios anchos, con fixtures. `--qa-projects` con motor real y una sesión inventada recorrió revisar → Papelera → salir de la lista; retiró esa misma sesión de la Papelera. **Sin probar:** clics reales, teclado y panel de Quick Look, hoja de confirmación en ventana, tema oscuro y vista previa con video real. No cambia planner, transferencia ni liberación. Artefacto sin instalar: `/private/tmp/nuun-flujos-20261101.app`, build **`c3903c702723`**, firma ad-hoc verificada, runtime externo `/usr/bin/python3`. No es una build de producción.
+
 ## Proyectos, avisos y fuentes coherentes · 2026-11-01
 
 **Instalada a petición del usuario** la build `9e669ccffea7` en `~/Applications/nuun.app` el 2026-11-01: firma verificada, binario idéntico al artefacto y backend `media/` idéntico al repo; la huella del árbol coincide con el build. Anterior (`d3760d868bff`) en `~/Library/Application Support/n-creator-utils/app-backups/d1e28134.app`. La instancia abierta sólo tenía su lector `rpc-serve`, sin jobs ni escaneos activos; se cerró desde AppleScript y se reabrió. Sin operaciones de media. Aceptación del usuario en la app pendiente.

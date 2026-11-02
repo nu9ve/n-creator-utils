@@ -42,6 +42,54 @@ extension Model {
         let current = projectIndex.first { $0["project"].string == title } ?? .object(["key": .string("draft:" + title), "project": .string(title), "stage": .string("draft")])
         projectIndex = [current] + projectIndex.filter { $0["project"].string != title }
     }
+    func capturePreviewURL(_ capture: JSONValue) -> URL? {
+        let track = capture["preview_path"].string
+        return track.isEmpty ? nil : URL(fileURLWithPath: capture["path"].string).appendingPathComponent(track)
+    }
+    func reviewDiscard(_ capture: JSONValue) async -> JSONValue? {
+        do { return try await oneShot("capture_discard_check", ["path": capture["path"], "override": .string(captureRoot)]) }
+        catch { self.error = error.localizedDescription; return nil }
+    }
+    /// Asks again right before moving it: the session may have changed while the sheet was open.
+    func discardCapture(_ review: JSONValue) {
+        operation(String(localized: "Moviendo la sesión a la Papelera"), scope: .settings) {
+            let now = try await self.oneShot("capture_discard_check", ["path": review["path"], "override": .string(self.captureRoot)])
+            guard now["manifest_digest"] == review["manifest_digest"], now["bytes"] == review["bytes"], now["blockers"].array.isEmpty else {
+                throw BackendFailure(code: "capture_changed", message: String(localized: "La sesión cambió; revísala de nuevo. No se movió nada."))
+            }
+            var trashed: NSURL?
+            try FileManager.default.trashItem(at: URL(fileURLWithPath: now["path"].string), resultingItemURL: &trashed)
+            self.pendingCaptures.removeAll { $0["path"] == now["path"] }
+            self.captureSessions.removeAll { $0["path"] == now["path"] }
+            self.quickLookURL = nil
+            self.message = String(localized: "Sesión en la Papelera; puedes restaurarla desde ahí")
+            _ = try? await self.oneShot("capture_discarded", ["session_id": now["session_id"], "name": now["name"], "trash_path": .string(trashed?.path ?? ""), "bytes": now["bytes"]])
+            self.captureChanged([])
+        }
+    }
+    /// The same review and apply as any ingest: nothing copies until the reviewed plan runs, and the source stays.
+    func planFinals(_ group: JSONValue) {
+        finalsGroup = group
+        operation(String(localized: "Preparando plan")) {
+            let params: [String: JSONValue] = ["profile": group["profile"], "archive": .string(self.archive), "work": group["work"], "release": .bool(!self.finalsKeepSource)]
+            let document = try await self.client!.call("plan_finals_document", params).string
+            let reviewed = try ReviewedPlan(document: document)
+            self.sourceKind = "delivery"; self.cleanup = reviewed.display["cleanup"].bool; self.source = reviewed.display["source"].string
+            self.project = reviewed.display["units"].array.first?["project"].string ?? ""; self.profile = group["profile"].string
+            self.plan = reviewed.display
+            self.reviewedPlan = reviewed
+            self.route = .ingest; self.ingestStep = .review
+            self.message = String(localized: "Plan listo para revisar; no se ha copiado ni borrado media")
+        }
+    }
+    func setFinalsFolder(_ profile: String, _ folder: String?) {
+        Task {
+            do {
+                _ = try await oneShot("set_finals_folder", ["profile": .string(profile), "folder": folder.map { .string($0) } ?? .null])
+                checkFinals(force: true)
+            } catch { self.error = error.localizedDescription }
+        }
+    }
     func checkFinals(force: Bool = false) {
         guard !finalsChecking, !busy, let client, client.configuration.usable else { return }
         if !force, let last = finalsCheckedAt, Date().timeIntervalSince(last) < 900 { return }

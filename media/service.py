@@ -89,6 +89,19 @@ class Service:
         if method == 'finals_status':
             from .finals import finals_status
             return finals_status(self.catalog, self.backend, params.get('archive'), self.cancel)
+        if method in {'plan_finals', 'plan_finals_document'}:
+            from .finals import plan_params
+            plan = build_plan(self.catalog, self.backend, cancel=self.cancel, **plan_params(self.catalog, self.backend, **params))
+            return canonical(plan).decode('utf-8') if method == 'plan_finals_document' else plan
+        if method == 'set_finals_folder':
+            from .finals import set_published_folder
+            return set_published_folder(self.catalog, params['profile'], params.get('folder'))
+        if method == 'capture_discard_check':
+            from .captures import discard_check
+            return discard_check(self.catalog, params['path'], params.get('override') or self.catalog.get('capture-override', ''))
+        if method == 'capture_discarded':
+            from .captures import record_discard
+            return record_discard(self.catalog, params['session_id'], params['name'], params['trash_path'], params['bytes'])
         if method == 'integration_settings':
             if params:
                 allowed = {'clipper_executable', 'stalker_executable', 'capture_override', 'retain_stalker_source'}
@@ -264,6 +277,10 @@ class Service:
         return result
 
     def _apply_ingest(self, plan, reviewed_digest):
+        if plan.get('cleanup') and plan.get('source_kind') == 'delivery':
+            from .finals import clipper_blockers
+            blockers = clipper_blockers(self.catalog, plan['source'])
+            require(not blockers, 'source_in_use', 'Clipper uses these finals: ' + '; '.join(blockers[:3]))
         result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
         release_summary = None
         if plan.get('release_stalker_source') and result['state'] in {'source_retained', 'completed'}:

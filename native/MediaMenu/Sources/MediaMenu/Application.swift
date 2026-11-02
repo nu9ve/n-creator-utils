@@ -240,7 +240,7 @@ private extension NSToolbarItem.Identifier {
         add(edit, String(localized: "Seleccionar todo"), #selector(NSText.selectAll(_:)), "a")
         let view = submenu(String(localized: "Ver"))
         // ⌘4 and ⌘5 keep pointing where Actividad and Espacio always were.
-        let destinations = [String(localized: "Inicio"), String(localized: "Ingreso"), String(localized: "Archivos"), String(localized: "Actividad"), String(localized: "Discos")]
+        let destinations = [String(localized: "Inicio"), String(localized: "Ingreso"), String(localized: "Archivos"), String(localized: "Actividad"), String(localized: "Discos"), String(localized: "Flujos")]
         for (index, title) in destinations.enumerated() {
             add(view, title, #selector(goRoute(_:)), String(index + 1), tag: index, target: self)
         }
@@ -275,7 +275,8 @@ private extension NSToolbarItem.Identifier {
         case 1: model.route = .ingest
         case 2: model.open(.files)
         case 3: model.open(.activity)
-        default: model.open(.disks)
+        case 4: model.open(.disks)
+        default: model.route = .flows
         }
         if model.presentation != .full { present(.full) } else { show() }
     }

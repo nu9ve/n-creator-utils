@@ -36,12 +36,13 @@ struct DraftUnit: Identifiable, Equatable {
 }
 
 enum Route: String, CaseIterable, Identifiable {
-    case home, ingest, library
+    case home, ingest, flows, library
     var id: String { rawValue }
     var title: LocalizedStringKey {
         switch self {
         case .home: "Inicio"
         case .ingest: "Ingreso"
+        case .flows: "Flujos"
         case .library: "Biblioteca"
         }
     }
@@ -49,6 +50,7 @@ enum Route: String, CaseIterable, Identifiable {
         switch self {
         case .home: "tray.full"
         case .ingest: "sdcard"
+        case .flows: "point.3.connected.trianglepath.dotted"
         case .library: "square.stack"
         }
     }
@@ -127,13 +129,18 @@ enum OperationScope { case ingest, library, space, settings, source }
     /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
     var recentProjects: [JSONValue] {
         var seen = Set<String>()
-        return (projectIndex.isEmpty ? snapshotProjects : projectIndex).filter { $0["stage"].string != "finished" && seen.insert($0["project"].string).inserted }
+        return (projectIndex.isEmpty ? snapshotProjects : projectIndex).filter { $0["stage"].string != "finished" && Array($0["kinds"].object.keys) != ["delivery"] && seen.insert($0["project"].string).inserted }
     }
     var libraryQuery = ""
     /// The project just assigned from Inicio, offered to the sessions still without one.
     var lastTagged = ""
     @ObservationIgnored var tagTask: Task<Void, Never>?
     var finals: JSONValue?
+    var flowSelection = "camera"
+    /// Reviewing again must rebuild the finals route: a plain delivery plan would nest whole folders elsewhere.
+    @ObservationIgnored var finalsGroup: JSONValue?
+    /// Moving is the default: publishing and backing up is how the editing disk gets its space back.
+    var finalsKeepSource = UserDefaults.standard.bool(forKey: "finalsKeepSource") { didSet { UserDefaults.standard.set(finalsKeepSource, forKey: "finalsKeepSource") } }
     var finalsChecking = false
     @ObservationIgnored var finalsClient: BackendClient?
     @ObservationIgnored var finalsCheckedAt: Date?
@@ -376,7 +383,9 @@ enum OperationScope { case ingest, library, space, settings, source }
         switch state {
         case "copying": return String(localized: "Copiando y verificando destinos")
         case "backup_verified": return String(localized: "Archivo verificado")
-        case "cleaning_source": return String(localized: "Limpiando SD")
+        case "cleaning_source": return (kind ?? sourceKind) == "delivery" ? String(localized: "Liberando el disco de edición") : String(localized: "Limpiando SD")
+        case "completed" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · liberado del disco de edición")
+        case "source_has_new_material" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · llegaron archivos nuevos a la carpeta; no están respaldados")
         case "completed": return stalker ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · SD libre")
         case "camera_action_required": return String(localized: "Respaldo verificado · libera la tarjeta desde la cámara")
         case "source_retained": return stalker ? String(localized: "Respaldo verificado · original Stalker conservado") : String(localized: "Respaldo verificado · origen conservado")
@@ -648,6 +657,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     /// Stalker needs per-session projects: inspect on demand instead of asking the user to.
     func reviewPlan() {
         guard !busy else { return }
+        if sourceKind == "delivery" {
+            if let finalsGroup { planFinals(finalsGroup) } else { error = String(localized: "Prepara los finales desde Inicio o Flujos.") }
+            return
+        }
         Task {
             if sourceKind == "stalker" && !contentLoaded { await discoverAndWait() }
             if !planBlockers.isEmpty { ingestStep = units.contains(where: \.needsCameraReview) ? .content : ingestStep; return }

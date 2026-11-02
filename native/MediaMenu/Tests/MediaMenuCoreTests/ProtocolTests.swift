@@ -160,3 +160,12 @@ import Testing
     #expect(Timestamps.parse("") == nil)
     #expect(Timestamps.label("no es fecha") == "no es fecha")
 }
+
+@Test func flowBlocksStayCenteredAndFitTheirStage() {
+    #expect(FlowGeometry.centers(count: 0, blockHeight: 100, spacing: 10, height: 210).isEmpty)
+    #expect(FlowGeometry.centers(count: 1, blockHeight: 100, spacing: 10, height: 210) == [105])
+    #expect(FlowGeometry.centers(count: 2, blockHeight: 100, spacing: 10, height: 210) == [50, 160])
+    #expect(FlowGeometry.blockWidth(available: 1000, stages: 5, connector: 30, range: 120...210) == 176)
+    #expect(FlowGeometry.blockWidth(available: 300, stages: 5, connector: 30, range: 120...210) == 120)
+    #expect(FlowGeometry.blockWidth(available: 3000, stages: 3, connector: 30, range: 120...210) == 210)
+}

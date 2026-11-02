@@ -153,11 +153,12 @@ def pending_stalker_files(catalog, archive_record, files, bundles):
 
 def _build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
                archive_only=False, confirm_archive_only=False, work_decision='pending', cleanup=False,
-               assignments=None, camera=None, source_kind='card', cancel=None):
+               assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False):
     require(isinstance(archive_only, bool) and isinstance(confirm_archive_only, bool), 'invalid_policy', 'Archive-only flags must be boolean')
     require(source_kind in {'card', 'stalker', 'delivery'}, 'invalid_source_kind', 'Invalid source kind')
     require(isinstance(cleanup, bool), 'invalid_policy', 'cleanup must be boolean')
-    require(not cleanup or source_kind == 'card', 'cleanup_not_supported', 'Only card sources support automatic cleanup')
+    require(finals_route is False or source_kind == 'delivery', 'invalid_policy', 'Only deliveries follow the finals route')
+    require(not cleanup or source_kind == 'card' or finals_route, 'cleanup_not_supported', 'Only cards and the finals route support automatic cleanup')
     retain_stalker_source = catalog.get('retain-stalker-source', False)
     require(isinstance(retain_stalker_source, bool), 'invalid_policy', 'Invalid Stalker source retention setting')
     release_stalker_source = source_kind == 'stalker' and not retain_stalker_source
@@ -169,8 +170,9 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     country, city = slug(country), slug(city)
     require(camera is None or camera in CAMERAS, 'invalid_camera', 'Unknown camera category')
     source = Path(source).expanduser().absolute()
-    source_info = backend.describe(source, external_required=cleanup)
-    require(not cleanup or source_info['external'] and Path(source_info['mount']) == source,
+    card_cleanup = cleanup and source_kind == 'card'
+    source_info = backend.describe(source, external_required=card_cleanup)
+    require(not card_cleanup or source_info['external'] and Path(source_info['mount']) == source,
             'card_root_required', 'Cleanup requires the root of a mounted external card')
     archive_record = catalog.volume(archive)
     require(archive_record['role'] == 'archive', 'invalid_role', 'Archive destination must have archive role')
@@ -196,6 +198,10 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     files, bundles, skipped = scan(source, skip_active=source_kind == 'stalker', cancel=cancel, stalker_only=source_kind == 'stalker')
     if source_kind == 'stalker':
         files, bundles = pending_stalker_files(catalog, archive_record, files, bundles)
+    finals_targets, already_archived = None, []
+    if finals_route:
+        from .finals import route_files
+        files, finals_targets, already_archived = route_files(archive_record, slug(profile), source, files)
     require(files, 'empty_source', 'No completed files to ingest')
     require(not cleanup or not skipped, 'active_capture', 'Cannot clean a source with active captures')
     assignments = assignments or {}
@@ -255,6 +261,9 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         plan['profile_routes'] = routes
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)
+    elif finals_route:
+        plan['layout'] = finals_targets
+        plan['already_archived'] = already_archived
     sony = any('/private/m4root/' in ('/' + f['path']).lower() or '/private/avchd/' in ('/' + f['path']).lower()
                or f['path'].lower().startswith('avf_info/') for f in files)
     # Sony: after verification the clips leave the card (a fast camera format), but the camera's own indexes are
@@ -299,7 +308,8 @@ def validate_plan(plan):
             slug(unit['project']); slug(unit['profile'])
         require(isinstance(plan['cleanup'], bool), 'invalid_plan', 'Invalid cleanup policy')
         require(plan['source_kind'] in {'card', 'stalker', 'delivery'}, 'invalid_plan', 'Invalid source type')
-        require(not plan['cleanup'] or plan['source_kind'] == 'card', 'invalid_plan', 'Only cards may be cleaned')
+        require(not plan['cleanup'] or plan['source_kind'] == 'card' or (plan['source_kind'] == 'delivery' and 'layout' in plan),
+                'invalid_plan', 'Only cards and the finals route may be cleaned')
         release_stalker_source = plan.get('release_stalker_source', False)
         require(isinstance(release_stalker_source, bool)
                 and (not release_stalker_source or plan['source_kind'] == 'stalker'
@@ -317,7 +327,7 @@ def validate_plan(plan):
             require(file['path'] in ids[file['unit_id']]['paths'], 'invalid_plan', 'Unit/member mismatch')
             require(isinstance(file['stamp']['size'], int) and file['stamp']['size'] >= 0, 'invalid_plan', 'Invalid file size')
         require(seen and seen == {p for u in ids.values() for p in u['paths']}, 'invalid_plan', 'Empty or inconsistent plan')
-        if plan['schema'] == 'nu9ve-ingest-plan/2' and plan['source_kind'] != 'delivery':
+        if plan['schema'] == 'nu9ve-ingest-plan/2' and (plan['source_kind'] != 'delivery' or 'layout' in plan):
             layout = plan['layout']
             require(set(layout) == seen, 'invalid_plan', 'Layout must cover every planned file')
             for role in ('archive', 'work'):
@@ -346,7 +356,8 @@ def destination_path(record, plan, unit, source_path, selected_only=True):
         return None
     if 'layout' in plan:
         target = plan['layout'][source_path][record['role']]
-        return None if target is None else record['prefix'] + '/' + relative(target)
+        root = record.get('finals_prefix', '002_finales') if plan['source_kind'] == 'delivery' else record['prefix']
+        return None if target is None else root + '/' + relative(target)
     # Plans before schema 2 nest original trees under per-job/per-unit containers.
     if record['role'] == 'archive':
         prefix = (record.get('finals_prefix', '002_finales') if plan['source_kind'] == 'delivery' else record['prefix']) + '/' + ('stalker' if unit['kind'] == 'stalker_session' else 'camera-bundles') + '/' + plan['media_date']

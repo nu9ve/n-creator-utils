@@ -17,8 +17,9 @@ following priorities remain focused on the existing media workflow:
 ## Siguiente · 2026-11-01
 
 1. **Aceptar en la app** Proyectos, Inicio e Ingreso nuevos con datos reales ([evidencia](docs/STATUS.md#proyectos-avisos-y-fuentes-coherentes--2026-11-01)).
-2. **Ruta de finales por perfil:** `002_finales/<perfil>/`, copiando sólo lo que falta y adoptando idénticos, con plan y verificación normales. Hasta entonces, Inicio sólo los detecta y la UI no ofrece «Entrega final». Después, fuente «Finales» en Ingreso y publicación.
-3. Lo operativo de abajo sigue vigente: ciclo físico pequeño y `media coverage --no-hash`.
+2. **Finales:** [ruta por perfil](docs/features/product-flows.md#finales-y-subidos) implementada. **Mover al respaldo** copia, verifica y libera en una sola acción. Falta correr el primer plan real (e64: 34 archivos, 12.86 GB) y publicación por canal.
+3. **Liberar un proyecto completo:** raws, intermedios y proyecto de Clipper cuando horizontales y verticales estén publicados y respaldados; [en sesión propia](docs/features/product-flows.md#finales-y-subidos).
+4. Lo operativo de abajo sigue vigente: ciclo físico pequeño y `media coverage --no-hash`.
 
 ## Prioridad de producto · 2026-10-30
 
@@ -29,7 +30,7 @@ Fases y criterios: [flujos y cierre](docs/features/product-flows.md) y [mapa de 
 3. **Cerrar:** ciclo de vida del proyecto, entregas/publicación en UI y cierre sobre la liberación existente.
 4. **Carpetas vivas:** música y samples, editables, regenerables y salidas de `0000_acomodar`.
 5. **Tipos:** fotos con Kyū, audio, dron, conservar selección y descartes.
-6. **Flujos:** recetas en Ajustes; después, vista de bloques. Generan planes; no sustituyen plan, digest ni verificación.
+6. **Flujos:** pestaña principal con bloques en sólo lectura implementada. Falta registro de cámaras y recetas editables. Generan planes; no sustituyen plan, digest ni verificación.
 
 ## Actualización de contrato · 2026-10-28
 

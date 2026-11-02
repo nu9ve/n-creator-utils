@@ -66,6 +66,7 @@ struct WindowTopBar: View {
                     Text(model.ingestStep.title).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 0)
                 }
+                if model.presentation == .full { TitleBarDisks(model: model, width: geometry.size.width) }
                 if model.busy {
                     Button { model.open(.activity); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
                         .buttonStyle(.plain).help("Ver actividad")
@@ -90,12 +91,49 @@ struct WindowTopBar: View {
     }
 }
 
+/// Always in view, next to the other global controls. They give way before the tabs do when the window narrows.
+struct TitleBarDisks: View {
+    @Bindable var model: Model
+    let width: CGFloat
+    private var showsFree: Bool { width >= 640 + 160 * CGFloat(model.volumes.count) }
+    private var fits: Bool { width >= 560 + 90 * CGFloat(model.volumes.count) }
+    var body: some View {
+        if fits {
+            HStack(spacing: 4) {
+                ForEach(model.volumes, id: \.["id"].string) { value in
+                    let online = value["online"].bool
+                    Button { model.open(.disks) } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: online ? "externaldrive.fill" : "externaldrive.badge.xmark").foregroundStyle(online ? Color.green : Color.secondary)
+                            Text(value["name"].string).fontWeight(.medium)
+                            if showsFree && online && value["free"] != .null {
+                                Text(verbatim: bytesLabel(value["free"].double)).foregroundStyle(.secondary).monospacedDigit()
+                            }
+                        }
+                        .font(.caption).lineLimit(1).fixedSize()
+                        .padding(.horizontal, 7).padding(.vertical, 3).contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .help(detail(value))
+                    .accessibilityLabel(detail(value))
+                }
+            }
+        }
+    }
+    private func detail(_ value: JSONValue) -> String {
+        let role = value["role"].string == "archive" ? String(localized: "Respaldo") : String(localized: "Edición")
+        let state = !value["online"].bool ? String(localized: "desconectado") : value["free"] == .null ? String(localized: "conectado") : String(localized: "\(bytesLabel(value["free"].double)) libres")
+        return value["name"].string + " · " + role + " · " + state
+    }
+}
+
 struct MainView: View {
     @Bindable var model: Model
     var body: some View {
         Group {
             switch model.route {
             case .ingest: IngestFlow(model: model)
+            case .flows: FlowsView(model: model)
             case .library: LibraryShell(model: model)
             case .home: InboxView(model: model)
             }
@@ -181,13 +219,15 @@ struct LibraryRow: Identifiable {
     let profile: String
     let kind: String
     let camera: String
+    let profileID: String
     let place: String
     let files: Int
     let work: String
     @MainActor init(_ asset: JSONValue, model: Model) {
         id = asset["id"].string
         project = asset["project"].string.isEmpty ? asset["projects"].array.first?["title"].string ?? "" : asset["project"].string
-        profile = asset["profile"].string
+        profile = model.profileName(asset["profile"].string)
+        profileID = asset["profile"].string
         kind = model.kindLabel(asset["kind"].string)
         camera = asset["camera"].string
         place = [asset["country"].string.uppercased(), asset["city"].string].filter { !$0.isEmpty }.joined(separator: " · ")
@@ -204,7 +244,7 @@ struct LibraryView: View {
         model.assets.filter { asset in
             (workFilter.isEmpty || asset["work_delivery_status"].string == workFilter)
         }.map { LibraryRow($0, model: model) }.filter { row in
-            model.libraryQuery.isEmpty || [row.project, row.profile, row.camera, row.place].contains { $0.localizedCaseInsensitiveContains(model.libraryQuery) }
+            model.libraryQuery.isEmpty || [row.project, row.profile, row.profileID, row.camera, row.place].contains { $0.localizedCaseInsensitiveContains(model.libraryQuery) }
         }.sorted(using: order)
     }
     var body: some View {

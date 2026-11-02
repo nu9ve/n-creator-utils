@@ -3,14 +3,18 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 import uuid
 
-from media.captures import capture_libraries, save_capture_tags
+from media import clipper
+from media.captures import capture_libraries, discard_check, record_discard, save_capture_tags
 from media.catalog import Catalog
 from media.common import MediaError, canonical
-from media.finals import finals_status
+from media.finals import created_year, finals_status, plan_params, set_published_folder, year_in_name
+from media.planner import build_plan
 from media.projects import overview, rename, set_state, touch_project
 from media.service import Service
+from media.transfer import Transfer
 from tests.test_media_engine import FixtureVolumes
 
 
@@ -153,6 +157,78 @@ class UsualFolderTests(ProjectFixture):
         self.assertEqual(result['errors'], [])
 
 
+class DiscardCaptureTests(ProjectFixture):
+    def setUp(self):
+        super().setUp()
+        self.library = self.root / 'Stalker'
+        self.library.mkdir()
+        self.sid = str(uuid.uuid4())
+        self.folder = self.bundle(self.library / 'prueba.stalker', self.sid)
+        patcher = mock.patch('media.clipper.inspect', return_value={'blockers': [], 'relinks': [], 'dependencies': {}})
+        self.inspect = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def bundle(self, folder, sid, status='completed'):
+        folder.mkdir()
+        (folder / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': sid, 'status': status,
+                                                          'createdAt': '2026-11-01T00:00:00Z', 'tracks': [{'relativePath': 'screen.mov'}]}))
+        (folder / 'screen.mov').write_bytes(b'x' * 100)
+        return folder
+
+    def check(self, path=None):
+        return discard_check(self.catalog, str(path or self.folder), str(self.library), self.root / 'sin-registro.json', [])
+
+    def test_reports_what_would_go_and_touches_nothing(self):
+        result = self.check()
+        self.assertEqual((result['session_id'], result['tracks'], result['blockers']), (self.sid, 1, []))
+        self.assertGreater(result['bytes'], 100)
+        self.assertTrue((self.folder / 'screen.mov').exists())
+        self.inspect.assert_called_once()
+
+    def test_only_a_finished_session_of_a_known_library(self):
+        active = self.bundle(self.library / 'grabando.stalker', str(uuid.uuid4()), status='recording')
+        outside = self.root / 'fuera'; outside.mkdir()
+        foreign = self.bundle(outside / 'ajena.stalker', str(uuid.uuid4()))
+        link = self.library / 'enlace.stalker'; link.symlink_to(foreign)
+        for path, code in ((active, 'capture_not_completed'), (foreign, 'capture_not_found'), (link, 'capture_not_found'), (self.library, 'capture_not_found')):
+            with self.assertRaises(MediaError) as caught:
+                self.check(path)
+            self.assertEqual(caught.exception.code, code)
+
+    def test_a_backed_up_session_goes_through_release(self):
+        with mock.patch('media.captures.capture_libraries', return_value={'sessions': [{'path': str(self.folder), 'status': 'completed', 'archived': True}]}):
+            with self.assertRaises(MediaError) as caught:
+                self.check()
+        self.assertEqual(caught.exception.code, 'capture_archived')
+
+    def test_an_unfinished_operation_blocks_it(self):
+        plan = {'source': str(self.library), 'files': [{'path': 'prueba.stalker/screen.mov'}]}
+        with self.catalog.db as db:
+            db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', ('j', 'd', json.dumps(plan), 'paused', None, 'x', 'x'))
+        with self.assertRaises(MediaError) as caught:
+            self.check()
+        self.assertEqual(caught.exception.code, 'capture_in_use')
+        with self.catalog.db as db:
+            db.execute("UPDATE jobs SET state='completed'")
+        self.assertEqual(self.check()['blockers'], [])
+
+    def test_clipper_use_blocks_and_unknown_only_warns(self):
+        self.inspect.return_value = {'blockers': ['Fuente en uso sin reemplazo editable: x'], 'relinks': [], 'dependencies': {}}
+        self.assertEqual(self.check()['blockers'], ['Fuente en uso sin reemplazo editable: x'])
+        self.inspect.return_value = {'blockers': [clipper.OFFLINE_PROJECTS], 'relinks': [], 'dependencies': {}}
+        result = self.check()
+        self.assertEqual((result['blockers'], result['warnings']), ([], ['offline_projects']))
+        self.inspect.side_effect = MediaError('clipper_unavailable', 'x')
+        result = self.check()
+        self.assertEqual((result['blockers'], result['warnings']), ([], ['clipper_unknown']))
+
+    def test_the_decision_is_recorded_and_the_tag_survives(self):
+        save_capture_tags(self.catalog, [self.sid], 'prueba')
+        record_discard(self.catalog, self.sid, 'prueba.stalker', '/Trash/prueba.stalker', 10)
+        self.assertEqual(self.catalog.get('capture-discarded:' + self.sid)['trash_path'], '/Trash/prueba.stalker')
+        self.assertEqual(self.catalog.get('capture-tag:' + self.sid)['name'], 'prueba')
+
+
 class FinalsTests(ProjectFixture):
     def setUp(self):
         super().setUp()
@@ -161,6 +237,9 @@ class FinalsTests(ProjectFixture):
         self.work.mkdir(); self.archive.mkdir()
         self.catalog.register('ESSD', 'work', self.work, self.backend.describe(self.work), '001_proyectos')
         self.catalog.register('MEDIA', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
+        patcher = mock.patch('media.clipper.inspect', return_value={'blockers': [], 'relinks': [], 'dependencies': {}})
+        self.inspect = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def file(self, root, relative, size=10):
         path = root / '002_finales' / relative
@@ -183,13 +262,201 @@ class FinalsTests(ProjectFixture):
         groups = {g['profile']: g for g in result['groups']}
         self.assertEqual(result['archive'], 'MEDIA')
         self.assertEqual(groups['e64']['total'], 3)
-        self.assertEqual(groups['e64']['pending'], 2)
-        self.assertEqual(groups['e64']['pending_bytes'], 50)
-        self.assertEqual(sorted(f['name'] for f in groups['e64']['files']), ['02_shorts/cambio.mov', '02_shorts/nuevo.mov'])
+        self.assertEqual(groups['e64']['published_folder'], '03_subidos')
+        self.assertEqual((groups['e64']['pending'], groups['e64']['waiting'], groups['e64']['waiting_bytes']), (0, 2, 50))
+        self.assertEqual((groups['e64']['in_archive'], groups['e64']['in_archive_bytes']), (1, 10))
         self.assertEqual(groups['e64']['destination'], 'MEDIA/002_finales/e64')
-        self.assertEqual(groups['9logs']['pending'], 1)
+        self.assertEqual((groups['9logs']['published_folder'], groups['9logs']['pending']), ('', 1))
         self.assertEqual(before, sorted(str(p) for p in self.archive.rglob('*')))
         self.assertTrue(bundle.exists())
+
+    def test_only_the_published_folder_is_due_for_backup(self):
+        self.file(self.work, 'e64/03_subidos/shorts/subido.mov', 20)
+        self.file(self.work, 'e64/03_subidos/maestro.mov', 30)
+        self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        group = finals_status(self.catalog, self.backend)['groups'][0]
+        self.assertEqual((group['published_total'], group['pending'], group['pending_bytes']), (2, 2, 50))
+        self.assertEqual(sorted(f['name'] for f in group['files']), ['03_subidos/maestro.mov', '03_subidos/shorts/subido.mov'])
+        self.assertEqual(group['waiting'], 1)
+        self.assertEqual(group['subfolders'], ['02_shorts', '03_subidos'])
+
+    def test_an_empty_published_folder_still_means_nothing_is_due(self):
+        (self.work / '002_finales/9logs/subidos').mkdir(parents=True)
+        self.file(self.work, '9logs/sin-publicar.mov')
+        group = finals_status(self.catalog, self.backend)['groups'][0]
+        self.assertEqual((group['published_folder'], group['pending'], group['waiting']), ('subidos', 0, 1))
+
+    def test_the_published_folder_can_be_chosen_cleared_and_detected_again(self):
+        self.file(self.work, 'e64/03_subidos/a.mov')
+        self.file(self.work, 'e64/listos/b.mov')
+        def group(): return finals_status(self.catalog, self.backend)['groups'][0]
+        set_published_folder(self.catalog, 'e64', 'listos')
+        self.assertEqual((group()['published_folder'], group()['files'][0]['name']), ('listos', 'listos/b.mov'))
+        set_published_folder(self.catalog, 'e64', '')
+        self.assertEqual((group()['published_folder'], group()['pending']), ('', 2))
+        set_published_folder(self.catalog, 'e64', 'ya-no-existe')
+        self.assertEqual(group()['published_folder'], '')
+        set_published_folder(self.catalog, 'e64', None)
+        self.assertEqual(group()['published_folder'], '03_subidos')
+        for bad in ('../fuera', 'a/b', '.oculta'):
+            with self.assertRaises(MediaError):
+                set_published_folder(self.catalog, 'e64', bad)
+
+    def route(self, release=True):
+        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'e64', release=release))
+        return plan, {row['source']: row['archive_path'] for row in plan['preview']}
+
+    def test_year_comes_from_the_name_first(self):
+        self.assertEqual(year_in_name('26-10-27-terra.mov'), '2026')
+        self.assertEqual(year_in_name('2024-03-09-titulo.mov'), '2024')
+        self.assertEqual(year_in_name('240905_davidcordova.mov'), '2024')
+        for name in ('008vibecoding.mp4', '26-13-27-mes-malo.mov', 'semana7-2026-e64.mov', '26-10-271.mov', '000.mov'):
+            self.assertIsNone(year_in_name(name), name)
+
+    def test_route_keeps_subfolders_and_dates_loose_masters(self):
+        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov')
+        loose = self.file(self.work, 'e64/03_subidos/reexport.mov')
+        self.file(self.work, 'e64/03_subidos/shorts/26-09-26-corto_vertical_1.mov')
+        self.file(self.work, 'e64/03_subidos/thumbnails/titulos.txt')
+        self.file(self.work, 'e64/02_shorts/sin-publicar.mov')
+        plan, routes = self.route()
+        base = str(self.archive / '002_finales/e64')
+        self.assertEqual(routes['26-10-27-terra.mov'], base + '/2026/26-10-27-terra.mov')
+        self.assertEqual(routes['reexport.mov'], base + '/' + created_year(loose) + '/reexport.mov')
+        self.assertEqual(routes['shorts/26-09-26-corto_vertical_1.mov'], base + '/shorts/26-09-26-corto_vertical_1.mov')
+        self.assertEqual(routes['thumbnails/titulos.txt'], base + '/thumbnails/titulos.txt')
+        self.assertEqual(len(routes), 4)
+        self.assertTrue(plan['cleanup'])
+        self.assertIsNone(plan['work_id'])
+
+    def test_keeping_the_source_is_a_choice(self):
+        source = self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
+        short = self.file(self.work, 'e64/03_subidos/shorts/corto.mov', 20)
+        waiting = self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        defaults = self.catalog.get('defaults')
+        plan, _ = self.route(release=False)
+        result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        self.assertEqual(result['state'], 'source_retained')
+        self.assertEqual((self.archive / '002_finales/e64/2026/26-10-27-terra.mov').stat().st_size, 30)
+        self.assertEqual((self.archive / '002_finales/e64/shorts/corto.mov').stat().st_size, 20)
+        self.assertTrue(source.exists() and short.exists() and waiting.exists())
+        self.assertFalse(list(self.archive.rglob('*.ncpartial')))
+        group = finals_status(self.catalog, self.backend)['groups'][0]
+        self.assertEqual((group['pending'], group['waiting'], group['in_archive']), (0, 1, 2))
+        self.assertEqual(self.catalog.get('defaults'), defaults)
+        # Nothing left to copy for what is still sitting in the published folder: same place, adopted after hashing.
+        again, _ = self.route(release=False)
+        repeat = Transfer(self.catalog, self.backend).apply(again, again['digest'])
+        self.assertEqual(repeat['state'], 'source_retained')
+        self.assertEqual(len(list((self.archive / '002_finales').rglob('*.mov'))), 2)
+
+    def test_moving_frees_only_what_was_verified_and_keeps_the_folders(self):
+        master = self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
+        short = self.file(self.work, 'e64/03_subidos/shorts/corto.mov', 20)
+        note = self.file(self.work, 'e64/03_subidos/thumbnails/titulos.txt', 5)
+        waiting = self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        plan, _ = self.route()
+        result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
+        self.assertEqual(result['state'], 'completed')
+        self.assertFalse(master.exists() or short.exists() or note.exists())
+        self.assertTrue(waiting.exists() and short.parent.is_dir())
+        final = self.archive / '002_finales/e64'
+        self.assertEqual((final / '2026/26-10-27-terra.mov').stat().st_size, 30)
+        self.assertEqual((final / 'shorts/corto.mov').stat().st_size, 20)
+        self.assertEqual((final / 'thumbnails/titulos.txt').stat().st_size, 5)
+        group = finals_status(self.catalog, self.backend)['groups'][0]
+        self.assertEqual((group['pending'], group['waiting'], group['published_total']), (0, 1, 0))
+
+    def test_what_was_not_copied_is_never_freed(self):
+        self.file(self.archive, 'e64/2023/viejo.mov', 15)
+        kept = self.file(self.work, 'e64/03_subidos/viejo.mov', 15)
+        moved = self.file(self.work, 'e64/03_subidos/nuevo.mov', 25)
+        plan, _ = self.route()
+        result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        self.assertEqual(result['state'], 'completed')
+        self.assertTrue(kept.exists())
+        self.assertFalse(moved.exists())
+
+    def test_a_final_that_arrives_during_the_copy_stays_and_is_reported(self):
+        self.file(self.work, 'e64/03_subidos/a.mov')
+        plan, _ = self.route()
+        late = self.file(self.work, 'e64/03_subidos/llego-tarde.mov', 11)
+        result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        self.assertEqual(result['state'], 'source_has_new_material')
+        self.assertTrue(late.exists())
+        self.assertFalse((self.work / '002_finales/e64/03_subidos/a.mov').exists())
+
+    def test_a_changed_final_stops_before_anything_is_freed(self):
+        changed = self.file(self.work, 'e64/03_subidos/a.mov', 10)
+        other = self.file(self.work, 'e64/03_subidos/b.mov', 10)
+        plan, _ = self.route()
+        changed.write_bytes(b'y' * 12)
+        with self.assertRaises(MediaError) as caught:
+            Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        self.assertEqual(caught.exception.code, 'source_changed')
+        self.assertTrue(changed.exists() and other.exists())
+
+    def test_one_physical_disk_or_clipper_use_refuses_to_free(self):
+        self.file(self.work, 'e64/03_subidos/a.mov')
+        self.inspect.return_value = {'blockers': ['Fuente en uso sin reemplazo editable: a.mov'], 'relinks': [], 'dependencies': {}}
+        with self.assertRaises(MediaError) as caught:
+            self.route()
+        self.assertEqual(caught.exception.code, 'source_in_use')
+        self.assertFalse(self.route(release=False)[0]['cleanup'])
+        self.inspect.return_value = {'blockers': [], 'relinks': [], 'dependencies': {}}
+        plan, _ = self.route()
+        self.inspect.return_value = {'blockers': ['Exportación en cola: a.mov'], 'relinks': [], 'dependencies': {}}
+        with self.assertRaises(MediaError):
+            Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
+        self.assertTrue((self.work / '002_finales/e64/03_subidos/a.mov').exists())
+        self.inspect.return_value = {'blockers': [], 'relinks': [], 'dependencies': {}}
+        self.backend.physical[str(self.work)] = self.backend.physical[str(self.archive)] = 'mismo'
+        with self.assertRaises(MediaError) as caught:
+            self.route()
+        self.assertEqual(caught.exception.code, 'same_physical_disk')
+
+    def test_a_copy_already_elsewhere_in_the_profile_is_not_duplicated(self):
+        self.file(self.archive, 'e64/2023/viejo.mov', 15)
+        self.file(self.work, 'e64/03_subidos/viejo.mov', 15)
+        self.file(self.work, 'e64/03_subidos/nuevo.mov', 25)
+        plan, routes = self.route()
+        self.assertEqual(list(routes), ['nuevo.mov'])
+        self.assertEqual(plan['already_archived'], ['viejo.mov'])
+
+    def test_a_different_file_at_the_destination_blocks_and_nothing_is_written(self):
+        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
+        self.file(self.archive, 'e64/2026/26-10-27-terra.mov', 31)
+        with self.assertRaises(MediaError) as caught:
+            self.route()
+        self.assertEqual(caught.exception.code, 'destination_conflict')
+        self.assertEqual((self.archive / '002_finales/e64/2026/26-10-27-terra.mov').stat().st_size, 31)
+
+    def test_same_bytes_at_the_destination_are_adopted_and_different_bytes_stop(self):
+        self.file(self.work, 'e64/03_subidos/26-10-27-igual.mov', 12)
+        self.file(self.archive, 'e64/2026/26-10-27-igual.mov', 12)
+        source = self.work / '002_finales/e64/03_subidos/26-10-27-igual.mov'
+        plan, routes = self.route()
+        self.assertEqual(plan['already_archived'], [])
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(Transfer(self.catalog, self.backend).apply(plan, plan['digest'])['state'], 'completed')
+        self.assertFalse(source.exists())
+
+    def test_needs_a_published_folder_and_both_disks(self):
+        self.file(self.work, 'e64/02_shorts/a.mov')
+        with self.assertRaises(MediaError) as caught:
+            plan_params(self.catalog, self.backend, 'e64')
+        self.assertEqual(caught.exception.code, 'no_published_folder')
+        self.backend.offline.add(str(self.archive))
+        with self.assertRaises(MediaError) as caught:
+            plan_params(self.catalog, self.backend, 'e64')
+        self.assertEqual(caught.exception.code, 'archive_offline')
+
+    def test_a_tampered_finals_plan_is_rejected(self):
+        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov')
+        plan, _ = self.route()
+        plan['layout']['26-10-27-terra.mov']['archive'] = 'e64/otro/lugar.mov'
+        with self.assertRaises(MediaError):
+            Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
 
     def test_offline_archive_answers_nothing_instead_of_all_pending(self):
         self.file(self.work, 'e64/nuevo.mov')
