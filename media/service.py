@@ -64,9 +64,31 @@ class Service:
         if method == 'capture_libraries':
             from .captures import capture_libraries
             return capture_libraries(self.catalog, params.get('override') or self.catalog.get('capture-override', ''))
+        if method == 'capture_overview':
+            from .captures import capture_libraries
+            from .projects import overview
+            data = capture_libraries(self.catalog, params.get('override') or self.catalog.get('capture-override', ''))
+            return dict(data, projects=overview(self.catalog, data['sessions']))
         if method == 'save_capture_tag':
             from .captures import save_capture_tag
             return save_capture_tag(self.catalog, **params)
+        if method == 'save_capture_tags':
+            from .captures import save_capture_tags
+            return save_capture_tags(self.catalog, **params)
+        if method == 'touch_project':
+            from .projects import touch_project
+            return touch_project(self.catalog, params['key'])
+        if method == 'set_project_state':
+            from .projects import set_state
+            return set_state(self.catalog, params['project_id'], params['state'])
+        if method == 'dismiss_job':
+            self.catalog.job(params['job_id'])
+            require(isinstance(params.get('dismissed'), bool), 'invalid_request', 'dismissed must be boolean')
+            self.catalog.set('job-dismissed:' + params['job_id'], params['dismissed'])
+            return {'job_id': params['job_id'], 'dismissed': params['dismissed']}
+        if method == 'finals_status':
+            from .finals import finals_status
+            return finals_status(self.catalog, self.backend, params.get('archive'), self.cancel)
         if method == 'integration_settings':
             if params:
                 allowed = {'clipper_executable', 'stalker_executable', 'capture_override', 'retain_stalker_source'}
@@ -181,7 +203,8 @@ class Service:
         if method == 'handoff':
             return handoff(self.catalog, self.backend, params['asset_ids'], params.get('volume_id'))
         if method == 'rename_project':
-            return self.catalog.rename_project(params['project_id'], params['title'])
+            from .projects import rename
+            return rename(self.catalog, params.get('key') or params['project_id'], params['title'])
         if method == 'set_publication':
             from .publication import set_publication
             return set_publication(self.catalog, **params)

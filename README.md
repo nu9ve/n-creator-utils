@@ -19,7 +19,7 @@ Desde nüün o la CLI puedes revisar una fuente, asignar archivos a proyectos y 
 - **Biblioteca y espacio:** consulta el catálogo, recupera o entrega archivos, revisa pendientes, ve qué ocupa cada disco y qué ya tiene copia, y prepara planes de liberación de espacio.
 - **Capturas Stalker:** reúne sesiones finalizadas en una bandeja, conserva sus bundles completos y permite asignarlas a proyectos. La liberación del original depende de las verificaciones y de las dependencias de edición.
 
-La app ofrece modos compacto, selección y completo con un ingreso por pasos (fuente y proyecto, contenido, destinos, revisión y copia), asignación por lotes, vista previa de archivos, biblioteca con actividad y mapa de discos, y ajustes, en español e inglés. La CLI y la app usan el mismo motor de planificación y transferencia.
+La app ofrece modos compacto, selección y completo con un ingreso por pasos (fuente y proyecto, contenido, destinos, revisión y copia), asignación por lotes, vista previa de archivos, biblioteca con proyectos, actividad y mapa de discos, y ajustes, en español e inglés. La CLI y la app usan el mismo motor de planificación y transferencia.
 
 [Conocer la app](docs/features/nuun-window.md) · [Guía de uso y almacenamiento](docs/operations.md) · [Política de copias](docs/features/replication-policy.md)
 

@@ -47,7 +47,7 @@ struct AppNavigation: View {
         .padding(2)
         .modifier(GlassSurface(shape: Capsule()))
     }
-    private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) }
+    private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) + model.attentionJobs.count }
 }
 
 /// Lives in the native toolbar row (next to the window controls), also in fullscreen.
@@ -115,6 +115,7 @@ struct LibraryShell: View {
             .padding(.top, 8)
             Group {
                 switch model.librarySection {
+                case .projects: ProjectsView(model: model)
                 case .files: LibraryView(model: model)
                 case .disks: DisksView(model: model)
                 case .activity: ActivityView(model: model)
@@ -197,14 +198,13 @@ struct LibraryRow: Identifiable {
 
 struct LibraryView: View {
     @Bindable var model: Model
-    @State private var query = ""
     @State private var workFilter = ""
     @State private var order = [KeyPathComparator(\LibraryRow.project)]
     private var rows: [LibraryRow] {
         model.assets.filter { asset in
             (workFilter.isEmpty || asset["work_delivery_status"].string == workFilter)
         }.map { LibraryRow($0, model: model) }.filter { row in
-            query.isEmpty || [row.project, row.profile, row.camera, row.place].contains { $0.localizedCaseInsensitiveContains(query) }
+            model.libraryQuery.isEmpty || [row.project, row.profile, row.camera, row.place].contains { $0.localizedCaseInsensitiveContains(model.libraryQuery) }
         }.sorted(using: order)
     }
     var body: some View {
@@ -216,7 +216,7 @@ struct LibraryView: View {
             }
             ErrorBanner(model: model)
             HStack {
-                TextField("Buscar proyecto, perfil, cámara o lugar", text: $query).frame(maxWidth: 360)
+                TextField("Buscar proyecto, perfil, cámara o lugar", text: $model.libraryQuery).frame(maxWidth: 360)
                 Picker("Copias para editar", selection: $workFilter) {
                     Text("Todas").tag("")
                     Text("Pendientes").tag("pending")
@@ -266,10 +266,6 @@ struct LibraryView: View {
 struct ActivityView: View {
     @Bindable var model: Model
     @State private var expanded: Set<String> = []
-    private func resumable(_ job: JSONValue) -> Bool {
-        ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string)
-            || job["state"].string == "source_retained" && job["release_stalker_source"].bool
-    }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Actividad", subtitle: "Operaciones recientes, su estado y lo que requiere atención") {
@@ -283,12 +279,17 @@ struct ActivityView: View {
                         JobStatusIcon(state: job["state"].string)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(model.jobLabel(job)).font(.callout.weight(.medium))
-                            Text(job["updated_at"].string.prefix(19).replacingOccurrences(of: "T", with: " ")).font(.caption).foregroundStyle(.secondary)
+                            Text(Timestamps.label(job["updated_at"].string)).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if resumable(job) { Button("Reanudar") { model.resume(id) }.disabled(model.busy) }
-                        if job["state"].string == "camera_action_required" && job["cleanup_profile"].string == "sony_clips_then_format" {
-                            Button("Ya la formateé…") { model.confirmCleanup(id) }.disabled(model.busy)
+                        JobActions(model: model, job: job)
+                        if model.needsAttention(job) {
+                            if job["dismissed"].bool {
+                                Button("Volver a avisar") { model.dismissJob(id, dismissed: false) }
+                            } else {
+                                Button("Descartar aviso") { model.dismissJob(id) }
+                                    .help("Deja de avisar en Inicio; la operación sigue aquí")
+                            }
                         }
                         Button { if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) } } label: {
                             Image(systemName: expanded.contains(id) ? "chevron.up" : "chevron.down")
@@ -299,12 +300,14 @@ struct ActivityView: View {
                     }
                     if expanded.contains(id) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(model.jobDetail(job)).textSelection(.enabled)
+                            if !model.jobDetail(job).isEmpty { Text(model.jobDetail(job)).textSelection(.enabled) }
                             Text("ID: " + id).textSelection(.enabled).foregroundStyle(.secondary)
-                            Button("Copiar comando para reanudar") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString("nu9ve media resume " + id, forType: .string)
-                            }.buttonStyle(.link)
+                            if model.resumable(job) {
+                                Button("Copiar comando para reanudar") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString("nu9ve media resume " + id, forType: .string)
+                                }.buttonStyle(.link)
+                            }
                         }.font(.caption).padding(.leading, 28)
                     }
                 }.padding(.vertical, 4)
@@ -323,12 +326,24 @@ struct ActivityView: View {
     }
 }
 
+/// What a person can still do about a job; the same buttons in Inicio and Actividad.
+struct JobActions: View {
+    let model: Model
+    let job: JSONValue
+    var body: some View {
+        if model.resumable(job) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
+        if job["state"].string == "camera_action_required" && job["cleanup_profile"].string == "sony_clips_then_format" {
+            Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy)
+        }
+    }
+}
+
 struct JobProgressView: View {
     let model: Model
     let job: JSONValue
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Group { if let fraction = model.progressFraction(job) { ProgressView(value: fraction) } else { ProgressView().progressViewStyle(.linear) } }.tint(.accentColor)
+            Group { if let fraction = model.progressFraction(job) { ProgressView(value: fraction) } else { ProgressView().progressViewStyle(.linear) } }
             Text(model.progressLabel(job)).font(.caption).monospacedDigit().lineLimit(2)
             let destinations = job["progress"]["destinations"].array.filter { !$0["name"].string.isEmpty }
             if !destinations.isEmpty {

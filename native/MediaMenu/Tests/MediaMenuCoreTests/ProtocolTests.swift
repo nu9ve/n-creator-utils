@@ -152,3 +152,11 @@ import Testing
     #expect(tree["folders"].array.first?["name"].string == "Music")
     await #expect(throws: BackendFailure.self) { _ = try await reader.call("storage_scan", ["target": .string("QA")]) }
 }
+@Test func timestampsReadEngineAndManifestFormats() {
+    let instant = Date(timeIntervalSince1970: 1_793_127_106)
+    #expect(Timestamps.parse("2026-10-27T18:51:46.123456Z") == instant)
+    #expect(Timestamps.parse("2026-10-27T11:51:46-07:00") == instant)
+    #expect(Timestamps.parse("2026-11-01T17:20-07:00") != nil)
+    #expect(Timestamps.parse("") == nil)
+    #expect(Timestamps.label("no es fecha") == "no es fecha")
+}

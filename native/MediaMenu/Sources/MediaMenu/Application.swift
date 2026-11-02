@@ -35,7 +35,7 @@ private extension NSToolbarItem.Identifier {
         model.openSettings = { [weak self] section in self?.openSettings(section) }
         model.statusChanged = { [weak self] in
             guard let self else { return }
-            let attention = self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty
+            let attention = self.model.assets.contains { $0["work_delivery_status"].string == "pending" } || !self.model.pendingCaptures.isEmpty || !self.model.cardSuggestions.isEmpty || !self.model.attentionJobs.isEmpty
             self.status.button?.title = self.model.busy ? " …" : (attention ? " •" : "")
             self.status.button?.toolTip = self.model.message
         }

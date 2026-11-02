@@ -311,7 +311,7 @@ struct RecentProjectChips: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 4) {
-                ForEach(Array(projects.prefix(limit)), id: \.["project_id"].string) { item in
+                ForEach(Array(projects.prefix(limit)), id: \.["project"].string) { item in
                     let title = item["project"].string
                     Button(title) { selection = title }
                         .buttonStyle(CreatorButtonStyle(prominent: selection == title))

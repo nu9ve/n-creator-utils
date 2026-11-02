@@ -35,7 +35,7 @@ La landing no se modificó. Cambiar su copy es trabajo de su propio repo.
 
 ## Navegación
 
-Tres pestañas, con Biblioteca como centro de lo que ya existe. Implementado en la fase 1, salvo Proyectos, que llega con su contenido en la fase 2:
+Tres pestañas, con Biblioteca como centro de lo que ya existe. Implementado, incluida una primera versión de Proyectos (2026-11-01) con etapa, estado declarado y renombrar; sin hoja de cierre ni liberación por proyecto:
 
 ```text
 Inicio · Ingreso · Biblioteca

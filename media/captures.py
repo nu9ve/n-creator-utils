@@ -38,10 +38,21 @@ def preview_track_path(manifest):
     return min(candidates)[1] if candidates else ''
 
 
-def capture_libraries(catalog, override='', registry=None):
+def has_sessions(root):
+    """Finder-style check of a usual folder; no bundle is opened and an unreadable folder is just not a library."""
+    try:
+        with os.scandir(root) as entries:
+            return any(entry.name.lower().endswith('.stalker') and entry.is_dir(follow_symlinks=False) for entry in entries)
+    except OSError:
+        return False
+
+
+def capture_libraries(catalog, override='', registry=None, common=None):
     """Producer registry is read-only. A manual root augments, rather than hides, old roots."""
     marker = Path(registry) if registry else Path.home() / 'Library/Application Support/Stalker/library.json'
     roots, errors = [], []
+    if common is None:
+        common = [] if registry else [Path.home() / 'Movies/Stalker', Path.home() / 'Downloads']
     if override:
         roots.append(str(Path(override).expanduser().absolute()))
     if marker.exists():
@@ -54,6 +65,8 @@ def capture_libraries(catalog, override='', registry=None):
                     roots.append(str(Path(path).expanduser().absolute()))
         except (OSError, MediaError, TypeError, ValueError) as error:
             errors.append(str(error))
+    # Stalker's save folder can change without telling anyone: its usual places count only with sessions inside.
+    roots.extend(str(path) for path in common if str(path) not in roots and has_sessions(path))
     if not roots:
         roots.append(str(Path.home() / 'Movies/Stalker'))
     sessions = {}
@@ -71,13 +84,22 @@ def capture_libraries(catalog, override='', registry=None):
             'pending': [s for s in values if s.get('status') == 'completed' and not s['archived']], 'errors': errors}
 
 
-def save_capture_tag(catalog, session_id, project, country='mx'):
+def save_capture_tags(catalog, session_ids, project, country='mx'):
+    """One writer for a whole batch; the project rises in the quick picks right away."""
     from .common import slug
-    sid = str(uuid.UUID(session_id))
+    from .projects import key_for, touch
+    require(isinstance(session_ids, list) and session_ids, 'invalid_request', 'Sessions required')
+    sessions = [str(uuid.UUID(value)) for value in session_ids]
     value = {'name': slug(project), 'country': slug(country)}
     with catalog.writer():
-        catalog.set('capture-tag:' + sid, value)
+        for sid in sessions:
+            catalog.set('capture-tag:' + sid, value)
+        touch(catalog, key_for(catalog, value['name']))
     return value
+
+
+def save_capture_tag(catalog, session_id, project, country='mx'):
+    return save_capture_tags(catalog, [session_id], project, country)
 
 
 def captures(catalog, root, changed_paths=None):
