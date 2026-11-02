@@ -2,6 +2,10 @@
 
 Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Doble clic en la barra y pasos centrados · 2026-11-01
+
+La vista propia de la barra llena el renglón del toolbar y AppKit no recibía los clics. Ahora el espacio vacío mueve la ventana y el doble clic sigue el ajuste del sistema (por defecto, zoom). En fullscreen no hace nada, como el titlebar nativo. Los pasos de Ingreso quedan centrados. `--qa-titlebar`, ventana real con eventos sintéticos: antes 1180×900 sin cambio; después alterna 1180×900 y 1920×1080, y al barrer la barra las pestañas cambian de vista sin hacer zoom. Python **255 OK**, Swift **14/14**. Sin probar con mouse real ni arrastre. Instalada build **`f7bb2e2740e9`**, firma verificada, binario y backend idénticos; anterior en `app-backups/bf3f69d5.app`. La instancia abierta estaba inactiva; se cerró desde AppleScript y se reabrió. No es una build de producción.
+
 ## Perfil erikiado64 y ruta de finales · 2026-11-01
 
 **Perfil, instalado:** build `58384ccdb046` en `~/Applications/nuun.app` a petición del usuario, con la app ya cerrada por él: firma verificada, binario y backend idénticos; anterior en `app-backups/b1747bc6.app`. Incluye lo de la entrada siguiente. Ingreso, Proyectos, Archivos, Finales y Flujos muestran el nombre del perfil; Ajustes → Perfiles edita el perfil de Clipper y ya no lo borra al guardar sin cargar. Guardado en el catálogo real: ID `e64`, nombre `erikiado64`, `e64_raw`, ESSD, MEDIA502, `clipper_profile: erikiado64`. No se movieron ni renombraron carpetas.
