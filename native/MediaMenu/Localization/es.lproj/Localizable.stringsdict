@@ -50,22 +50,6 @@
 			<string>%lld elementos</string>
 		</dict>
 	</dict>
-	<key>%lld operaciones requieren atención</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@n@</string>
-		<key>n</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>lld</string>
-			<key>one</key>
-			<string>%lld operación requiere atención</string>
-			<key>other</key>
-			<string>%lld operaciones requieren atención</string>
-		</dict>
-	</dict>
 	<key>%lld pistas</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

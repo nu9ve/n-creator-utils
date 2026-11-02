@@ -386,5 +386,6 @@ def projects(catalog):
         entry['jobs'].add(asset['job_id'])
     for entry in found.values():
         jobs = sorted(entry.pop('jobs'))
-        entry['updated_at'] = max(catalog.job(job)['updated_at'] for job in jobs)
+        # Plans can reach 12 MiB and this runs on every snapshot: read only the timestamp.
+        entry['updated_at'] = max(catalog.db.execute('SELECT updated_at FROM jobs WHERE id=?', (job,)).fetchone()[0] for job in jobs)
     return sorted(found.values(), key=lambda e: e['updated_at'], reverse=True)

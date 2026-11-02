@@ -65,16 +65,6 @@ private struct WindowTheme: NSViewRepresentable {
     func updateNSView(_ view: ThemeWindowProbe, context: Context) { view.palette = palette; view.followsSystem = followsSystem; view.apply() }
 }
 
-struct CreatorGroupBoxStyle: GroupBoxStyle {
-    @Environment(\.creatorPalette) private var palette
-    func makeBody(configuration: Configuration) -> some View {
-        VStack(alignment: .leading, spacing: 10) { configuration.label.font(.headline); configuration.content }
-            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.card, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(palette.border, lineWidth: 1))
-    }
-}
-
 /// One filled primary per view; secondary buttons stay light so the screen reads calmly.
 struct CreatorButtonStyle: ButtonStyle {
     @Environment(\.creatorPalette) private var palette
@@ -124,12 +114,9 @@ struct GlassSurface<S: Shape>: ViewModifier {
     }
 }
 
+/// Lists sit directly on the canvas; only fields and floating bars are raised.
 struct CreatorListSurface: ViewModifier {
-    @Environment(\.creatorPalette) private var palette
-    func body(content: Content) -> some View {
-        content.scrollContentBackground(.hidden)
-            .background(palette.card, in: RoundedRectangle(cornerRadius: 10))
-    }
+    func body(content: Content) -> some View { content.scrollContentBackground(.hidden).alternatingRowBackgrounds(.disabled) }
 }
 
 struct CreatorAppearance: ViewModifier {
@@ -144,7 +131,6 @@ struct CreatorAppearance: ViewModifier {
         content
             .buttonStyle(CreatorButtonStyle())
             .textFieldStyle(CreatorTextFieldStyle())
-            .groupBoxStyle(CreatorGroupBoxStyle())
             .tint(palette.control)
             .foregroundStyle(palette.ink)
             .background(palette.canvas.ignoresSafeArea())
@@ -162,18 +148,19 @@ struct AppearanceSettings: View {
     @AppStorage("accentSaturation") private var saturation = CreatorPalette.defaultSaturation
     @AppStorage("accentBrightness") private var brightness = 1.0
     var body: some View {
-        GroupBox("Apariencia") {
-            VStack(alignment: .leading) {
-                Picker("Tema", selection: $appearance) { Text("Claro").tag("light"); Text("Oscuro").tag("dark"); Text("Sistema").tag("system") }
-                Text("El color base coordina fondo, tarjetas, controles y barra de título.").font(.caption).foregroundStyle(palette.muted)
-                HStack { Text("Matiz (H)").frame(width: 105); Slider(value: $hue, in: 0...1) }
-                HStack { Text("Saturación (S)").frame(width: 105); Slider(value: $saturation, in: 0...1) }
-                HStack { Text("Brillo (V)").frame(width: 105); Slider(value: $brightness, in: 0.15...1) }
-                HStack {
-                    RoundedRectangle(cornerRadius: 6).fill(palette.accent).frame(width: 32, height: 24)
-                    Button("Restaurar claro · #FFBB5C") { appearance = "light"; hue = CreatorPalette.defaultHue; saturation = CreatorPalette.defaultSaturation; brightness = 1 }
-                }
-            }.padding(6)
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Apariencia", systemImage: "paintpalette").font(.title3.weight(.semibold))
+            Picker("Tema", selection: $appearance) { Text("Claro").tag("light"); Text("Oscuro").tag("dark"); Text("Sistema").tag("system") }
+                .pickerStyle(.segmented).fixedSize()
+            Divider()
+            Text("El color base coordina fondo, superficies, controles y barra de título.").font(.caption).foregroundStyle(palette.muted)
+            HStack { Text("Matiz (H)").frame(width: 105, alignment: .leading); Slider(value: $hue, in: 0...1) }
+            HStack { Text("Saturación (S)").frame(width: 105, alignment: .leading); Slider(value: $saturation, in: 0...1) }
+            HStack { Text("Brillo (V)").frame(width: 105, alignment: .leading); Slider(value: $brightness, in: 0.15...1) }
+            HStack {
+                RoundedRectangle(cornerRadius: 6).fill(palette.accent).frame(width: 32, height: 24)
+                Button("Restaurar claro · #FFBB5C") { appearance = "light"; hue = CreatorPalette.defaultHue; saturation = CreatorPalette.defaultSaturation; brightness = 1 }
+            }
         }
     }
 }

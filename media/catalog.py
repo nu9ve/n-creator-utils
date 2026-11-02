@@ -144,6 +144,8 @@ class Catalog:
             "json_extract(plan,'$.release_stalker_source') AS release_stalker_source FROM jobs ORDER BY created_at DESC LIMIT 200")]
         for value in values:
             value['release_stalker_source'] = bool(value['release_stalker_source'])
+            # A reminder choice only: the job keeps its state and can still resume.
+            value['dismissed'] = bool(self.get('job-dismissed:' + value['id'], False))
             summary = self.get('stalker-release:' + value['id'])
             if summary is not None:
                 value['stalker_release'] = summary

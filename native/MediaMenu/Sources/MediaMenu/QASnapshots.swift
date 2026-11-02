@@ -20,6 +20,10 @@ import MediaMenuCore
             Task { await disks(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
         }
+        if let index = arguments.firstIndex(of: "--qa-projects"), index + 1 < arguments.count {
+            Task { await projects(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if arguments.contains("--qa-fullscreen") {
             Task { await fullscreen(delegate) }
             return true
@@ -28,6 +32,7 @@ import MediaMenuCore
     }
 
     static func fixture(_ model: Model, media: URL) {
+        model.captureTask?.cancel()  // a slow first read must not replace the fixture
         model.volumes = [
             .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12), "root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw")]),
             .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "online": .bool(true), "free": .number(4.2e11), "root": .string("/Volumes/ESSD"), "prefix": .string("001_proyectos")]),
@@ -38,13 +43,25 @@ import MediaMenuCore
             .object(["path": .string("/Volumes/DJI"), "name": .string("MINI4"), "hint": .object(["family": .string("dji"), "recommendation": .string("dji_choose_category"), "used_bytes": .number(12e9), "capacity_bytes": .number(128e9)])])]
         model.cardSuggestions = model.sourceCards.map { $0["path"].string }
         model.captureRoots = ["/Users/demo/Stalker"]
-        model.recentProjects = ["mercado-norte", "taller-luz", "entrevista-ana", "clip-intro", "viaje-sonora", "podcast-07", "demo"].enumerated().map { index, title in
-            .object(["project_id": .string("p\(index)"), "project": .string(title)]) }
+        let stages = ["draft", "in_progress", "in_progress", "backed_up", "backed_up", "finished", "backed_up"]
+        model.projectIndex = ["mercado-norte", "taller-luz", "entrevista-ana", "clip-intro", "viaje-sonora", "podcast-07", "demo"].enumerated().map { index, title in
+            .object(["key": .string(index == 0 ? "draft:" + title : "p\(index)"), "project_id": .string(index == 0 ? "" : "p\(index)"), "project": .string(title), "profile": .string(index == 0 ? "" : "e64"),
+                     "stage": .string(stages[index]), "state": .string(index == 5 ? "finished" : "active"), "assets": .integer(index == 0 ? 0 : Int64(index * 7)), "pending_sessions": .integer(index < 2 ? 3 : 0),
+                     "work_pending": .integer(index == 2 ? 4 : 0), "work_ready": .integer(index > 0 ? 6 : 0), "work_skipped": .integer(index > 2 ? 12 : 0), "jobs": .integer(Int64(index)), "open_jobs": .integer(0),
+                     "kinds": .object(index == 0 ? [:] : ["stalker_session": .integer(2), "camera_bundle": .integer(Int64(index * 2)), "file": .integer(Int64(index * 5))]), "cameras": .array([.string("ILCE-6400")]), "places": .array([.string("mx/hermosillo")]),
+                     "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z")]) }
+        model.pendingCaptures = (0..<3).map { index in
+            .object(["path": .string("/Users/demo/Stalker/Stalker_2026-11-01_1\(index)-20-08.stalker"), "root": .string("/Users/demo/Stalker"), "session_id": .string("00000000-0000-4000-8000-00000000000\(index)"), "status": .string("completed"), "archived": .bool(false),
+                     "created_at_local": .string("2026-11-01T1\(index):20-07:00"), "duration_seconds": .number(125), "track_count": .integer(3),
+                     "tag": index == 0 ? .object(["name": .string("mercado-norte"), "country": .string("mx")]) : .object([:]), "project_hint": .object([:])]) }
+        model.lastTagged = "mercado-norte"
+        model.finals = .object(["archive": .string("MEDIA502"), "groups": .array([.object(["work": .string("ESSD"), "profile": .string("e64"), "folder": .string("/Volumes/ESSD/002_finales/e64"), "destination": .string("MEDIA502/002_finales/e64"), "total": .integer(74), "pending": .integer(3), "pending_bytes": .number(2.4e9), "files": .array([.object(["path": .string("/Volumes/ESSD/002_finales/e64/02_shorts/corto_1.mov"), "name": .string("02_shorts/corto_1.mov"), "bytes": .number(8e8)])])])])])
+        model.finalsCheckedAt = Date()
         model.profiles = [.object(["id": .string("e64"), "name": .string("e64"), "raw_dir": .string("e64_raw")]), .object(["id": .string("9logs"), "name": .string("9logs"), "raw_dir": .string("9logs_raw")])]
         model.assets = (0..<14).map { index in .object(["id": .string("asset\(index)"), "project": .string(["mercado-norte", "taller-luz", "entrevista-ana"][index % 3]), "profile": .string("e64"), "kind": .string(index % 4 == 0 ? "camera_bundle" : "file"), "camera": .string(index % 2 == 0 ? "ILCE-6400" : "dji-drone"), "country": .string("mx"), "city": .string("hermosillo"), "paths": .array([.string("a"), .string("b")]), "work_delivery_status": .string(["pending", "ready", "skipped"][index % 3])]) }
         model.jobs = [
             .object(["id": .string("job-1"), "state": .string("copying"), "updated_at": .string("2026-10-29T10:12:00"), "cleanup_profile": .string("files")]),
-            .object(["id": .string("job-2"), "state": .string("camera_action_required"), "updated_at": .string("2026-10-28T18:40:00"), "cleanup_profile": .string("sony_clips_then_format")]),
+            .object(["id": .string("job-2"), "state": .string("camera_action_required"), "updated_at": .string("2026-10-28T18:40:00.123456Z"), "cleanup_profile": .string("sony_clips_then_format"), "source_kind": .string("card")]),
             .object(["id": .string("job-3"), "state": .string("completed"), "updated_at": .string("2026-10-27T09:02:00"), "cleanup_profile": .string("files")])]
         let files = (try? FileManager.default.contentsOfDirectory(atPath: media.path))?.sorted() ?? []
         model.source = media.path
@@ -102,6 +119,8 @@ import MediaMenuCore
         model.presentation = .full
         model.route = .home
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
+        await render(InboxView(model: model), size: NSSize(width: 1180, height: 1500), to: folder.appendingPathComponent("route-home-full.png"))
+        await render(VStack { ForEach(model.projectIndex.prefix(4), id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 500), to: folder.appendingPathComponent("project-details.png"))
         model.route = .library
         for section in LibrarySection.allCases where section != .disks {
             model.librarySection = section
@@ -135,13 +154,16 @@ import MediaMenuCore
             await render(WindowTopBar(model: model), size: NSSize(width: width, height: 30), to: folder.appendingPathComponent("topbar-\(Int(width)).png"))
         }
         await render(SettingsView(model: model), size: NSSize(width: 760, height: 600), to: folder.appendingPathComponent("settings.png"))
+        UserDefaults.standard.set("appearance", forKey: "settingsSection")
+        await render(SettingsView(model: model), size: NSSize(width: 760, height: 600), to: folder.appendingPathComponent("settings-appearance.png"))
+        UserDefaults.standard.removeObject(forKey: "settingsSection")
         // README image: compact window, fixture data only (no real libraries, sessions or paths).
-        model.captureRoots = ["/Users/demo/Stalker"]; model.pendingCaptures = []; model.captureSessions = []
+        model.captureRoots = ["/Users/demo/Stalker"]; model.pendingCaptures = []; model.captureSessions = []; model.finals = nil
         if model.units.count > 1 { model.units[1].camera = "dji-drone" }
         model.gridSelection = []; model.error = ""; model.route = .ingest; model.presentation = .compact; model.ingestStep = .source
         await render(ReadmeFrame(model: model), size: NSSize(width: 440, height: 730), to: folder.appendingPathComponent("readme-compact.png"))
         // Empty states: nothing connected, nothing backed up.
-        model.storageTargets = []; model.storageTargetID = ""; model.storageTree = nil; model.assets = []; model.jobs = []
+        model.storageTargets = []; model.storageTargetID = ""; model.storageTree = nil; model.assets = []; model.jobs = []; model.projectIndex = []
         model.sourceCards = []; model.cardSuggestions = []; model.pendingCaptures = []; model.captureRoots = []; model.source = ""; model.units = []
         model.presentation = .full; model.route = .home
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("empty-home.png"))
@@ -222,6 +244,53 @@ import MediaMenuCore
             await model.refresh()
             print("QA ingest library=\(model.assets.count) jobs=\(model.jobs.count) pendingWork=\(model.assets.filter { $0["work_delivery_status"].string == "pending" }.count)")
         } catch { print("QA ingest failed: \(error)") }
+        NSApp.terminate(nil)
+    }
+
+    /// Real engine, isolated state, invented bundles: assign → reuse → rename → bump → finish → dismiss.
+    static func projects(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ label: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<150 { if condition() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+            print("QA projects FAILED \(label) error=\(model.error) captureError=\(model.captureError)"); return false
+        }
+        func titles() -> [String] { model.recentProjects.map { $0["project"].string } }
+        do {
+            let root = folder.appendingPathComponent("Stalker")
+            for index in 0..<3 {
+                let bundle = root.appendingPathComponent("Stalker_\(index).stalker")
+                try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+                let manifest = ["producer": "stalker", "schemaVersion": 3, "sessionID": UUID().uuidString, "status": "completed", "createdAt": "2026-11-01T1\(index):00:00Z", "tracks": []] as [String: Any]
+                try JSONSerialization.data(withJSONObject: manifest).write(to: bundle.appendingPathComponent("manifest.json"))
+            }
+            try? await Task.sleep(for: .seconds(1))
+            model.captureRoot = root.path
+            await model.refresh()
+            guard await wait("sessions", { model.pendingSessions(in: root.path) == 3 }) else { NSApp.terminate(nil); return }
+            let first = model.pendingCaptures.first { $0["root"].string == root.path }!
+            model.tagCaptures([first], project: "Mi Proyecto", country: "mx")
+            guard await wait("draft in quick picks", { titles().first == "Mi-Proyecto" && model.lastTagged == "Mi-Proyecto" }) else { NSApp.terminate(nil); return }
+            print("QA projects saved tag=\(model.pendingCaptures.first { $0["path"] == first["path"] }?["tag"]["name"].string ?? "") picks=\(titles())")
+            let rest = model.pendingCaptures.filter { $0["root"].string == root.path && $0["tag"]["name"].string.isEmpty }
+            model.tagCaptures(rest, project: model.lastTagged, country: "mx")
+            guard await wait("bulk reuse", { model.projectIndex.first { $0["project"].string == "Mi-Proyecto" }?["pending_sessions"].double == 3 }) else { NSApp.terminate(nil); return }
+            let draft = model.projectIndex.first { $0["project"].string == "Mi-Proyecto" }!
+            print("QA projects bulk stage=\(draft["stage"].string) pending=\(draft["pending_sessions"].double)")
+            model.renameProject(draft, to: "Otro Nombre")
+            guard await wait("rename", { !model.busy && titles().contains("Otro-Nombre") && !titles().contains("Mi-Proyecto") }) else { NSApp.terminate(nil); return }
+            print("QA projects renamed tags=\(Set(model.pendingCaptures.filter { $0["root"].string == root.path }.map { $0["tag"]["name"].string })) lastTagged=\(model.lastTagged)")
+            model.tagCaptures([first], project: "segundo", country: "mx")
+            guard await wait("second", { titles().first == "segundo" }) else { NSApp.terminate(nil); return }
+            let renamed = model.projectIndex.first { $0["project"].string == "Otro-Nombre" }!
+            model.bumpProject(renamed)
+            guard await wait("bump", { titles().first == "Otro-Nombre" }) else { NSApp.terminate(nil); return }
+            try? await Task.sleep(for: .seconds(1))
+            print("QA projects bumped picks=\(titles())")
+            let source = folder.appendingPathComponent("card")
+            try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+            print("QA projects kinds stalker=\(Model.holdsStalkerSessions(root)) bundle=\(Model.holdsStalkerSessions(root.appendingPathComponent("Stalker_0.stalker"))) folder=\(Model.holdsStalkerSessions(source))")
+            print("QA projects OK")
+        } catch { print("QA projects failed: \(error)") }
         NSApp.terminate(nil)
     }
 

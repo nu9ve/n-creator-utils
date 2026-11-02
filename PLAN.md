@@ -14,6 +14,12 @@ following priorities remain focused on the existing media workflow:
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Siguiente · 2026-11-01
+
+1. **Aceptar en la app** Proyectos, Inicio e Ingreso nuevos con datos reales ([evidencia](docs/STATUS.md#proyectos-avisos-y-fuentes-coherentes--2026-11-01)).
+2. **Ruta de finales por perfil:** `002_finales/<perfil>/`, copiando sólo lo que falta y adoptando idénticos, con plan y verificación normales. Hasta entonces, Inicio sólo los detecta y la UI no ofrece «Entrega final». Después, fuente «Finales» en Ingreso y publicación.
+3. Lo operativo de abajo sigue vigente: ciclo físico pequeño y `media coverage --no-hash`.
+
 ## Prioridad de producto · 2026-10-30
 
 Fases y criterios: [flujos y cierre](docs/features/product-flows.md) y [mapa de almacenamiento](docs/features/storage-map.md). Decisión del 2026-10-30: una copia de respaldo basta; redundancia y nube son para más adelante. Orden:

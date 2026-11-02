@@ -5,6 +5,7 @@ import MediaMenuCore
 struct SettingsView: View {
     @Bindable var model: Model
     @AppStorage("settingsSection") private var section = "profiles"
+    @Environment(\.creatorPalette) private var palette
     @State private var id = ""
     @State private var name = ""
     @State private var raw = ""
@@ -20,7 +21,7 @@ struct SettingsView: View {
                     Button { section = key } label: {
                         Label(title, systemImage: icon).frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(section == key ? Color.accentColor.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 7))
+                            .background(section == key ? palette.accent.opacity(0.32) : .clear, in: RoundedRectangle(cornerRadius: 7))
                             .contentShape(Rectangle())
                     }.buttonStyle(.plain)
                 }

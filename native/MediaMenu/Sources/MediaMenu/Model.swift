@@ -55,10 +55,11 @@ enum Route: String, CaseIterable, Identifiable {
 }
 
 enum LibrarySection: String, CaseIterable, Identifiable {
-    case files, disks, activity
+    case projects, files, disks, activity
     var id: String { rawValue }
     var title: LocalizedStringKey {
         switch self {
+        case .projects: "Proyectos"
         case .files: "Archivos"
         case .disks: "Discos"
         case .activity: "Actividad"
@@ -66,6 +67,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
     }
     var symbol: String {
         switch self {
+        case .projects: "folder"
         case .files: "square.stack"
         case .disks: "externaldrive"
         case .activity: "clock.arrow.circlepath"
@@ -115,10 +117,26 @@ enum OperationScope { case ingest, library, space, settings, source }
 
 @MainActor @Observable final class Model {
     var route: Route = .home
-    var librarySection: LibrarySection = .files
+    var librarySection: LibrarySection = .projects
     var presentation: WindowMode = .full
     var profiles: [JSONValue] = []
-    var recentProjects: [JSONValue] = []
+    /// Receipts only, until the first capture overview arrives.
+    var snapshotProjects: [JSONValue] = []
+    /// Every named project, drafts included, newest first.
+    var projectIndex: [JSONValue] = []
+    /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
+    var recentProjects: [JSONValue] {
+        var seen = Set<String>()
+        return (projectIndex.isEmpty ? snapshotProjects : projectIndex).filter { $0["stage"].string != "finished" && seen.insert($0["project"].string).inserted }
+    }
+    var libraryQuery = ""
+    /// The project just assigned from Inicio, offered to the sessions still without one.
+    var lastTagged = ""
+    @ObservationIgnored var tagTask: Task<Void, Never>?
+    var finals: JSONValue?
+    var finalsChecking = false
+    @ObservationIgnored var finalsClient: BackendClient?
+    @ObservationIgnored var finalsCheckedAt: Date?
     var discoveryLoading = false
     var discoveryError = ""
     var loadedSourceKey = ""
@@ -248,7 +266,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             assets = data["library"].array
             jobs = data["jobs"].array
             profiles = data["profiles"].array
-            recentProjects = data["projects"].array
+            snapshotProjects = data["projects"].array
             releaseHistory = data["release_plans"].array
             clipperAvailable = data["capabilities"]["clipper"]["available"].bool
             let integrations = data["integration_settings"]
@@ -278,7 +296,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func operation(_ title: String, scope: OperationScope = .ingest, _ body: @escaping @MainActor () async throws -> Void) {
         guard !busy else { return }
-        if scope != .settings { yieldStorageToTransfer() }
+        if scope != .settings { yieldStorageToTransfer(); finalsClient?.cancel() }
         activeScope = scope; error = ""; message = title; statusChanged?()
         Task {
             do { try await body() }
@@ -313,9 +331,10 @@ enum OperationScope { case ingest, library, space, settings, source }
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled, !busy, let reader, reader.configuration.usable else { return }
             do {
-                let data = try await reader.call("capture_libraries", ["override": .string(captureRoot)])
+                let data = try await reader.call("capture_overview", ["override": .string(captureRoot)])
                 guard !Task.isCancelled else { return }
                 pendingCaptures = data["pending"].array; captureSessions = data["sessions"].array
+                projectIndex = data["projects"].array
                 captureRoots = data["roots"].array.map(\.string)
                 captureError = data["errors"].array.map(\.string).joined(separator: "\n")
                 let registry = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Stalker").path
@@ -351,14 +370,16 @@ enum OperationScope { case ingest, library, space, settings, source }
         default: return String(localized: "Respaldo y copia para editar")
         }
     }
-    func stateLabel(_ state: String) -> String {
+    /// `kind` is the job's own; only the ingest in progress may fall back to the current source.
+    func stateLabel(_ state: String, kind: String? = nil) -> String {
+        let stalker = (kind ?? sourceKind) == "stalker"
         switch state {
         case "copying": return String(localized: "Copiando y verificando destinos")
         case "backup_verified": return String(localized: "Archivo verificado")
         case "cleaning_source": return String(localized: "Limpiando SD")
-        case "completed": return sourceKind == "stalker" ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · SD libre")
+        case "completed": return stalker ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · SD libre")
         case "camera_action_required": return String(localized: "Respaldo verificado · libera la tarjeta desde la cámara")
-        case "source_retained": return sourceKind == "stalker" ? String(localized: "Respaldo verificado · original Stalker conservado") : String(localized: "Respaldo verificado · origen conservado")
+        case "source_retained": return stalker ? String(localized: "Respaldo verificado · original Stalker conservado") : String(localized: "Respaldo verificado · origen conservado")
         case "source_has_new_material": return String(localized: "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados")
         case "paused": return String(localized: "Pausado; se puede reanudar")
         case "failed": return String(localized: "Fallo; revisa el job antes de reanudar")
@@ -415,33 +436,78 @@ enum OperationScope { case ingest, library, space, settings, source }
         default: return nil
         }
     }
+    /// The list carries these fields at the top; a single job only inside its plan.
+    func cleanupProfile(_ job: JSONValue) -> String { job["cleanup_profile"].string.isEmpty ? job["plan"]["cleanup_profile"].string : job["cleanup_profile"].string }
     func jobLabel(_ job: JSONValue) -> String {
-        if job["source_kind"].string == "stalker" {
-            if job["state"].string == "completed" { return String(localized: "Respaldo verificado · original Stalker liberado") }
-            if job["state"].string == "source_retained" { return String(localized: "Respaldo verificado · original Stalker conservado") }
-        }
+        let listed = job["source_kind"].string
+        let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
         // Cards holding Stalker bundles end camera_action_required without any camera step.
-        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "files" {
+        if job["state"].string == "camera_action_required", cleanupProfile(job) == "files" {
             return String(localized: "Respaldo verificado · las sesiones Stalker se conservan en el origen")
         }
-        if job["state"].string == "camera_action_required", job["cleanup_profile"].string == "sony_clips_then_format" {
+        if job["state"].string == "camera_action_required", cleanupProfile(job) == "sony_clips_then_format" {
             return String(localized: "Respaldo verificado · clips borrados de la SD · formatéala en la cámara")
         }
-        return stateLabel(job["state"].string)
+        return stateLabel(job["state"].string, kind: kind.isEmpty ? nil : kind)
     }
     func jobDetail(_ job: JSONValue) -> String {
         let reasons = job["stalker_release"]["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
         if !reasons.isEmpty { return reasons.joined(separator: " · ") }
-        return job["error"].string.isEmpty ? job["id"].string : job["error"].string
+        return job["error"].string
+    }
+    func resumable(_ job: JSONValue) -> Bool {
+        ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string)
+            || job["state"].string == "source_retained" && job["release_stalker_source"].bool
+    }
+    func needsAttention(_ job: JSONValue) -> Bool {
+        ["failed", "paused", "camera_action_required"].contains(job["state"].string)
+            || job["state"].string == "source_retained" && job["release_stalker_source"].bool
+    }
+    var attentionJobs: [JSONValue] { jobs.filter { needsAttention($0) && !$0["dismissed"].bool } }
+    /// Only stops the reminder: the job keeps its state and its actions in Actividad.
+    func dismissJob(_ id: String, dismissed: Bool = true) {
+        func mark(_ value: Bool) {
+            jobs = jobs.map { job in
+                guard job["id"].string == id else { return job }
+                var updated = job.object; updated["dismissed"] = .bool(value)
+                return .object(updated)
+            }
+            statusChanged?()
+        }
+        mark(dismissed)
+        Task {
+            do { _ = try await oneShot("dismiss_job", ["job_id": .string(id), "dismissed": .bool(dismissed)]) }
+            catch { mark(!dismissed); self.error = error.localizedDescription }
+        }
+    }
+    /// Small catalog writes that must not wait for, or be dropped by, a running operation.
+    func oneShot(_ method: String, _ params: [String: JSONValue]) async throws -> JSONValue {
+        guard let client else { throw BackendFailure(code: "backend_unavailable", message: String(localized: "El motor no está disponible")) }
+        return try await BackendClient(configuration: client.configuration).call(method, params)
     }
 
     // MARK: Sources
 
     func open(_ section: LibrarySection) { route = .library; librarySection = section }
+    func openFiles(project: String) { libraryQuery = project; open(.files) }
     func chooseSource() {
         pickURL(message: String(localized: "Elige la carpeta o tarjeta de origen")) { url in
-            self.route = .ingest; self.source = url.path; self.ingestStep = .source
+            if self.card(url.path) != nil { self.useCard(url.path) }
+            else { self.prepareSource(url.path, kind: Self.holdsStalkerSessions(url) ? "stalker" : "card") }
         }
+    }
+    /// A source says what it is: nobody should have to tell nüün that a folder of bundles is Stalker.
+    nonisolated static func holdsStalkerSessions(_ url: URL) -> Bool {
+        if url.pathExtension.lowercased() == "stalker" { return true }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+        return names.contains { $0.lowercased().hasSuffix(".stalker") }
+    }
+    func pendingSessions(in root: String) -> Int { pendingCaptures.filter { $0["root"].string == root }.count }
+    /// Folders with something to back up; each one is still its own reviewed plan.
+    var pendingCaptureRoots: [String] { captureRoots.filter { pendingSessions(in: $0) > 0 } }
+    func useStalker() {
+        guard let root = pendingCaptureRoots.first ?? captureRoots.first else { return }
+        prepareSource(root, kind: "stalker")
     }
     var selectedCard: JSONValue? { sourceCards.first { $0["path"].string == source && sourceKind == "card" } }
     func card(_ path: String) -> JSONValue? { sourceCards.first { $0["path"].string == path } }
@@ -515,7 +581,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
-        sourceKind = kind; cleanup = kind == "card"; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
+        sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
     }
     func prepareCaptureBatch(_ root: String) {
@@ -592,7 +658,6 @@ enum OperationScope { case ingest, library, space, settings, source }
         guard sourceKind != "stalker" || (contentLoaded && !units.isEmpty) else {
             error = String(localized: "No hay sesiones Stalker terminadas pendientes en esta fuente"); return
         }
-        if sourceKind == "delivery" { makePlan(archiveOnly: true); return }
         if noWork { archiveOnlyPrompt = true; return }
         let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
         if !onlineWork { archiveOnlyPrompt = true }
@@ -601,14 +666,17 @@ enum OperationScope { case ingest, library, space, settings, source }
     func makePlan(archiveOnly: Bool) {
         operation(String(localized: "Preparando plan")) {
             var assignments: [String: JSONValue] = [:]
+            var tags: [String: (project: String, country: String, sessions: [JSONValue])] = [:]
+            for unit in self.units where !unit.sessionID.isEmpty {
+                let title = unit.project.isEmpty ? self.project : unit.project
+                let country = unit.country.isEmpty ? self.country : unit.country
+                guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                tags[title + "|" + country, default: (title, country, [])].sessions.append(.string(unit.sessionID))
+            }
+            for tag in tags.values {
+                _ = try await self.client!.call("save_capture_tags", ["session_ids": .array(tag.sessions), "project": .string(tag.project), "country": .string(tag.country)])
+            }
             for unit in self.units {
-                if !unit.sessionID.isEmpty {
-                    let title = unit.project.isEmpty ? self.project : unit.project
-                    let country = unit.country.isEmpty ? self.country : unit.country
-                    if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        _ = try await self.client!.call("save_capture_tag", ["session_id": .string(unit.sessionID), "project": .string(title), "country": .string(country)])
-                    }
-                }
                 var values: [String: JSONValue] = [:]
                 if !unit.project.isEmpty { values["project"] = .string(unit.project) }
                 if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
@@ -621,7 +689,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
                 "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
                 "assignments": .object(assignments)]
-            params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork || self.sourceKind == "delivery", deferWork: self.deferWork, work: self.work)) { _, new in new }
+            params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork, deferWork: self.deferWork, work: self.work)) { _, new in new }
             let document = try await self.client!.call("plan_document", params).string
             let reviewed = try ReviewedPlan(document: document)
             self.plan = reviewed.display

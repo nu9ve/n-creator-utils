@@ -135,14 +135,7 @@ struct SourceStep: View {
         VStack(alignment: .leading, spacing: 18) {
             SectionTitle("Fuente")
             SourceTiles(model: model, compact: compact)
-            if !model.source.isEmpty {
-                Picker("Tipo de fuente", selection: $model.sourceKind) {
-                    Text("SD / cámara").tag("card")
-                    Text("Stalker").tag("stalker")
-                    Text("Entrega final").tag("delivery")
-                }.pickerStyle(.segmented).fixedSize().disabled(model.ingestLocked)
-                    .onChange(of: model.sourceKind) { _, kind in model.cleanup = kind == "card" }
-            }
+            StalkerFolderChoice(model: model)
             SectionTitle("Proyecto")
             ProjectField(model: model, compact: compact)
             DetailsRow(model: model, compact: compact)
@@ -161,7 +154,7 @@ struct SourceTiles: View {
     @Bindable var model: Model
     let compact: Bool
     var body: some View {
-        let columns = [GridItem(.adaptive(minimum: compact ? 170 : 220), spacing: 10)]
+        let columns = [GridItem(.adaptive(minimum: compact ? 170 : 220), spacing: 10, alignment: .top)]
         LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
             ForEach(model.sourceCards, id: \.["path"].string) { card in
                 let hint = card["hint"]
@@ -173,24 +166,39 @@ struct SourceTiles: View {
                     model.useCard(card["path"].string)
                 }
             }
-            ForEach(model.captureRoots, id: \.self) { root in
-                let count = model.pendingCaptures.filter { $0["root"].string == root }.count
-                SourceTile(selected: model.source == root && model.sourceKind == "stalker", symbol: "record.circle",
-                           title: "Stalker · " + URL(fileURLWithPath: root).lastPathComponent,
-                           subtitle: String(localized: "\(count) sesiones pendientes"), detail: nil, eject: nil) {
-                    model.prepareSource(root, kind: "stalker")
+            // Every library is one Stalker: the folders only matter once there is something in two of them.
+            if !model.captureRoots.isEmpty {
+                SourceTile(selected: !model.source.isEmpty && model.sourceKind == "stalker" && model.captureRoots.contains(model.source), symbol: "record.circle",
+                           title: "Stalker", subtitle: String(localized: "\(model.pendingCaptures.count) sesiones pendientes"), detail: nil, eject: nil) {
+                    model.useStalker()
                 }
             }
             let known = model.sourceCards.contains { $0["path"].string == model.source } || model.captureRoots.contains(model.source)
             if !model.source.isEmpty && !known {
-                SourceTile(selected: true, symbol: "folder.fill", title: URL(fileURLWithPath: model.source).lastPathComponent,
+                SourceTile(selected: true, symbol: model.sourceKind == "stalker" ? "record.circle" : "folder.fill", title: URL(fileURLWithPath: model.source).lastPathComponent,
                            subtitle: model.source, detail: nil, eject: nil) {}
             }
             SourceTile(selected: false, symbol: "folder.badge.plus", title: String(localized: "Otra carpeta…"),
-                       subtitle: String(localized: "Tarjeta, disco o entrega"), detail: nil, eject: nil) { model.chooseSource() }
+                       subtitle: String(localized: "Tarjeta, disco o carpeta"), detail: nil, eject: nil) { model.chooseSource() }
         }
         if model.sourceCards.isEmpty && !model.volumes.contains(where: { $0["online"].bool }) {
             Text("Conecta tu disco de respaldo para que nüün sugiera las SD conectadas.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct StalkerFolderChoice: View {
+    @Bindable var model: Model
+    var body: some View {
+        if model.sourceKind == "stalker", model.pendingCaptureRoots.count > 1, model.captureRoots.contains(model.source) {
+            VStack(alignment: .leading, spacing: 4) {
+                Picker("Carpeta", selection: Binding(get: { model.source }, set: { model.prepareSource($0, kind: "stalker") })) {
+                    ForEach(model.pendingCaptureRoots, id: \.self) { root in
+                        Text(URL(fileURLWithPath: root).lastPathComponent + " · \(model.pendingSessions(in: root))").tag(root)
+                    }
+                }.pickerStyle(.segmented).fixedSize()
+                Text("Hay sesiones en varias carpetas; cada una se respalda en su propio plan.").font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 }
@@ -217,7 +225,7 @@ struct SourceTile: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .background(selected ? palette.card : palette.inset.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .background(palette.inset.opacity(selected ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? palette.control : palette.border.opacity(0.6), lineWidth: selected ? 1.5 : 1))
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
@@ -244,7 +252,7 @@ struct ProjectField: View {
                 RecentProjectChips(projects: model.recentProjects, selection: $model.project, limit: compact ? 3 : 6)
                 if model.recentProjects.count > (compact ? 3 : 6) {
                     Menu("Más") {
-                        ForEach(Array(model.recentProjects.dropFirst(compact ? 3 : 6)), id: \.["project_id"].string) { item in
+                        ForEach(Array(model.recentProjects.dropFirst(compact ? 3 : 6)), id: \.["project"].string) { item in
                             Button(item["project"].string) { model.project = item["project"].string }
                         }
                     }.fixedSize().controlSize(.small)
@@ -340,7 +348,7 @@ struct DestinationSummary: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Respaldo: \(name(model.archive))", systemImage: "externaldrive.fill")
                 Label(model.copyChoice == "none" ? String(localized: "Sin copia para editar") : String(localized: "Editar en \(name(model.work)) · \(model.copyChoice == "all" ? String(localized: "todo el lote") : String(localized: "elegidos"))"), systemImage: "externaldrive")
-                if model.sourceKind == "card" {
+                if model.selectedCard != nil {
                     Label(model.cleanup ? String(localized: "Limpiar la SD después de verificar") : String(localized: "Conservar la SD"), systemImage: model.cleanup ? "sparkles" : "lock")
                 }
                 ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
@@ -433,9 +441,7 @@ struct AssignPanel: View {
                 Text("Clic selecciona · ⌘ o ⇧ amplían · espacio abre vista rápida").font(.caption2).foregroundStyle(.secondary)
             }
         }
-        .padding(compact ? 10 : 12)
-        .background(palette.card, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(palette.border.opacity(0.6)))
+        .modifier(Panel(padding: compact ? 10 : 12))
     }
     private var projectField: some View {
         HStack(spacing: 6) {
@@ -497,7 +503,7 @@ struct DestinationsStep: View {
                 Toggle("Si el SSD no está conectado, dejar la copia para editar pendiente", isOn: $model.deferWork)
             }
             SectionTitle("Después de verificar")
-            Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.sourceKind != "card")
+            Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.selectedCard == nil)
             Text("Sony: se borran los clips y la tarjeta se formatea en la cámara. Stalker: el original se libera según Ajustes → Capturas.").font(.caption).foregroundStyle(.secondary)
             ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
             Button("Registrar otro disco…") { model.openSettings?("disks") }.buttonStyle(.link)
@@ -531,7 +537,7 @@ struct VolumeChoices: View {
                 Text(detail).font(.caption).foregroundStyle(online ? Color.secondary : Color.orange)
                 Spacer()
             }.padding(.vertical, 5).padding(.horizontal, 8).contentShape(Rectangle())
-            .background(selection == id ? palette.card : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .background(selection == id ? palette.inset.opacity(0.5) : .clear, in: RoundedRectangle(cornerRadius: 8))
         }.buttonStyle(.plain)
     }
 }
@@ -594,9 +600,7 @@ struct PlanReview: View {
                     }.padding(.top, 6)
                 }
             }
-            .padding(14)
-            .background(palette.card, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(palette.border.opacity(0.6)))
+            .modifier(Panel(padding: 14))
         }
     }
     func cleanupText(_ plan: JSONValue) -> String {

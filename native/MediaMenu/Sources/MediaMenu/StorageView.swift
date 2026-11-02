@@ -3,15 +3,95 @@ import SwiftUI
 import MediaMenuCore
 
 extension Model {
-    func tagCapture(_ capture: JSONValue, project: String, country: String, prepare: Bool = false) {
-        operation(String(localized: "Guardando proyecto de la captura"), scope: .settings) {
-            _ = try await self.client!.call("save_capture_tag", ["session_id": capture["session_id"], "project": .string(project), "country": .string(country)])
-            if prepare {
-                self.prepareSource(capture["path"].string, kind: "stalker")
-                self.project = project; self.country = country; self.goToStep(.content)
-            }
-            self.message = String(localized: "Proyecto guardado; el bundle original no se modifica")
+    /// In order and never dropped: assigning several rows quickly must not depend on a free slot.
+    func tagCaptures(_ captures: [JSONValue], project: String, country: String, prepare: Bool = false) {
+        let ids = captures.map { $0["session_id"] }.filter { !$0.string.isEmpty }
+        guard !ids.isEmpty else { return }
+        let previous = tagTask
+        tagTask = Task {
+            await previous?.value
+            do {
+                let saved = try await oneShot("save_capture_tags", ["session_ids": .array(ids), "project": .string(project), "country": .string(country)])
+                applyTag(Set(ids.map { $0.string.lowercased() }), saved)
+                if prepare, let first = captures.first {
+                    prepareSource(first["path"].string, kind: "stalker")
+                    self.project = saved["name"].string; self.country = saved["country"].string; goToStep(.content)
+                }
+                message = String(localized: "Proyecto guardado; el bundle original no se modifica")
+                captureChanged([])
+            } catch { self.error = error.localizedDescription }
         }
+    }
+    /// Every list that shows the assignment updates now; the next overview only confirms it.
+    private func applyTag(_ sessions: Set<String>, _ tag: JSONValue) {
+        func tagged(_ values: [JSONValue]) -> [JSONValue] {
+            values.map { value in
+                guard sessions.contains(value["session_id"].string.lowercased()) else { return value }
+                var updated = value.object; updated["tag"] = tag
+                return .object(updated)
+            }
+        }
+        pendingCaptures = tagged(pendingCaptures); captureSessions = tagged(captureSessions)
+        var next = units
+        for index in next.indices where sessions.contains(next[index].sessionID.lowercased()) {
+            next[index].project = tag["name"].string; next[index].country = tag["country"].string
+        }
+        if next != units { units = next }
+        let title = tag["name"].string
+        lastTagged = title
+        let current = projectIndex.first { $0["project"].string == title } ?? .object(["key": .string("draft:" + title), "project": .string(title), "stage": .string("draft")])
+        projectIndex = [current] + projectIndex.filter { $0["project"].string != title }
+    }
+    func checkFinals(force: Bool = false) {
+        guard !finalsChecking, !busy, let client, client.configuration.usable else { return }
+        if !force, let last = finalsCheckedAt, Date().timeIntervalSince(last) < 900 { return }
+        guard volumes.contains(where: { $0["role"].string == "archive" && $0["online"].bool }),
+              volumes.contains(where: { $0["role"].string == "work" && $0["online"].bool }) else { finals = nil; return }
+        let reader = BackendClient(configuration: client.configuration)
+        finalsClient = reader; finalsChecking = true; finalsCheckedAt = Date()
+        Task {
+            defer { finalsChecking = false; finalsClient = nil }
+            do { finals = try await reader.call("finals_status", archive.isEmpty ? [:] : ["archive": .string(archive)]) }
+            catch { if let failure = error as? BackendFailure, failure.code == "cancelled" { finalsCheckedAt = nil } else { self.error = error.localizedDescription } }
+        }
+    }
+    func renameProject(_ item: JSONValue, to title: String) {
+        operation(String(localized: "Renombrando proyecto"), scope: .settings) {
+            let result = try await self.client!.call("rename_project", ["key": item["key"], "title": .string(title)])
+            let previous = result["previous"].string, current = result["title"].string
+            if self.project == previous { self.project = current }
+            if self.lastProject == previous { self.lastProject = current }
+            if self.lastTagged == previous { self.lastTagged = current }
+            if self.libraryQuery == previous { self.libraryQuery = current }
+            self.units = self.units.map { unit in
+                var updated = unit
+                if unit.project == previous { updated.project = current }
+                return updated
+            }
+            self.message = String(localized: "Proyecto renombrado; las copias anteriores conservan sus carpetas")
+        }
+    }
+    func bumpProject(_ item: JSONValue) {
+        Task {
+            do {
+                _ = try await oneShot("touch_project", ["key": item["key"]])
+                projectIndex = [item] + projectIndex.filter { $0["key"].string != item["key"].string }
+                captureChanged([])
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+    func setProjectState(_ item: JSONValue, _ state: String) {
+        Task {
+            do {
+                _ = try await oneShot("set_project_state", ["project_id": item["project_id"], "state": .string(state)])
+                captureChanged([])
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+    /// Starts an ingest for this project without touching the source already chosen.
+    func useProject(_ title: String) {
+        project = title; route = .ingest
+        if !ingestLocked { ingestStep = .source }
     }
     func prepareLocalRelease(_ capture: JSONValue) {
         let title = capture["tag"]["name"].string.isEmpty ? capture["project_hint"]["name"].string : capture["tag"]["name"].string
