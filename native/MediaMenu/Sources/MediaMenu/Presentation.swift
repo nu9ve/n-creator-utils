@@ -87,8 +87,30 @@ struct WindowTopBar: View {
                 .help(model.presentation == .full ? "Vista compacta (⌘\\)" : "Vista completa (⌘\\)")
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            .background(TitleBarDragArea())
         }
     }
+}
+
+/// The bar is a custom view filling the toolbar row, so AppKit's own titlebar never sees clicks there.
+/// Empty space behaves like a titlebar again: drag moves, double click follows the system setting.
+struct TitleBarDragArea: NSViewRepresentable {
+    final class Area: NSView {
+        override var mouseDownCanMoveWindow: Bool { false }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) {
+            guard let window else { return }
+            guard event.clickCount == 2 else { window.performDrag(with: event); return }
+            guard !window.styleMask.contains(.fullScreen) else { return }
+            switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
+            case "None": break
+            case "Minimize": window.miniaturize(nil)
+            default: window.zoom(nil)
+            }
+        }
+    }
+    func makeNSView(context: Context) -> Area { Area() }
+    func updateNSView(_ view: Area, context: Context) {}
 }
 
 /// Always in view, next to the other global controls. They give way before the tabs do when the window narrows.

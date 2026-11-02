@@ -20,6 +20,10 @@ import MediaMenuCore
             Task { await disks(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
         }
+        if arguments.contains("--qa-titlebar") {
+            Task { await titleBar(delegate) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-finals"), index + 1 < arguments.count {
             Task { await finalsRoute(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -253,6 +257,46 @@ import MediaMenuCore
             await model.refresh()
             print("QA ingest library=\(model.assets.count) jobs=\(model.jobs.count) pendingWork=\(model.assets.filter { $0["work_delivery_status"].string == "pending" }.count)")
         } catch { print("QA ingest failed: \(error)") }
+        NSApp.terminate(nil)
+    }
+
+    /// Real window and AppKit dispatch: what a double click on an empty part of the bar reaches, and what it does.
+    static func titleBar(_ delegate: AppDelegate) async {
+        delegate.show()
+        try? await Task.sleep(for: .seconds(1))
+        guard let window = delegate.window, let frameView = window.contentView?.superview else { NSApp.terminate(nil); return }
+        func doubleClick(at point: NSPoint) async {
+            for (type, count) in [(NSEvent.EventType.leftMouseDown, 1), (.leftMouseUp, 1), (.leftMouseDown, 2), (.leftMouseUp, 2)] where count == 2 {
+                if let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: count, pressure: 1) { window.sendEvent(event) }
+            }
+            try? await Task.sleep(for: .seconds(1))
+        }
+        let row = window.frame.height - 15
+        for (label, x) in [("empty", 170.0), ("right", window.frame.width * 0.62)] {
+            let point = NSPoint(x: x, y: row)
+            let start = window.frame
+            print("QA titlebar \(label) hit=\(frameView.hitTest(point).map { String(describing: type(of: $0)) } ?? "nil")")
+            await doubleClick(at: point)
+            let zoomed = window.frame
+            await doubleClick(at: NSPoint(x: x, y: window.frame.height - 15))
+            print("QA titlebar \(label) start=\(Int(start.width))x\(Int(start.height)) afterFirst=\(Int(zoomed.width))x\(Int(zoomed.height)) afterSecond=\(Int(window.frame.width))x\(Int(window.frame.height))")
+        }
+        // Full click sequences along the row, as real hands make them: a tab switches, empty space zooms, nothing does both.
+        func send(_ type: NSEvent.EventType, _ x: CGFloat, _ count: Int) {
+            if let event = NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: window.frame.height - 15), modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: count, pressure: 1) { window.sendEvent(event) }
+        }
+        for x in stride(from: CGFloat(120), to: window.frame.width - 60, by: 50) {
+            delegate.model.route = .home
+            let before = window.frame
+            send(.leftMouseDown, x, 1); send(.leftMouseUp, x, 1)
+            try? await Task.sleep(for: .milliseconds(150))
+            let single = delegate.model.route
+            send(.leftMouseDown, x, 2); send(.leftMouseUp, x, 2)
+            try? await Task.sleep(for: .milliseconds(700))
+            let zoomed = window.frame != before
+            print("QA titlebar x=\(Int(x)) single=\(single) route=\(delegate.model.route) zoomed=\(zoomed)")
+            if zoomed { window.zoom(nil); try? await Task.sleep(for: .milliseconds(500)) }
+        }
         NSApp.terminate(nil)
     }
 

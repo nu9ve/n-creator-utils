@@ -79,7 +79,7 @@ struct StepBar: View {
         }
         .padding(3)
         .modifier(GlassSurface(shape: Capsule()))
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
     }
 }
 
