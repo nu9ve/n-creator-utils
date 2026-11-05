@@ -415,6 +415,16 @@ class FinalsTests(ProjectFixture):
             self.route()
         self.assertEqual(caught.exception.code, 'same_physical_disk')
 
+    def test_unknown_or_offline_clipper_retains_published_finals(self):
+        source = self.file(self.work, 'e64/03_subidos/a.mov')
+        self.inspect.side_effect = MediaError('clipper_unavailable', 'unknown')
+        with self.assertRaises(MediaError): self.route()
+        self.assertFalse(self.route(release=False)[0]['cleanup'])
+        self.inspect.side_effect = None
+        self.inspect.return_value = {'blockers': [clipper.OFFLINE_PROJECTS], 'relinks': [], 'dependencies': {}}
+        with self.assertRaises(MediaError): self.route()
+        self.assertTrue(source.exists())
+
     def test_a_copy_already_elsewhere_in_the_profile_is_not_duplicated(self):
         self.file(self.archive, 'e64/2023/viejo.mov', 15)
         self.file(self.work, 'e64/03_subidos/viejo.mov', 15)

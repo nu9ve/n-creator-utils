@@ -4,6 +4,8 @@
 
 Base: `master` en `b501864`, [landing](../../../../landings/nuun/app/LayerStory.tsx) en `aa0da14`, Kyū en `b14878f`. Se leyó código y documentación. Las cifras de discos y catálogo se tomaron el 2026-10-30 con `df`, `du` y SQLite `mode=ro`, sin escribir en los discos ni ejecutar flujos.
 
+Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contracts/project-closeout-v1.md). El diagnóstico original es histórico donde esa entrega lo sustituye: ya existen estados y cierre revisado de raws/renders/finales. No incluye borrar editables Clipper ni operar sobre Final Cut.
+
 ## Diagnóstico
 
 El motor de ingreso está bastante adelantado. Lo que falta para cerrar el ciclo que promete la landing son tres conceptos que hoy no existen:
@@ -94,11 +96,13 @@ Datos, en tablas aditivas del catálogo, incluidas en las instantáneas porque s
 
 ### Qué significa «eliminar trabajo completado»
 
+**Decisión vigente, 2026-11-04:** se conservan fuentes originales y finales. Los intermedios identificados pueden descartarse sin respaldo, con revisión y consentimiento explícitos; esta primera entrega se limita a `renders/` de carpetas conocidas del proyecto. Los raws reutilizan recibos/verificación existentes. Editables Clipper se conservan hasta disponer de retiro con desregistro; Final Cut y lo desconocido se conservan. Esto sustituye las alternativas anteriores de archivar todos los intermedios/editables.
+
 | Nivel | Qué retira | Requisito | Estado |
 | --- | --- | --- | --- |
 | 1. Copias de trabajo | Raws en SSD ya verificados en MEDIA | Plan de liberación | Existe |
-| 2. Regenerables | Proxies, render y cachés declarados por su app o por la persona | Plan con lista explícita | Fase 3 |
-| 3. Editable | Proyecto Clipper o biblioteca FCP | Archivar primero, o decisión «no voy a reeditar» | Fase 3 |
+| 2. Regenerables | Intermedios declarados descartables | Plan y consentimiento explícitos, sin copia | Primera entrega: `renders/` de proyectos conocidos; otros cachés pendientes |
+| 3. Editable | Proyecto Clipper | Se conserva; retiro desde Clipper hasta API con desregistro | Pendiente; Final Cut fuera de alcance |
 | 4. Descartes | Material que nunca se quiso guardar | [Conservar sólo lo que sirve](#conservar-sólo-lo-que-sirve) | Fase 4 |
 | 5. Borrar del archivo | Última copia en MEDIA | No se ofrece en esta propuesta | Fuera de alcance |
 
@@ -159,7 +163,7 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 `002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`e64/03_subidos`, `9logs/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es una señal de la persona: no registra canal ni prueba publicación.
 
-**Ruta implementada (2026-11-01):** **Mover al respaldo…** arma un plan normal con SHA-256 y, en la misma ejecución, libera el disco de edición con la limpieza verificada de las tarjetas: vuelve a leer cada original, comprueba la copia y lo borra, con registro por archivo. Por defecto mueve, porque respaldar lo publicado es para recuperar espacio; **Conservar en el disco de edición**, en la revisión, lo evita. Mover exige discos físicos distintos y se bloquea si Clipper reporta que usa esos archivos. Si Clipper no responde no bloquea: la copia ya está verificada.
+**Ruta implementada (2026-11-01):** **Mover al respaldo…** arma un plan normal con SHA-256 y, en la misma ejecución, libera el disco de edición con la limpieza verificada de las tarjetas: vuelve a leer cada original, comprueba la copia y lo borra, con registro por archivo. Por defecto mueve, porque respaldar lo publicado es para recuperar espacio; **Conservar en el disco de edición**, en la revisión, lo evita. Mover exige discos físicos distintos y se bloquea si Clipper reporta que usa esos archivos. **Desde el 2026-11-04**, Clipper desconocido o con proyectos offline también conserva el origen; ya no se acepta la excepción anterior.
 
 | En el SSD | En el respaldo |
 | --- | --- |
@@ -174,7 +178,7 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 **Falta:** «Ya en respaldo» fuera de `subidos` compara nombre y tamaño; liberarlo exige el rehash del plan de liberación, no esta lectura.
 
-**Prioridad siguiente, en sesión propia:** liberar un proyecto completo. Cuando sus horizontales y verticales estén publicados y respaldados, proponer también sus archivos de trabajo e intermedios: raws en `e64_raw`, renders, `001_proyectos/e64/<proyecto>` y el proyecto de Clipper. Requiere relacionar finales con proyecto, que hoy no existe, y archivar o decidir sobre lo editable antes de borrar, como en [qué significa eliminar trabajo completado](#qué-significa-eliminar-trabajo-completado).
+**Primera entrega, 2026-11-04:** Proyectos → **Completar y liberar…** vincula finales por selección confirmada, incluidos los ya archivados. Requisitos por perfil/proyecto y declaraciones «ya publiqué» / «ya no habrá más»: `9logs` inicia con horizontal; `e64`, con horizontal, al menos un vertical y thumbnail. Puede copiar los finales elegidos y liberar raws verificados y renders en una operación revisada. Inicio recuerda **Falta liberar trabajo** tras guardar un cierre completo pendiente. Terminar por sí solo no borra. [Contrato, límites y reanudación](../contracts/project-closeout-v1.md).
 
 ### Carpetas vivas: música y samples
 

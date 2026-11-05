@@ -477,3 +477,12 @@ aceptación física, otros hosts/catálogos ni consumidores externos como Final 
 Aditivo, sólo para la app. `finals_status` añade por grupo `published_folder`, `subfolders`, `published_total`, `waiting`, `waiting_bytes`, `in_archive` e `in_archive_bytes`; `pending` cuenta sólo lo debido según la carpeta de publicados. `set_finals_folder` guarda la carpeta por perfil (`null` vuelve a detectar). `capture_discard_check` no modifica la sesión y `capture_discarded` sólo anota la decisión: la app mueve el bundle a la Papelera y nunca edita su manifiesto.
 
 `plan_finals` y `plan_finals_document` arman un plan `source_kind: delivery` con `layout` y `already_archived` para la carpeta de publicados de un perfil. Sus destinos cuelgan de `finals_prefix`, no de `prefix`. `release` (por defecto `true`) congela `cleanup` en el plan: tras verificar, sólo los archivos planeados salen del origen. Las entregas sin `layout` conservan su comportamiento anterior.
+
+## Cierre de proyectos · 2026-11-04
+
+El [contrato aditivo de cierre](project-closeout-v1.md) vincula finales de trabajo
+o ya archivados a su proyecto mediante decisiones del catálogo, sin reescribir
+recibos históricos de la colección `finales`. Reutiliza Transfer, deps/relink/ACK
+y exclusión de Clipper. Sólo intermedios explícitamente revisados pueden
+descartarse sin copia. Editables Clipper y Final Cut se conservan. No implica
+una nueva adopción en Stalker/Clipper/Atlas ni habilita escribir sus JSON.

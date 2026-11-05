@@ -209,7 +209,7 @@ struct ReleaseSheet: View {
                         Text(plan["source_root"].string + "/" + plan["scope"].string).font(.caption).textSelection(.enabled)
                         Text("\(plan["entries"].array.count) archivos · " + ByteCountFormatter.string(fromByteCount: Int64(plan["bytes"].double), countStyle: .file))
                         Text("El destino se vuelve a leer y verificar antes de retirar cada archivo. Se conservan carpetas de Clipper, renders y archivos auxiliares ajenos. Retirar estas copias puede dejar MEDIA como única réplica.").font(.caption)
-                        Text("Cierra la edición y las exportaciones de Clipper mientras liberas; aún no existe un bloqueo compartido entre ambas apps.").font(.caption).foregroundStyle(.secondary)
+                        Text("Clipper y nüün mantienen un bloqueo compartido durante la liberación; las referencias y las colas pendientes la detienen.").font(.caption).foregroundStyle(.secondary)
                         ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
                         ForEach(Array(plan["consumers"]["relinks"].array.enumerated()), id: \.offset) { _, value in
                             VStack(alignment: .leading) { Text("Clipper: " + value["project"].string); Text(value["from"].string + " → " + value["to"].string).textSelection(.enabled) }.font(.caption)

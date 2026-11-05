@@ -1,6 +1,20 @@
 # Implementation status
 
-Updated: 2026-10-29, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-11-04, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## Completar y liberar proyectos · 2026-11-04
+
+Implementado e **instalado a petición del usuario**, build **`1b13d0ff83e1`** en `~/Applications/nuun.app`. [Contrato y límites](contracts/project-closeout-v1.md). Proyectos → **Completar y liberar…** vincula finales de trabajo o ya archivados con selección confirmada, requisitos por proyecto/perfil (`9logs`: H; `e64`: H/V/thumbnail), publicación manual y «ya no habrá más». Guardar no mueve media. Un cierre revisado puede copiar/verificar sólo los finales elegidos, reenlazar Clipper con ACK y retirar raws verificados y `renders/` identificados. Descarte sin réplica explícito, confirmado y registrado con el digest. Inicio recuerda cierres declarados completos aún pendientes; Actividad y Proyectos reabren planes parciales. Desconocidos, bibliotecas y editables se conservan. «Mover al respaldo» ya no ignora Clipper desconocido/offline.
+
+**Límite material:** el editable Clipper se conserva y la UI indica retirarlo desde Clipper: su borrado debe quitar también el registro y aún no tiene API pública. No se editó su repo ni sus JSON. Final Cut fuera de alcance. Tampoco se implementaron recetas, registro de cámaras, agrupación de Ingreso ni porcentaje/ETA global; el cierre informa fases y conteos reales. Material sin fuentes catalogadas se bloquea en vez de asumir cobertura por tener un final.
+
+**Evidencia:** `/usr/bin/python3 -m unittest discover -s tests -v`: **270 pruebas, 4 omitidas** por faltar JSON Schema en ese runtime; suite de contratos con el Python existente que sí lo tiene: **19/19**, sin instalaciones. Las 13 pruebas nuevas enfocadas volvieron a pasar tras el ajuste de consultas de recibos. Caso adicional con **CLI real de Clipper**, fuentes/editor/media temporales: relink/ACK → retiro raw/render → editable conservado. Swift **14/14**; localización **644 claves**, sin faltantes ni sobrantes; `compileall`, `git diff --check` y 200 enlaces locales de documentos revisados sin faltantes.
+
+QA `--qa-closeout` en claro y oscuro: catálogo y volúmenes fixture, engine real, deps/guard de Clipper simulados explícitamente, sin discos personales. Modelo nativo: buscar → vincular H/V/thumbnail → revisar cinco archivos/tres copias → aplicar → completado, render retirado, editable conservado y aviso resuelto. PNG temporales revisados; no reemplazan capturas del producto ni acreditan clics reales. Lectura operativa aparte: nombres de carpetas ESSD, metadata de proyectos Clipper y consulta a **copia temporal del catálogo**; no se usaron como fixtures ni para liberar.
+
+Artefacto `/private/tmp/nuun-project-closeout-20261104.app`; firma estricta verificada. Las **36 secciones Mach-O** coinciden con el release compilado; la firma cambia bytes del ejecutable. Tras instalar: binario idéntico al artefacto, **36 archivos Python** instalados idénticos al checkout; `closure_overview` del backend instalado respondió correctamente con estado temporal aislado. Build anterior conservada en `~/Library/Application Support/n-creator-utils/app-backups/b1617e2d.app`. No había instancia activa que cerrar; se abrió la nueva app. Runtime externo `/usr/bin/python3`, firma ad-hoc.
+
+**Pendiente:** aceptación del usuario con un proyecto pequeño desde la app instalada, incluida selección, confirmación destructiva, rendimiento de hashes/relink con discos y eventual pausa/reanudación física. No se movió ni borró media personal, no se hizo commit ni se enviaron mensajes a otras sesiones. No se declara production/release ready: siguen los [gates de release](release.md).
 
 ## Doble clic en la barra y pasos centrados · 2026-11-01
 

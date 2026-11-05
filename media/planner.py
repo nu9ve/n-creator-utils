@@ -153,7 +153,7 @@ def pending_stalker_files(catalog, archive_record, files, bundles):
 
 def _build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
                archive_only=False, confirm_archive_only=False, work_decision='pending', cleanup=False,
-               assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False):
+               assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False, delivery_paths=None):
     require(isinstance(archive_only, bool) and isinstance(confirm_archive_only, bool), 'invalid_policy', 'Archive-only flags must be boolean')
     require(source_kind in {'card', 'stalker', 'delivery'}, 'invalid_source_kind', 'Invalid source kind')
     require(isinstance(cleanup, bool), 'invalid_policy', 'cleanup must be boolean')
@@ -196,6 +196,12 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         require(source != root and source not in root.parents and root not in source.parents,
                 'overlapping_roots', 'Source and destination roots must not overlap')
     files, bundles, skipped = scan(source, skip_active=source_kind == 'stalker', cancel=cancel, stalker_only=source_kind == 'stalker')
+    if delivery_paths is not None:
+        require(source_kind == 'delivery' and not cleanup and isinstance(delivery_paths, list) and delivery_paths
+                and all(isinstance(p, str) for p in delivery_paths), 'invalid_selection', 'Select delivery files for copy-only')
+        selected = {relative(p) for p in delivery_paths}
+        require(selected <= {f['path'] for f in files} and not bundles, 'invalid_selection', 'Delivery selection changed or contains bundles')
+        files = [f for f in files if f['path'] in selected]
     if source_kind == 'stalker':
         files, bundles = pending_stalker_files(catalog, archive_record, files, bundles)
     finals_targets, already_archived = None, []
