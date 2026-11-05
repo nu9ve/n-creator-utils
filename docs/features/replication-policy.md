@@ -4,8 +4,8 @@
 
 ## Reglas que se derivan
 
-1. **Nada se elimina de ESSD si no está verificado en MEDIA.** Los planes de liberación implementados exigen rehash actual de MEDIA y del origen, también para material con recibos. Para material viejo o creado en ESSD (ediciones, finales, `0000_acomodar`, bibliotecas de Final Cut) la prueba es la [auditoría de cobertura](#auditoría-de-cobertura): contenido idéntico (SHA-256) en MEDIA.
-2. **Lo que existe sólo en ESSD se archiva primero:** job verificado ESSD → MEDIA con recibos, sin limpieza automática del origen. Los finales van a `002_finales`.
+1. **Fuentes originales y finales no se eliminan de ESSD sin respaldo verificado en MEDIA.** **Excepción decidida el 2026-11-04:** los intermedios identificados se descartan sin copia bajo cierre revisado y confirmado; la primera entrega sólo toma `renders/` de proyectos conocidos. Lo desconocido se conserva y Final Cut queda fuera. [Contrato de cierre](../contracts/project-closeout-v1.md). Los planes de liberación implementados exigen rehash actual de MEDIA y del origen, también para material con recibos. Para material viejo o creado en ESSD (ediciones, finales, `0000_acomodar`, bibliotecas de Final Cut) la prueba es la [auditoría de cobertura](#auditoría-de-cobertura): contenido idéntico (SHA-256) en MEDIA.
+2. **Fuentes y finales que existen sólo en ESSD se archivan primero:** job verificado ESSD → MEDIA con recibos. Los finales van a `002_finales`; el cierre puede encadenar copia y liberación explícita. Los intermedios descartables no se archivan.
 3. **Liberar trabajo es una acción explícita por proyecto:** muestra bytes, qué queda sólo en MEDIA y qué no está cubierto, y nunca la dispara un evento.
 4. **Única réplica, aceptada conscientemente:** después de liberar, MEDIA es la única copia de esos raws. Mitigaciones que no requieren otro disco:
    - rehash periódico de MEDIA, con `recover-catalog` en un catálogo temporal; ya probado: 8.2 GB en 70 s;
@@ -22,7 +22,7 @@
 
 Clasifica cada archivo como `in_archive`, `size_match` u `only_work`, con resumen por carpeta. El informe JSON queda en `<catálogo>/reports/`.
 
-Por volumen (ESSD tenía 434 GB al 2026-10-25) la corrida completa con hash toma horas: lanzarla de noche. **Aún no se ha corrido sobre los discos reales.** La app ofrece la auditoría y planes explícitos de liberación de raws por proyecto; [flujo, comprobaciones y límites](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). Los proyectos editoriales y renders se conservan.
+Por volumen (ESSD tenía 434 GB al 2026-10-25) la corrida completa con hash toma horas: lanzarla de noche. **Aún no se ha corrido sobre los discos reales.** La app ofrece la auditoría y planes explícitos de liberación de raws por proyecto; [flujo, comprobaciones y límites](../operations.md#bandeja-stalker-proyectos-y-liberar-espacio). El cierre añade descarte explícito de renders; editables Clipper y Final Cut se conservan.
 
 ## Opciones futuras (no decididas)
 

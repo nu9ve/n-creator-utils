@@ -250,7 +250,11 @@ def check_source(backend, plan):
 
 def validate_remaining(tree, plan, cancel=None):
     try:
-        actual, preserved = selected_files(tree, plan['scope'], not plan['work_id'], cancel)
+        if plan.get('closure_project_id'):
+            from .closure import inventory
+            actual, preserved = inventory(tree, plan, cancel)
+        else:
+            actual, preserved = selected_files(tree, plan['scope'], not plan['work_id'], cancel)
     except FileNotFoundError:
         require(all(plan['cleaned'].get(e['path']) in {'intent', 'done'} for e in plan['entries']) and not plan['preserved'],
                 'source_changed', 'Release folder disappeared before cleanup')
@@ -275,8 +279,12 @@ def relink_release(catalog, backend, plan_id, digest, cancel=None, progress=None
         backend.check(archive)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
+            if plan.get('closure_project_id'):
+                from .closure import validate
+                validate(catalog, backend, plan, cancel)
             report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
             for index, entry in enumerate(plan['entries']):
+                if entry.get('category') == 'intermediate': continue
                 require(checked_hash_progress(target, entry['archive_path'], cancel, progress,
                                               'verifying_archive', index, len(plan['entries']))[0] == entry['sha256'],
                         'checksum_mismatch', 'Archive changed before relink')
@@ -321,6 +329,9 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
     with catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
         if plan['state'] == 'completed': return plan
+        if plan.get('closure_project_id'):
+            require(catalog.get('closure-consent:' + plan_id, {}).get('digest') == digest,
+                    'confirmation_required', 'Confirma el cierre completo desde su revisión antes de liberar')
         report(progress, 'revalidating_source')
         check_source(backend, plan)
         archive = catalog.volume(plan['archive_id'])
@@ -332,9 +343,14 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         verify_replacements(catalog, backend, plan, cancel, progress)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
+            archive_guards = []
+            if plan.get('closure_project_id'):
+                from .closure import validate
+                archive_guards = validate(catalog, backend, plan, cancel)
             # All archive copies must verify again before the first deletion.
             report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
             for index, entry in enumerate(plan['entries']):
+                if entry.get('category') == 'intermediate': continue
                 require(checked_hash_progress(target, entry['archive_path'], cancel, progress,
                                               'verifying_archive', index, len(plan['entries']))[0] == entry['sha256'],
                         'checksum_mismatch', 'Archive changed before release')
@@ -353,7 +369,14 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
                 # Re-read consumer state each time: no cached audit can authorize removal.
                 consumers = clipper.inspect(catalog, plan['replacements'])
                 require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Clipper dependencies changed during release')
-                require(checked_hash(target, entry['archive_path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Archive changed during release')
+                for guard in archive_guards:
+                    current = content_stamp(target.stat(guard['archive_path']))
+                    if current != guard['stamp']:
+                        sha, stamp = checked_hash(target, guard['archive_path'], cancel)
+                        require(sha == guard['sha256'], 'checksum_mismatch', 'Project backup changed during release')
+                        guard['stamp'] = stamp
+                if entry.get('category') != 'intermediate':
+                    require(checked_hash(target, entry['archive_path'], cancel)[0] == entry['sha256'], 'checksum_mismatch', 'Archive changed during release')
                 try:
                     sha, stamp = checked_hash_progress(origin, path, cancel, progress,
                                                        'releasing_originals', index, len(plan['entries']))
@@ -374,6 +397,8 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
             parents = {str(Path(e['path']).parent) for e in plan['entries']}
             for path in sorted(parents, key=lambda p: len(Path(p).parts), reverse=True):
                 while path != '.' and (path == plan['scope'] or path.startswith(plan['scope'] + '/')):
+                    if plan.get('closure_project_id') and not any(path == s['path'] or path.startswith(s['path'] + '/') for s in plan['closure_scopes']):
+                        break
                     try:
                         with origin.parent(path) as (fd, name):
                             os.rmdir(name, dir_fd=fd)
@@ -385,6 +410,9 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         if hook: hook('before_complete', None)
         report(progress, 'metadata_backup_after')
         plan['state'] = 'completed'
+        if plan.get('closure_project_id'):
+            catalog.set('project-state:' + plan['closure_project_id'], {'state': 'finished', 'updated_at': now()})
+            catalog.set('project-released:' + plan['closure_project_id'], {'plan_id': plan_id, 'bytes': plan['bytes'], 'updated_at': now()})
         if plan['work_id']:
             removed = {entry['path'] for entry in plan['entries']}
             for asset in catalog.search():

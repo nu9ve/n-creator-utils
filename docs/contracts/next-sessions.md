@@ -1,5 +1,16 @@
 # Próximas sesiones: Stalker y luego Clipper
 
+## Pedido nuevo para Clipper · 2026-11-04
+
+El [cierre de proyectos](project-closeout-v1.md) de nüün libera raws verificados
+y renders revisados, conservando el editable. Hace falta una operación pública
+de **retirar proyecto con desregistro**, propiedad de Clipper: comprobar
+actividad/colas, identidad y revisión, producir resultado durable/idempotente y
+quitar su propio registro sin tocar carpeta FCP ni fuentes de biblioteca. No
+asumir que existe por tener `delete_project` interno. Acordar capability y
+plan/confirmación antes de que nüün lo invoque; no editar JSON desde nüün.
+No se envió este pedido a otras sesiones ni se editó el repo de Clipper.
+
 Actualización 2026-10-28: Stalker ya implementó el productor coordinado y nüün
 ya despacha recuperación pending. Ver [protocolo vigente](stalker-retitle-v1.md#recuperación-pending-adoptada-por-nüün--2026-10-28)
 y evidencia en STATUS. Las instrucciones previas de implementar esa capability

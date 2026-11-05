@@ -14,6 +14,7 @@ struct WindowRoot: View {
         .sheet(isPresented: $model.archiveOnlyPrompt) { ArchiveOnlySheet(model: model).modifier(CreatorAppearance()) }
         .sheet(isPresented: $model.confirmApply) { ApplyConfirmation(model: model).modifier(CreatorAppearance()) }
         .sheet(isPresented: $model.showRelease) { ReleaseSheet(model: model).modifier(CreatorAppearance()) }
+        .sheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model).modifier(CreatorAppearance()) }
     }
 }
 
@@ -47,7 +48,7 @@ struct AppNavigation: View {
         .padding(2)
         .modifier(GlassSurface(shape: Capsule()))
     }
-    private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) + model.attentionJobs.count }
+    private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) + model.attentionJobs.count + model.projectClosures.filter { $0["needs_release"].bool }.count }
 }
 
 /// Lives in the native toolbar row (next to the window controls), also in fullscreen.
@@ -379,7 +380,11 @@ struct ActivityView: View {
             if !model.releaseHistory.isEmpty {
                 DisclosureGroup("Planes de liberación guardados / reanudar") {
                     ForEach(model.releaseHistory, id: \.["id"].string) { value in
-                        Button(value["project"].string + " · " + value["state"].string) { model.releasePlan = value; model.showRelease = true }.buttonStyle(.link)
+                        Button(value["project"].string + " · " + value["state"].string) {
+                            if !value["closure_project_id"].string.isEmpty {
+                                model.openProjectClosure(.object(["project_id": value["closure_project_id"], "project": value["project"]]), stored: value)
+                            } else { model.releasePlan = value; model.showRelease = true }
+                        }.buttonStyle(.link)
                     }
                 }
             }

@@ -109,6 +109,9 @@ struct ProjectRow: View {
                     if !item["project_id"].string.isEmpty {
                         Divider()
                         Button("Ver archivos", systemImage: "square.stack") { model.openFiles(project: title) }
+                        if title != "finales" {
+                            Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
+                        }
                         Divider()
                         if item["state"].string == "active" {
                             Button("Pausar", systemImage: "pause") { model.setProjectState(item, "paused") }
@@ -122,6 +125,9 @@ struct ProjectRow: View {
             }
             if expanded {
                 VStack(alignment: .leading, spacing: 6) {
+                    if !item["project_id"].string.isEmpty && title != "finales" {
+                        Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
+                    }
                     if renaming { rename }
                     if !kinds.isEmpty {
                         HStack(spacing: 12) {

@@ -14,11 +14,20 @@ following priorities remain focused on the existing media workflow:
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Cierre de proyectos · 2026-11-04
+
+Primera entrega de **Completar y liberar…** sobre ingreso, recibos, Transfer y liberación existentes. [Decisiones/contrato](docs/contracts/project-closeout-v1.md), [evidencia](docs/STATUS.md).
+
+1. **Instalada build `1b13d0ff83e1`; falta aceptación del usuario** con un proyecto pequeño: vincular finales ya respaldados o de trabajo, declarar entregas completas, revisar y liberar raws/renders. Sin operación real automática.
+2. Clipper: falta comando público de retiro con desregistro; se conserva el editable y se indica borrarlo desde Clipper. Final Cut fuera de alcance.
+3. Después: revisión agrupada de Stalker y progreso global sin reinicios por fase/archivo. Recetas/cámaras, fotos, carpetas vivas, audio y dron siguen pendientes de priorizar.
+4. Se mantiene el ciclo físico/gates de release. El usuario reportó haber movido ya un proyecto publicado: sustituye el pendiente histórico del primer movimiento, sin atribuirle validación física nueva de este cierre.
+
 ## Siguiente · 2026-11-01
 
 1. **Aceptar en la app** Proyectos, Inicio e Ingreso nuevos con datos reales ([evidencia](docs/STATUS.md#proyectos-avisos-y-fuentes-coherentes--2026-11-01)).
-2. **Finales:** [ruta por perfil](docs/features/product-flows.md#finales-y-subidos) implementada. **Mover al respaldo** copia, verifica y libera en una sola acción. Falta correr el primer plan real (e64: 34 archivos, 12.86 GB) y publicación por canal.
-3. **Liberar un proyecto completo:** raws, intermedios y proyecto de Clipper cuando horizontales y verticales estén publicados y respaldados; [en sesión propia](docs/features/product-flows.md#finales-y-subidos).
+2. **Finales:** [ruta por perfil](docs/features/product-flows.md#finales-y-subidos) implementada. **Mover al respaldo** copia, verifica y libera en una sola acción. El usuario reportó haber movido ya un proyecto; falta publicación por canal. La evidencia de aquel plan de 34 archivos es histórica.
+3. **Cierre de proyecto:** primera entrega instalada; raws/renders y finales vinculados. Editable Clipper pendiente de API de retiro, FCP fuera. [Contrato](docs/contracts/project-closeout-v1.md).
 4. Lo operativo de abajo sigue vigente: ciclo físico pequeño y `media coverage --no-hash`.
 
 ## Prioridad de producto · 2026-10-30

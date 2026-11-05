@@ -35,6 +35,7 @@ struct InboxView: View {
                 if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
                 if !model.pendingCaptures.isEmpty { StalkerSection(model: model) }
                 FinalsSection(model: model)
+                ProjectClosureReminders(model: model)
                 let archived = model.captureSessions.filter { $0["archived"].bool && $0["status"].string == "completed" }
                 if !archived.isEmpty {
                     DisclosureGroup("\(archived.count) sesiones archivadas con original local") {
@@ -43,7 +44,7 @@ struct InboxView: View {
                         }
                     }
                 }
-                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty {
+                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty && !model.projectClosures.contains(where: { $0["needs_release"].bool }) {
                     ContentUnavailableView("Todo al día", systemImage: "checkmark.circle", description: Text("Conecta una SD o termina una sesión de Stalker para verla aquí."))
                         .frame(maxWidth: .infinity)
                 }

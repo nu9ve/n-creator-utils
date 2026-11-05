@@ -20,6 +20,8 @@ Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_pr
 - Stalker must be completed; originals/raw microphone/events stay together. Work with active recording must not copy an incomplete session. A reviewed ingest plan verifies required archive/work copies, then defaults to a journaled local release in the same apply flow; it asks Clipper CLI to relink to a verified copy, checks ACK/dependencies and retains the source if any gate fails. Ajustes → Capturas can opt out and keep the original for later release from Inicio or Discos. Full SQLite snapshots protect human metadata. [Workflow and limits](operations.md#bandeja-stalker-proyectos-y-liberar-espacio).
 - No silent media staging on the internal drive. Local catalog/journal metadata is expected; local media destinations require explicit registration/choice.
 
+Cierre de proyectos (primera entrega, 2026-11-04): conservar fuentes y finales; descartar `renders/` identificados sólo mediante plan y consentimiento explícitos. Proyectos vincula finales y declara entregas completas; el cierre reutiliza recibos, Transfer y relink/ACK existentes. Editables Clipper se conservan hasta API de retiro con desregistro; Final Cut queda fuera. [Contrato y límites](contracts/project-closeout-v1.md).
+
 ## Code map
 
 ```text

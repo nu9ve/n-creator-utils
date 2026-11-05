@@ -126,6 +126,14 @@ enum OperationScope { case ingest, library, space, settings, source }
     var snapshotProjects: [JSONValue] = []
     /// Every named project, drafts included, newest first.
     var projectIndex: [JSONValue] = []
+    var projectClosures: [JSONValue] = []
+    var closureProject: JSONValue?
+    var closureSettings: JSONValue = .object([:])
+    var closureCandidates: [JSONValue] = []
+    var closureTruncated = false
+    var closurePlan: JSONValue?
+    var closureProgress: JSONValue = .object([:])
+    var showClosure = false
     /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
     var recentProjects: [JSONValue] {
         var seen = Set<String>()
@@ -275,6 +283,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             profiles = data["profiles"].array
             snapshotProjects = data["projects"].array
             releaseHistory = data["release_plans"].array
+            projectClosures = data["project_closures"].array
             clipperAvailable = data["capabilities"]["clipper"]["available"].bool
             let integrations = data["integration_settings"]
             clipperExecutable = integrations["clipper_executable"].string
@@ -397,6 +406,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func stageLabel(_ stage: String) -> String {
         switch stage {
+        case "copying_finals": return String(localized: "Copiando y verificando finales")
         case "preparing": return String(localized: "Preparando liberación")
         case "hashing_source": return String(localized: "Verificando archivos del original")
         case "matching_archive": return String(localized: "Comparando con el respaldo")

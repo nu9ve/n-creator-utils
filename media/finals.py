@@ -75,13 +75,10 @@ def route_files(archive, profile, source, files):
 
 
 def clipper_blockers(catalog, source):
-    """A concrete use stops the move. Not knowing does not: the verified copy is one restore away, unlike a raw with no backup."""
+    """Unknown/offline consumers retain the source, just like project release."""
     from . import clipper
-    try:
-        report = clipper.inspect(catalog, {str(source): None})
-    except MediaError:
-        return []
-    return [value for value in report['blockers'] if value != clipper.OFFLINE_PROJECTS]
+    report = clipper.inspect(catalog, {str(source): None})
+    return report['blockers']
 
 
 def plan_params(catalog, backend, profile, archive=None, work=None, release=True):

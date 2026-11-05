@@ -47,6 +47,30 @@ class Service:
             return source_cards(self.catalog, self.backend)
         if method == 'snapshot':
             return self._snapshot(params)
+        if method.startswith('closure_'):
+            from . import closure
+            if method == 'closure_overview':
+                return closure.overview(self.catalog)
+            if method == 'closure_candidates':
+                return closure.candidates(self.catalog, self.backend, params['project_id'], params.get('query'), self.cancel)
+            if method == 'closure_save':
+                return closure.save(self.catalog, self.backend, **params)
+            if method == 'closure_plan':
+                return closure.plan_close(self.catalog, self.backend, cancel=self.cancel, **params)
+            if method == 'closure_progress':
+                return self.catalog.get('closure-progress:' + params['plan_id'], {})
+            if method == 'closure_apply':
+                last = {'at': 0, 'done': 0}
+                def progress(stage, **details):
+                    current = time.monotonic()
+                    if stage == 'releasing_originals':
+                        last['done'] = max(last['done'], details.get('files_done', 0))
+                    if current - last['at'] >= 0.25 or stage == 'release_complete':
+                        self.catalog.set('closure-progress:' + params['plan_id'], dict(details, stage=stage, released_files=last['done']))
+                        last['at'] = current
+                return closure.apply_close(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress,
+                                           confirm_discard=params.get('confirm_discard', False))
+            require(False, 'unknown_method', 'Unknown closure method')
         if method == 'eject_card':
             from .volumes import eject_card
             return eject_card(self.catalog, self.backend, params.get('source'), params.get('identity'))
@@ -265,6 +289,8 @@ class Service:
                   'release_plans': release_plans(self.catalog),
                   'integration_settings': self.call('integration_settings'),
                   'defaults': self.call('defaults'), 'errors': {}}
+        from .closure import overview as closure_overview
+        result['project_closures'] = closure_overview(self.catalog)
         try:
             result['capabilities'] = capabilities(self.catalog)
         except (MediaError, OSError, ValueError, RuntimeError) as error:

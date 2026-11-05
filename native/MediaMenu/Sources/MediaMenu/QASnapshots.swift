@@ -8,6 +8,10 @@ import MediaMenuCore
 @MainActor enum QASnapshots {
     static func run(_ delegate: AppDelegate) -> Bool {
         let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--qa-closeout"), index + 1 < arguments.count {
+            Task { await projectCloseout(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-snapshots"), index + 1 < arguments.count {
             Task { await snapshots(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -116,6 +120,40 @@ import MediaMenuCore
         guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: bitmap)
         try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+    }
+
+    /// Seeded disposable catalog + fixture-volume RPC; exercises the same model actions as the installed UI.
+    static func projectCloseout(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ label: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<300 {
+                if condition() { return true }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            print("QA closeout FAILED \(label): \(model.error)"); return false
+        }
+        try? await Task.sleep(for: .seconds(1))
+        await model.refresh()
+        guard await wait("projects", { !model.projectIndex.isEmpty }) else { NSApp.terminate(nil); return }
+        guard let project = model.projectIndex.first(where: { $0["project"].string == "demo-cierre" }) else { print("QA closeout FAILED missing fixture"); NSApp.terminate(nil); return }
+        model.openProjectClosure(project)
+        guard await wait("candidates", { !model.busy && model.closureCandidates.count == 3 }) else { NSApp.terminate(nil); return }
+        model.showClosure = false
+        await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-choose.png"))
+        model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: true, published: true,
+                                 finals: model.closureCandidates, profileDefault: false, review: true)
+        guard await wait("review", { !model.busy && model.closurePlan != nil }) else { NSApp.terminate(nil); return }
+        print("QA closeout review entries=\(model.closurePlan!["entries"].array.count) copies=\(model.closurePlan!["closure_copies"].array.count) blockers=\(model.closurePlan!["consumers"]["blockers"].array)")
+        await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-review.png"))
+        model.applyProjectClosure()
+        guard await wait("apply", { !model.busy && model.closurePlan?["state"].string == "completed" }) else { NSApp.terminate(nil); return }
+        await model.refresh()
+        await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-done.png"))
+        let editor = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre")
+        let kept = FileManager.default.fileExists(atPath: editor.appendingPathComponent("clipper/clipper-project.json").path)
+        let removed = !FileManager.default.fileExists(atPath: editor.appendingPathComponent("renders/intermediate.mov").path)
+        print("QA closeout \(kept && removed ? "OK" : "FAILED") editableKept=\(kept) rendersRemoved=\(removed) reminders=\(model.projectClosures.filter { $0["needs_release"].bool }.count)")
+        NSApp.terminate(nil)
     }
 
     static func snapshots(_ delegate: AppDelegate, _ folder: URL) async {

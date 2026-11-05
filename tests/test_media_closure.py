@@ -95,6 +95,29 @@ raise SystemExit(main(sys.argv[2:]))
         self.run_plan(plan)
         return self.catalog.search()[0]
 
+    def test_project_closeout_uses_real_clipper_relink_and_preserves_editable(self):
+        from media import closure
+        self.video(self.source / 'raw.mp4')
+        self.run_plan(self.plan(cleanup=False))
+        asset = self.catalog.search()[0]
+        with mock.patch.dict(os.environ, {'CLIPPER_LIBRARY_PROJECTS_ROOT': str(self.work / '001_proyectos/{profile}')}):
+            imported = self.command('library', 'import', 'intro', '--json')
+        deps = self.command('library', 'deps', '--json')
+        editor = Path(deps['projects'][0]['clipper_root'])
+        renders = editor.parent / 'renders'; renders.mkdir(exist_ok=True)
+        (renders / 'intermediate.mov').write_bytes(b'regenerable')
+        final = self.archive / '002_finales/e64/2026/intro.mov'
+        final.parent.mkdir(parents=True); final.write_bytes(b'published')
+        closure.save(self.catalog, self.backend, asset['project_id'], ['horizontal'], True, True,
+                     [{'volume_id': self.a['id'], 'path': str(final.relative_to(self.archive)), 'role': 'horizontal'}])
+        plan = closure.plan_close(self.catalog, self.backend, asset['project_id'], 'MEDIA', 'ESSD')
+        self.assertTrue(plan['consumers']['relinks'])
+        result = closure.apply_close(self.catalog, self.backend, plan['id'], plan['digest'], confirm_discard=True)
+        self.assertEqual(result['state'], 'completed')
+        self.assertFalse((renders / 'intermediate.mov').exists())
+        self.assertTrue((editor / 'clipper-project.json').exists())
+        self.assertFalse(clipper.inspect(self.catalog, plan['replacements'])['relinks'])
+
     def test_delivery_complete_queue_relink_ack_release_and_retry(self):
         from media.release import plan_release, relink_release, apply_release
         asset = self.delivery()
