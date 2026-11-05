@@ -232,6 +232,9 @@ class DiscardCaptureTests(ProjectFixture):
 class FinalsTests(ProjectFixture):
     def setUp(self):
         super().setUp()
+        from contextlib import nullcontext
+        guard = mock.patch('media.clipper.release_guard', side_effect=lambda _: nullcontext())
+        guard.start(); self.addCleanup(guard.stop)
         self.backend = FixtureVolumes()
         self.work, self.archive = self.root / 'work', self.root / 'archive'
         self.work.mkdir(); self.archive.mkdir()
@@ -424,6 +427,24 @@ class FinalsTests(ProjectFixture):
         self.inspect.return_value = {'blockers': [clipper.OFFLINE_PROJECTS], 'relinks': [], 'dependencies': {}}
         with self.assertRaises(MediaError): self.route()
         self.assertTrue(source.exists())
+
+    def test_move_holds_clipper_exclusion_through_cleanup(self):
+        from contextlib import contextmanager
+        held, checks = [], []
+        @contextmanager
+        def guard(_):
+            held.append(True)
+            try: yield
+            finally: held.pop()
+        def checkpoint(stage, _):
+            if stage in {'before_cleanup', 'cleanup_file'}:
+                checks.append(stage); self.assertTrue(held)
+        self.file(self.work, 'e64/03_subidos/a.mov')
+        plan, _ = self.route()
+        engine = Transfer(self.catalog, self.backend, hook=checkpoint)
+        with mock.patch('media.clipper.release_guard', side_effect=guard), mock.patch('media.service.Transfer', return_value=engine):
+            self.assertEqual(Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})['state'], 'completed')
+        self.assertTrue(checks); self.assertFalse(held)
 
     def test_a_copy_already_elsewhere_in_the_profile_is_not_duplicated(self):
         self.file(self.archive, 'e64/2023/viejo.mov', 15)

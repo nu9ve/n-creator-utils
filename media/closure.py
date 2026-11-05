@@ -11,7 +11,7 @@ import stat
 
 from . import clipper
 from .common import Tree, content_stamp, digest, now, relative, require, uid
-from .finals import OPAQUE
+from .finals import OPAQUE, published_folder, subfolders
 from .layout import MEDIA_KINDS, kind_of
 from .release import checked_hash, plan_release
 from .volumes import independent
@@ -41,6 +41,7 @@ def save(catalog, backend, project_id, required, no_more, published, finals, pro
 
 def _save(catalog, backend, project_id, required, no_more, published, finals, profile_default):
     project = project_record(catalog, project_id)
+    previous_digest = digest(settings(catalog, project_id))
     require(isinstance(required, list) and required and set(required) <= ROLES - {'auxiliary'},
             'invalid_request', 'Elige los tipos de entrega requeridos')
     require(all(isinstance(v, bool) for v in (no_more, published, profile_default)), 'invalid_request', 'Decisiones inválidas')
@@ -66,12 +67,21 @@ def _save(catalog, backend, project_id, required, no_more, published, finals, pr
                 continue
             require(not any((f['volume_id'], f['path']) == key for f in json.loads(row['value']).get('finals', [])),
                     'final_already_linked', 'Este final ya pertenece a otro proyecto')
-        normalized.append({'volume_id': volume['id'], 'path': path, 'role': item['role'], 'stamp': stamp})
-    value = {'required': sorted(set(required)), 'no_more': no_more, 'published': published,
+        require('published' not in item or isinstance(item['published'], bool), 'invalid_request', 'Publicado debe ser booleano')
+        profile_root = Path(volume['root']) / volume.get('finals_prefix', '002_finales') / project['profile']
+        folder = published_folder(catalog, project['profile'], subfolders(profile_root)) if profile_root.is_dir() else ''
+        in_published = bool(folder) and Path(path).relative_to(volume.get('finals_prefix', '002_finales') + '/' + project['profile']).parts[0] == folder
+        normalized.append({'volume_id': volume['id'], 'path': path, 'role': item['role'], 'stamp': stamp,
+                           'published': published or item.get('published', in_published)})
+    value = {'required': sorted(set(required)), 'no_more': no_more, 'published': bool(normalized) and all(f['published'] for f in normalized),
              'finals': normalized, 'updated_at': now()}
-    catalog.set('project-closure:' + project_id, value)
+    changes = {'project-closure:' + project_id: value}
     if profile_default:
-        catalog.set('closure-profile:' + project['profile'], value['required'])
+        changes['closure-profile:' + project['profile']] = value['required']
+    catalog.set_many(changes, event=(project_id, 'project_delivery_decision', {
+        'project_id': project_id, 'previous_digest': previous_digest, 'required': value['required'],
+        'no_more': no_more, 'published': value['published'],
+        'finals': [{k: f[k] for k in ('volume_id', 'path', 'role', 'published')} for f in normalized]}))
     return value
 
 
@@ -104,16 +114,24 @@ def candidates(catalog, backend, project_id, query=None, cancel=None):
     normalize = lambda s: re.sub(r'[^\w]+', '-', s.lower()).strip('-')
     tokens = [s for s in normalize(query).split('-') if len(s) > 1]
     values = []
+    saved = settings(catalog, project_id)
+    known = {(f['volume_id'], f['path']): f for f in saved['finals']}
     for volume in catalog.volumes():
         if not backend.online(volume):
             continue
         prefix = volume.get('finals_prefix', '002_finales') + '/' + project['profile']
+        root = Path(volume['root']) / prefix
+        published = published_folder(catalog, project['profile'], subfolders(root)) if root.is_dir() else ''
         for path, info in delivery_files(Path(volume['root']) / prefix, cancel):
             name = str(path.relative_to(Path(volume['root']) / prefix))
             if tokens and not all(t in normalize(name) for t in tokens):
                 continue
-            values.append({'volume_id': volume['id'], 'volume': volume['name'], 'path': str(path.relative_to(volume['root'])),
-                           'name': name, 'bytes': info.st_size, 'role': role_hint(name), 'archived': volume['role'] == 'archive'})
+            rel = str(path.relative_to(volume['root']))
+            prior = known.get((volume['id'], rel))
+            declared = prior.get('published', saved['published']) if prior and prior['stamp'] == content_stamp(info) else False
+            values.append({'volume_id': volume['id'], 'volume': volume['name'], 'path': rel,
+                           'name': name, 'bytes': info.st_size, 'role': role_hint(name), 'archived': volume['role'] == 'archive',
+                           'published': declared or bool(published) and Path(name).parts[0] == published})
     # Offer work copies first; never select/claim publication from a guessed name.
     values.sort(key=lambda v: (v['archived'], v['name']))
     return {'files': values[:1000], 'truncated': len(values) > 1000, 'settings': settings(catalog, project_id)}
@@ -222,16 +240,43 @@ def overview(catalog):
     return values
 
 
-def plan_close(catalog, backend, project_id, archive, work, cancel=None):
+def archived_final_settings(catalog, plan, guards):
+    """Build the association update for the release's atomic terminal commit.
+
+    Use the stamps just checked under the release guard; no source or editor JSON
+    is rewritten, and a later changed final will still require a fresh review.
+    """
+    config = settings(catalog, plan['closure_project_id'])
+    stamps = {g['archive_path']: g['stamp'] for g in guards}
+    by_original = {(f['original']['volume_id'], f['original']['path']): f
+                   for f in plan['closure_finals'] if f.get('original')}
+    finals, seen = [], set()
+    for item in config['finals']:
+        final = by_original.get((item['volume_id'], item['path']))
+        if final:
+            item = dict(item, volume_id=plan['archive_id'], path=final['archive_path'], stamp=stamps[final['archive_path']])
+        key = (item['volume_id'], item['path'])
+        if key not in seen:
+            seen.add(key); finals.append(item)
+    return dict(config, finals=finals, updated_at=now())
+
+
+def plan_close(catalog, backend, project_id, archive, work, cancel=None, release_work=True):
     from .planner import build_plan, destination_path
     project = project_record(catalog, project_id)
     config = settings(catalog, project_id)
-    require(config['no_more'] and config['published'], 'project_incomplete', 'Confirma que ya publicaste todo y no habrá más entregas')
-    require(set(config['required']) <= {f['role'] for f in config['finals']}, 'missing_deliveries', 'Faltan tipos de entrega requeridos')
+    config_digest = digest(config)
+    require(isinstance(release_work, bool), 'invalid_request', 'release_work debe ser booleano')
+    if release_work:
+        require(config['no_more'] and config['published'], 'project_incomplete', 'Confirma que ya publicaste todo y no habrá más entregas')
+        require(set(config['required']) <= {f['role'] for f in config['finals']}, 'missing_deliveries', 'Faltan tipos de entrega requeridos')
+    else:
+        config = dict(config, finals=[f for f in config['finals'] if f.get('published', config['published'])])
+        require(config['finals'], 'project_incomplete', 'Marca al menos un final como publicado')
     target, source = catalog.volume(archive), catalog.volume(work)
     require(source['role'] == 'work' and target['role'] == 'archive', 'invalid_role', 'Elige trabajo y respaldo')
     require(independent(backend.check(source), backend.check(target)), 'same_physical_disk', 'Trabajo y respaldo deben ser discos distintos')
-    scoped = roots(catalog, backend, project).get(source['id'], {'raw': [], 'editor': []})
+    scoped = roots(catalog, backend, project).get(source['id'], {'raw': [], 'editor': []}) if release_work else {'raw': [], 'editor': []}
     entries, preserved, replacements, scopes, copies, finals, retained = [], [], {}, [], [], [], []
     for path in scoped['raw']:
         # Empty/already-released raw folders do not prevent cleaning remaining renders.
@@ -246,8 +291,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None):
         entries.extend(dict(e, category='raw') for e in part['entries'])
         replacements.update(part['replacements'])
     # A project with no work receipts is not silently assumed to have backed-up sources.
-    assets = [a for a in catalog.search() if a.get('project_id') == project_id and a['kind'] != 'delivery']
-    require(assets, 'missing_sources', 'Este proyecto no tiene fuentes catalogadas; adopta/verifica sus raws antes de liberar')
+    assets = [a for a in catalog.search() if a.get('project_id') == project_id and a['kind'] != 'delivery'] if release_work else []
+    require(assets or not release_work, 'missing_sources', 'Este proyecto no tiene fuentes catalogadas; adopta/verifica sus raws antes de liberar')
     job_states = dict(catalog.db.execute('SELECT id,state FROM jobs'))
     already_verified = {(e['archive_path'], e['sha256']) for e in entries}
     for asset in assets:
@@ -299,34 +344,33 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None):
                 archive_path = existing
             else:
                 parent = str((Path(source['root']) / item['path']).parent)
+                role = item['role']
+                if role == 'auxiliary' and any('thumbnail' in p.lower() for p in Path(item['path']).parts):
+                    role = 'thumbnail'
                 transfer = build_plan(catalog, backend, source=parent, archive=target['id'], project=project['title'], profile=project['profile'],
                                       archive_only=True, confirm_archive_only=True, work_decision='skipped', cleanup=False,
-                                      camera='generic', source_kind='delivery', delivery_paths=[Path(item['path']).name], finals_route=True, cancel=cancel)
-                # Preserve vertical/thumbnail folder routing even though the selected source is its parent.
-                unit = transfer['units'][0]
-                archive_path = destination_path(target, transfer, unit, transfer['files'][0]['path'])
-                # Loose sources use year folders; shorts/thumbs retain the explicit role folder.
-                role_folder = {'vertical': 'shorts', 'thumbnail': 'thumbnails'}.get(item['role'])
-                if item['role'] == 'auxiliary' and any('thumbnail' in p.lower() for p in Path(item['path']).parts):
-                    role_folder = 'thumbnails'
-                if role_folder:
-                    transfer['layout'][Path(item['path']).name]['archive'] = project['profile'] + '/' + role_folder + '/' + Path(item['path']).name
-                    archive_path = target.get('finals_prefix', '002_finales') + '/' + transfer['layout'][Path(item['path']).name]['archive']
-                    transfer['preview'][0]['archive_path'] = str(Path(target['root']) / archive_path)
-                    # Frozen routing participates in the normal digest and preflight checks.
-                    from .planner import preflight
-                    transfer.pop('digest')
-                    transfer['id'] = uid()
-                    transfer['digest'] = digest(transfer)
-                    preflight(catalog, backend, transfer, reserve=True)
+                                      camera='generic', source_kind='delivery', delivery_paths=[Path(item['path']).name],
+                                      finals_route=True, finals_role=role, cancel=cancel)
+                archive_path = destination_path(target, transfer, transfer['units'][0], transfer['files'][0]['path'])
+                with Tree(target['root']) as tree:
+                    try:
+                        existing_hash, _ = checked_hash(tree, archive_path, cancel)
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        require(existing_hash == sha, 'destination_conflict', 'Ya existe otro final distinto en el destino elegido')
                 copies.append(transfer)
             entries.append({'path': item['path'], 'stamp': stamp, 'sha256': sha, 'archive_path': archive_path, 'category': 'final'})
             replacements[str(Path(source['root']) / item['path'])] = str(Path(target['root']) / archive_path)
-        finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role']})
-    targets = {}
+        finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role'],
+                       'original': {'volume_id': item['volume_id'], 'path': item['path']}})
+    targets, roles = {}, {}
     for final in finals:
         previous = targets.setdefault(final['archive_path'], final['sha256'])
         require(previous == final['sha256'], 'destination_conflict', 'Dos archivos distintos llegarían al mismo destino')
+        if final['role'] != 'source':
+            require(roles.setdefault(final['archive_path'], final['role']) == final['role'],
+                    'destination_conflict', 'La misma entrega no puede contar como dos tipos distintos')
     needed = sum(f['stamp']['size'] for p in copies for f in p['files'])
     require(not needed or backend.check(target)['free'] >= needed + max(64 * 1024 * 1024, needed // 20),
             'insufficient_space', 'No hay espacio para todos los finales seleccionados')
@@ -341,7 +385,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None):
              'scope': source['prefix'], 'project': project['title'], 'entries': entries, 'preserved': sorted(set(preserved)),
              'replacements': replacements, 'replacement_checks': [], 'bytes': sum(e['stamp']['size'] for e in entries),
              'consumers': consumers, 'state': 'review', 'cleaned': {}, 'retained_editors': retained, 'closure_project_id': project_id,
-             'closure_settings_digest': digest(config), 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies}
+             'closure_settings_digest': config_digest, 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies,
+             'closure_finish': release_work}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
@@ -355,7 +400,7 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
     plan = stored_plan(catalog, plan_id, reviewed_digest)
     require(plan.get('closure_project_id'), 'invalid_plan', 'No es un plan de cierre')
     if plan['state'] == 'completed':
-        return plan
+        return dict(plan, closure_settings=settings(catalog, plan['closure_project_id']))
     require(confirm_discard is True, 'confirmation_required', 'Confirma el descarte de los intermedios y la revisión de dependencias externas')
     with catalog.writer():
         catalog.set('closure-consent:' + plan_id, {'digest': reviewed_digest, 'confirmed_at': now()})
@@ -375,4 +420,4 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
     result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
     report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
-    return result
+    return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))

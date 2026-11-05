@@ -2,9 +2,13 @@
 
 Estado/evidencia vigente: [STATUS](../STATUS.md). Operación: [operations](../operations.md#app-de-desarrollo-y-launcher). Esta página describe responsabilidades y límites, no duplica los release gates.
 
+## Ingreso vigente · 2026-11-05
+
+[Entrada → Flujo → Resultado](../contracts/ingest-flow-v1.md), en los tres tamaños. Fuente y contenido están juntos; destinos y revisión también. El botón final autoriza el documento mostrado y su limpieza verificada, sin otro modal. Selección ofrece más espacio, pero ya no es requisito para editar contenido en compacto. Soporte de cámara incluido y agrupado; detalle por bundle/archivo desplegable.
+
 ## Una ventana, tres presentaciones
 
-`WindowRoot` mantiene el mismo `Model` y un solo `NSWindow`: compacto (440×700 pt), selección (780×820) y completo (1180×900, redimensionable/pantalla completa). El tamaño se limita al área visible. La esquina permite expandir/compactar; elegir archivos desde compacto abre selección directamente. Proyecto, fuente, selección por unidad y plan viven en el modelo, no en la vista. El cambio anima el frame y respeta Reduce Motion; reactivar desde el launcher conserva el modo visible. Las dimensiones son preferencias de presentación, no coordenadas de negocio.
+`WindowRoot` mantiene el mismo `Model` y un solo `NSWindow`: compacto (440×700 pt), selección (780×820) y completo (1180×900, redimensionable/pantalla completa). El tamaño se limita al área visible. La esquina permite expandir/compactar; el contenido también puede revisarse dentro de compacto. Proyecto, fuente, selección por unidad y plan viven en el modelo, no en la vista. El cambio anima el frame y respeta Reduce Motion; reactivar desde el launcher conserva el modo visible. Las dimensiones son preferencias de presentación, no coordenadas de negocio.
 
 ```mermaid
 flowchart LR
@@ -20,7 +24,7 @@ flowchart LR
 
 ## Carga y resúmenes
 
-Elegir una fuente o cambiar de modo no recorre sus archivos. «Inspeccionar archivos» inicia discovery explícito; «Elegir archivos» y «Preparar lote» desde Bandeja también lo solicitan. Revisar un plan ejecuta el planner común y su validación. Una clave fuente/tipo/archivo evita repetir el escaneo al cambiar de modo; una petición cancelada o antigua no reemplaza los datos actuales. IDs de generación impiden que una respuesta cancelada de la misma fuente cierre el loader de una petición nueva. El lector utiliza un cliente independiente: cancelar una inspección no cancela una transferencia. No hay sondeo periódico en reposo. Compacto usa la misma acción de inspección y pasa a selección para mostrar los archivos. Montaje/wake siguen sus gates de destinos registrados.
+Montar una tarjeta o cambiar de modo no inicia una lectura profunda por defecto. Elegir manualmente una SD, «Inspeccionar», «Preparar lote» y continuar a Flujo cuando falta contenido solicitan discovery; la inspección automática es una preferencia explícita. Revisar un plan ejecuta el planner común y su validación. Una clave fuente/tipo/archivo evita repetir el escaneo al cambiar de modo; una petición cancelada o antigua no reemplaza los datos actuales. IDs de generación impiden que una respuesta cancelada de la misma fuente cierre el loader de una petición nueva. El lector utiliza un cliente independiente: cancelar una inspección no cancela una transferencia. No hay sondeo periódico en reposo. Compacto usa la misma inspección y muestra el contenido sin exigir otro tamaño. Montaje/wake siguen sus gates de destinos registrados.
 
 Las miniaturas visibles cargan bajo demanda con hasta cuatro peticiones activas y caché de 24 MB/160 entradas. Para videos, AVFoundation pide un fotograma cerca de la mitad; al mover el cursor por la miniatura se muestrean seis tramos, con demora breve y caché por tramo. Las imágenes siguen usando Quick Look. El grid presenta imágenes y metadatos sin tarjeta de fondo por archivo. Los contadores representan unidades/pares/bundles; no siempre equivalen al número de archivos físicos. Dron/360 sólo se muestran cuando se clasifican explícitamente; no se interpreta toda marca DJI como dron. El resumen previo muestra tipos, evidencia de cámara y raíz de respaldo; las rutas definitivas, con fecha/modelo/clasificación, pertenecen al plan. EXIF/registro persistente de cámaras sigue pendiente.
 

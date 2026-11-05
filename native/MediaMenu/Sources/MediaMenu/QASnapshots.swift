@@ -8,6 +8,10 @@ import MediaMenuCore
 @MainActor enum QASnapshots {
     static func run(_ delegate: AppDelegate) -> Bool {
         let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--qa-simple"), index + 1 < arguments.count {
+            Task { await simpleIngest(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-closeout"), index + 1 < arguments.count {
             Task { await projectCloseout(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -122,6 +126,111 @@ import MediaMenuCore
         try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
     }
 
+    /// Real engine behind a fixture-only RPC: no personal disks, catalog or editor is a test input.
+    static func simpleIngest(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ label: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<300 { if condition() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+            print("QA simple FAILED \(label) error=\(model.error)"); return false
+        }
+        do {
+            let card = folder.appendingPathComponent("card")
+            for (name, bytes) in [("PRIVATE/M4ROOT/CLIP/C0001.MP4", Data(repeating: 7, count: 4 * 1024 * 1024)), ("AVF_INFO/AVIN0001.BNP", Data(repeating: 1, count: 8192))] {
+                let path = card.appendingPathComponent(name)
+                try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try bytes.write(to: path)
+            }
+            try? await Task.sleep(for: .seconds(1))
+            await model.refresh()
+            model.route = .ingest; model.presentation = .full
+            model.prepareSource(card.path, kind: "card"); model.copyChoice = "all"; model.cleanup = true; model.project = ""
+            model.goToStep(.content)
+            guard await wait("inspect", { model.contentLoaded && !model.discoveryLoading }) else { NSApp.terminate(nil); return }
+            model.gridSelection = Set(model.units.filter { !$0.isSupport }.map(\.id))
+            model.updateTargets { $0.project = "proyecto-demo" }
+            guard model.projectIsReady, model.planBlockers.isEmpty else { print("QA simple FAILED assignments"); NSApp.terminate(nil); return }
+            await render(MainView(model: model), size: NSSize(width: 1180, height: 860), to: folder.appendingPathComponent("input-full.png"))
+            model.presentation = .compact
+            await render(WindowRoot(model: model), size: NSSize(width: 440, height: 700), to: folder.appendingPathComponent("input-compact.png"))
+            model.presentation = .full; model.goToStep(.destinations)
+            await render(MainView(model: model), size: NSSize(width: 1180, height: 860), to: folder.appendingPathComponent("flow-full.png"))
+            guard await wait("automatic plan", { !model.busy && model.plan != nil }) else { NSApp.terminate(nil); return }
+            print("QA simple plan batchEmpty=\(model.project.isEmpty) units=\(model.plan!["units"].array.count) support=\(model.plan!["units"].array.filter { $0["support"].bool }.count) confirmationRemoved=true")
+            model.presentation = .compact
+            await render(WindowRoot(model: model), size: NSSize(width: 440, height: 700), to: folder.appendingPathComponent("flow-compact.png"))
+            // Authorized product capture: actual native app window, fixture plan, collapsed paths.
+            delegate.present(.compact)
+            if let window = delegate.window {
+                window.setContentSize(NSSize(width: 440, height: 700))
+                try? await Task.sleep(for: .milliseconds(700))
+                if let frame = window.contentView?.superview, let bitmap = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+                    frame.cacheDisplay(in: frame.bounds, to: bitmap)
+                    try bitmap.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("product-compact.png"))
+                }
+            }
+            let stalker = folder.appendingPathComponent("stalker-demo")
+            for index in 0..<2 {
+                let bundle = stalker.appendingPathComponent("Sesion-\(index).stalker")
+                try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+                let manifest: [String: Any] = ["producer": "stalker", "schemaVersion": 3, "status": "completed", "sessionID": UUID().uuidString,
+                    "createdAt": "2026-11-05T12:00:00Z", "duration": ["value": 90, "timescale": 1], "tracks": [["relativePath": "screen.mov"]]]
+                try JSONSerialization.data(withJSONObject: manifest).write(to: bundle.appendingPathComponent("manifest.json"))
+                try Data([1, 2, 3]).write(to: bundle.appendingPathComponent("screen.mov"))
+            }
+            model.prepareSource(stalker.path, kind: "stalker"); model.goToStep(.content)
+            guard await wait("stalker inspection", { model.contentLoaded && !model.discoveryLoading }) else { NSApp.terminate(nil); return }
+            for index in model.units.indices { model.units[index].project = "pantalla-demo-\(index)" }
+            model.reviewPlan()
+            guard await wait("stalker plan", { !model.busy && model.plan != nil }) else { NSApp.terminate(nil); return }
+            await render(PlanReview(model: model), size: NSSize(width: 820, height: 600), to: folder.appendingPathComponent("stalker-grouped.png"))
+            guard model.plan!["units"].array.count == 2 else { print("QA simple FAILED bundle grouping"); NSApp.terminate(nil); return }
+            model.restoreIngestDraft(card.path); model.goToStep(.review)
+            model.apply()
+            guard await wait("apply", { !model.busy && model.lastResult != nil }) else { NSApp.terminate(nil); return }
+            print("QA simple result=\(model.lastResult!["state"].string) global=\(model.lastResult!["progress"]["global_fraction"].double) indexKept=\(FileManager.default.fileExists(atPath: card.appendingPathComponent("AVF_INFO/AVIN0001.BNP").path))")
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !model.busy && model.ingestStep == .run && model.plan == nil else { print("QA simple FAILED result auto-planned"); NSApp.terminate(nil); return }
+            var opened = 0
+            model.openImporter = { opened += 1 }
+            model.mountChanged(arrival: card.path)
+            guard await wait("popup after completed job", { opened == 1 }) else { NSApp.terminate(nil); return }
+            guard model.units.isEmpty && !model.discoveryLoading else { print("QA simple FAILED automatic deep scan"); NSApp.terminate(nil); return }
+            model.project = "borrador-previo"
+            let second = folder.appendingPathComponent("card2")
+            try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
+            model.mountChanged(arrival: second.path)
+            guard await wait("second card", { opened == 2 }) else { NSApp.terminate(nil); return }
+            guard model.ingestDrafts[card.path]?.project == "borrador-previo" else { print("QA simple FAILED lost draft"); NSApp.terminate(nil); return }
+            model.restoreIngestDraft(card.path)
+            guard model.project == "borrador-previo" else { print("QA simple FAILED restore"); NSApp.terminate(nil); return }
+            model.activeScope = .ingest; model.mountChanged(arrival: second.path)
+            try? await Task.sleep(for: .seconds(1))
+            guard opened == 2 else { print("QA simple FAILED interrupted job"); NSApp.terminate(nil); return }
+            model.activeScope = nil
+            delegate.present(.full)
+            if let window = delegate.window, let bar = window.toolbar?.items.first?.view {
+                for width in [760.0, 1180.0, 1600.0] {
+                    window.setContentSize(NSSize(width: width, height: 820))
+                    try? await Task.sleep(for: .milliseconds(500))
+                    let error = abs(model.titlebarCenter + bar.convert(.zero, to: nil).x - window.contentLayoutRect.width / 2)
+                    print("QA simple toolbar width=\(width) centerError=\(error)")
+                    guard error < 1 else { print("QA simple FAILED centering"); NSApp.terminate(nil); return }
+                }
+                window.toggleFullScreen(nil)
+                try? await Task.sleep(for: .seconds(2))
+                if let barWindow = bar.window {
+                    let error = abs(model.titlebarCenter + bar.convert(.zero, to: nil).x - barWindow.contentLayoutRect.width / 2)
+                    print("QA simple fullscreen=\(window.styleMask.contains(.fullScreen)) centerError=\(error)")
+                    guard error < 1 else { print("QA simple FAILED fullscreen centering"); NSApp.terminate(nil); return }
+                }
+                window.toggleFullScreen(nil)
+                try? await Task.sleep(for: .seconds(1))
+            }
+            print("QA simple OK")
+        } catch { print("QA simple FAILED \(error)") }
+        NSApp.terminate(nil)
+    }
+
     /// Seeded disposable catalog + fixture-volume RPC; exercises the same model actions as the installed UI.
     static func projectCloseout(_ delegate: AppDelegate, _ folder: URL) async {
         let model = delegate.model
@@ -140,8 +249,18 @@ import MediaMenuCore
         guard await wait("candidates", { !model.busy && model.closureCandidates.count == 3 }) else { NSApp.terminate(nil); return }
         model.showClosure = false
         await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-choose.png"))
-        model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: true, published: true,
-                                 finals: model.closureCandidates, profileDefault: false, review: true)
+        model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: false, published: false,
+                                 finals: model.closureCandidates, profileDefault: false, review: true, releaseWork: false)
+        guard await wait("published review", { !model.busy && model.closurePlan != nil }) else { NSApp.terminate(nil); return }
+        guard model.closurePlan?["entries"].array.allSatisfy({ $0["category"].string == "final" }) == true else { print("QA closeout FAILED partial scope"); NSApp.terminate(nil); return }
+        await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("published-review.png"))
+        model.applyProjectClosure()
+        guard await wait("published apply", { !model.busy && model.closurePlan?["state"].string == "completed" }) else { NSApp.terminate(nil); return }
+        let intermediate = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre/renders/intermediate.mov")
+        guard FileManager.default.fileExists(atPath: intermediate.path), !model.closureSettings["no_more"].bool else { print("QA closeout FAILED premature cleanup"); NSApp.terminate(nil); return }
+        print("QA closeout published only: rendersKept=true locations=\(model.closureSettings["finals"].array.map { $0["path"].string })")
+        model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: true, published: false,
+                                 finals: model.closureSettings["finals"].array, profileDefault: false, review: true)
         guard await wait("review", { !model.busy && model.closurePlan != nil }) else { NSApp.terminate(nil); return }
         print("QA closeout review entries=\(model.closurePlan!["entries"].array.count) copies=\(model.closurePlan!["closure_copies"].array.count) blockers=\(model.closurePlan!["consumers"]["blockers"].array)")
         await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-review.png"))
@@ -283,10 +402,7 @@ import MediaMenuCore
             model.gridSelection = [model.units[0].id]
             model.updateTargets { $0.project = "qa-otro" }
             model.reviewPlan()
-            // Archive-only is confirmed explicitly per operation, as the sheet does.
-            guard await wait("confirmation", { model.archiveOnlyPrompt }) else { NSApp.terminate(nil); return }
-            model.archiveOnlyPrompt = false
-            model.makePlan(archiveOnly: true)
+            // The final action on the displayed backup-only plan is the operation consent.
             guard await wait("plan", { model.plan != nil && !model.busy }) else { NSApp.terminate(nil); return }
             print("QA ingest step=\(model.ingestStep) files=\(model.plan?["files"].array.count ?? 0) projects=\(Set(model.plan?["units"].array.map { $0["project"].string } ?? []).sorted())")
             model.apply()

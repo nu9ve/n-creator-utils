@@ -117,6 +117,23 @@ def group_key(file):
     return str(path.parent) + '/' + stem
 
 
+def grouped_files(files):
+    """Sidecars share their media's unit; standalone camera support belongs to the ingest."""
+    from .layout import kind_of, MEDIA_KINDS
+    groups = {}
+    for file in files:
+        groups.setdefault(group_key(file), []).append(file)
+    result, support = {}, []
+    for key, members in groups.items():
+        if members[0]['bundle'] is None and not any(kind_of(f['path']) in MEDIA_KINDS for f in members):
+            support.extend(members)
+        else:
+            result[key] = members
+    if support:
+        result['camera-support'] = support
+    return result
+
+
 def pending_stalker_files(catalog, archive_record, files, bundles):
     # Completed sessions already verified at this archive are not copied again.
     candidates = []
@@ -153,16 +170,19 @@ def pending_stalker_files(catalog, archive_record, files, bundles):
 
 def _build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
                archive_only=False, confirm_archive_only=False, work_decision='pending', cleanup=False,
-               assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False, delivery_paths=None):
+               assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False, delivery_paths=None, finals_role=None):
     require(isinstance(archive_only, bool) and isinstance(confirm_archive_only, bool), 'invalid_policy', 'Archive-only flags must be boolean')
     require(source_kind in {'card', 'stalker', 'delivery'}, 'invalid_source_kind', 'Invalid source kind')
     require(isinstance(cleanup, bool), 'invalid_policy', 'cleanup must be boolean')
     require(finals_route is False or source_kind == 'delivery', 'invalid_policy', 'Only deliveries follow the finals route')
+    require(finals_role is None or finals_role in {'horizontal', 'vertical', 'thumbnail', 'auxiliary'}
+            and finals_route and delivery_paths is not None and not cleanup,
+            'invalid_policy', 'An explicit finals role requires a selected copy-only delivery')
     require(not cleanup or source_kind == 'card' or finals_route, 'cleanup_not_supported', 'Only cards and the finals route support automatic cleanup')
     retain_stalker_source = catalog.get('retain-stalker-source', False)
     require(isinstance(retain_stalker_source, bool), 'invalid_policy', 'Invalid Stalker source retention setting')
     release_stalker_source = source_kind == 'stalker' and not retain_stalker_source
-    if source_kind == 'stalker' and isinstance(project, str) and not project.strip():
+    if isinstance(project, str) and not project.strip():
         project = ''
     else:
         project = slug(project)
@@ -207,30 +227,29 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     finals_targets, already_archived = None, []
     if finals_route:
         from .finals import route_files
-        files, finals_targets, already_archived = route_files(archive_record, slug(profile), source, files)
+        files, finals_targets, already_archived = route_files(archive_record, slug(profile), source, files, finals_role)
     require(files, 'empty_source', 'No completed files to ingest')
     require(not cleanup or not skipped, 'active_capture', 'Cannot clean a source with active captures')
     assignments = assignments or {}
     require(isinstance(assignments, dict), 'invalid_assignment', 'Assignments must be a JSON object keyed by file path')
     known = {f['path'] for f in files}
     require(set(assignments) <= known, 'invalid_assignment', 'Assignment references an unknown file')
-    groups = {}
-    for file in files:
-        groups.setdefault('delivery' if source_kind == 'delivery' else group_key(file), []).append(file)
+    groups = {'delivery': files} if source_kind == 'delivery' else grouped_files(files)
     source_key = {k: source_info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')}
     units = []
     for key, members in sorted(groups.items()):
-        choices = [assignments[f['path']] for f in members if f['path'] in assignments]
+        support = key == 'camera-support'
+        choices = [] if support else [assignments[f['path']] for f in members if f['path'] in assignments]
         for choice in choices:
             require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'country', 'camera', 'work'}), 'invalid_assignment', 'Invalid assignment fields')
             require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
-        requested_project = assignment.get('project') or project
+        requested_project = 'camera-support' if support else assignment.get('project') or project
         require(isinstance(requested_project, str) and requested_project.strip(), 'missing_project',
                 'Asigna un proyecto a cada sesión Stalker o elige un proyecto para el lote')
         unit_project, unit_profile = slug(requested_project), slug(assignment.get('profile', profile))
-        selected_camera = assignment.get('camera', camera)
+        selected_camera = 'generic' if support else assignment.get('camera', camera)
         require(selected_camera is None or selected_camera in CAMERAS, 'invalid_camera', 'Unknown assigned camera category')
         evidence = [e for f in members for e in f['evidence']]
         if selected_camera is None:
@@ -243,6 +262,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         unit = {'id': unit_id, 'project': unit_project, 'profile': unit_profile, 'camera': selected_camera,
                 'kind': 'delivery' if source_kind == 'delivery' else ('stalker_session' if session else ('camera_bundle' if len(members) > 1 else 'file')),
                 'paths': [f['path'] for f in members], 'bundle': bundle, 'session_id': session['session_id'] if session else None, 'capture_manifest_digest': session['manifest_digest'] if session else None}
+        if support:
+            unit.update(support=True, work_selected=False)
         if 'work' in assignment:
             unit['work_selected'] = assignment['work']
         if 'country' in assignment:
@@ -252,9 +273,10 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             file['unit_id'] = unit_id
     require(archive_only or any(u.get('work_selected', True) for u in units),
             'confirmation_required', 'No editing copies selected; explicitly confirm archive-only')
+    units.sort(key=lambda u: bool(u.get('support')))
     # A plan ID/digest is stable for an unchanged source, routing and policy.
     timestamp = datetime.datetime.fromtimestamp(max(f['stamp']['mtime_ns'] for f in files) / 1e9, datetime.timezone.utc)
-    plan = {'schema': 'nu9ve-ingest-plan/2', 'source': str(source), 'source_identity': source_key,
+    plan = {'schema': 'nu9ve-ingest-plan/2', 'planner_revision': 'ingest-flow/1', 'source': str(source), 'source_identity': source_key,
             'source_kind': source_kind, 'archive_id': archive_record['id'], 'work_id': active_work['id'] if active_work else None,
             'expected_work_id': expected_work, 'archive_only_confirmed': archive_only and confirm_archive_only,
             'work_delivery_status': work_decision, 'cleanup': cleanup, 'country': country, 'city': city,
@@ -285,6 +307,16 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
                                     if active_work and destination_path(active_work, plan, units_by_id[f['unit_id']], f['path']) else None}
                       for f in files]
     plan['preview'].sort(key=lambda row: row['archive_path'])
+    from .layout import sony_index_member
+    for row in plan['preview']:
+        if release_stalker_source:
+            row['source_action'] = 'release_clipper'
+        elif not cleanup:
+            row['source_action'] = 'retain'
+        elif plan['cleanup_profile'] == 'sony_clips_then_format' and sony_index_member(row['source']):
+            row['source_action'] = 'camera_format'
+        else:
+            row['source_action'] = 'release_verified'
     for record in [archive_record] + ([active_work] if active_work else []):
         # Fail at review time, not mid-copy, when a different file already holds a planned name.
         with Tree(record['root']) as target:
@@ -312,6 +344,10 @@ def validate_plan(plan):
         for unit in plan['units']:
             uuid.UUID(unit['id'])
             slug(unit['project']); slug(unit['profile'])
+            if unit.get('support'):
+                from .layout import kind_of, MEDIA_KINDS
+                require(unit.get('bundle') is None and unit['project'] == 'camera-support'
+                        and not any(kind_of(p) in MEDIA_KINDS for p in unit['paths']), 'invalid_plan', 'Invalid camera support unit')
         require(isinstance(plan['cleanup'], bool), 'invalid_plan', 'Invalid cleanup policy')
         require(plan['source_kind'] in {'card', 'stalker', 'delivery'}, 'invalid_plan', 'Invalid source type')
         require(not plan['cleanup'] or plan['source_kind'] == 'card' or (plan['source_kind'] == 'delivery' and 'layout' in plan),

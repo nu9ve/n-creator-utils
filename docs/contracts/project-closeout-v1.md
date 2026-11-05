@@ -4,6 +4,34 @@ Decisión del usuario: conservar fuentes originales y finales. Los intermedios
 identificados se descartan sin respaldo, con consentimiento explícito; es la
 excepción nueva a la regla de exigir copia de todo. Lo desconocido se conserva.
 
+## Actualización vigente · 2026-11-05
+
+**Sin gestión por canal**, por decisión del usuario. Estar en la carpeta de
+publicados (`subidos`, o la elegida por perfil) es su declaración de publicación.
+También puede marcarse `published` por final desde el proyecto, sin moverlo
+primero a esa carpeta. Guardar sólo registra decisiones; publicación y respaldo
+verificado son estados independientes. Un archivo modificado exige revisión.
+
+**Respaldar publicados…** prepara sólo los finales elegidos publicados: copia,
+verifica y retira sus copias de trabajo. No exige «ya no habrá más» ni toca raws
+o renders, y no termina el proyecto. **Revisar liberación** mantiene las puertas
+del cierre completo: requisitos, publicación y declaración de entregas completas.
+En la revisión, el botón final aplica el plan sin un segundo modal; el descarte
+de intermedios y dependencias externas requiere la casilla explícita de revisión.
+
+`closure_save.finals[]` añade `published` opcional; el booleano global anterior
+sigue siendo compatible como declaración de todas las elegidas. `closure_plan`
+añade `release_work` (por defecto true). Los planes nuevos registran
+`closure_finish`; false sólo libera finales. `closure_apply` devuelve también
+`closure_settings` con las asociaciones actualizadas a las ubicaciones de archivo.
+El estado terminal, esas asociaciones y el evento de cierre se publican en una
+sola transacción SQLite, para poder reanudar tras una interrupción sin confundir
+un cambio propio con una nueva decisión humana. Los recibos previos se conservan. Guardar decisiones registra `project_delivery_decision` con el digest previo y la selección nueva en la misma transacción. El movimiento independiente de finales mantiene la exclusión de Clipper durante la consulta de dependencias y todo el retiro.
+
+La ruta por rol de una entrega seleccionada se resuelve antes del digest y
+preflight, también cuando un vertical y un horizontal comparten nombre. Un
+contenido distinto en el destino bloquea; nunca se reemplaza silenciosamente.
+
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`
@@ -64,8 +92,8 @@ Accesible tanto desde la app como por `media rpc`:
 | --- | --- |
 | `closure_candidates` | `project_id`, `query?`; nombres/tamaños, roles sugeridos y decisiones. Máximo 1000 resultados con `truncated`; sin hashes. |
 | `closure_overview` | Decisiones y recordatorios, sólo metadata. |
-| `closure_save` | `project_id`, `required[]`, `no_more`, `published`, `finals[{volume_id,path,role}]`, `profile_default?`; guarda decisiones, no mueve archivos. |
-| `closure_plan` | `project_id`, `archive`, `work`; comprueba hashes y registra el plan. |
+| `closure_save` | `project_id`, `required[]`, `no_more`, `published`, `finals[{volume_id,path,role,published?}]`, `profile_default?`; guarda decisiones, no mueve archivos. |
+| `closure_plan` | `project_id`, `archive`, `work`, `release_work?` (true por defecto); comprueba hashes y registra el plan. |
 | `closure_apply` | `plan_id`, `digest`, `confirm_discard: true`; ejecuta el cierre. Sin consentimiento también se bloquea un intento por `apply_release`. |
 | `closure_progress` | `plan_id`; etapa y conteos reales del retiro. Sin promesa de porcentaje global ni ETA. |
 

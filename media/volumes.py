@@ -201,8 +201,10 @@ def card_hint(root, catalog=None, identity=None):
             'used_bytes': used, 'capacity_bytes': capacity}
     if catalog is not None and identity and identity.get('volume_uuid'):
         row = catalog.db.execute(
-            "SELECT json_extract(plan,'$.units[0].project') AS project, json_extract(plan,'$.units[0].profile') AS profile "
-            "FROM jobs WHERE json_extract(plan,'$.source_identity.volume_uuid')=? ORDER BY created_at DESC LIMIT 1",
+            "SELECT json_extract(unit.value,'$.project') AS project, json_extract(unit.value,'$.profile') AS profile "
+            "FROM jobs, json_each(jobs.plan,'$.units') AS unit "
+            "WHERE json_extract(jobs.plan,'$.source_identity.volume_uuid')=? "
+            "AND coalesce(json_extract(unit.value,'$.support'),0)=0 ORDER BY jobs.created_at DESC,unit.key LIMIT 1",
             (identity['volume_uuid'],)).fetchone()
         if row and row['project']:
             hint['last_project'], hint['last_profile'] = row['project'], row['profile'] or ''

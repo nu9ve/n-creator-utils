@@ -24,7 +24,7 @@ extension Model {
             self.closureTruncated = data["truncated"].bool
         }
     }
-    func saveProjectClosure(required: Set<String>, noMore: Bool, published: Bool, finals: [JSONValue], profileDefault: Bool, review: Bool) {
+    func saveProjectClosure(required: Set<String>, noMore: Bool, published: Bool, finals: [JSONValue], profileDefault: Bool, review: Bool, releaseWork: Bool = true) {
         guard let item = closureProject else { return }
         let id = item["project_id"].string.isEmpty ? item["id"] : item["project_id"]
         operation(String(localized: "Comprobando cierre del proyecto"), scope: .space) {
@@ -32,7 +32,7 @@ extension Model {
             self.closureSettings = try await self.client!.call("closure_save", ["project_id": id, "required": .array(required.sorted().map { .string($0) }),
                 "no_more": .bool(noMore), "published": .bool(published), "finals": .array(finals), "profile_default": .bool(profileDefault)])
             if review {
-                self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work)])
+                self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work), "release_work": .bool(releaseWork)])
                 self.message = String(localized: "Cierre listo para revisar; no se ha movido ni borrado media")
             } else {
                 self.message = String(localized: "Entregas guardadas; no se ha movido ni borrado media")
@@ -51,7 +51,8 @@ extension Model {
             }
             defer { monitor.cancel() }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
-            self.message = String(localized: "Proyecto liberado; fuentes y finales conservados en el respaldo")
+            if let result = self.closurePlan, result["closure_settings"] != .null { self.closureSettings = result["closure_settings"] }
+            self.message = reviewed["closure_finish"] == .bool(false) ? String(localized: "Finales publicados respaldados") : String(localized: "Proyecto liberado; fuentes y finales conservados en el respaldo")
             self.captureChanged([])
             self.finalsCheckedAt = nil
         }
@@ -89,7 +90,6 @@ struct ProjectClosureSheet: View {
     @State private var picked: [String: JSONValue] = [:]
     @State private var query = ""
     @State private var discardConfirmed = false
-    @State private var confirm = false
     @State private var filesExpanded = true
     private let roles: [(String, LocalizedStringKey)] = [("horizontal", "Horizontal"), ("vertical", "Vertical"), ("thumbnail", "Thumbnail"), ("auxiliary", "Auxiliar")]
     private var projectID: String { model.closureProject?["project_id"].string ?? "" }
@@ -102,7 +102,7 @@ struct ProjectClosureSheet: View {
         let listed = Set(model.closureCandidates.map(key))
         return picked.values.filter { !listed.contains(key($0)) }.sorted { key($0) < key($1) } + model.closureCandidates
     }
-    private var ready: Bool { noMore && published && !required.isEmpty && required.isSubset(of: Set(picked.values.map { $0["role"].string })) }
+    private var ready: Bool { noMore && !picked.isEmpty && picked.values.allSatisfy { $0["published"].bool } && !required.isEmpty && required.isSubset(of: Set(picked.values.map { $0["role"].string })) }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Completar y liberar", subtitle: LocalizedStringKey(title))
@@ -123,12 +123,14 @@ struct ProjectClosureSheet: View {
                 } else if let plan = model.closurePlan {
                     if plan["state"].string != "completed" {
                         Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
-                        Button("Respaldar y liberar…", role: .destructive) { confirm = true }
+                        Button("Respaldar y liberar", role: .destructive) { model.applyProjectClosure() }
                             .buttonStyle(CreatorButtonStyle(prominent: true))
-                            .disabled(!discardConfirmed || !plan["consumers"]["blockers"].array.isEmpty)
+                            .disabled((plan["entries"].array.contains { $0["category"].string != "final" } && !discardConfirmed) || !plan["consumers"]["blockers"].array.isEmpty)
                     }
                 } else {
                     Button("Guardar") { save(review: false) }.disabled(required.isEmpty)
+                    Button("Respaldar publicados…") { save(review: true, releaseWork: false) }
+                        .disabled(required.isEmpty || !picked.values.contains { $0["published"].bool } || model.archive.isEmpty || model.work.isEmpty)
                     Button("Revisar liberación") { save(review: true) }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(!ready || model.archive.isEmpty || model.work.isEmpty)
                 }
@@ -138,11 +140,7 @@ struct ProjectClosureSheet: View {
         .interactiveDismissDisabled(model.busy)
         .onChange(of: model.closureSettings) { _, config in load(config) }
         .onAppear { load(model.closureSettings); query = title }
-        .confirmationDialog("¿Liberar el trabajo de este proyecto?", isPresented: $confirm) {
-            Button("Respaldar finales y liberar trabajo", role: .destructive) { model.applyProjectClosure() }
-        } message: {
-            Text("Se verifican fuentes y finales en el respaldo. Los intermedios listados se descartan sin copia. Se conservan el editable de Clipper, Final Cut y lo desconocido. El respaldo puede quedar como única réplica.")
-        }
+
     }
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -155,7 +153,9 @@ struct ProjectClosureSheet: View {
             Toggle("Usar estos requisitos como predeterminados del perfil", isOn: $profileDefault).font(.caption)
             HStack {
                 Toggle("Ya no habrá más entregas", isOn: $noMore)
-                Toggle("Ya publiqué todas las entregas elegidas", isOn: $published)
+                Toggle("Marcar las elegidas como publicadas", isOn: Binding(get: { !picked.isEmpty && picked.values.allSatisfy { $0["published"].bool } }, set: { value in
+                    for key in Array(picked.keys) { var item = picked[key]!.object; item["published"] = .bool(value); picked[key] = .object(item) }
+                }))
             }.toggleStyle(.checkbox)
             Text("Vincula los finales de este proyecto, también si ya están en el respaldo. Los nombres sólo sugieren; tú confirmas la selección y el tipo.").font(.caption).foregroundStyle(.secondary)
             HStack {
@@ -175,6 +175,9 @@ struct ProjectClosureSheet: View {
                             }.toggleStyle(.checkbox)
                             Spacer(minLength: 4)
                             if picked[key(item)] != nil {
+                                Toggle("Publicado", isOn: Binding(get: { picked[key(item)]?["published"].bool ?? false }, set: { value in
+                                    var next = picked[key(item)]!.object; next["published"] = .bool(value); picked[key(item)] = .object(next)
+                                })).toggleStyle(.checkbox).font(.caption)
                                 Picker("Tipo", selection: Binding(get: { picked[key(item)]?["role"].string ?? item["role"].string }, set: { value in
                                     var next = (picked[key(item)] ?? item).object; next["role"] = .string(value); picked[key(item)] = .object(next)
                                 })) {
@@ -194,9 +197,13 @@ struct ProjectClosureSheet: View {
     private func review(_ plan: JSONValue) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Label(plan["state"].string == "completed" ? "Proyecto liberado" : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
+                Label(plan["state"].string == "completed" ? (plan["closure_finish"] == .bool(false) ? "Finales respaldados" : "Proyecto liberado") : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
                 Text("\(plan["entries"].array.count) archivos · " + bytesLabel(plan["bytes"].double)).font(.title3)
-                Text("Sólo se conserva en el respaldo lo original y los finales. Los intermedios listados se descartan sin respaldarlos.").font(.callout)
+                if plan["closure_finish"] == .bool(false) {
+                    Text("Sólo se respaldan y retiran los finales publicados elegidos. Los raws y los intermedios se conservan.").font(.callout)
+                } else {
+                    Text("Sólo se conserva en el respaldo lo original y los finales. Los intermedios listados se descartan sin respaldarlos.").font(.callout)
+                }
                 Text("Clipper: el editable se conserva; elimínalo desde Clipper para retirar también su registro. Final Cut y el contenido desconocido se conservan.").font(.caption).foregroundStyle(.secondary)
                 if !plan["closure_copies"].array.isEmpty { Text("Finales por copiar y verificar: \(plan["closure_copies"].array.count)") }
                 ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in
@@ -221,7 +228,7 @@ struct ProjectClosureSheet: View {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
                 if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
-                if plan["state"].string != "completed" {
+                if plan["state"].string != "completed" && plan["entries"].array.contains(where: { $0["category"].string != "final" }) {
                     Toggle("Revisé la lista: los intermedios son descartables y ninguna otra edición necesita los archivos a retirar", isOn: $discardConfirmed)
                         .toggleStyle(.checkbox).disabled(model.busy)
                 }
@@ -234,10 +241,14 @@ struct ProjectClosureSheet: View {
     private func volumeName(_ value: JSONValue) -> String { model.volumes.first { $0["id"] == value["volume_id"] }?["name"].string ?? "" }
     private func load(_ config: JSONValue) {
         required = Set(config["required"].array.map(\.string)); noMore = config["no_more"].bool; published = config["published"].bool
-        picked = Dictionary(config["finals"].array.map { (key($0), $0) }, uniquingKeysWith: { _, new in new })
+        picked = Dictionary(config["finals"].array.map { item in
+            var value = item.object
+            if value["published"] == nil { value["published"] = .bool(config["published"].bool) }
+            return (key(item), JSONValue.object(value))
+        }, uniquingKeysWith: { _, new in new })
     }
-    private func save(review: Bool) {
-        model.saveProjectClosure(required: required, noMore: noMore, published: published,
-                                 finals: picked.keys.sorted().compactMap { picked[$0] }, profileDefault: profileDefault, review: review)
+    private func save(review: Bool, releaseWork: Bool = true) {
+        model.saveProjectClosure(required: required, noMore: noMore, published: false,
+                                 finals: picked.keys.sorted().compactMap { picked[$0] }, profileDefault: profileDefault, review: review, releaseWork: releaseWork)
     }
 }

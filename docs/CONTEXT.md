@@ -22,6 +22,8 @@ Existing disk layout should remain useful: ESSD `001_proyectos/e64_raw`, `001_pr
 
 Cierre de proyectos (primera entrega, 2026-11-04): conservar fuentes y finales; descartar `renders/` identificados sólo mediante plan y consentimiento explícitos. Proyectos vincula finales y declara entregas completas; el cierre reutiliza recibos, Transfer y relink/ACK existentes. Editables Clipper se conservan hasta API de retiro con desregistro; Final Cut queda fuera. [Contrato y límites](contracts/project-closeout-v1.md).
 
+Ingreso vigente (2026-11-05): Entrada → Flujo → Resultado, proyecto general como fallback, auxiliares ligados al ingreso y filas por bundle. Un botón autoriza el plan mostrado y la limpieza verificada; excepciones inline. Publicación = `subidos` o marca manual por final, sin canales. «Respaldar publicados» no termina el proyecto ni retira raws/renders. [Ingreso](contracts/ingest-flow-v1.md), [cierre](contracts/project-closeout-v1.md).
+
 ## Code map
 
 ```text

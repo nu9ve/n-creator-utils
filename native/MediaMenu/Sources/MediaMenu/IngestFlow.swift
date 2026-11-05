@@ -8,39 +8,54 @@ func bytesLabel(_ value: Double) -> String { ByteCountFormatter.string(fromByteC
 /// decisions; nothing but the planner's real requirements blocks «Revisar plan».
 struct IngestFlow: View {
     @Bindable var model: Model
-    @AppStorage("ingestFlow") private var flow = "quick"
+    @State private var inputOptionsExpanded = true
+    @State private var destinationOptionsExpanded = false
     var compact: Bool { model.presentation != .full }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             StepBar(model: model, compact: compact).padding(.horizontal, compact ? 14 : 20).padding(.vertical, 10)
-            if model.ingestStep == .content {
-                // The grid scrolls by itself and takes the remaining height.
-                VStack(alignment: .leading, spacing: 12) {
+            if [.source, .content].contains(model.ingestStep) {
+                VStack(alignment: .leading, spacing: 10) {
                     ErrorBanner(model: model)
+                    if compact {
+                        DisclosureGroup("Fuente y asignación", isExpanded: $inputOptionsExpanded) {
+                            SourceStep(model: model, compact: compact)
+                        }.fixedSize(horizontal: false, vertical: true)
+                    } else { SourceStep(model: model, compact: compact).fixedSize(horizontal: false, vertical: true) }
+                    Divider()
                     ContentStep(model: model, compact: compact)
                 }
                 .padding(.horizontal, compact ? 14 : 20).padding(.vertical, 12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            ErrorBanner(model: model).id("ingest-error")
-                            switch model.ingestStep {
-                            case .source, .content: SourceStep(model: model, compact: compact)
-                            case .destinations: DestinationsStep(model: model, compact: compact)
-                            case .review: ReviewStep(model: model)
-                            case .run: RunStep(model: model)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ErrorBanner(model: model)
+                        if model.ingestStep == .run { RunStep(model: model) }
+                        else {
+                            if model.sourceKind != "delivery" {
+                                DisclosureGroup("Destinos y opciones", isExpanded: $destinationOptionsExpanded) {
+                                    DestinationsStep(model: model, compact: compact).padding(.top, 8)
+                                }
                             }
+                            ReviewStep(model: model)
                         }
-                        .padding(.horizontal, compact ? 14 : 20).padding(.vertical, 14)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
-                    .onChange(of: model.error) { _, value in if !value.isEmpty { withAnimation { proxy.scrollTo("ingest-error", anchor: .top) } } }
+                    .padding(.horizontal, compact ? 14 : 20).padding(.vertical, 14)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .task(id: model.flowReviewKey) {
+                    try? await Task.sleep(for: .milliseconds(350))
+                    guard !Task.isCancelled, [.destinations, .review].contains(model.ingestStep), model.plan == nil,
+                          !model.busy, model.sourceKind != "delivery", model.canPrepareFlow else { return }
+                    model.reviewPlan()
+                }
+                .onAppear { if !model.canPrepareFlow { destinationOptionsExpanded = true } }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { IngestFooter(model: model, quick: flow != "guided") }
+        .safeAreaInset(edge: .bottom, spacing: 0) { IngestFooter(model: model) }
+        .onChange(of: model.contentLoaded) { _, loaded in if compact { inputOptionsExpanded = !loaded } }
+        .onAppear { if compact && model.contentLoaded { inputOptionsExpanded = false } }
     }
 }
 
@@ -59,13 +74,13 @@ struct StepBar: View {
     }
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(IngestStep.allCases) { step in
-                let current = model.ingestStep == step
+            ForEach([IngestStep.source, .destinations, .run]) { step in
+                let current = model.ingestStep == step || (step == .source && model.ingestStep == .content) || (step == .destinations && model.ingestStep == .review)
                 Button { model.goToStep(step) } label: {
                     HStack(spacing: 5) {
                         Image(systemName: done(step) && !current ? "checkmark.circle.fill" : step.symbol)
                             .foregroundStyle(done(step) && !current ? palette.control : (current ? palette.ink : palette.muted))
-                        if !compact || current { Text(step.title).lineLimit(1) }
+                        Text(step.title).lineLimit(1)
                     }
                     .font(.callout.weight(current ? .semibold : .regular))
                     .padding(.horizontal, 9).padding(.vertical, 5)
@@ -85,7 +100,6 @@ struct StepBar: View {
 
 struct IngestFooter: View {
     @Bindable var model: Model
-    let quick: Bool
     var body: some View {
         ActionFooter {
             if model.busy { ProgressView().controlSize(.small) }
@@ -96,27 +110,20 @@ struct IngestFooter: View {
                 }
             }
             Spacer(minLength: 0)
-            if model.ingestStep > .source && model.ingestStep != .run {
+            if [.destinations, .review].contains(model.ingestStep) {
                 Button("Atrás") { model.previousStep() }.disabled(model.ingestLocked)
             }
             switch model.ingestStep {
-            case .source, .content, .destinations:
-                if model.ingestStep == .source && model.presentation == .full {
-                    Button("Ver contenido") { model.goToStep(.content) }.disabled(model.source.isEmpty)
-                }
-                if !quick && model.ingestStep != .destinations {
-                    Button("Siguiente") { model.nextStep() }.buttonStyle(CreatorButtonStyle(prominent: true))
-                } else {
-                    Button { model.reviewPlan() } label: { Label("Revisar plan", systemImage: "checklist") }
-                        .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || !model.planBlockers.isEmpty)
-                }
-            case .review:
-                if model.plan != nil {
-                    Button { model.confirmApply = true } label: { Label("Ejecutar…", systemImage: "arrow.right.circle.fill") }
+            case .source, .content:
+                Button("Continuar al flujo", systemImage: "arrow.right") { model.goToStep(.destinations) }
+                    .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || model.source.isEmpty)
+            case .destinations, .review:
+                if let plan = model.plan {
+                    Button(plan["cleanup"].bool || plan["release_stalker_source"].bool ? "Respaldar y liberar origen" : "Respaldar y conservar origen", systemImage: "arrow.right.circle.fill") { model.apply() }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy)
                 } else {
-                    Button { model.reviewPlan() } label: { Label("Revisar plan", systemImage: "checklist") }
-                        .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || !model.planBlockers.isEmpty)
+                    Button("Preparar plan", systemImage: "checklist") { model.reviewPlan() }
+                        .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || !model.canPrepareFlow)
                 }
             case .run:
                 if model.busy { Button("Cancelar") { model.cancel() } }
@@ -132,14 +139,20 @@ struct SourceStep: View {
     @Bindable var model: Model
     let compact: Bool
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 8) {
             SectionTitle("Fuente")
+            if !model.ingestDrafts.isEmpty {
+                Menu("Retomar otro ingreso de esta sesión") {
+                    ForEach(model.ingestDrafts.keys.sorted(), id: \.self) { path in
+                        Button(URL(fileURLWithPath: path).lastPathComponent) { model.restoreIngestDraft(path) }
+                    }
+                }.fixedSize()
+            }
             SourceTiles(model: model, compact: compact)
             StalkerFolderChoice(model: model)
             SectionTitle("Proyecto")
             ProjectField(model: model, compact: compact)
             DetailsRow(model: model, compact: compact)
-            DestinationSummary(model: model)
         }.disabled(model.ingestLocked)
     }
 }
@@ -163,7 +176,7 @@ struct SourceTiles: View {
                            subtitle: hint == .null ? String(localized: "SD conectada") : model.familyLabel(hint["family"].string) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
                            detail: hint == .null ? nil : model.recommendationLabel(hint["recommendation"].string),
                            eject: { model.eject(card["path"].string) }) {
-                    model.useCard(card["path"].string)
+                    model.useCard(card["path"].string); model.discover()
                 }
             }
             // Every library is one Stalker: the folders only matter once there is something in two of them.
@@ -370,12 +383,13 @@ struct DestinationSummary: View {
 struct ContentStep: View {
     @Bindable var model: Model
     let compact: Bool
-    private let filters: [(String, LocalizedStringKey, String)] = [("", "Todo", "square.grid.2x2"), ("video", "Videos", "film"), ("image", "Fotos", "photo"),
+    private let filters: [(String, LocalizedStringKey, String)] = [("", "Principal", "square.grid.2x2"), ("all", "Todos los archivos", "doc.on.doc"), ("video", "Videos", "film"), ("image", "Fotos", "photo"),
         ("raw_image", "RAW", "camera.aperture"), ("audio", "Audio", "waveform"), ("drone", "Dron", "airplane"), ("360", "360°", "view.360"),
         ("stalker", "Stalker", "record.circle"), ("support", "Auxiliares", "doc"), ("dji", "DJI sin clasificar", "questionmark.circle")]
     private func count(_ key: String) -> Int {
         switch key {
-        case "": return model.units.count
+        case "": return model.units.filter { !$0.isSupport }.count
+        case "all": return model.units.count
         case "dji": return model.units.filter(\.needsCameraReview).count
         default: return model.units.filter { $0.displayCategory == key }.count
         }
@@ -400,6 +414,10 @@ struct ContentStep: View {
                 Text(bytesLabel(model.visibleUnits.reduce(0) { $0 + $1.bytes })).font(.caption).foregroundStyle(.secondary)
                 Button(model.units.isEmpty ? "Inspeccionar" : "Actualizar", systemImage: "arrow.clockwise") { model.discover() }
                     .disabled(model.source.isEmpty || model.discoveryLoading).controlSize(.small)
+            }
+            let support = model.units.filter(\.isSupport)
+            if !support.isEmpty && model.typeFilter != "support" && model.typeFilter != "all" {
+                Text("Datos de cámara incluidos en el respaldo: \(support.reduce(0) { $0 + $1.paths.count }) archivos").font(.caption).foregroundStyle(.secondary)
             }
             if model.discoveryLoading { HStack { ProgressView().controlSize(.small); Text("Leyendo archivos… Las miniaturas se cargan conforme aparecen.").font(.caption) } }
             if !model.discoveryError.isEmpty { HStack { Label(model.discoveryError, systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Button("Reintentar") { model.discover() } } }
@@ -433,8 +451,11 @@ struct AssignPanel: View {
                 if !model.gridSelection.isEmpty { Button("Quitar selección") { model.gridSelection = [] }.buttonStyle(.link).font(.caption) }
                 else if !model.visibleUnits.isEmpty { Button("Seleccionar todo") { model.gridSelection = Set(model.visibleUnits.map(\.id)) }.buttonStyle(.link).font(.caption) }
             }
-            if compact {
-                HStack(spacing: 6) { projectField; metadataMenus }
+            if !model.units.contains(where: { model.targetIDs.contains($0.id) && !$0.isSupport }) {
+                Text("Los auxiliares se respaldan con el ingreso; no necesitan proyecto propio.").font(.caption).foregroundStyle(.secondary)
+            } else if compact {
+                projectField
+                HStack(spacing: 6) { metadataMenus; Spacer(minLength: 0) }
                 HStack(spacing: 6) { chips; Spacer(minLength: 0); copyControls }
             } else {
                 projectField
@@ -451,7 +472,7 @@ struct AssignPanel: View {
     private var projectField: some View {
         HStack(spacing: 6) {
             TextField("Proyecto", text: $title).onSubmit(applyTitle)
-            Button("Aplicar", action: applyTitle).disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button("Aplicar", action: applyTitle).fixedSize().disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
         }
     }
     private var chips: some View {
@@ -507,9 +528,17 @@ struct DestinationsStep: View {
                 VolumeChoices(model: model, role: "work", selection: $model.work, allowNone: true)
                 Toggle("Si el SSD no está conectado, dejar la copia para editar pendiente", isOn: $model.deferWork)
             }
+            if !model.noWork && !model.volumes.contains(where: { $0["id"].string == model.work && $0["online"].bool }) {
+                Toggle("Esta vez, continuar sin el SSD y respaldar primero", isOn: $model.archiveExceptionConfirmed).toggleStyle(.checkbox)
+            }
             SectionTitle("Después de verificar")
-            Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.selectedCard == nil)
-            Text("Sony: se borran los clips y la tarjeta se formatea en la cámara. Stalker: el original se libera según Ajustes → Capturas.").font(.caption).foregroundStyle(.secondary)
+            if model.sourceKind == "stalker" {
+                Text(model.retainStalkerSource ? "El original Stalker se conserva según Ajustes." : "Después de verificar se revisa Clipper y se libera el original Stalker; si algo falla, se conserva.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.selectedCard == nil)
+                Text("Sony: se borran los clips verificados; los índices se conservan hasta formatear en la cámara.").font(.caption).foregroundStyle(.secondary)
+            }
             ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
             Button("Registrar otro disco…") { model.openSettings?("disks") }.buttonStyle(.link)
         }.disabled(model.ingestLocked)
@@ -582,7 +611,7 @@ struct PlanReview: View {
             let bytes = files.reduce(0.0) { $0 + $1["stamp"]["size"].double }
             VStack(alignment: .leading, spacing: 10) {
                 Label("Plan revisable · \(files.count) archivos · \(bytesLabel(bytes))", systemImage: "checklist").font(.system(.title3, design: .serif).weight(.semibold))
-                let projects = Dictionary(grouping: plan["units"].array) { $0["project"].string }
+                let projects = Dictionary(grouping: plan["units"].array.filter { !$0["support"].bool }) { $0["project"].string }
                 FlowSummary(items: projects.keys.sorted().map { title in
                     let count = projects[title, default: []].count
                     return count > 1 ? "\(title) (\(count))" : title
@@ -602,16 +631,8 @@ struct PlanReview: View {
                     let skipped = plan["already_archived"].array.count
                     if skipped > 0 { Label("Ya en el respaldo con igual nombre y tamaño; se quedan en la carpeta: \(skipped)", systemImage: "equal.circle").font(.callout) }
                 }
-                DisclosureGroup("Rutas definitivas por archivo") {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(plan["preview"].array.prefix(400).enumerated()), id: \.offset) { _, row in
-                            VStack(alignment: .leading) {
-                                Text(row["source"].string)
-                                Text(row["archive_path"].string).foregroundStyle(.secondary)
-                                if row["work_path"] != .null { Text(row["work_path"].string).foregroundStyle(.secondary) }
-                            }.font(.caption).textSelection(.enabled)
-                        }
-                    }.padding(.top, 6)
+                ForEach(Array(plan["units"].array.enumerated()), id: \.offset) { _, unit in
+                    PlannedUnitRow(model: model, plan: plan, unit: unit)
                 }
             }
             .modifier(Panel(padding: 14))
@@ -672,55 +693,5 @@ struct RunStep: View {
                 }
             }
         }
-    }
-}
-
-// MARK: Sheets
-
-struct ApplyConfirmation: View {
-    @Bindable var model: Model
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("¿Ejecutar el plan revisado?").font(.system(.title3, design: .serif).weight(.semibold))
-            if let plan = model.plan {
-                let files = plan["files"].array
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Copiar y verificar \(files.count) archivos (\(bytesLabel(files.reduce(0.0) { $0 + $1["stamp"]["size"].double })))", systemImage: "doc.on.doc")
-                    Label("Respaldo: \(model.volume(plan["archive_id"].string)?["name"].string ?? "")", systemImage: "externaldrive.fill")
-                    if plan["work_id"] != .null { Label("Copia para editar: \(model.volume(plan["work_id"].string)?["name"].string ?? "")", systemImage: "externaldrive") }
-                    if plan["cleanup"].bool || plan["release_stalker_source"].bool {
-                        Label(PlanReview(model: model).cleanupText(plan), systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                    }
-                }.font(.callout)
-                Text("Nada se borra antes de verificar todos los destinos requeridos.").font(.caption).foregroundStyle(.secondary)
-            }
-            HStack {
-                Spacer()
-                Button("Cancelar", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Ejecutar") { dismiss(); model.apply() }
-                    .buttonStyle(CreatorButtonStyle(prominent: true)).keyboardShortcut(.defaultAction)
-            }
-        }.padding(20).frame(width: 440)
-    }
-}
-
-struct ArchiveOnlySheet: View {
-    @Bindable var model: Model
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Confirmar sólo respaldo").font(.system(.title3, design: .serif).weight(.semibold))
-            Text(model.noWork
-                 ? "Se verificará el respaldo en el disco elegido, sin copias para editar ni pendientes. La SD sólo se limpia si lo activaste y después de verificar."
-                 : "El SSD no está conectado: no recibirá una copia ahora. La copia para editar quedará pendiente u omitida según elegiste; revisa el plan antes de ejecutar.")
-                .fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Spacer()
-                Button("Cancelar", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Confirmar sólo respaldo") { dismiss(); model.makePlan(archiveOnly: true) }
-                    .buttonStyle(CreatorButtonStyle(prominent: true)).keyboardShortcut(.defaultAction)
-            }
-        }.padding(20).frame(width: 420)
     }
 }

@@ -6,9 +6,9 @@ nüün es la app para macOS de este repositorio, `n-creator-utils`. Hoy su área
 
 > **En desarrollo.** El motor de media y la app tienen pruebas y una instalación local de desarrollo, pero aún faltan validación física, endurecimiento y distribución. Consulta el [estado actual](docs/STATUS.md) y los [requisitos para una release](docs/release.md).
 
-<img src="docs/images/nuun-compacto.png" alt="Vista compacta de nüün en el paso Fuente y proyecto, con tarjetas SD sugeridas, proyecto y resumen de destinos" width="440">
+<img src="docs/images/nuun-compacto.png" alt="Vista compacta de nüün en Flujo, con el plan agrupado de respaldo, copia de trabajo y liberación verificada" width="440">
 
-*Ingreso por pasos en la vista compacta: eliges la tarjeta, nombras el proyecto y revisas el plan. Datos de ejemplo.*
+*Entrada → Flujo → Resultado: destinos y plan juntos, con una autorización final para respaldar y liberar. Ventana nativa y datos ficticios.*
 
 ## Media y almacenamiento
 

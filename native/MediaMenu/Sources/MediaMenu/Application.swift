@@ -41,8 +41,9 @@ private extension NSToolbarItem.Identifier {
         }
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification, NSWorkspace.didWakeNotification] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.model.mountChanged() }
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+                let arrival = notification.name == NSWorkspace.didMountNotification ? (notification.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL)?.path : nil
+                Task { @MainActor in self?.model.mountChanged(arrival: arrival) }
             })
         }
         if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().delegate = self }
@@ -287,7 +288,7 @@ private extension NSToolbarItem.Identifier {
     @objc func previousStep() { model.previousStep() }
     @objc func nextStep() { model.nextStep() }
     @objc func reviewPlan() { model.route = .ingest; model.reviewPlan() }
-    @objc func applyPlan() { model.route = .ingest; model.ingestStep = .review; model.confirmApply = true }
+    @objc func applyPlan() { model.route = .ingest; model.ingestStep = .review; model.apply() }
     @objc func cancel() { model.cancel() }
     @objc func quit() { NSApp.terminate(nil) }
 

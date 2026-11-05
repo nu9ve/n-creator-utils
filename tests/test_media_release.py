@@ -253,6 +253,24 @@ class CaptureWorkflowTests(WorkflowFixture):
         with mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps()):
             result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
         self.assertEqual(result['state'], 'completed')
+
+        self.assertEqual(len(result['stalker_release']['released']), 2)
+        self.assertTrue(all(not folder.exists() for folder, _ in folders))
+
+    def test_stalker_global_progress_keeps_completed_copy_and_each_session(self):
+        folders = [self.session(), self.session()]
+        plan = self.plan(source_kind='stalker', cleanup=False)
+        events, original = [], self.catalog.set
+        def record(key, value):
+            if key == 'progress:' + plan['id']: events.append(copy.deepcopy(value))
+            return original(key, value)
+        with mock.patch.object(self.catalog, 'set', side_effect=record), mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps()):
+            result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
+        values = [e['global_fraction'] for e in events]
+        self.assertEqual(values, sorted(values))
+        self.assertTrue(any(e['phase'] == 'releasing_stalker' and 0 < e['global_fraction'] < 1 for e in events))
+        self.assertEqual(values[-1], 1)
+        self.assertEqual(result['state'], 'completed')
         self.assertEqual(len(result['stalker_release']['released']), 2)
         self.assertTrue(all(not folder.exists() for folder, _ in folders))
 

@@ -6,6 +6,8 @@ Base: `master` en `b501864`, [landing](../../../../landings/nuun/app/LayerStory.
 
 Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contracts/project-closeout-v1.md). El diagnóstico original es histórico donde esa entrega lo sustituye: ya existen estados y cierre revisado de raws/renders/finales. No incluye borrar editables Clipper ni operar sobre Final Cut.
 
+Actualización 2026-11-05: [Ingreso directo](../contracts/ingest-flow-v1.md) implementa Entrada → Flujo → Resultado, revisión agrupada, autorización única, progreso global y correcciones de proyecto/auxiliares/popup/centrado. [Cierre actualizado](../contracts/project-closeout-v1.md#actualización-vigente--2026-11-05): `subidos` o marca manual por final, sin gestión por canal. Respaldar publicados puede preceder al cierre completo; raws/renders se conservan hasta esa acción explícita.
+
 ## Diagnóstico
 
 El motor de ingreso está bastante adelantado. Lo que falta para cerrar el ciclo que promete la landing son tres conceptos que hoy no existen:
@@ -125,7 +127,7 @@ Para drones, fotos y tomas de prueba. Hoy toda unidad descubierta se archiva. Pr
 | Audio grabado | SD (H6) | MEDIA + SSD1 | Editor / SoundShop | Tras verificar | Fixtures |
 | Dron | SD | MEDIA, con categoría explícita y selección | Atlas, por handoff | Tras verificar | Fixtures; Atlas sin iniciar |
 | 360 / acción | SD | MEDIA + trabajo | Clipper | Tras verificar | Fixtures |
-| Entregas | Carpeta de finales | `002_finales` | Publicación por canal | Nunca automática | Motor sí, UI no |
+| Entregas | Carpeta de finales | `002_finales` | `subidos` o marca manual Publicado, sin canales | Movimiento/liberación explícitos | UI de publicados y cierre; aceptación física pendiente |
 | Música y samples | Carpeta viva | MEDIA, incremental | curado / SoundShop | Nunca | Falta |
 | Descargas y stems | Proveedor / derivado | Staging, luego colección | Registrar procedencia | Nunca | CLI aislada |
 | Material viejo | Carpeta del SSD | MEDIA sin renombrar | Adoptar a proyecto | Liberación explícita | Parcial |
@@ -161,7 +163,7 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 ### Finales y `subidos`
 
-`002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`e64/03_subidos`, `9logs/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es una señal de la persona: no registra canal ni prueba publicación.
+`002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`e64/03_subidos`, `9logs/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es la declaración de publicación de la persona; no es evidencia externa ni prueba de respaldo íntegro. También puede marcarse Publicado desde el proyecto sin mover primero a `subidos`.
 
 **Ruta implementada (2026-11-01):** **Mover al respaldo…** arma un plan normal con SHA-256 y, en la misma ejecución, libera el disco de edición con la limpieza verificada de las tarjetas: vuelve a leer cada original, comprueba la copia y lo borra, con registro por archivo. Por defecto mueve, porque respaldar lo publicado es para recuperar espacio; **Conservar en el disco de edición**, en la revisión, lo evita. Mover exige discos físicos distintos y se bloquea si Clipper reporta que usa esos archivos. **Desde el 2026-11-04**, Clipper desconocido o con proyectos offline también conserva el origen; ya no se acepta la excepción anterior.
 

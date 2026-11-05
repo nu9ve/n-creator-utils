@@ -49,7 +49,7 @@ def created_year(path):
     return str(datetime.datetime.fromtimestamp(getattr(info, 'st_birthtime', info.st_mtime)).year)
 
 
-def route_files(archive, profile, source, files):
+def route_files(archive, profile, source, files, role=None):
     """Where each published file goes, as `<profile>/` in the archive's finals: subfolders stay, loose masters go under their year.
 
     Skips what the profile's archive folder already has elsewhere under the same name and size, and keeps what sits exactly
@@ -63,8 +63,10 @@ def route_files(archive, profile, source, files):
         rel = file['path']
         name = Path(rel).name
         target = profile + '/' + (rel if '/' in rel else (year_in_name(name) or created_year(source / rel)) + '/' + name)
+        if role in {'vertical', 'thumbnail'}:
+            target = profile + '/' + ('shorts' if role == 'vertical' else 'thumbnails') + '/' + name
         found = existing.get((name, file['stamp']['size']))
-        if found is not None and found != root / target:
+        if role is None and found is not None and found != root / target:
             skipped.append(rel)
             continue
         require(target.lower() not in taken, 'destination_conflict', 'Two finals would land on ' + target)

@@ -565,7 +565,8 @@ class NamedLayoutTests(MediaFixture):
         self.assertEqual(plan['layout']['PRIVATE/M4ROOT/CLIP/C0001M01.XML'], {'archive': 'metadata/sony/2026/10/' + name + '.XML', 'work': None})
         self.assertEqual(plan['layout']['PRIVATE/M4ROOT/THMBNL/C0001T01.JPG']['work'], None)
         self.assertTrue(plan['layout']['AVF_INFO/AVIN0001.BNP']['archive'].startswith(
-            'metadata/sony/support/2026/10/2410-194650_MX-DEBLOATEANDO-MI-TELE_SONYA6400/AVF_INFO/'))
+            'metadata/sony/support/2026/10/2410-194650_MX-ingest-'))
+        self.assertTrue(plan['layout']['AVF_INFO/AVIN0001.BNP']['archive'].endswith('/AVF_INFO/AVIN0001.BNP'))
         self.assertEqual(self.run_plan(plan)['state'], 'source_retained')
         work_files = sorted(p.relative_to(self.work).as_posix() for p in self.work.rglob('*') if p.is_file() and '.ncreator' not in p.parts)
         self.assertEqual(work_files, ['001_proyectos/e64_raw/debloateando-mi-tele/' + name + '.MP4'])

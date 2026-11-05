@@ -161,15 +161,13 @@ class Service:
             from .workspaces import save_profile
             return save_profile(self.catalog, **params)
         if method == 'discover':
-            from .planner import scan, group_key, pending_stalker_files
+            from .planner import scan, grouped_files, pending_stalker_files
             from .layout import kind_of, stalker_facts
             from .common import read_json
             files, bundles, skipped = scan(params['source'], skip_active=True, cancel=self.cancel, stalker_only=params.get('source_kind') == 'stalker')
             if params.get('source_kind') == 'stalker' and params.get('archive'):
                 files, bundles = pending_stalker_files(self.catalog, self.catalog.volume(params['archive']), files, bundles)
-            groups = {}
-            for file in files:
-                groups.setdefault(group_key(file), []).append(file)
+            groups = grouped_files(files)
             units = []
             for key, members in groups.items():
                 evidence = [e for f in members for e in f['evidence']]
@@ -305,9 +303,13 @@ class Service:
     def _apply_ingest(self, plan, reviewed_digest):
         if plan.get('cleanup') and plan.get('source_kind') == 'delivery':
             from .finals import clipper_blockers
-            blockers = clipper_blockers(self.catalog, plan['source'])
-            require(not blockers, 'source_in_use', 'Clipper uses these finals: ' + '; '.join(blockers[:3]))
-        result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
+            from .clipper import release_guard
+            with release_guard(self.catalog):
+                blockers = clipper_blockers(self.catalog, plan['source'])
+                require(not blockers, 'source_in_use', 'Clipper uses these finals: ' + '; '.join(blockers[:3]))
+                result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
+        else:
+            result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
         release_summary = None
         if plan.get('release_stalker_source') and result['state'] in {'source_retained', 'completed'}:
             release_summary = self._release_stalker_sources(plan)
@@ -330,7 +332,10 @@ class Service:
         units = [unit for unit in ingest_plan['units'] if unit.get('kind') == 'stalker_session']
         summary = {'status': 'released', 'released': [], 'retained': []}
         last_progress = {'at': 0.0, 'stage': None}
+        overall = self.catalog.get('progress:' + ingest_plan['id'], {})
+        release_done = 0
         for index, unit in enumerate(units):
+            release_plan = None
             source = Path(ingest_plan['source']).expanduser().absolute()
             if unit.get('bundle') and unit['bundle'] != '.':
                 source = source / unit['bundle']
@@ -345,9 +350,15 @@ class Service:
                 force = stage != last_progress['stage']
                 if not force and current - last_progress['at'] < 1:
                     return
-                value = dict(base_progress)
+                value = dict(overall, **base_progress)
                 value.update(details)
                 value['stage'] = stage
+                if 'global_total' in overall:
+                    done = 0
+                    if release_plan and stage == 'releasing_originals':
+                        done = sum(e['stamp']['size'] for e in release_plan['entries'][:details.get('files_done', 0)])
+                    overall['global_done'] = max(overall.get('global_done', 0), overall['backup_budget'] + release_done + done)
+                    value.update(global_done=overall['global_done'], global_fraction=min(0.999, overall['global_done'] / max(1, overall['global_total'])), eta_seconds=None)
                 self.catalog.set('progress:' + ingest_plan['id'], value)
                 last_progress.update(at=current, stage=stage)
 
@@ -400,8 +411,11 @@ class Service:
                             summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
                                                         'reason': 'La liberación no terminó; el original se conserva para reintentar'})
             finally:
+                if any(s['session_id'] == unit.get('session_id') for s in summary['released']):
+                    release_done += sum(f['stamp']['size'] for f in ingest_plan['files'] if f['unit_id'] == unit['id'])
+                update_progress('session_finished')
                 self.catalog.set('progress:' + ingest_plan['id'], {
-                    **base_progress, 'sessions_done': index + 1, 'stage': 'session_finished',
+                    **self.catalog.get('progress:' + ingest_plan['id'], {}), 'sessions_done': index + 1, 'stage': 'session_finished',
                 })
                 last_progress['stage'] = 'session_finished'
                 last_progress['at'] = time.monotonic()
@@ -412,7 +426,9 @@ class Service:
             summary['status'] = 'released'
             self.catalog.state(ingest_plan['id'], 'completed')
         self.catalog.set('progress:' + ingest_plan['id'], {
+            **self.catalog.get('progress:' + ingest_plan['id'], {}),
             'job_id': ingest_plan['id'], 'phase': 'stalker_release_done',
             'sessions_total': len(units), 'sessions_done': len(units),
+            **({'global_fraction': 1.0, 'global_done': overall.get('global_total', 0)} if not summary['retained'] else {}),
         })
         return summary

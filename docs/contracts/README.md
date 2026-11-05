@@ -6,6 +6,8 @@ Fuera de media, y para cualquier app nativa de nu9ve: [apps de macOS v1](macos-a
 
 Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, finales vinculados, descarte confirmado de renders y límites de Clipper/Final Cut.
 
+[Ingreso directo](ingest-flow-v1.md), 2026-11-05: tres pantallas, soporte sin proyecto editorial, una autorización del plan y progreso global.
+
 ## Cierre contractual vigente · 2026-10-29
 
 Nüün incluye delivery completo en sources/handoff, reenlaza por handoff de destino

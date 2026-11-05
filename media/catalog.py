@@ -72,6 +72,16 @@ class Catalog:
         with self.db:
             self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)', (key, canonical(value).decode()))
 
+    def set_many(self, values, event=None):
+        """Publish related human metadata and its terminal journal event atomically."""
+        with self.db:
+            self.db.executemany('INSERT OR REPLACE INTO metadata VALUES(?,?)',
+                                [(key, canonical(value).decode()) for key, value in values.items()])
+            if event:
+                job_id, kind, payload = event
+                self.db.execute('INSERT INTO events(job_id,kind,payload,created_at) VALUES(?,?,?,?)',
+                                (job_id, kind, canonical(payload).decode(), now()))
+
     def get(self, key, default=None):
         row = self.db.execute('SELECT value FROM metadata WHERE key=?', (key,)).fetchone()
         return json.loads(row[0]) if row else default

@@ -167,3 +167,82 @@ class ClosureTests(WorkflowFixture):
         with self.assertRaisesRegex(MediaError, 'Confirma'):
             apply_release(self.catalog, self.backend, plan['id'], plan['digest'])
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
+
+    def test_published_folder_is_declaration_but_not_a_backup(self):
+        selected = self.work / '002_finales/e64/03_subidos/intro-publicado.mov'
+        selected.parent.mkdir(parents=True); selected.write_bytes(b'published final')
+        found = next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files'] if f['volume_id'] == self.w['id'])
+        self.assertTrue(found['published'])
+        self.assertFalse(found['archived'])
+        config = self.configure(selected, self.w, published=False)
+        self.assertTrue(config['published'])
+        self.assertTrue(selected.exists())
+        result = self.apply(self.plan_close())
+        saved = closure.settings(self.catalog, self.project_id)
+        self.assertEqual(saved['finals'][0]['volume_id'], self.a['id'])
+        self.assertTrue(saved['finals'][0]['published'])
+        self.assertTrue((self.archive / saved['finals'][0]['path']).exists())
+        self.assertEqual(result['state'], 'completed')
+
+    def test_individual_mark_outside_published_folder_and_one_unpublished_blocks_closure(self):
+        selected = self.work / '002_finales/e64/intro-publicado.mov'
+        selected.parent.mkdir(parents=True); selected.write_bytes(b'not yet published')
+        item = {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'horizontal', 'published': False}
+        self.configure(published=False, finals=[item])
+        with self.assertRaisesRegex(MediaError, 'Confirma'): self.plan_close()
+        item['published'] = True
+        config = self.configure(published=False, finals=[item])
+        self.assertTrue(config['published'])
+        self.assertTrue(selected.exists())
+        self.assertTrue(next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files'] if f['volume_id'] == self.w['id'])['published'])
+        self.assertTrue(self.plan_close()['closure_copies'])
+
+    def test_backup_published_finals_before_project_completion_preserves_work(self):
+        published = self.work / '002_finales/e64/intro-published.mov'
+        waiting = self.work / '002_finales/e64/intro-waiting.mov'
+        published.parent.mkdir(parents=True); published.write_bytes(b'published'); waiting.write_bytes(b'waiting')
+        items = [{'volume_id': self.w['id'], 'path': str(p.relative_to(self.work)), 'role': 'horizontal', 'published': flag}
+                 for p, flag in [(published, True), (waiting, False)]]
+        self.configure(no_more=False, published=False, finals=items)
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        self.assertEqual({e['category'] for e in plan['entries']}, {'final'})
+        self.assertEqual(len(plan['entries']), 1)
+        self.apply(plan)
+        self.assertFalse(published.exists()); self.assertTrue(waiting.exists())
+        self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
+        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
+        self.assertIsNone(self.catalog.get('project-released:' + self.project_id))
+        config = closure.settings(self.catalog, self.project_id)
+        self.assertFalse(config['no_more']); self.assertFalse(config['published'])
+        self.assertEqual(config['finals'][0]['volume_id'], self.a['id'])
+        for item in config['finals']: item['published'] = True
+        self.configure(no_more=True, published=False, finals=config['finals'])
+        self.assertEqual(self.apply(self.plan_close())['state'], 'completed')
+        self.assertFalse((self.editor / 'renders/intermediate.mov').exists())
+
+    def test_terminal_metadata_failure_does_not_strand_a_journaled_release(self):
+        import sqlite3
+        from media.common import digest
+        plan = self.plan_close()
+        before = digest(closure.settings(self.catalog, self.project_id))
+        # Abort after some metadata rows were inserted, simulating interruption at final publication.
+        self.catalog.db.execute("CREATE TRIGGER fail_close BEFORE INSERT ON metadata WHEN NEW.key='project-state:" + self.project_id + "' BEGIN SELECT RAISE(ABORT,'fixture interruption'); END")
+        with self.assertRaises(sqlite3.IntegrityError): self.apply(plan)
+        self.assertEqual(digest(closure.settings(self.catalog, self.project_id)), before)
+        self.assertEqual(self.catalog.get('release:' + plan['id'])['state'], 'applying')
+        self.assertIsNone(self.catalog.get('project-released:' + self.project_id))
+        self.catalog.db.execute('DROP TRIGGER fail_close')
+        self.assertEqual(self.apply(plan)['state'], 'completed')
+        self.assertEqual(self.catalog.db.execute("SELECT count(*) FROM events WHERE job_id=? AND kind='release_completed'", (plan['id'],)).fetchone()[0], 1)
+
+    def test_publication_decisions_have_a_durable_audit_event(self):
+        import json
+        from media.common import digest
+        before = digest(closure.settings(self.catalog, self.project_id))
+        self.configure(no_more=False)
+        row = self.catalog.db.execute("SELECT payload FROM events WHERE job_id=? AND kind='project_delivery_decision' ORDER BY seq DESC LIMIT 1", (self.project_id,)).fetchone()
+        event = json.loads(row[0])
+        self.assertEqual(event['previous_digest'], before)
+        self.assertFalse(event['no_more'])
+        self.assertTrue(event['finals'][0]['published'])
+        self.assertTrue(self.final.exists())

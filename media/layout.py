@@ -279,8 +279,9 @@ def build_layout(source, plan, units, files):
         for unit, members in support:
             family = 'sony' if unit['camera'] == 'sony' or any('/private/' in '/' + f['path'].lower() or f['path'].lower().startswith(('avf_info/', 'private/')) for f in members) else slug(unit['camera'])
             model = MODELS['ILCE-6400'] if family == 'sony' else tag(unit['camera'])
+            label = ('ingest-' + unit['id']) if unit.get('support') else tag(unit['project'])
             folder = 'metadata/{}/support/{}/{}_{}-{}_{}'.format(family, when.strftime('%Y/%m'), when.strftime('%d%m-%H%M%S'),
-                                                                 tag(plan['country']), tag(unit['project']), model)
+                                                                 tag(plan['country']), label, model)
             for file in members:
                 # Camera indexes/thumbnails keep their original tree so the card can be reconstructed.
                 layout[file['path']] = {'archive': '{}/{}'.format(folder, file['path']), 'work': None}

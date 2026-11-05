@@ -135,18 +135,13 @@ struct SettingsView: View {
 
 struct IngestSettings: View {
     @Bindable var model: Model
-    @AppStorage("ingestFlow") private var flow = "quick"
     @AppStorage("autoInspect") private var autoInspect = false
     @AppStorage("showQuickImporter") private var showQuickImporter = true
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Ingreso", systemImage: "sdcard").font(.title3.weight(.semibold))
-            Picker("Flujo", selection: $flow) {
-                Text("Rápido · fuente y proyecto, luego revisar").tag("quick")
-                Text("Guiado · todos los pasos").tag("guided")
-            }.pickerStyle(.radioGroup)
-            Text("En ambos puedes saltar a cualquier paso desde la barra superior. Sólo bloquea lo que el plan necesita: fuente, proyecto, disco de respaldo y clasificar DJI. Ejecutar siempre pide confirmación.").font(.caption).foregroundStyle(.secondary)
-            Toggle("Leer el contenido al elegir una SD", isOn: $autoInspect)
+            Text("Entrada → Flujo → Resultado. El botón final autoriza el plan mostrado, incluida la limpieza verificada que hayas elegido. Las excepciones se resuelven en la misma pantalla.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Inspeccionar automáticamente la SD al abrir Ingreso", isOn: $autoInspect)
             Text("Desactivado: elegir una fuente no recorre sus archivos hasta que abres Contenido o revisas el plan.").font(.caption).foregroundStyle(.secondary)
             Divider()
             Toggle("Mostrar el importador rápido al conectar una tarjeta", isOn: $showQuickImporter)

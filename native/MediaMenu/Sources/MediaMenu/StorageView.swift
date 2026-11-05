@@ -197,7 +197,6 @@ extension Model {
 struct ReleaseSheet: View {
     @Bindable var model: Model
     @Environment(\.dismiss) private var dismiss
-    @State private var confirmRelease = false
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Revisar liberación", subtitle: "Comprueba las copias actuales antes de retirar nada. No se borra sin tu confirmación.")
@@ -236,7 +235,7 @@ struct ReleaseSheet: View {
                             Button("Reenlazar Clipper") { model.relinkRelease() }
                                 .disabled(!plan["consumers"]["blockers"].array.isEmpty || model.busy)
                         }
-                        Button("Liberar copias del plan…", role: .destructive) { confirmRelease = true }
+                        Button("Liberar copias verificadas", role: .destructive) { model.applyRelease() }
                             .buttonStyle(CreatorButtonStyle(prominent: true))
                             .disabled(!plan["consumers"]["blockers"].array.isEmpty || !plan["consumers"]["relinks"].array.isEmpty || model.busy)
                     }
@@ -249,8 +248,6 @@ struct ReleaseSheet: View {
         }
         .padding(20)
         .frame(width: 640, height: 520)
-        .confirmationDialog("¿Retirar las copias locales del plan revisado?", isPresented: $confirmRelease) {
-            Button("Liberar espacio", role: .destructive) { model.applyRelease() }
-        } message: { Text("Se retirarán sólo los archivos mostrados, tras verificar MEDIA y volver a consultar Clipper. MEDIA puede quedar como única réplica. Esta acción no se deshace desde nüün.") }
+
     }
 }

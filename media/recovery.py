@@ -24,7 +24,11 @@ def recover_catalog(catalog, backend, volume):
             with os.fdopen(fd, 'rb') as stream: raw = stream.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'receipt_too_large', 'Receipt exceeds input limit')
             receipt = json.loads(raw)
-            if receipt.get('schema') != 'nu9ve-transfer-receipt/1': continue
+            schema = receipt.get('schema', '')
+            if isinstance(schema, str) and schema.startswith('nu9ve-transfer-receipt/'):
+                require(schema in {'nu9ve-transfer-receipt/1', 'nu9ve-transfer-receipt/2'}, 'unsupported_receipt', 'Unsupported transfer receipt version')
+            else:
+                continue
             require(isinstance(receipt.get('plan'), dict), 'unsupported_receipt', 'Receipt has no recoverable plan')
             original = receipt['plan']; validate_plan(original)
             require(original['id'] == receipt['job_id'] and original['digest'] == receipt['plan_digest'], 'invalid_receipt', 'Plan/receipt mismatch')
@@ -44,6 +48,13 @@ def recover_catalog(catalog, backend, volume):
                 verified.append(dict(copy, volume_id=record['id'], receipt_id=receipt['receipt_id'], stamp=stamp, verified_at=now()))
             backend.check(record)
             for unit in receipt['units']:
+                planned = next((u for u in original['units'] if u['id'] == unit['id']), None)
+                require(planned and bool(planned.get('support')) == bool(unit.get('support')),
+                        'invalid_receipt', 'Receipt support membership differs from the reviewed plan')
+                if unit.get('support'):
+                    require(schema == 'nu9ve-transfer-receipt/2' and unit.get('project_id') is None,
+                            'invalid_receipt', 'Camera support needs receipt v2 without an editorial project')
+                    continue
                 project_id = str(uuid.UUID(unit['project_id']))
                 alias = catalog.db.execute('SELECT project_id FROM project_aliases WHERE profile=? AND alias=?', (unit['profile'], unit['project'])).fetchone()
                 require(alias is None or alias[0] == project_id, 'project_conflict', 'Resolve conflicting project identity before recovery')
@@ -60,6 +71,8 @@ def recover_catalog(catalog, backend, volume):
                 if not old:
                     catalog.db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', (plan['id'], plan['digest'], canonical(plan).decode(), 'recovered', None, now(), now()))
                 for unit in receipt['units']:
+                    if unit.get('support'):
+                        continue
                     catalog.db.execute('INSERT OR IGNORE INTO projects VALUES(?,?,?)', (unit['project_id'], unit['profile'], unit['project']))
                     catalog.db.execute('INSERT OR IGNORE INTO project_aliases VALUES(?,?,?)', (unit['profile'], unit['project'], unit['project_id']))
                 for copy in verified:
