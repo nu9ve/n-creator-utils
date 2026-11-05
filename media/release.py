@@ -410,9 +410,13 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         if hook: hook('before_complete', None)
         report(progress, 'metadata_backup_after')
         plan['state'] = 'completed'
+        finished = {'release:' + plan_id: plan}
         if plan.get('closure_project_id'):
-            catalog.set('project-state:' + plan['closure_project_id'], {'state': 'finished', 'updated_at': now()})
-            catalog.set('project-released:' + plan['closure_project_id'], {'plan_id': plan_id, 'bytes': plan['bytes'], 'updated_at': now()})
+            from .closure import archived_final_settings
+            finished['project-closure:' + plan['closure_project_id']] = archived_final_settings(catalog, plan, archive_guards)
+            if plan.get('closure_finish', True):
+                finished['project-state:' + plan['closure_project_id']] = {'state': 'finished', 'updated_at': now()}
+                finished['project-released:' + plan['closure_project_id']] = {'plan_id': plan_id, 'bytes': plan['bytes'], 'updated_at': now()}
         if plan['work_id']:
             removed = {entry['path'] for entry in plan['entries']}
             for asset in catalog.search():
@@ -421,8 +425,7 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
                 if paths and paths <= removed:
                     with catalog.db:
                         catalog.db.execute('UPDATE work SET state=?,target=NULL,updated_at=? WHERE asset_id=? AND target=?', ('skipped', now(), asset['id'], plan['work_id']))
-        catalog.set('release:' + plan_id, plan)
-        catalog.event(plan_id, 'release_completed', {'bytes': plan['bytes'], 'scope': plan['scope']})
+        catalog.set_many(finished, event=(plan_id, 'release_completed', {'bytes': plan['bytes'], 'scope': plan['scope']}))
         try:
             plan['metadata_backup'] = backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
         except (OSError, RuntimeError) as error:

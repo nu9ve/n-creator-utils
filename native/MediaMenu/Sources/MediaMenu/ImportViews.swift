@@ -266,7 +266,9 @@ struct UnitPreview: View {
                 Text(bytesLabel(unit.bytes) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
-            if editingProject {
+            if unit.isSupport {
+                Text("Datos de cámara incluidos · sin proyecto propio").font(.caption).foregroundStyle(.secondary)
+            } else if editingProject {
                 HStack(spacing: 4) {
                     TextField(unit.category == "stalker" ? "Proyecto de esta sesión" : "Proyecto de este archivo", text: $unit.project)
                         .textFieldStyle(.plain).font(.caption).onSubmit { editingProject = false }

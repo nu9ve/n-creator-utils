@@ -145,6 +145,14 @@ class Transfer:
                 return
             elapsed = max(moment - self.progress_started, 0.001)
             self.progress.update(updated_at=now(), bytes_per_second=int(self.progress['copied_bytes'] / elapsed))
+            p = self.progress
+            if 'global_total' in p:
+                measured = min(p['copied_bytes'], p['bytes_total']) + min(p['verified_bytes'], p['verify_total']) + p.get('cleanup_bytes', 0)
+                p['global_done'] = max(p.get('global_done', 0), measured)
+                p['global_fraction'] = min(0.999, p['global_done'] / max(1, p['global_total']))
+                remaining = max(0, p['backup_budget'] - measured)
+                p['eta_seconds'] = int(remaining * elapsed / measured) if elapsed >= 3 and measured > 0 and remaining else None
+                p['eta_scope'] = 'backup' if p.get('release_budget', 0) else 'operation'
             snapshot = dict(self.progress)
             self.progress_flushed = moment
         self.catalog.set('progress:' + snapshot['job_id'], snapshot)
@@ -265,6 +273,10 @@ class Transfer:
             if self.progress:
                 self.progress['verified_bytes'] += size
 
+    def count_cleanup(self, size):
+        if self.progress:
+            self.report(cleanup_bytes=self.progress.get('cleanup_bytes', 0) + size)
+
     def apply(self, plan, expected_digest):
         validate_plan(plan)
         require(expected_digest == plan['digest'], 'plan_changed', 'Apply requires the reviewed plan digest')
@@ -309,6 +321,12 @@ class Transfer:
                          'bytes_total': total, 'copied_bytes': 0, 'verified_bytes': 0,
                          'verify_total': sum(f['stamp']['size'] for f in plan['files'] for r in records if destination_path(r, plan, units[f['unit_id']], f['path'])),
                          'destinations': destination_progress}
+        cleanup_total = sum(f['stamp']['size'] for f in plan['files'] if not sony_index_member(f['path']) or plan['cleanup_profile'] != 'sony_clips_then_format') if plan['cleanup'] and plan['source_kind'] != 'stalker' else 0
+        release_total = sum(f['stamp']['size'] for f in plan['files'] if units[f['unit_id']]['kind'] == 'stalker_session') if plan.get('release_stalker_source') else 0
+        backup_budget = total + self.progress['verify_total'] + cleanup_total
+        previous = self.catalog.get('progress:' + plan['id'], {})
+        self.progress.update(global_total=backup_budget + release_total, backup_budget=backup_budget,
+                             release_budget=release_total, cleanup_bytes=0, global_done=previous.get('global_done', 0))
         self.progress_started = time.monotonic()
         self.report(force=True)
         with Tree(plan['source']) as source_tree, contextlib.ExitStack() as stack:
@@ -387,9 +405,9 @@ class Transfer:
                 self.check_volume(record)
                 self.check_volume(record, full=True)
                 target.write_json('.ncreator/receipts/' + plan['id'] + '.json', {
-                    'schema': 'nu9ve-transfer-receipt/1', 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'])),
+                    'schema': 'nu9ve-transfer-receipt/2' if any(u.get('support') for u in plan['units']) else 'nu9ve-transfer-receipt/1', 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'])),
                     'job_id': plan['id'], 'plan_digest': plan['digest'], 'volume_id': record['id'],
-                    'verified_at': now(), 'files': receipts[record['id']], 'units': [dict(u, project_id=self.catalog.project_for(u['profile'], u['project'])) for u in plan['units']], 'plan': plan,
+                    'verified_at': now(), 'files': receipts[record['id']], 'units': [dict(u, project_id=None if u.get('support') else self.catalog.project_for(u['profile'], u['project'])) for u in plan['units']], 'plan': plan,
                     'country': plan['country'], 'city': plan['city'], 'work_delivery_status': plan['work_delivery_status']})
             self.checkpoint('after_receipts', plan)
             self.validate_source(plan)
@@ -449,7 +467,7 @@ class Transfer:
                         expected = self.catalog.db.execute('SELECT sha256 FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()[0]
                         fd = uncached(source_tree.open(file['path']))
                         try:
-                            require(hash_fd(fd, self.cancel) == expected, 'checksum_mismatch', 'Source re-read differs from verified copies: ' + file['path'])
+                            require(hash_fd(fd, self.cancel, self.count_cleanup) == expected, 'checksum_mismatch', 'Source re-read differs from verified copies: ' + file['path'])
                             require(content_stamp(os.fstat(fd)) == file['stamp'], 'source_changed', 'Source changed while re-reading')
                         finally:
                             os.close(fd)
@@ -465,10 +483,15 @@ class Transfer:
                 final = 'source_has_new_material' if unexpected else ('camera_action_required' if sony else 'completed')
             self.catalog.state(plan['id'], final)
             self.report(force=True, phase=final, destinations=destination_progress)
+            if not release_total:
+                self.progress.update(global_done=self.progress['global_total'], global_fraction=1.0, eta_seconds=None)
+                self.catalog.set('progress:' + plan['id'], self.progress)
         return self.catalog.job(plan['id'])
 
     def _index(self, plan):
         for unit in plan['units']:
+            if unit.get('support'):
+                continue  # Durable members/copies/portable receipts, not an editorial project.
             hashes = []
             for path in unit['paths']:
                 row = self.catalog.db.execute('SELECT sha256 FROM members WHERE job_id=? AND relative_path=?', (plan['id'], path)).fetchone()

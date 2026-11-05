@@ -11,8 +11,6 @@ struct WindowRoot: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(CreatorAppearance())
-        .sheet(isPresented: $model.archiveOnlyPrompt) { ArchiveOnlySheet(model: model).modifier(CreatorAppearance()) }
-        .sheet(isPresented: $model.confirmApply) { ApplyConfirmation(model: model).modifier(CreatorAppearance()) }
         .sheet(isPresented: $model.showRelease) { ReleaseSheet(model: model).modifier(CreatorAppearance()) }
         .sheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model).modifier(CreatorAppearance()) }
     }
@@ -54,14 +52,13 @@ struct AppNavigation: View {
 /// Lives in the native toolbar row (next to the window controls), also in fullscreen.
 struct WindowTopBar: View {
     @Bindable var model: Model
+    @State private var measuredCenter: CGFloat = 0
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
                 Text("nüün").font(.system(size: 14, weight: .semibold, design: .serif))
                     .padding(.leading, 8).help(model.message)
                 if model.presentation == .full {
-                    Spacer(minLength: 4)
-                    AppNavigation(model: model, compact: geometry.size.width < 760)
                     Spacer(minLength: 4)
                 } else {
                     Text(model.ingestStep.title).font(.callout).foregroundStyle(.secondary).lineLimit(1)
@@ -89,6 +86,15 @@ struct WindowTopBar: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .background(TitleBarDragArea())
+            .background(ToolbarPosition { center in
+                if abs(measuredCenter - center) > 0.5 { measuredCenter = center; model.titlebarCenter = center }
+            }.allowsHitTesting(false))
+            .overlay(alignment: .topLeading) {
+                if model.presentation == .full {
+                    AppNavigation(model: model, compact: geometry.size.width < 900)
+                        .position(x: measuredCenter > 0 ? measuredCenter : geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
         }
     }
 }
@@ -118,8 +124,8 @@ struct TitleBarDragArea: NSViewRepresentable {
 struct TitleBarDisks: View {
     @Bindable var model: Model
     let width: CGFloat
-    private var showsFree: Bool { width >= 640 + 160 * CGFloat(model.volumes.count) }
-    private var fits: Bool { width >= 560 + 90 * CGFloat(model.volumes.count) }
+    private var showsFree: Bool { width >= 1150 + 160 * CGFloat(model.volumes.count) }
+    private var fits: Bool { width >= 950 + 90 * CGFloat(model.volumes.count) }
     var body: some View {
         if fits {
             HStack(spacing: 4) {
@@ -412,6 +418,15 @@ struct JobProgressView: View {
         VStack(alignment: .leading, spacing: 6) {
             Group { if let fraction = model.progressFraction(job) { ProgressView(value: fraction) } else { ProgressView().progressViewStyle(.linear) } }
             Text(model.progressLabel(job)).font(.caption).monospacedDigit().lineLimit(2)
+            if job["progress"]["global_fraction"] != .null {
+                HStack {
+                    Text("Avance global: \(Int(job["progress"]["global_fraction"].double * 100)) %").monospacedDigit()
+                    if job["progress"]["eta_seconds"].double > 0 {
+                        let minutes = max(1, Int((job["progress"]["eta_seconds"].double / 60).rounded(.up)))
+                        Text(job["progress"]["eta_scope"].string == "backup" ? "Respaldo: ~\(minutes) min; después se revisa la liberación" : "Restante aproximado: \(minutes) min")
+                    }
+                }.font(.caption).foregroundStyle(.secondary)
+            }
             let destinations = job["progress"]["destinations"].array.filter { !$0["name"].string.isEmpty }
             if !destinations.isEmpty {
                 HStack(spacing: 14) {

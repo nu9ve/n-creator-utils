@@ -32,7 +32,8 @@ struct DraftUnit: Identifiable, Equatable {
     var displayCategory: String {
         camera == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(camera) ? "360" : category
     }
-    var needsCameraReview: Bool { camera == "auto" && detectedCamera.lowercased().hasPrefix("dji") }
+    var needsCameraReview: Bool { !isSupport && camera == "auto" && detectedCamera.lowercased().hasPrefix("dji") }
+    var isSupport: Bool { category == "support" }
 }
 
 enum Route: String, CaseIterable, Identifiable {
@@ -83,11 +84,9 @@ enum IngestStep: Int, CaseIterable, Identifiable, Comparable {
     static func < (lhs: IngestStep, rhs: IngestStep) -> Bool { lhs.rawValue < rhs.rawValue }
     var title: LocalizedStringKey {
         switch self {
-        case .source: "Fuente y proyecto"
-        case .content: "Contenido"
-        case .destinations: "Destinos"
-        case .review: "Revisar"
-        case .run: "Copiar"
+        case .source, .content: "Entrada"
+        case .destinations, .review: "Flujo"
+        case .run: "Resultado"
         }
     }
     var symbol: String {
@@ -134,6 +133,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])
     var showClosure = false
+    var titlebarCenter: CGFloat = 0
+    var ingestDrafts: [String: IngestDraft] = [:]
     /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
     var recentProjects: [JSONValue] {
         var seen = Set<String>()
@@ -158,7 +159,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     @ObservationIgnored var pendingReadID: UUID?
     @ObservationIgnored var sourceReadTask: Task<Void, Never>?
     @ObservationIgnored var changeMode: ((WindowMode) -> Void)?
-    var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; units = []; plan = nil; loadedSourceKey = ""; gridSelection = [] } } }
+    var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; archiveExceptionConfirmed = false; units = []; plan = nil; loadedSourceKey = ""; gridSelection = [] } } }
     var bundledRuntime = false
     var captureRoot = ""
     var pendingCaptures: [JSONValue] = []
@@ -195,7 +196,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var country = "mx" { didSet { if country != oldValue { invalidatePlan() } } }
     var city = "hermosillo" { didSet { if city != oldValue { invalidatePlan() } } }
     var archive = "" { didSet { if archive != oldValue { invalidatePlan() } } }
-    var work = "" { didSet { if work != oldValue { invalidatePlan() } } }
+    var work = "" { didSet { if work != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
     var sourceKind = "card" { didSet { if sourceKind != oldValue { invalidatePlan(); loadedSourceKey = ""; units = [] } } }
     var cleanup = true { didSet { if cleanup != oldValue { invalidatePlan() } } }
     var volumes: [JSONValue] = []
@@ -218,10 +219,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     var error = ""
     var python = ""
     var script = ""
-    var archiveOnlyPrompt = false
-    var confirmApply = false
+    var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
     var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
-    var copyChoice = "none" { didSet { if copyChoice != oldValue { invalidatePlan() } } }
+    var copyChoice = "none" { didSet { if copyChoice != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
     var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
     var ingestStep: IngestStep = .source
     var activeJobID = ""
@@ -448,6 +448,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     /// 0…1 from measured bytes, or nil when the phase has no byte total.
     func progressFraction(_ job: JSONValue) -> Double? {
         let p = job["progress"]
+        if p["global_fraction"] != .null { return p["global_fraction"].double }
         switch p["phase"].string {
         case "copying" where p["bytes_total"].double > 0: return min(1, p["copied_bytes"].double / p["bytes_total"].double)
         case "verifying" where p["verify_total"].double > 0: return min(1, p["verified_bytes"].double / p["verify_total"].double)
@@ -600,6 +601,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
+        if source != path { parkIngestDraft() }
         sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
     }
@@ -608,6 +610,9 @@ enum OperationScope { case ingest, library, space, settings, source }
         goToStep(.content)
     }
     func useCard(_ path: String) {
+        if source != path { parkIngestDraft() }
+        ingestDrafts.removeValue(forKey: path)
+        sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; loadedSourceKey = ""
         sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil
         route = .ingest; ingestStep = .source
         if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
@@ -629,7 +634,18 @@ enum OperationScope { case ingest, library, space, settings, source }
     var projectIsReady: Bool {
         let hasBatchProject = !project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         if hasBatchProject { return true }
-        return !units.isEmpty && units.allSatisfy { !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let media = units.filter { !$0.isSupport }
+        return !units.isEmpty && media.allSatisfy { !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+    var flowReviewKey: String {
+        [sourceKey, loadedSourceKey, project, profile, country, city, work, copyChoice,
+         String(cleanup), String(deferWork), String(archiveExceptionConfirmed),
+         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
+    }
+    var canPrepareFlow: Bool {
+        if sourceKind == "delivery" { return !source.isEmpty && !archive.isEmpty }
+        let offlineWork = !noWork && !volumes.contains { $0["id"].string == work && $0["online"].bool }
+        return !source.isEmpty && !archive.isEmpty && (!contentLoaded || planBlockers.isEmpty) && (!offlineWork || archiveExceptionConfirmed)
     }
     /// Only what the planner truly needs; everything else has a default or is reviewed in the plan.
     var planBlockers: [String] {
@@ -646,23 +662,19 @@ enum OperationScope { case ingest, library, space, settings, source }
         guard !ingestLocked || step == .run else { return }
         ingestStep = step
         if step == .content {
-            if presentation == .compact { changeMode?(.selection) }
             if !source.isEmpty && !contentLoaded { discover() }
         }
     }
-    var quickFlow: Bool { UserDefaults.standard.string(forKey: "ingestFlow") != "guided" }
     func nextStep() {
         switch ingestStep {
-        case .source: if quickFlow { reviewPlan() } else { goToStep(.content) }
-        case .content: goToStep(quickFlow ? .review : .destinations); if quickFlow { reviewPlan() }
-        case .destinations: reviewPlan()
-        case .review: if plan != nil { confirmApply = true } else { reviewPlan() }
+        case .source, .content: goToStep(.destinations)
+        case .destinations, .review: if plan != nil { apply() } else { reviewPlan() }
         case .run: newIngest()
         }
     }
     func previousStep() {
-        guard let previous = IngestStep(rawValue: ingestStep.rawValue - 1), !ingestLocked else { return }
-        goToStep(previous)
+        guard !ingestLocked else { return }
+        goToStep(.content)
     }
     /// Stalker needs per-session projects: inspect on demand instead of asking the user to.
     func reviewPlan() {
@@ -671,8 +683,10 @@ enum OperationScope { case ingest, library, space, settings, source }
             if let finalsGroup { planFinals(finalsGroup) } else { error = String(localized: "Prepara los finales desde Inicio o Flujos.") }
             return
         }
+        let expectedSource = sourceKey
         Task {
-            if sourceKind == "stalker" && !contentLoaded { await discoverAndWait() }
+            if !contentLoaded { await discoverAndWait() }
+            guard sourceKey == expectedSource else { return }
             if !planBlockers.isEmpty { ingestStep = units.contains(where: \.needsCameraReview) ? .content : ingestStep; return }
             requestPlan()
         }
@@ -681,9 +695,10 @@ enum OperationScope { case ingest, library, space, settings, source }
         guard sourceKind != "stalker" || (contentLoaded && !units.isEmpty) else {
             error = String(localized: "No hay sesiones Stalker terminadas pendientes en esta fuente"); return
         }
-        if noWork { archiveOnlyPrompt = true; return }
+        if noWork { makePlan(archiveOnly: true); return }
         let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
-        if !onlineWork { archiveOnlyPrompt = true }
+        if !onlineWork && archiveExceptionConfirmed { makePlan(archiveOnly: true) }
+        else if !onlineWork { error = String(localized: "Confirma aquí continuar sin el SSD para esta operación") }
         else { makePlan(archiveOnly: false) }
     }
     func makePlan(archiveOnly: Bool) {
@@ -756,7 +771,8 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     var visibleUnits: [DraftUnit] {
         switch typeFilter {
-        case "": return units
+        case "": return units.filter { !$0.isSupport }
+        case "all": return units
         case "dji": return units.filter { $0.detectedCamera.lowercased().hasPrefix("dji") }
         default: return units.filter { $0.displayCategory == typeFilter }
         }
@@ -862,7 +878,8 @@ enum OperationScope { case ingest, library, space, settings, source }
             try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }
     }
-    func mountChanged() {
+    func mountChanged(arrival: String? = nil) {
+        if let arrival { notifiedCards.remove(arrival) }
         eventTask?.cancel()
         eventTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
@@ -875,12 +892,13 @@ enum OperationScope { case ingest, library, space, settings, source }
             // A mount event notifies once per insertion; it never replaces work in progress.
             cardSuggestions = shown
             notifiedCards.formIntersection(shown)
-            let idle = !busy && units.isEmpty && plan == nil && lastResult == nil && (source.isEmpty || !FileManager.default.fileExists(atPath: source))
+            var opened = false
             for path in shown where !notifiedCards.contains(path) {
                 notifiedCards.insert(path); notifyCard(path)
-                if idle && source != path {
-                    useCard(path)
-                    if UserDefaults.standard.bool(forKey: "showQuickImporter") { openImporter?() }
+                if !busy && !opened && UserDefaults.standard.bool(forKey: "showQuickImporter") {
+                    if source != path || lastResult != nil || (units.isEmpty && plan == nil) { useCard(path) }
+                    openImporter?()
+                    opened = true
                 }
             }
             statusChanged?()

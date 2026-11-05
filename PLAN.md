@@ -14,19 +14,28 @@ following priorities remain focused on the existing media workflow:
 3. Grow the dashboard and launcher on the same service boundary.
 4. Expand automation/API/MCP capabilities and platform adapters only after the data-loss boundary is validated.
 
+## Ingreso directo y publicados · 2026-11-05
+
+Implementado: [tres pantallas y una autorización](docs/contracts/ingest-flow-v1.md), proyecto por contenido sin campo general obligatorio, soporte agrupado, popup con borradores de sesión, centrado absoluto y progreso global; [publicados](docs/contracts/project-closeout-v1.md#actualización-vigente--2026-11-05) por carpeta/marca, con respaldo parcial y cierre completo separados. Sin gestión por canal, por decisión del usuario.
+
+1. **Instalada build `78790688291f`**; [evidencia](docs/STATUS.md). Aceptación del usuario desde la app: un lote Sony/Stalker y un proyecto con finales ya publicados. Sin operaciones reales automáticas.
+2. Mantener gates físicos de reinsertar SD, desconexión/reanudar, Clipper real con discos y tamaños reales; fixtures no acreditan esa aceptación.
+3. Sigue pendiente la API de retiro con desregistro de Clipper; Final Cut queda fuera. Tipos/recetas/cámaras/carpetas vivas siguen sin prioridad nueva decidida.
+4. Captura del README actualizada con datos ficticios, con autorización del usuario.
+
 ## Cierre de proyectos · 2026-11-04
 
 Primera entrega de **Completar y liberar…** sobre ingreso, recibos, Transfer y liberación existentes. [Decisiones/contrato](docs/contracts/project-closeout-v1.md), [evidencia](docs/STATUS.md).
 
 1. **Instalada build `1b13d0ff83e1`; falta aceptación del usuario** con un proyecto pequeño: vincular finales ya respaldados o de trabajo, declarar entregas completas, revisar y liberar raws/renders. Sin operación real automática.
 2. Clipper: falta comando público de retiro con desregistro; se conserva el editable y se indica borrarlo desde Clipper. Final Cut fuera de alcance.
-3. Después: revisión agrupada de Stalker y progreso global sin reinicios por fase/archivo. Recetas/cámaras, fotos, carpetas vivas, audio y dron siguen pendientes de priorizar.
+3. Revisión agrupada y progreso global implementados en la entrega del 2026-11-05, con aceptación física pendiente. Recetas/cámaras, fotos, carpetas vivas, audio y dron siguen pendientes de priorizar.
 4. Se mantiene el ciclo físico/gates de release. El usuario reportó haber movido ya un proyecto publicado: sustituye el pendiente histórico del primer movimiento, sin atribuirle validación física nueva de este cierre.
 
 ## Siguiente · 2026-11-01
 
 1. **Aceptar en la app** Proyectos, Inicio e Ingreso nuevos con datos reales ([evidencia](docs/STATUS.md#proyectos-avisos-y-fuentes-coherentes--2026-11-01)).
-2. **Finales:** [ruta por perfil](docs/features/product-flows.md#finales-y-subidos) implementada. **Mover al respaldo** copia, verifica y libera en una sola acción. El usuario reportó haber movido ya un proyecto; falta publicación por canal. La evidencia de aquel plan de 34 archivos es histórica.
+2. **Finales:** [ruta por perfil](docs/features/product-flows.md#finales-y-subidos) implementada. **Mover al respaldo** copia, verifica y libera en una sola acción. El usuario reportó haber movido ya un proyecto; la publicación por canal salió del alcance el 2026-11-05. La evidencia de aquel plan de 34 archivos es histórica.
 3. **Cierre de proyecto:** primera entrega instalada; raws/renders y finales vinculados. Editable Clipper pendiente de API de retiro, FCP fuera. [Contrato](docs/contracts/project-closeout-v1.md).
 4. Lo operativo de abajo sigue vigente: ciclo físico pequeño y `media coverage --no-hash`.
 
