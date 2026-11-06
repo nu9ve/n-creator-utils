@@ -639,7 +639,6 @@
 "Resultado" = "Result";
 "Retomar otro ingreso de esta sesión" = "Resume another ingest from this session";
 "Todos los archivos" = "All files";
-"Destinos y opciones" = "Destinations and options";
 "Entrada → Flujo → Resultado. El botón final autoriza el plan mostrado, incluida la limpieza verificada que hayas elegido. Las excepciones se resuelven en la misma pantalla." = "Input → Workflow → Result. The final button authorizes the displayed plan, including the verified cleanup you selected. Exceptions are resolved on the same screen.";
 "Finales publicados respaldados" = "Published finals backed up";
 "Finales respaldados" = "Finals backed up";
@@ -650,3 +649,5 @@
 "Sony: se borran los clips verificados; los índices se conservan hasta formatear en la cámara." = "Sony: verified clips are removed; indexes are kept until the card is formatted in the camera.";
 "Sólo se respaldan y retiran los finales publicados elegidos. Los raws y los intermedios se conservan." = "Only the selected published finals are backed up and removed. Raws and intermediates are kept.";
 "Liberar copias verificadas" = "Release verified copies";
+
+"Se guardará como: %@" = "Will be saved as: %@";

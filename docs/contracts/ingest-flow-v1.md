@@ -48,6 +48,14 @@ inline y decisión pending/skipped; no se convierte en el default del perfil.
 DJI ambiguo, conflictos y destinos desconocidos siguen bloqueando. Sony
 conserva índices y termina en `camera_action_required` hasta el formato manual.
 
+## Copias de trabajo y nombres · actualización 2026-11-06
+
+Ingresos nuevos arrancan con **Todo el lote** para trabajo; elegir Ninguno o una selección es explícito por ingreso, sin heredarlo silenciosamente a otra tarjeta/fuente. Restaurar un borrador conserva su elección. Finales mantiene su política propia. Sin SSD requerido online se bloquea hasta conectarlo o confirmar archive-only con pending/skipped.
+
+Flujo muestra DestinationsStep siempre visible, sin disclosure que oculte la política. El proyecto general, la asignación por unidad y el editor masivo muestran el nombre normalizado antes de ejecutar mediante `project_preview {name} → {name}` read-only, que reutiliza `common.slug`; no hay otra gramática Swift. No renombra proyectos anteriores ni transforma texto mientras se escribe.
+
+Las sugerencias de Ingreso incluyen proyectos de planes revisados en esta sesión, borradores y capturas pendientes además de recientes. Se aplican por elección, no asignan ni sincronizan automáticamente cámara/Stalker. **Ingreso único de todas las fuentes pendientes sigue sin implementar**: cámara y bibliotecas Stalker usan planes por fuente/raíz; elegir varias no autoriza un nuevo cleanup global.
+
 ## Progreso aditivo
 
 `progress` añade `global_total`, `global_done`, `global_fraction`,

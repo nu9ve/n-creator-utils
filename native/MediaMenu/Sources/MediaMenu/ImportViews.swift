@@ -274,6 +274,7 @@ struct UnitPreview: View {
                         .textFieldStyle(.plain).font(.caption).onSubmit { editingProject = false }
                     Button { editingProject = false } label: { Image(systemName: "checkmark") }.buttonStyle(.plain).help("Listo")
                 }
+                ProjectNamePreview(model: model, name: unit.project)
                 if unit.project.isEmpty && !unit.suggestedProject.isEmpty {
                     Button("Sugerido: \(unit.suggestedProject)") { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry; editingProject = false }
                         .buttonStyle(.link).font(.caption2).lineLimit(1)
