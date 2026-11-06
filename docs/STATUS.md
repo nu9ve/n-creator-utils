@@ -2,6 +2,22 @@
 
 Updated: 2026-11-06, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Aceptación reportada, Sony y trabajo por defecto · 2026-11-06
+
+**Reporte del usuario:** flotante funciona; detección/popup incierta (posible tardanza o apertura manual), se mantiene pendiente sin pedir repetir ahora porque necesita editar. Completó ingreso de cámara y Stalker, pero Sony mostró `[Errno 2] No such file or directory: 'C0001.MP4'`. No declarar aceptado el cierre Sony.
+
+**Lectura operativa:** job Sony `060b585d-2f3f-5b37-8020-65ff0dc8ca71` quedó `failed/FileNotFoundError`, 15 miembros con copias de archivo registradas, seis miembros `cleaned=1` (dos MP4, dos XML, dos thumbnails); nueve índices conservados en journal. Los dos assets editoriales quedaron `skipped` para trabajo. Job Stalker posterior `ed3f70ec-d37a-58e7-815c-f9abfa8d86e9` terminó `completed`, dos sesiones del mismo proyecto en trabajo ready. Esto no identifica el punto exacto del FileNotFoundError ni demuestra doble borrado; falta traceback/reproducción dirigida. No se reanudó ni cambió a completado el job Sony. Planes futuros de cierre pueden seguir bloqueados por ese job abierto.
+
+**Entrega física pedida expresamente:** `media deliver <dos assets Sony> --work ESSD` reutilizó `deliver_work` existente para `buscando-baches-con-el-dron`: **2 MP4, 7,026,723,235 bytes**, desde MEDIA502 a `001_proyectos/e64_raw/buscando-baches-con-el-dron/` en ESSD. SHA verificado por el motor, recibos de trabajo y estados ready registrados; archivos presentes y tamaños comprobados. Conservó archivo, no leyó/borró SD ni modificó proyectos de Clipper. Snapshot SQLite previo en `/private/tmp/nuun-before-work-delivery-20261106.sqlite3`. No se asocia esta operación al replay de limpieza Sony.
+
+**Producto:** nuevos ingresos arrancan Todo el lote para trabajo; la elección Ninguno/selección es por ingreso y restaurar borrador respeta su política. Destinos/opciones siempre visibles en Flujo. Vista previa de nombre en proyecto general, unidad y asignación masiva mediante `project_preview` read-only, con `common.slug` compartido y sin crear proyecto. Sugerencias incluyen proyectos revisados de esta sesión, borradores y capturas pendientes. No se implementa un único plan multifuente: cámara/Stalker siguen por fuente/raíz. [Contrato](contracts/ingest-flow-v1.md#copias-de-trabajo-y-nombres--actualización-2026-11-06).
+
+**Validación:** 66 pruebas de `test_media_engine.py` aprobadas, incluido preview contra planner y ausencia de creación de proyecto; Swift 14/14. Localización 650 claves sin faltantes/sobrantes. QA `--qa-ingest-choices` con catálogo/preferencias temporales comprobó default/reset, sugerencias y RPC de normalización: OK. Los PNG de esa QA resultaron negros y **no acreditan revisión visual**; falta aceptación visual de nombres/destinos en la app. Sin nuevos tests automáticos sobre discos personales.
+
+**Instalada build `17acd51df25c`**, artefacto `/private/tmp/nuun-work-default-final-20261106.app`, firma estricta verificada. App anterior conservada en `~/Library/Application Support/n-creator-utils/app-backups/08490985.app`; sin operación activa (sólo lector) al cerrar por UI y actualizar. Ejecutable idéntico al artefacto, 28 Python de media idénticos al checkout; RPC `project_preview` instalado respondió correctamente con catálogo temporal. Reabierta por UI; primer estado observado fue Inicio sin datos todavía, no acredita velocidad de refresco ni popup. Runtime externo/ad-hoc, sin declaración de release.
+
+**Pendiente:** detección/latencia, diagnóstico de fallo Sony y reconciliación segura, selección unificada de pendientes y aceptación visual de esta entrega. El usuario decidió dejar la captura del README para después; no se reemplazó ninguna captura. Sin commits, mensajes a otros chats ni edición de JSON externos.
+
 ## Compacto flotante y popup · 2026-11-06
 
 Usuario reportó que insertar SD con nüün en menubar no abrió compacto y pidió mantenerlo encima hasta cerrar o ampliar. Diagnóstico de sólo lectura: `showQuickImporter` persistido en **false**; el default de Model y Ajustes ya era **true**. Se respeta el opt-out, sin migración que lo sobreescriba para otros usuarios. Preferencia de esta instalación habilitada por petición explícita.

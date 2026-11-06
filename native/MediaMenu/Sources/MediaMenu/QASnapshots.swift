@@ -8,6 +8,10 @@ import MediaMenuCore
 @MainActor enum QASnapshots {
     static func run(_ delegate: AppDelegate) -> Bool {
         let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--qa-ingest-choices"), index + 1 < arguments.count {
+            Task { await ingestChoices(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if arguments.contains("--qa-window-levels") {
             Task { await windowLevels(delegate) }
             return true
@@ -74,6 +78,35 @@ import MediaMenuCore
         print("QA window close/reopen OK=\(passed)")
         other.close()
         print("QA window levels \(passed ? "OK" : "FAILED")")
+        NSApp.terminate(nil)
+    }
+
+    static func ingestChoices(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var passed = model.copyChoice == "all"
+        model.copyChoice = "none"
+        model.newIngest()
+        passed = passed && model.copyChoice == "all"
+        model.copyChoice = "none"
+        model.prepareSource(folder.appendingPathComponent("fixture-card").path, kind: "card")
+        passed = passed && model.copyChoice == "all"
+        fixture(model, media: folder)
+        model.sessionProjects = ["proyecto-de-esta-sesion"]
+        passed = passed && model.ingestProjects.contains { $0["project"].string == "proyecto-de-esta-sesion" }
+        model.project = "buscando baches con el dron"
+        if let name = try? await model.reader?.call("project_preview", ["name": .string(model.project)]) {
+            passed = passed && name["name"].string == "buscando-baches-con-el-dron"
+        } else { passed = false }
+        delegate.present(.compact)
+        model.route = .ingest; model.ingestStep = .content
+        await render(IngestFlow(model: model), size: NSSize(width: 440, height: 660), to: folder.appendingPathComponent("input.png"), visible: true)
+        // Deliberately no plan: the destinations must remain visible before preparing one.
+        model.copyChoice = "all"; model.ingestStep = .review; model.plan = nil
+        model.activeScope = .settings  // suppress automatic plan preparation in this presentation-only fixture
+        await render(IngestFlow(model: model), size: NSSize(width: 440, height: 660), to: folder.appendingPathComponent("flow.png"), visible: true)
+        model.activeScope = nil
+        print("QA ingest choices \(passed ? "OK" : "FAILED")")
         NSApp.terminate(nil)
     }
 
@@ -145,11 +178,13 @@ import MediaMenuCore
                                folder("finales", 43, ["only_here": 28, "probable": 15]), folder("recuerdos", 14, ["only_here": 14]), folder("edicion.fcpbundle", 2, ["only_here": 2], kind: "editable", opaque: true)])])
     }
 
-    static func render<V: View>(_ view: V, size: NSSize, to url: URL) async {
+    static func render<V: View>(_ view: V, size: NSSize, to url: URL, visible: Bool = false) async {
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
         let host = NSHostingView(rootView: view.modifier(CreatorAppearance()).frame(width: size.width, height: size.height))
         host.frame = NSRect(origin: .zero, size: size)
         window.contentView = host
+        if visible { window.orderFront(nil) }
+        defer { window.orderOut(nil) }
         for _ in 0..<12 { host.layoutSubtreeIfNeeded(); try? await Task.sleep(for: .milliseconds(150)) }
         guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: bitmap)

@@ -99,7 +99,7 @@ def parser():
 
 
 # Mutations keep one process per request so cancellation interrupts exactly that operation.
-READ_METHODS = {'closure_overview', 'closure_candidates', 'closure_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles',
+READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles',
                 'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions',
                 'storage_overview', 'storage_progress', 'storage_tree'}
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}

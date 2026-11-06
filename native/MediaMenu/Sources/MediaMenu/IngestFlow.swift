@@ -9,7 +9,6 @@ func bytesLabel(_ value: Double) -> String { ByteCountFormatter.string(fromByteC
 struct IngestFlow: View {
     @Bindable var model: Model
     @State private var inputOptionsExpanded = true
-    @State private var destinationOptionsExpanded = false
     var compact: Bool { model.presentation != .full }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -34,9 +33,7 @@ struct IngestFlow: View {
                         if model.ingestStep == .run { RunStep(model: model) }
                         else {
                             if model.sourceKind != "delivery" {
-                                DisclosureGroup("Destinos y opciones", isExpanded: $destinationOptionsExpanded) {
-                                    DestinationsStep(model: model, compact: compact).padding(.top, 8)
-                                }
+                                DestinationsStep(model: model, compact: compact)
                             }
                             ReviewStep(model: model)
                         }
@@ -50,7 +47,6 @@ struct IngestFlow: View {
                           !model.busy, model.sourceKind != "delivery", model.canPrepareFlow else { return }
                     model.reviewPlan()
                 }
-                .onAppear { if !model.canPrepareFlow { destinationOptionsExpanded = true } }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { IngestFooter(model: model) }
@@ -261,11 +257,12 @@ struct ProjectField: View {
             TextField(model.sourceKind == "stalker" ? "Proyecto para sesiones sin asignar (opcional)" : "Nombre del proyecto", text: $model.project)
                 .font(.title3).textFieldStyle(CreatorTextFieldStyle())
                 .onSubmit { if model.planBlockers.isEmpty { model.nextStep() } }
+            ProjectNamePreview(model: model, name: model.project)
             HStack(spacing: 6) {
-                RecentProjectChips(projects: model.recentProjects, selection: $model.project, limit: compact ? 3 : 6)
-                if model.recentProjects.count > (compact ? 3 : 6) {
+                RecentProjectChips(projects: model.ingestProjects, selection: $model.project, limit: compact ? 3 : 6)
+                if model.ingestProjects.count > (compact ? 3 : 6) {
                     Menu("Más") {
-                        ForEach(Array(model.recentProjects.dropFirst(compact ? 3 : 6)), id: \.["project"].string) { item in
+                        ForEach(Array(model.ingestProjects.dropFirst(compact ? 3 : 6)), id: \.["project"].string) { item in
                             Button(item["project"].string) { model.project = item["project"].string }
                         }
                     }.fixedSize().controlSize(.small)
@@ -470,13 +467,16 @@ struct AssignPanel: View {
         .modifier(Panel(padding: compact ? 10 : 12))
     }
     private var projectField: some View {
-        HStack(spacing: 6) {
-            TextField("Proyecto", text: $title).onSubmit(applyTitle)
-            Button("Aplicar", action: applyTitle).fixedSize().disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                TextField("Proyecto", text: $title).onSubmit(applyTitle)
+                Button("Aplicar", action: applyTitle).fixedSize().disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            ProjectNamePreview(model: model, name: title)
         }
     }
     private var chips: some View {
-        RecentProjectChips(projects: model.recentProjects, selection: Binding(get: { "" }, set: { value in
+        RecentProjectChips(projects: model.ingestProjects, selection: Binding(get: { "" }, set: { value in
             title = value; applyTitle()
         }), limit: compact ? 3 : 5)
     }
@@ -691,6 +691,32 @@ struct RunStep: View {
                     Button("Volver a revisar") { model.goToStep(.review) }
                     Button("Abrir actividad") { model.open(.activity); model.changeMode?(.full) }
                 }
+            }
+        }
+    }
+}
+
+
+/// Ask the same engine that names projects; no second slug implementation in Swift.
+struct ProjectNamePreview: View {
+    let model: Model
+    let name: String
+    @State private var resolved = ""
+    @State private var resolvedInput = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !resolved.isEmpty && resolvedInput == name {
+                Text("Se guardará como: \(resolved)").font(.caption).foregroundStyle(.secondary)
+                    .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .task(id: name) {
+            resolved = ""
+            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled, let reader = model.reader else { return }
+            if let value = try? await reader.call("project_preview", ["name": .string(name)]), !Task.isCancelled {
+                resolvedInput = name; resolved = value["name"].string
             }
         }
     }

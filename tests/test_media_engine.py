@@ -67,6 +67,18 @@ class MediaFixture(unittest.TestCase):
         return Transfer(self.catalog, self.backend, cancel, hook).apply(plan, plan['digest'])
 
 
+class ProjectPreviewTests(MediaFixture):
+    def test_preview_matches_planner_without_creating_a_project(self):
+        service = Service(self.catalog, self.backend)
+        for name in ('buscando baches con el dron', '  edición cámara / toma 2 ', 'mi_proyecto'):
+            preview = service.call('project_preview', {'name': name})['name']
+            plan = self.plan(project=name)
+            self.assertEqual(preview, next(u['project'] for u in plan['units'] if not u.get('support')))
+        self.assertEqual(self.catalog.db.execute('SELECT COUNT(*) FROM projects').fetchone()[0], 0)
+        with self.assertRaises(MediaError):
+            service.call('project_preview', {'name': ' /// '})
+
+
 class MediaSaveTests(MediaFixture):
     def save(self, *args, interactive=False, answers=()):
         from contextlib import redirect_stdout

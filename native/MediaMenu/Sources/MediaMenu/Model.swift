@@ -140,6 +140,15 @@ enum OperationScope { case ingest, library, space, settings, source }
         var seen = Set<String>()
         return (projectIndex.isEmpty ? snapshotProjects : projectIndex).filter { $0["stage"].string != "finished" && Array($0["kinds"].object.keys) != ["delivery"] && seen.insert($0["project"].string).inserted }
     }
+    var sessionProjects: [String] = []
+    /// Suggestions across pending captures and drafts; selecting one remains explicit.
+    var ingestProjects: [JSONValue] {
+        let pending = pendingCaptures.map { $0["tag"]["name"].string.isEmpty ? $0["project_hint"]["name"].string : $0["tag"]["name"].string }
+        let draftNames = ingestDrafts.values.flatMap { [$0.project] + $0.units.map(\.project) }
+        var seen = Set<String>()
+        let names = sessionProjects + draftNames.sorted() + pending + recentProjects.map { $0["project"].string }
+        return names.filter { !$0.isEmpty && seen.insert($0).inserted }.map { .object(["project": .string($0)]) }
+    }
     var libraryQuery = ""
     /// The project just assigned from Inicio, offered to the sessions still without one.
     var lastTagged = ""
@@ -221,7 +230,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var script = ""
     var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
     var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
-    var copyChoice = "none" { didSet { if copyChoice != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
+    var copyChoice = "all" { didSet { if copyChoice != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
     var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
     var ingestStep: IngestStep = .source
     var activeJobID = ""
@@ -601,7 +610,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
-        if source != path { parkIngestDraft() }
+        if source != path || sourceKind != kind { parkIngestDraft(); copyChoice = "all" }
         sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
     }
@@ -613,11 +622,12 @@ enum OperationScope { case ingest, library, space, settings, source }
         if source != path { parkIngestDraft() }
         ingestDrafts.removeValue(forKey: path)
         sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; loadedSourceKey = ""
-        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil
+        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil; copyChoice = "all"
         route = .ingest; ingestStep = .source
         if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
     }
     func newIngest() {
+        copyChoice = "all"
         source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""
         ingestStep = .source; message = String(localized: "Listo")
     }
@@ -732,6 +742,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             let reviewed = try ReviewedPlan(document: document)
             self.plan = reviewed.display
             self.reviewedPlan = reviewed
+            self.sessionProjects = Array(Set(self.sessionProjects + reviewed.display["units"].array.filter { !$0["support"].bool }.map { $0["project"].string })).sorted()
             self.ingestStep = .review
             self.message = String(localized: "Plan listo para revisar; no se ha copiado ni borrado media")
         }

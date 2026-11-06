@@ -61,3 +61,8 @@ Conclusión: la cámara reescribe sus índices con identificadores propios. Imit
 Registrar por etapa: fecha/build, proyecto/job, resultado observado y siguiente acción. Todos los pasos siguen **pendientes** hasta observarlos; no se infiere aceptación por reutilizar la SD. Desconexión/replay deliberados se prueban aparte con material ya resguardado.
 
 **Aviso Sony recurrente:** por diseño actual cada operación Sony requiere formato/confirmación; no hay detección automática al reutilizar SD. UX a evaluar: distinguir respaldo/retirada completados de acción de cámara y evitar recordatorios obsoletos. No se ha decidido ni implementado eliminar el formato o la validación de índices. El usuario reporta formatos previos, no una confirmación técnica de cada job histórico.
+
+
+### Resultado parcial reportado · 2026-11-06
+
+Flotante aceptado; popup/reconexión no concluyente y pendiente. Usuario completó sus ingresos y necesita editar. Stalker completado; Sony mostró FileNotFoundError de C0001.MP4 y se conserva failed: el journal registra seis retiradas y recibos de archivo, sin causa confirmada ni evidencia de doble borrado. Dos clips Sony entregados después desde archivo a ESSD con herramienta existente, por solicitud explícita; esto no cierra el job ni valida formato. [Evidencia y siguiente diagnóstico](STATUS.md). No exigir otro ciclo físico ahora ni reanudar limpieza a ciegas.
