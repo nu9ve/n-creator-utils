@@ -44,9 +44,12 @@ contenido distinto en el destino bloquea; nunca se reemplaza silenciosamente.
 - Stalker conserva manifests y reloj. Se reutiliza el ingreso de bundles y
   los recibos existentes; este cierre no vuelve a implementar el ingreso.
 - Clipper conserva edición, registro y colas. Se usan deps, exclusión de
-  kernel, reenlace y ACK por su CLI. **No existe comando público de borrado
-  con desregistro:** el editable se conserva y se indica eliminarlo desde
-  Clipper. No se editan sus JSON ni se importa código de su repo.
+  kernel, reenlace y ACK por su CLI. **Clipper ya ofrece retiro editorial con desregistro** mediante
+  `library retire-plan` / `retire` y TUI (5 noviembre). Conserva un snapshot y
+  todos los archivos; nüün sigue conservando el editable por defecto y la persona
+  decide el retiro desde Clipper. No se editan sus JSON ni se importa código de
+  su repo. Su siguiente consulta deps reconoce la ausencia de referencias activas;
+  el recibo aditivo no autoriza retirar media ni sustituye comprobación de respaldo.
 - Final Cut queda fuera: no se abre ni modifica una biblioteca, incluso dentro
   de `renders`. La persona confirma que ninguna otra edición necesita los
   archivos a retirar; nüün no afirma haber inspeccionado referencias FCP.
@@ -114,8 +117,10 @@ este cierre. Sí pueden vincularse finales ya movidos a la colección `finales`
 de MEDIA sin devolverlos a ESSD ni reorganizar terabytes. No se localiza ni
 borra cualquier caché del disco ni carpetas editoriales arbitrarias.
 
-Pendiente por Clipper: API pública de retiro del proyecto que compruebe
-uso/colas y quite su propio registro. Publicación por canal, recetas editables,
+API de retiro Clipper disponible en su checkout CLI/TUI, con plan/digest,
+comprobación de uso/colas y desregistro propio. [Contrato y prueba real pendiente](../../../../ai/clipper/docs/2026-11-05-project-retirement.md).
+No se añade invocación automática desde el cierre de nüün ni notificación push;
+la coordinación sigue por deps frescos bajo exclusión. Publicación por canal, recetas editables,
 cámaras y progreso global/agrupación de Ingreso son trabajos separados.
 
 Las pruebas usan volúmenes fixture y media temporal. La aceptación en la app
