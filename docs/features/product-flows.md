@@ -8,7 +8,9 @@ Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contract
 
 Actualización 2026-11-05: [Ingreso directo](../contracts/ingest-flow-v1.md) implementa Entrada → Flujo → Resultado, revisión agrupada, autorización única, progreso global y correcciones de proyecto/auxiliares/popup/centrado. [Cierre actualizado](../contracts/project-closeout-v1.md#actualización-vigente--2026-11-05): `subidos` o marca manual por final, sin gestión por canal. Respaldar publicados puede preceder al cierre completo; raws/renders se conservan hasta esa acción explícita.
 
-## Diagnóstico
+## Diagnóstico histórico · 2026-10-30
+
+Las tablas de diagnóstico/landing y los «Hoy» siguientes describen esa fecha, no el backlog actual. Ingreso, índice de discos, proyectos, publicación y cierre ya tienen entregas posteriores; consultar las actualizaciones de arriba y PLAN. La captura del README ya se actualizó el 5 noviembre. El estado actual de Atlas y A1–A10 vive en su [contrato](../contracts/atlas-drone-v1.md).
 
 El motor de ingreso está bastante adelantado. Lo que falta para cerrar el ciclo que promete la landing son tres conceptos que hoy no existen:
 

@@ -8,6 +8,10 @@ Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, f
 
 [Ingreso directo](ingest-flow-v1.md), 2026-11-05: tres pantallas, soporte sin proyecto editorial, una autorización del plan y progreso global.
 
+## Lectura vigente · 2026-11-06
+
+Clipper ya ofrece retiro editorial con desregistro en CLI/TUI; nüün conserva editables y observa deps frescos, sin invocar automáticamente retire. Atlas amplió su propuesta a A1–A10 (6 noviembre), todavía sin implementación nüün. Las filas y pedidos antiguos conservan su fecha: contrastar los «Pendiente» con los cierres posteriores antes de abrir trabajo nuevo. Prioridad operativa actual en [PLAN](../../PLAN.md); no confundir adopción en fixtures con aceptación física.
+
 ## Cierre contractual vigente · 2026-10-29
 
 Nüün incluye delivery completo en sources/handoff, reenlaza por handoff de destino

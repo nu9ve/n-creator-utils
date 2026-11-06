@@ -19,6 +19,7 @@
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |
 | Configure older downloads/stems/importer | [Configuration](configuration.md), [commands](commands.md) |
+| Resume the current Sony/two-multicam acceptance | [Expected flow and pending evidence](sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06) |
 | Run a Sony hardware trial | [Sony validation](sony-validation.md) |
 
 STATUS is the current snapshot. Architecture/experience contain design beyond shipped code. Historical pages retain their date/scope and link forward. Contracts say separately whether a producer, consumer, transport or schema is implemented.

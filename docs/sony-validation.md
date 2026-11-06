@@ -1,6 +1,6 @@
-# Validar Sony sin modificar la tarjeta desde el importador
+# Validación Sony: respaldo, limpieza y formato en cámara
 
-Estado: protocolo para una próxima prueba acompañada. El nuevo `save` verifica copias y deja Sony en `camera_action_required`; el motor histórico de mover/borrar quedó en `legacy-save`. **La limpieza Sony automática todavía no está validada en cámara**. `inspect` es observación y no hace respaldo. No se modificó ninguna SD durante esta revisión.
+Estado actual: política Sony en uso; aceptación acompañada de la build vigente pendiente (recorrido del 6 noviembre al final). El diagnóstico original de abajo es histórico. El nuevo `save` verifica copias y deja Sony en `camera_action_required`; el motor histórico de mover/borrar quedó en `legacy-save`. **Falta aceptación física de la retirada automática de clips de la build vigente**. `inspect` es observación y no hace respaldo. No se modificó ninguna SD durante esta revisión.
 
 ## Hipótesis
 
@@ -43,3 +43,21 @@ Primer ciclo real completo: respaldo verificado (`camera_action_required`), form
 Desde el 2026-10-25 (perfil `sony_clips_then_format`) el motor borra de la tarjeta los clips, las miniaturas y las fotos `DCIM` tras verificar y releer cada archivo, para que el formateo en cámara sea rápido. Los índices quedan intactos. La cámara puede pedir «recuperar base de datos» al insertarla; da igual, el paso siguiente es formatear. `confirm-cleanup` exige además que la cámara haya reescrito algún índice. **Pendiente de probar con la próxima tarjeta real.**
 
 Conclusión: la cámara reescribe sus índices con identificadores propios. Imitarlo desde la computadora sería manipular índices por inferencia, así que **la limpieza Sony sigue siendo formatear en la cámara**. El motor la cierra comprobando que no queda ningún clip respaldado (misma ruta, tamaño y `mtime`). Un clip nuevo con nombre reutilizado no bloquea. Como el UUID no cambia, no sirve para detectar el formateo.
+
+
+## Aceptación acompañada Sony y dos multicams · 2026-11-06
+
+**Preparada, no ejecutada.** El usuario reporta Untitled formateada/reutilizada varias veces y dos videos multicam recién grabados para publicar. El usuario elige nombres, perfil y fuentes desde nüün; no preconfigurar ni preparar planes por CLI. No equiparar dos multicams con dos clips ni asumir que ambos son un proyecto.
+
+1. **Inicio:** cerrar sólo la ventana, mantener nüün activo en menubar. Destinos registrados MEDIA y SSD de trabajo conectados; popup activado. Anotar build efectiva. No salir de la app ni instalar/reiniciar durante un job.
+2. **Montaje:** insertar SD. Debe ofrecer Ingreso aunque haya resultado previo, sin copiar/limpiar ni iniciar lectura profunda por el montaje. Sin destinos online debe permanecer silencioso. Registrar qué ventana/mensaje aparece; si no hay popup, abrir desde menubar sin reinsertar repetidamente para forzarlo.
+3. **Entrada:** inspeccionar explícitamente. Revisar todos los clips, proyectos y perfil por contenido; el proyecto general sólo rellena faltantes. Mantener auxiliares y pares. Sesiones Stalker deben estar terminadas; varias raíces aún requieren planes separados. Asignar el mismo proyecto a las fuentes de cada multicam, sin inventar sincronización desde nüün.
+4. **Flujo:** revisar conteos/bytes, rutas MEDIA/SSD y política de limpieza. Sony debe indicar retirada de clips verificados e índices conservados para formato en cámara. Preparar plan no escribe media; sólo el botón final aplica el plan mostrado. Si falta SSD, decidir explícitamente pending/skipped o conectarlo. Revisar el plan concreto con el usuario antes de continuar.
+5. **Resultado:** observar fases, verificación por destino y progreso global. En Sony, 100 % automático + `camera_action_required` es compatible: no significa que falló el respaldo ni que los clips sigan presentes. Si aparece «no se borró», guardar texto exacto/job y comprobar si es otro estado, copia conservada o job antiguo; no asumir éxito ni fallo por el aviso solo.
+6. **Cámara:** después de verificar el resultado, expulsión manual; formato desde Sony. Volver a insertar y usar Actividad → «Ya la formateé…», eligiendo raíz de esa tarjeta. Esa acción sólo comprueba/cierra el registro; no formatea ni vuelve a borrar. Debe pasar a `completed` si no quedan clips originales y cambió algún índice registrado. No confirmar trabajos antiguos con otra tarjeta ni cerrar todos por el nombre Untitled.
+7. **Edición:** entregar/importar en Clipper desde biblioteca, comprobar ambos multicams, sesiones/pistas y rutas de trabajo. Sync/colas son de Clipper; no reescribir JSON. Nüün no sincroniza multicam ni modifica una biblioteca Final Cut.
+8. **Publicación y cierre, cuando proceda:** vincular finales publicados; «Respaldar publicados…» mueve sólo esos finales y conserva raw/render. Al declarar «ya no habrá más», revisar cierre completo: rehash, deps/ACK, confirmación de descartes y retiro journalizado. El editable permanece; retiro editorial se decide desde Clipper.
+
+Registrar por etapa: fecha/build, proyecto/job, resultado observado y siguiente acción. Todos los pasos siguen **pendientes** hasta observarlos; no se infiere aceptación por reutilizar la SD. Desconexión/replay deliberados se prueban aparte con material ya resguardado.
+
+**Aviso Sony recurrente:** por diseño actual cada operación Sony requiere formato/confirmación; no hay detección automática al reutilizar SD. UX a evaluar: distinguir respaldo/retirada completados de acción de cámara y evitar recordatorios obsoletos. No se ha decidido ni implementado eliminar el formato o la validación de índices. El usuario reporta formatos previos, no una confirmación técnica de cada job histórico.

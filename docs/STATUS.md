@@ -1,6 +1,30 @@
 # Implementation status
 
-Updated: 2026-11-05, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-11-06, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## Compacto flotante y popup · 2026-11-06
+
+Usuario reportó que insertar SD con nüün en menubar no abrió compacto y pidió mantenerlo encima hasta cerrar o ampliar. Diagnóstico de sólo lectura: `showQuickImporter` persistido en **false**; el default de Model y Ajustes ya era **true**. Se respeta el opt-out, sin migración que lo sobreescriba para otros usuarios. Preferencia de esta instalación habilitada por petición explícita.
+
+`Application.present` aplica nivel `floating` y no oculta al desactivar sólo en compacto; selección/completo y entrada a fullscreen restauran `normal`. Cerrar baja el nivel y mantiene menubar; reabrir compacto recupera flotación. [Contrato](contracts/ingest-flow-v1.md#barra-y-montaje). Sin cambios de planner, copia, catálogo ni limpieza.
+
+**Validación:** Swift **14/14**. QA `--qa-window-levels` con preferencias/estado temporal y backend inexistente: ventanas AppKit reales compacto → selección → completo → compacto con otra ventana en key; niveles 3/0/0/3, visibilidad y cierre/reapertura correctos. No acredita cambio entre apps, fullscreen/Spaces físicos ni reconexión SD. Localización: 650 claves, sin faltantes/sobrantes; `git diff --check` correcto y 235 enlaces locales revisados. Build release compilada y firma estricta verificada.
+
+**Instalada** build `88fa9b79a571` desde `/private/tmp/nuun-floating-20261106.app`. Sólo lector persistente activo antes de actualizar; script de instalación aborta ante backend one-shot y la app conserva su rechazo de quit durante operación. App anterior en `~/Library/Application Support/n-creator-utils/app-backups/65a88eda.app`. Ejecutable idéntico al artefacto y **28 archivos Python de media** instalados idénticos al checkout. `showQuickImporter=1` verificado, app reabierta `--background` con lector de su backend instalado. Observación UI posterior mostró Inicio; no se aplicó ningún plan ni se observó un nuevo montaje. Firma ad-hoc/runtime externo; no release de distribución.
+
+**Siguiente:** usuario expulsa de forma segura y reinserta la SD con ventana cerrada, verifica popup, cambio de app y ampliación; aceptación física pendiente. No se copió/borró media ni se confirmó ningún job de Sony. Sin actualizar capturas del producto: no cambió el diseño estático.
+
+## Handoff vigente y aceptación preparada · 2026-11-06
+
+Revisión documental y lectura dirigida del motor/UI; **sin nueva build, instalación ni prueba física**. Última instalación registrada: `78790688291f`; comprobar versión efectiva antes de operar. [PLAN](../PLAN.md) consolidado por prioridad, separando implementación, aceptación y propuestas; historial de builds conservado abajo.
+
+**Reporte del usuario:** Untitled se ha formateado y reutilizado varias veces para copiar/mover Sony. El incidente de montaje del 27 octubre deja de ser bloqueo actual; causa/reparación y recuperación del contenido antiguo no acreditadas. Persiste aviso de formato/limpieza pendiente. Lectura de `transfer.confirm_camera_cleanup` y UI: Sony retira clips tras verificar, conserva índices y termina `camera_action_required`; Actividad → «Ya la formateé…» comprueba ausencia de clips antiguos y cambio de índices. No se reconcilian automáticamente jobs por reutilizar la tarjeta. Falta identificar mensaje/job antes de diagnosticar defecto o cerrar históricos.
+
+**Contratos reconciliados:** Clipper ya ofrece retiro editorial con desregistro por CLI/TUI (5 noviembre); nüün conserva editables y consulta deps frescos, sin invocación automática de retire. Atlas actualizó propuesta el 6 noviembre a A1–A10: no nadir, trabajo selectivo, estado/exports y productos ODM costosos; nüün sin implementar. Limpieza/espacio reportados por Atlas no son una medición de esta sesión.
+
+**Aclaración del usuario:** todo el recorrido se hará desde nüün, sin preconfiguración ni planes por CLI. Reporta borrado externo de intermedios y eliminación de algunos proyectos desde Clipper. Lectura de `closure.py`, `library.py` y `clipper.py`: planes nuevos inventarían archivos presentes; no adoptan desapariciones durante apply como retiro propio; `removed_from_work` distingue copias de trabajo ausentes; referencias/offline de Clipper pueden bloquear liberación aunque una carpeta haya desaparecido. Esto no verifica cuáles archivos/proyectos reales se borraron ni si Clipper los desregistró. [Semántica y siguiente comprobación](contracts/project-closeout-v1.md#cambios-externos-y-borrados-previos--2026-11-06).
+
+**Siguiente acción:** aceptación acompañada con dos videos multicam nuevos; asignaciones elegidas por el usuario desde la app. [Recorrido y registro pendiente](sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06). Empezar en menubar con ventana cerrada, insertar SD, observar popup y revisar plan antes de ejecutar. No se copió ni borró media, no se cerraron jobs ni se enviaron mensajes a otras sesiones. Validación documental: `git diff --check` sin errores y 223 enlaces locales de 11 Markdown modificados sin destinos faltantes. Sin suites ni apps por ser cambio sólo documental; las suites/builds de abajo siguen siendo evidencia de sus fechas.
 
 ## Ingreso directo y publicación por final · 2026-11-05
 
@@ -409,7 +433,9 @@ notarización. Sin cambios Swift, sin aceptación GUI/física ni declaración de
 production-ready. [Contrato](contracts/media-library-v1.md#exclusión-local-de-liberación--28-octubre-2026),
 [entrega Clipper](../../../ai/clipper/docs/2026-10-28-contract-hardening.md).
 
-## Incidente operativo Untitled · 2026-10-27 · corrupción confirmada; preservación pendiente
+## Incidente operativo Untitled · 2026-10-27 · histórico; reutilización reportada 2026-11-06
+
+**Actualización:** el usuario reporta formatos y uso normal posteriores. El diagnóstico y propuesta de preservación siguientes describen el 27 octubre; no son la siguiente operación vigente. Ver handoff del 6 noviembre al inicio de este archivo.
 
 Solicitud explícita del usuario: tarjeta antes legible ahora inaccesible. macOS detecta SD USB removible de 127,865,454,592 B, partición ExFAT `disk4s1`, UUID `C8BF5026-0077-3F03-AA08-019E0A1DC444`, sin MountPoint. `/Volumes/Untitled` no existe. El tamaño/espacio de volumen reportado como cero mientras está desmontada no demuestra que esté vacía. No se pudo listar su contenido ni confirmar borrado/formateo.
 
