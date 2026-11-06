@@ -1,6 +1,6 @@
 # Dashboard, launcher y mejoras de producto
 
-Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad técnica global: [PLAN](../../PLAN.md). Toda superficie consume `media/service.py`; ni dashboard ni launcher hacen su propio copy/delete.
+Backlog de diseño; varias filas ya tienen una entrega implementada (Inicio, Discos, progreso, finales/cierre). Reconciliar con PLAN/STATUS antes de tomarlas como nuevas tareas; no confundir con [implementado](../STATUS.md). Prioridad técnica global: [PLAN](../../PLAN.md). Toda superficie consume `media/service.py`; ni dashboard ni launcher hacen su propio copy/delete.
 
 ## Qué debe responder el dashboard
 
@@ -15,7 +15,7 @@ Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad té
 | P1 | Detalle de job | Fases, archivos/bytes por destino, verificación y cleanup pendiente. Progreso basado en eventos/recibos reales, nunca porcentaje inventado. |
 | P2 | Biblioteca por proyecto y fecha | Filtros, búsqueda, cámara/modelo, perfiles, disponibilidad y orden de selección. Previews paginados bajo demanda. |
 | P2 | Cobertura de archivo | Miembros requeridos, última verificación, replicas online/offline e incertidumbre. “Recibo existente” no implica hash comprobado hoy. |
-| P2 | Entregas/publicación | Master/shorts/thumbnails/copy por variante y canal; pendientes de archivar al montar MEDIA. `subidos` configurable como sugerencia, no prueba universal. |
+| P2 | Entregas/publicación | Master/shorts/thumbnails/copy por variante, sin gestión por canal (decisión 2026-11-05); pendientes de archivar al montar MEDIA. `subidos` configurable como sugerencia, no prueba universal. |
 | P2 | Preparar para Clipper | Selector de assets/recordings, orden y perfil sugerido; entregar contrato o rutas estables. Relocalización sólo con ACK del editor. |
 | P2 | Recuperar espacio | Copias de trabajo/derivados/cachés con dependencias y cuota. Mostrar cuánto y por qué; no borrar raws por existir un export. |
 | P2 | Historial y procedencia | Captura → job/ubicaciones → edición/entrega → publicación. Decisiones de excepción y omisión auditables. |
@@ -23,7 +23,7 @@ Backlog de diseño; no confundir con [implementado](../STATUS.md). Prioridad té
 
 ## Launcher y menubar
 
-La app se presenta como **nüün**, instalada en `nuun.app`, con una ventana compacta/selección/completa, carga automática, bandeja y ajustes por áreas. [Flujo actual y límites](nuun-window.md), [instalación](../operations.md#app-de-desarrollo-y-launcher). Claro + #FFBB5C sigue siendo el preset. Popup al conectar es opt-in y la prueba de reconexión sigue pendiente; no hay updater ni runtime portable.
+La app se presenta como **nüün**, instalada en `nuun.app`, con una ventana compacta/selección/completa, carga automática, bandeja y ajustes por áreas. [Flujo actual y límites](nuun-window.md), [instalación](../operations.md#app-de-desarrollo-y-launcher). Claro + #FFBB5C sigue siendo el preset. Popup al conectar está activado por defecto, con opt-out y la prueba de reconexión sigue pendiente; no hay updater ni runtime portable.
 
 Próximas mejoras útiles:
 

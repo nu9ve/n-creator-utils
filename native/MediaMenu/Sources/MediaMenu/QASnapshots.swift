@@ -8,6 +8,10 @@ import MediaMenuCore
 @MainActor enum QASnapshots {
     static func run(_ delegate: AppDelegate) -> Bool {
         let arguments = CommandLine.arguments
+        if arguments.contains("--qa-window-levels") {
+            Task { await windowLevels(delegate) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-simple"), index + 1 < arguments.count {
             Task { await simpleIngest(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -45,6 +49,32 @@ import MediaMenuCore
             return true
         }
         return false
+    }
+
+    /// Exercise actual AppKit windows, including losing key status and reopening after close.
+    static func windowLevels(_ delegate: AppDelegate) async {
+        let other = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
+                             styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        other.isReleasedWhenClosed = false
+        var passed = true
+        for mode: WindowMode in [.compact, .selection, .full, .compact] {
+            delegate.present(mode)
+            other.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .milliseconds(150))
+            let window = delegate.window!
+            let expected: NSWindow.Level = mode == .compact ? .floating : .normal
+            let valid = window.level == expected && window.isVisible && !window.hidesOnDeactivate
+            passed = passed && valid
+            print("QA window mode=\(mode) level=\(window.level.rawValue) expected=\(expected.rawValue) visible=\(window.isVisible) OK=\(valid)")
+        }
+        delegate.window?.performClose(nil)
+        passed = passed && delegate.window?.isVisible == false && delegate.window?.level == .normal
+        delegate.showImporter()
+        passed = passed && delegate.window?.isVisible == true && delegate.window?.level == .floating
+        print("QA window close/reopen OK=\(passed)")
+        other.close()
+        print("QA window levels \(passed ? "OK" : "FAILED")")
+        NSApp.terminate(nil)
     }
 
     static func fixture(_ model: Model, media: URL) {

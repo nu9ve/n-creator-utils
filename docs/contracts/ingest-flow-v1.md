@@ -75,6 +75,8 @@ Las pestañas principales se posicionan en coordenadas de la ventana, compensand
 el inicio real del toolbar tras los controles nativos. Discos y actividad no
 mueven ese centro; reducen su detalle antes de invadir la navegación.
 
+Actualización 2026-11-06: apertura automática **activada por defecto**, desactivable desde Ajustes → «Mostrar el importador rápido al conectar una tarjeta». Un `false` guardado se respeta; registrar el default no lo sobrescribe. La ventana compacta usa nivel flotante y no se oculta al desactivar la app; selección/completo usan nivel normal. Cerrar retira la ventana; volver a compacto recupera el nivel flotante. Entrar a fullscreen pasa al modo completo/nivel normal. No es una ventana modal ni impide usar otras apps.
+
 Un montaje nuevo vuelve a habilitar su aviso por ruta. El importador se abre
 con la preferencia activada y destinos registrados online aunque exista un
 resultado anterior. No interrumpe una operación activa. Un borrador previo se

@@ -120,9 +120,20 @@ borra cualquier caché del disco ni carpetas editoriales arbitrarias.
 API de retiro Clipper disponible en su checkout CLI/TUI, con plan/digest,
 comprobación de uso/colas y desregistro propio. [Contrato y prueba real pendiente](../../../../ai/clipper/docs/2026-11-05-project-retirement.md).
 No se añade invocación automática desde el cierre de nüün ni notificación push;
-la coordinación sigue por deps frescos bajo exclusión. Publicación por canal, recetas editables,
-cámaras y progreso global/agrupación de Ingreso son trabajos separados.
+la coordinación sigue por deps frescos bajo exclusión. Publicación por canal está fuera por decisión del usuario. Recetas editables y registro de cámaras siguen pendientes; progreso global/agrupación de Ingreso ya se implementaron el 5 noviembre (ver contrato de ingreso).
 
 Las pruebas usan volúmenes fixture y media temporal. La aceptación en la app
 con un proyecto real pequeño sigue siendo una operación explícita del usuario;
 instalación y fixtures no sustituyen los [gates de release](../release.md).
+
+
+## Cambios externos y borrados previos · 2026-11-06
+
+El usuario reporta haber eliminado algunos intermedios fuera de nüün y algunos proyectos desde Clipper. No se han inventariado esos cambios ni verificado sus desregistros. El siguiente recorrido se hace íntegro desde la app: no preparar proyectos/planes por CLI ni modificar registros para que la prueba pase.
+
+- Un plan nuevo inventaría sólo raws/renders presentes dentro de sus scopes conocidos. Intermedios ya ausentes no requieren recreación para borrarlos, pero tampoco declaran el proyecto terminado ni prueban respaldo de originales/finales. La política sólo identifica `renders/`, no cualquier archivo que el usuario llame intermedio.
+- Un archivo desaparecido **después** de revisar un plan no se acredita como retiro de nüün sin intención journalizada. Revisar/replanificar; no reutilizar un digest para ocultar cambios externos.
+- `sources --purpose edit` informa copias de trabajo ausentes en `removed_from_work`; no las restaura ni cambia a archivo silenciosamente. Un archivo faltante en el respaldo es otra situación y bloquea cierre cuando falta la evidencia requerida.
+- Borrar/retirar desde Clipper debe reflejarse en deps frescos y su propio registro. Si queda un proyecto enlazado no disponible, un disco offline o una cola que fija rutas, nüün puede bloquear la liberación; no borrar su JSON/registro desde aquí. El proyecto del catálogo nüün conserva su historia y no se termina por desaparecer el editable Clipper.
+
+Pendiente operativo: observar el estado desde Biblioteca/Actividad y el siguiente plan de la app; si bloquea, registrar razón y proyecto/cola concretos. No afirmar reconciliación de los borrados reales sólo por esta lectura de código.

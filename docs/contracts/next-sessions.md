@@ -1,6 +1,8 @@
 # Próximas sesiones: Stalker y luego Clipper
 
-## Pedido nuevo para Clipper · 2026-11-04
+## Pedido para Clipper · 2026-11-04 · atendido por CLI/TUI el 5 noviembre
+
+Actualización 2026-11-06: el retiro/desregistro ya está reportado en la [fila de Clipper](README.md#estado-de-adopción-por-app) y el [cierre vigente](project-closeout-v1.md#autoridades-y-alcance). Nüün conserva el editable y consulta deps frescos; falta aceptación física, no crear otra API. Texto del pedido original:
 
 El [cierre de proyectos](project-closeout-v1.md) de nüün libera raws verificados
 y renders revisados, conservando el editable. Hace falta una operación pública

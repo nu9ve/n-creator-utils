@@ -22,6 +22,10 @@ flowchart LR
   V --> L[Limpieza según política]
 ```
 
+## Compacto flotante y montaje · 2026-11-06
+
+Compacto permanece por encima de ventanas normales incluso al cambiar de app (`floating`, sin ocultación por desactivación); selección/completo y fullscreen vuelven al nivel normal. Cerrar lo oculta y mantiene el proceso en menubar. Una tarjeta elegible ofrece compacto automáticamente con destinos online y sin job activo. Activado por defecto; el opt-out de Ajustes se conserva. No hay copia, limpieza ni discovery profundo por abrir la ventana. [Contrato](../contracts/ingest-flow-v1.md#barra-y-montaje).
+
 ## Carga y resúmenes
 
 Montar una tarjeta o cambiar de modo no inicia una lectura profunda por defecto. Elegir manualmente una SD, «Inspeccionar», «Preparar lote» y continuar a Flujo cuando falta contenido solicitan discovery; la inspección automática es una preferencia explícita. Revisar un plan ejecuta el planner común y su validación. Una clave fuente/tipo/archivo evita repetir el escaneo al cambiar de modo; una petición cancelada o antigua no reemplaza los datos actuales. IDs de generación impiden que una respuesta cancelada de la misma fuente cierre el loader de una petición nueva. El lector utiliza un cliente independiente: cancelar una inspección no cancela una transferencia. No hay sondeo periódico en reposo. Compacto usa la misma inspección y muestra el contenido sin exigir otro tamaño. Montaje/wake siguen sus gates de destinos registrados.

@@ -52,7 +52,7 @@ private extension NSToolbarItem.Identifier {
         #endif
         if !CommandLine.arguments.contains("--background") { show() }
         model.mountChanged()
-        // Mounts never open windows by themselves except the opt-in quick importer; no idle timer.
+        // The quick importer defaults on; an explicit Settings opt-out stays respected. No idle timer.
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if let window, window.isVisible { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
@@ -107,6 +107,7 @@ private extension NSToolbarItem.Identifier {
         }
         if window == nil { window = makeWindow(mode) }
         guard let window else { return }
+        applyWindowBehavior(mode)
         let sameMode = model.presentation == mode && window.isVisible
         if model.presentation != mode && window.isVisible && !window.styleMask.contains(.fullScreen) { saveFrame() }
         window.minSize = NSSize(width: mode == .full ? 760 : mode == .selection ? 640 : 400, height: mode == .full ? 600 : 560)
@@ -126,6 +127,15 @@ private extension NSToolbarItem.Identifier {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
     }
+    /// Compact is a persistent floating importer, while the larger editing surfaces are ordinary windows.
+    func applyWindowBehavior(_ mode: WindowMode) {
+        guard let window else { return }
+        window.level = mode == .compact ? .floating : .normal
+        window.hidesOnDeactivate = false
+        window.collectionBehavior = mode == .compact
+            ? [.moveToActiveSpace, .fullScreenAuxiliary]
+            : [.fullScreenPrimary]
+    }
     /// Each mode remembers its own last frame, only while it still fits the screen.
     func savedFrame(_ mode: WindowMode, in visible: NSRect) -> NSRect? {
         guard let text = UserDefaults.standard.string(forKey: "frame." + mode.rawValue) else { return nil }
@@ -144,6 +154,7 @@ private extension NSToolbarItem.Identifier {
     }
     func windowWillEnterFullScreen(_ notification: Notification) {
         if model.presentation != .full { model.presentation = .full }
+        applyWindowBehavior(.full)
     }
     func windowDidEnterFullScreen(_ notification: Notification) {
         flattenFullScreenToolbar()
@@ -181,7 +192,9 @@ private extension NSToolbarItem.Identifier {
         if let mode = pendingMode { pendingMode = nil; present(mode) }
     }
     func windowWillClose(_ notification: Notification) {
-        if notification.object as? NSWindow === window { saveFrame(); NSApp.setActivationPolicy(.accessory) }
+        if notification.object as? NSWindow === window {
+            saveFrame(); window?.level = .normal; NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     // MARK: Settings window
