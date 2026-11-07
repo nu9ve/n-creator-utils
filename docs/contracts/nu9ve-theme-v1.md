@@ -188,6 +188,7 @@ Cada app se llama «nueve» en un idioma, y ese idioma da su referencia cultural
 El comportamiento está en [macos-app-v1](macos-app-v1.md). Aquí va solo el aspecto.
 
 - **Barra de título:** a la izquierda, la marca a 20 pt y el nombre en minúsculas a 14 pt semibold con la fuente de identidad de la app. En el centro, la navegación como cápsula sobre vidrio (`GlassSurface`), con el elemento activo en `accentSoft` y semibold. A la derecha, las acciones, con un único relleno de acento. Todo con el tema de la app, también en pantalla completa.
+- **Controles de ventana propios** (skins con ventana cuadrada): **deben** ir en el orden y lugar de macOS, es decir cerrar, minimizar y ampliar a la izquierda, con ×, − y + siempre visibles, para que quien nunca usó un Mac los entienda. La época cambia solo su dibujo (caja de 1 bit, bisel gris, losa gótica). Cada uno lleva nombre para VoiceOver y ayuda al pasar el puntero; Opción + ampliar entra a pantalla completa. Fractos conserva por ahora los glifos y lugares de cada época (Win9x a la derecha, cajas vacías en Macintosh) como excepción documentada.
 - **Botones:** un solo botón principal (relleno `accent`, texto `onAccent`) por vista. Los secundarios son claros sobre `surface`, con borde `line` tenue. El destructivo usa `danger`. Los radios salen del skin.
 - **Ajustes:** barra lateral con secciones; la sección activa en `accentSoft`. Apariencia e Idioma son secciones separadas.
 - **Menús (`NSMenu`) y menús contextuales:** nativos y sin tema. Los popovers propios siguen el skin.

@@ -2,6 +2,14 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Controles de ventana legibles en los skins · 2026-11-07
+
+En working tree, sin commit. Instalada como build **`1c16ca1cb645`** (desde el árbol sin commit; la anterior quedó en `app-backups/8d4c31cd.app`). A pedido del usuario, los controles propios de Macintosh, Windows 9x y Gótico ya no usan cajas vacías ni rombos sin significado. Van siempre a la izquierda en el orden de macOS (cerrar, minimizar, ampliar) con ×, − y + visibles. La época solo cambia el dibujo: caja de 1 bit, bisel gris o losa con el acento en cerrar. En Win9x el título sigue a los controles. La regla quedó en el [contrato §8](contracts/nu9ve-theme-v1.md#8-barras-del-sistema-menús-y-controles). `--qa-skins` con `HOME` y `NU9VE_MEDIA_HOME` temporales pasa igual en los 5 skins. Se revisaron las capturas de la ventana principal y de Ajustes: solo fixtures. Al pedir revisión, el botón de compacto/completo quedaba pegado al borde derecho en los skins de ventana cuadrada: el toolbar del sistema era el que daba ese margen. Ahora la barra propia usa 8 pt a ambos lados, alineada con los controles del caption, y en las capturas de la ventana real queda a la misma distancia que en Cristal. **Sin probar:** clics reales en los controles nuevos.
+
+## Instalación con skins y colores de estado · 2026-11-07
+
+Instalada en `~/Applications/nuun.app` la build **`d220fa121c80`**, desde `278b62a` con el árbol limpio y la app cerrada por el usuario. Incluye el tema `nu9ve-theme-v1`, los skins opcionales y los colores de estado. La anterior quedó en `app-backups/a6f67e7c.app`. El instalador informa `release_ready: false` (faltan validación con equipo, aceptación GUI y notarización). No se abrió después de instalar.
+
 ## Colores de estado por skin en nüün · 2026-11-07
 
 En working tree, sin commit. `ThemeRoles` agrega los estados del contrato (§2): `danger`, `warning`, `success` e `info`, y `warningSoft` para el fondo de los avisos. Cada uno sale del matiz del sistema mezclado 12 % con `ink` y ajustado a 4.5:1 sobre las tres superficies. El aviso se ajusta también sobre su propio banner. Nunca toman el acento, así que un color base rojo no confunde un error con una selección. Unos 35 colores fijos (`.orange`, `.red`, `.green`, `.blue`) de Inicio, Ingreso, Discos, Ajustes, cierre de proyectos y liberación pasan a estos roles, igual que el botón destructivo. Esto corrige el aviso «Sin proyecto» sobre el gris de Windows 9x.

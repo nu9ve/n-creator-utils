@@ -6,7 +6,9 @@ import MediaMenuCore
 // FractosDesign/ThemeChrome.swift (Win9xBevel, ClassicPinstripes, WindowGrowBox).
 // Divergencias: nüün tiene dos filas en Macintosh y Windows 9x (título de época arriba, la barra
 // propia de nüün abajo, como la barra de herramientas de una ventana de la época), porque su barra
-// lleva navegación y discos que no se leen sobre rayas ni sobre el degradado. Sin sonido ni háptica.
+// lleva navegación y discos que no se leen sobre rayas ni sobre el degradado. Los controles de ventana
+// siguen el orden y lugar de macOS (cerrar, minimizar, ampliar, a la izquierda) con ×, − y + siempre
+// visibles, para quien nunca usó un Mac; Fractos usa los glifos y lugares de cada época. Sin sonido ni háptica.
 
 /// Decoration behind the content: ordered grain for Grano and a candle vignette for Gótico.
 /// Static, cached, never intercepts clicks and never reaches VoiceOver.
@@ -152,10 +154,13 @@ struct SkinWindowBar<Content: View>: View {
             if skin.captionHeight > 0 {
                 caption.frame(height: skin.captionHeight)
             }
+            // The system toolbar gave nüün's bar its margins; here the bar gets the same 8 pt on both
+            // sides, aligned with the caption's controls above it.
             HStack(spacing: 6) {
-                if skin == .gothic { gothicControls.padding(.leading, 10) }
+                if skin == .gothic { gothicControls.padding(.leading, Self.inset) }
                 content
             }
+            .padding(.trailing, Self.inset)
             .frame(height: skin.barHeight)
             .background(skin == .gothic ? AnyView(SkinBarBackground(skin: .gothic)) : AnyView(barRow))
             .background(TitleBarDragArea())
@@ -182,23 +187,17 @@ struct SkinWindowBar<Content: View>: View {
     @ViewBuilder private var caption: some View {
         ZStack {
             SkinBarBackground(skin: palette.skin)
+            // Every skin keeps the macOS order and place: close, minimize, zoom at the left, each with a
+            // glyph that says what it does. Only their drawing belongs to the era.
             HStack(spacing: 6) {
-                switch palette.skin {
-                case .classicMac:
-                    control(.close)
-                    Spacer(minLength: 0)
-                    HStack(spacing: 2) { control(.minimize); control(.zoom) }
-                default:
-                    Image(systemName: "externaldrive.badge.checkmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
-                        .allowsHitTesting(false)
+                windowControls
+                if palette.skin == .win9x {
                     Text(verbatim: title).font(.custom("Tahoma Bold", size: 12)).foregroundStyle(.white).lineLimit(1)
-                        .allowsHitTesting(false)
-                    Spacer(minLength: 0)
-                    HStack(spacing: 0) { control(.minimize); control(.zoom) }
-                    control(.close).padding(.leading, 2)
+                        .padding(.leading, 4).allowsHitTesting(false)
                 }
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, palette.skin == .classicMac ? 6 : 3)
+            .padding(.horizontal, Self.inset)
             if palette.skin == .classicMac {
                 Text(verbatim: title).font(.custom("Silom", size: 12)).foregroundStyle(.black)
                     .padding(.horizontal, 8).background(Color.white)
@@ -208,8 +207,11 @@ struct SkinWindowBar<Content: View>: View {
         .background(TitleBarDragArea())
     }
 
-    private var gothicControls: some View {
-        HStack(spacing: 6) { control(.close); control(.minimize); control(.zoom) }
+    private var gothicControls: some View { windowControls }
+    static var inset: CGFloat { 8 }
+
+    private var windowControls: some View {
+        HStack(spacing: palette.skin == .win9x ? 2 : 5) { control(.close); control(.minimize); control(.zoom) }
     }
 
     private enum Action { case close, minimize, zoom }
@@ -240,30 +242,36 @@ struct SkinWindowBar<Content: View>: View {
         }
     }
 
+    /// The same symbols as the system's buttons, always visible: ×, − and +.
+    private func symbol(_ action: Action) -> String {
+        switch action {
+        case .close: return "xmark"
+        case .minimize: return "minus"
+        case .zoom: return "plus"
+        }
+    }
+
     @ViewBuilder private func glyph(_ action: Action) -> some View {
+        let image = Image(systemName: symbol(action)).font(.system(size: 8, weight: .black))
         switch palette.skin {
         case .classicMac:
-            ZStack(alignment: .topLeading) {
-                Rectangle().fill(.white)
-                if action == .zoom { Rectangle().strokeBorder(.black, lineWidth: 1).frame(width: 7, height: 7) }
-                if action == .minimize {
-                    VStack(spacing: 1) { Rectangle().fill(.black).frame(height: 1); Rectangle().fill(.black).frame(height: 1) }.padding(.top, 5)
-                }
-            }
-            .frame(width: 13, height: 13)
-            .overlay(Rectangle().strokeBorder(.black, lineWidth: 1))
-            .padding(.horizontal, 3)
-            .background(.white)
+            image.foregroundStyle(.black)
+                .frame(width: 13, height: 13)
+                .background(Color.white)
+                .overlay(Rectangle().strokeBorder(.black, lineWidth: 1))
+                .padding(.horizontal, 2)
+                .background(Color.white)
         case .win9x:
-            Image(systemName: action == .close ? "xmark" : action == .minimize ? "minus" : "square")
-                .font(.system(size: 8, weight: .black)).foregroundStyle(.black)
+            image.foregroundStyle(.black)
                 .frame(width: 17, height: 15)
                 .background(Color(.sRGB, red: 192 / 255, green: 192 / 255, blue: 192 / 255))
                 .overlay(Win9xBevel())
         default:
-            Rectangle().fill(action == .close ? palette.accent : palette.line)
-                .frame(width: 9, height: 9).rotationEffect(.degrees(45))
-                .frame(width: 14, height: 14)
+            // Gótico: small framed tiles; close carries the accent.
+            image.foregroundStyle(action == .close ? palette.onAccent : palette.ink)
+                .frame(width: 15, height: 15)
+                .background(action == .close ? palette.accent : palette.raised, in: Rectangle())
+                .overlay(Rectangle().stroke(palette.line, lineWidth: 1))
         }
     }
 }
