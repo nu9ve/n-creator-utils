@@ -189,6 +189,22 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(service.call('snapshot', {'cards': False})['project_closures'][0]['id'], self.project_id)
         with self.assertRaises(MediaError): self.configure(finals=[{'volume_id': self.a['id'], 'path': '../escape.mov', 'role': 'horizontal'}])
 
+    def test_review_reports_verification_bytes_without_copy_or_release(self):
+        from uuid import uuid4
+
+        service = Service(self.catalog, self.backend)
+        review_id = str(uuid4())
+        key = 'closure-progress:' + review_id
+        with mock.patch.object(self.catalog, 'set', wraps=self.catalog.set) as write:
+            plan = service.call('closure_plan', {'project_id': self.project_id, 'archive': 'MEDIA',
+                                                 'work': 'ESSD', 'review_id': review_id})
+        observed = [call.args[1] for call in write.call_args_list if call.args[0] == key]
+        self.assertTrue(any(value['stage'] == 'review_final' and value['bytes_done'] > 0 for value in observed))
+        self.assertEqual(service.call('closure_progress', {'plan_id': review_id}), {})
+        self.assertEqual(plan['state'], 'review')
+        self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
+        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
+
     def test_discard_requires_recorded_consent_even_through_raw_release_endpoint(self):
         plan = self.plan_close()
         with self.assertRaisesRegex(MediaError, 'Confirma'):

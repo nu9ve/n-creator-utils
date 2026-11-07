@@ -212,6 +212,7 @@ Cada app se llama «nueve» en un idioma, y ese idioma da su referencia cultural
 ## 8. Barras del sistema, menús y controles
 
 - **Debe: toda ventana sigue el tema y el skin, también su barra de título.** Es decir: la principal, Ajustes, Acerca de, sheets, popovers, paneles flotantes, el panel de atajos, los diálogos propios y las ventanas auxiliares (vista mini, ventana de visuales, broker, importador rápido). Cada una aplica el tema al crearse, sin esperar a que el contenido lo pinte, y entra en la QA de skins. Con un skin de ventana cuadrada, también es cuadrada y lleva la misma barra de época con × − +.
+- Los diálogos propios (sheets) siguen la misma regla. Cristal usa la hoja del sistema. Con un skin de ventana cuadrada, el diálogo se muestra dentro de la ventana, cuadrado y con la superficie de la época, porque macOS siempre redondea las esquinas de una hoja. Se cierra con la misma acción en ambos casos, y la barra de la ventana sigue usable.
 - La excepción son los paneles del sistema: Abrir/Guardar, Quick Look, alertas del sistema y `NSMenu`. Esos conservan el aspecto del sistema, pero reciben el modo claro u oscuro de la app.
 
 El comportamiento está en [macos-app-v1](macos-app-v1.md). Aquí va solo el aspecto.

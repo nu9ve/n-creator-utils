@@ -767,6 +767,11 @@ import MediaMenuCore
             guard let window = delegate.window else { break }
             let edge = window.contentView?.superview?.hitTest(NSPoint(x: 2, y: window.frame.height / 2)).map { String(describing: type(of: $0)) } ?? "nil"
             capture(window, "window-\(skin.rawValue).png")
+            delegate.model.showClosure = true
+            try? await Task.sleep(for: .milliseconds(700))
+            capture(window, "dialog-\(skin.rawValue).png")
+            delegate.model.showClosure = false
+            try? await Task.sleep(for: .milliseconds(400))
             let start = window.frame
             window.performZoom(nil); try? await Task.sleep(for: .milliseconds(900))
             let zoomed = window.frame

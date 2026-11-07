@@ -132,7 +132,7 @@ struct StalkerSection: View {
             }
         }
         .quickLookPreview($model.quickLookURL, in: previews)
-        .sheet(item: $discarding) { review in DiscardCaptureSheet(model: model, review: review.value).modifier(CreatorAppearance()) }
+        .skinSheet(item: $discarding) { review in DiscardCaptureSheet(model: model, review: review.value) }
     }
 }
 
@@ -146,7 +146,7 @@ struct DiscardCaptureSheet: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let review: JSONValue
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeSheet) private var dismiss
     private var blockers: [String] { review["blockers"].array.map(\.string) }
     private var warnings: [String] { review["warnings"].array.map(\.string) }
     var body: some View {

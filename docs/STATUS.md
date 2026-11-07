@@ -98,6 +98,21 @@ idénticas al checkout. RPC instalado respondió con estado temporal. Artefacto
 `f5cefb24e2b9` quedó en `app-backups/40f60af3.app`. Instalación local con
 runtime externo y firma ad-hoc. La prueba no escribió en ESSD, MEDIA ni SD.
 
+## Revisión de cierre con progreso, badges de efecto y diálogos del skin · 2026-11-07
+
+Termina el trabajo de otra sesión, que se quedó sin tokens; además incluye los diálogos con forma del skin. Va en working tree, sin commit. Instalada como build **`921d53350706`** desde ese árbol sobre `b3a6744`; la anterior quedó en `app-backups/2036e795.app`.
+
+**Revisión de cierre ([contrato](contracts/project-closeout-v1.md#preparar-la-revisión-y-efectos-visibles--2026-11-07)):**
+- «Revisar cierre» pasa a **Preparar revisión…**, con progreso por fase, archivo y bytes, y se puede cancelar.
+- Badges de efecto por color: verde respaldado o sin cambios, azul respaldar y conservar, ámbar retirar copia de edición, rojo descartar y gris sin acción.
+- La identidad de los discos se consulta una sola vez por revisión.
+- En la revisión de Terra que la motivó, prepararla tardó unos 91 s porque leyó completos ~5.63 GB de fuentes y ~3.75 GB de entregas.
+- Se corrigieron dos interpolaciones rotas que impedían compilar y se completó la localización.
+
+**Diálogos ([tema §8](contracts/nu9ve-theme-v1.md#8-barras-del-sistema-menús-y-controles)):** Completar y liberar, Revisar liberación y Mover a la Papelera usan la hoja del sistema en Cristal. En Macintosh, Windows 9x, Terminal y Gótico se muestran dentro de la ventana, cuadrados y con la superficie del skin (doble marco en Macintosh, bisel en Win9x), con tamaño flexible.
+
+Evidencia: Python **295 OK**, `swift test` **25/25**, localización sin faltantes ni sobrantes, `--qa-skins` aislado con el diálogo de cierre en los 5 skins (capturas revisadas, solo fixtures). **Sin probar:** una revisión real con progreso en la app instalada; clics reales en los diálogos del skin.
+
 ## Acerca de con tema y skin en nüün · 2026-11-07
 
 Instalada como build **`6806ab257b05`** (el `Info.plist` instalado ya trae `NSHumanReadableCopyright` «© 2026 nu9ve» y la versión 0.2.0); la anterior quedó en `app-backups/0ea7211e.app`. Se instaló desde el árbol sin commit sobre `e73338d`. «Acerca de nüün» deja el panel estándar y abre su propia ventana ([macos-app-v1 §5](contracts/macos-app-v1.md#5-acerca-de)):

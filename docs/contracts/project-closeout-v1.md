@@ -80,6 +80,19 @@ archivos y sólo respalda entregas pendientes. El registro del cierre
 puede terminar con cero bytes liberados. La exclusión con Clipper se
 requiere para planes con retiro.
 
+## Preparar la revisión y efectos visibles · 2026-11-07
+
+El botón del formulario dice **Preparar revisión…**. Prepararla no copia ni retira nada: lee los archivos para verificar sus huellas (fuentes en el respaldo, intermedios, entregas elegidas y su par en el respaldo), y por eso tarda según los bytes. La hoja muestra la fase, el archivo actual y los bytes leídos (`closure_plan` con `review_id`, que reporta en `closure_progress`), y se puede cancelar. Los hashes siguen siendo completos. Durante la revisión, la identidad de cada disco se consulta una sola vez.
+
+En la revisión, cada entrega y grupo lleva un badge con su efecto y el color de estado del tema:
+- Verde: ya está en el respaldo, sin cambios o ya retirado.
+- Azul: respaldar y conservar en edición.
+- Ámbar: retirar una copia de edición.
+- Rojo: descartar intermedios sin respaldo.
+- Gris: sin acción.
+
+Aplicar el plan sigue siendo el paso que copia y libera.
+
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`

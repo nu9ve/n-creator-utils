@@ -32,15 +32,36 @@ extension Model {
     func saveProjectClosure(required: Set<String>, noMore: Bool, published: Bool, finals: [JSONValue], profileDefault: Bool, review: Bool, releaseWork: Bool = true) {
         guard let item = closureProject else { return }
         let id = item["project_id"].string.isEmpty ? item["id"] : item["project_id"]
-        operation(String(localized: "Comprobando cierre del proyecto"), scope: .space) {
+        operation(review ? String(localized: "Preparando revisión del cierre") : String(localized: "Guardando entregas"), scope: .space) {
+            self.closureReviewing = review
+            self.closureProgress = .object([:])
+            defer { self.closureReviewing = false }
             self.closurePlan = nil
             self.closureSettings = try await self.client!.call("closure_save", ["project_id": id, "required": .array(required.sorted().map { .string($0) }),
                 "no_more": .bool(noMore), "published": .bool(published), "finals": .array(finals), "profile_default": .bool(profileDefault)])
             if review {
-                self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work), "release_work": .bool(releaseWork)])
+                let reviewID = JSONValue.string(UUID().uuidString)
+                let monitor = self.watchClosureProgress(reviewID)
+                defer { monitor.cancel() }
+                do {
+                    self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work), "release_work": .bool(releaseWork), "review_id": reviewID])
+                } catch let error as BackendFailure where error.code == "cancelled" {
+                    self.message = String(localized: "Revisión cancelada")
+                    return
+                }
                 self.message = String(localized: "Cierre listo para revisar; no se ha movido ni borrado media")
             } else {
                 self.message = String(localized: "Entregas guardadas; no se ha movido ni borrado media")
+            }
+        }
+    }
+    private func watchClosureProgress(_ id: JSONValue) -> Task<Void, Never> {
+        Task { @MainActor in
+            while !Task.isCancelled {
+                if let value = try? await self.reader?.call("closure_progress", ["plan_id": id]), !Task.isCancelled {
+                    self.closureProgress = value
+                }
+                try? await Task.sleep(for: .milliseconds(500))
             }
         }
     }
@@ -48,12 +69,7 @@ extension Model {
         guard let reviewed = closurePlan else { return }
         operation(String(localized: "Respaldando finales y liberando trabajo"), scope: .space) {
             self.closureProgress = .object([:])
-            let monitor = Task { @MainActor in
-                while !Task.isCancelled {
-                    if let value = try? await self.reader?.call("closure_progress", ["plan_id": reviewed["id"]]) { self.closureProgress = value }
-                    try? await Task.sleep(for: .milliseconds(500))
-                }
-            }
+            let monitor = self.watchClosureProgress(reviewed["id"])
             defer { monitor.cancel() }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
             if let result = self.closurePlan, result["closure_settings"] != .null { self.closureSettings = result["closure_settings"] }
@@ -101,7 +117,7 @@ struct ProjectClosureReminders: View {
 struct ProjectClosureSheet: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeSheet) private var dismiss
     @State private var required: Set<String> = []
     @State private var noMore = false
     @State private var profileDefault = false
@@ -133,7 +149,9 @@ struct ProjectClosureSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Completar y liberar", subtitle: LocalizedStringKey(title))
             ErrorBanner(model: model)
-            if let plan = model.closurePlan {
+            if model.closureReviewing {
+                reviewProgress
+            } else if let plan = model.closurePlan {
                 review(plan)
             } else {
                 form
@@ -143,9 +161,11 @@ struct ProjectClosureSheet: View {
                 Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction).disabled(model.busy)
                 Spacer()
                 if model.busy {
-                    ProgressView().controlSize(.small)
-                    Text(model.closureProgress["stage"].string.isEmpty ? model.message : model.stageLabel(model.closureProgress["stage"].string)).font(.caption).lineLimit(2)
-                    Button("Pausar") { model.client?.cancel() }
+                    if !model.closureReviewing {
+                        ProgressView().controlSize(.small)
+                        Text(model.closureProgress["stage"].string.isEmpty ? model.message : model.stageLabel(model.closureProgress["stage"].string)).font(.caption).lineLimit(2)
+                    }
+                    Button(model.closureReviewing ? "Cancelar revisión" : "Pausar") { model.client?.cancel() }
                 } else if let plan = model.closurePlan {
                     if plan["state"].string != "completed" {
                         Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
@@ -157,16 +177,43 @@ struct ProjectClosureSheet: View {
                     Button("Guardar") { save(review: false) }.disabled(required.isEmpty)
                     Button("Respaldar publicados…") { save(review: true, releaseWork: false) }
                         .disabled(required.isEmpty || !hasPublishedWork || model.archive.isEmpty || model.work.isEmpty)
-                    Button("Revisar cierre") { save(review: true) }
+                    Button("Preparar revisión…") { save(review: true) }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(!ready || model.archive.isEmpty || model.work.isEmpty)
                 }
             }
         }
-        .padding(20).frame(width: 820, height: 680)
+        .padding(20).frame(minWidth: 560, idealWidth: 820, maxWidth: 820, minHeight: 440, idealHeight: 680, maxHeight: 680)
         .interactiveDismissDisabled(model.busy)
         .onChange(of: model.closureSettings) { _, config in load(config) }
         .onAppear { load(model.closureSettings); query = title }
 
+    }
+    private var reviewProgress: some View {
+        let progress = model.closureProgress
+        let path = progress["path"].string
+        let size = progress["bytes_total"].double
+        let done = progress["bytes_done"].double
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("Preparando revisión del cierre", systemImage: "doc.text.magnifyingglass").font(.headline)
+            Text("nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan.")
+                .font(.callout).foregroundStyle(.secondary)
+            Text(progress["stage"].string.isEmpty ? model.message : model.stageLabel(progress["stage"].string))
+                .font(.callout.weight(.medium))
+            if !path.isEmpty {
+                Text(verbatim: (path as NSString).lastPathComponent).font(.caption).lineLimit(1).truncationMode(.middle)
+            }
+            if size > 0 {
+                ProgressView(value: min(done, size), total: size)
+                Text("Archivo actual · \(bytesLabel(done)) de \(bytesLabel(size))").font(.caption.monospacedDigit())
+            } else {
+                ProgressView().progressViewStyle(.linear)
+            }
+            if progress["files_total"].double > 0 {
+                Text("\(Int(progress["files_done"].double)) de \(Int(progress["files_total"].double)) archivos en este paso")
+                    .font(.caption.monospacedDigit())
+            }
+            Spacer()
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
     }
     private func applyTitle(_ plan: JSONValue) -> LocalizedStringKey {
         if !plan["entries"].array.isEmpty {
@@ -225,6 +272,8 @@ struct ProjectClosureSheet: View {
             if model.closureTruncated { Text("Hay más resultados. Acota la búsqueda para verlos.").font(.caption).foregroundStyle(palette.warning) }
             Toggle("Estas son todas las entregas definitivas", isOn: $noMore).toggleStyle(.checkbox)
             Text("El cierre respalda también lo pendiente de publicar y conserva su copia de edición.")
+                .font(.caption).foregroundStyle(.secondary)
+            Text("Preparar la revisión verifica archivos y muestra las acciones antes de aplicarlas.")
                 .font(.caption).foregroundStyle(.secondary)
         }.disabled(model.busy)
     }
@@ -332,35 +381,52 @@ struct ProjectClosureSheet: View {
     }
     private func finalActions(_ plan: JSONValue) -> some View {
         let finals = plan["closure_finals"].array.filter { $0["role"].string != "source" }
+        let archive = model.volume(plan["archive_id"].string)?["name"].string ?? String(localized: "Respaldo")
         return DisclosureGroup("Entregas y respaldo", isExpanded: $showFinalActions) {
             ForEach(Array(finals.enumerated()), id: \.offset) { _, final in
                 let path = final["original"]["path"].string
+                let action = finalAction(final, plan: plan)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text(URL(fileURLWithPath: path.isEmpty ? final["archive_path"].string : path).lastPathComponent)
                         Spacer()
-                        Text(finalAction(final, plan: plan))
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .foregroundStyle(.secondary).background(palette.raised, in: Capsule())
+                        actionBadge(action.0, icon: action.1, color: action.2)
                     }.font(.caption)
-                    Text(final["archive_path"].string).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                    Text(verbatim: archive + " · " + final["archive_path"].string)
+                        .font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
                 }.padding(.vertical, 3)
             }
         }
     }
-    private func finalAction(_ final: JSONValue, plan: JSONValue) -> LocalizedStringKey {
+    private func finalAction(_ final: JSONValue, plan: JSONValue) -> (LocalizedStringKey, String, Color) {
         let completed = plan["state"].string == "completed"
         let copies = final["copy_required"] == .null ? plan["closure_copies"].array.contains { transfer in
             transfer["preview"].array.contains { $0["archive_path"].string.hasSuffix("/" + final["archive_path"].string) }
         } : final["copy_required"].bool
         if final["keep_work"].bool {
-            return !completed && copies ? "Respaldar y conservar en edición" : "Respaldo verificado · conservar en edición"
+            return !completed && copies
+                ? ("Respaldar · conservar en edición", "doc.on.doc", palette.info)
+                : ("Ya en respaldo · conservar en edición", "checkmark.circle", palette.success)
         }
-        let removes = plan["entries"].array.contains {
-            $0["category"].string == "final" && $0["archive_path"] == final["archive_path"]
+        let original = final["original"]
+        let removal = plan["entries"].array.first {
+            $0["category"].string == "final" && $0["archive_path"] == final["archive_path"] &&
+            (original["path"].string.isEmpty || (original["volume_id"] == plan["work_id"] && $0["path"] == original["path"]))
         }
-        if removes && !completed { return copies ? "Respaldar y retirar" : "Respaldo verificado · retirar copia de edición" }
-        return "Respaldo verificado"
+        if let removal {
+            if completed || plan["cleaned"][removal["path"].string].string == "done" {
+                return ("Respaldado · copia de edición retirada", "checkmark.circle", palette.success)
+            }
+            let label: LocalizedStringKey = copies ? "Respaldar · retirar de edición" : "Ya en respaldo · retirar de edición"
+            return (label, "arrow.right.circle", palette.warning)
+        }
+        return ("Ya en respaldo · sin cambios", "checkmark.circle", palette.success)
+    }
+    private func actionBadge(_ title: LocalizedStringKey, icon: String, color: Color) -> some View {
+        Label(title, systemImage: icon)
+            .font(.caption.weight(.medium)).foregroundStyle(color)
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(palette.raised, in: palette.pill)
     }
     private func releaseGroup(_ label: LocalizedStringKey, category: String, plan: JSONValue) -> some View {
         let entries = plan["entries"].array.filter { $0["category"].string == category }
@@ -381,9 +447,13 @@ struct ProjectClosureSheet: View {
                         Spacer()
                         Text("\(entries.count) archivos · \(bytesLabel(entries.reduce(0) { $0 + $1["stamp"]["size"].double }))")
                             .font(.caption).foregroundStyle(.secondary)
-                        Text(plan["state"].string == "completed" ? "Retirados" : category == "intermediate" ? "Descartar sin respaldo" : "Liberar copia de edición")
-                            .font(.caption).padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(palette.raised, in: Capsule())
+                        if plan["state"].string == "completed" {
+                            actionBadge("Retirados", icon: "checkmark.circle", color: palette.success)
+                        } else if category == "intermediate" {
+                            actionBadge("Descartar sin respaldo", icon: "trash", color: palette.danger)
+                        } else {
+                            actionBadge("Liberar copia de edición", icon: "arrow.right.circle", color: palette.warning)
+                        }
                     }
                 }
             } else if plan["closure_finish"].bool && plan["closure_inventory_checked"].bool {
@@ -391,8 +461,7 @@ struct ProjectClosureSheet: View {
                     Text(label)
                     Spacer()
                     Text("Sin archivos en las rutas revisadas").font(.caption).foregroundStyle(.secondary)
-                    Text("Sin acción").font(.caption).padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(palette.raised, in: Capsule())
+                    actionBadge("Sin acción", icon: "minus.circle", color: palette.muted)
                 }
             }
         }
