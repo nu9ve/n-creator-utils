@@ -61,4 +61,5 @@ El importador anterior sigue disponible como `legacy-save` y tiene garantías di
 - [Estado y evidencia](docs/STATUS.md): implementación, pruebas y límites pendientes.
 - [Plan de trabajo](PLAN.md): prioridades y próximos pasos.
 - [Operación e instalación](docs/operations.md): app, CLI, discos y recuperación.
+- [Mapa de la suite](docs/suite.md): todas las apps de nu9ve, para qué sirven, plataformas, flujos y contratos en común.
 - [Desarrollo](docs/development.md) · [Contratos entre apps](docs/contracts/README.md) · [Índice completo](docs/README.md).

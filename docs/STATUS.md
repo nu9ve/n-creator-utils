@@ -2,6 +2,15 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Coordinación de la suite: mapa, Windows e interacción · 2026-11-07
+
+Solo documentación, sin commit. Se agregan:
+- [Mapa de la suite](suite.md): apps, para qué sirven, identidad, plataformas, UI, motor y transporte, flujos que cruzan apps, contratos y piezas candidatas a paquete por plataforma.
+- [apps de Windows v1](contracts/windows-app-v1.md): par de macos-app-v1, con motor compartido, equivalencias Mac↔Windows (barra, teclas, segundo plano, avisos, secretos, paquete y QA) y cómo se aplican tema y teclado. Toma como referencia lo que nove ya tiene en Windows (lo último revisado: `a34e5f4`, con lector desde Chrome y A21) y Tauri en curado.
+- [Teclado e interacción v1](contracts/nu9ve-interaction-v1.md): catálogo único, todo por teclado, badges con capas por modificador, ayuda contextual y panel ⌘/.
+
+Las tablas de adopción se llenaron leyendo los repos; nada se probó en Windows desde esta sesión.
+
 ## Terminal reemplaza a Grano en nüün · 2026-11-07
 
 Commit `1bff4b4`. Instalada como build **`f5cefb24e2b9`** con el árbol limpio y la app cerrada; la anterior quedó en `app-backups/ca7d7bfd.app`. Grano se retiró porque no aportaba frente a Macintosh; quien lo tenía guardado vuelve a Cristal. Terminal completa los tres comunes del [contrato §5](contracts/nu9ve-theme-v1.md#juego-de-skins-por-app):
