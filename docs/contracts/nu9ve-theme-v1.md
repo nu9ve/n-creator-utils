@@ -200,9 +200,23 @@ El comportamiento está en [macos-app-v1](macos-app-v1.md). Aquí va solo el asp
 
 ## 10. Implementación compartida
 
-- **Swift:** una propuesta es sacar `NuMacShell` de FractosKit a un paquete propio y añadirle un `NuTheme` con la matemática de color, `readable`, HSV, el tile Bayer, el vidrio con respaldo, `TitleBarDragArea` y `AppIdentity`. Hoy esas piezas están copiadas en varias apps. Es una decisión de dependencia entre repos, **pendiente**: este contrato no la adopta.
-- **TypeScript:** `theme.ts` y `dither.ts` de curado son la implementación de referencia mientras no exista una segunda app web o Tauri que los necesite.
-- Mientras no haya paquete, cada app implementa este contrato por su cuenta y lo prueba con la misma matriz.
+Decisión (2026-11-06): **primero replicar, después extraer.** Todavía no hay un paquete ni un repo común. Cada app copia las piezas que adopta, y lo que de verdad se comparte se decide cuando la misma pieza haya quedado igual en al menos tres apps.
+
+- **Debe:** cada copia empieza con un comentario que dice de dónde viene y qué sección cubre, para poder encontrar todas las copias y compararlas: `// nu9ve-theme-v1 §3 · origen: soundshop Appearance.swift ThemeColor.readable`.
+- **Debe:** si una copia se aparta del original, el comentario lo dice y explica por qué. Una divergencia sin explicar se trata como un error de alguna de las dos.
+- Origen sugerido de cada pieza:
+
+| Pieza | Origen | Sección |
+| --- | --- | --- |
+| Luminancia, contraste, `readable(on:)`, HSV | SoundShop `ThemeColor` | §3 |
+| Paleta pura desde las opciones y matriz de pruebas | curado `theme.ts`, `theme.test.ts` | §3, §4 |
+| Validación de preferencias campo por campo | curado `validateTheme` | §4 |
+| Tile Bayer en caché | kyu `Dither` (Swift), curado `dither.ts` (web) | §5 |
+| Vidrio con respaldo sólido | nüün `GlassSurface` | §5 |
+| Barra de título, arrastre y doble clic | nüün / SoundShop `TitleBarDragArea` | §8 |
+| `AppIdentity` y Acerca de | Fractos `NuMacShell` | [macos-app-v1 §5](macos-app-v1.md#5-acerca-de) |
+
+- **Más adelante:** cuando una pieza se repita igual, extraerla a un paquete (por ejemplo `NuTheme` / `NuMacShell`). Antes de crearlo hay que decidir en qué repo vive y cómo lo consumen las apps.
 
 ## 11. Validación
 
