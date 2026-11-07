@@ -204,6 +204,10 @@
 "MEDIA" = "MEDIA";
 "Marca qué copiar al SSD o elige «Ninguno»" = "Mark what to copy to the SSD or choose “None”";
 "Matiz (H)" = "Hue (H)";
+"Ámbar" = "Amber";
+"Navaja" = "Knife";
+"Acero" = "Steel";
+"Glaciar" = "Glacier";
 "Minimizar" = "Minimize";
 "Mostrar el importador rápido al conectar una tarjeta" = "Show the quick importer when a card is connected";
 "Motor" = "Engine";

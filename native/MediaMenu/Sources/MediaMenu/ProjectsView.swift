@@ -90,7 +90,7 @@ struct ProjectRow: View {
             HStack(spacing: 10) {
                 Button { expanded.toggle() } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: symbol).font(.title3).foregroundStyle(palette.control).frame(width: 28)
+                        Image(systemName: symbol).font(.title3).foregroundStyle(palette.accentText).frame(width: 28)
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
                                 Text(title).fontWeight(.medium).lineLimit(1)
@@ -180,6 +180,6 @@ struct ProjectStageBadge: View {
     }
     var body: some View {
         Text(label).font(.caption2.weight(.medium)).padding(.horizontal, 6).padding(.vertical, 1)
-            .background(palette.inset.opacity(0.7), in: Capsule())
+            .background(palette.raised.opacity(0.7), in: Capsule())
     }
 }

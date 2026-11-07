@@ -39,7 +39,7 @@ Nombres comunes. Cada app puede conservar sus nombres internos mientras migra, p
 | `line` | Bordes y divisores | — |
 | `ink` | Texto principal | 7:1 sobre `canvas`, `surface` y `raised` |
 | `muted` | Texto secundario | 4.5:1 sobre las tres |
-| `accent` | Selección, foco, acción principal y marca | 3:1 sobre `canvas` como forma |
+| `accent` | Relleno: selección, acción principal, insignias y marca | Sin mínimo como relleno: lo que va encima usa `onAccent` y la selección se marca además con peso o forma. Para trazos e iconos se usa `accentText` |
 | `accentText` | El acento usado como texto o enlace | 4.5:1 |
 | `onAccent` | Texto sobre un relleno de acento | 4.5:1; negro o blanco, el que contraste más |
 | `accentSoft` | Fondo de un elemento seleccionado | `ink` sobre él a 7:1 |
@@ -231,16 +231,16 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 
 | Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Parcial: sin `secondary` | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
-| 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Parcial: solo `onAccent` | No | No | Parcial: texto sobre acento | No aplica |
-| 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
+| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
+| 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
+| 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
 | 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Parcial: `glass` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
-| 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: falta lo suizo | Sí | Parcial: solo escrita | No | No aplica |
+| 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
 | 9 Idioma | Sin revisar | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
-- **nüün:** derivar `muted` y `control` con `readable` y añadir la capa suiza.
+- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Faltan la opción de Contraste, la tipografía suiza del wordmark y un segundo skin.
 - **kyu:** derivar toda la paleta desde el acento.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.
