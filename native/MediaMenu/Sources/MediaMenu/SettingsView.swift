@@ -78,7 +78,7 @@ struct SettingsView: View {
             HStack { Button("Añadir disco de respaldo…") { model.registerVolume(role: "archive") }; Button("Añadir SSD para editar…") { model.registerVolume(role: "work") }; Button("Actualizar estado") { Task { await model.refresh() } } }
             ForEach(model.volumes, id: \.["id"].string) { value in
                 HStack(alignment: .top) {
-                    Image(systemName: value["online"].bool ? "externaldrive.fill.badge.checkmark" : "externaldrive.badge.xmark").foregroundStyle(value["online"].bool ? .green : .secondary)
+                    Image(systemName: value["online"].bool ? "externaldrive.fill.badge.checkmark" : "externaldrive.badge.xmark").foregroundStyle(value["online"].bool ? palette.success : palette.muted)
                     VStack(alignment: .leading) { Text(value["name"].string).fontWeight(.semibold); Text(value["root"].string + "/" + value["prefix"].string).font(.caption).textSelection(.enabled) }
                     Spacer(); Text(value["role"].string == "archive" ? "Respaldo" : "Edición"); Text(value["online"].bool ? "Conectado" : "Ausente").foregroundStyle(.secondary)
                 }.padding(.vertical, 6)
@@ -98,7 +98,7 @@ struct SettingsView: View {
             Button("Guardar y redescubrir bibliotecas") { model.watchCaptures() }
             Text("Vacío: biblioteca publicada por Stalker. Una carpeta manual se añade a la actual y a las anteriores.").font(.caption)
             ForEach(model.captureRoots, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
-            if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
+            if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(palette.warning) }
             Divider()
             TextField("Ejecutable de Clipper (para dependencias y reenlace)", text: $model.clipperExecutable)
             Button("Elegir ejecutable Clipper…") {

@@ -282,7 +282,7 @@ struct UnitPreview: View {
             } else {
                 HStack(spacing: 4) {
                     if effectiveProject.isEmpty {
-                        Text(unit.suggestedProject.isEmpty ? "Sin proyecto" : "Sugerido: \(unit.suggestedProject)").font(.caption2).foregroundStyle(.orange).lineLimit(1)
+                        Text(unit.suggestedProject.isEmpty ? "Sin proyecto" : "Sugerido: \(unit.suggestedProject)").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
                     } else {
                         Text(effectiveProject).font(.caption2.weight(.medium)).lineLimit(1).help(effectiveProject)
                         if unit.project.isEmpty { Text("lote").font(.system(size: 9)).foregroundStyle(.secondary) }
@@ -299,7 +299,7 @@ struct UnitPreview: View {
                     }
                 } label: { Label(unit.camera == "auto" ? unit.detectedCamera : unit.camera, systemImage: unit.needsCameraReview ? "questionmark.circle" : "camera") }
                     .menuStyle(.borderlessButton).font(.caption2).fixedSize()
-                    .foregroundStyle(unit.needsCameraReview ? Color.orange : palette.ink)
+                    .foregroundStyle(unit.needsCameraReview ? palette.warning : palette.ink)
                     .help("Clasificar cámara")
             }
             if unit.previewPath == nil { Text("Auxiliar · sólo respaldo").font(.caption2).foregroundStyle(.secondary) }

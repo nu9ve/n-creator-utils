@@ -116,6 +116,7 @@ import MediaMenuCore
 
     static func fixture(_ model: Model, media: URL) {
         model.captureTask?.cancel()  // a slow first read must not replace the fixture
+        model.capturesFrozenForQA = true  // nor a watcher that fires later with the real library
         model.volumes = [
             .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12), "root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw")]),
             .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "online": .bool(true), "free": .number(4.2e11), "root": .string("/Volumes/ESSD"), "prefix": .string("001_proyectos")]),

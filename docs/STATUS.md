@@ -2,6 +2,22 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Colores de estado por skin en nüün · 2026-11-07
+
+En working tree, sin commit. `ThemeRoles` agrega los estados del contrato (§2): `danger`, `warning`, `success` e `info`, y `warningSoft` para el fondo de los avisos. Cada uno sale del matiz del sistema mezclado 12 % con `ink` y ajustado a 4.5:1 sobre las tres superficies. El aviso se ajusta también sobre su propio banner. Nunca toman el acento, así que un color base rojo no confunde un error con una selección. Unos 35 colores fijos (`.orange`, `.red`, `.green`, `.blue`) de Inicio, Ingreso, Discos, Ajustes, cierre de proyectos y liberación pasan a estos roles, igual que el botón destructivo. Esto corrige el aviso «Sin proyecto» sobre el gris de Windows 9x.
+
+Siguen como colores de dominio documentados la paleta categórica del mapa de discos (`diskClassColor`) y los puntos de madurez de Flujos, que van acompañados de texto.
+
+Evidencia:
+- `swift test`: **22/22**. La matriz de contraste cubre los estados en los 5 skins × claro/oscuro × 196 colores, y una prueba confirma que con un color base rojo cada estado conserva su matiz.
+- `check_localization.py`: sin faltantes.
+- `git diff --check`.
+- Capturas `--qa-snapshots` en Cristal claro, Windows 9x y Gótico.
+
+**Incidente de QA corregido:** una corrida de `--qa-snapshots` en Win9x capturó en Inicio sesiones reales de `~/Movies/Stalker` (solo lectura). El vigilante de capturas refrescó después del fixture, y el motor lee Stalker desde el `HOME` real aunque `NU9VE_MEDIA_HOME` sea temporal. Las imágenes se borraron. Ahora las builds de depuración congelan las capturas al poner el fixture, y [la QA visual se corre con `HOME` temporal](development.md#qa-visual-aislada). Las capturas válidas de Win9x y Gótico se hicieron así y solo muestran fixtures.
+
+**Sin probar:** clics reales y build instalada.
+
 ## Skins opcionales en nüün · 2026-11-07
 
 En working tree, sin commit. **Ajustes → Apariencia → Skin** ofrece, además de **Cristal** (por defecto, sin cambios), cuatro skins para quien quiera personalizar su espacio. **Restaurar claro** vuelve a Cristal.

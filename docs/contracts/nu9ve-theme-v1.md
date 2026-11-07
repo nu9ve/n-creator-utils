@@ -233,7 +233,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 
 | Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
+| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
 | 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
 | 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
 | 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `dither`, `classicMac`, `win9x`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |

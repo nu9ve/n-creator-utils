@@ -2,18 +2,20 @@ import SwiftUI
 import MediaMenuCore
 
 struct JobStatusIcon: View {
+    @Environment(\.creatorPalette) private var palette
     let state: String
     var body: some View {
         switch state {
-        case "completed", "source_retained", "recovered": Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-        case "failed": Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red)
-        case "paused", "camera_action_required": Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-        default: Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.blue)
+        case "completed", "source_retained", "recovered": Image(systemName: "checkmark.circle.fill").foregroundStyle(palette.success)
+        case "failed": Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(palette.danger)
+        case "paused", "camera_action_required": Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(palette.warning)
+        default: Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(palette.info)
         }
     }
 }
 
 struct InboxView: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     private var pendingWork: Int { model.assets.filter { $0["work_delivery_status"].string == "pending" }.count }
     var body: some View {
@@ -32,7 +34,7 @@ struct InboxView: View {
                 if !model.attentionJobs.isEmpty || pendingWork > 0 {
                     AttentionSection(model: model, pendingWork: pendingWork)
                 }
-                if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(.orange) }
+                if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(palette.warning) }
                 if !model.pendingCaptures.isEmpty { StalkerSection(model: model) }
                 FinalsSection(model: model)
                 ProjectClosureReminders(model: model)
@@ -140,6 +142,7 @@ struct DiscardReview: Identifiable {
 
 /// The reasons and the size come from the engine, read right before asking; the bundle goes to the Trash, whole.
 struct DiscardCaptureSheet: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let review: JSONValue
     @Environment(\.dismiss) private var dismiss
@@ -148,13 +151,13 @@ struct DiscardCaptureSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(blockers.isEmpty ? "¿Mover esta sesión a la Papelera?" : "Esta sesión no se puede quitar", systemImage: blockers.isEmpty ? "trash" : "exclamationmark.triangle.fill")
-                .font(.headline).foregroundStyle(blockers.isEmpty ? Color.primary : Color.orange)
+                .font(.headline).foregroundStyle(blockers.isEmpty ? Color.primary : palette.warning)
             Text(review["name"].string).font(.callout.weight(.medium)).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
             Text("\(bytesLabel(review["bytes"].double)) · \(Int(review["tracks"].double)) pistas").font(.caption).foregroundStyle(.secondary)
             if blockers.isEmpty {
                 Text("Esta sesión no tiene respaldo. Se mueve completa a la Papelera y puedes restaurarla desde ahí hasta que la vacíes.").font(.callout).fixedSize(horizontal: false, vertical: true)
-                if warnings.contains("clipper_unknown") { Label("No se pudo consultar Clipper; revisa que ningún proyecto la use.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
-                if warnings.contains("offline_projects") { Label("Hay proyectos de Clipper desconectados; podrían usarla.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
+                if warnings.contains("clipper_unknown") { Label("No se pudo consultar Clipper; revisa que ningún proyecto la use.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(palette.warning) }
+                if warnings.contains("offline_projects") { Label("Hay proyectos de Clipper desconectados; podrían usarla.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(palette.warning) }
             } else {
                 ForEach(blockers, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
             }
@@ -171,6 +174,7 @@ struct DiscardCaptureSheet: View {
 
 /// Only what is in the published folder is due; what is still waiting to go out lives in Flujos.
 struct FinalsSection: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     private var all: [JSONValue] { model.finals?["groups"].array ?? [] }
     private var groups: [JSONValue] { all.filter { $0["pending"].double > 0 } }
@@ -199,7 +203,7 @@ struct FinalsSection: View {
                         HStack(spacing: 8) {
                             Text(model.profileName(group["profile"].string)).font(.callout.weight(.medium))
                             Text(verbatim: "\(Int(group["pending"].double)) · \(bytesLabel(group["pending_bytes"].double))").font(.caption).foregroundStyle(.secondary)
-                            if group["published_folder"].string.isEmpty { Text("sin carpeta de publicados").font(.caption).foregroundStyle(.orange) }
+                            if group["published_folder"].string.isEmpty { Text("sin carpeta de publicados").font(.caption).foregroundStyle(palette.warning) }
                             Spacer()
                             Label(group["destination"].string, systemImage: "arrow.right").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                             if !group["published_folder"].string.isEmpty {
@@ -225,13 +229,14 @@ struct Chip: ViewModifier {
 }
 
 struct CardSuggestion: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let card: JSONValue
     var body: some View {
         let hint = card["hint"], path = card["path"].string
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(.orange)
+                Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(palette.warning)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(card["name"].string).font(.headline)
                     Text(model.familyLabel(hint["family"].string) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
@@ -312,7 +317,7 @@ struct CaptureInboxRow: View {
                     assigned
                 } else {
                     if savedProject.isEmpty {
-                        Text(capture["project_hint"]["name"].string.isEmpty ? "Sin proyecto; asígnalo antes de respaldar" : "Sugerencia del manifiesto; confirma el proyecto").font(.caption).foregroundStyle(.orange)
+                        Text(capture["project_hint"]["name"].string.isEmpty ? "Sin proyecto; asígnalo antes de respaldar" : "Sugerencia del manifiesto; confirma el proyecto").font(.caption).foregroundStyle(palette.warning)
                     }
                     HStack(spacing: 7) {
                         TextField("Proyecto", text: $project).frame(maxWidth: 210).onSubmit(save)

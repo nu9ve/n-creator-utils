@@ -19,6 +19,13 @@ private let seeds: [(Double, Double, Double)] = {
             #expect(roles.muted.contrast(with: background) >= 4.5, "\(label) muted")
             #expect(roles.accentText.contrast(with: background) >= 4.5, "\(label) accentText")
         }
+        for (name, state) in [("danger", roles.danger), ("warning", roles.warning), ("success", roles.success), ("info", roles.info)] {
+            for background in [roles.canvas, roles.surface, roles.raised] {
+                #expect(state.contrast(with: background) >= 4.5, "\(label) \(name)")
+            }
+        }
+        #expect(roles.ink.contrast(with: roles.warningSoft) >= 7, "\(label) warningSoft ink")
+        #expect(roles.warning.contrast(with: roles.warningSoft) >= 4.5, "\(label) warningSoft warning")
         #expect(roles.onAccent.contrast(with: roles.accent) >= 4.5, "\(label) onAccent")
         #expect(roles.ink.contrast(with: roles.accentSoft) >= 7, "\(label) accentSoft")
     }
@@ -72,6 +79,16 @@ private let seeds: [(Double, Double, Double)] = {
     #expect(Bayer.cells(density: 0).isEmpty)
     #expect(Bayer.cells(density: 1).count == 64)
     #expect(Bayer.cells(density: 0.5).count == 32)
+}
+
+@Test func statesKeepTheirHueWhateverTheSeed() {
+    // A red seed must not turn warnings or errors into the accent, and states stay distinct.
+    let roles = ThemeRoles(skin: .glass, dark: false, hue: 0, saturation: 1, brightness: 0.85)
+    let hues = [roles.danger, roles.warning, roles.success, roles.info].map { $0.hsv.hue * 360 }
+    #expect(hues[0] < 15 || hues[0] > 345)
+    #expect((20...45).contains(hues[1]))
+    #expect((120...160).contains(hues[2]))
+    #expect((200...230).contains(hues[3]))
 }
 
 @Test func readableKeepsColorsThatAlreadyRead() {
