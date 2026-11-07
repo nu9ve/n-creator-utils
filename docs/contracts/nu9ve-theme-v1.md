@@ -1,6 +1,6 @@
 # Tema visual de las apps de nu9ve v1
 
-Estado: **propuesta** (2026-11-06). Define cómo se ven las apps de nu9ve, lo que el usuario puede configurar y cómo cada app conserva su propia identidad dentro de un mismo lenguaje. Complementa a [apps de macOS v1](macos-app-v1.md), que trata el comportamiento: barra de título, menús, Acerca de, documentos y distribución. Igual que los demás contratos, una cosa es la regla y otra quién la adoptó: ver [adopción](#adopción). Escribir la regla no la da por adoptada.
+Estado: **propuesta** (2026-11-06). Define cómo se ven las apps de nu9ve, lo que el usuario puede configurar y cómo cada app conserva su propia identidad dentro de un mismo lenguaje. Junto con [teclado e interacción v1](nu9ve-interaction-v1.md) (cómo se maneja) complementa a [apps de macOS v1](macos-app-v1.md), que trata el comportamiento: barra de título, menús, Acerca de, documentos y distribución. Igual que los demás contratos, una cosa es la regla y otra quién la adoptó: ver [adopción](#adopción). Escribir la regla no la da por adoptada.
 
 **Debe** es obligatorio salvo que la app documente por qué no aplica. **Conviene** es lo recomendado.
 

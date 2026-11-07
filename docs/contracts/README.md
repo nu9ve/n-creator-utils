@@ -2,7 +2,7 @@
 
 Actualización 2026-10-29: hay productor de handoff, recibos, servicio JSON y MCP read-only en este repo. El contrato entre apps sigue **en revisión**; Stalker y Clipper (CLI/TUI) ya lo adoptaron con los límites de su fila. Estado completo: [STATUS](../STATUS.md). Propuesta inicial: 2026-10-24. Este directorio es el índice central de almacenamiento e intercambio entre n-creator-utils, Stalker y Clipper; Atlas participa como consumidor adicional. No declara adopción de cambios en los otros repos.
 
-Fuera de media, y para cualquier app nativa de nu9ve: [apps de macOS v1](macos-app-v1.md) (barra de título, menús, Acerca de, documentos, distribución y adopción). Su aspecto visual compartido (roles de color, opciones de Apariencia, skins e identidad de cada app) está en [tema visual v1](nu9ve-theme-v1.md), propuesta.
+Fuera de media, y para cualquier app nativa de nu9ve: [apps de macOS v1](macos-app-v1.md) (barra de título, menús, Acerca de, documentos, distribución y adopción). Su aspecto visual compartido (roles de color, opciones de Apariencia, skins e identidad de cada app) está en [tema visual v1](nu9ve-theme-v1.md), y la base de teclado e interacción (catálogo de atajos, badges con capas por modificador, ayuda contextual y panel ⌘/) en [teclado e interacción v1](nu9ve-interaction-v1.md); ambos son propuestas.
 
 Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, finales vinculados, descarte confirmado de renders y límites de Clipper/Final Cut.
 
