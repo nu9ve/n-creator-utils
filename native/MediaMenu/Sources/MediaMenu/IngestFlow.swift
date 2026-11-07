@@ -681,8 +681,8 @@ struct RunStep: View {
                 Text("Puedes seguir usando Biblioteca, Actividad e Inicio mientras termina. Cancelar se detiene en un punto recuperable.").font(.caption).foregroundStyle(.secondary)
             } else if let result = model.lastResult {
                 Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(palette.success)
-                if result["state"].string == "camera_action_required" {
-                    Text("Formatea la tarjeta en la cámara y confirma desde Actividad.").foregroundStyle(.secondary)
+                if result["state"].string == "camera_action_required", model.cleanupProfile(result) == "sony_clips_then_format" {
+                    Text("Formatea la tarjeta en la cámara. Nüün la comprobará cuando la vuelvas a conectar.").foregroundStyle(.secondary)
                 }
                 HStack {
                     if model.selectedCard != nil { Button("Expulsar SD", systemImage: "eject") { model.ejectSource() } }

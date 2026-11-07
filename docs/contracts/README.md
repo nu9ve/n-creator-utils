@@ -107,6 +107,11 @@ python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media <comando>   # o `
 
 Los comandos que mutan (`plan`, `apply`, `relayout`, `confirm-cleanup`, `deliver`, `restore`) sólo los inicia el usuario con un plan revisado; otra app no los llama sin esa revisión. Un campo nuevo opcional no rompe a nadie. Quitar o cambiar el significado de un campo exige nueva versión y nota aquí.
 
+El seguimiento Sony interno de nüün (`reconcile_sony_cleanup`) sólo lee la SD
+al reconectar y registra la observación de un trabajo ya revisado. El
+[contrato de ingreso](ingest-flow-v1.md#seguimiento-sony--2026-11-07) define
+las comprobaciones de identidad y contenido.
+
 ## Cómo actualizan este contrato otras sesiones
 
 Una sesión de Stalker o Clipper **puede editar `docs/contracts/*.md` de este repo**, y nada más: ni código, ni pruebas, ni STATUS/PLAN.

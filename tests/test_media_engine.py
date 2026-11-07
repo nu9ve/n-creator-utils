@@ -493,6 +493,40 @@ class MediaEngineTests(MediaFixture):
             self.catalog.db.execute("DELETE FROM copies WHERE job_id=? AND relative_path LIKE '%C0001.MP4'", (plan['id'],))
         self.assertFalse(self.catalog.jobs()[0]['sony_removal_recorded'])
 
+    def test_sony_mount_checks_returned_original_and_reused_filename(self):
+        from media.service import Service
+        from media.volumes import card_identity
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'old-clip')
+        index = self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML'
+        index.write_bytes(b'<index/>')
+        plan = self.plan()
+        self.assertEqual(self.run_plan(plan)['state'], 'camera_action_required')
+        service = Service(self.catalog, self.backend)
+
+        def reconcile():
+            return service.call('reconcile_sony_cleanup', {'source': str(self.source),
+                'identity': card_identity(self.backend.describe(self.source))})
+
+        self.assertEqual(reconcile()['checked'], {plan['id']: 'waiting_camera'})
+        self.assertEqual(reconcile()['updated'], [])
+        index.write_bytes(b'<new-index/>')
+        self.backend.replaced.add(str(self.source))
+        self.assertEqual(reconcile()['checked'], {})
+        self.backend.replaced.clear()
+
+        clip.write_bytes(b'old-clip')  # The old bytes reappeared with a different mtime.
+        self.assertEqual(reconcile()['checked'], {plan['id']: 'originals_present'})
+        self.assertEqual(self.catalog.job(plan['id'])['state'], 'camera_action_required')
+        clip.write_bytes(b'new-clip')  # Reused name and size, different bytes.
+        self.assertEqual(reconcile()['checked'], {plan['id']: 'ready'})
+        self.assertEqual(clip.read_bytes(), b'new-clip')
+        self.assertEqual(self.catalog.job(plan['id'])['state'], 'completed')
+        self.assertEqual(self.catalog.jobs()[0]['sony_card_check'], 'ready')
+        self.assertEqual(reconcile()['updated'], [])
+
     def test_dji_requires_per_file_classification_and_mixed_assignments(self):
         (self.source / 'DJI_001.MP4').write_bytes(b'dji')
         with self.assertRaisesRegex(MediaError, 'Classify DJI'): self.plan()

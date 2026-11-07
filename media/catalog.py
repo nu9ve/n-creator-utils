@@ -132,6 +132,23 @@ class Catalog:
                             (state, error, now(), job_id))
         self.event(job_id, state, {'error': error} if error else {})
 
+    def record_sony_check(self, job_id, result):
+        """Persist a changed observation and close a pending job in the same transaction."""
+        key = 'sony-card-check:' + job_id
+        if self.get(key) == result:
+            return False
+        with self.db:
+            if result == 'ready':
+                self.db.execute("UPDATE jobs SET state='completed',error=NULL,updated_at=? WHERE id=?", (now(), job_id))
+                progress = self.get('progress:' + job_id)
+                if progress:
+                    self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)',
+                                    ('progress:' + job_id, canonical(dict(progress, phase='completed')).decode()))
+            self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)', (key, canonical(result).decode()))
+            self.db.execute('INSERT INTO events(job_id,kind,payload,created_at) VALUES(?,?,?,?)',
+                            (job_id, 'sony_card_checked', canonical({'result': result}).decode(), now()))
+        return True
+
     def job(self, job_id):
         row = self.db.execute('SELECT * FROM jobs WHERE id=?', (job_id,)).fetchone()
         require(row is not None, 'unknown_job', 'Job not found')
@@ -145,12 +162,15 @@ class Catalog:
         stalker_release = self.get('stalker-release:' + job_id)
         if stalker_release is not None:
             result['stalker_release'] = stalker_release
+        if result['plan'].get('cleanup_profile') == 'sony_clips_then_format':
+            result['sony_card_check'] = self.get('sony-card-check:' + job_id)
         return result
 
     def jobs(self):
         values = [dict(row) for row in self.db.execute(
             "SELECT id,state,error,updated_at,json_extract(plan,'$.cleanup_profile') AS cleanup_profile,"
             "json_extract(plan,'$.source_kind') AS source_kind,"
+            "json_extract(plan,'$.source_identity.volume_uuid') AS source_volume_uuid,"
             "json_extract(plan,'$.release_stalker_source') AS release_stalker_source FROM jobs ORDER BY created_at DESC LIMIT 200")]
         for value in values:
             value['release_stalker_source'] = bool(value['release_stalker_source'])
@@ -159,6 +179,8 @@ class Catalog:
             summary = self.get('stalker-release:' + value['id'])
             if summary is not None:
                 value['stalker_release'] = summary
+            if value['cleanup_profile'] == 'sony_clips_then_format':
+                value['sony_card_check'] = self.get('sony-card-check:' + value['id'])
             if (value['cleanup_profile'], value['state'], value['error']) == ('sony_clips_then_format', 'failed', 'FileNotFoundError'):
                 from .transfer import sony_removal_recorded
                 value['sony_removal_recorded'] = sony_removal_recorded(self, self.job(value['id']))

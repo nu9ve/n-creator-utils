@@ -412,9 +412,6 @@ struct JobActions: View {
     let job: JSONValue
     var body: some View {
         if model.resumable(job) { Button("Reanudar") { model.resume(job["id"].string) }.disabled(model.busy) }
-        if job["state"].string == "camera_action_required" && job["cleanup_profile"].string == "sony_clips_then_format" {
-            Button("Ya la formateé…") { model.confirmCleanup(job["id"].string) }.disabled(model.busy)
-        }
     }
 }
 

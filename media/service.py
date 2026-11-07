@@ -228,6 +228,9 @@ class Service:
         if method == 'confirm_camera_cleanup':
             from .transfer import confirm_camera_cleanup
             return confirm_camera_cleanup(self.catalog, self.backend, params['job_id'], params['source'])
+        if method == 'reconcile_sony_cleanup':
+            from .transfer import reconcile_sony_cleanup
+            return reconcile_sony_cleanup(self.catalog, self.backend, params['source'], params['identity'], cancel=self.cancel)
         if method == 'coverage':
             from .coverage import coverage
             return coverage(self.catalog, self.backend, params['work'], params['archive'], params.get('path') or '',

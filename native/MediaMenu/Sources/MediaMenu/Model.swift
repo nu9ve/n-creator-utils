@@ -337,6 +337,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
             activeScope = nil; monitorTask?.cancel(); monitorTask = nil
             await refresh(); statusChanged?()
+            await reconcileMountedSonyCards()
         }
     }
 
@@ -480,6 +481,11 @@ enum OperationScope { case ingest, library, space, settings, source }
         let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
         if job["sony_removal_recorded"].bool {
             return String(localized: "Retiro de clips registrado · falta comprobar la SD")
+        }
+        switch job["sony_card_check"].string {
+        case "ready": return String(localized: "Respaldo verificado · SD comprobada al reconectar")
+        case "originals_present": return String(localized: "Respaldo verificado · reaparecieron archivos en la SD")
+        default: break
         }
         // Cards holding Stalker bundles end camera_action_required without any camera step.
         if job["state"].string == "camera_action_required", cleanupProfile(job) == "files" {
@@ -866,15 +872,6 @@ enum OperationScope { case ingest, library, space, settings, source }
             panel.beginSheetModal(for: window) { response in if response == .OK, let url = panel.url { finish(url) } }
         } else if panel.runModal() == .OK, let url = panel.url { finish(url) }
     }
-    func confirmCleanup(_ id: String) {
-        pickURL(message: String(localized: "Elige la tarjeta ya formateada en la cámara"), directory: URL(fileURLWithPath: "/Volumes")) { url in
-            self.operation(String(localized: "Comprobando tarjeta formateada"), scope: .library) {
-                let result = try await self.client!.call("confirm_camera_cleanup", ["job_id": .string(id), "source": .string(url.path)])
-                self.message = self.stateLabel(result["state"].string)
-                if !result["metadata_backup_error"].string.isEmpty { self.error = String(localized: "Respaldo de media terminado; falta respaldar catálogo: ") + result["metadata_backup_error"].string }
-            }
-        }
-    }
     func resume(_ id: String) {
         activeJobID = id
         operation(String(localized: "Reanudando job"), scope: .library) {
@@ -892,6 +889,36 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
 
     // MARK: Mounts
+
+    @ObservationIgnored private var sonyCheckPending = false
+
+    private func reconcileMountedSonyCards() async {
+        guard sonyCheckPending, !busy, !Task.isCancelled else { return }
+        sonyCheckPending = false
+        let pending = Set(jobs.filter {
+            $0["state"].string == "camera_action_required" && cleanupProfile($0) == "sony_clips_then_format"
+        }.map { $0["source_volume_uuid"].string }.filter { !$0.isEmpty })
+        let candidates = sourceCards.filter { pending.contains($0["identity"]["volume_uuid"].string) }
+        var changed = false
+        for card in candidates {
+            if Task.isCancelled { break }
+            do {
+                let result = try await oneShot("reconcile_sony_cleanup", ["source": card["path"], "identity": card["identity"]])
+                changed = changed || !result["updated"].array.isEmpty
+                if let last = lastResult, let observation = result["checked"].object[last["id"].string] {
+                    var updated = last.object
+                    updated["sony_card_check"] = observation
+                    if observation.string == "ready" { updated["state"] = .string("completed") }
+                    lastResult = .object(updated)
+                }
+            } catch let failure as BackendFailure where failure.code == "job_busy" {
+                sonyCheckPending = true
+            } catch {
+                // Unplugging or a transient mount failure leaves the pending state intact.
+            }
+        }
+        if changed && !Task.isCancelled { await refresh() }
+    }
 
     func notifyCard(_ path: String) {
         guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
@@ -912,6 +939,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let reader, reader.configuration.usable else { return }
             await refresh()
+            guard !Task.isCancelled else { return }
             if route == .library && librarySection == .disks { await loadStorage() }
             // No registered destination online: mounts stay silent (no popup, no content hints).
             guard volumes.contains(where: { $0["online"].bool }) else { cardSuggestions = []; notifiedCards = []; statusChanged?(); return }
@@ -929,6 +957,8 @@ enum OperationScope { case ingest, library, space, settings, source }
                 }
             }
             statusChanged?()
+            sonyCheckPending = true
+            await reconcileMountedSonyCards()
         }
     }
 }
