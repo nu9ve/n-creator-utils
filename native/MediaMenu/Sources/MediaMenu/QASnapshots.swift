@@ -36,6 +36,10 @@ import MediaMenuCore
             Task { await disks(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
         }
+        if let index = arguments.firstIndex(of: "--qa-skins"), index + 1 < arguments.count {
+            Task { await skins(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if arguments.contains("--qa-titlebar") {
             Task { await titleBar(delegate) }
             return true
@@ -701,6 +705,63 @@ import MediaMenuCore
         window.toggleFullScreen(nil)
         try? await Task.sleep(for: .seconds(2))
         report("restored")
+        NSApp.terminate(nil)
+    }
+
+    /// nu9ve-theme-v1 §5: the real window in every skin. Shape, bar, resize edge, zoom, settings and a
+    /// full-screen round trip on a square skin. Writes the skin key of this debug build's own defaults
+    /// domain and puts the previous value back.
+    static func skins(_ delegate: AppDelegate, _ folder: URL) async {
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let previous = UserDefaults.standard.string(forKey: "skin")
+        defer { UserDefaults.standard.set(previous, forKey: "skin") }
+        delegate.show()
+        // Let the window's own first refresh settle, then replace whatever it read with invented data,
+        // as `snapshots` does: no personal capture or disk reaches these pictures.
+        try? await Task.sleep(for: .seconds(2))
+        fixture(delegate.model, media: folder.appendingPathComponent("media"))
+        try? await Task.sleep(for: .milliseconds(500))
+        func capture(_ window: NSWindow, _ name: String) {
+            guard let root = window.contentView?.superview ?? window.contentView, let bitmap = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { return }
+            root.cacheDisplay(in: root.bounds, to: bitmap)
+            try? bitmap.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(name))
+        }
+        func size(_ rect: NSRect) -> String { "\(Int(rect.width))x\(Int(rect.height))" }
+        for skin in ThemeSkin.allCases {
+            UserDefaults.standard.set(skin.rawValue, forKey: "skin")
+            try? await Task.sleep(for: .milliseconds(900))
+            guard let window = delegate.window else { break }
+            let edge = window.contentView?.superview?.hitTest(NSPoint(x: 2, y: window.frame.height / 2)).map { String(describing: type(of: $0)) } ?? "nil"
+            capture(window, "window-\(skin.rawValue).png")
+            let start = window.frame
+            window.performZoom(nil); try? await Task.sleep(for: .milliseconds(900))
+            let zoomed = window.frame
+            window.performZoom(nil); try? await Task.sleep(for: .milliseconds(900))
+            print("QA skin \(skin.rawValue) square=\(skin.usesSquareWindow) titled=\(window.styleMask.contains(.titled)) toolbar=\(window.toolbar != nil) closeButton=\(window.standardWindowButton(.closeButton) != nil) leftEdge=\(edge) zoom=\(size(start))→\(size(zoomed))→\(size(window.frame)) dark=\(window.effectiveAppearance.name == .darkAqua)")
+            delegate.openSettings("appearance")
+            try? await Task.sleep(for: .milliseconds(900))
+            if let settings = delegate.settingsWindow {
+                capture(settings, "settings-\(skin.rawValue).png")
+                print("QA skin \(skin.rawValue) settings titled=\(settings.styleMask.contains(.titled))")
+                settings.orderOut(nil)
+            }
+        }
+        UserDefaults.standard.set(ThemeSkin.win9x.rawValue, forKey: "skin")
+        try? await Task.sleep(for: .milliseconds(900))
+        if let window = delegate.window {
+            window.toggleFullScreen(nil)
+            try? await Task.sleep(for: .seconds(3))
+            print("QA skin fullscreen entered=\(window.styleMask.contains(.fullScreen)) toolbar=\(window.toolbar != nil)")
+            capture(window, "fullscreen-win9x.png")
+            window.toggleFullScreen(nil)
+            try? await Task.sleep(for: .seconds(3))
+            print("QA skin fullscreen exited=\(!window.styleMask.contains(.fullScreen)) titledAfterExit=\(window.styleMask.contains(.titled))")
+        }
+        UserDefaults.standard.set(ThemeSkin.glass.rawValue, forKey: "skin")
+        try? await Task.sleep(for: .milliseconds(900))
+        if let window = delegate.window {
+            print("QA skin back to glass titled=\(window.styleMask.contains(.titled)) toolbar=\(window.toolbar != nil) fullSize=\(window.styleMask.contains(.fullSizeContentView))")
+        }
         NSApp.terminate(nil)
     }
 }

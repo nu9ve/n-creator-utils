@@ -80,8 +80,8 @@ struct StepBar: View {
                     }
                     .font(.callout.weight(current ? .semibold : .regular))
                     .padding(.horizontal, 9).padding(.vertical, 5)
-                    .background(current ? palette.accentSoft : .clear, in: Capsule())
-                    .contentShape(Capsule())
+                    .background(current ? palette.accentSoft : .clear, in: palette.pill)
+                    .contentShape(palette.pill)
                 }
                 .buttonStyle(.plain)
                 .disabled(model.ingestLocked || (step == .run && model.lastResult == nil && !model.busy))
@@ -89,7 +89,7 @@ struct StepBar: View {
             }
         }
         .padding(3)
-        .modifier(GlassSurface(shape: Capsule()))
+        .modifier(GlassSurface(shape: palette.pill))
         .frame(maxWidth: .infinity)
     }
 }
@@ -155,8 +155,9 @@ struct SourceStep: View {
 
 struct SectionTitle: View {
     let title: LocalizedStringKey
+    @Environment(\.creatorPalette) private var palette
     init(_ title: LocalizedStringKey) { self.title = title }
-    var body: some View { Text(title).font(.system(.headline, design: .serif)) }
+    var body: some View { Text(title).font(palette.heading(.headline)) }
 }
 
 struct SourceTiles: View {
@@ -234,9 +235,9 @@ struct SourceTile: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .background(palette.raised.opacity(selected ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? palette.accentText : palette.line.opacity(0.6), lineWidth: selected ? 1.5 : 1))
-            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .background(palette.raised.opacity(selected ? 0.6 : 0.35), in: palette.panel)
+            .overlay(palette.panel.stroke(selected ? palette.accentText : palette.line.opacity(0.6), lineWidth: selected ? 1.5 : 1))
+            .contentShape(palette.panel)
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {
@@ -370,7 +371,7 @@ struct DestinationSummary: View {
             }
             .font(.callout)
             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.raised.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .background(palette.raised.opacity(0.35), in: palette.panel)
         }
     }
 }
@@ -571,7 +572,7 @@ struct VolumeChoices: View {
                 Text(detail).font(.caption).foregroundStyle(online ? Color.secondary : Color.orange)
                 Spacer()
             }.padding(.vertical, 5).padding(.horizontal, 8).contentShape(Rectangle())
-            .background(selection == id ? palette.raised.opacity(0.5) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .background(selection == id ? palette.raised.opacity(0.5) : .clear, in: palette.control)
         }.buttonStyle(.plain)
     }
 }
@@ -610,7 +611,7 @@ struct PlanReview: View {
             let files = plan["files"].array
             let bytes = files.reduce(0.0) { $0 + $1["stamp"]["size"].double }
             VStack(alignment: .leading, spacing: 10) {
-                Label("Plan revisable · \(files.count) archivos · \(bytesLabel(bytes))", systemImage: "checklist").font(.system(.title3, design: .serif).weight(.semibold))
+                Label("Plan revisable · \(files.count) archivos · \(bytesLabel(bytes))", systemImage: "checklist").font(palette.heading(.title3))
                 let projects = Dictionary(grouping: plan["units"].array.filter { !$0["support"].bool }) { $0["project"].string }
                 FlowSummary(items: projects.keys.sorted().map { title in
                     let count = projects[title, default: []].count
@@ -658,7 +659,7 @@ struct FlowSummary: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 6) {
-                ForEach(items, id: \.self) { Text($0).font(.caption.weight(.medium)).padding(.horizontal, 8).padding(.vertical, 3).background(palette.raised.opacity(0.6), in: Capsule()) }
+                ForEach(items, id: \.self) { Text($0).font(.caption.weight(.medium)).padding(.horizontal, 8).padding(.vertical, 3).background(palette.raised.opacity(0.6), in: palette.pill) }
             }
         }.scrollIndicators(.hidden)
     }
@@ -667,6 +668,7 @@ struct FlowSummary: View {
 // MARK: Step 5 · copy and result
 
 struct RunStep: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -676,7 +678,7 @@ struct RunStep: View {
                 else { ProgressView().progressViewStyle(.linear); Text(model.message).font(.caption) }
                 Text("Puedes seguir usando Biblioteca, Actividad e Inicio mientras termina. Cancelar se detiene en un punto recuperable.").font(.caption).foregroundStyle(.secondary)
             } else if let result = model.lastResult {
-                Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(.system(.title3, design: .serif).weight(.semibold)).foregroundStyle(.green)
+                Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(.green)
                 if result["state"].string == "camera_action_required" {
                     Text("Formatea la tarjeta en la cámara y confirma desde Actividad.").foregroundStyle(.secondary)
                 }

@@ -61,7 +61,7 @@ struct Panel: ViewModifier {
     @Environment(\.creatorPalette) private var palette
     func body(content: Content) -> some View {
         content.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.raised.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .background(palette.raised.opacity(0.35), in: palette.panel)
     }
 }
 
@@ -221,7 +221,7 @@ struct FinalsSection: View {
 
 struct Chip: ViewModifier {
     @Environment(\.creatorPalette) private var palette
-    func body(content: Content) -> some View { content.background(palette.raised.opacity(0.5), in: Capsule()) }
+    func body(content: Content) -> some View { content.background(palette.raised.opacity(0.5), in: palette.pill) }
 }
 
 struct CardSuggestion: View {
@@ -354,7 +354,7 @@ struct CaptureInboxRow: View {
             }
             .font(.callout).foregroundStyle(palette.onAccent)
             .padding(.horizontal, 9).padding(.vertical, 4)
-            .background(palette.accent, in: Capsule())
+            .background(palette.accent, in: palette.pill)
             Button { editing = true } label: { Image(systemName: "arrow.triangle.2.circlepath") }
                 .buttonStyle(.borderless).help("Cambiar proyecto").accessibilityLabel("Cambiar proyecto")
             Spacer(minLength: 8)

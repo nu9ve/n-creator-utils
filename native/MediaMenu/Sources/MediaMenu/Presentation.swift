@@ -5,9 +5,12 @@ import MediaMenuCore
 struct WindowRoot: View {
     @Bindable var model: Model
     var body: some View {
-        Group {
-            if model.presentation == .full { MainView(model: model) }
-            else { IngestFlow(model: model) }
+        // Skins with their own window draw nüün's bar in the content instead of the toolbar row.
+        SkinnedWindow(title: "nüün", bar: { WindowTopBar(model: model) }) {
+            Group {
+                if model.presentation == .full { MainView(model: model) }
+                else { IngestFlow(model: model) }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(CreatorAppearance())
@@ -29,12 +32,12 @@ struct AppNavigation: View {
                         if !compact { Text(route.title) }
                         if route == .home && attention > 0 {
                             Text("\(attention)").font(.caption2.monospacedDigit()).padding(.horizontal, 5)
-                                .background(palette.accent, in: Capsule()).foregroundStyle(palette.onAccent)
+                                .background(palette.accent, in: palette.pill).foregroundStyle(palette.onAccent)
                         }
                     }
                     .font(.callout.weight(model.route == route ? .semibold : .regular))
                     .padding(.horizontal, compact ? 8 : 10).padding(.vertical, 4)
-                    .background(model.route == route ? palette.accentSoft : .clear, in: Capsule())
+                    .background(model.route == route ? palette.accentSoft : .clear, in: palette.pill)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -44,7 +47,7 @@ struct AppNavigation: View {
             }
         }
         .padding(2)
-        .modifier(GlassSurface(shape: Capsule()))
+        .modifier(GlassSurface(shape: palette.pill))
     }
     private var attention: Int { model.cardSuggestions.count + (model.pendingCaptures.isEmpty ? 0 : 1) + model.attentionJobs.count + model.projectClosures.filter { $0["needs_release"].bool }.count }
 }
@@ -52,11 +55,12 @@ struct AppNavigation: View {
 /// Lives in the native toolbar row (next to the window controls), also in fullscreen.
 struct WindowTopBar: View {
     @Bindable var model: Model
+    @Environment(\.creatorPalette) private var palette
     @State private var measuredCenter: CGFloat = 0
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
-                Text("nüün").font(.system(size: 14, weight: .semibold, design: .serif))
+                Text("nüün").font(palette.display(14))
                     .padding(.leading, 8).help(model.message)
                 if model.presentation == .full {
                     Spacer(minLength: 4)
@@ -213,10 +217,11 @@ struct PageHeader<Trailing: View>: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
     @ViewBuilder var trailing: Trailing
+    @Environment(\.creatorPalette) private var palette
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(.title2, design: .serif).weight(.semibold))
+                Text(title).font(palette.heading(.title2))
                 if let subtitle { Text(subtitle).font(.callout).foregroundStyle(.secondary) }
             }
             Spacer()
@@ -237,7 +242,7 @@ struct ActionFooter<Content: View>: View {
         HStack(spacing: 9) { content }
             .padding(.horizontal, 14).padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(GlassSurface(shape: RoundedRectangle(cornerRadius: 16)))
+            .modifier(GlassSurface(shape: palette.skin == .glass ? AnyShape(RoundedRectangle(cornerRadius: 16)) : palette.panel))
             .padding(.horizontal, 12).padding(.bottom, 10).padding(.top, 4)
     }
 }

@@ -14,6 +14,9 @@ private extension NSToolbarItem.Identifier {
     var settingsWindow: NSWindow?
     var pendingMode: WindowMode?
     var observers: [NSObjectProtocol] = []
+    /// Kept while a skin draws its own window, to put back for Cristal and Grano.
+    var mainToolbar: NSToolbar?
+    var appliedSkin: ThemeSkin?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -46,6 +49,10 @@ private extension NSToolbarItem.Identifier {
                 Task { @MainActor in self?.model.mountChanged(arrival: arrival) }
             })
         }
+        // A skin with its own window changes the window itself; the content follows by @AppStorage.
+        observers.append(NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.applySkinChrome() }
+        })
         if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().delegate = self }
         #if DEBUG
         if QASnapshots.run(self) { return }
@@ -65,8 +72,8 @@ private extension NSToolbarItem.Identifier {
     @objc func show() { present(.full) }
     @objc func showImporter() { model.route = .ingest; present(.compact) }
     func makeWindow(_ mode: WindowMode) -> NSWindow {
-        let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height),
-                             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        let value = ShellWindow(contentRect: NSRect(x: 0, y: 0, width: mode.width, height: mode.height),
+                                styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         value.title = "nüün"; value.titleVisibility = .hidden; value.delegate = self; value.isReleasedWhenClosed = false
         value.collectionBehavior.insert(.fullScreenPrimary)
         let host = NSHostingView(rootView: WindowRoot(model: model))
@@ -81,8 +88,45 @@ private extension NSToolbarItem.Identifier {
         value.toolbar = toolbar
         value.toolbarStyle = .unifiedCompact
         value.titlebarSeparatorStyle = .none
+        value.tabbingMode = .disallowed
+        mainToolbar = toolbar
         value.center()
         return value
+    }
+
+    // MARK: Skins
+
+    var currentSkin: ThemeSkin { ThemeSkin(rawValue: UserDefaults.standard.string(forKey: "skin") ?? "") ?? .glass }
+
+    /// nu9ve-theme-v1 §5: Macintosh, Windows 9x and Gótico own their window (square, their own bar);
+    /// Cristal and Grano keep the system's, with nüün's bar in the native toolbar row.
+    /// Deferred one turn: changing the style mask during SwiftUI layout frees views AppKit still uses.
+    func applySkinChrome(force: Bool = false) {
+        let skin = currentSkin
+        guard force || skin != appliedSkin else { return }
+        appliedSkin = skin
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            // Changing the title bar keeps the content rect, which would shrink or grow the window:
+            // the frame the user arranged stays put.
+            for value in [self.window, self.settingsWindow].compactMap({ $0 as? ShellWindow }) where !value.styleMask.contains(.fullScreen) {
+                let frame = value.frame
+                value.usesSquareCorners = skin.usesSquareWindow
+                if value === self.window {
+                    let wanted = skin.usesSquareWindow ? nil : self.mainToolbar
+                    if value.toolbar !== wanted {
+                        value.toolbar = wanted
+                        if wanted != nil { value.toolbarStyle = .unifiedCompact }
+                    }
+                }
+                if value.frame != frame { value.setFrame(frame, display: true) }
+            }
+            if let window = self.window as? ShellWindow, window.styleMask.contains(.fullScreen) {
+                // In full screen only the flag changes; the shape follows on exit.
+                window.usesSquareCorners = skin.usesSquareWindow
+                window.toolbar = skin.usesSquareWindow ? nil : self.mainToolbar
+            }
+        }
     }
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.shellBar] }
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.shellBar] }
@@ -105,7 +149,7 @@ private extension NSToolbarItem.Identifier {
         if let window, window.styleMask.contains(.fullScreen), mode != .full {
             pendingMode = mode; window.toggleFullScreen(nil); return
         }
-        if window == nil { window = makeWindow(mode) }
+        if window == nil { window = makeWindow(mode); applySkinChrome(force: true) }
         guard let window else { return }
         applyWindowBehavior(mode)
         let sameMode = model.presentation == mode && window.isVisible
@@ -203,15 +247,20 @@ private extension NSToolbarItem.Identifier {
     func openSettings(_ section: String) {
         if !section.isEmpty { UserDefaults.standard.set(section, forKey: "settingsSection") }
         if settingsWindow == nil {
-            let value = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 600), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            let value = ShellWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 600), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             value.title = String(localized: "Ajustes de nüün"); value.isReleasedWhenClosed = false
             value.minSize = NSSize(width: 620, height: 440)
-            let host = NSHostingView(rootView: SettingsView(model: model).modifier(CreatorAppearance()))
+            let title = String(localized: "Ajustes de nüün")
+            let host = NSHostingView(rootView: SkinnedWindow(title: title, barRow: { $0 == .gothic }, bar: { Text(verbatim: title).font(.callout.weight(.semibold)).allowsHitTesting(false); Spacer() }) {
+                SettingsView(model: model)
+            }.modifier(CreatorAppearance()))
             host.sizingOptions = []
             value.contentView = host
             value.setFrameAutosaveName("nuun.settings")
             if !value.setFrameUsingName("nuun.settings") { value.center() }
+            value.tabbingMode = .disallowed
             settingsWindow = value
+            applySkinChrome(force: true)
         }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
