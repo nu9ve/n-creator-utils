@@ -105,6 +105,35 @@ Solo informa: no cambia qué se copia ni qué se retira.
 
 Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: fecha, archivos retirados, bytes liberados y las entregas que siguen en edición sin publicar. Estas ya están respaldadas. Al publicarlas, **Respaldar publicados…** retira su copia de edición sin preparar todo el cierre otra vez.
 
+## Por publicar en Proyectos · 2026-11-07
+
+El motor lee dónde está cada entrega guardada (`closure.delivery_states`). Proyectos (`capture_overview` → `projects[].deliveries`) y la hoja al reabrir (`closure_candidates.deliveries`, `closure_deliveries`) usan esa misma lectura, así que la fila y el resumen coinciden:
+
+| Estado | Significado | Cuenta en la fila |
+| --- | --- | --- |
+| `archived` | La selección ya apunta al respaldo | — |
+| `awaiting` | En el disco de edición, sin publicar | «Terminado · N por publicar» |
+| `published` | Publicada, todavía en el disco de edición | «Publicadas por respaldar» |
+| `moved` | El mismo archivo (nombre, tamaño, mtime e inode) está ahora en la carpeta de publicados; trae `current_path` | Igual que `published` |
+| `published_archived` | Ya no está en edición y hay un recibo de transferencia desde publicados con ese nombre y tamaño | — |
+| `missing` | Ya no está y no hay evidencia de dónde quedó | «Entregas no encontradas»; no cuenta como espera |
+
+Con el disco desconectado se conserva la decisión guardada (`offline`). La lectura hace un `stat` por entrega y sólo recorre la carpeta de publicados si falta un archivo; no lee contenido ni calcula hashes.
+
+Proyectos agrega el filtro **Por publicar**: proyectos terminados que todavía tienen entregas en el disco de edición. Al reabrir, si una entrega se movió a la carpeta de publicados, la hoja la propone con su nueva ubicación y como publicada. Se guarda sólo cuando la persona guarda o respalda; el motor no reescribe la selección. Tras **Respaldar publicados…**, el cierre actualiza la selección al respaldo y la marca baja sola.
+
+## Proyectos relacionados · propuesta pendiente de confirmación · 2026-11-07
+
+Caso: `terra-6-1` y su regrabación `terra-6-1-extra`. El horizontal publicado y las miniaturas son de la regrabación. No se implementa hasta que el usuario confirme este diseño.
+
+1. **Sugerir y confirmar.** En la hoja de cierre, **Incluir proyecto relacionado…** lista proyectos del mismo perfil cuyo título normalizado empieza por el del otro seguido de `-` (`terra-6-1` ↔ `terra-6-1-extra`). La persona confirma «es una regrabación del mismo trabajo». Se guarda en ambos `project-closure:` como `related[{project_id, kind: 'rerecording'}]`, con el evento `project_relation_confirmed`. Quitar la relación es otra decisión registrada.
+2. **Una lista de entregas.** La selección muestra las entregas de los dos proyectos en un solo grupo por tipo. Cada final conserva su proyecto dueño: la regla `final_already_linked` no cambia y nada se reasigna. Los requisitos de cada proyecto se cumplen con la unión: un horizontal de `terra-6-1-extra` cubre el horizontal de `terra-6-1`, y la revisión dice «cubre el requisito de terra-6-1 · pertenece a terra-6-1-extra».
+3. **Fuentes y acciones por tanda.** El plan es uno solo, con un digest, pero `closure_scopes` lleva el proyecto de cada scope. La revisión muestra una sección por tanda: raws, intermedios y badges de efecto. Una tanda sin trabajo en ESSD sale con **Sin acción**.
+4. **Sin fusionar historiales.** Cada proyecto conserva su catálogo, sus alias, recibos y eventos. Al terminar, el commit terminal escribe `project-state`, `project-released` y `project-closure` de cada uno en la misma transacción.
+5. **Terra hoy.** `terra-6-1` ya está cerrado (siete archivos retirados). Al incluir la regrabación, su tanda saldría **Sin acción** y la de `terra-6-1-extra` mostraría lo que aún tenga en ESSD.
+
+La alternativa más corta, dos cierres separados en los que el requisito acepta finales de un proyecto relacionado confirmado, ahorra la vista por tandas pero obliga a revisar dos veces las mismas entregas.
+
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`
@@ -171,7 +200,8 @@ Accesible tanto desde la app como por `media rpc`:
 | `closure_save` | `project_id`, `required[]`, `no_more`, `published`, `finals[{volume_id,path,role,published?}]`, `profile_default?`; guarda decisiones, no mueve archivos. |
 | `closure_plan` | `project_id`, `archive`, `work`, `release_work?` (true por defecto); comprueba hashes y registra el plan. |
 | `closure_apply` | `plan_id`, `digest`, `confirm_discard: true`; ejecuta el cierre. Sin consentimiento también se bloquea un intento por `apply_release`. |
-| `closure_progress` | `plan_id`; etapa y conteos reales del retiro. Sin promesa de porcentaje global ni ETA. |
+| `closure_progress` | `plan_id`; etapa y conteos reales del retiro. Al aplicar trae `overall_done`/`overall_total`; sin ETA. |
+| `closure_deliveries` | `project_id`; estado actual de cada entrega guardada (ver «Por publicar»). Sólo lectura. |
 
 El lector persistente sólo admite candidates/overview/progress. Swift aplica
 por ID/digest, sin reserializar el plan. Actividad y Proyectos permiten reanudar.

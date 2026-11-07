@@ -125,6 +125,42 @@ reintenta una vez la lectura. Una segunda falla se registra y no se repite
 ningún borrado dentro de ese reintento. El incidente físico de noviembre
 sigue pendiente de reproducir con una grabación descartable.
 
+### Etapas observadas del retiro Sony · 2026-11-07
+
+El motor da a cada trabajo Sony una etapa (`sony_stage` en `job` y `jobs`, de
+`transfer.sony_stage`). Sale sólo de observaciones; nunca pide confirmar:
+
+| Etapa | Qué se observó | Actividad |
+| --- | --- | --- |
+| `backup_verified` | Copias verificadas; aún sin retiro | Respaldo verificado |
+| `removal_observed` | Este ingreso retiró los clips verificados y no los vio en su lectura final | Retiro observado · formatea y vuelve a conectar |
+| `removal_recorded` | Retiros journalizados, pero la lectura final falló (`failed`) | Retiro de clips registrado · falta comprobar la SD |
+| `removal_durable` | Al volver a montar la misma tarjeta, los clips siguen ausentes y los índices sin cambios (`waiting_camera`) | Retiro comprobado al reconectar · falta formatear |
+| `formatted` | Clips ausentes y un índice Sony reescrito (`ready`, trabajo `completed`) | Formato observado |
+| `originals_reappeared` | Un clip respaldado volvió a la tarjeta con el mismo SHA-256 | Aviso con los archivos y **Volver a revisar la SD…** |
+
+Al reaparecer originales se guardan sus rutas (`sony-card-reappeared:<job>`) y el
+evento `sony_card_checked` las incluye. El trabajo sigue `camera_action_required`
+y cuenta como aviso. **Volver a revisar la SD…** sólo abre Ingreso con esa
+tarjeta: un plan nuevo se revisa y nada se retira hasta aplicarlo. Sin la
+tarjeta conectada, el botón queda desactivado.
+
+**Diagnóstico de `060b585d` (Baches, 6 nov):** lectura del catálogo en modo de
+sólo lectura. Seis miembros removibles (dos MP4, dos XML y dos miniaturas,
+7,027,220,534 bytes) constan `cleaned=1`; los nueve índices, `cleaned=0`. El
+progreso quedó en fase `cleaning` con 99.9 % y el fallo llegó un segundo
+después de la última escritura de progreso. El orden del motor de esa build
+deja una sola operación tras el último retiro: la lectura final de la tarjeta.
+Por eso el `FileNotFoundError` de `C0001.MP4`, retirado minutos antes, encaja
+con una entrada de directorio todavía listada que ya no existía al leerla, el
+caso que la fase `checking_card` reintenta desde `a439bb378645`. Es coherente
+con la reaparición observada el 7 nov tras la interrupción de FSKit, pero no
+la prueba: la tarjeta ya se formateó y reutilizó. Los recibos en MEDIA502 y la
+entrega posterior a ESSD constan verificados. El trabajo sigue `failed` y la
+comprobación al reconectar no lo incluye. Propuesta pendiente de decisión:
+incluir en esa comprobación los trabajos `failed` con `removal_recorded`, para
+que una tarjeta ya formateada los cierre con un evento, sin reanudarlos.
+
 ## Pruebas y límites
 
 Fixtures temporales: asignaciones/auxiliares, SHA y recuperación, progreso entre

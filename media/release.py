@@ -325,10 +325,34 @@ def review_release(catalog, backend, plan_id, digest):
         return plan
 
 
+def release_meter(catalog, plan, progress):
+    """Wrap `progress` with one overall measure: verify each archive copy, then re-read and retire each original.
+
+    Returns (meter, measured callback, verify sizes, release sizes). Details already sent by the release (and read
+    by a closeout's own tracker) pass through unchanged; the meter only adds its fields."""
+    from .progress import ActionMeter
+    verify = [0 if e.get('category') == 'intermediate' else e['stamp']['size'] for e in plan['entries']]
+    sizes = [e['stamp']['size'] for e in plan['entries']]
+    meter = ActionMeter(sum(verify) + sum(sizes), len(plan['entries']))
+    meter.base = None
+
+    def measured(stage, **details):
+        if meter.base is not None and 'bytes_done' in details:
+            meter.reach(meter.base + details['bytes_done'])
+        payload = dict(details, **{k: v for k, v in meter.fields().items() if k not in {'files_done', 'files_total'}})
+        payload.setdefault('files_done', meter.files_done)
+        payload.setdefault('files_total', meter.files_total)
+        progress(stage, **payload)
+    return meter, measured, verify, sizes
+
+
 def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None):
     plan = stored_plan(catalog, plan_id, digest)
     if plan['state'] == 'completed':
         return plan
+    meter = None
+    if progress:
+        meter, progress, verify_sizes, release_sizes = release_meter(catalog, plan, progress)
     guard = clipper.release_guard(catalog) if plan['entries'] else nullcontext()
     with guard, catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
@@ -354,11 +378,18 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
                 archive_guards = validate(catalog, backend, plan, cancel)
             # All archive copies must verify again before the first deletion.
             report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
+            work_name = ((catalog.volume(plan['work_id']) or {}).get('name') if plan.get('work_id') else '') or Path(plan['source_root']).name
             for index, entry in enumerate(plan['entries']):
                 if entry.get('category') == 'intermediate': continue
+                if meter:
+                    meter.base = sum(verify_sizes[:index])
+                    meter.holding(entry['archive_path'], archive['name'], '', 'verify')
                 require(checked_hash_progress(target, entry['archive_path'], cancel, progress,
                                               'verifying_archive', index, len(plan['entries']))[0] == entry['sha256'],
                         'checksum_mismatch', 'Archive changed before release')
+            if meter:
+                meter.base = None
+                meter.reach(sum(verify_sizes))
             report(progress, 'metadata_backup_before')
             backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
             plan['state'] = 'applying'
@@ -366,7 +397,15 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
             report(progress, 'releasing_originals', files_done=0, files_total=len(plan['entries']))
             for index, entry in enumerate(plan['entries']):
                 path = entry['path']
-                if plan['cleaned'].get(path) == 'done': continue
+                if meter:
+                    meter.base = sum(verify_sizes) + sum(release_sizes[:index])
+                if plan['cleaned'].get(path) == 'done':
+                    if meter:
+                        meter.reach(meter.base + release_sizes[index])
+                        meter.files_done += 1
+                    continue
+                if meter:
+                    meter.holding(path, work_name, '', 'release')
                 require(not (cancel and cancel()), 'cancelled', 'Release paused; review and resume the same plan')
                 check_source(backend, plan)
                 backend.check(archive)
@@ -394,6 +433,10 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
                     origin.unlink(path, expected=stamp)
                 plan['cleaned'][path] = 'done'
                 catalog.set('release:' + plan_id, plan)
+                if meter:
+                    meter.base = None
+                    meter.reach(sum(verify_sizes) + sum(release_sizes[:index + 1]))
+                    meter.finished('released', path, work_name)
                 if hook: hook('after_unlink', entry)
                 report(progress, 'releasing_originals', path=path, files_done=index + 1,
                        files_total=len(plan['entries']))
@@ -436,6 +479,9 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         except (OSError, RuntimeError) as error:
             plan['metadata_backup_error'] = str(error)
         catalog.set('release:' + plan_id, plan)
+        if meter:
+            meter.reach(meter.total)
+            meter.current = {}
         report(progress, 'release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
         return plan
 

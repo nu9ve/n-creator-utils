@@ -1,5 +1,6 @@
 """Single-request JSON boundary shared by native UI and CLI."""
 from pathlib import Path
+import contextlib
 import json
 import time
 import uuid
@@ -52,12 +53,15 @@ class Service:
             return self._snapshot(params)
         if method.startswith('closure_'):
             from . import closure
+            from .volumes import CachedBackend
             if method == 'closure_overview':
                 return closure.overview(self.catalog)
             if method == 'closure_candidates':
                 return closure.candidates(self.catalog, self.backend, params['project_id'], params.get('query'), self.cancel)
             if method == 'closure_save':
                 return closure.save(self.catalog, self.backend, **params)
+            if method == 'closure_deliveries':
+                return closure.delivery_states(self.catalog, CachedBackend(self.backend), params['project_id'])
             if method == 'closure_plan':
                 options = dict(params)
                 review_id = options.pop('review_id', None)
@@ -115,8 +119,9 @@ class Service:
         if method == 'capture_overview':
             from .captures import capture_libraries
             from .projects import overview
+            from .volumes import CachedBackend
             data = capture_libraries(self.catalog, params.get('override') or self.catalog.get('capture-override', ''))
-            return dict(data, projects=overview(self.catalog, data['sessions']))
+            return dict(data, projects=overview(self.catalog, data['sessions'], CachedBackend(self.backend)))
         if method == 'save_capture_tag':
             from .captures import save_capture_tag
             return save_capture_tag(self.catalog, **params)
@@ -168,10 +173,15 @@ class Service:
             from .release import plan_release
             require('progress' not in params, 'invalid_request', 'Progress callbacks are internal to the local service')
             return plan_release(self.catalog, self.backend, cancel=self.cancel, **params)
-        if method in {'apply_release', 'relink_release'}:
-            from .release import apply_release, relink_release
-            action = apply_release if method == 'apply_release' else relink_release
-            return action(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel)
+        if method == 'apply_release':
+            from .release import apply_release
+            with self._action_progress(params['plan_id']) as progress:
+                return apply_release(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress=progress)
+        if method == 'relink_release':
+            from .release import relink_release
+            return relink_release(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel)
+        if method == 'action_progress':
+            return self.catalog.get('action-progress:' + params['id'], {})
         if method == 'release_plans':
             from .release import release_plans
             return release_plans(self.catalog)
@@ -241,7 +251,12 @@ class Service:
         if method == 'resolve':
             return resolve(self.catalog, self.backend, params['asset_id'], params.get('revision'))
         if method == 'deliver_work':
-            return deliver_work(self.catalog, self.backend, params['asset_ids'], params['work'], self.cancel)
+            progress_id = params.get('progress_id')
+            if progress_id is None:
+                return deliver_work(self.catalog, self.backend, params['asset_ids'], params['work'], self.cancel)
+            require(isinstance(progress_id, str) and str(uuid.UUID(progress_id)) == progress_id.lower(), 'invalid_request', 'Expected a progress UUID')
+            with self._action_progress(progress_id) as progress:
+                return deliver_work(self.catalog, self.backend, params['asset_ids'], params['work'], self.cancel, progress=progress)
         if method == 'set_work_state':
             return set_work_state(self.catalog, params['asset_ids'], params['state'])
         if method == 'restore':
@@ -297,6 +312,19 @@ class Service:
             is_card = info['external'] and info['mount'] == str(root) and info['removable']
             return {'show': is_card, 'reason': 'card' if is_card else 'not_a_card', 'pending_work': pending}
         require(False, 'unknown_method', 'Unknown media service method: ' + str(method))
+
+    @contextlib.contextmanager
+    def _action_progress(self, key):
+        """Persist a long action's measure for the app's reader (at most every 0.25 s, always on a stage change)."""
+        last = {'stage': None, 'at': 0}
+
+        def progress(stage, **details):
+            moment = time.monotonic()
+            if (stage != last['stage'] or moment - last['at'] >= 0.25 or stage.endswith('complete')
+                    or details.get('overall_done') == details.get('overall_total')):
+                self.catalog.set('action-progress:' + key, dict(details, stage=stage))
+                last.update(stage=stage, at=moment)
+        yield progress
 
     def _snapshot(self, params):
         """Everything the native shell shows at rest, in one read; each mounted volume is described once."""

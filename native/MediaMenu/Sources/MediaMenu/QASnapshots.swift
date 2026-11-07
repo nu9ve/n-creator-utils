@@ -133,7 +133,11 @@ import MediaMenuCore
                      "stage": .string(stages[index]), "state": .string(index == 5 ? "finished" : "active"), "assets": .integer(index == 0 ? 0 : Int64(index * 7)), "pending_sessions": .integer(index < 2 ? 3 : 0),
                      "work_pending": .integer(index == 2 ? 4 : 0), "work_ready": .integer(index > 0 ? 6 : 0), "work_skipped": .integer(index > 2 ? 12 : 0), "jobs": .integer(Int64(index)), "open_jobs": .integer(0),
                      "kinds": .object(index == 0 ? [:] : ["stalker_session": .integer(2), "camera_bundle": .integer(Int64(index * 2)), "file": .integer(Int64(index * 5))]), "cameras": .array([.string("ILCE-6400")]), "places": .array([.string("mx/hermosillo")]),
-                     "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z")]) }
+                     "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z"),
+                     // A closed project with verticals still waiting on the editing disk (closure.delivery_summary).
+                     "released": .bool(index == 5),
+                     "deliveries": index == 5 ? .object(["awaiting": .integer(6), "published": .integer(1), "missing": .integer(0), "offline": .bool(false),
+                         "awaiting_names": .array((1...6).map { .string("podcast-07_vertical_\($0).mov") })]) : .object([:])]) }
         model.pendingCaptures = (0..<3).map { index in
             .object(["path": .string("/Users/demo/Stalker/Stalker_2026-11-01_1\(index)-20-08.stalker"), "root": .string("/Users/demo/Stalker"), "session_id": .string("00000000-0000-4000-8000-00000000000\(index)"), "status": .string("completed"), "archived": .bool(false),
                      "created_at_local": .string("2026-11-01T1\(index):20-07:00"), "duration_seconds": .number(125), "track_count": .integer(3), "preview_path": .string("screen.mov"),
@@ -364,6 +368,15 @@ import MediaMenuCore
         guard await wait("apply", { !model.busy && model.closurePlan?["state"].string == "completed" }) else { NSApp.terminate(nil); return }
         await model.refresh()
         await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-done.png"))
+        // Projects reads the same engine reading as the reopened sheet: finished, one vertical still to publish.
+        model.captureChanged([])
+        guard await wait("project awaiting publication", { model.projectIndex.contains { $0["project"].string == "demo-cierre" && $0["deliveries"]["awaiting"].double > 0 } }),
+              let row = model.projectIndex.first(where: { $0["project"].string == "demo-cierre" })
+        else { print("QA closeout FAILED projects awaiting publication"); NSApp.terminate(nil); return }
+        let sheetAwaiting = model.closureDeliveries.filter { $0["state"].string == "awaiting" }.map(\.["name"].string).sorted()
+        let rowAwaiting = row["deliveries"]["awaiting_names"].array.map(\.string).sorted()
+        print("QA closeout projects stage=\(row["stage"].string) awaiting=\(Int(row["deliveries"]["awaiting"].double)) matchesSheet=\(sheetAwaiting == rowAwaiting)")
+        await render(ProjectRow(model: model, item: row, expanded: .constant(true)).padding(16), size: NSSize(width: 760, height: 200), to: folder.appendingPathComponent("projects-awaiting.png"))
         let editor = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre")
         let kept = FileManager.default.fileExists(atPath: editor.appendingPathComponent("clipper/clipper-project.json").path)
         let removed = !FileManager.default.fileExists(atPath: editor.appendingPathComponent("renders/intermediate.mov").path)
@@ -389,6 +402,7 @@ import MediaMenuCore
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
         await render(InboxView(model: model), size: NSSize(width: 1180, height: 1500), to: folder.appendingPathComponent("route-home-full.png"))
         await render(VStack { ForEach(model.projectIndex.prefix(4), id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 500), to: folder.appendingPathComponent("project-details.png"))
+        await render(VStack { ForEach(model.projectIndex.filter { $0["stage"].string == "finished" }, id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 260), to: folder.appendingPathComponent("projects-awaiting.png"))
         model.route = .flows
         for flow in model.productFlows {
             model.flowSelection = flow.id
@@ -411,6 +425,9 @@ import MediaMenuCore
         }
         model.ingestStep = .run; model.activeScope = .ingest; model.activeJobID = "job-1"
         model.jobProgress = .object(["state": .string("copying"), "progress": .object(["phase": .string("copying"), "copied_bytes": .number(21e9), "bytes_total": .number(38e9), "bytes_per_second": .number(180e6), "files_done": .integer(120), "files_total": .integer(212),
+            "overall_done": .number(52e9), "overall_total": .number(152e9),
+            "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("ESSD + MEDIA502"), "action": .string("copy")]),
+            "log": .array((118...120).map { .object(["kind": .string("copied"), "name": .string("C0\($0).MP4"), "target": .string("ESSD + MEDIA502")]) }),
             "destinations": .array([.object(["name": .string("MEDIA502"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("ESSD"), "files_done": .integer(96), "files_total": .integer(110)])])])])
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("ingest-4-run.png"))
         model.activeScope = nil

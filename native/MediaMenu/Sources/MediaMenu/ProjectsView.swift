@@ -8,11 +8,13 @@ struct ProjectsView: View {
     @AppStorage("projectFilter") private var filter = "progress"
     @State private var query = ""
     @State private var expanded: String?
-    private let filters: [(String, LocalizedStringKey)] = [("progress", "En progreso"), ("backed_up", "Respaldados"), ("finished", "Terminados"), ("all", "Todos")]
+    private let filters: [(String, LocalizedStringKey)] = [("progress", "En progreso"), ("backed_up", "Respaldados"), ("awaiting", "Por publicar"), ("finished", "Terminados"), ("all", "Todos")]
     private func matches(_ item: JSONValue, _ key: String) -> Bool {
         switch key {
         case "progress": return ["draft", "in_progress"].contains(item["stage"].string) && item["state"].string != "paused"
         case "backed_up": return item["stage"].string == "backed_up"
+        // Released (closed) but with deliveries still on the editing disk: computed by the engine, not here.
+        case "awaiting": return item["stage"].string == "finished" && ProjectStageBadge.waiting(item) > 0
         case "finished": return item["stage"].string == "finished"
         default: return true
         }
@@ -83,6 +85,9 @@ struct ProjectRow: View {
         if pendingSessions > 0 { parts.append(String(localized: "Sesiones por respaldar: \(pendingSessions)")) }
         if item["work_pending"].double > 0 { parts.append(String(localized: "Copias pendientes: \(Int(item["work_pending"].double))")) }
         if item["open_jobs"].double > 0 { parts.append(String(localized: "Operaciones abiertas: \(Int(item["open_jobs"].double))")) }
+        let deliveries = item["deliveries"]
+        if deliveries["published"].double > 0 { parts.append(String(localized: "Publicadas por respaldar: \(Int(deliveries["published"].double))")) }
+        if deliveries["missing"].double > 0 { parts.append(String(localized: "Entregas no encontradas: \(Int(deliveries["missing"].double))")) }
         return parts.joined(separator: " · ")
     }
     var body: some View {
@@ -134,6 +139,10 @@ struct ProjectRow: View {
                             ForEach(kinds, id: \.symbol) { kind in Label(kind.label + " · \(kind.count)", systemImage: kind.symbol) }
                         }
                     }
+                    if !item["deliveries"]["awaiting_names"].array.isEmpty {
+                        Label(String(localized: "Esperando publicación: \(item["deliveries"]["awaiting_names"].array.map(\.string).joined(separator: ", "))"), systemImage: "film.stack")
+                            .lineLimit(2)
+                    }
                     if item["assets"].double > 0 {
                         Label(String(localized: "Copias para editar: \(Int(item["work_ready"].double)) listas · \(Int(item["work_pending"].double)) pendientes · \(Int(item["work_skipped"].double)) omitidas"), systemImage: "externaldrive")
                     }
@@ -169,17 +178,24 @@ struct ProjectRow: View {
 struct ProjectStageBadge: View {
     let item: JSONValue
     @Environment(\.creatorPalette) private var palette
+    /// Deliveries still on the editing disk: unpublished, or published and waiting for «Respaldar publicados…».
+    static func waiting(_ item: JSONValue) -> Int { Int(item["deliveries"]["awaiting"].double + item["deliveries"]["published"].double) }
     private var label: LocalizedStringKey {
         if item["state"].string == "paused" { return "Pausado" }
         switch item["stage"].string {
         case "draft": return "Sin respaldar"
         case "in_progress": return "En progreso"
-        case "finished": return "Terminado"
+        case "finished":
+            let awaiting = Int(item["deliveries"]["awaiting"].double)
+            if awaiting > 0 { return "Terminado · \(awaiting) por publicar" }
+            if Self.waiting(item) > 0 { return "Terminado · \(Self.waiting(item)) por respaldar" }
+            return "Terminado"
         default: return "Respaldado"
         }
     }
+    private var tint: Color { item["stage"].string == "finished" && Self.waiting(item) > 0 ? palette.info : palette.ink }
     var body: some View {
-        Text(label).font(.caption2.weight(.medium)).padding(.horizontal, 6).padding(.vertical, 1)
+        Text(label).font(.caption2.weight(.medium)).foregroundStyle(tint).padding(.horizontal, 6).padding(.vertical, 1)
             .background(palette.raised.opacity(0.7), in: palette.pill)
     }
 }

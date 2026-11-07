@@ -28,7 +28,8 @@ struct ActionProgressState: Equatable {
     var action: String
     var log: [LogLine]
 
-    /// A closeout apply: one overall measure from the engine (`overall_done`/`overall_total`).
+    /// Any long action with one overall measure from the engine (`overall_done`/`overall_total`): closeout, ingest,
+    /// release or delivery from the archive (media/progress.py).
     static func transfer(_ value: JSONValue, phase: String) -> Self {
         let total = value["overall_total"].double, done = value["overall_done"].double
         let current = value["current"]
@@ -112,7 +113,7 @@ struct ActionProgressView: View {
                                     Text(verbatim: mark(line.kind)).foregroundStyle(color(line.kind))
                                     Text(verbatim: verb(line.kind)).foregroundStyle(palette.muted)
                                     Text(verbatim: line.name).lineLimit(1).truncationMode(.middle)
-                                    if !line.target.isEmpty { Text(verbatim: (line.kind == "released" ? "· " : "→ ") + line.target).foregroundStyle(palette.muted) }
+                                    if !line.target.isEmpty { Text(verbatim: (["released", "cleaned"].contains(line.kind) ? "· " : "→ ") + line.target).foregroundStyle(palette.muted) }
                                 }
                                 .id(line.id)
                             }
@@ -132,16 +133,17 @@ struct ActionProgressView: View {
 
     private func route(_ from: String, _ to: String) -> String { to.isEmpty ? from : from.isEmpty ? to : from + " → " + to }
     private func icon(_ kind: String) -> String {
-        switch kind { case "copy", "copied": "doc.on.doc"; case "release", "released": "arrow.right.circle"; default: "doc.text.magnifyingglass" }
+        switch kind { case "copy", "copied": "doc.on.doc"; case "release", "released", "cleaned": "arrow.right.circle"; default: "doc.text.magnifyingglass" }
     }
     private func color(_ kind: String) -> Color {
-        switch kind { case "copy", "copied": palette.info; case "release", "released": palette.warning; default: palette.muted }
+        switch kind { case "copy", "copied": palette.info; case "release", "released", "cleaned": palette.warning; default: palette.muted }
     }
-    private func mark(_ kind: String) -> String { kind == "released" ? "−" : "✓" }
+    private func mark(_ kind: String) -> String { ["released", "cleaned"].contains(kind) ? "−" : "✓" }
     private func verb(_ kind: String) -> String {
         switch kind {
         case "copied": String(localized: "copiado y verificado")
         case "released": String(localized: "retirado de edición")
+        case "cleaned": String(localized: "retirado del origen")
         default: kind
         }
     }
@@ -169,7 +171,7 @@ struct ActionTravel: View {
     private func drawn(_ time: Double) -> some View {
         GeometryReader { geometry in
             let width = geometry.size.width, mid = geometry.size.height / 2 - 8
-            let left = CGPoint(x: 44, y: mid), right = CGPoint(x: width - 44, y: mid)
+            let left = CGPoint(x: 60, y: mid), right = CGPoint(x: width - 60, y: mid)
             ZStack {
                 path(from: left, to: right, time: time)
                 // The file in hand is named once, above the way; small documents travel along it.
@@ -240,7 +242,7 @@ struct ActionTravel: View {
             Image(systemName: icon).font(.system(size: 30, weight: .regular)).foregroundStyle(palette.ink)
             Text(verbatim: label).font(.caption2.weight(.medium)).foregroundStyle(palette.muted).lineLimit(1)
         }
-        .frame(width: 88)
+        .frame(width: 120)
     }
 
     /// Terminal: the travel as a line the prompt redraws.
