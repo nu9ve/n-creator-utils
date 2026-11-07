@@ -350,7 +350,14 @@ enum OperationScope { case ingest, library, space, settings, source }
                 "clipper_executable": .string(self.clipperExecutable), "retain_stalker_source": .bool(self.retainStalkerSource)])
         }
     }
+    #if DEBUG
+    /// QA fixtures own the capture list: a watcher firing later must not swap in the real Stalker library.
+    @ObservationIgnored var capturesFrozenForQA = false
+    #endif
     func captureChanged(_ paths: [String]) {
+        #if DEBUG
+        if capturesFrozenForQA { return }
+        #endif
         captureTask?.cancel()
         captureTask = Task {
             try? await Task.sleep(for: .milliseconds(500))

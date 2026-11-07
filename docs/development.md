@@ -87,6 +87,16 @@ Para trabajo simultáneo, definir superficie y archivos antes de empezar. UI/das
 
 ## Mantener documentación viva
 
+### QA visual aislada
+
+Los modos de depuración `--qa-snapshots DIR` (vistas offscreen) y `--qa-skins DIR` (ventana real en cada skin, zoom, Ajustes y pantalla completa) usan fixtures. El motor de Python, en cambio, busca Stalker en el `HOME` real (registro, `~/Movies/Stalker`, `~/Downloads`), aunque `NU9VE_MEDIA_HOME` esté aislado. Hay que correrlos siempre con los dos temporales y elegir el skin por argumento, sin tocar preferencias:
+
+```sh
+HOME=/tmp/nuun-qa/home NU9VE_MEDIA_HOME=/tmp/nuun-qa/home/media native/MediaMenu/.build/debug/MediaMenu --qa-snapshots /tmp/nuun-qa/out -appearance light -skin win9x
+```
+
+Las builds de depuración congelan la lista de capturas una vez puesto el fixture (`capturesFrozenForQA`), así que un vigilante tardío no puede reemplazarla. Aun así, revisa las imágenes antes de compartirlas.
+
 ### Capturas del producto
 
 La captura del README vive en `docs/images/nuun-compacto.png`. Al cambiar una

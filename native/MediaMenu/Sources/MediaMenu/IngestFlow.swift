@@ -367,7 +367,7 @@ struct DestinationSummary: View {
                 if model.selectedCard != nil {
                     Label(model.cleanup ? String(localized: "Limpiar la SD después de verificar") : String(localized: "Conservar la SD"), systemImage: model.cleanup ? "sparkles" : "lock")
                 }
-                ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+                ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
             }
             .font(.callout)
             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
@@ -379,6 +379,7 @@ struct DestinationSummary: View {
 // MARK: Step 2 · content
 
 struct ContentStep: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let compact: Bool
     private let filters: [(String, LocalizedStringKey, String)] = [("", "Principal", "square.grid.2x2"), ("all", "Todos los archivos", "doc.on.doc"), ("video", "Videos", "film"), ("image", "Fotos", "photo"),
@@ -418,7 +419,7 @@ struct ContentStep: View {
                 Text("Datos de cámara incluidos en el respaldo: \(support.reduce(0) { $0 + $1.paths.count }) archivos").font(.caption).foregroundStyle(.secondary)
             }
             if model.discoveryLoading { HStack { ProgressView().controlSize(.small); Text("Leyendo archivos… Las miniaturas se cargan conforme aparecen.").font(.caption) } }
-            if !model.discoveryError.isEmpty { HStack { Label(model.discoveryError, systemImage: "exclamationmark.triangle").foregroundStyle(.orange); Button("Reintentar") { model.discover() } } }
+            if !model.discoveryError.isEmpty { HStack { Label(model.discoveryError, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning); Button("Reintentar") { model.discover() } } }
             if compact {
                 ImportGrid(model: model, dense: true).frame(maxHeight: .infinity)
                 AssignPanel(model: model, compact: true)
@@ -517,6 +518,7 @@ struct AssignPanel: View {
 // MARK: Step 3 · destinations
 
 struct DestinationsStep: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let compact: Bool
     var body: some View {
@@ -540,7 +542,7 @@ struct DestinationsStep: View {
                 Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.selectedCard == nil)
                 Text("Sony: se borran los clips verificados; los índices se conservan hasta formatear en la cámara.").font(.caption).foregroundStyle(.secondary)
             }
-            ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+            ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
             Button("Registrar otro disco…") { model.openSettings?("disks") }.buttonStyle(.link)
         }.disabled(model.ingestLocked)
     }
@@ -569,7 +571,7 @@ struct VolumeChoices: View {
             HStack {
                 Image(systemName: selection == id ? "largecircle.fill.circle" : "circle").foregroundStyle(selection == id ? palette.accentText : palette.muted)
                 Text(title).fontWeight(selection == id ? .semibold : .regular)
-                Text(detail).font(.caption).foregroundStyle(online ? Color.secondary : Color.orange)
+                Text(detail).font(.caption).foregroundStyle(online ? Color.secondary : palette.warning)
                 Spacer()
             }.padding(.vertical, 5).padding(.horizontal, 8).contentShape(Rectangle())
             .background(selection == id ? palette.raised.opacity(0.5) : .clear, in: palette.control)
@@ -621,7 +623,7 @@ struct PlanReview: View {
                     Label("Respaldo en \(model.volume(plan["archive_id"].string)?["name"].string ?? plan["archive_id"].string)", systemImage: "externaldrive.fill")
                     Label(plan["work_id"] == .null ? model.workLabel(plan["work_delivery_status"].string) : String(localized: "Copias para editar en \(model.volume(plan["work_id"].string)?["name"].string ?? "") verificadas antes de limpiar"), systemImage: "externaldrive")
                     Label(cleanupText(plan), systemImage: plan["cleanup"].bool || plan["release_stalker_source"].bool ? "exclamationmark.triangle" : "lock")
-                        .foregroundStyle(plan["cleanup"].bool || plan["release_stalker_source"].bool ? Color.orange : palette.ink)
+                        .foregroundStyle(plan["cleanup"].bool || plan["release_stalker_source"].bool ? palette.warning : palette.ink)
                 }.font(.callout)
                 if plan["source_kind"].string == "delivery" {
                     Toggle("Conservar en el disco de edición", isOn: Binding(get: { model.finalsKeepSource }, set: { value in
@@ -678,7 +680,7 @@ struct RunStep: View {
                 else { ProgressView().progressViewStyle(.linear); Text(model.message).font(.caption) }
                 Text("Puedes seguir usando Biblioteca, Actividad e Inicio mientras termina. Cancelar se detiene en un punto recuperable.").font(.caption).foregroundStyle(.secondary)
             } else if let result = model.lastResult {
-                Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(.green)
+                Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(palette.success)
                 if result["state"].string == "camera_action_required" {
                     Text("Formatea la tarjeta en la cámara y confirma desde Actividad.").foregroundStyle(.secondary)
                 }

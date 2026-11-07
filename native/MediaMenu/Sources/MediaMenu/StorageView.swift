@@ -195,6 +195,7 @@ extension Model {
 
 /// Same reviewed plan as always, opened from Discos, Inicio or Actividad.
 struct ReleaseSheet: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     @Environment(\.dismiss) private var dismiss
     var body: some View {
@@ -209,7 +210,7 @@ struct ReleaseSheet: View {
                         Text("\(plan["entries"].array.count) archivos · " + ByteCountFormatter.string(fromByteCount: Int64(plan["bytes"].double), countStyle: .file))
                         Text("El destino se vuelve a leer y verificar antes de retirar cada archivo. Se conservan carpetas de Clipper, renders y archivos auxiliares ajenos. Retirar estas copias puede dejar MEDIA como única réplica.").font(.caption)
                         Text("Clipper y nüün mantienen un bloqueo compartido durante la liberación; las referencias y las colas pendientes la detienen.").font(.caption).foregroundStyle(.secondary)
-                        ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+                        ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
                         ForEach(Array(plan["consumers"]["relinks"].array.enumerated()), id: \.offset) { _, value in
                             VStack(alignment: .leading) { Text("Clipper: " + value["project"].string); Text(value["from"].string + " → " + value["to"].string).textSelection(.enabled) }.font(.caption)
                         }

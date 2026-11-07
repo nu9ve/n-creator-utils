@@ -126,6 +126,7 @@ struct TitleBarDragArea: NSViewRepresentable {
 
 /// Always in view, next to the other global controls. They give way before the tabs do when the window narrows.
 struct TitleBarDisks: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let width: CGFloat
     private var showsFree: Bool { width >= 1150 + 160 * CGFloat(model.volumes.count) }
@@ -137,7 +138,7 @@ struct TitleBarDisks: View {
                     let online = value["online"].bool
                     Button { model.open(.disks) } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: online ? "externaldrive.fill" : "externaldrive.badge.xmark").foregroundStyle(online ? Color.green : Color.secondary)
+                            Image(systemName: online ? "externaldrive.fill" : "externaldrive.badge.xmark").foregroundStyle(online ? palette.success : Color.secondary)
                             Text(value["name"].string).fontWeight(.medium)
                             if showsFree && online && value["free"] != .null {
                                 Text(verbatim: bytesLabel(value["free"].double)).foregroundStyle(.secondary).monospacedDigit()
@@ -198,17 +199,18 @@ struct LibraryShell: View {
 }
 
 struct ErrorBanner: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     var body: some View {
         if !model.error.isEmpty {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(palette.warning)
                 Text(model.error).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 Button { model.error = "" } label: { Image(systemName: "xmark") }.buttonStyle(.borderless).help("Descartar")
             }
             .padding(10)
-            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            .background(palette.warningSoft, in: palette.control)
         }
     }
 }

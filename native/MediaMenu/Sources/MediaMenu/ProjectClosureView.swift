@@ -81,6 +81,7 @@ struct ProjectClosureReminders: View {
 }
 
 struct ProjectClosureSheet: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     @Environment(\.dismiss) private var dismiss
     @State private var required: Set<String> = []
@@ -190,7 +191,7 @@ struct ProjectClosureSheet: View {
                     if rows.isEmpty { Text("Sin coincidencias. Cambia la búsqueda para encontrar los finales.").foregroundStyle(.secondary).padding() }
                 }
             }
-            if model.closureTruncated { Text("Hay más resultados. Acota la búsqueda para verlos.").font(.caption).foregroundStyle(.orange) }
+            if model.closureTruncated { Text("Hay más resultados. Acota la búsqueda para verlos.").font(.caption).foregroundStyle(palette.warning) }
             Text("Guardar sólo registra tus decisiones. Revisar calcula el respaldo necesario y los archivos que se pueden liberar.").font(.caption).foregroundStyle(.secondary)
         }.disabled(model.busy)
     }
@@ -207,7 +208,7 @@ struct ProjectClosureSheet: View {
                 Text("Clipper: el editable se conserva; elimínalo desde Clipper para retirar también su registro. Final Cut y el contenido desconocido se conservan.").font(.caption).foregroundStyle(.secondary)
                 if !plan["closure_copies"].array.isEmpty { Text("Finales por copiar y verificar: \(plan["closure_copies"].array.count)") }
                 ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in
-                    Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).textSelection(.enabled)
+                    Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning).textSelection(.enabled)
                 }
                 if !plan["consumers"]["relinks"].array.isEmpty {
                     Text("Clipper se reenlaza a las copias verificadas durante esta operación; sus colas deben estar libres.").font(.caption)
@@ -217,7 +218,7 @@ struct ProjectClosureSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry["path"].string).font(.caption).textSelection(.enabled)
                             if entry["category"].string == "intermediate" {
-                                Text("Descartar intermedio · sin respaldo").font(.caption2).foregroundStyle(.orange)
+                                Text("Descartar intermedio · sin respaldo").font(.caption2).foregroundStyle(palette.warning)
                             } else {
                                 Text("Liberar tras verificar: " + entry["archive_path"].string).font(.caption2).foregroundStyle(.secondary)
                             }
@@ -227,7 +228,7 @@ struct ProjectClosureSheet: View {
                 DisclosureGroup("Conservar") {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
-                if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+                if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
                 if plan["state"].string != "completed" && plan["entries"].array.contains(where: { $0["category"].string != "final" }) {
                     Toggle("Revisé la lista: los intermedios son descartables y ninguna otra edición necesita los archivos a retirar", isOn: $discardConfirmed)
                         .toggleStyle(.checkbox).disabled(model.busy)

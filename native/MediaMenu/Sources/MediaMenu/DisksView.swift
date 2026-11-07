@@ -277,6 +277,7 @@ struct ClassStrip: View {
 }
 
 struct DisksView: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     @AppStorage("diskLens") private var lens = DiskLens.safety
     @State private var order = [KeyPathComparator(\DiskRow.allocated, order: .reverse)]
@@ -293,7 +294,7 @@ struct DisksView: View {
             }
             ErrorBanner(model: model)
             if !model.storageError.isEmpty {
-                Label(model.storageError, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(.orange).textSelection(.enabled)
+                Label(model.storageError, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(palette.warning).textSelection(.enabled)
             }
             TargetStrip(model: model)
             if let target = model.storageTarget {
@@ -443,6 +444,7 @@ struct TargetStrip: View {
 }
 
 struct DiskSummary: View {
+    @Environment(\.creatorPalette) private var palette
     let target: JSONValue
     let lens: DiskLens
     private var parts: [(key: String, bytes: Double)] {
@@ -484,7 +486,7 @@ struct DiskSummary: View {
                 Text("Analizado \(indexedLabel(target["indexed_at"].string)) · \(Int(target["files"].double)) archivos")
                 if !target["online"].bool { Text("· datos de la última conexión") }
                 if target["unreadable"].double > 0 {
-                    Text("· \(Int(target["unreadable"].double)) carpetas sin acceso").foregroundStyle(.orange)
+                    Text("· \(Int(target["unreadable"].double)) carpetas sin acceso").foregroundStyle(palette.warning)
                         .help(target["samples"].array.prefix(10).map(\.string).joined(separator: "\n"))
                 }
             }.font(.caption).foregroundStyle(.secondary)

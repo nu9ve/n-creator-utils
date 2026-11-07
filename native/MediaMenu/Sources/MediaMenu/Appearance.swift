@@ -28,6 +28,13 @@ struct CreatorPalette: Sendable {
     var accentText: Color { Self.color(roles.accentText) }
     /// Selected row, tab or pill.
     var accentSoft: Color { Self.color(roles.accentSoft) }
+    // States (§2): text and icons; never the accent.
+    var danger: Color { Self.color(roles.danger) }
+    var warning: Color { Self.color(roles.warning) }
+    var success: Color { Self.color(roles.success) }
+    var info: Color { Self.color(roles.info) }
+    /// A warning banner's background.
+    var warningSoft: Color { Self.color(roles.warningSoft) }
 
     // MARK: Shapes (§5)
     /// Buttons, fields and small selections.
@@ -110,28 +117,28 @@ struct CreatorButtonStyle: ButtonStyle {
             case .classicMac:
                 // Pressed inverts; the default button carries the period's heavy outer ring.
                 label
-                    .foregroundStyle(pressed ? Color.white : destructive ? Color.red : (prominent ? palette.accentText : palette.ink))
+                    .foregroundStyle(pressed ? Color.white : destructive ? palette.danger : (prominent ? palette.accentText : palette.ink))
                     .background(pressed ? palette.ink : palette.surface, in: shape)
                     .overlay(shape.stroke(palette.ink, lineWidth: 1))
                     .padding(prominent ? 3 : 0)
                     .overlay { if prominent { RoundedRectangle(cornerRadius: palette.skin.controlRadius + 3).stroke(palette.ink, lineWidth: 2) } }
             case .win9x:
                 label
-                    .foregroundStyle(destructive ? Color.red : palette.ink)
+                    .foregroundStyle(destructive ? palette.danger : palette.ink)
                     .offset(x: pressed ? 1 : 0, y: pressed ? 1 : 0)
                     .background(palette.canvas)
                     .overlay(Win9xBevel(isRaised: !pressed))
                     .overlay { if prominent { Rectangle().stroke(Color.black, lineWidth: 1).padding(-1) } }
             case .gothic:
                 label
-                    .foregroundStyle(destructive ? Color.red : (prominent ? palette.onAccent : palette.ink))
+                    .foregroundStyle(destructive ? palette.danger : (prominent ? palette.onAccent : palette.ink))
                     .background(prominent ? palette.accent : (pressed ? palette.raised : palette.surface), in: shape)
                     .overlay(shape.stroke(prominent ? palette.ink.opacity(0.35) : palette.line, lineWidth: 1))
                     .overlay(RoundedRectangle(cornerRadius: palette.skin.controlRadius).inset(by: 2).stroke(palette.line.opacity(prominent ? 0 : 0.35), lineWidth: 0.5))
                     .opacity(pressed ? 0.8 : 1)
             case .glass, .dither:
                 label
-                    .foregroundStyle(destructive ? Color.red : (prominent ? palette.onAccent : palette.ink))
+                    .foregroundStyle(destructive ? palette.danger : (prominent ? palette.onAccent : palette.ink))
                     .background(prominent ? palette.accent : (pressed ? palette.raised : palette.surface.opacity(0.75)), in: shape)
                     .overlay(shape.stroke(palette.line.opacity(prominent ? 0.9 : 0.5), lineWidth: 1))
                     .opacity(pressed ? 0.8 : 1)

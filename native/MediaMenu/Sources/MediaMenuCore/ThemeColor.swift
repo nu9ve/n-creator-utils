@@ -94,6 +94,14 @@ public struct ThemeRoles: Sendable, Equatable {
     public let accentText: ThemeColor
     /// Background of a selected row or tab; ink stays at 7:1 on it.
     public let accentSoft: ThemeColor
+    /// nu9ve-theme-v1 §2 states, as text or icons: the semantic hue nudged to 4.5:1 on every surface,
+    /// never the user's accent, so a red seed cannot make an error look like a selection.
+    public let danger: ThemeColor
+    public let warning: ThemeColor
+    public let success: ThemeColor
+    public let info: ThemeColor
+    /// Background of a warning banner; ink stays at 7:1 and `warning` at 4.5:1 on it.
+    public let warningSoft: ThemeColor
     public let skin: ThemeSkin
 
     /// `dark` is the user's mode; a skin with a period look of its own overrides it.
@@ -143,6 +151,21 @@ public struct ThemeRoles: Sendable, Equatable {
             soft = canvas.mixed(with: seed, amount: amount)
         }
         accentSoft = soft
+        // Hues of the system's red, orange, green and blue; the mix with ink keeps each one in the skin.
+        func state(_ hex: String, also extra: [ThemeColor] = []) -> ThemeColor {
+            ThemeColor(hex: hex)!.mixed(with: ink, amount: 0.12).readable(on: backgrounds + extra, minimum: 4.5)
+        }
+        // The banner is tinted first, then the warning text is made to read on it too.
+        let orange = ThemeColor(hex: "#E8870E")!
+        var banner = surface.mixed(with: orange, amount: 0.14)
+        for amount in [0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.0] where ink.contrast(with: banner) < 7 {
+            banner = surface.mixed(with: orange, amount: amount)
+        }
+        warningSoft = banner
+        danger = state("#E5372C")
+        warning = state("#E8870E", also: [banner])
+        success = state("#2E9E57")
+        info = state("#2F78D6")
     }
 }
 
