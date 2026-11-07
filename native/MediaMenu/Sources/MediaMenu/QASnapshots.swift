@@ -770,6 +770,17 @@ import MediaMenuCore
             delegate.model.showClosure = true
             try? await Task.sleep(for: .milliseconds(700))
             capture(window, "dialog-\(skin.rawValue).png")
+            // The long-action view with invented progress, open in the closeout dialog.
+            let log: [JSONValue] = ["vertical_1.mov", "vertical_2.mov", "vertical_3.mov"].map { .object(["kind": .string("copied"), "name": .string("26-10-27-demo_" + $0), "target": .string("MEDIA502")]) }
+                + [.object(["kind": .string("released"), "name": .string("demo.thumbnail-01.jpg"), "target": .string("ESSD")])]
+            delegate.model.closureProgress = .object(["stage": .string("copying_finals"), "overall_done": .number(3.2e9), "overall_total": .number(5.16e9),
+                "files_done": .number(4), "files_total": .number(13), "log": .array(log),
+                "current": .object(["name": .string("26-10-27-demo_vertical_4.mov"), "from": .string("ESSD"), "to": .string("MEDIA502"), "action": .string("copy")])])
+            delegate.model.closureApplying = true
+            try? await Task.sleep(for: .milliseconds(900))
+            capture(window, "action-\(skin.rawValue).png")
+            delegate.model.closureApplying = false
+            delegate.model.closureProgress = .object([:])
             delegate.model.showClosure = false
             try? await Task.sleep(for: .milliseconds(400))
             let start = window.frame

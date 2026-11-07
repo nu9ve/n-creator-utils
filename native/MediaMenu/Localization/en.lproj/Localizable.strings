@@ -710,8 +710,6 @@
 "Versión %@ (%@)" = "Version %@ (%@)";
 
 /* Closeout review progress and action badges */
-"%lld de %lld archivos en este paso" = "%lld of %lld files in this step";
-"Archivo actual · %@ de %@" = "Current file · %@ of %@";
 "Cancelar revisión" = "Cancel review";
 "Comparando con el final en el respaldo" = "Comparing with the final in the backup";
 "Guardando entregas" = "Saving deliveries";
@@ -731,3 +729,22 @@
 "Ya en respaldo · retirar de edición" = "Already backed up · remove from editing";
 "Ya en respaldo · sin cambios" = "Already backed up · no changes";
 "nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan." = "nüün is reading the files to verify their fingerprints. Copies and removals start when you apply the plan.";
+
+/* Long-action progress and closed-project summary */
+"%@ de %@" = "%@ of %@";
+"%lld de %lld archivos" = "%lld of %lld files";
+"%lld entregas siguen en edición, esperando publicarse: %@%@" = "%lld deliveries are still in editing, waiting to be published: %@%@";
+"Cada entrega se copia y se verifica antes de retirar su copia de edición. Puedes pausar; lo verificado se conserva." = "Each delivery is copied and verified before its editing copy is removed. You can pause; what is verified is kept.";
+"Cierre aplicado el %@ · %lld archivos retirados · %@ liberados" = "Closeout applied on %@ · %lld files removed · %@ freed";
+"Completando y liberando" = "Completing and freeing space";
+"Comprobando las entregas en el respaldo" = "Checking deliveries in the backup";
+"Detalle" = "Details";
+"En curso" = "In progress";
+"No queda nada por liberar: las entregas están publicadas y respaldadas." = "Nothing left to free: deliveries are published and backed up.";
+"Progreso" = "Progress";
+"Todavía no hay pasos terminados." = "No finished steps yet.";
+"Ya están respaldadas. Cuando las publiques, «Respaldar publicados…» retira su copia de edición; no hace falta preparar el cierre otra vez." = "They are already backed up. When you publish them, “Back up published…” removes their editing copy; no need to prepare the closeout again.";
+"copiado y verificado" = "copied and verified";
+"huellas" = "fingerprints";
+"liberado" = "freed";
+"retirado de edición" = "removed from editing";

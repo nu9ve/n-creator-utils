@@ -93,6 +93,18 @@ En la revisión, cada entrega y grupo lleva un badge con su efecto y el color de
 
 Aplicar el plan sigue siendo el paso que copia y libera.
 
+## Aplicar con progreso total y reabrir un cierre aplicado · 2026-11-07
+
+Al aplicar, la hoja reemplaza el plan por la vista de acción ([interacción, «Acciones largas»](nu9ve-interaction-v1.md#acciones-largas)). El motor emite en `closure_progress`:
+- `overall_done`/`overall_total` en bytes: copiar y verificar cada final cuenta dos veces su tamaño, y retirar cada copia de edición cuenta su lectura;
+- `files_done`/`files_total`;
+- `current` (nombre, origen, destino, acción);
+- un `log` de hasta 60 pasos terminados (`copied`, `released`).
+
+Solo informa: no cambia qué se copia ni qué se retira.
+
+Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: fecha, archivos retirados, bytes liberados y las entregas que siguen en edición sin publicar. Estas ya están respaldadas. Al publicarlas, **Respaldar publicados…** retira su copia de edición sin preparar todo el cierre otra vez.
+
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`

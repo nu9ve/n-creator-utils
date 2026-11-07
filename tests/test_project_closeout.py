@@ -71,6 +71,28 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue(unrelated.exists())
         self.assertEqual((self.archive / '002_finales/e64/2026/26-11-04-intro.mov').read_bytes(), b'new final')
 
+    def test_apply_reports_one_overall_measure_with_a_log(self):
+        selected = self.work / '002_finales/e64/03_subidos/26-11-04-intro.mov'
+        selected.parent.mkdir(parents=True)
+        selected.write_bytes(b'new final')
+        self.configure(selected, self.w)
+        plan = self.plan_close()
+        events = []
+        self.apply(plan, progress=lambda stage, **details: events.append(dict(details, stage=stage)))
+        measured = [e for e in events if 'overall_total' in e]
+        total = plan_total = 2 * sum(f['stamp']['size'] for t in plan['closure_copies'] for f in t['files']) + plan['bytes']
+        self.assertTrue(measured and all(e['overall_total'] == total for e in measured))
+        done = [e['overall_done'] for e in measured]
+        self.assertEqual(done, sorted(done), 'overall progress never goes back')
+        last = measured[-1]
+        self.assertEqual(last['stage'], 'release_complete')
+        self.assertEqual(last['overall_done'], plan_total)
+        self.assertEqual(last['files_done'], last['files_total'])
+        kinds = [entry['kind'] for entry in last['log']]
+        self.assertIn('copied', kinds)
+        self.assertEqual(kinds.count('released'), len(plan['entries']))
+        self.assertTrue(any(e['current'].get('action') == 'copy' and e['current']['name'] == selected.name for e in measured))
+
     def test_vertical_and_thumbnail_route_and_requirements(self):
         selected = self.work / '002_finales/e64/shorts/intro-short.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'short')

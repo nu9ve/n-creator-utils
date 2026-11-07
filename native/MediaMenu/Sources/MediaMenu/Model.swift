@@ -133,6 +133,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])
     var closureReviewing = false
+    var closureApplying = false
     var showClosure = false
     var titlebarCenter: CGFloat = 0
     var ingestDrafts: [String: IngestDraft] = [:]
@@ -431,6 +432,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "review_final_archive": return String(localized: "Comparando con el final en el respaldo")
         case "review_finishing": return String(localized: "Preparando el plan para mostrarlo")
         case "copying_finals": return String(localized: "Copiando y verificando finales")
+        case "verifying_finals": return String(localized: "Comprobando las entregas en el respaldo")
         case "preparing": return String(localized: "Preparando liberación")
         case "hashing_source": return String(localized: "Verificando archivos del original")
         case "matching_archive": return String(localized: "Comparando con el respaldo")

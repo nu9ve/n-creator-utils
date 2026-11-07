@@ -501,18 +501,94 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         require(digest(settings(catalog, plan['closure_project_id'])) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
         with Tree(plan['source_root']) as tree:
             validate_remaining(tree, plan, cancel)
-        report = lambda stage, **details: progress(stage, **details) if progress else None
+        tracker = ActionProgress(progress, plan, catalog)
+        report = tracker.stage
         relinks = []
         if plan['entries']:
             consumers = clipper.inspect(catalog, plan['replacements'])
             require(not consumers['blockers'], 'dependencies_blocked', '; '.join(consumers['blockers']))
             relinks = consumers['relinks']
-        for index, transfer in enumerate(plan['closure_copies']):
-            report('copying_finals', files_done=index, files_total=len(plan['closure_copies']))
-            Transfer(catalog, backend, cancel).apply(transfer, transfer['digest'])
+        for transfer in plan['closure_copies']:
+            running = []
+            copier = Transfer(catalog, backend, cancel, hook=lambda stage, payload: tracker.copy_event(stage, payload, running))
+            running.append(copier)
+            copier.apply(transfer, transfer['digest'])
+            tracker.copy_finished(transfer)
+        report('verifying_finals')
         validate(catalog, backend, plan, cancel)
         if relinks:
-            relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
-        result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
+            relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.passthrough)
+        result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event)
         report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
         return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))
+
+
+class ActionProgress:
+    """One overall measure for a closeout: copy + verify each final, then hash and retire each editing copy.
+
+    Observers get `overall_done`/`overall_total` in bytes, the current file with its source and destination, and a
+    short rolling log of finished steps. It only reports; it never decides what is copied or removed.
+    """
+    LOG_LIMIT = 60
+
+    def __init__(self, progress, plan, catalog):
+        self.progress = progress
+        self.copy_total = sum(f['stamp']['size'] for t in plan['closure_copies'] for f in t['files'])
+        self.release_sizes = [e['stamp']['size'] for e in plan['entries']]
+        self.total = 2 * self.copy_total + sum(self.release_sizes)
+        self.copy_base = 0
+        self.files_total = sum(len(t['files']) for t in plan['closure_copies']) + len(plan['entries'])
+        self.files_done = 0
+        archive = catalog.volume(plan['archive_id']) or {}
+        work = catalog.volume(plan['work_id']) or {} if plan.get('work_id') else {}
+        self.archive_name, self.work_name = archive.get('name', ''), work.get('name', '')
+        self.log, self.current, self.stage_name, self.done = [], {}, '', 0
+        self.retired = set()
+
+    def emit(self, **details):
+        if self.progress:
+            self.progress(self.stage_name, overall_done=min(self.done, self.total), overall_total=self.total,
+                          files_done=self.files_done, files_total=self.files_total, current=self.current,
+                          log=self.log[-self.LOG_LIMIT:], **details)
+
+    def note(self, kind, path, target=''):
+        self.log.append({'at': now(), 'kind': kind, 'name': Path(path).name, 'target': target})
+
+    def stage(self, name, **details):
+        self.stage_name = name
+        self.emit()
+
+    def passthrough(self, name, **details):
+        self.stage(name)
+
+    def copy_event(self, stage, payload, running):
+        self.stage_name = 'copying_finals'
+        copier = running[0] if running else None
+        if stage == 'before_file':
+            self.current = {'name': Path(payload['path']).name, 'from': self.work_name, 'to': self.archive_name, 'action': 'copy'}
+        elif stage == 'after_file_verified':
+            self.files_done += 1
+            self.note('copied', payload.get('path') or payload.get('source', ''), self.archive_name)
+        if copier and copier.progress:
+            self.done = self.copy_base + copier.progress.get('copied_bytes', 0) + copier.progress.get('verified_bytes', 0)
+        self.emit()
+
+    def copy_finished(self, transfer):
+        self.copy_base += 2 * sum(f['stamp']['size'] for f in transfer['files'])
+        self.done = self.copy_base
+
+    def release_event(self, stage, **details):
+        self.stage_name = stage
+        if stage == 'releasing_originals' and details.get('path'):
+            index = details.get('files_done', 0)
+            path = details['path']
+            self.current = {'name': Path(path).name, 'from': self.work_name, 'to': '', 'action': 'release'}
+            finished = 'bytes_done' not in details
+            reading = 0 if finished else details.get('bytes_done', 0)
+            completed = index if finished else index
+            self.done = 2 * self.copy_total + sum(self.release_sizes[:completed]) + reading
+            if finished and path not in self.retired:
+                self.retired.add(path)
+                self.files_done += 1
+                self.note('released', path, self.work_name)
+        self.emit()
