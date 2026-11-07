@@ -2,10 +2,40 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Cierre editorial con publicación pendiente · 2026-11-07
+
+Instalada la build **`face3d2b2657`** en `~/Applications/nuun.app`.
+Incluye la comprobación Sony automática al reconectar. La versión anterior
+quedó en `app-backups/27b090c1.app`. Firma estricta, binario instalado
+idéntico al artefacto y 36 fuentes Python idénticas al checkout.
+El RPC instalado respondió con un catálogo temporal.
+
+La selección de entregas y su publicación son decisiones separadas.
+Completar permite respaldar pendientes y conservar la copia de trabajo.
+Los publicados se retiran de ESSD sólo si el plan lo autoriza tras verificar
+copias y dependencias. El plan muestra acciones por final y distingue
+raws/renders ausentes. Puede registrar un cierre con cero archivos retirados.
+[Contrato](contracts/project-closeout-v1.md#completar-antes-de-publicar--2026-11-07).
+
+Lectura operativa de `terra-6-1`: horizontal en MEDIA502, seis verticales
+pendientes en `02_shorts` (1,760,155,440 bytes), 28 miembros de raw presentes
+por ruta y tamaño en MEDIA502. Las rutas conocidas de raw y renders en ESSD
+estaban ausentes. Guardada desde la app la selección del usuario de siete
+entregas definitivas, una publicada. Queda pendiente revisar y aplicar ese
+cierre. La prueba no movió ni borró media personal.
+
+Evidencia: **294 pruebas Python, cuatro omitidas** en el runtime del sistema,
+**19/19 contratos** con Python 3.9.6, **22/22 Swift**, **22/22 pruebas de cierre**
+en el último pase enfocado, **704 claves** sin faltantes ni sobrantes. QA
+nativa aislada: respaldo parcial, cierre con vertical pendiente conservado
+en ESSD y revisión posterior con cero retiradas y cero recopia. Captura
+ficticia del plan revisada. Falta la aceptación real con Terra y la
+reconexión Sony en la build instalada.
+
 ## Comprobación Sony al reconectar · 2026-11-07
 
-Build local **`e162566c4af8`** compilada y firmada, pendiente de instalación
-mientras la instancia anterior sigue abierta. Se retira **Ya la formateé**
+Build local **`e162566c4af8`** compilada y firmada. El cambio se instaló
+junto al cierre editorial en la build de arriba. Se retira **Ya la formateé**
 de Actividad. El montaje en nüün comprueba trabajos Sony de la misma
 identidad en segundo plano. Un índice cambiado y los originales ausentes
 cierran el trabajo con un evento de catálogo. La comprobación de rutas

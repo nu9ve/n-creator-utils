@@ -8,6 +8,8 @@ Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contract
 
 Actualización 2026-11-05: [Ingreso directo](../contracts/ingest-flow-v1.md) implementa Entrada → Flujo → Resultado, revisión agrupada, autorización única, progreso global y correcciones de proyecto/auxiliares/popup/centrado. [Cierre actualizado](../contracts/project-closeout-v1.md#actualización-vigente--2026-11-05): `subidos` o marca manual por final, sin gestión por canal. Respaldar publicados puede preceder al cierre completo; raws/renders se conservan hasta esa acción explícita.
 
+Actualización 2026-11-07. [Completar antes de publicar](../contracts/project-closeout-v1.md#completar-antes-de-publicar--2026-11-07) permite declarar definitivas las entregas, respaldar pendientes y conservarlas en ESSD para publicar. El plan muestra qué copia, verifica, retira o deja sin acción.
+
 ## Diagnóstico histórico · 2026-10-30
 
 Las tablas de diagnóstico/landing y los «Hoy» siguientes describen esa fecha, no el backlog actual. Ingreso, índice de discos, proyectos, publicación y cierre ya tienen entregas posteriores; consultar las actualizaciones de arriba y PLAN. La captura del README ya se actualizó el 5 noviembre. El estado actual de Atlas y A1–A10 vive en su [contrato](../contracts/atlas-drone-v1.md).

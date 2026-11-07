@@ -10,18 +10,18 @@ Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
 | --- | --- | --- |
 | 1 | Continuar aceptación de los dos multicams; usuario ya está editando | Compacto flotante implementado/instalado el 6 noviembre (`88fa9b79a571`); preferencia popup local habilitada. Flotante aceptado por el usuario; detección/popup sigue incierto (posible tardanza/apertura manual). Menubar → insertar SD → Entrada → Flujo → revisión → copiar/verificar → limpieza Sony → formato/confirmación; descubrir sesiones terminadas y entregar a Clipper sin perder miembros. Usuario reportó Stalker correcto y Sony fallido al finalizar. Dos clips Sony ya entregados/verificados a ESSD por petición explícita; defaults/nombres/destinos instalados en `17acd51df25c`. [Recorrido](docs/sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06). |
 | 2 | Aclarar el aviso recurrente Sony y cambios externos | Prioridad de diagnóstico: Sony terminó failed con FileNotFoundError de C0001.MP4 pese a seis retiradas journalizadas; no reanudar a ciegas ni afirmar doble borrado. Observar desde la app los intermedios/proyectos Clipper eliminados y cualquier referencia residual, sin preparar planes por CLI ni cambiar catálogo. Identificar job, texto y estado real: clips retirados, índices conservados, formato pendiente o aviso histórico. Confirmar no vuelve a borrar. Si hay defecto, corregir mensaje/reconciliación con fixtures y sin eliminar guardas. |
-| 3 | Aceptar publicados y cierre con uno de esos proyectos cuando esté listo | Respaldar publicados conserva raws/renders; cierre completo exige entregas completas, rehash, deps/ACK y consentimiento de intermedios. [Contrato](docs/contracts/project-closeout-v1.md). |
+| 3 | Aceptar el cierre editorial con Terra | Revisar selección definitiva y requisitos del proyecto, respaldar los verticales pendientes conservándolos en ESSD y comprobar la indicación Sin acción para raw/render ausentes. Con trabajo presente, el retiro exige rehash, deps/ACK y consentimiento. [Contrato](docs/contracts/project-closeout-v1.md). |
 | 4 | Recuperación física y rendimiento | Tras asegurar material de prueba, desconexión/reconexión y reanudación controladas, popup/remount, ExFAT/HFS+, tamaños reales y contención con captura. No interrumpir deliberadamente la única copia de las grabaciones nuevas. |
 | 5 | Cobertura de almacenamiento real | Analizar MEDIA502 y `coverage --no-hash` de ESSD contra MEDIA; informe orientativo antes de elegir carpeta/proyecto. Liberación exige hash actual, no coincidencia de tamaño. [Política](docs/features/replication-policy.md). |
 
-Última build instalada registrada `a439bb378645` (7 noviembre). Untitled ya no figura inaccesible. El usuario reportó reutilización y formatos repetidos el 6 noviembre. Se conserva el estado de cada job histórico.
+Última build instalada registrada `face3d2b2657` (7 noviembre), con cierre editorial y comprobación Sony automática. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
 
 La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
 retiro ya está registrado o falta el formato. En la prueba física de un clip
 el primer retiro se revirtió al reconectar. El retiro repetido persistió tras
 desmontar y montar en el mismo lector. El usuario confirmó que el formato
 en cámara funcionó. La comprobación al reconectar quedó automatizada en
-la build `e162566c4af8`. Falta instalarla y reconectar la misma SD para
+la build instalada. Falta reconectar la misma SD para
 aceptar el cierre en Actividad. La durabilidad del retiro en el flujo normal
 queda como prueba física aparte.
 [Evidencia Sony](docs/sony-validation.md#prueba-física-con-un-clip--2026-11-07).

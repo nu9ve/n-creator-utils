@@ -344,9 +344,20 @@ import MediaMenuCore
         let intermediate = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre/renders/intermediate.mov")
         guard FileManager.default.fileExists(atPath: intermediate.path), !model.closureSettings["no_more"].bool else { print("QA closeout FAILED premature cleanup"); NSApp.terminate(nil); return }
         print("QA closeout published only: rendersKept=true locations=\(model.closureSettings["finals"].array.map { $0["path"].string })")
+        let unpublished = folder.appendingPathComponent("work/002_finales/e64/02_shorts/demo-cierre_vertical_2.mov")
+        do {
+            try FileManager.default.createDirectory(at: unpublished.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("unpublished vertical".utf8).write(to: unpublished)
+        } catch { print("QA closeout FAILED fixture \(error)"); NSApp.terminate(nil); return }
+        model.findClosureFinals("demo-cierre")
+        guard await wait("unpublished delivery", { !model.busy && model.closureCandidates.contains { $0["path"].string.hasSuffix(unpublished.lastPathComponent) } }),
+              let waiting = model.closureCandidates.first(where: { $0["path"].string.hasSuffix(unpublished.lastPathComponent) }), !waiting["published"].bool
+        else { NSApp.terminate(nil); return }
         model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: true, published: false,
-                                 finals: model.closureSettings["finals"].array, profileDefault: false, review: true)
+                                 finals: model.closureSettings["finals"].array + [waiting], profileDefault: false, review: true)
         guard await wait("review", { !model.busy && model.closurePlan != nil }) else { NSApp.terminate(nil); return }
+        guard model.closurePlan?["closure_finals"].array.contains(where: { $0["keep_work"].bool && $0["copy_required"].bool }) == true
+        else { print("QA closeout FAILED unpublished delivery action"); NSApp.terminate(nil); return }
         print("QA closeout review entries=\(model.closurePlan!["entries"].array.count) copies=\(model.closurePlan!["closure_copies"].array.count) blockers=\(model.closurePlan!["consumers"]["blockers"].array)")
         await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-review.png"))
         model.applyProjectClosure()
@@ -356,7 +367,14 @@ import MediaMenuCore
         let editor = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre")
         let kept = FileManager.default.fileExists(atPath: editor.appendingPathComponent("clipper/clipper-project.json").path)
         let removed = !FileManager.default.fileExists(atPath: editor.appendingPathComponent("renders/intermediate.mov").path)
-        print("QA closeout \(kept && removed ? "OK" : "FAILED") editableKept=\(kept) rendersRemoved=\(removed) reminders=\(model.projectClosures.filter { $0["needs_release"].bool }.count)")
+        let waitingKept = FileManager.default.fileExists(atPath: unpublished.path)
+        model.saveProjectClosure(required: ["horizontal", "vertical", "thumbnail"], noMore: true, published: false,
+                                 finals: model.closureSettings["finals"].array, profileDefault: false, review: true)
+        guard await wait("already absent raw and renders", { !model.busy && model.closurePlan != nil }),
+              model.closurePlan?["entries"].array.isEmpty == true, model.closurePlan?["closure_copies"].array.isEmpty == true
+        else { print("QA closeout FAILED unnecessary copy or release"); NSApp.terminate(nil); return }
+        await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("closeout-already-empty.png"))
+        print("QA closeout \(kept && removed && waitingKept ? "OK" : "FAILED") editableKept=\(kept) rendersRemoved=\(removed) unpublishedKept=\(waitingKept) noFilesToRemove=true")
         NSApp.terminate(nil)
     }
 

@@ -213,18 +213,78 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue((self.archive / saved['finals'][0]['path']).exists())
         self.assertEqual(result['state'], 'completed')
 
-    def test_individual_mark_outside_published_folder_and_one_unpublished_blocks_closure(self):
+    def test_complete_before_publication_backs_up_and_keeps_editing_final(self):
         selected = self.work / '002_finales/e64/intro-publicado.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'not yet published')
         item = {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'horizontal', 'published': False}
         self.configure(published=False, finals=[item])
-        with self.assertRaisesRegex(MediaError, 'Confirma'): self.plan_close()
+        plan = self.plan_close()
+        self.assertTrue(next(f for f in plan['closure_finals'] if f['role'] == 'horizontal')['keep_work'])
+        self.assertEqual({e['category'] for e in plan['entries']}, {'raw', 'intermediate'})
+        self.assertEqual(self.apply(plan)['state'], 'completed')
+        saved = closure.settings(self.catalog, self.project_id)
+        self.assertFalse(saved['published'])
+        self.assertEqual(saved['finals'][0]['volume_id'], self.w['id'])
+        self.assertTrue(selected.exists())
+        self.assertFalse((self.editor / 'renders/intermediate.mov').exists())
+        self.assertEqual(self.catalog.get('project-state:' + self.project_id)['state'], 'finished')
         item['published'] = True
         config = self.configure(published=False, finals=[item])
         self.assertTrue(config['published'])
-        self.assertTrue(selected.exists())
-        self.assertTrue(next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files'] if f['volume_id'] == self.w['id'])['published'])
-        self.assertTrue(self.plan_close()['closure_copies'])
+        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        self.assertEqual(published_plan['closure_copies'], [])
+        self.assertEqual(self.apply(published_plan)['state'], 'completed')
+        self.assertFalse(selected.exists())
+
+    def test_already_absent_work_closes_without_deletion_or_clipper(self):
+        import shutil
+
+        raw = self.work / '001_proyectos/e64_raw/intro'
+        shutil.rmtree(raw)
+        shutil.rmtree(self.editor / 'renders')
+        short = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        short.parent.mkdir(parents=True)
+        short.write_bytes(b'final vertical')
+        finals = closure.settings(self.catalog, self.project_id)['finals']
+        finals.append({'volume_id': self.w['id'], 'path': str(short.relative_to(self.work)), 'role': 'vertical', 'published': False})
+        self.configure(required=['horizontal', 'vertical'], published=False, finals=finals)
+        self.deps.side_effect = RuntimeError('Clipper offline')
+        plan = self.plan_close()
+        self.assertEqual(plan['entries'], [])
+        self.assertEqual(len(plan['closure_copies']), 1)
+        self.assertIn({'kind': 'raw', 'path': str(raw.relative_to(self.work))}, plan['closure_scopes'])
+        self.assertEqual(self.apply(plan)['state'], 'completed')
+        self.assertTrue(self.final.exists())
+        self.assertEqual(short.read_bytes(), (self.archive / '002_finales/e64/shorts' / short.name).read_bytes())
+        self.assertEqual(self.catalog.get('project-released:' + self.project_id)['bytes'], 0)
+        already_backed_up = self.plan_close()
+        self.assertEqual(already_backed_up['closure_copies'], [])
+        self.assertEqual(self.apply(already_backed_up)['state'], 'completed')
+
+    def test_new_files_in_previously_absent_scopes_invalidate_close(self):
+        import shutil
+
+        renders = self.editor / 'renders'
+        shutil.rmtree(renders)
+        plan = self.plan_close()
+        renders.mkdir()
+        (renders / 'new.mov').write_bytes(b'new work')
+        with self.assertRaisesRegex(MediaError, 'New material'):
+            self.apply(plan)
+        self.assertTrue((renders / 'new.mov').exists())
+
+    def test_changed_unpublished_work_copy_blocks_other_removals(self):
+        work_final = self.work / '002_finales/e64/intro.mov'
+        work_final.parent.mkdir(parents=True)
+        work_final.write_bytes(self.final.read_bytes())
+        self.configure(work_final, self.w, published=False)
+        plan = self.plan_close()
+        self.assertFalse(plan['closure_copies'])
+        work_final.write_bytes(b'new version')
+        with self.assertRaisesRegex(MediaError, 'conservada cambió'):
+            self.apply(plan)
+        self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
+        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
 
     def test_backup_published_finals_before_project_completion_preserves_work(self):
         published = self.work / '002_finales/e64/intro-published.mov'

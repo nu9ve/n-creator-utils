@@ -57,7 +57,7 @@ extension Model {
             defer { monitor.cancel() }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
             if let result = self.closurePlan, result["closure_settings"] != .null { self.closureSettings = result["closure_settings"] }
-            self.message = reviewed["closure_finish"] == .bool(false) ? String(localized: "Finales publicados respaldados") : String(localized: "Proyecto liberado; fuentes y finales conservados en el respaldo")
+            self.message = reviewed["closure_finish"] == .bool(false) ? String(localized: "Finales publicados respaldados") : String(localized: "Proyecto completado")
             self.captureChanged([])
             self.finalsCheckedAt = nil
         }
@@ -109,6 +109,7 @@ struct ProjectClosureSheet: View {
     @State private var query = ""
     @State private var discardConfirmed = false
     @State private var showOtherMatches = false
+    @State private var showFinalActions = true
     private let roles: [(String, LocalizedStringKey)] = [("horizontal", "Horizontal"), ("vertical", "Vertical"), ("thumbnail", "Thumbnail"), ("auxiliary", "Auxiliar")]
     private var title: String {
         guard let item = model.closureProject else { return "" }
@@ -120,13 +121,14 @@ struct ProjectClosureSheet: View {
         let visible = model.closureCandidates.filter { showOtherMatches || $0["suggested"].bool || picked[key($0)] != nil }
         return picked.values.filter { !listed.contains(key($0)) }.sorted { key($0) < key($1) } + visible
     }
-    private var missing: Set<String> { required.subtracting(picked.values.filter { $0["published"].bool }.map { $0["role"].string }) }
+    private var selectedTypes: Set<String> { Set(picked.values.map { $0["role"].string }).subtracting(["auxiliary"]) }
+    private var missing: Set<String> { required.subtracting(selectedTypes) }
     private var hasPublishedWork: Bool {
         picked.values.contains { value in
             value["published"].bool && model.volume(value["volume_id"].string)?["role"].string == "work"
         }
     }
-    private var ready: Bool { noMore && !picked.isEmpty && picked.values.allSatisfy { $0["published"].bool } && !required.isEmpty && required.isSubset(of: Set(picked.values.map { $0["role"].string })) }
+    private var ready: Bool { noMore && !required.isEmpty && missing.isEmpty }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Completar y liberar", subtitle: LocalizedStringKey(title))
@@ -147,7 +149,7 @@ struct ProjectClosureSheet: View {
                 } else if let plan = model.closurePlan {
                     if plan["state"].string != "completed" {
                         Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
-                        Button("Respaldar y liberar", role: .destructive) { model.applyProjectClosure() }
+                        Button(applyTitle(plan), role: plan["entries"].array.isEmpty ? nil : .destructive) { model.applyProjectClosure() }
                             .buttonStyle(CreatorButtonStyle(prominent: true))
                             .disabled((plan["entries"].array.contains { $0["category"].string != "final" } && !discardConfirmed) || !plan["consumers"]["blockers"].array.isEmpty)
                     }
@@ -155,7 +157,7 @@ struct ProjectClosureSheet: View {
                     Button("Guardar") { save(review: false) }.disabled(required.isEmpty)
                     Button("Respaldar publicados…") { save(review: true, releaseWork: false) }
                         .disabled(required.isEmpty || !hasPublishedWork || model.archive.isEmpty || model.work.isEmpty)
-                    Button("Revisar liberación") { save(review: true) }
+                    Button("Revisar cierre") { save(review: true) }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(!ready || model.archive.isEmpty || model.work.isEmpty)
                 }
             }
@@ -165,6 +167,12 @@ struct ProjectClosureSheet: View {
         .onChange(of: model.closureSettings) { _, config in load(config) }
         .onAppear { load(model.closureSettings); query = title }
 
+    }
+    private func applyTitle(_ plan: JSONValue) -> LocalizedStringKey {
+        if !plan["entries"].array.isEmpty {
+            return plan["closure_finish"] == .bool(false) ? "Respaldar y liberar" : "Completar y liberar"
+        }
+        return plan["closure_copies"].array.isEmpty ? "Completar proyecto" : "Respaldar y completar"
     }
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -178,22 +186,30 @@ struct ProjectClosureSheet: View {
             }
             if !missing.isEmpty {
                 HStack(spacing: 6) {
-                    Text("Faltan entregas publicadas").fontWeight(.medium)
+                    Text("Faltan tipos de entrega en la selección").fontWeight(.medium)
                     ForEach(roles.filter { missing.contains($0.0) }, id: \.0) { _, label in
                         Text(label).fontWeight(.medium)
                     }
                 }.font(.caption).foregroundStyle(palette.warning)
+                if noMore && !selectedTypes.isEmpty {
+                    Button("Usar los tipos elegidos para este proyecto") {
+                        required = selectedTypes
+                        profileDefault = false
+                    }.buttonStyle(.link).font(.caption)
+                }
             }
             HStack {
                 TextField("Buscar finales por nombre", text: $query).onSubmit(search)
                 Button("Buscar", action: search)
                 Menu {
-                    Button("Seleccionar todos los visibles") { select(rows) }
+                    Button("Elegir todos los visibles") { select(rows) }
                     Button("Quitar selección visible") { for item in rows { picked.removeValue(forKey: key(item)) } }
                 } label: { Text("\(picked.count) elegidos") }
                 .fixedSize()
                 .disabled(rows.isEmpty)
             }
+            Text("La selección reúne las entregas del proyecto. Cada archivo conserva su estado de publicación.")
+                .font(.caption).foregroundStyle(.secondary)
             if !showOtherMatches && model.closureCandidates.contains(where: { !$0["suggested"].bool && picked[key($0)] == nil }) {
                 Button("Ver otras coincidencias") { showOtherMatches = true }.buttonStyle(.link).font(.caption)
             }
@@ -207,8 +223,9 @@ struct ProjectClosureSheet: View {
                 }
             }
             if model.closureTruncated { Text("Hay más resultados. Acota la búsqueda para verlos.").font(.caption).foregroundStyle(palette.warning) }
-            Toggle("Ya no habrá más entregas", isOn: $noMore).toggleStyle(.checkbox)
-            Text("Revisa las entregas elegidas. Puedes respaldar lo publicado mientras sigues editando.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Estas son todas las entregas definitivas", isOn: $noMore).toggleStyle(.checkbox)
+            Text("El cierre respalda también lo pendiente de publicar y conserva su copia de edición.")
+                .font(.caption).foregroundStyle(.secondary)
         }.disabled(model.busy)
     }
     private func search() {
@@ -229,10 +246,12 @@ struct ProjectClosureSheet: View {
         return DisclosureGroup {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Button("Seleccionar grupo") { select(items) }.disabled(chosen.count == items.count)
-                    Button("Marcar elegidos como publicados") {
-                        for item in waiting { update(item, field: "published", to: .bool(true)) }
-                    }.disabled(waiting.isEmpty)
+                    Button("Elegir grupo") { select(items) }.disabled(chosen.count == items.count)
+                    Menu("Publicación") {
+                        Button("Ya publiqué las entregas elegidas") {
+                            for item in waiting { update(item, field: "published", to: .bool(true)) }
+                        }.disabled(waiting.isEmpty)
+                    }
                 }.font(.caption)
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     let value = picked[key(item)] ?? item
@@ -245,7 +264,7 @@ struct ProjectClosureSheet: View {
                             }
                         }.toggleStyle(.checkbox)
                         Spacer(minLength: 4)
-                        Text(value["published"].bool ? "Publicado" : "Por confirmar").font(.caption).foregroundStyle(.secondary)
+                        Text(value["published"].bool ? "Publicado" : "Pendiente de publicar").font(.caption).foregroundStyle(.secondary)
                         if picked[key(item)] != nil {
                             Menu {
                                 Button(value["published"].bool ? "Quitar marca de publicación" : "Marcar como publicado") {
@@ -274,24 +293,29 @@ struct ProjectClosureSheet: View {
     private func review(_ plan: JSONValue) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Label(plan["state"].string == "completed" ? (plan["closure_finish"] == .bool(false) ? "Finales respaldados" : "Proyecto liberado") : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
-                Text("\(plan["entries"].array.count) archivos · " + bytesLabel(plan["bytes"].double)).font(.title3)
+                Label(plan["state"].string == "completed" ? (plan["closure_finish"] == .bool(false) ? "Finales respaldados" : "Proyecto completado") : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
+                if plan["entries"].array.isEmpty {
+                    Text("Sin archivos para retirar").font(.title3)
+                } else if plan["state"].string == "completed" {
+                    Text("\(plan["entries"].array.count) archivos retirados · \(bytesLabel(plan["bytes"].double))").font(.title3)
+                } else {
+                    Text("\(plan["entries"].array.count) archivos para retirar · \(bytesLabel(plan["bytes"].double))").font(.title3)
+                }
                 if plan["closure_finish"] == .bool(false) {
                     Text("Sólo se respaldan y retiran los finales publicados elegidos. Los raws y los intermedios se conservan.").font(.callout)
                 } else {
-                    Text("Sólo se conserva en el respaldo lo original y los finales. Los intermedios listados se descartan sin respaldarlos.").font(.callout)
+                    Text("Se verifican las fuentes y entregas en el respaldo. Los finales pendientes de publicar conservan su copia de edición.").font(.callout)
                 }
                 Text("Clipper: el editable se conserva; elimínalo desde Clipper para retirar también su registro. Final Cut y el contenido desconocido se conservan.").font(.caption).foregroundStyle(.secondary)
-                if !plan["closure_copies"].array.isEmpty { Text("Finales por copiar y verificar: \(plan["closure_copies"].array.count)") }
                 ForEach(Array(plan["consumers"]["blockers"].array.enumerated()), id: \.offset) { _, blocker in
                     Label(blocker.string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning).textSelection(.enabled)
                 }
                 if !plan["consumers"]["relinks"].array.isEmpty {
                     Text("Clipper se reenlaza a las copias verificadas durante esta operación; sus colas deben estar libres.").font(.caption)
                 }
-                releaseGroup("Finales para respaldar y retirar", category: "final", plan: plan)
-                releaseGroup("Copias raw para liberar", category: "raw", plan: plan)
-                releaseGroup("Intermedios para descartar", category: "intermediate", plan: plan)
+                finalActions(plan)
+                releaseGroup("Copias raw", category: "raw", plan: plan)
+                releaseGroup("Intermedios", category: "intermediate", plan: plan)
                 DisclosureGroup("Conservar") {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
@@ -305,6 +329,38 @@ struct ProjectClosureSheet: View {
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+    private func finalActions(_ plan: JSONValue) -> some View {
+        let finals = plan["closure_finals"].array.filter { $0["role"].string != "source" }
+        return DisclosureGroup("Entregas y respaldo", isExpanded: $showFinalActions) {
+            ForEach(Array(finals.enumerated()), id: \.offset) { _, final in
+                let path = final["original"]["path"].string
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(URL(fileURLWithPath: path.isEmpty ? final["archive_path"].string : path).lastPathComponent)
+                        Spacer()
+                        Text(finalAction(final, plan: plan))
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .foregroundStyle(.secondary).background(palette.raised, in: Capsule())
+                    }.font(.caption)
+                    Text(final["archive_path"].string).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                }.padding(.vertical, 3)
+            }
+        }
+    }
+    private func finalAction(_ final: JSONValue, plan: JSONValue) -> LocalizedStringKey {
+        let completed = plan["state"].string == "completed"
+        let copies = final["copy_required"] == .null ? plan["closure_copies"].array.contains { transfer in
+            transfer["preview"].array.contains { $0["archive_path"].string.hasSuffix("/" + final["archive_path"].string) }
+        } : final["copy_required"].bool
+        if final["keep_work"].bool {
+            return !completed && copies ? "Respaldar y conservar en edición" : "Respaldo verificado · conservar en edición"
+        }
+        let removes = plan["entries"].array.contains {
+            $0["category"].string == "final" && $0["archive_path"] == final["archive_path"]
+        }
+        if removes && !completed { return copies ? "Respaldar y retirar" : "Respaldo verificado · retirar copia de edición" }
+        return "Respaldo verificado"
     }
     private func releaseGroup(_ label: LocalizedStringKey, category: String, plan: JSONValue) -> some View {
         let entries = plan["entries"].array.filter { $0["category"].string == category }
@@ -325,7 +381,18 @@ struct ProjectClosureSheet: View {
                         Spacer()
                         Text("\(entries.count) archivos · \(bytesLabel(entries.reduce(0) { $0 + $1["stamp"]["size"].double }))")
                             .font(.caption).foregroundStyle(.secondary)
+                        Text(plan["state"].string == "completed" ? "Retirados" : category == "intermediate" ? "Descartar sin respaldo" : "Liberar copia de edición")
+                            .font(.caption).padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(palette.raised, in: Capsule())
                     }
+                }
+            } else if plan["closure_finish"].bool && plan["closure_inventory_checked"].bool {
+                HStack {
+                    Text(label)
+                    Spacer()
+                    Text("Sin archivos en las rutas revisadas").font(.caption).foregroundStyle(.secondary)
+                    Text("Sin acción").font(.caption).padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(palette.raised, in: Capsule())
                 }
             }
         }
