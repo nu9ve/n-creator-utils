@@ -10,16 +10,13 @@ import MediaMenuCore
 // siguen el orden y lugar de macOS (cerrar, minimizar, ampliar, a la izquierda) con ×, − y + siempre
 // visibles, para quien nunca usó un Mac; Fractos usa los glifos y lugares de cada época. Sin sonido ni háptica.
 
-/// Decoration behind the content: ordered grain for Grano and a candle vignette for Gótico.
+/// Decoration behind the content: a candle vignette for Gótico.
 /// Static, cached, never intercepts clicks and never reaches VoiceOver.
 struct SkinAtmosphere: View {
     @Environment(\.creatorPalette) private var palette
     var body: some View {
         Group {
             switch palette.skin {
-            case .dither:
-                Image(nsImage: DitherTile.image(color: CreatorPalette.ns(palette.roles.ink), density: palette.skin.grain))
-                    .resizable(resizingMode: .tile).interpolation(.none).opacity(palette.dark ? 0.14 : 0.08)
             case .gothic:
                 RadialGradient(colors: [.clear, .black.opacity(0.55)], center: .center, startRadius: 120, endRadius: 900)
             default:
@@ -31,20 +28,19 @@ struct SkinAtmosphere: View {
     }
 }
 
-/// nu9ve-theme-v1 §5 · origen: kyu apps/macos/Sources/Kyu/Theme.swift `Dither.tile` (caché por color y densidad).
-@MainActor enum DitherTile {
-    private static var cache: [String: NSImage] = [:]
-    static func image(color: NSColor, density: Double, pixel: Int = 2) -> NSImage {
-        let key = "\(color.description)-\(density)-\(pixel)"
-        if let hit = cache[key] { return hit }
-        let cells = Bayer.cells(density: density)
-        let image = NSImage(size: NSSize(width: 8 * pixel, height: 8 * pixel), flipped: false) { _ in
-            color.setFill()
-            for cell in cells { NSRect(x: cell.x * pixel, y: cell.y * pixel, width: pixel, height: pixel).fill() }
-            return true
+/// Terminal: static CRT scanlines over the whole window. Drawn once, no animation, no clicks.
+/// nu9ve-theme-v1 §5 · origen: ios-fractos FractosDesign ThemeChrome.swift `FractosScreenOverlay`.
+struct Scanlines: View {
+    var body: some View {
+        Canvas { context, size in
+            var y: CGFloat = 0
+            while y < size.height {
+                context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 1)), with: .color(.black.opacity(0.22)))
+                y += 3
+            }
         }
-        cache[key] = image
-        return image
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -112,11 +108,8 @@ struct SkinBarBackground: View {
                             Rectangle().fill(palette.accent.opacity(0.5)).frame(height: 1)
                         }
                     }
-            case .dither:
-                palette.canvas.overlay(alignment: .leading) {
-                    Image(nsImage: DitherTile.image(color: CreatorPalette.ns(palette.roles.accent), density: 0.5))
-                        .resizable(resizingMode: .tile).interpolation(.none).frame(width: 40)
-                }
+            case .terminal:
+                palette.surface.overlay(alignment: .bottom) { Rectangle().fill(palette.accentText).frame(height: 2) }
             case .glass:
                 palette.canvas
             }
@@ -157,12 +150,12 @@ struct SkinWindowBar<Content: View>: View {
             // The system toolbar gave nüün's bar its margins; here the bar gets the same 8 pt on both
             // sides, aligned with the caption's controls above it.
             HStack(spacing: 6) {
-                if skin == .gothic { gothicControls.padding(.leading, Self.inset) }
+                if skin.captionHeight == 0 { windowControls.padding(.leading, Self.inset) }
                 content
             }
             .padding(.trailing, Self.inset)
             .frame(height: skin.barHeight)
-            .background(skin == .gothic ? AnyView(SkinBarBackground(skin: .gothic)) : AnyView(barRow))
+            .background(skin == .gothic || skin == .terminal ? AnyView(SkinBarBackground(skin: skin)) : AnyView(barRow))
             .background(TitleBarDragArea())
             .opacity(showsRow ? 1 : 0)
             .frame(height: showsRow ? nil : 0)
@@ -207,7 +200,6 @@ struct SkinWindowBar<Content: View>: View {
         .background(TitleBarDragArea())
     }
 
-    private var gothicControls: some View { windowControls }
     static var inset: CGFloat { 8 }
 
     private var windowControls: some View {
@@ -254,6 +246,11 @@ struct SkinWindowBar<Content: View>: View {
     @ViewBuilder private func glyph(_ action: Action) -> some View {
         let image = Image(systemName: symbol(action)).font(.system(size: 8, weight: .black))
         switch palette.skin {
+        case .terminal:
+            // The same three signs, in brackets as a prompt would print them.
+            Text(verbatim: action == .close ? "[×]" : action == .minimize ? "[−]" : "[+]")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(action == .close ? palette.accentText : palette.ink)
         case .classicMac:
             image.foregroundStyle(.black)
                 .frame(width: 13, height: 13)

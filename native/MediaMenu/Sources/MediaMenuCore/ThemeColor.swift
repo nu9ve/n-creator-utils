@@ -115,7 +115,7 @@ public struct ThemeRoles: Sendable, Equatable {
         self.seed = seed
         let preferredInk: ThemeColor
         switch skin {
-        case .glass, .dither:
+        case .glass:
             canvas = blend(dark ? 0.91 : 0.80)
             surface = blend(dark ? 0.85 : 0.94)
             raised = blend(0.88)
@@ -130,6 +130,16 @@ public struct ThemeRoles: Sendable, Equatable {
             canvas = ThemeColor(192 / 255, 192 / 255, 192 / 255); surface = ThemeColor(223 / 255, 223 / 255, 223 / 255)
             raised = .white; line = ThemeColor(128 / 255, 128 / 255, 128 / 255)
             preferredInk = .black
+        case .terminal:
+            // nu9ve-theme-v1 §5 · origen: ios-fractos FractosDesign (material `terminal`) y nu9ve.xyz docs/themes.md
+            // (Matrix): base oscura propia; la señal conserva el matiz del color base y sube de luz para leerse.
+            canvas = ThemeColor(hex: "#050806")!.mixed(with: seed, amount: 0.05)
+            surface = ThemeColor(hex: "#0B100C")!.mixed(with: seed, amount: 0.06)
+            raised = ThemeColor(hex: "#121912")!.mixed(with: seed, amount: 0.08)
+            let hsv = seed.hsv
+            let phosphor = ThemeColor.hsv(hsv.hue, min(hsv.saturation, 0.55), 1)
+            line = canvas.mixed(with: phosphor, amount: 0.5)
+            preferredInk = phosphor.mixed(with: .white, amount: 0.15)
         case .gothic:
             // origen: curado src/lib/theme.ts STYLES.gothic.dark (chrome/sheet/text), tinted 4 % by the seed.
             canvas = ThemeColor(hex: "#09070A")!.mixed(with: seed, amount: 0.04)
@@ -172,12 +182,12 @@ public struct ThemeRoles: Sendable, Equatable {
 /// nu9ve-theme-v1 §5: the skins nüün offers. Cristal is the everyday look; the rest are optional
 /// period skins for people who like to set up their space.
 public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
-    case glass, dither, classicMac, win9x, gothic
+    case glass, classicMac, win9x, terminal, gothic
     public var id: String { rawValue }
     public var name: String {
         switch self {
         case .glass: return String(localized: "Cristal")
-        case .dither: return String(localized: "Grano")
+        case .terminal: return String(localized: "Terminal")
         case .classicMac: return String(localized: "Macintosh")
         case .win9x: return String(localized: "Windows 9x")
         case .gothic: return String(localized: "Gótico")
@@ -186,7 +196,7 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var summary: String {
         switch self {
         case .glass: return String(localized: "Nativo y tranquilo. El de todos los días.")
-        case .dither: return String(localized: "El grano del colectivo: dither ordenado y detalles pixel.")
+        case .terminal: return String(localized: "Fósforo, letra monoespaciada y líneas de barrido. Tu color base es la señal.")
         case .classicMac: return String(localized: "1 bit, rayas y cajas: un Macintosh II con tarjeta de color.")
         case .win9x: return String(localized: "Biseles grises y título con degradado.")
         case .gothic: return String(localized: "Noche, marco doble y ornamento. Lo contrario de la retícula suiza.")
@@ -196,12 +206,12 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var forcedDark: Bool? {
         switch self {
         case .classicMac, .win9x: return false
-        case .gothic: return true
+        case .gothic, .terminal: return true
         default: return nil
         }
     }
     /// Only the system's window keeps rounded corners; the rest draw their own bar and controls.
-    public var usesSquareWindow: Bool { self == .classicMac || self == .win9x || self == .gothic }
+    public var usesSquareWindow: Bool { self != .glass }
     // Measures from the contract's catalog (§5) and Fractos `ThemeMaterial`.
     /// The row with the app's own controls (navigation, disks, settings).
     public var barHeight: Double { self == .gothic ? 36 : 30 }
@@ -216,7 +226,7 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var controlRadius: Double {
         switch self {
         case .glass: return 7
-        case .dither: return 4
+        case .terminal: return 0
         case .classicMac: return 6
         case .win9x: return 0
         case .gothic: return 1
@@ -225,7 +235,7 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var panelRadius: Double {
         switch self {
         case .glass: return 10
-        case .dither: return 7
+        case .terminal: return 0
         case .classicMac, .win9x: return 0
         case .gothic: return 2
         }
@@ -234,7 +244,7 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var pillRadius: Double {
         switch self {
         case .glass: return 999
-        case .dither: return 4
+        case .terminal: return 0
         case .classicMac: return 4
         case .win9x: return 0
         case .gothic: return 1
@@ -243,32 +253,11 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     /// How strongly lines are drawn; period skins use solid rules.
     public var lineOpacity: (light: Double, dark: Double) {
         switch self {
-        case .glass, .dither: return (0.55, 0.65)
+        case .glass: return (0.55, 0.65)
+        case .terminal: return (1, 1)
         case .classicMac, .win9x: return (1, 1)
         case .gothic: return (0.9, 0.9)
         }
-    }
-    /// Ordered-dither density over the canvas; 0 means none.
-    public var grain: Double { self == .dither ? 0.12 : 0 }
-}
-
-/// nu9ve-theme-v1 §5 · origen: curado src/lib/dither.ts BAYER y kyu Theme.swift `Dither.threshold`.
-public enum Bayer {
-    public static let matrix: [Int] = [
-        0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
-        3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21,
-    ]
-    public static func threshold(_ x: Int, _ y: Int) -> Double { (Double(matrix[(y & 7) * 8 + (x & 7)]) + 0.5) / 64 }
-    /// Cells of an 8×8 tile that are inked at `density`, optionally fading left to right over `width` cells.
-    public static func cells(density: Double, width: Int = 8, fade: Bool = false) -> [(x: Int, y: Int)] {
-        var cells: [(x: Int, y: Int)] = []
-        for y in 0..<8 {
-            for x in 0..<width {
-                let d = fade ? density * (1 - Double(x) / Double(max(1, width - 1))) : density
-                if d > threshold(x, y) { cells.append((x, y)) }
-            }
-        }
-        return cells
     }
 }
 

@@ -60,25 +60,23 @@ private let seeds: [(Double, Double, Double)] = {
 
 @Test func periodSkinsKeepTheirEraAndGlassFollowsTheUser() {
     let seed = (ThemeRoles.defaultHue, ThemeRoles.defaultSaturation, 1.0)
-    #expect(!ThemeRoles(skin: .classicMac, dark: true, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
-    #expect(!ThemeRoles(skin: .win9x, dark: true, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
-    #expect(ThemeRoles(skin: .gothic, dark: false, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
-    for dark in [false, true] {
-        let glass = ThemeRoles(skin: .glass, dark: dark, hue: seed.0, saturation: seed.1, brightness: seed.2)
-        let dither = ThemeRoles(skin: .dither, dark: dark, hue: seed.0, saturation: seed.1, brightness: seed.2)
-        #expect(glass.dark == dark)
-        // Grain is texture, not color: both skins share every role.
-        #expect(glass.canvas == dither.canvas && glass.ink == dither.ink && glass.accentSoft == dither.accentSoft)
-    }
-    #expect(ThemeSkin.allCases.filter(\.usesSquareWindow) == [.classicMac, .win9x, .gothic])
+    func roles(_ skin: ThemeSkin, _ dark: Bool) -> ThemeRoles { ThemeRoles(skin: skin, dark: dark, hue: seed.0, saturation: seed.1, brightness: seed.2) }
+    #expect(!roles(.classicMac, true).dark && !roles(.win9x, true).dark)
+    #expect(roles(.gothic, false).dark && roles(.terminal, false).dark)
+    #expect(roles(.glass, false).dark == false && roles(.glass, true).dark)
+    #expect(ThemeSkin.allCases.filter(\.usesSquareWindow) == [.classicMac, .win9x, .terminal, .gothic])
+    // An old preference for the removed Grano skin falls back to Cristal.
+    #expect(ThemeSkin(rawValue: "dither") == nil)
 }
 
-@Test func bayerMatchesTheSharedMatrix() {
-    #expect(Set(Bayer.matrix) == Set(0..<64))
-    #expect(Bayer.threshold(0, 0) == 0.5 / 64)
-    #expect(Bayer.cells(density: 0).isEmpty)
-    #expect(Bayer.cells(density: 1).count == 64)
-    #expect(Bayer.cells(density: 0.5).count == 32)
+@Test func terminalSignalKeepsTheSeedHue() {
+    // Terminal's ink is the user's color as phosphor: same hue, lifted to read on the dark base.
+    for hex in ["#2E9E57", "#D52B1E", "#7CC6E6"] {
+        let color = ThemeColor(hex: hex)!.hsv
+        let roles = ThemeRoles(skin: .terminal, dark: false, hue: color.hue, saturation: color.saturation, brightness: color.value)
+        #expect(abs(roles.ink.hsv.hue - color.hue) < 0.03, "\(hex)")
+        #expect(roles.ink.contrast(with: roles.canvas) >= 7)
+    }
 }
 
 @Test func statesKeepTheirHueWhateverTheSeed() {

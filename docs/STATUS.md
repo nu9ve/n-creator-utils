@@ -2,6 +2,16 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Terminal reemplaza a Grano en nüün · 2026-11-07
+
+En working tree, sin commit. Grano se retiró porque no aportaba frente a Macintosh; quien lo tenía guardado vuelve a Cristal. Terminal completa los tres comunes del [contrato §5](contracts/nu9ve-theme-v1.md#juego-de-skins-por-app):
+- Siempre oscuro y con ventana cuadrada.
+- El color base se vuelve fósforo: mismo matiz, a 7:1.
+- Todos los estilos de texto en monoespaciada, con líneas de barrido estáticas y botones en video inverso.
+- Barra con línea de señal, `[×] [−] [+]` a la izquierda y `~$ nüün`.
+
+Evidencia: `swift test` **22/22** (matriz con Terminal y prueba de matiz de la señal), localización sin faltantes ni sobrantes, `--qa-skins` aislado en los 5 skins. Se revisaron las capturas de Terminal: solo fixtures. **Sin probar:** clics reales.
+
 ## Controles de ventana legibles en los skins · 2026-11-07
 
 En working tree, sin commit. Instalada como build **`1c16ca1cb645`** (desde el árbol sin commit; la anterior quedó en `app-backups/8d4c31cd.app`). A pedido del usuario, los controles propios de Macintosh, Windows 9x y Gótico ya no usan cajas vacías ni rombos sin significado. Van siempre a la izquierda en el orden de macOS (cerrar, minimizar, ampliar) con ×, − y + visibles. La época solo cambia el dibujo: caja de 1 bit, bisel gris o losa con el acento en cerrar. En Win9x el título sigue a los controles. La regla quedó en el [contrato §8](contracts/nu9ve-theme-v1.md#8-barras-del-sistema-menús-y-controles). `--qa-skins` con `HOME` y `NU9VE_MEDIA_HOME` temporales pasa igual en los 5 skins. Se revisaron las capturas de la ventana principal y de Ajustes: solo fixtures. Al pedir revisión, el botón de compacto/completo quedaba pegado al borde derecho en los skins de ventana cuadrada: el toolbar del sistema era el que daba ese margen. Ahora la barra propia usa 8 pt a ambos lados, alineada con los controles del caption, y en las capturas de la ventana real queda a la misma distancia que en Cristal. **Sin probar:** clics reales en los controles nuevos.

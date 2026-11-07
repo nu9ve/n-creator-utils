@@ -128,9 +128,35 @@ Un skin es un conjunto de medidas, no una paleta. Medidas en pt (Swift) y px (we
 | `gothic` · Gótico | 1 / 2 / 3 | 1–2, marco doble en paneles de marca | Suave, viñeta | UnifrakturMaguntia | Sistema | Negro profundo, carmesí, noche |
 | `y2k` · Cromo | 9 / 14 / 24 | 1 | Suave, brillo diagonal | Michroma / Audiowide | Sistema | Cromo líquido, botones píldora |
 
-Solo en Fractos: `terminal`, `neon`, `parchment` y `ledger`. `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
+Solo en Fractos: `neon`, `parchment` y `ledger`; `terminal` es uno de los comunes y le falta a las demás apps. `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
 
 **Skins opcionales.** Una app puede ofrecer skins de época como extra para quien quiera personalizar su espacio. El skin por defecto sigue siendo el sobrio (Cristal), y elegir otro siempre es reversible desde Apariencia. Un skin de época **puede** fijar su modo (Macintosh y Windows 9x claros, Gótico oscuro). En ese caso Apariencia lo dice y conserva la preferencia de modo del usuario para cuando vuelva a otro skin.
+
+### Juego de skins por app
+
+Decisión del usuario (2026-11-07). Cada app ofrece el mismo juego en tres partes, para que se note a la vez lo común de nu9ve/Fractos y la personalidad de cada una:
+
+| Parte | Qué es | Regla |
+| --- | --- | --- |
+| **Original** | El skin de la identidad de la app (§7): el de todos los días, con sus presets y ornamentos | El por defecto. Sobrio, legible y con la personalidad más marcada de la app |
+| **Contraste** | Un skin que se opone a la identidad original | Si hay un opuesto claro, ese. Si no, al implementarlo **se pregunta al usuario** cuál de los materiales de Fractos (9 o más) usar. No se elige solo |
+| **Comunes** | Macintosh (`classicMac`), Windows 9x (`win9x`) y Terminal (`terminal`) | Los mismos en todas las apps y con las medidas de Fractos: son el tema central compartido, el «skin de nu9ve» que se reconoce en cualquier app |
+
+- Los tres comunes son iguales en todas partes (barra, controles × − + a la izquierda, botones, bordes, tipografía). Lo único que varía es la paleta que les da el color base. Si cambia un común, cambia en todas las apps que lo tienen.
+- El original y el contraste son los que llevan la personalidad: presets culturales, ornamentos y tipografía display de la app. Pueden ser más expresivos que los comunes, siempre con la matriz de contraste del §3.
+- Extras como Grano son opcionales y no reemplazan ninguna de las tres partes.
+- Al adoptar una app: implementar primero el original, luego los comunes y luego el contraste.
+
+| App | Original | Contraste | Comunes |
+| --- | --- | --- | --- |
+| Fractos | Claro/Oscuro (`glass`) | Todo su catálogo | Fuente de los tres |
+| nüün | Cristal suizo (`glass` + presets suizos) | Gótico (ornamento frente a retícula) | Macintosh, Windows 9x y Terminal hechos (2026-11-07). Grano se retiró: no aportaba frente a Macintosh |
+| curado | `curado` (dither cálido) | Por preguntar (tiene gótico, y2k, pixel, mínimo) | Pendientes |
+| kyu | Kyū·washi | Por preguntar | Pendientes |
+| nove | Por definir (Atlántico / Carta náutica / Anochecer) | Por preguntar | Pendientes |
+| neuf | Por definir (cine francés) | Por preguntar | Pendientes |
+| SoundShop | Original (lienzo espectral) | Por preguntar | Pendientes |
+| Stalker | Sistema (utilidad de barra de menús) | No aplica | Opcionales en su ventana de ajustes, si la tiene |
 
 - **Debe:** el mismo skin tiene las mismas medidas, textura y fuentes por rol en todas las apps. Eso es lo que hace que se sienta como un skin compartido.
 - **Debe:** dither con la matriz Bayer 8×8 común, umbral `(m + 0.5) / 64`:
@@ -237,13 +263,13 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 | 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
 | 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
 | 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
-| 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `dither`, `classicMac`, `win9x`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
+| 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
 | 9 Idioma | Sin revisar | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
-- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Faltan la opción de Contraste y la tipografía suiza del wordmark.
+- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark.
 - **kyu:** derivar toda la paleta desde el acento.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.
