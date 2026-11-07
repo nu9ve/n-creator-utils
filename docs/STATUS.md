@@ -2,6 +2,21 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Aceptación física Sony de un clip · 2026-11-07
+
+El usuario reportó apertura del compacto y autorizó aplicar el plan a su
+clip descartable de α6400. El CLI del bundle `a439bb378645` completó copia
+y retiro, con 12 archivos en MEDIA502 y un MP4 en ESSD verificados
+contra los hashes previos. El primer retiro dejó los tres archivos ausentes
+mientras la SD seguía montada. Tras reconectar reaparecieron intactos. El
+desmontaje de Finder registró una interrupción de FSKit. La repetición
+controlada, con hashes revalidados, dejó los tres ausentes tras un nuevo
+montaje y conservó los nueve índices byte a byte. El job original sigue
+`camera_action_required`. El usuario confirmó que el formato en cámara
+funcionó. La SD estaba desconectada del Mac al verificar los 13 hashes de
+destino, por lo que falta la confirmación del job.
+[Recorrido y evidencia](sony-validation.md#prueba-física-con-un-clip--2026-11-07).
+
 ## Seguimiento Sony y entregas agrupadas · 2026-11-07
 
 Instalada la build local **`a439bb378645`** en `~/Applications/nuun.app`.

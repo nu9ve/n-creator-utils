@@ -17,8 +17,13 @@ Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
 Última build instalada registrada `a439bb378645` (7 noviembre). Untitled ya no figura inaccesible. El usuario reportó reutilización y formatos repetidos el 6 noviembre. Se conserva el estado de cada job histórico.
 
 La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
-retiro ya está registrado o falta el formato. Falta probar un clip descartable
-en cámara y verificar el resultado de la lectura final. El cierre agrupa
+retiro ya está registrado o falta el formato. En la prueba física de un clip
+el primer retiro se revirtió al reconectar. El retiro repetido persistió tras
+desmontar y montar en el mismo lector. El usuario confirmó que el formato
+en cámara funcionó. Falta reconectar para comprobar índices y confirmar el
+job, y aceptar la durabilidad desde el flujo normal de nüün.
+[Evidencia Sony](docs/sony-validation.md#prueba-física-con-un-clip--2026-11-07).
+El cierre agrupa
 entregas, propone coincidencias exactas y sugiere revisar desde Inicio al
 detectar el primer vertical publicado. Falta aceptación con un proyecto real,
 incluida la selección por grupo. La notificación opcional por varios verticales
