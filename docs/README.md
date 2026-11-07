@@ -16,6 +16,7 @@
 | Improve app shell, flows, performance, i18n, platforms | [App review 2026-10](features/app-review-2026-10.md) |
 | Change a cross-app boundary | [Contracts index](contracts/README.md) |
 | Build or review a native Mac app: title bar, menus, About, documents, distribution | [macOS app contract](contracts/macos-app-v1.md) |
+| Shared look across nu9ve apps: color roles, Appearance settings, skins, per-app identity | [Visual theme contract](contracts/nu9ve-theme-v1.md) (proposal) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |
 | Configure older downloads/stems/importer | [Configuration](configuration.md), [commands](commands.md) |
