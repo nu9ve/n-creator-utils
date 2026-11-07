@@ -4,7 +4,7 @@ Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded be
 
 ## Terminal reemplaza a Grano en nüün · 2026-11-07
 
-En working tree, sin commit. Grano se retiró porque no aportaba frente a Macintosh; quien lo tenía guardado vuelve a Cristal. Terminal completa los tres comunes del [contrato §5](contracts/nu9ve-theme-v1.md#juego-de-skins-por-app):
+Commit `1bff4b4`. Instalada como build **`f5cefb24e2b9`** con el árbol limpio y la app cerrada; la anterior quedó en `app-backups/ca7d7bfd.app`. Grano se retiró porque no aportaba frente a Macintosh; quien lo tenía guardado vuelve a Cristal. Terminal completa los tres comunes del [contrato §5](contracts/nu9ve-theme-v1.md#juego-de-skins-por-app):
 - Siempre oscuro y con ventana cuadrada.
 - El color base se vuelve fósforo: mismo matiz, a 7:1.
 - Todos los estilos de texto en monoespaciada, con líneas de barrido estáticas y botones en video inverso.
