@@ -94,6 +94,23 @@ Sin destinos online no hay popup ni lectura profunda. Notificación del sistema
 y apertura del importador son independientes. Los eventos son pistas y el
 motor siempre revalida identidad/contenido antes de aplicar.
 
+## Seguimiento Sony · 2026-11-07
+
+El formato pendiente de Sony se muestra en Resultado y Actividad. Sale
+de los avisos de Inicio y del contador de atención. Un fallo de archivo
+ausente al finalizar el retiro también queda como seguimiento en Actividad
+si todos los miembros removibles están journalizados como retirados, los
+índices quedan conservados en el journal y existen los recibos requeridos
+con SHA coincidente. Esta clasificación no cambia el estado del job ni
+acredita formato o integridad actual del respaldo. Los fallos con evidencia
+incompleta siguen requiriendo atención.
+
+La lectura final de Sony registra la fase `checking_card`. Si un archivo
+desaparece durante la lectura, se valida la identidad de la tarjeta y se
+reintenta una vez la lectura. Una segunda falla se registra y no se repite
+ningún borrado dentro de ese reintento. El incidente físico de noviembre
+sigue pendiente de reproducir con una grabación descartable.
+
 ## Pruebas y límites
 
 Fixtures temporales: asignaciones/auxiliares, SHA y recuperación, progreso entre

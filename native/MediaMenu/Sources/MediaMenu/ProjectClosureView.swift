@@ -2,6 +2,11 @@ import SwiftUI
 import MediaMenuCore
 
 extension Model {
+    var suggestedProjectClosures: [JSONValue] {
+        let settled = Set(projectClosures.filter { $0["needs_release"].bool || $0["released"] != .null }.map { $0["id"].string })
+        return (finals?["closure_suggestions"].array ?? []).filter { !settled.contains($0["id"].string) }
+    }
+
     func openProjectClosure(_ item: JSONValue, stored: JSONValue? = nil) {
         guard !busy else { return }
         closureProject = item
@@ -11,9 +16,9 @@ extension Model {
         showClosure = true
         operation(String(localized: "Buscando finales del proyecto"), scope: .space) {
             let data = try await self.client!.call("closure_candidates", ["project_id": item["project_id"].string.isEmpty ? item["id"] : item["project_id"]])
-            self.closureSettings = data["settings"]
             self.closureCandidates = data["files"].array
             self.closureTruncated = data["truncated"].bool
+            self.closureSettings = data["settings"]
         }
     }
     func findClosureFinals(_ query: String) {
@@ -77,6 +82,19 @@ struct ProjectClosureReminders: View {
                 }
             }
         }
+        if !model.suggestedProjectClosures.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionTitle("Sugerencias de cierre")
+                ForEach(model.suggestedProjectClosures, id: \.["id"].string) { value in
+                    HStack {
+                        Label(value["title"].string, systemImage: "film")
+                        Text("Vertical publicado").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Revisar entregas…") { model.openProjectClosure(value) }.disabled(model.busy)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -86,14 +104,12 @@ struct ProjectClosureSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var required: Set<String> = []
     @State private var noMore = false
-    @State private var published = false
     @State private var profileDefault = false
     @State private var picked: [String: JSONValue] = [:]
     @State private var query = ""
     @State private var discardConfirmed = false
-    @State private var filesExpanded = true
+    @State private var showOtherMatches = false
     private let roles: [(String, LocalizedStringKey)] = [("horizontal", "Horizontal"), ("vertical", "Vertical"), ("thumbnail", "Thumbnail"), ("auxiliary", "Auxiliar")]
-    private var projectID: String { model.closureProject?["project_id"].string ?? "" }
     private var title: String {
         guard let item = model.closureProject else { return "" }
         return item["project"].string.isEmpty ? item["title"].string : item["project"].string
@@ -101,7 +117,14 @@ struct ProjectClosureSheet: View {
     private func key(_ value: JSONValue) -> String { value["volume_id"].string + "|" + value["path"].string }
     private var rows: [JSONValue] {
         let listed = Set(model.closureCandidates.map(key))
-        return picked.values.filter { !listed.contains(key($0)) }.sorted { key($0) < key($1) } + model.closureCandidates
+        let visible = model.closureCandidates.filter { showOtherMatches || $0["suggested"].bool || picked[key($0)] != nil }
+        return picked.values.filter { !listed.contains(key($0)) }.sorted { key($0) < key($1) } + visible
+    }
+    private var missing: Set<String> { required.subtracting(picked.values.filter { $0["published"].bool }.map { $0["role"].string }) }
+    private var hasPublishedWork: Bool {
+        picked.values.contains { value in
+            value["published"].bool && model.volume(value["volume_id"].string)?["role"].string == "work"
+        }
     }
     private var ready: Bool { noMore && !picked.isEmpty && picked.values.allSatisfy { $0["published"].bool } && !required.isEmpty && required.isSubset(of: Set(picked.values.map { $0["role"].string })) }
     var body: some View {
@@ -131,7 +154,7 @@ struct ProjectClosureSheet: View {
                 } else {
                     Button("Guardar") { save(review: false) }.disabled(required.isEmpty)
                     Button("Respaldar publicados…") { save(review: true, releaseWork: false) }
-                        .disabled(required.isEmpty || !picked.values.contains { $0["published"].bool } || model.archive.isEmpty || model.work.isEmpty)
+                        .disabled(required.isEmpty || !hasPublishedWork || model.archive.isEmpty || model.work.isEmpty)
                     Button("Revisar liberación") { save(review: true) }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(!ready || model.archive.isEmpty || model.work.isEmpty)
                 }
@@ -145,55 +168,108 @@ struct ProjectClosureSheet: View {
     }
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Entregas requeridas").font(.headline)
-                ForEach(roles.filter { $0.0 != "auxiliary" }, id: \.0) { role, label in
-                    Toggle(label, isOn: Binding(get: { required.contains(role) }, set: { if $0 { required.insert(role) } else { required.remove(role) } })).toggleStyle(.checkbox)
+            DisclosureGroup("Requisitos del perfil") {
+                HStack {
+                    ForEach(roles.filter { $0.0 != "auxiliary" }, id: \.0) { role, label in
+                        Toggle(label, isOn: Binding(get: { required.contains(role) }, set: { if $0 { required.insert(role) } else { required.remove(role) } })).toggleStyle(.checkbox)
+                    }
                 }
+                Toggle("Usar estos requisitos como predeterminados del perfil", isOn: $profileDefault).font(.caption)
             }
-            Toggle("Usar estos requisitos como predeterminados del perfil", isOn: $profileDefault).font(.caption)
+            if !missing.isEmpty {
+                HStack(spacing: 6) {
+                    Text("Faltan entregas publicadas").fontWeight(.medium)
+                    ForEach(roles.filter { missing.contains($0.0) }, id: \.0) { _, label in
+                        Text(label).fontWeight(.medium)
+                    }
+                }.font(.caption).foregroundStyle(palette.warning)
+            }
             HStack {
-                Toggle("Ya no habrá más entregas", isOn: $noMore)
-                Toggle("Marcar las elegidas como publicadas", isOn: Binding(get: { !picked.isEmpty && picked.values.allSatisfy { $0["published"].bool } }, set: { value in
-                    for key in Array(picked.keys) { var item = picked[key]!.object; item["published"] = .bool(value); picked[key] = .object(item) }
-                }))
-            }.toggleStyle(.checkbox)
-            Text("Vincula los finales de este proyecto, también si ya están en el respaldo. Los nombres sólo sugieren; tú confirmas la selección y el tipo.").font(.caption).foregroundStyle(.secondary)
-            HStack {
-                TextField("Buscar finales por nombre", text: $query).onSubmit { model.findClosureFinals(query) }
-                Button("Buscar") { model.findClosureFinals(query) }
-                Text("\(picked.count) elegidos").font(.caption).monospacedDigit()
+                TextField("Buscar finales por nombre", text: $query).onSubmit(search)
+                Button("Buscar", action: search)
+                Menu {
+                    Button("Seleccionar todos los visibles") { select(rows) }
+                    Button("Quitar selección visible") { for item in rows { picked.removeValue(forKey: key(item)) } }
+                } label: { Text("\(picked.count) elegidos") }
+                .fixedSize()
+                .disabled(rows.isEmpty)
+            }
+            if !showOtherMatches && model.closureCandidates.contains(where: { !$0["suggested"].bool && picked[key($0)] == nil }) {
+                Button("Ver otras coincidencias") { showOtherMatches = true }.buttonStyle(.link).font(.caption)
             }
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { _, item in
-                        HStack(spacing: 10) {
-                            Toggle(isOn: Binding(get: { picked[key(item)] != nil }, set: { if $0 { picked[key(item)] = item } else { picked.removeValue(forKey: key(item)) } })) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(URL(fileURLWithPath: item["path"].string).lastPathComponent).lineLimit(1).truncationMode(.middle)
-                                    Text((item["volume"].string.isEmpty ? volumeName(item) : item["volume"].string) + " · " + item["path"].string).font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                                }
-                            }.toggleStyle(.checkbox)
-                            Spacer(minLength: 4)
-                            if picked[key(item)] != nil {
-                                Toggle("Publicado", isOn: Binding(get: { picked[key(item)]?["published"].bool ?? false }, set: { value in
-                                    var next = picked[key(item)]!.object; next["published"] = .bool(value); picked[key(item)] = .object(next)
-                                })).toggleStyle(.checkbox).font(.caption)
-                                Picker("Tipo", selection: Binding(get: { picked[key(item)]?["role"].string ?? item["role"].string }, set: { value in
-                                    var next = (picked[key(item)] ?? item).object; next["role"] = .string(value); picked[key(item)] = .object(next)
-                                })) {
-                                    ForEach(roles, id: \.0) { value, label in Text(label).tag(value) }
-                                }.labelsHidden().frame(width: 125)
-                            }
-                        }.padding(.vertical, 3)
-                        Divider()
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(roles, id: \.0) { role, label in
+                        let items = rows.filter { (picked[key($0)] ?? $0)["role"].string == role }
+                        if !items.isEmpty { deliveryGroup(label, items: items) }
                     }
                     if rows.isEmpty { Text("Sin coincidencias. Cambia la búsqueda para encontrar los finales.").foregroundStyle(.secondary).padding() }
                 }
             }
             if model.closureTruncated { Text("Hay más resultados. Acota la búsqueda para verlos.").font(.caption).foregroundStyle(palette.warning) }
-            Text("Guardar sólo registra tus decisiones. Revisar calcula el respaldo necesario y los archivos que se pueden liberar.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Ya no habrá más entregas", isOn: $noMore).toggleStyle(.checkbox)
+            Text("Revisa las entregas elegidas. Puedes respaldar lo publicado mientras sigues editando.").font(.caption).foregroundStyle(.secondary)
         }.disabled(model.busy)
+    }
+    private func search() {
+        showOtherMatches = true
+        model.findClosureFinals(query)
+    }
+    private func select(_ items: [JSONValue]) {
+        for item in items where picked[key(item)] == nil { picked[key(item)] = item }
+    }
+    private func update(_ item: JSONValue, field: String, to value: JSONValue) {
+        var updated = (picked[key(item)] ?? item).object
+        updated[field] = value
+        picked[key(item)] = .object(updated)
+    }
+    private func deliveryGroup(_ label: LocalizedStringKey, items: [JSONValue]) -> some View {
+        let chosen = items.compactMap { picked[key($0)] }
+        let waiting = chosen.filter { !$0["published"].bool }
+        return DisclosureGroup {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Button("Seleccionar grupo") { select(items) }.disabled(chosen.count == items.count)
+                    Button("Marcar elegidos como publicados") {
+                        for item in waiting { update(item, field: "published", to: .bool(true)) }
+                    }.disabled(waiting.isEmpty)
+                }.font(.caption)
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    let value = picked[key(item)] ?? item
+                    HStack(spacing: 8) {
+                        Toggle(isOn: Binding(get: { picked[key(item)] != nil }, set: { if $0 { select([item]) } else { picked.removeValue(forKey: key(item)) } })) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(URL(fileURLWithPath: item["path"].string).lastPathComponent).lineLimit(1).truncationMode(.middle)
+                                Text((item["volume"].string.isEmpty ? volumeName(item) : item["volume"].string) + " · " + item["path"].string)
+                                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                            }
+                        }.toggleStyle(.checkbox)
+                        Spacer(minLength: 4)
+                        Text(value["published"].bool ? "Publicado" : "Por confirmar").font(.caption).foregroundStyle(.secondary)
+                        if picked[key(item)] != nil {
+                            Menu {
+                                Button(value["published"].bool ? "Quitar marca de publicación" : "Marcar como publicado") {
+                                    update(item, field: "published", to: .bool(!value["published"].bool))
+                                }
+                                Menu("Cambiar tipo") {
+                                    ForEach(roles, id: \.0) { role, label in
+                                        Button(label) { update(item, field: "role", to: .string(role)) }
+                                    }
+                                }
+                            } label: { Image(systemName: "ellipsis.circle") }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().accessibilityLabel("Opciones de la entrega")
+                        }
+                    }
+                }
+            }.padding(.vertical, 6)
+        } label: {
+            HStack {
+                Text(label).font(.headline)
+                Spacer()
+                Text("\(chosen.count) de \(items.count) elegidos").foregroundStyle(.secondary)
+                Text("\(chosen.count - waiting.count) publicados").foregroundStyle(.secondary)
+            }.font(.caption)
+        }.modifier(Panel(padding: 10))
     }
     private func review(_ plan: JSONValue) -> some View {
         ScrollView {
@@ -213,18 +289,9 @@ struct ProjectClosureSheet: View {
                 if !plan["consumers"]["relinks"].array.isEmpty {
                     Text("Clipper se reenlaza a las copias verificadas durante esta operación; sus colas deben estar libres.").font(.caption)
                 }
-                DisclosureGroup("Archivos del plan", isExpanded: $filesExpanded) {
-                    ForEach(Array(plan["entries"].array.enumerated()), id: \.offset) { _, entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry["path"].string).font(.caption).textSelection(.enabled)
-                            if entry["category"].string == "intermediate" {
-                                Text("Descartar intermedio · sin respaldo").font(.caption2).foregroundStyle(palette.warning)
-                            } else {
-                                Text("Liberar tras verificar: " + entry["archive_path"].string).font(.caption2).foregroundStyle(.secondary)
-                            }
-                        }.padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
+                releaseGroup("Finales para respaldar y retirar", category: "final", plan: plan)
+                releaseGroup("Copias raw para liberar", category: "raw", plan: plan)
+                releaseGroup("Intermedios para descartar", category: "intermediate", plan: plan)
                 DisclosureGroup("Conservar") {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
@@ -239,14 +306,44 @@ struct ProjectClosureSheet: View {
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+    private func releaseGroup(_ label: LocalizedStringKey, category: String, plan: JSONValue) -> some View {
+        let entries = plan["entries"].array.filter { $0["category"].string == category }
+        return Group {
+            if !entries.isEmpty {
+                DisclosureGroup {
+                    ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry["path"].string).font(.caption).textSelection(.enabled)
+                            if category != "intermediate" {
+                                Text(entry["archive_path"].string).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                            }
+                        }.padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                } label: {
+                    HStack {
+                        Text(label)
+                        Spacer()
+                        Text("\(entries.count) archivos · \(bytesLabel(entries.reduce(0) { $0 + $1["stamp"]["size"].double }))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
     private func volumeName(_ value: JSONValue) -> String { model.volumes.first { $0["id"] == value["volume_id"] }?["name"].string ?? "" }
     private func load(_ config: JSONValue) {
-        required = Set(config["required"].array.map(\.string)); noMore = config["no_more"].bool; published = config["published"].bool
+        required = Set(config["required"].array.map(\.string)); noMore = config["no_more"].bool
         picked = Dictionary(config["finals"].array.map { item in
             var value = item.object
             if value["published"] == nil { value["published"] = .bool(config["published"].bool) }
+            if let candidate = model.closureCandidates.first(where: { key($0) == key(item) }), candidate["publication_changed"].bool {
+                value["published"] = candidate["published"]
+            }
             return (key(item), JSONValue.object(value))
         }, uniquingKeysWith: { _, new in new })
+        if config["updated_at"].string.isEmpty {
+            select(model.closureCandidates.filter { $0["suggested"].bool && $0["published"].bool })
+        }
     }
     private func save(review: Bool, releaseWork: Bool = true) {
         model.saveProjectClosure(required: required, noMore: noMore, published: false,

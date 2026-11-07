@@ -86,6 +86,35 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue((self.archive / '002_finales/e64/shorts/intro-short.mov').exists())
         self.assertTrue((self.archive / '002_finales/e64/thumbnails/intro.jpg').exists())
 
+    def test_suggest_exact_published_vertical_and_retain_publication_after_archiving(self):
+        from media.finals import finals_status, plan_params
+        from media.planner import build_plan
+        from media.transfer import Transfer
+
+        published = self.work / '002_finales/e64/03_subidos/shorts'
+        published.mkdir(parents=True)
+        vertical = published / '26-11-04-intro_vertical_1.mov'
+        vertical.write_bytes(b'short')
+        (published / '26-11-04-intro-extra_vertical_1.mov').write_bytes(b'other project')
+        waiting = self.work / '002_finales/e64/02_shorts'
+        waiting.mkdir()
+        (waiting / '26-11-04-intro_vertical_2.mov').write_bytes(b'unpublished')
+        suggestions = lambda: finals_status(self.catalog, self.backend)['closure_suggestions']
+        self.assertEqual([(v['id'], v['published_verticals']) for v in suggestions()], [(self.project_id, 1)])
+        files = closure.candidates(self.catalog, self.backend, self.project_id)['files']
+        self.assertTrue(next(f for f in files if f['name'].endswith(vertical.name))['suggested'])
+        self.assertFalse(next(f for f in files if 'intro-extra' in f['name'])['suggested'])
+        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'e64', release=False))
+        Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        vertical.unlink()
+        archive = self.archive / '002_finales/e64/shorts' / vertical.name
+        archived = next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files']
+                        if f['archived'] and f['name'].endswith(vertical.name))
+        self.assertTrue(archived['published'])
+        self.assertEqual(suggestions()[0]['published_verticals'], 1)
+        archive.write_bytes(b'changed after receipt')
+        self.assertEqual(suggestions(), [])
+
     def test_already_released_raws_do_not_block_remaining_intermediates(self):
         from media.release import plan_release
         raw = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')

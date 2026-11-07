@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-06, America/Hermosillo. Éste es el backlog priorizado;
+Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
 [STATUS](docs/STATUS.md) conserva la evidencia por entrega y
 [CONTEXT](docs/CONTEXT.md) las decisiones. Las propuestas históricas no son otra lista de pendientes vigente.
 
@@ -14,7 +14,15 @@ Actualizado: 2026-11-06, America/Hermosillo. Éste es el backlog priorizado;
 | 4 | Recuperación física y rendimiento | Tras asegurar material de prueba, desconexión/reconexión y reanudación controladas, popup/remount, ExFAT/HFS+, tamaños reales y contención con captura. No interrumpir deliberadamente la única copia de las grabaciones nuevas. |
 | 5 | Cobertura de almacenamiento real | Analizar MEDIA502 y `coverage --no-hash` de ESSD contra MEDIA; informe orientativo antes de elegir carpeta/proyecto. Liberación exige hash actual, no coincidencia de tamaño. [Política](docs/features/replication-policy.md). |
 
-Última build instalada **registrada**: `17acd51df25c` (6 noviembre); verificar versión efectiva al operar. Untitled ya no figura inaccesible: el usuario reportó reutilización y formatos repetidos el 6 noviembre. No se cierra retroactivamente cada job ni se afirma recuperación del material antiguo.
+Última build instalada registrada `a439bb378645` (7 noviembre). Untitled ya no figura inaccesible. El usuario reportó reutilización y formatos repetidos el 6 noviembre. Se conserva el estado de cada job histórico.
+
+La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
+retiro ya está registrado o falta el formato. Falta probar un clip descartable
+en cámara y verificar el resultado de la lectura final. El cierre agrupa
+entregas, propone coincidencias exactas y sugiere revisar desde Inicio al
+detectar el primer vertical publicado. Falta aceptación con un proyecto real,
+incluida la selección por grupo. La notificación opcional por varios verticales
+con más de un día queda por definir. [Evidencia](docs/STATUS.md).
 
 Pendiente de producto solicitado el 6 noviembre: selector de todas las fuentes/capturas pendientes para un mismo proyecto, con planes por fuente y reglas claras; no está resuelto por las sugerencias de nombres.
 

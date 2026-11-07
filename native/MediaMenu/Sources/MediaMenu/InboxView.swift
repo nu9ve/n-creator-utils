@@ -46,7 +46,8 @@ struct InboxView: View {
                         }
                     }
                 }
-                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty && !model.projectClosures.contains(where: { $0["needs_release"].bool }) {
+                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty &&
+                    model.suggestedProjectClosures.isEmpty && !model.projectClosures.contains(where: { $0["needs_release"].bool }) {
                     ContentUnavailableView("Todo al día", systemImage: "checkmark.circle", description: Text("Conecta una SD o termina una sesión de Stalker para verla aquí."))
                         .frame(maxWidth: .infinity)
                 }
