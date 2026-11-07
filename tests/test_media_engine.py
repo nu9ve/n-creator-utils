@@ -444,6 +444,55 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual((self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML').read_bytes(), b'<index/>')
         self.assertTrue((self.source / 'AVF_INFO/AVIN0001.BNP').exists())
 
+    def test_sony_final_scan_retries_only_the_read(self):
+        from unittest import mock
+        from media.planner import scan
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'sony')
+        index = self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML'
+        index.write_bytes(b'<index/>')
+        plan = self.plan()
+        attempts = []
+
+        def transient_scan(root, **kwargs):
+            if not clip.exists():
+                attempts.append(root)
+                if len(attempts) == 1:
+                    raise FileNotFoundError('C0001.MP4')
+            return scan(root, **kwargs)
+
+        with mock.patch('media.transfer.scan', side_effect=transient_scan):
+            result = self.run_plan(plan)
+        self.assertEqual(result['state'], 'camera_action_required')
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(index.read_bytes(), b'<index/>')
+
+    def test_sony_failure_with_recorded_removal_is_distinct_from_missing_receipts(self):
+        from unittest import mock
+        from media.planner import scan
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'sony')
+        (self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML').write_bytes(b'<index/>')
+        plan = self.plan()
+
+        def failed_scan(root, **kwargs):
+            if not clip.exists():
+                raise FileNotFoundError('C0001.MP4')
+            return scan(root, **kwargs)
+
+        with mock.patch('media.transfer.scan', side_effect=failed_scan), self.assertRaises(FileNotFoundError):
+            self.run_plan(plan)
+        job = self.catalog.jobs()[0]
+        self.assertEqual(job['state'], 'failed')
+        self.assertTrue(job['sony_removal_recorded'])
+        with self.catalog.db:
+            self.catalog.db.execute("DELETE FROM copies WHERE job_id=? AND relative_path LIKE '%C0001.MP4'", (plan['id'],))
+        self.assertFalse(self.catalog.jobs()[0]['sony_removal_recorded'])
+
     def test_dji_requires_per_file_classification_and_mixed_assignments(self):
         (self.source / 'DJI_001.MP4').write_bytes(b'dji')
         with self.assertRaisesRegex(MediaError, 'Classify DJI'): self.plan()

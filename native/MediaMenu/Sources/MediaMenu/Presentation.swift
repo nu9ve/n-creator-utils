@@ -352,7 +352,7 @@ struct ActivityView: View {
                 let id = job["id"].string
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {
-                        JobStatusIcon(state: job["state"].string)
+                        JobStatusIcon(state: model.sonyCardFollowup(job) ? "checking_card" : job["state"].string)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(model.jobLabel(job)).font(.callout.weight(.medium))
                             Text(Timestamps.label(job["updated_at"].string)).font(.caption).foregroundStyle(.secondary)

@@ -15,6 +15,32 @@ from .layout import sony_index_member
 from .planner import destination_path, preflight, scan, validate_plan
 
 
+def sony_removal_recorded(catalog, job):
+    """Distinguish a failed final check from a failure before verified removal."""
+    plan = job['plan']
+    if job['progress'].get('phase') not in {'cleaning', 'checking_card'} or not plan['cleanup']:
+        return False
+    members = {r['relative_path']: (r['sha256'], r['cleaned']) for r in catalog.db.execute(
+        'SELECT relative_path,sha256,cleaned FROM members WHERE job_id=?', (job['id'],))}
+    copies = {(r['relative_path'], r['volume_id']): r['sha256'] for r in catalog.db.execute(
+        'SELECT relative_path,volume_id,sha256 FROM copies WHERE job_id=?', (job['id'],))}
+    registered = {v['id']: v for v in catalog.volumes()}
+    volume_ids = [v for v in (plan['archive_id'], plan['work_id']) if v]
+    if not volume_ids or any(v not in registered for v in volume_ids):
+        return False
+    volumes = [registered[v] for v in volume_ids]
+    units = {u['id']: u for u in plan['units']}
+    for file in plan['files']:
+        path = file['path']
+        sha, cleaned = members.get(path, (None, None))
+        if not sha or cleaned != (0 if sony_index_member(path) else 1):
+            return False
+        for volume in volumes:
+            if destination_path(volume, plan, units[file['unit_id']], path) and copies.get((path, volume['id'])) != sha:
+                return False
+    return bool(plan['files']) and any(cleaned == 1 for _, cleaned in members.values())
+
+
 def confirm_camera_cleanup(catalog, backend, job_id, source):
     """Close a camera_action_required job once the card, freed in the camera, no longer holds any backed-up media."""
     from .layout import MEDIA_KINDS, kind_of
@@ -476,7 +502,19 @@ class Transfer:
                         source_tree.unlink(file['path'], file['stamp'])
                     with self.catalog.db:
                         self.catalog.db.execute('UPDATE members SET cleaned=1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
-                remaining, _, _ = scan(plan['source'])
+                if sony:
+                    self.report(force=True, phase='checking_card')
+                    self.source_check(plan, full=True)
+                    try:
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel)
+                    except FileNotFoundError:
+                        # A directory entry can disappear during enumeration. Retry only the
+                        # read, on the same card, after all removals have been journaled.
+                        self.source_check(plan, full=True)
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel)
+                    self.source_check(plan, full=True)
+                else:
+                    remaining, _, _ = scan(plan['source'], cancel=self.cancel)
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
                 kept = {f['path']: f['stamp'] for f in plan['files'] if f not in removable}
                 unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp'] and f['path'] not in plan.get('already_archived', [])]

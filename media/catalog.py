@@ -159,6 +159,9 @@ class Catalog:
             summary = self.get('stalker-release:' + value['id'])
             if summary is not None:
                 value['stalker_release'] = summary
+            if (value['cleanup_profile'], value['state'], value['error']) == ('sony_clips_then_format', 'failed', 'FileNotFoundError'):
+                from .transfer import sony_removal_recorded
+                value['sony_removal_recorded'] = sony_removal_recorded(self, self.job(value['id']))
         return values
 
     def project_for(self, profile, title):

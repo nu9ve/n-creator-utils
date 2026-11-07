@@ -11,7 +11,7 @@ import stat
 
 from . import clipper
 from .common import Tree, content_stamp, digest, now, relative, require, uid
-from .finals import OPAQUE, published_folder, subfolders
+from .finals import OPAQUE, published_folder, published_receipts, subfolders, year_in_name
 from .layout import MEDIA_KINDS, kind_of
 from .release import checked_hash, plan_release
 from .volumes import independent
@@ -47,6 +47,7 @@ def _save(catalog, backend, project_id, required, no_more, published, finals, pr
     require(all(isinstance(v, bool) for v in (no_more, published, profile_default)), 'invalid_request', 'Decisiones inválidas')
     require(isinstance(finals, list) and len(finals) <= 1000, 'invalid_request', 'Selección de finales inválida')
     normalized, seen = [], set()
+    receipts = published_receipts(catalog) if not published and any(isinstance(f, dict) and 'published' not in f for f in finals) else {}
     for item in finals:
         require(isinstance(item, dict) and item.get('role') in ROLES, 'invalid_request', 'Rol de entrega inválido')
         volume = catalog.volume(item['volume_id'])
@@ -72,7 +73,7 @@ def _save(catalog, backend, project_id, required, no_more, published, finals, pr
         folder = published_folder(catalog, project['profile'], subfolders(profile_root)) if profile_root.is_dir() else ''
         in_published = bool(folder) and Path(path).relative_to(volume.get('finals_prefix', '002_finales') + '/' + project['profile']).parts[0] == folder
         normalized.append({'volume_id': volume['id'], 'path': path, 'role': item['role'], 'stamp': stamp,
-                           'published': published or item.get('published', in_published)})
+                           'published': published or item.get('published', in_published or receipts.get(key) == stamp)})
     value = {'required': sorted(set(required)), 'no_more': no_more, 'published': bool(normalized) and all(f['published'] for f in normalized),
              'finals': normalized, 'updated_at': now()}
     changes = {'project-closure:' + project_id: value}
@@ -91,7 +92,61 @@ def role_hint(path):
         return 'thumbnail'
     if Path(text).suffix in {'.txt', '.srt', '.vtt'}:
         return 'auxiliary'
-    return 'vertical' if any(s in text for s in ('short', 'vertical', 'reel')) else 'horizontal'
+    folders = Path(text).parts[:-1]
+    vertical_folder = any(re.fullmatch(r'(?:\d+[_-])?(?:shorts|verticales|reels)', folder) for folder in folders)
+    return 'vertical' if kind_of(text) == 'video' and (vertical_folder or VERTICAL_SUFFIX.search(Path(text).stem)) else 'horizontal'
+
+
+VERTICAL_SUFFIX = re.compile(r'[._ -](?:short|vertical|reel)(?:[._ -]?\d+)?$', re.IGNORECASE)
+
+
+def normalized_name(value):
+    return re.sub(r'[^\w]+|_', '-', value.casefold()).strip('-')
+
+
+def delivery_title(name):
+    stem = Path(name).stem.casefold()
+    if year_in_name(stem):
+        stem = re.sub(r'^(?:\d{2,4}-\d{2}-\d{2}|\d{6})[_-]+', '', stem)
+    stem = VERTICAL_SUFFIX.sub('', stem)
+    stem = re.sub(r'\.thumbnail(?:[-_.].*)?$', '', stem)
+    return normalized_name(stem.removeprefix('titulos-'))
+
+
+def delivery_decisions(catalog):
+    result = {}
+    prefix = 'project-closure:'
+    for key, payload in catalog.db.execute("SELECT key,value FROM metadata WHERE key LIKE 'project-closure:%'"):
+        config = json.loads(payload)
+        for final in config['finals']:
+            result[(final['volume_id'], final['path'])] = (
+                key[len(prefix):], dict(final, published=final.get('published', config['published'])))
+    return result
+
+
+def publication_hint(key, info, in_published, receipts, saved):
+    stamp = content_stamp(info)
+    if saved and saved[1]['stamp'] == stamp:
+        return saved[1]['published']
+    return in_published or receipts.get(key) == stamp
+
+
+def project_suggestions(catalog, verticals):
+    """Only an exact title/alias or an explicit association can suggest a project in Inicio."""
+    projects = {p['id']: dict(p) for p in catalog.db.execute("SELECT * FROM projects WHERE title!='finales'")}
+    names = {}
+    for profile, alias, project_id in catalog.db.execute('SELECT profile,alias,project_id FROM project_aliases'):
+        names.setdefault((profile, normalized_name(alias)), set()).add(project_id)
+    counts = {}
+    for profile, files in verticals.items():
+        for name, assigned in files.items():
+            matches = assigned or names.get((profile, delivery_title(name)), set())
+            if len(matches) == 1:
+                project_id = next(iter(matches))
+                if project_id in projects:
+                    counts[project_id] = counts.get(project_id, 0) + 1
+    return [dict(projects[project_id], published_verticals=count) for project_id, count in counts.items()
+            if not catalog.get('project-released:' + project_id)]
 
 
 def delivery_files(root, cancel=None):
@@ -109,13 +164,17 @@ def delivery_files(root, cancel=None):
 
 def candidates(catalog, backend, project_id, query=None, cancel=None):
     project = project_record(catalog, project_id)
+    default_query = query is None
     query = project['title'] if query is None else query
     require(isinstance(query, str), 'invalid_request', 'Búsqueda inválida')
-    normalize = lambda s: re.sub(r'[^\w]+', '-', s.lower()).strip('-')
-    tokens = [s for s in normalize(query).split('-') if len(s) > 1]
+    tokens = [s for s in normalized_name(query).split('-') if len(s) > 1]
     values = []
     saved = settings(catalog, project_id)
-    known = {(f['volume_id'], f['path']): f for f in saved['finals']}
+    decisions = delivery_decisions(catalog)
+    receipts = published_receipts(catalog)
+    aliases = {normalized_name(project['title'])}
+    aliases.update(normalized_name(row[0]) for row in catalog.db.execute(
+        'SELECT alias FROM project_aliases WHERE project_id=?', (project_id,)))
     for volume in catalog.volumes():
         if not backend.online(volume):
             continue
@@ -124,16 +183,20 @@ def candidates(catalog, backend, project_id, query=None, cancel=None):
         published = published_folder(catalog, project['profile'], subfolders(root)) if root.is_dir() else ''
         for path, info in delivery_files(Path(volume['root']) / prefix, cancel):
             name = str(path.relative_to(Path(volume['root']) / prefix))
-            if tokens and not all(t in normalize(name) for t in tokens):
+            suggested = delivery_title(name) in aliases
+            if not (default_query and suggested) and tokens and not all(t in normalized_name(name) for t in tokens):
                 continue
             rel = str(path.relative_to(volume['root']))
-            prior = known.get((volume['id'], rel))
-            declared = prior.get('published', saved['published']) if prior and prior['stamp'] == content_stamp(info) else False
+            key = (volume['id'], rel)
+            prior = decisions.get(key)
+            if prior and prior[0] != project_id:
+                continue
+            declared = publication_hint(key, info, bool(published) and Path(name).parts[0] == published, receipts, prior)
             values.append({'volume_id': volume['id'], 'volume': volume['name'], 'path': rel,
                            'name': name, 'bytes': info.st_size, 'role': role_hint(name), 'archived': volume['role'] == 'archive',
-                           'published': declared or bool(published) and Path(name).parts[0] == published})
-    # Offer work copies first; never select/claim publication from a guessed name.
-    values.sort(key=lambda v: (v['archived'], v['name']))
+                           'published': declared, 'suggested': suggested,
+                           'publication_changed': bool(prior and prior[1]['stamp'] != content_stamp(info))})
+    values.sort(key=lambda v: (not v['suggested'], v['archived'], v['name']))
     return {'files': values[:1000], 'truncated': len(values) > 1000, 'settings': settings(catalog, project_id)}
 
 

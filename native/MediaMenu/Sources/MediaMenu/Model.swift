@@ -458,6 +458,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "copying": return String(localized: "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB") + rate + files
         case "verifying": return String(localized: "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB") + files
         case "cleaning": return String(localized: "Limpiando SD tras verificar")
+        case "checking_card": return String(localized: "Comprobando el estado de la SD")
         default: return stateLabel(job["state"].string)
         }
     }
@@ -477,6 +478,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     func jobLabel(_ job: JSONValue) -> String {
         let listed = job["source_kind"].string
         let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
+        if job["sony_removal_recorded"].bool {
+            return String(localized: "Retiro de clips registrado · falta comprobar la SD")
+        }
         // Cards holding Stalker bundles end camera_action_required without any camera step.
         if job["state"].string == "camera_action_required", cleanupProfile(job) == "files" {
             return String(localized: "Respaldo verificado · las sesiones Stalker se conservan en el origen")
@@ -496,8 +500,13 @@ enum OperationScope { case ingest, library, space, settings, source }
             || job["state"].string == "source_retained" && job["release_stalker_source"].bool
     }
     func needsAttention(_ job: JSONValue) -> Bool {
-        ["failed", "paused", "camera_action_required"].contains(job["state"].string)
+        if sonyCardFollowup(job) { return false }
+        return ["failed", "paused", "camera_action_required"].contains(job["state"].string)
             || job["state"].string == "source_retained" && job["release_stalker_source"].bool
+    }
+    func sonyCardFollowup(_ job: JSONValue) -> Bool {
+        job["sony_removal_recorded"].bool ||
+            job["state"].string == "camera_action_required" && cleanupProfile(job) == "sony_clips_then_format"
     }
     var attentionJobs: [JSONValue] { jobs.filter { needsAttention($0) && !$0["dismissed"].bool } }
     /// Only stops the reminder: the job keeps its state and its actions in Actividad.

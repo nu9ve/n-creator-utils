@@ -32,6 +32,30 @@ La ruta por rol de una entrega seleccionada se resuelve antes del digest y
 preflight, también cuando un vertical y un horizontal comparten nombre. Un
 contenido distinto en el destino bloquea; nunca se reemplaza silenciosamente.
 
+## Entregas agrupadas e Inicio · 2026-11-07
+
+El diálogo agrupa horizontal, vertical, miniatura y auxiliares. La selección
+por grupo o de todos los visibles conserva las correcciones de tipo y de
+publicación ya hechas. Los requisitos del perfil quedan en un desplegable.
+En una revisión nueva, sólo se preseleccionan entregas publicadas con
+coincidencia exacta de título o alias según las convenciones de nombre.
+Las coincidencias amplias quedan detrás de **Ver otras coincidencias**.
+El usuario sigue confirmando la pertenencia en el plan.
+
+Se muestra publicación por carpeta elegida, decisión explícita de esa
+versión o recibo de una transferencia terminada desde publicados. El recibo
+debe corresponder a la ubicación y al stamp actual del final. Una ubicación
+en MEDIA por sí sola deja la publicación por confirmar. Se puede confirmar
+un grupo o corregir cada entrega desde su menú.
+
+El primer vertical publicado con asociación explícita o nombre exacto
+genera una sugerencia en Inicio durante la consulta de finales. Cuenta
+entregas y no sus réplicas. La sugerencia abre la revisión y no suma al badge
+ni emite una notificación. Queda pendiente decidir el aviso opcional para
+varios verticales con más de un día y cómo registrar su antigüedad.
+**Ya no habrá más entregas** y el consentimiento de descarte se mantienen
+para el cierre completo. La revisión separa finales, raws e intermedios.
+
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`

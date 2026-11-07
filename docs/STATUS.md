@@ -2,6 +2,38 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Seguimiento Sony y entregas agrupadas · 2026-11-07
+
+Instalada la build local **`a439bb378645`** en `~/Applications/nuun.app`.
+El formato pendiente de Sony sale de Inicio y queda en Resultado y Actividad.
+El caso histórico `060b585d` coincide con la clasificación de retiro registrado
+por sus miembros y recibos. Mantiene el estado `failed` y queda como seguimiento
+en Actividad. La nueva fase `checking_card` reintenta una lectura de Sony si
+desaparece un archivo, tras validar la misma tarjeta. Falta reproducir la causa
+física con un clip descartable. [Contrato de ingreso](contracts/ingest-flow-v1.md#seguimiento-sony--2026-11-07).
+
+Completar y liberar agrupa las entregas, permite seleccionar las visibles o un
+grupo y propone coincidencias exactas publicadas. El recibo de salida desde
+publicados conserva ese estado al archivar. La revisión separa finales, raws e
+intermedios. El primer vertical publicado sugiere revisar en Inicio. El aviso
+opcional de varios verticales después de un día queda pendiente. En lectura
+operativa de `terra-6-1` se reconoció el horizontal archivado como publicado y
+se distinguieron los seis verticales aún por confirmar y las miniaturas de
+`terra-6-1-extra`. [Contrato de cierre](contracts/project-closeout-v1.md#entregas-agrupadas-e-inicio--2026-11-07).
+
+Evidencia: **290 pruebas Python, cuatro omitidas** en el runtime del sistema,
+**19/19 contratos** con Python 3.9.6 y **22/22 Swift**. Localización **688 claves**
+sin faltantes ni sobrantes. QA nativa aislada probó respaldar publicados y
+luego liberar raw/render sin recopia. Capturas ficticias de la selección y la
+revisión agrupadas inspeccionadas. Falta aceptación por clics del usuario y
+con cámara. Catálogo real en modo de solo lectura para la observación.
+
+Firma estricta, binario instalado idéntico al artefacto y 36 fuentes Python
+idénticas al checkout. RPC instalado respondió con estado temporal. Artefacto
+`/private/tmp/nuun-sony-closeout-final-20261107.app`. La build anterior
+`f5cefb24e2b9` quedó en `app-backups/40f60af3.app`. Instalación local con
+runtime externo y firma ad-hoc. La prueba no escribió en ESSD, MEDIA ni SD.
+
 ## Coordinación de la suite: mapa, Windows e interacción · 2026-11-07
 
 Solo documentación, sin commit. Se agregan:
