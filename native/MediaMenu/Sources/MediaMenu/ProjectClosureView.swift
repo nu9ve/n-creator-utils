@@ -69,6 +69,8 @@ extension Model {
         guard let reviewed = closurePlan else { return }
         operation(String(localized: "Respaldando finales y liberando trabajo"), scope: .space) {
             self.closureProgress = .object([:])
+            self.closureApplying = true
+            defer { self.closureApplying = false }
             let monitor = self.watchClosureProgress(reviewed["id"])
             defer { monitor.cancel() }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
@@ -150,7 +152,13 @@ struct ProjectClosureSheet: View {
             PageHeader(title: "Completar y liberar", subtitle: LocalizedStringKey(title))
             ErrorBanner(model: model)
             if model.closureReviewing {
-                reviewProgress
+                ActionProgressView(title: "Preparando revisión del cierre",
+                                   note: "nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan.",
+                                   state: .verify(model.closureProgress, phase: phase, volume: model.volume(model.work)?["name"].string ?? ""))
+            } else if model.closureApplying {
+                ActionProgressView(title: "Completando y liberando",
+                                   note: "Cada entrega se copia y se verifica antes de retirar su copia de edición. Puedes pausar; lo verificado se conserva.",
+                                   state: .transfer(model.closureProgress, phase: phase))
             } else if let plan = model.closurePlan {
                 review(plan)
             } else {
@@ -161,7 +169,7 @@ struct ProjectClosureSheet: View {
                 Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction).disabled(model.busy)
                 Spacer()
                 if model.busy {
-                    if !model.closureReviewing {
+                    if !model.closureReviewing && !model.closureApplying {
                         ProgressView().controlSize(.small)
                         Text(model.closureProgress["stage"].string.isEmpty ? model.message : model.stageLabel(model.closureProgress["stage"].string)).font(.caption).lineLimit(2)
                     }
@@ -188,32 +196,9 @@ struct ProjectClosureSheet: View {
         .onAppear { load(model.closureSettings); query = title }
 
     }
-    private var reviewProgress: some View {
-        let progress = model.closureProgress
-        let path = progress["path"].string
-        let size = progress["bytes_total"].double
-        let done = progress["bytes_done"].double
-        return VStack(alignment: .leading, spacing: 12) {
-            Label("Preparando revisión del cierre", systemImage: "doc.text.magnifyingglass").font(.headline)
-            Text("nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan.")
-                .font(.callout).foregroundStyle(.secondary)
-            Text(progress["stage"].string.isEmpty ? model.message : model.stageLabel(progress["stage"].string))
-                .font(.callout.weight(.medium))
-            if !path.isEmpty {
-                Text(verbatim: (path as NSString).lastPathComponent).font(.caption).lineLimit(1).truncationMode(.middle)
-            }
-            if size > 0 {
-                ProgressView(value: min(done, size), total: size)
-                Text("Archivo actual · \(bytesLabel(done)) de \(bytesLabel(size))").font(.caption.monospacedDigit())
-            } else {
-                ProgressView().progressViewStyle(.linear)
-            }
-            if progress["files_total"].double > 0 {
-                Text("\(Int(progress["files_done"].double)) de \(Int(progress["files_total"].double)) archivos en este paso")
-                    .font(.caption.monospacedDigit())
-            }
-            Spacer()
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
+    private var phase: String {
+        let stage = model.closureProgress["stage"].string
+        return stage.isEmpty ? model.message : model.stageLabel(stage)
     }
     private func applyTitle(_ plan: JSONValue) -> LocalizedStringKey {
         if !plan["entries"].array.isEmpty {
@@ -221,8 +206,43 @@ struct ProjectClosureSheet: View {
         }
         return plan["closure_copies"].array.isEmpty ? "Completar proyecto" : "Respaldar y completar"
     }
+    /// The project's last applied closeout, if any: reopening shows what already happened first.
+    private var lastClosure: JSONValue? {
+        let item = model.closureProject ?? .null
+        let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
+        return model.releaseHistory.filter { $0["closure_project_id"].string == id && $0["state"].string == "completed" }
+            .max { $0["created_at"].string < $1["created_at"].string }
+    }
+    /// Finals still on the editing disk and not yet published: what the project is waiting for.
+    private var awaitingPublication: [JSONValue] {
+        model.closureSettings["finals"].array.filter { !$0["published"].bool && model.volume($0["volume_id"].string)?["role"].string == "work" }
+    }
+    @ViewBuilder private var closedSummary: some View {
+        if let last = lastClosure {
+            let waiting = awaitingPublication
+            let names = waiting.map { URL(fileURLWithPath: $0["path"].string).lastPathComponent }
+            VStack(alignment: .leading, spacing: 6) {
+                Label {
+                    Text("Cierre aplicado el \(String(last["created_at"].string.prefix(10))) · \(last["entries"].array.count) archivos retirados · \(bytesLabel(last["bytes"].double)) liberados")
+                } icon: { Image(systemName: "checkmark.seal.fill").foregroundStyle(palette.success) }
+                .font(.callout.weight(.medium))
+                if waiting.isEmpty {
+                    Text("No queda nada por liberar: las entregas están publicadas y respaldadas.").font(.caption).foregroundStyle(palette.muted)
+                } else {
+                    Text("\(waiting.count) entregas siguen en edición, esperando publicarse: \(names.prefix(3).joined(separator: ", "))\(names.count > 3 ? "…" : "")")
+                        .font(.caption)
+                    Text("Ya están respaldadas. Cuando las publiques, «Respaldar publicados…» retira su copia de edición; no hace falta preparar el cierre otra vez.")
+                        .font(.caption).foregroundStyle(palette.muted)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(palette.raised, in: palette.panel)
+        }
+    }
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
+            closedSummary
             DisclosureGroup("Requisitos del perfil") {
                 HStack {
                     ForEach(roles.filter { $0.0 != "auxiliary" }, id: \.0) { role, label in

@@ -74,6 +74,21 @@ Para apps complejas (curado, SoundShop, kyu, neuf, nove) es **Debe**; para utili
 - **Debe:** al usar un atajo, el control que lo recibe se ilumina brevemente. Un atajo que no aplica en ese momento dice «no disponible» en la línea de ayuda o en un HUD, en vez de no hacer nada.
 - **Conviene:** un HUD breve «K · Acción» en apps donde la acción no se ve en pantalla (curado, SoundShop). Respeta «Reducir movimiento».
 
+### Acciones largas
+
+Una acción que tarda más de un par de segundos (copiar, verificar, liberar, ingresar, exportar) se muestra igual en todas las apps y sistemas. La referencia es `ActionProgress.swift` de nüün, hecho para servir de base a otros loaders.
+
+- **Debe:** al empezar, la acción **reemplaza** la pantalla desde la que se lanzó (el plan, el formulario) por una vista centrada que dice:
+  - qué se hace, con un verbo concreto («Copiando y verificando finales», no «Procesando»);
+  - el archivo en mano, con origen → destino;
+  - qué pasa si se pausa o se cancela.
+- **Debe:** una **barra siempre visible** con porcentaje, bytes y archivos. Mide el trabajo real de la acción completa, no solo del paso actual: el motor emite `overall_done`/`overall_total` y nunca retrocede. Sin total conocido, la barra es indeterminada, pero visible.
+- **Debe:** el **detalle** va plegado por defecto. Al abrirlo muestra el archivo actual y un log corto tipo terminal de los pasos terminados («✓ copiado y verificado X → MEDIA502», «− retirado de edición Y · ESSD»). El log lo emite el motor y la vista no lo reconstruye.
+- **Debe:** la animación la dibuja el skin: documentos que viajan entre discos en Cristal, hormigas de selección en Macintosh, papeles con bisel en Windows 9x y `[====>····]` con un `$ cp --verify` en Terminal. Con «Reducir movimiento» queda quieta y conserva todos los números. Es decorativa: no intercepta clics ni llega a VoiceOver, y la barra lleva su valor accesible.
+- **Debe:** los colores del efecto son los de estado del tema (§2): azul para copiar, ámbar para retirar, verde para lo hecho y rojo para descartar. Así se lee de un vistazo qué se respalda, qué se retira y qué no cambia.
+- Al terminar, la vista deja paso al resultado. Si se reabre lo mismo después, primero se dice qué ya pasó y qué falta (en nüün: «Cierre aplicado… · N entregas siguen en edición esperando publicarse»).
+- En Windows aplica igual, con la barra y la animación dibujadas por el tema y el progreso también en la barra de tareas (`ITaskbarList3`), como conviene.
+
 ## 8. Atajos comunes de la suite
 
 Los mismos en todas las apps cuando la acción existe. Command y las combinaciones del sistema son de macOS: no se reasignan.

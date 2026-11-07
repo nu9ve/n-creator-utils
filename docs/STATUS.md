@@ -98,6 +98,20 @@ idénticas al checkout. RPC instalado respondió con estado temporal. Artefacto
 `f5cefb24e2b9` quedó en `app-backups/40f60af3.app`. Instalación local con
 runtime externo y firma ad-hoc. La prueba no escribió en ESSD, MEDIA ni SD.
 
+## Acción de cierre con progreso total, animación por skin y resumen al reabrir · 2026-11-07
+
+En working tree, sin commit. Instalada como build **`ad51c488d304`** sobre `ddbbdda`; la anterior quedó en `app-backups/d1618206.app`.
+- Aplicar el cierre reemplaza el plan por una vista de acción centrada, reutilizable (`ActionProgress.swift`). Tiene:
+  - documentos que viajan de ESSD a MEDIA502 según el skin;
+  - barra siempre visible con %, bytes y archivos;
+  - detalle plegado con el archivo actual y un log tipo terminal.
+- Preparar la revisión usa la misma vista en modo verificación.
+- El motor agrega el avance de toda la acción (`ActionProgress` en `media/closure.py`). Una prueba exige que nunca retroceda, que termine en 100 % y que registre cada copia y retiro.
+- Al reabrir un proyecto ya cerrado, la hoja dice qué pasó y qué entregas siguen en edición esperando publicarse, y que **Respaldar publicados…** basta para terminar.
+- Regla de suite en [interacción, «Acciones largas»](contracts/nu9ve-interaction-v1.md#acciones-largas).
+
+Evidencia: Python **296 OK**, `swift test` **25/25**, localización sin faltantes ni sobrantes, `--qa-skins` aislado con la vista de acción y avance ficticio en los 5 skins (capturas revisadas; Cristal es hoja del sistema y se ve en la app). **Sin probar:** un cierre real con la vista nueva y la animación en movimiento (las capturas son estáticas).
+
 ## Revisión de cierre con progreso, badges de efecto y diálogos del skin · 2026-11-07
 
 Termina el trabajo de otra sesión, que se quedó sin tokens; además incluye los diálogos con forma del skin. Va en working tree, sin commit. Instalada como build **`921d53350706`** desde ese árbol sobre `b3a6744`; la anterior quedó en `app-backups/2036e795.app`.
