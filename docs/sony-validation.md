@@ -1,6 +1,6 @@
 # Validación Sony: respaldo, limpieza y formato en cámara
 
-Estado actual: política Sony en uso; aceptación acompañada de la build vigente pendiente (recorrido del 6 noviembre al final). El diagnóstico original de abajo es histórico. El nuevo `save` verifica copias y deja Sony en `camera_action_required`; el motor histórico de mover/borrar quedó en `legacy-save`. **Falta aceptación física de la retirada automática de clips de la build vigente**. `inspect` es observación y no hace respaldo. No se modificó ninguna SD durante esta revisión.
+Estado actual: con una α6400 y la build `a439bb378645`, la primera retirada pareció terminar con la SD montada y los archivos reaparecieron tras reconectarla. La repetición controlada con los mismos tres archivos persistió al desmontar y montar la tarjeta en macOS. Falta comprobar el formato posterior y el cierre de ese job. [Prueba del 7 de noviembre](#prueba-física-con-un-clip--2026-11-07).
 
 ## Hipótesis
 
@@ -66,3 +66,40 @@ Registrar por etapa: fecha/build, proyecto/job, resultado observado y siguiente 
 ### Resultado parcial reportado · 2026-11-06
 
 Flotante aceptado; popup/reconexión no concluyente y pendiente. Usuario completó sus ingresos y necesita editar. Stalker completado; Sony mostró FileNotFoundError de C0001.MP4 y se conserva failed: el journal registra seis retiradas y recibos de archivo, sin causa confirmada ni evidencia de doble borrado. Dos clips Sony entregados después desde archivo a ESSD con herramienta existente, por solicitud explícita; esto no cierra el job ni valida formato. [Evidencia y siguiente diagnóstico](STATUS.md). No exigir otro ciclo físico ahora ni reanudar limpieza a ciegas.
+
+## Prueba física con un clip · 2026-11-07
+
+El usuario reportó apertura del compacto al insertar Untitled. Grabó un clip
+de 9 s en una Sony ILCE-6400 y autorizó explícitamente el plan
+`a7839591-f8b0-5583-9f7f-6ea107d168dc`, proyecto `prueba-sony-261107`.
+El CLI del bundle instalado `a439bb378645` aplicó el mismo motor de nüün.
+
+- MEDIA502 recibió 12 archivos (105,985,867 bytes). ESSD recibió el clip
+  (33,563,329 bytes). Los 13 SHA-256 de destino coinciden con los originales
+  leídos antes de ejecutar.
+- Tras `backup_verified` se retiraron el MP4, el XML y la miniatura de la SD.
+  Los tres constan como `cleaned=1` y sus rutas ya no existen. Los nueve
+  índices conservan sus hashes.
+- El job quedó `camera_action_required`, sin error y con avance global 1.0.
+  Transcurrieron 13.3 s entre los eventos `copying` y `camera_action_required`.
+  Esa observación sólo cubría la SD antes de expulsarla.
+
+Al reconectar, el MP4, el XML y la miniatura reaparecieron con los mismos
+hashes, tamaños y stamps. Los 13 destinos seguían íntegros. El registro de
+macOS muestra que la primera expulsión desde Finder tomó unos 70 s, con
+una interrupción de la conexión de FSKit durante el desmontaje. La causa
+precisa sigue abierta. En una imagen ExFAT temporal con FSKit, el mismo
+retiro con `Tree.unlink` persistió tras volver a montar.
+
+En la SD real se revalidaron identidad, inventario y los 13 SHA-256 antes de
+repetir únicamente el retiro de los mismos tres archivos autorizados. El
+desmontaje normal tomó 0.41 s. Tras montar de nuevo en el mismo lector, los
+tres seguían ausentes y los nueve índices coincidían byte a byte. La prueba
+controlada usó el retiro de archivos del motor y conservó el job original en
+`camera_action_required`. Falta reproducir la durabilidad como parte del
+flujo normal de la app.
+
+El usuario confirmó que la cámara formateó la SD correctamente después
+del retiro. Se volvieron a verificar las 13 copias. La SD estaba fuera del
+Mac al comprobar el catálogo. Falta reconectarla para comprobar la reescritura
+de índices y confirmar el formato del job en Actividad.
