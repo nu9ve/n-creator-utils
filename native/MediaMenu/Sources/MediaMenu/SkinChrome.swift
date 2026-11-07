@@ -134,11 +134,14 @@ struct SkinWindowBar<Content: View>: View {
     let title: String
     /// Secondary windows under a period caption need no second row.
     var showsRow = true
+    /// A fixed-size window (About) has no zoom control.
+    var resizable = true
     let content: Content
     @State private var handle = WindowHandle()
-    init(title: String, showsRow: Bool = true, @ViewBuilder content: () -> Content) {
+    init(title: String, showsRow: Bool = true, resizable: Bool = true, @ViewBuilder content: () -> Content) {
         self.title = title
         self.showsRow = showsRow
+        self.resizable = resizable
         self.content = content()
     }
     var body: some View {
@@ -203,7 +206,10 @@ struct SkinWindowBar<Content: View>: View {
     static var inset: CGFloat { 8 }
 
     private var windowControls: some View {
-        HStack(spacing: palette.skin == .win9x ? 2 : 5) { control(.close); control(.minimize); control(.zoom) }
+        HStack(spacing: palette.skin == .win9x ? 2 : 5) {
+            control(.close); control(.minimize)
+            if resizable { control(.zoom) }
+        }
     }
 
     private enum Action { case close, minimize, zoom }
@@ -312,21 +318,23 @@ struct SkinnedWindow<Bar: View, Content: View>: View {
     let title: String
     /// Whether nüün's own bar gets a row; the settings window has none under a period caption.
     var barRow: (ThemeSkin) -> Bool = { _ in true }
+    var resizable = true
     let bar: Bar
     let content: Content
-    init(title: String, barRow: @escaping (ThemeSkin) -> Bool = { _ in true }, @ViewBuilder bar: () -> Bar, @ViewBuilder content: () -> Content) {
+    init(title: String, barRow: @escaping (ThemeSkin) -> Bool = { _ in true }, resizable: Bool = true, @ViewBuilder bar: () -> Bar, @ViewBuilder content: () -> Content) {
         self.title = title
         self.barRow = barRow
+        self.resizable = resizable
         self.bar = bar()
         self.content = content()
     }
     var body: some View {
         if palette.skin.usesSquareWindow {
             VStack(spacing: 0) {
-                SkinWindowBar(title: title, showsRow: barRow(palette.skin)) { bar }
+                SkinWindowBar(title: title, showsRow: barRow(palette.skin), resizable: resizable) { bar }
                 content.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .overlay(alignment: .bottomTrailing) { WindowGrowBox(skin: palette.skin) }
+            .overlay(alignment: .bottomTrailing) { if resizable { WindowGrowBox(skin: palette.skin) } }
             .overlay { if palette.skin == .classicMac { Rectangle().strokeBorder(.black, lineWidth: 1).allowsHitTesting(false) } }
             .ignoresSafeArea()
         } else {

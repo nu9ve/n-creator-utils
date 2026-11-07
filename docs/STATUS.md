@@ -98,6 +98,28 @@ idénticas al checkout. RPC instalado respondió con estado temporal. Artefacto
 `f5cefb24e2b9` quedó en `app-backups/40f60af3.app`. Instalación local con
 runtime externo y firma ad-hoc. La prueba no escribió en ESSD, MEDIA ni SD.
 
+## Acerca de con tema y skin en nüün · 2026-11-07
+
+Instalada como build **`6806ab257b05`** (el `Info.plist` instalado ya trae `NSHumanReadableCopyright` «© 2026 nu9ve» y la versión 0.2.0); la anterior quedó en `app-backups/0ea7211e.app`. Se instaló desde el árbol sin commit sobre `e73338d`. «Acerca de nüün» deja el panel estándar y abre su propia ventana ([macos-app-v1 §5](contracts/macos-app-v1.md#5-acerca-de)):
+- Icono, nombre en la letra display del skin y frase.
+- Versión leída del bundle (`Build de desarrollo` en `swift run`). Un clic la copia con build, macOS y arquitectura.
+- Revisión sellada por el instalador, enlaces a nu9ve.xyz y GitHub, y copyright.
+- Tamaño fijo y no se restaura al abrir.
+
+`AppIdentity` es una copia comentada de `NuMacShell` en `MediaMenuCore`. El instalador ahora sella `NSHumanReadableCopyright`, y una prueba exige que coincida con el de la app.
+
+En los skins cuadrados, Acerca de lleva la misma barra de época, sin ampliar ni caja de redimensionar, porque no cambia de tamaño. De paso se corrigió que Ajustes en Terminal no tenía controles de ventana.
+
+Evidencia: `swift test` **25/25**, localización sin faltantes, `--qa-skins` aislado con Acerca de en los 5 skins (sin título del sistema en los cuadrados, `resizable=false`, 360×432), capturas revisadas. **Sin probar:** el icono real y la versión sellada en el bundle instalado (el build de depuración muestra un icono genérico); clics reales.
+
+## Estándares: sonido, instalador, ventanas y nombre interno · 2026-11-07
+
+Solo documentación, sin commit:
+- [Tema §12](contracts/nu9ve-theme-v1.md#12-sonido-y-háptica-de-tema): sonidos y háptica de tema opcionales, apagados por defecto y en silencio durante grabación, reproducción o captura.
+- [Tema §8](contracts/nu9ve-theme-v1.md#8-barras-del-sistema-menús-y-controles) y [macos-app-v1 §3](contracts/macos-app-v1.md#3-temas): toda ventana y subventana sigue el tema y el skin, también su barra. Gap conocido en nüün: Acerca de usa el panel estándar.
+- [windows-app-v1 §9](contracts/windows-app-v1.md#instalador-con-identidad): Setup propio opcional con identidad (forma propia, estética demoscene o Winamp, música apagada por defecto) que sigue siendo un instalador honesto.
+- [PLAN](../PLAN.md#prioridad-baja--nombre-interno): renombrar `MediaMenu` a nüün, con prioridad baja.
+
 ## Coordinación de la suite: mapa, Windows e interacción · 2026-11-07
 
 Solo documentación, sin commit. Se agregan:

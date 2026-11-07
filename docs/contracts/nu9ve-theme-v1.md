@@ -211,6 +211,9 @@ Cada app se llama «nueve» en un idioma, y ese idioma da su referencia cultural
 
 ## 8. Barras del sistema, menús y controles
 
+- **Debe: toda ventana sigue el tema y el skin, también su barra de título.** Es decir: la principal, Ajustes, Acerca de, sheets, popovers, paneles flotantes, el panel de atajos, los diálogos propios y las ventanas auxiliares (vista mini, ventana de visuales, broker, importador rápido). Cada una aplica el tema al crearse, sin esperar a que el contenido lo pinte, y entra en la QA de skins. Con un skin de ventana cuadrada, también es cuadrada y lleva la misma barra de época con × − +.
+- La excepción son los paneles del sistema: Abrir/Guardar, Quick Look, alertas del sistema y `NSMenu`. Esos conservan el aspecto del sistema, pero reciben el modo claro u oscuro de la app.
+
 El comportamiento está en [macos-app-v1](macos-app-v1.md). Aquí va solo el aspecto.
 
 - **Barra de título:** a la izquierda, la marca a 20 pt y el nombre en minúsculas a 14 pt semibold con la fuente de identidad de la app. En el centro, la navegación como cápsula sobre vidrio (`GlassSurface`), con el elemento activo en `accentSoft` y semibold. A la derecha, las acciones, con un único relleno de acento. Todo con el tema de la app, también en pantalla completa.
@@ -254,6 +257,17 @@ Decisión (2026-11-06): **primero replicar, después extraer.** Todavía no hay 
 - **Debe:** revisión manual, registrada como tal: cambiar de modo con la app abierta (menús y sheets), Reducir movimiento y transparencia, Aumentar contraste y vidrio real en macOS 26.
 - Las cuentas de contraste no sustituyen una revisión visual. Lo que no se vio se anota como no verificado.
 
+## 12. Sonido y háptica de tema
+
+Cada skin puede sonar a su época, como Fractos (`FractosSoundV2`, voces sintetizadas sin archivos de audio y portadas de la web). Es un extra, igual que los skins de época.
+
+- **Debe:** apagado por defecto. Ajustes → Apariencia → **Sonidos de interfaz** (apagado), con volumen, y **Háptica** (solo trackpad Force Touch). Quien lo quiera lo enciende una vez, y la preferencia sobrevive a reinstalar. En los equipos del colectivo se enciende desde Ajustes como cualquier usuario; no hay un valor por defecto distinto escondido en el build.
+- **Debe:** usar el vocabulario de señales de [interacción](nu9ve-interaction-v1.md#7-respuesta-al-usar-una-tecla): `hover`, `press`, `select`, `tab`, `toggleOn`/`toggleOff`, `expand`/`collapse`, `popupOpen`/`popupClose`, entrar/volver, éxito, aviso y error. Un gesto da un solo sonido. Repetir rápido suaviza (fatiga). El sonido nunca es la única señal.
+- **Debe:** cada skin elige su voz (Macintosh 1 bit, Windows 9x, Terminal, Gótico, la del original de cada app), con el mismo vocabulario.
+- **Debe:** nunca suena encima del trabajo. Se calla durante una grabación (Stalker y cualquier captura de audio del sistema, para no quedar grabado), mientras una app de audio reproduce o graba (curado, SoundShop), y en pantalla completa de video. Sale por la salida predeterminada del sistema, nunca por la salida de mezcla o de cue.
+- **Conviene:** respetar «Reproducir efectos de sonido de la interfaz» de macOS y el esquema de sonidos de Windows. Si el sistema los tiene apagados, Ajustes lo explica.
+- Origen para replicar: Fractos `Packages/FractosKit/Sources/FractosSoundV2` (motor) y `SoundCues`/`HapticPlayer` (puente con la UI), según [§10](#10-implementación-compartida).
+
 ## Adopción
 
 Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
@@ -265,6 +279,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 | 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
 | 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
+| 8 Todas las ventanas | Sin revisar | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
 | 9 Idioma | Sin revisar | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
