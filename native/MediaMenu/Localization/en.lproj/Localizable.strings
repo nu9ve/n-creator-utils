@@ -587,7 +587,6 @@
 "Clipper: el editable se conserva; elimínalo desde Clipper para retirar también su registro. Final Cut y el contenido desconocido se conservan." = "Clipper: the editable project is kept; delete it in Clipper to also remove its registration. Final Cut and unknown content are kept.";
 "Completar y liberar" = "Complete and free space";
 "Completar y liberar…" = "Complete and free space…";
-"Comprobando cierre del proyecto" = "Checking project closeout";
 "Conservar" = "Keep";
 "Copiando y verificando finales" = "Copying and verifying finals";
 "Editar entregas" = "Edit deliveries";
@@ -689,12 +688,6 @@
 "Proyecto completado" = "Project completed";
 "Publicación" = "Publication";
 "Respaldar y completar" = "Back up and complete";
-"Respaldar y conservar en edición" = "Back up and keep editing copy";
-"Respaldar y retirar" = "Back up and remove";
-"Respaldo verificado" = "Backup verified";
-"Respaldo verificado · conservar en edición" = "Backup verified · keep editing copy";
-"Respaldo verificado · retirar copia de edición" = "Backup verified · remove editing copy";
-"Revisar cierre" = "Review closeout";
 "Se verifican las fuentes y entregas en el respaldo. Los finales pendientes de publicar conservan su copia de edición." = "Originals and deliveries are verified in the backup. Unpublished finals keep their editing copies.";
 "Sin archivos en las rutas revisadas" = "No files in the checked paths";
 "Sin archivos para retirar" = "No files to remove";
@@ -715,3 +708,26 @@
 "GitHub" = "GitHub";
 "Una multiherramienta para creadores." = "A multitool for creators.";
 "Versión %@ (%@)" = "Version %@ (%@)";
+
+/* Closeout review progress and action badges */
+"%lld de %lld archivos en este paso" = "%lld of %lld files in this step";
+"Archivo actual · %@ de %@" = "Current file · %@ of %@";
+"Cancelar revisión" = "Cancel review";
+"Comparando con el final en el respaldo" = "Comparing with the final in the backup";
+"Guardando entregas" = "Saving deliveries";
+"Leyendo intermedios" = "Reading intermediates";
+"Preparando el plan para mostrarlo" = "Preparing the plan to show it";
+"Preparando revisión del cierre" = "Preparing the closeout review";
+"Preparar la revisión verifica archivos y muestra las acciones antes de aplicarlas." = "Preparing the review verifies files and shows the actions before applying them.";
+"Preparar revisión…" = "Prepare review…";
+"Respaldado · copia de edición retirada" = "Backed up · editing copy removed";
+"Respaldar · conservar en edición" = "Back up · keep in editing";
+"Respaldar · retirar de edición" = "Back up · remove from editing";
+"Revisando inventario y destinos" = "Checking inventory and destinations";
+"Revisión cancelada" = "Review cancelled";
+"Verificando entregas elegidas" = "Verifying chosen deliveries";
+"Verificando fuentes en el respaldo" = "Verifying sources in the backup";
+"Ya en respaldo · conservar en edición" = "Already backed up · keep in editing";
+"Ya en respaldo · retirar de edición" = "Already backed up · remove from editing";
+"Ya en respaldo · sin cambios" = "Already backed up · no changes";
+"nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan." = "nüün is reading the files to verify their fingerprints. Copies and removals start when you apply the plan.";

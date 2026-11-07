@@ -59,7 +59,28 @@ class Service:
             if method == 'closure_save':
                 return closure.save(self.catalog, self.backend, **params)
             if method == 'closure_plan':
-                return closure.plan_close(self.catalog, self.backend, cancel=self.cancel, **params)
+                options = dict(params)
+                review_id = options.pop('review_id', None)
+                require('progress' not in options, 'invalid_request', 'Progress callbacks are internal to the local service')
+                if review_id is None:
+                    return closure.plan_close(self.catalog, self.backend, cancel=self.cancel, **options)
+                require(isinstance(review_id, str) and str(uuid.UUID(review_id)) == review_id.lower(),
+                        'invalid_request', 'Expected a review UUID')
+                key = 'closure-progress:' + review_id
+                last_stage, last_at = None, 0
+
+                def progress(stage, **details):
+                    nonlocal last_stage, last_at
+                    current = time.monotonic()
+                    if stage != last_stage or current - last_at >= 0.25:
+                        self.catalog.set(key, dict(details, stage=stage))
+                        last_stage, last_at = stage, current
+
+                try:
+                    return closure.plan_close(self.catalog, self.backend, cancel=self.cancel, progress=progress, **options)
+                finally:
+                    with self.catalog.db:
+                        self.catalog.db.execute('DELETE FROM metadata WHERE key=?', (key,))
             if method == 'closure_progress':
                 return self.catalog.get('closure-progress:' + params['plan_id'], {})
             if method == 'closure_apply':

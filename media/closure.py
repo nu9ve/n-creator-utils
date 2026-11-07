@@ -14,8 +14,8 @@ from . import clipper
 from .common import Tree, content_stamp, digest, now, relative, require, uid
 from .finals import OPAQUE, published_folder, published_receipts, subfolders, year_in_name
 from .layout import MEDIA_KINDS, kind_of
-from .release import checked_hash, plan_release
-from .volumes import independent
+from .release import checked_hash, checked_hash_progress, plan_release, report
+from .volumes import CachedBackend, independent
 
 ROLES = {'horizontal', 'vertical', 'thumbnail', 'auxiliary'}
 
@@ -330,8 +330,10 @@ def archived_final_settings(catalog, plan, guards):
     return dict(config, finals=finals, updated_at=now())
 
 
-def plan_close(catalog, backend, project_id, archive, work, cancel=None, release_work=True):
+def plan_close(catalog, backend, project_id, archive, work, cancel=None, release_work=True, progress=None):
     from .planner import build_plan, destination_path
+    live_backend, backend = backend, CachedBackend(backend)
+    report(progress, 'review_inventory')
     project = project_record(catalog, project_id)
     config = settings(catalog, project_id)
     config_digest = digest(config)
@@ -359,7 +361,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
         preserved.extend(kept)
         if not selected:
             continue
-        part = plan_release(catalog, backend, target['id'], work=source['id'], path=path, project=project['title'], cancel=cancel)
+        part = plan_release(catalog, backend, target['id'], work=source['id'], path=path, project=project['title'],
+                            cancel=cancel, progress=progress)
         entries.extend(dict(e, category='raw') for e in part['entries'])
         replacements.update(part['replacements'])
     # A project with no work receipts is not silently assumed to have backed-up sources.
@@ -367,6 +370,7 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     require(assets or not release_work, 'missing_sources', 'Este proyecto no tiene fuentes catalogadas; adopta/verifica sus raws antes de liberar')
     job_states = dict(catalog.db.execute('SELECT id,state FROM jobs'))
     already_verified = {(e['archive_path'], e['sha256']) for e in entries}
+    raw_to_verify = {}
     for asset in assets:
         require(job_states.get(asset['job_id']) not in {'copying', 'cleaning_source', 'paused', 'failed', 'backup_verified'},
                 'open_job', 'Hay una operación de fuentes pendiente')
@@ -376,28 +380,32 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                                      (asset['job_id'], target['id'], original)).fetchone()
             require(row, 'missing_receipt', 'Falta respaldo registrado de una fuente del proyecto')
             copy = json.loads(row[0])
-            if (copy['destination'], copy['sha256']) not in already_verified:
-                with Tree(target['root']) as tree:
-                    require(checked_hash(tree, copy['destination'], cancel)[0] == copy['sha256'], 'checksum_mismatch', 'Respaldo raw alterado')
-                already_verified.add((copy['destination'], copy['sha256']))
+            key = (copy['destination'], copy['sha256'])
+            if key not in already_verified:
+                raw_to_verify[key] = None
             finals.append({'archive_path': copy['destination'], 'sha256': copy['sha256'], 'role': 'source'})
+    if raw_to_verify:
+        with Tree(target['root']) as tree:
+            for index, (path, expected) in enumerate(raw_to_verify):
+                sha, _ = checked_hash_progress(tree, path, cancel, progress, 'review_raw_archive', index, len(raw_to_verify))
+                require(sha == expected, 'checksum_mismatch', 'Respaldo raw alterado')
     with Tree(source['root']) as tree:
         for editor in scoped['editor']:
             renders = editor + '/renders'
             scopes.append({'kind': 'discard', 'path': renders})
             if (Path(source['root']) / renders).is_dir():
                 for path in folder_files(tree, renders, cancel):
-                    sha, stamp = checked_hash(tree, path, cancel)
+                    sha, stamp = checked_hash_progress(tree, path, cancel, progress, 'review_intermediates')
                     entries.append({'path': path, 'stamp': stamp, 'sha256': sha, 'archive_path': None, 'category': 'intermediate'})
                     replacements[str(Path(source['root']) / path)] = None
             if (Path(source['root']) / editor).is_dir():
                 retained.append(editor + ' (editable, Final Cut y contenido fuera de renders se conservan)')
     archived_candidates = None
-    for item in config['finals']:
+    for index, item in enumerate(config['finals']):
         volume = catalog.volume(item['volume_id'])
         backend.check(volume)
         with Tree(volume['root']) as tree:
-            sha, stamp = checked_hash(tree, item['path'], cancel)
+            sha, stamp = checked_hash_progress(tree, item['path'], cancel, progress, 'review_final', index, len(config['finals']))
         require(stamp == item['stamp'], 'source_changed', 'Un final cambió; vuelve a vincularlo')
         copy_required = keep_work = False
         if volume['role'] == 'archive':
@@ -416,7 +424,7 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     archived_candidates.setdefault((candidate.name, info.st_size), []).append(str(candidate.relative_to(target['root'])))
             for candidate_rel in archived_candidates.get((Path(rel).name, stamp['size']), []):
                 with Tree(target['root']) as tree:
-                    if checked_hash(tree, candidate_rel, cancel)[0] == sha:
+                    if checked_hash_progress(tree, candidate_rel, cancel, progress, 'review_final_archive')[0] == sha:
                         existing = candidate_rel
                         break
             if existing:
@@ -433,7 +441,7 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                 archive_path = destination_path(target, transfer, transfer['units'][0], transfer['files'][0]['path'])
                 with Tree(target['root']) as tree:
                     try:
-                        existing_hash, _ = checked_hash(tree, archive_path, cancel)
+                        existing_hash, _ = checked_hash_progress(tree, archive_path, cancel, progress, 'review_final_archive')
                     except FileNotFoundError:
                         pass
                     else:
@@ -454,16 +462,19 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             require(roles.setdefault(final['archive_path'], final['role']) == final['role'],
                     'destination_conflict', 'La misma entrega no puede contar como dos tipos distintos')
     needed = sum(f['stamp']['size'] for p in copies for f in p['files'])
-    require(not needed or backend.check(target)['free'] >= needed + max(64 * 1024 * 1024, needed // 20),
+    source_info, target_info = live_backend.check(source), live_backend.check(target)
+    require(independent(source_info, target_info), 'same_physical_disk', 'Trabajo y respaldo deben ser discos distintos')
+    require(not needed or target_info['free'] >= needed + max(64 * 1024 * 1024, needed // 20),
             'insufficient_space', 'No hay espacio para todos los finales seleccionados')
     require(release_work or entries, 'nothing_to_release', 'Los finales publicados elegidos ya están en el respaldo')
     require(len({e['path'] for e in entries}) == len(entries), 'overlapping_roots', 'Hay carpetas superpuestas; revisa las asociaciones')
+    report(progress, 'inspecting_clipper' if entries else 'review_finishing')
     try:
         consumers = clipper.inspect(catalog, replacements) if entries else {'blockers': [], 'relinks': [], 'dependencies': None}
     except (RuntimeError, OSError, ValueError) as error:
         consumers = {'blockers': [str(error)], 'relinks': [], 'dependencies': None}
     value = {'schema': 'nu9ve-release/1', 'id': uid(), 'created_at': now(), 'archive_id': target['id'],
-             'source_root': source['root'], 'source_identity': backend.describe(source['root']), 'work_id': source['id'],
+             'source_root': source['root'], 'source_identity': source_info, 'work_id': source['id'],
              'scope': source['prefix'], 'project': project['title'], 'entries': entries, 'preserved': sorted(set(preserved)),
              'replacements': replacements, 'replacement_checks': [], 'bytes': sum(e['stamp']['size'] for e in entries),
              'consumers': consumers, 'state': 'review', 'cleaned': {}, 'retained_editors': retained, 'closure_project_id': project_id,

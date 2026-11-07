@@ -342,3 +342,70 @@ struct SkinnedWindow<Bar: View, Content: View>: View {
         }
     }
 }
+
+// MARK: - Dialogs
+
+/// Closes the dialog a view is shown in, whether it is a system sheet or a skin's in-window dialog.
+private struct CloseSheetKey: EnvironmentKey {
+    static let defaultValue: @MainActor @Sendable () -> Void = {}
+}
+extension EnvironmentValues {
+    var closeSheet: @MainActor @Sendable () -> Void {
+        get { self[CloseSheetKey.self] }
+        set { self[CloseSheetKey.self] = newValue }
+    }
+}
+
+/// nu9ve-theme-v1 §8: every window and dialog follows the skin. Cristal keeps the system sheet; skins
+/// that draw their own window show the dialog inside it, square and with the era's surface, because
+/// macOS always rounds a sheet's corners.
+struct SkinSheet<Sheet: View>: ViewModifier {
+    @Environment(\.creatorPalette) private var palette
+    @Binding var isPresented: Bool
+    let sheet: () -> Sheet
+    func body(content: Content) -> some View {
+        let inWindow = palette.skin.usesSquareWindow
+        let close: @MainActor @Sendable () -> Void = { [binding = $isPresented] in binding.wrappedValue = false }
+        content
+            .sheet(isPresented: Binding(get: { isPresented && !inWindow }, set: { if !$0 { isPresented = false } })) {
+                sheet().environment(\.closeSheet, close).modifier(CreatorAppearance())
+            }
+            .overlay {
+                if inWindow && isPresented {
+                    ZStack {
+                        // The backdrop takes the clicks, as a sheet blocks its window.
+                        Color.black.opacity(palette.dark ? 0.5 : 0.3).contentShape(Rectangle()).onTapGesture {}
+                            .accessibilityHidden(true)
+                        GeometryReader { geometry in
+                            // The surface hugs the dialog's own size; the window only caps what it is offered.
+                            sheet().environment(\.closeSheet, close)
+                                .background(palette.surface)
+                                .modifier(GlassSurface(shape: palette.panel))
+                                .overlay { if palette.skin == .classicMac { Rectangle().inset(by: 3).stroke(palette.ink, lineWidth: 2).allowsHitTesting(false) } }
+                                .frame(maxWidth: geometry.size.width - 40, maxHeight: geometry.size.height - 40)
+                                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        }
+                    }
+                    .accessibilityAddTraits(.isModal)
+                    .transition(.opacity)
+                }
+            }
+    }
+}
+
+extension View {
+    func skinSheet<Sheet: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Sheet) -> some View {
+        modifier(SkinSheet(isPresented: isPresented, sheet: content))
+    }
+    func skinSheet<Item: Identifiable, Sheet: View>(item: Binding<Item?>, @ViewBuilder content: @escaping (Item) -> Sheet) -> some View {
+        let shown = Binding(get: { item.wrappedValue != nil }, set: { if !$0 { item.wrappedValue = nil } })
+        return modifier(SkinSheet(isPresented: shown, sheet: { ItemSheet(item: item.wrappedValue, content: content) }))
+    }
+}
+
+/// The item a dialog was opened for; empty while it closes.
+private struct ItemSheet<Item, Sheet: View>: View {
+    let item: Item?
+    let content: (Item) -> Sheet
+    var body: some View { if let item { content(item) } }
+}

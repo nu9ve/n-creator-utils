@@ -197,7 +197,7 @@ extension Model {
 struct ReleaseSheet: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.closeSheet) private var dismiss
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Revisar liberación", subtitle: "Comprueba las copias actuales antes de retirar nada. No se borra sin tu confirmación.")
@@ -248,7 +248,7 @@ struct ReleaseSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 640, height: 520)
+        .frame(minWidth: 480, idealWidth: 640, maxWidth: 640, minHeight: 380, idealHeight: 520, maxHeight: 520)
 
     }
 }

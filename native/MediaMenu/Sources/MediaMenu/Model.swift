@@ -132,6 +132,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closureTruncated = false
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])
+    var closureReviewing = false
     var showClosure = false
     var titlebarCenter: CGFloat = 0
     var ingestDrafts: [String: IngestDraft] = [:]
@@ -423,6 +424,12 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func stageLabel(_ stage: String) -> String {
         switch stage {
+        case "review_inventory": return String(localized: "Revisando inventario y destinos")
+        case "review_raw_archive": return String(localized: "Verificando fuentes en el respaldo")
+        case "review_intermediates": return String(localized: "Leyendo intermedios")
+        case "review_final": return String(localized: "Verificando entregas elegidas")
+        case "review_final_archive": return String(localized: "Comparando con el final en el respaldo")
+        case "review_finishing": return String(localized: "Preparando el plan para mostrarlo")
         case "copying_finals": return String(localized: "Copiando y verificando finales")
         case "preparing": return String(localized: "Preparando liberación")
         case "hashing_source": return String(localized: "Verificando archivos del original")

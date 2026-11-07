@@ -11,11 +11,11 @@ struct WindowRoot: View {
                 if model.presentation == .full { MainView(model: model) }
                 else { IngestFlow(model: model) }
             }
+            .skinSheet(isPresented: $model.showRelease) { ReleaseSheet(model: model) }
+            .skinSheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(CreatorAppearance())
-        .sheet(isPresented: $model.showRelease) { ReleaseSheet(model: model).modifier(CreatorAppearance()) }
-        .sheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model).modifier(CreatorAppearance()) }
     }
 }
 
