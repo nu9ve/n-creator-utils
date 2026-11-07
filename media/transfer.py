@@ -41,11 +41,95 @@ def sony_removal_recorded(catalog, job):
     return bool(plan['files']) and any(cleaned == 1 for _, cleaned in members.values())
 
 
+def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None, cancel=None):
+    """Observe a returning card. This can update its jobs but never changes the card."""
+    from .volumes import card_identity, destination_identities, reject_destination, validate_card
+
+    cancel = cancel or (lambda: False)
+    root = Path(source).absolute()
+    info = backend.describe(root, external_required=True)
+    validate_card(root, info)
+    if identity is not None:
+        require(card_identity(info) == identity, 'volume_replaced', 'Card changed before checking it')
+    reject_destination(info, destination_identities(catalog, backend))
+    rows = catalog.db.execute("""
+        SELECT id,plan FROM jobs WHERE state='camera_action_required'
+          AND json_extract(plan,'$.cleanup_profile')='sony_clips_then_format'
+          AND json_extract(plan,'$.source_kind')='card'
+          AND json_extract(plan,'$.source_identity.volume_uuid')=?
+          AND (? IS NULL OR id=?)
+    """, (info['volume_uuid'], job_id, job_id)).fetchall()
+    checked = []
+    with Tree(root) as tree:
+        def stamp(path):
+            try:
+                return content_stamp(tree.stat(path))
+            except FileNotFoundError:
+                return None
+
+        observed, hashes = {}, {}
+        for row in rows:
+            plan = json.loads(row['plan'])
+            old = plan['source_identity']
+            if not plan['cleanup'] or any(old.get(k) != info.get(k) for k in ('mode', 'volume_uuid', 'disk_uuid')):
+                continue
+            originals, indexes = [], []
+            members = {r['relative_path']: (r['sha256'], r['cleaned']) for r in catalog.db.execute(
+                'SELECT relative_path,sha256,cleaned FROM members WHERE job_id=?', (row['id'],))}
+            for file in plan['files']:
+                path, previous = file['path'], file['stamp']
+                require(not cancel(), 'cancelled', 'Card check cancelled')
+                if path not in observed:
+                    observed[path] = stamp(path)
+                current = observed[path]
+                if sony_index_member(path):
+                    indexes.append((previous, current))
+                else:
+                    originals.append((path, previous, current))
+            if not originals or not indexes or not all(members.get(path, (None, 0))[1] == 1 for path, _, _ in originals):
+                continue
+            old_present = False
+            for path, previous, current in originals:
+                if not current or current['size'] != previous['size']:
+                    continue
+                # Cameras reuse file names, and exFAT timestamps alone cannot disambiguate equal-sized clips.
+                if path not in hashes:
+                    with os.fdopen(uncached(tree.open(path)), 'rb') as stream:
+                        hashes[path] = hash_fd(stream.fileno(), cancel)
+                        require(content_stamp(os.fstat(stream.fileno())) == current, 'source_changed', 'Card changed during check')
+                if hashes[path] == members[path][0]:
+                    old_present = True
+                    break
+            # Ignore inode/ctime differences from exFAT remounts. Require a live Sony index.
+            changed = any(current and current['size'] > 0 and
+                          (current['size'], current['mtime_ns']) != (previous['size'], previous['mtime_ns'])
+                          for previous, current in indexes)
+            result = 'originals_present' if old_present else 'ready' if changed else 'waiting_camera'
+            checked.append((row['id'], result))
+        updated = []
+        if checked:
+            # Revalidate the exact observations under the writer lock before touching the catalog.
+            with catalog.writer():
+                backend.fast_check(root, info)
+                require(all(stamp(path) == value for path, value in observed.items()), 'source_changed', 'Card changed during check')
+                for checked_id, result in checked:
+                    row = catalog.db.execute('SELECT state FROM jobs WHERE id=?', (checked_id,)).fetchone()
+                    if row and row['state'] == 'camera_action_required' and catalog.record_sony_check(checked_id, result):
+                        updated.append(checked_id)
+    return {'checked': dict(checked), 'updated': updated}
+
+
 def confirm_camera_cleanup(catalog, backend, job_id, source):
     """Close a camera_action_required job once the card, freed in the camera, no longer holds any backed-up media."""
     from .layout import MEDIA_KINDS, kind_of
     job = catalog.job(job_id)
     require(job['state'] == 'camera_action_required', 'invalid_state', 'Job is not waiting for a camera-side cleanup')
+    if job['plan'].get('cleanup_profile') == 'sony_clips_then_format':
+        status = reconcile_sony_cleanup(catalog, backend, source, job_id=job_id)['checked'].get(job_id)
+        require(status is not None, 'card_unconfirmed', 'Choose the original Sony card with recorded removals')
+        require(status != 'originals_present', 'source_not_clean', 'Backed-up clips are still on the card')
+        require(status == 'ready', 'card_not_formatted', 'Card indexes are unchanged; format the card in the camera, then confirm')
+        return catalog.job(job_id)
     info = backend.describe(source, external_required=True)
     require(info['mount'] == str(Path(source).absolute()), 'card_root_required', 'Choose the root of the mounted card')
     files, _, _ = scan(source)
@@ -54,12 +138,6 @@ def confirm_camera_cleanup(catalog, backend, job_id, source):
     remaining = [f['path'] for f in job['plan']['files'] if kind_of(f['path']) in MEDIA_KINDS
                  and (f['path'], f['stamp']['size'], f['stamp']['mtime_ns']) in present]
     require(not remaining, 'source_not_clean', 'Backed-up clips are still on the card: ' + ', '.join(remaining[:5]))
-    indexes = [f for f in job['plan']['files'] if sony_index_member(f['path'])]
-    if job['plan']['cleanup_profile'] == 'sony_clips_then_format' and indexes:
-        # The engine already removed the clips; only a camera format rewrites its indexes (seen on a real ILCE-6400).
-        current = {f['path']: f['stamp'] for f in files}
-        require(any(current.get(f['path']) != f['stamp'] for f in indexes), 'card_not_formatted',
-                'Card indexes are unchanged; format the card in the camera, then confirm')
     with catalog.writer():
         catalog.event(job_id, 'camera_cleanup_confirmed', {'source': str(source), 'volume_uuid': info['volume_uuid'], 'files_now': len(files)})
         catalog.state(job_id, 'completed')

@@ -2,6 +2,25 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Comprobación Sony al reconectar · 2026-11-07
+
+Build local **`e162566c4af8`** compilada y firmada, pendiente de instalación
+mientras la instancia anterior sigue abierta. Se retira **Ya la formateé**
+de Actividad. El montaje en nüün comprueba trabajos Sony de la misma
+identidad en segundo plano. Un índice cambiado y los originales ausentes
+cierran el trabajo con un evento de catálogo. La comprobación de rutas
+reutilizadas compara el SHA-256 cuando coincide el tamaño. Si reaparecen
+originales, quedan registrados en Actividad y el trabajo sigue pendiente.
+[Contrato](contracts/ingest-flow-v1.md#seguimiento-sony--2026-11-07).
+
+Evidencia: **291 pruebas Python, cuatro omitidas** en el runtime del sistema,
+**19/19 contratos** con Python 3.9.6, **22/22 Swift**, localización
+**687 claves** sin faltantes ni sobrantes y firma estricta. QA nativa aislada
+simuló el montaje con índice intacto y luego la reutilización de
+`C0001.MP4` con igual tamaño. El trabajo se cerró automáticamente y la
+grabación nueva se conservó. Falta la reconexión con la tarjeta real
+formateada. La comprobación no toca sus archivos.
+
 ## Aceptación física Sony de un clip · 2026-11-07
 
 El usuario reportó apertura del compacto y autorizó aplicar el plan a su

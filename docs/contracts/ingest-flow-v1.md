@@ -105,6 +105,20 @@ con SHA coincidente. Esta clasificación no cambia el estado del job ni
 acredita formato o integridad actual del respaldo. Los fallos con evidencia
 incompleta siguen requiriendo atención.
 
+Al reconectar, nüün comprueba en segundo plano los trabajos Sony pendientes
+de esa identidad de volumen. Consulta sólo las rutas registradas. Cuando
+una ruta y tamaño se reutilizan, compara el SHA-256 con el miembro del
+recibo. Si los originales están ausentes y un índice Sony existente
+cambió de tamaño o fecha de modificación, registra `sony_card_checked`
+y cierra el trabajo. La observación acredita que la SD se comprobó tras
+reconectar. El formato sigue a cargo de la cámara.
+
+El seguimiento sólo actualiza el catálogo y no interrumpe un ingreso.
+Si reaparecen bytes originales, Actividad los señala y mantiene el trabajo
+pendiente. Una identidad distinta, índices iguales o lectura inconclusa
+conservan el estado. El botón de confirmación se retira de la app. El CLI
+`confirm-cleanup` sigue disponible con las mismas comprobaciones para Sony.
+
 La lectura final de Sony registra la fase `checking_card`. Si un archivo
 desaparece durante la lectura, se valida la identidad de la tarjeta y se
 reintenta una vez la lectura. Una segunda falla se registra y no se repite

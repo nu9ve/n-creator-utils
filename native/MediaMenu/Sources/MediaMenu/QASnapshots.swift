@@ -257,6 +257,7 @@ import MediaMenuCore
             model.restoreIngestDraft(card.path); model.goToStep(.review)
             model.apply()
             guard await wait("apply", { !model.busy && model.lastResult != nil }) else { NSApp.terminate(nil); return }
+            let sonyJob = model.lastResult!["id"].string
             print("QA simple result=\(model.lastResult!["state"].string) global=\(model.lastResult!["progress"]["global_fraction"].double) indexKept=\(FileManager.default.fileExists(atPath: card.appendingPathComponent("AVF_INFO/AVIN0001.BNP").path))")
             try? await Task.sleep(for: .milliseconds(700))
             guard !model.busy && model.ingestStep == .run && model.plan == nil else { print("QA simple FAILED result auto-planned"); NSApp.terminate(nil); return }
@@ -265,6 +266,9 @@ import MediaMenuCore
             model.mountChanged(arrival: card.path)
             guard await wait("popup after completed job", { opened == 1 }) else { NSApp.terminate(nil); return }
             guard model.units.isEmpty && !model.discoveryLoading else { print("QA simple FAILED automatic deep scan"); NSApp.terminate(nil); return }
+            guard await wait("Sony indexes unchanged", {
+                model.jobs.contains { $0["id"].string == sonyJob && $0["state"].string == "camera_action_required" && $0["sony_card_check"].string == "waiting_camera" }
+            }) else { NSApp.terminate(nil); return }
             model.project = "borrador-previo"
             let second = folder.appendingPathComponent("card2")
             try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
@@ -277,6 +281,17 @@ import MediaMenuCore
             try? await Task.sleep(for: .seconds(1))
             guard opened == 2 else { print("QA simple FAILED interrupted job"); NSApp.terminate(nil); return }
             model.activeScope = nil
+            let newClip = Data(repeating: 9, count: 4 * 1024 * 1024)
+            let reusedPath = card.appendingPathComponent("PRIVATE/M4ROOT/CLIP/C0001.MP4")
+            try newClip.write(to: reusedPath)
+            try Data([4, 5, 6]).write(to: card.appendingPathComponent("AVF_INFO/AVIN0001.BNP"))
+            model.mountChanged(arrival: card.path)
+            guard await wait("Sony auto-reconciled", {
+                model.jobs.contains { $0["id"].string == sonyJob && $0["state"].string == "completed" && $0["sony_card_check"].string == "ready" }
+            }), try Data(contentsOf: reusedPath) == newClip else {
+                print("QA simple FAILED Sony recording reuse"); NSApp.terminate(nil); return
+            }
+            print("QA simple Sony auto-reconciled, new recording kept")
             delegate.present(.full)
             if let window = delegate.window, let bar = window.toolbar?.items.first?.view {
                 for width in [760.0, 1180.0, 1600.0] {

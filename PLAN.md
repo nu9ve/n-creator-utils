@@ -20,8 +20,10 @@ La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
 retiro ya está registrado o falta el formato. En la prueba física de un clip
 el primer retiro se revirtió al reconectar. El retiro repetido persistió tras
 desmontar y montar en el mismo lector. El usuario confirmó que el formato
-en cámara funcionó. Falta reconectar para comprobar índices y confirmar el
-job, y aceptar la durabilidad desde el flujo normal de nüün.
+en cámara funcionó. La comprobación al reconectar quedó automatizada en
+la build `e162566c4af8`. Falta instalarla y reconectar la misma SD para
+aceptar el cierre en Actividad. La durabilidad del retiro en el flujo normal
+queda como prueba física aparte.
 [Evidencia Sony](docs/sony-validation.md#prueba-física-con-un-clip--2026-11-07).
 El cierre agrupa
 entregas, propone coincidencias exactas y sugiere revisar desde Inicio al

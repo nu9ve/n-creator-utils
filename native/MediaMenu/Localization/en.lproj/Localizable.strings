@@ -81,7 +81,6 @@
 "Clic selecciona · ⌘ o ⇧ amplían · espacio abre vista rápida" = "Click selects · ⌘ or ⇧ extend · space opens Quick Look";
 "Clipper confirmó los reenlaces; ya puedes revisar la liberación" = "Clipper confirmed the relinks; you can now review the release";
 "Comparando con el respaldo" = "Comparing with the backup";
-"Comprobando tarjeta formateada" = "Checking formatted card";
 "Conecta tu disco de respaldo para que nüün sugiera las SD conectadas." = "Connect your backup disk so nüün can suggest connected cards.";
 "Conecta una SD o termina una sesión de Stalker para verla aquí." = "Connect a card or finish a Stalker session to see it here.";
 "Conectado" = "Connected";
@@ -146,7 +145,6 @@
 "Elige la carpeta o tarjeta de origen" = "Choose the source folder or card";
 "Elige la raíz del SSD para editar" = "Choose the root of the editing SSD";
 "Elige la raíz del disco de archivo (MEDIA)" = "Choose the root of the archive disk (MEDIA)";
-"Elige la tarjeta ya formateada en la cámara" = "Choose the card already formatted in the camera";
 "Elige un disco de respaldo" = "Choose a backup disk";
 "Elige una fuente" = "Choose a source";
 "Elige una fuente para comenzar." = "Choose a source to begin.";
@@ -162,7 +160,6 @@
 "Fallo; revisa el job antes de reanudar" = "Failed; review the job before resuming";
 "Falta respaldar el estado final del catálogo: " = "The final catalog state still needs a backup: ";
 "Flujo" = "Flow";
-"Formatea la tarjeta en la cámara y confirma desde Actividad." = "Format the card in the camera and confirm from Activity.";
 "Fotos" = "Photos";
 "Fuente" = "Source";
 "Guardando perfil" = "Saving profile";
@@ -366,7 +363,6 @@
 "Vista compacta / completa" = "Compact / Full View";
 "Vista completa (⌘\\)" = "Full view (⌘\\)";
 "Volver a revisar" = "Review again";
-"Ya la formateé…" = "I formatted it…";
 "conectado" = "connected";
 "desconectado" = "disconnected";
 "elegidos" = "chosen";
@@ -691,3 +687,6 @@
 "Sugerencias de cierre" = "Suggested closeouts";
 "Ver otras coincidencias" = "Show other matches";
 "Vertical publicado" = "Published vertical";
+"Formatea la tarjeta en la cámara. Nüün la comprobará cuando la vuelvas a conectar." = "Format the card in the camera. Nüün will check it when you reconnect it.";
+"Respaldo verificado · SD comprobada al reconectar" = "Backup verified · card checked after reconnecting";
+"Respaldo verificado · reaparecieron archivos en la SD" = "Backup verified · previous files reappeared on the card";

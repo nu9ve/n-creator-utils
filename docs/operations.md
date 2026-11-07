@@ -67,7 +67,7 @@ nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro \
   --archive-only --confirm-archive-only --work-decision pending
 ```
 
-`pending` registra entrega posterior al SSD; `skipped` la omite deliberadamente. La SD puede liberarse tras verificar los requeridos de ese plan. En Sony, tras verificar se borran de la SD los clips y fotos (no sus índices) y el job queda en «formatea en la cámara»; después del formateo, `media confirm-cleanup JOB TARJETA` lo cierra. País/ciudad no son campos de proyecto.
+`pending` registra entrega posterior al SSD y `skipped` la omite deliberadamente. La SD puede liberarse tras verificar los requeridos de ese plan. En Sony se retiran clips y fotos conservando los índices. Tras formatear en cámara y reconectar la SD, la app comprueba el trabajo en segundo plano. En un flujo sólo por CLI se puede usar `media confirm-cleanup JOB TARJETA`. País/ciudad no son campos de proyecto.
 
 Para SD mixta, `--assignments archivo.json` acepta rutas relativas → `{project, profile, camera}`. Pares/bundles se asignan juntos. Categorías DJI: `dji-drone`, `dji-360`, `dji-action`; no hay aún registro persistente de modelos. La app permite revisar/asignar unidades y muestra rutas del plan.
 
