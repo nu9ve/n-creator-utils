@@ -34,7 +34,7 @@ Qué se configura, cómo se nombran los colores y qué es un skin: [tema visual 
 
 ## 4. Barra de menús
 
-- **Debe** dejar todo accesible desde menús, con estado (`disabled`) y atajo, también lo que ya tiene botón.
+- **Debe** dejar todo accesible desde menús, con estado (`disabled`) y atajo, también lo que ya tiene botón. El catálogo de atajos, los badges, la ayuda contextual y el panel ⌘/ están en [teclado e interacción v1](nu9ve-interaction-v1.md).
 - **Debe** conservar los elementos del sistema: Servicios, Ocultar otras, Mostrar todo, Zoom, Traer todo al frente, Dictado, Emojis. En SwiftUI, reemplazar grupos con `CommandGroup` y no el menú entero. En AppKit, añadirlos a mano.
 - **Debe** declarar `CFBundleDevelopmentRegion` y `CFBundleLocalizations`, o el sistema mezcla idiomas: los elementos de macOS salen en el idioma del sistema y los propios en el de la app.
 - **Debe** respetar un campo de texto activo: ⌘Z, ⌘C, ⌘X, ⌘V y ⌘A no actúan sobre el documento mientras se escribe.
