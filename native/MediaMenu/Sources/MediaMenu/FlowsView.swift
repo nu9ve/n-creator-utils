@@ -137,7 +137,7 @@ struct FlowsView: View {
                             }
                             .font(.callout.weight(flow.id == selected.id ? .semibold : .regular))
                             .padding(.horizontal, 10).padding(.vertical, 7)
-                            .background(flow.id == selected.id ? palette.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 7))
+                            .background(flow.id == selected.id ? palette.accentSoft : .clear, in: palette.control)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -243,10 +243,10 @@ struct FlowBlockView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(missing ? Color.clear : palette.raised.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+        .background(missing ? Color.clear : palette.raised.opacity(0.45), in: palette.panel)
         .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(palette.ink.opacity(missing ? 0.25 : 0.1), style: StrokeStyle(lineWidth: 1, dash: missing ? [4, 3] : []))
+            palette.panel
+                .stroke(palette.ink.opacity(missing ? 0.25 : 0.1), style: StrokeStyle(lineWidth: 1, dash: missing ? [4, 3] : []))
         }
         .accessibilityElement(children: .combine)
     }

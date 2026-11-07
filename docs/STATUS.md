@@ -2,6 +2,29 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Skins opcionales en nüün · 2026-11-07
+
+En working tree, sin commit. **Ajustes → Apariencia → Skin** ofrece, además de **Cristal** (por defecto, sin cambios), cuatro skins para quien quiera personalizar su espacio. **Restaurar claro** vuelve a Cristal.
+
+- **Grano:** dither Bayer estático sobre el fondo y radios menores. Los títulos en Silom.
+- **Macintosh:** 1 bit con tarjeta de color. Barra de título con rayas, caja de cerrar, de colapsar y de zoom; botón principal con anillo; al pulsar, se invierte.
+- **Windows 9x:** caption con degradado del color base, biseles y botones de época.
+- **Gótico:** siempre oscuro, viñeta, marco doble, controles en rombo y títulos en Luminari.
+
+Macintosh y Windows 9x son siempre claros, y Apariencia lo explica sin perder la preferencia de modo.
+
+Los tres de época usan **ventana cuadrada** como Fractos. `ShellWindow.swift` es una copia comentada de `NuMacShell`, con un cambio: el zoom propio solo aplica con esquinas cuadradas. La barra es propia y tiene dos filas en Macintosh y Win9x (caption de época arriba, barra de nüün abajo). Hay bordes para redimensionar, caja de redimensionar dibujada, y ⌘W, ⌘M, zoom y Opción para pantalla completa. Ajustes usa el mismo skin. Cambiar de skin conserva el marco de la ventana. Todos los skins pasan la matriz de contraste del contrato. Solo se usan fuentes del sistema (Silom, Tahoma, Luminari), sin assets nuevos.
+
+Evidencia:
+- `swift test`: **21/21**. La matriz cubre 5 skins × claro/oscuro × 196 colores base, más la regla de modo fijo por skin y la matriz Bayer.
+- `check_localization.py`: 671 claves, sin faltantes ni sobrantes.
+- `git diff --check`.
+- `--qa-snapshots` de cada skin con fixtures.
+- **`--qa-skins`** (nuevo), con la ventana real y datos ficticios: en los 5 skins, título, toolbar, borde izquierdo con `ShellWindowResizeOverlay` en los cuadrados, zoom 1530×856 → 1920×1080 → 1530×856 y Ajustes con la misma forma. Además, un viaje a pantalla completa en Win9x que al salir conserva la ventana cuadrada, y la vuelta a Cristal que restaura título y toolbar.
+  - La primera corrida de `--qa-skins` leyó en solo lectura las sesiones reales de `~/Movies/Stalker`, porque el fixture se aplicaba antes del primer refresco. Esas capturas se borraron, el orden se corrigió y la corrida que vale usa solo fixtures.
+
+**Sin probar:** clics y arrastres reales en las cajas, bordes y doble clic de la barra propia; VoiceOver en los controles de época; Aumentar contraste. El aviso naranja fijo «Sin proyecto» (`InboxView`) tiene poco contraste sobre el gris de Win9x. Sin build instalada.
+
 ## Tema visual nu9ve-theme-v1 en nüün · 2026-11-07
 
 Primera adopción del [contrato de tema](contracts/nu9ve-theme-v1.md), en working tree y sin commit. La paleta pasa a los roles comunes (`surface`, `raised`, `line`, `ink`, `muted`, `accent`, `onAccent`, `accentText`, `accentSoft`). Se resuelve en `MediaMenuCore/ThemeColor.swift`, que es pura y lleva la copia comentada de `readable` de SoundShop. Las superficies conservan la receta anterior. Los textos solo se ajustan cuando no llegarían al mínimo: `ink` 7:1, `muted` y `accentText` 4.5:1, e `ink` sobre `accentSoft` 7:1. Antes, un color base oscuro en tema oscuro dibujaba casillas y radios a ~1:1. Los trazos e iconos que usaban el acento crudo ahora usan `accentText`. En Apariencia hay presets suizos: Ámbar (por defecto), Navaja, Acero y Glaciar. Elegir uno solo cambia el color, no el modo.

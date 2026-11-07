@@ -14,7 +14,7 @@ Referencias leídas en el código el 2026-11-06:
 | nüün | [Appearance.swift](../../native/MediaMenu/Sources/MediaMenu/Appearance.swift) | El tema aplicado a la ventana, el vidrio con respaldo sólido y un único botón principal por vista |
 | kyu | `apps/macos/Sources/Kyu/Theme.swift` | Los presets culturales y el entorno neutro para las fotos |
 
-Fractos es la expresión máxima y la referencia. Es la única app que lleva el lenguaje hasta materiales con ventanas cuadradas, sonido y háptica por tema. Las demás toman de ella poco a poco, sin perder usabilidad.
+Fractos es la expresión máxima y la referencia. Es la única app que lleva el lenguaje hasta sonido y háptica por tema, y la que define los materiales con ventana cuadrada; nüün los replica como skins opcionales. Las demás toman de ella poco a poco, sin perder usabilidad.
 
 ## 1. Tres capas
 
@@ -128,7 +128,9 @@ Un skin es un conjunto de medidas, no una paleta. Medidas en pt (Swift) y px (we
 | `gothic` · Gótico | 1 / 2 / 3 | 1–2, marco doble en paneles de marca | Suave, viñeta | UnifrakturMaguntia | Sistema | Negro profundo, carmesí, noche |
 | `y2k` · Cromo | 9 / 14 / 24 | 1 | Suave, brillo diagonal | Michroma / Audiowide | Sistema | Cromo líquido, botones píldora |
 
-Solo en Fractos: `win9x`, `terminal`, `neon`, `parchment` y `ledger`. Otra app puede adoptarlos solo si sigue la especificación de `ThemeMaterial` de Fractos.
+Solo en Fractos: `terminal`, `neon`, `parchment` y `ledger`. `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
+
+**Skins opcionales.** Una app puede ofrecer skins de época como extra para quien quiera personalizar su espacio. El skin por defecto sigue siendo el sobrio (Cristal), y elegir otro siempre es reversible desde Apariencia. Un skin de época **puede** fijar su modo (Macintosh y Windows 9x claros, Gótico oscuro). En ese caso Apariencia lo dice y conserva la preferencia de modo del usuario para cuando vuelva a otro skin.
 
 - **Debe:** el mismo skin tiene las mismas medidas, textura y fuentes por rol en todas las apps. Eso es lo que hace que se sienta como un skin compartido.
 - **Debe:** dither con la matriz Bayer 8×8 común, umbral `(m + 0.5) / 64`:
@@ -148,7 +150,7 @@ Solo en Fractos: `win9x`, `terminal`, `neon`, `parchment` y `ledger`. Otra app p
 - **Debe:** «Reducir movimiento» detiene lo decorativo. «Reducir transparencia» cambia vidrio y cromo por superficies sólidas. «Aumentar contraste» equivale a Contraste: Alto.
 - **Debe:** lo decorativo no intercepta clics ni llega a VoiceOver.
 - **Debe:** el vidrio tiene un respaldo sólido con la misma forma. Las capturas de QA (`cacheDisplay`) no dibujan Liquid Glass, así que el vidrio real se verifica en la app.
-- **Debe:** la forma de la ventana la decide [macos-app-v1 §2](macos-app-v1.md#2-ventana-y-tamaños). Solo Fractos documenta la excepción de ventanas cuadradas (`ShellWindow`). En las demás apps, un skin retro cambia el contenido y deja la ventana del sistema.
+- **Debe:** la forma de la ventana la decide [macos-app-v1 §2](macos-app-v1.md#2-ventana-y-tamaños). La excepción de ventanas cuadradas (`ShellWindow`) solo está documentada en Fractos y en nüün (Macintosh, Windows 9x y Gótico). En esas ventanas se reponen teclado, ⌘W, ⌘M, zoom, doble clic según `AppleActionOnDoubleClick`, bordes para redimensionar y pantalla completa, y el skin dibuja su propia barra con controles de época. En las demás apps, un skin retro cambia el contenido y deja la ventana del sistema.
 
 ## 6. Tipografía por roles
 
@@ -234,13 +236,13 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 | 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
 | 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
 | 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
-| 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Parcial: `glass` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
+| 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `dither`, `classicMac`, `win9x`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
 | 9 Idioma | Sin revisar | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
-- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Faltan la opción de Contraste, la tipografía suiza del wordmark y un segundo skin.
+- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Faltan la opción de Contraste y la tipografía suiza del wordmark.
 - **kyu:** derivar toda la paleta desde el acento.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.

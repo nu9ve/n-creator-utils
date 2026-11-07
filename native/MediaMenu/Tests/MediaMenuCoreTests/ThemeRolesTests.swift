@@ -10,10 +10,10 @@ private let seeds: [(Double, Double, Double)] = {
     return values + ThemePreset.all.map { let hsv = $0.color.hsv; return (hsv.hue, hsv.saturation, hsv.value) }
 }()
 
-@Test(arguments: [false, true]) func contrastMatrix(dark: Bool) {
+@Test(arguments: ThemeSkin.allCases, [false, true]) func contrastMatrix(skin: ThemeSkin, dark: Bool) {
     for (hue, saturation, brightness) in seeds {
-        let roles = ThemeRoles(dark: dark, hue: hue, saturation: saturation, brightness: brightness)
-        let label = "dark=\(dark) seed=\(roles.seed.hex)"
+        let roles = ThemeRoles(skin: skin, dark: dark, hue: hue, saturation: saturation, brightness: brightness)
+        let label = "skin=\(skin) dark=\(dark) seed=\(roles.seed.hex)"
         for background in [roles.canvas, roles.surface, roles.raised] {
             #expect(roles.ink.contrast(with: background) >= 7, "\(label) ink")
             #expect(roles.muted.contrast(with: background) >= 4.5, "\(label) muted")
@@ -49,6 +49,29 @@ private let seeds: [(Double, Double, Double)] = {
         #expect(ThemeColor.hsv(hsv.hue, hsv.saturation, hsv.value).hex == preset.hex, "\(preset.id)")
         #expect(Set(ThemePreset.all.map(\.id)).count == ThemePreset.all.count)
     }
+}
+
+@Test func periodSkinsKeepTheirEraAndGlassFollowsTheUser() {
+    let seed = (ThemeRoles.defaultHue, ThemeRoles.defaultSaturation, 1.0)
+    #expect(!ThemeRoles(skin: .classicMac, dark: true, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
+    #expect(!ThemeRoles(skin: .win9x, dark: true, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
+    #expect(ThemeRoles(skin: .gothic, dark: false, hue: seed.0, saturation: seed.1, brightness: seed.2).dark)
+    for dark in [false, true] {
+        let glass = ThemeRoles(skin: .glass, dark: dark, hue: seed.0, saturation: seed.1, brightness: seed.2)
+        let dither = ThemeRoles(skin: .dither, dark: dark, hue: seed.0, saturation: seed.1, brightness: seed.2)
+        #expect(glass.dark == dark)
+        // Grain is texture, not color: both skins share every role.
+        #expect(glass.canvas == dither.canvas && glass.ink == dither.ink && glass.accentSoft == dither.accentSoft)
+    }
+    #expect(ThemeSkin.allCases.filter(\.usesSquareWindow) == [.classicMac, .win9x, .gothic])
+}
+
+@Test func bayerMatchesTheSharedMatrix() {
+    #expect(Set(Bayer.matrix) == Set(0..<64))
+    #expect(Bayer.threshold(0, 0) == 0.5 / 64)
+    #expect(Bayer.cells(density: 0).isEmpty)
+    #expect(Bayer.cells(density: 1).count == 64)
+    #expect(Bayer.cells(density: 0.5).count == 32)
 }
 
 @Test func readableKeepsColorsThatAlreadyRead() {

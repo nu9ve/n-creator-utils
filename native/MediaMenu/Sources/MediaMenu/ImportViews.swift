@@ -220,7 +220,7 @@ struct UnitPreview: View {
                     AssetThumbnail(url: model.previewURL(unit), height: geometry.size.height)
                 }
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(selected ? palette.accentText : .clear, lineWidth: 3))
+                .overlay(palette.control.stroke(selected ? palette.accentText : .clear, lineWidth: 3))
                 .overlay(alignment: .bottomLeading) {
                     if unit.category == "stalker" {
                         VStack(alignment: .leading, spacing: 2) {

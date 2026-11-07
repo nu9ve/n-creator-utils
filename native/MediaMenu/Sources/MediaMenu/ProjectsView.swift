@@ -180,6 +180,6 @@ struct ProjectStageBadge: View {
     }
     var body: some View {
         Text(label).font(.caption2.weight(.medium)).padding(.horizontal, 6).padding(.vertical, 1)
-            .background(palette.raised.opacity(0.7), in: Capsule())
+            .background(palette.raised.opacity(0.7), in: palette.pill)
     }
 }

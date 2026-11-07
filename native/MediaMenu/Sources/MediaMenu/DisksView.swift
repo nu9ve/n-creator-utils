@@ -426,8 +426,8 @@ struct TargetStrip: View {
                             Text(usage(target)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                         }
                         .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(selected ? palette.accentSoft : palette.raised.opacity(0.5), in: Capsule())
-                        .contentShape(Capsule())
+                        .background(selected ? palette.accentSoft : palette.raised.opacity(0.5), in: palette.pill)
+                        .contentShape(palette.pill)
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? .isSelected : [])
@@ -524,8 +524,8 @@ struct TreemapView: View {
                 }
             }
         }
-        .background(palette.surface, in: RoundedRectangle(cornerRadius: 10))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(palette.surface, in: palette.panel)
+        .clipShape(palette.panel)
         .overlay { if rows.isEmpty && rest <= 0 { Text("Esta carpeta está vacía").font(.callout).foregroundStyle(.secondary) } }
     }
     private func tile(_ row: DiskRow, _ rect: CGRect) -> some View {

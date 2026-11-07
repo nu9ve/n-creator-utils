@@ -655,3 +655,22 @@
 "Liberar copias verificadas" = "Release verified copies";
 
 "Se guardará como: %@" = "Will be saved as: %@";
+
+/* nu9ve-theme-v1 skins */
+"%@ siempre es claro; tu tema vuelve al elegir otro skin." = "%@ is always light; your theme returns when you pick another skin.";
+"%@ siempre es oscuro; tu tema vuelve al elegir otro skin." = "%@ is always dark; your theme returns when you pick another skin.";
+"1 bit, rayas y cajas: un Macintosh II con tarjeta de color." = "1-bit, pinstripes and boxes: a Macintosh II with a color card.";
+"Ampliar ventana" = "Zoom window";
+"Ampliar · Opción: pantalla completa" = "Zoom · Option: full screen";
+"Biseles grises y título con degradado." = "Gray bevels and a gradient caption.";
+"Cristal" = "Glass";
+"Cristal es el de todos los días. Los demás cambian la ventana completa: barra, controles, botones y letra de títulos." = "Glass is the everyday look. The others change the whole window: bar, controls, buttons and heading type.";
+"El grano del colectivo: dither ordenado y detalles pixel." = "The collective's grain: ordered dither and pixel details.";
+"Grano" = "Grain";
+"Gótico" = "Gothic";
+"Macintosh" = "Macintosh";
+"Minimizar ventana" = "Minimize window";
+"Nativo y tranquilo. El de todos los días." = "Native and calm. The everyday look.";
+"Noche, marco doble y ornamento. Lo contrario de la retícula suiza." = "Night, double frames and ornament. The opposite of the Swiss grid.";
+"Skin" = "Skin";
+"Windows 9x" = "Windows 9x";
