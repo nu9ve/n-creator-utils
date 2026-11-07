@@ -60,7 +60,7 @@ struct WindowTopBar: View {
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
-                Text("nüün").font(palette.display(14))
+                Text(verbatim: palette.skin == .terminal ? "~$ nüün" : "nüün").font(palette.display(14))
                     .padding(.leading, 8).help(model.message)
                 if model.presentation == .full {
                     Spacer(minLength: 4)

@@ -48,7 +48,8 @@ struct CreatorPalette: Sendable {
     private var displayFamily: String? {
         switch skin {
         case .glass: return nil
-        case .dither, .classicMac: return "Silom"
+        case .classicMac: return "Silom"
+        case .terminal: return "Menlo-Bold"
         case .win9x: return "Tahoma Bold"
         case .gothic: return "Luminari"
         }
@@ -136,7 +137,14 @@ struct CreatorButtonStyle: ButtonStyle {
                     .overlay(shape.stroke(prominent ? palette.ink.opacity(0.35) : palette.line, lineWidth: 1))
                     .overlay(RoundedRectangle(cornerRadius: palette.skin.controlRadius).inset(by: 2).stroke(palette.line.opacity(prominent ? 0 : 0.35), lineWidth: 0.5))
                     .opacity(pressed ? 0.8 : 1)
-            case .glass, .dither:
+            case .terminal:
+                // Inverse video: the primary and a pressed button are lit with the signal.
+                let lit = prominent || pressed
+                label
+                    .foregroundStyle(destructive ? palette.danger : (lit ? palette.onAccent : palette.ink))
+                    .background(lit ? palette.accent : palette.canvas, in: shape)
+                    .overlay(shape.stroke(prominent ? palette.accent : palette.line, lineWidth: 1))
+            case .glass:
                 label
                     .foregroundStyle(destructive ? palette.danger : (prominent ? palette.onAccent : palette.ink))
                     .background(prominent ? palette.accent : (pressed ? palette.raised : palette.surface.opacity(0.75)), in: shape)
@@ -156,7 +164,7 @@ struct CreatorTextFieldStyle: TextFieldStyle {
             if palette.skin == .win9x {
                 field.background(Color.white).overlay(Win9xBevel(isRaised: false))
             } else {
-                field.background(palette.skin == .glass || palette.skin == .dither ? palette.surface : palette.raised, in: palette.control)
+                field.background(palette.skin == .glass ? palette.surface : palette.raised, in: palette.control)
                     .overlay(palette.control.stroke(palette.line, lineWidth: 1))
             }
         }
@@ -183,8 +191,8 @@ struct GlassSurface<S: Shape>: ViewModifier {
             } else {
                 content.background(palette.surface.opacity(0.95), in: shape).overlay(shape.stroke(palette.line.opacity(0.5)))
             }
-        case .dither:
-            content.background(palette.surface, in: shape).overlay(shape.stroke(palette.line.opacity(0.7)))
+        case .terminal:
+            content.background(palette.surface, in: shape).overlay(shape.stroke(palette.line, lineWidth: 1))
         case .classicMac:
             // A 1-bit window: white, black rule and a hard drop shadow.
             content.background(palette.surface, in: shape).overlay(shape.stroke(palette.ink, lineWidth: 1))
@@ -220,6 +228,9 @@ struct CreatorAppearance: ViewModifier {
             .textFieldStyle(CreatorTextFieldStyle())
             .tint(palette.accentText)
             .foregroundStyle(palette.ink)
+            // Terminal sets every system text style in the monospaced design, not only headings.
+            .fontDesign(skin == .terminal ? .monospaced : nil)
+            .overlay { if skin == .terminal { Scanlines().ignoresSafeArea() } }
             .background(SkinAtmosphere().ignoresSafeArea())
             .background(palette.canvas.ignoresSafeArea())
             .background(WindowTheme(palette: palette, followsSystem: followsSystem))
