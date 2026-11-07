@@ -49,6 +49,7 @@ La similitud está en las capacidades, los flujos y la calidad de interacción; 
 - **Debe:** Claro, Oscuro y Sistema, siguiendo `UISettings`/`ActualTheme`. La derivación de color y la matriz de contraste son las mismas funciones puras que en Mac, idealmente en el motor o en datos compartidos (vectores de prueba, §10 del tema).
 - **Conviene:** el equivalente de Cristal es **Mica** de fondo y **Acrylic** en superficies flotantes, con respaldo sólido si «Efectos de transparencia» está apagado. No verificado aún en ninguna app de la suite.
 - **Skins** (§5 del tema): el juego es el mismo (original, contraste, Macintosh, Windows 9x, Terminal) y cambia **el contenido**: superficies, botones, campos, tipografía y texturas. **La ventana sigue siendo del sistema**, con sus botones a la derecha, porque es la posición original para un usuario de Windows. Un skin de época **puede** pedir esquinas cuadradas con `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND)`, pero no reemplaza el caption ni los botones.
+- **Debe:** cada ventana y diálogo propio (Ajustes, Acerca de, broker, avisos, el instalador de la §9) usa el mismo tema, skin y colores de botones de ventana. `ContentDialog` y las ventanas secundarias heredan los diccionarios; ninguna queda con la barra por defecto.
 - La identidad de cada app (§7 del tema) se mantiene. El tema «Puerto» de nove en Windows es su original.
 
 ## 4. Menús, comandos y teclado
@@ -123,6 +124,24 @@ Para lo que lanzan herramientas externas usa **alias MSIX con un solo rol permit
 - **Debe:** decidir y documentar dónde viven los datos. Lo que debe sobrevivir a desinstalar (la biblioteca) va en `%LOCALAPPDATA%\<App>` **sin virtualizar** (`unvirtualizedResources`). Lo que no debe heredarse (concesiones, tokens) va en `LocalState` del paquete, que Windows borra.
 - **Debe:** desinstalar quita tareas, helpers y StartupTask. Borrar la biblioteca es una acción explícita.
 - Tauri (curado) usa los instaladores de Tauri (NSIS/MSI). Esto también se documenta con firma, actualización y desinstalación.
+
+### Instalador con identidad
+
+El instalador nativo de MSIX (App Installer) no se puede personalizar. Para que instalar se sienta como la app, **conviene** un **Setup propio** opcional, junto al MSIX y no en su lugar.
+- **Aspecto:** sigue el original de la app o uno de sus skins. Puede tener forma propia (ventana por capas con alfa por pixel, sin el rectángulo de siempre), estética demoscene, keygen o skin de Winamp, animación y música.
+- **Música y sonido:** siguen el §12 del tema. Arrancan en silencio salvo que el usuario ya los haya encendido, siempre con un botón de silencio visible.
+- **Debe seguir siendo un instalador honesto:**
+  - Firmado.
+  - Instala con la API de paquetes (`PackageManager`), igual que `Add-AppxPackage`.
+  - Muestra qué instala, dónde, la versión y las atribuciones.
+  - Progreso real, Cancelar y errores en palabras.
+  - Funciona con teclado y Narrador.
+  - Tiene modo silencioso para scripts (`--quiet`).
+  - Pide administrador solo para el paso que lo necesita (confiar el certificado de desarrollo) y lo dice.
+  - Desinstalar sigue en Configuración de Windows.
+- **No debe** imitar marcas ni grupos reales de cracks, pedir que se desactive el antivirus, ofuscar ni empaquetar con compresores que disparen heurísticas, ni instalar nada que no se haya mostrado. La estética es un guiño; el comportamiento es el de un instalador de confianza.
+- Las imitaciones de sitios o servicios para QA (como en nove) no van nunca en el Setup de Release.
+- **En Mac** el equivalente es un DMG con fondo y disposición del tema (o una app de instalación con la misma regla). Hoy nüün y SoundShop instalan con scripts de desarrollo, y eso se mantiene para desarrollo.
 
 ## 10. Validación
 

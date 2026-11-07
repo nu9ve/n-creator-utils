@@ -74,6 +74,7 @@ def main():
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
             'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'CFBundleDevelopmentRegion': 'es', 'CFBundleLocalizations': ['es', 'en'], 'LSUIElement': True,
             'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
+            'NSHumanReadableCopyright': '© 2026 nu9ve',
             'LSHasLocalizedDisplayName': True, 'Nu9veSearchAliases': ['nuun', 'nun', 'creator utils'],
             'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
             'Nu9veBuildID': build_id, 'Nu9veBuildDate': datetime.datetime.now(datetime.timezone.utc).isoformat()}

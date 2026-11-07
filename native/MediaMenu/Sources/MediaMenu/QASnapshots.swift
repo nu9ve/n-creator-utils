@@ -779,6 +779,13 @@ import MediaMenuCore
                 print("QA skin \(skin.rawValue) settings titled=\(settings.styleMask.contains(.titled))")
                 settings.orderOut(nil)
             }
+            delegate.showAbout()
+            try? await Task.sleep(for: .milliseconds(700))
+            if let about = delegate.aboutWindow {
+                capture(about, "about-\(skin.rawValue).png")
+                print("QA skin \(skin.rawValue) about titled=\(about.styleMask.contains(.titled)) resizable=\(about.styleMask.contains(.resizable)) size=\(size(about.frame))")
+                about.orderOut(nil)
+            }
         }
         UserDefaults.standard.set(ThemeSkin.win9x.rawValue, forKey: "skin")
         try? await Task.sleep(for: .milliseconds(900))

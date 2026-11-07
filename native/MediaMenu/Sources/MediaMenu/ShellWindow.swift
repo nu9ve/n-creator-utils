@@ -12,6 +12,8 @@ import SwiftUI
 final class ShellWindow: NSWindow {
     private var resizeOverlay: ShellWindowResizeOverlay?
     private var frameBeforeZoom: NSRect?
+    /// Whether people can change its size (About cannot). Set before the first corner style.
+    var isUserResizable = true
 
     /// Square corners and no system title bar, for skins that draw their own.
     var usesSquareCorners = false {
@@ -59,7 +61,7 @@ final class ShellWindow: NSWindow {
     /// Between the window's own size and filling the screen beside the Dock and the menu bar.
     override func zoom(_ sender: Any?) {
         if styleMask.contains(.fullScreen) { toggleFullScreen(sender); return }
-        guard usesSquareCorners, let visible = screen?.visibleFrame else { super.zoom(sender); return }
+        guard usesSquareCorners, isUserResizable, let visible = screen?.visibleFrame else { super.zoom(sender); return }
         let step = ShellWindowGeometry.zoom(current: frame, visible: visible, previous: frameBeforeZoom, minimum: minSize)
         frameBeforeZoom = step.previous
         setFrame(step.frame, display: true, animate: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
@@ -74,11 +76,12 @@ final class ShellWindow: NSWindow {
         guard !styleMask.contains(.fullScreen) else { return }
         if usesSquareCorners {
             styleMask.remove(.titled)
-            styleMask.formUnion([.miniaturizable, .closable, .resizable, .fullSizeContentView])
+            styleMask.formUnion([.miniaturizable, .closable, .fullSizeContentView])
         } else {
-            styleMask.formUnion([.titled, .miniaturizable, .closable, .resizable])
+            styleMask.formUnion([.titled, .miniaturizable, .closable])
             styleMask.remove(.fullSizeContentView)
         }
+        if isUserResizable { styleMask.insert(.resizable) } else { styleMask.remove(.resizable) }
         updateResizeOverlay()
         hasShadow = true
         invalidateShadow()
@@ -87,14 +90,15 @@ final class ShellWindow: NSWindow {
     /// Without a title bar AppKit offers no resizable edges, so an overlay provides them.
     private func updateResizeOverlay() {
         guard let contentView else { return }
-        if usesSquareCorners, resizeOverlay == nil || resizeOverlay?.superview !== contentView {
+        let wanted = usesSquareCorners && isUserResizable
+        if wanted, resizeOverlay == nil || resizeOverlay?.superview !== contentView {
             resizeOverlay?.removeFromSuperview()
             let overlay = ShellWindowResizeOverlay(frame: contentView.bounds)
             overlay.autoresizingMask = [.width, .height]
             contentView.addSubview(overlay)
             resizeOverlay = overlay
         }
-        resizeOverlay?.isHidden = !usesSquareCorners
+        resizeOverlay?.isHidden = !wanted
         invalidateCursorRects(for: resizeOverlay ?? contentView)
     }
 }

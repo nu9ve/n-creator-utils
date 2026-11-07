@@ -707,3 +707,11 @@
 "Retirados" = "Removed";
 "Descartar sin respaldo" = "Discard without backup";
 "Liberar copia de edición" = "Remove editing copy";
+
+/* About (macos-app-v1 §5) */
+"Build de desarrollo" = "Development build";
+"Copiado" = "Copied";
+"Copiar versión, sistema y arquitectura para reportar un problema" = "Copy version, system and architecture to report a problem";
+"GitHub" = "GitHub";
+"Una multiherramienta para creadores." = "A multitool for creators.";
+"Versión %@ (%@)" = "Version %@ (%@)";

@@ -12,6 +12,7 @@ private extension NSToolbarItem.Identifier {
     var status: NSStatusItem!
     var window: NSWindow?
     var settingsWindow: NSWindow?
+    var aboutWindow: NSWindow?
     var pendingMode: WindowMode?
     var observers: [NSObjectProtocol] = []
     /// Kept while a skin draws its own window, to put back for Cristal and Grano.
@@ -109,7 +110,7 @@ private extension NSToolbarItem.Identifier {
             guard let self else { return }
             // Changing the title bar keeps the content rect, which would shrink or grow the window:
             // the frame the user arranged stays put.
-            for value in [self.window, self.settingsWindow].compactMap({ $0 as? ShellWindow }) where !value.styleMask.contains(.fullScreen) {
+            for value in [self.window, self.settingsWindow, self.aboutWindow].compactMap({ $0 as? ShellWindow }) where !value.styleMask.contains(.fullScreen) {
                 let frame = value.frame
                 value.usesSquareCorners = skin.usesSquareWindow
                 if value === self.window {
@@ -251,7 +252,7 @@ private extension NSToolbarItem.Identifier {
             value.title = String(localized: "Ajustes de nüün"); value.isReleasedWhenClosed = false
             value.minSize = NSSize(width: 620, height: 440)
             let title = String(localized: "Ajustes de nüün")
-            let host = NSHostingView(rootView: SkinnedWindow(title: title, barRow: { $0 == .gothic }, bar: { Text(verbatim: title).font(.callout.weight(.semibold)).allowsHitTesting(false); Spacer() }) {
+            let host = NSHostingView(rootView: SkinnedWindow(title: title, barRow: { $0.captionHeight == 0 }, bar: { Text(verbatim: title).font(.callout.weight(.semibold)).allowsHitTesting(false); Spacer() }) {
                 SettingsView(model: model)
             }.modifier(CreatorAppearance()))
             host.sizingOptions = []
@@ -265,6 +266,30 @@ private extension NSToolbarItem.Identifier {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: About window
+
+    /// macos-app-v1 §5: the app's own About, in its theme and skin, fixed size, never restored.
+    @objc func showAbout() {
+        if aboutWindow == nil {
+            let value = ShellWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 400), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+            let title = String(localized: "Acerca de nüün")
+            value.title = title; value.isReleasedWhenClosed = false; value.isRestorable = false
+            value.titleVisibility = .hidden; value.tabbingMode = .disallowed
+            value.isUserResizable = false
+            let host = NSHostingView(rootView: SkinnedWindow(title: title, barRow: { $0.captionHeight == 0 }, resizable: false, bar: { Spacer() }) {
+                AboutView(identity: .nuun)
+            }.modifier(CreatorAppearance()))
+            host.sizingOptions = [.preferredContentSize]
+            value.contentView = host
+            value.center()
+            aboutWindow = value
+            applySkinChrome(force: true)
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        aboutWindow?.makeKeyAndOrderFront(nil)
     }
 
     // MARK: Menus and shortcuts
@@ -281,7 +306,7 @@ private extension NSToolbarItem.Identifier {
             item.keyEquivalentModifierMask = modifiers; item.tag = tag; item.target = target
         }
         let app = submenu("nüün")
-        add(app, String(localized: "Acerca de nüün"), #selector(NSApplication.orderFrontStandardAboutPanel(_:)), "")
+        add(app, String(localized: "Acerca de nüün"), #selector(showAbout), "", target: self)
         add(app, String(localized: "Ajustes…"), #selector(settings), ",", target: self)
         app.addItem(.separator())
         add(app, String(localized: "Ocultar nüün"), #selector(NSApplication.hide(_:)), "h")

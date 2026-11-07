@@ -27,7 +27,7 @@ Referencias: **SoundShop** para una app de documento en ciclo de vida SwiftUI (`
 
 Qué se configura, cómo se nombran los colores y qué es un skin: [tema visual v1](nu9ve-theme-v1.md). Esta sección cubre solo su aplicación a la ventana.
 
-- **Debe** aplicar el tema a la ventana (`backgroundColor`, `appearance`), no solo al contenido, para que barra, sheets y controles nativos coincidan. Un solo punto, por valor.
+- **Debe** aplicar el tema a la ventana (`backgroundColor`, `appearance`), no solo al contenido, para que barra, sheets y controles nativos coincidan. Un solo punto, por valor. Vale para **todas** las ventanas: Ajustes, Acerca de, sheets, paneles y auxiliares, con su barra ([tema §8](nu9ve-theme-v1.md#8-barras-del-sistema-menús-y-controles)). Una barra de título sin tema en una subventana es un error.
 - **Debe** verificar contraste de texto (4.5:1) en el tema por defecto, y texto sobre el acento.
 - Los menús respaldados por AppKit pueden conservar el color de texto al cambiar de claro a oscuro: probar ese cambio con la app abierta.
 - **Conviene** ofrecer Claro, Oscuro y Sistema. Observar `NSApp.effectiveAppearance`, no notificaciones privadas.
@@ -103,7 +103,7 @@ Revisar el código al actualizar; esta tabla no sustituye el estado de cada app.
 | 2 Ventana | Sí | Parcial: la pantalla completa recorre clases privadas |
 | 3 Temas | Sí | Sí |
 | 4 Menús | Sí | Parcial: menú manual sin Servicios, Ocultar otras, Mostrar todo ni Zoom |
-| 5 Acerca de | Sí | No: panel estándar sin enlaces ni tema |
+| 5 Acerca de | Sí | Sí (2026-11-07): ventana propia con tema y skin, versión copiable, enlaces y `NSHumanReadableCopyright` |
 | 6 Documentos | Sí | No aplica |
 | 7 Ajustes | Sí | Sí |
 | 8 Sistema | Sí, sin pasada completa de VoiceOver | Sí, sin pasada completa de VoiceOver |

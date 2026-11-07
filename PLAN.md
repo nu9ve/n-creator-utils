@@ -63,6 +63,14 @@ Nüün conserva el editable y observa deps frescos; invocar automáticamente ese
 
 MCP actual de sólo lectura. Mutaciones necesitan aprobación/cancelación y contrato común de plan/digest/progreso. Windows/Linux, catálogo multiusuario, nube y segunda réplica son entregas futuras. Descargas/stems pueden incorporarse como derivados; MIDI, iluminación, IoT y Raspberry Pi siguen exploratorios.
 
+## Prioridad baja · nombre interno
+
+Renombrar el código `MediaMenu` a nüün:
+- Paquete `native/MediaMenu` → por ejemplo `native/Nuun`; targets `MediaMenu`/`MediaMenuCore`/`MediaMenuCoreTests` → `Nuun`/`NuunCore`/`NuunCoreTests`.
+- `CFBundleExecutable`, el prefijo de los artefactos `Nu9veMedia-local-*` y las rutas en `scripts/build_media_app.py`, `scripts/install_media_app.py`, `scripts/check_localization.py` y los docs.
+
+Se conserva `CFBundleIdentifier` `app.nu9ve.media`, porque de él dependen las preferencias, permisos y la entrada de LaunchServices, igual que `~/Applications/nuun.app` y el catálogo. Va en un cambio propio, sin comportamiento nuevo: build, pruebas, localización e instalación encima de la versión anterior deben quedar iguales.
+
 ## Retomar en otra sesión
 
 Leer CONTEXT → primera entrada de STATUS → fila de este PLAN → contrato/módulo dueño.
