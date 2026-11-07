@@ -59,8 +59,11 @@ def rename(catalog, key, title):
     return {'key': key, 'project_id': key, 'title': title, 'previous': row['title']}
 
 
-def overview(catalog, sessions):
-    """Newest first. `sessions` come from capture_libraries so a draft shows up as soon as it is tagged."""
+def overview(catalog, sessions, backend=None):
+    """Newest first. `sessions` come from capture_libraries so a draft shows up as soon as it is tagged.
+
+    `deliveries` comes from the closeout's own reading (closure.delivery_states), the same one the reopened sheet shows.
+    """
     aliases, names = {}, {}
     for row in catalog.db.execute('SELECT alias,project_id FROM project_aliases ORDER BY profile'):
         aliases.setdefault(row['alias'], row['project_id'])
@@ -113,8 +116,18 @@ def overview(catalog, sessions):
         else:
             stage = 'backed_up'
         touched = catalog.get('project-touch:' + key, '')
+        item['deliveries'] = _deliveries(catalog, backend, item['project_id'])
+        item['released'] = bool(item['project_id'] and catalog.get('project-released:' + item['project_id']))
         item.update(state=state, stage=stage, jobs=len(linked), open_jobs=open_jobs, cameras=sorted(item['cameras']), places=sorted(item['places']),
                     aliases=[name for name in names.get(item['project_id'], []) if name != item['project']],
                     updated_at=max([touched, seen] + [jobs[job][1] for job in linked if job in jobs]))
         result.append(item)
     return sorted(result, key=lambda e: (e['updated_at'], e['project']), reverse=True)
+
+
+def _deliveries(catalog, backend, project_id):
+    from .closure import delivery_states, delivery_summary
+    config = catalog.get('project-closure:' + project_id) if project_id else None
+    if not config or not config.get('finals'):
+        return {'awaiting': 0, 'awaiting_names': [], 'published': 0, 'missing': 0, 'offline': False}
+    return delivery_summary(delivery_states(catalog, backend, project_id, config))

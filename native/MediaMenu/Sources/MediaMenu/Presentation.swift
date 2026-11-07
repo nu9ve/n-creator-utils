@@ -302,6 +302,11 @@ struct LibraryView: View {
                 Spacer()
                 Text("\(rows.count) elementos").font(.caption).foregroundStyle(.secondary)
             }
+            if model.runningAction == "deliver" {
+                ActionProgressView(title: "Copiando desde el respaldo",
+                                   note: "Cada archivo se copia desde MEDIA al disco de edición y se verifica contra su huella. Puedes pausar: lo verificado se conserva y se adopta al reintentar.",
+                                   state: .transfer(model.actionProgress, phase: model.stageLabel(model.actionProgress["stage"].string)))
+            } else {
             Table(rows, selection: $model.selected, sortOrder: $order) {
                 TableColumn("Proyecto", value: \.project)
                 TableColumn("Perfil", value: \.profile).width(min: 60, ideal: 80)
@@ -317,6 +322,7 @@ struct LibraryView: View {
                     ContentUnavailableView("Biblioteca vacía", systemImage: "square.stack", description: Text("Lo que respaldes desde Ingreso aparecerá aquí."))
                 }
             }
+            }
         }
         .padding(.horizontal, 20).padding(.top, 14)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -331,7 +337,8 @@ struct LibraryView: View {
                 Button("Restaurar…") { model.restoreSelected() }.disabled(model.selected.count != 1 || model.busy)
                 Button("Exportar selección…") { model.exportHandoff() }.disabled(model.selected.isEmpty || model.busy)
                 Spacer(minLength: 0)
-                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                if model.runningAction == "deliver" { Button("Pausar") { model.client?.cancel() } }
+                else if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
                 Button("Copiar al SSD", systemImage: "externaldrive.badge.plus") { model.deliver() }
                     .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.selected.isEmpty || model.work.isEmpty || model.busy)
             }
@@ -341,6 +348,7 @@ struct LibraryView: View {
 
 struct ActivityView: View {
     @Bindable var model: Model
+    @Environment(\.creatorPalette) private var palette
     @State private var expanded: Set<String> = []
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -373,6 +381,17 @@ struct ActivityView: View {
                     }
                     if model.activeJobID == id, model.busy, let progress = model.jobProgress {
                         JobProgressView(model: model, job: progress)
+                    }
+                    if job["sony_stage"].string == "originals_reappeared" {
+                        let names = job["sony_reappeared"].array.map { URL(fileURLWithPath: $0.string).lastPathComponent }
+                        HStack(spacing: 8) {
+                            Label(names.prefix(4).joined(separator: ", ") + (names.count > 4 ? "…" : ""), systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(palette.warning).lineLimit(1)
+                            Spacer()
+                            Button("Volver a revisar la SD…") { model.reviewReappeared(job) }
+                                .disabled(model.busy || model.reappearedCard(job) == nil)
+                                .help(model.reappearedCard(job) == nil ? "Conecta la misma SD para revisarla" : "Prepara un plan nuevo para esta SD; nada se retira hasta aplicarlo")
+                        }.font(.caption).padding(.leading, 28)
                     }
                     if expanded.contains(id) {
                         VStack(alignment: .leading, spacing: 3) {

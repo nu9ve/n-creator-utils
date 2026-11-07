@@ -129,6 +129,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closureProject: JSONValue?
     var closureSettings: JSONValue = .object([:])
     var closureCandidates: [JSONValue] = []
+    /// A release or a delivery from the archive in progress: which one, and the engine's last measure (`action_progress`).
+    var runningAction = ""
+    var actionProgress: JSONValue = .object([:])
+    /// Where each saved delivery stands now (`closure.delivery_states`): the same reading as the Projects row.
+    var closureDeliveries: [JSONValue] = []
     var closureTruncated = false
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])
@@ -447,6 +452,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "releasing_originals": return String(localized: "Liberando archivos originales")
         case "relink_complete": return String(localized: "Referencias actualizadas")
         case "release_complete", "session_finished": return String(localized: "Sesión liberada")
+        case "delivering_work": return String(localized: "Copiando desde el respaldo y verificando")
         default: return String(localized: "Liberando sesión Stalker")
         }
     }
@@ -491,9 +497,13 @@ enum OperationScope { case ingest, library, space, settings, source }
         if job["sony_removal_recorded"].bool {
             return String(localized: "Retiro de clips registrado · falta comprobar la SD")
         }
-        switch job["sony_card_check"].string {
-        case "ready": return String(localized: "Respaldo verificado · SD comprobada al reconectar")
-        case "originals_present": return String(localized: "Respaldo verificado · reaparecieron archivos en la SD")
+        // Observed stages (transfer.sony_stage): nothing here asks the person to confirm.
+        switch job["sony_stage"].string {
+        case "formatted": return String(localized: "Formato observado · SD lista para grabar")
+        case "originals_reappeared":
+            return String(localized: "Reaparecieron \(max(1, job["sony_reappeared"].array.count)) archivos respaldados en la SD · vuelve a revisarla")
+        case "removal_durable": return String(localized: "Retiro comprobado al reconectar · falta formatear en la cámara")
+        case "removal_observed": return String(localized: "Retiro observado · formatea en la cámara y vuelve a conectar la SD")
         default: break
         }
         // Cards holding Stalker bundles end camera_action_required without any camera step.
@@ -515,6 +525,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             || job["state"].string == "source_retained" && job["release_stalker_source"].bool
     }
     func needsAttention(_ job: JSONValue) -> Bool {
+        if job["sony_stage"].string == "originals_reappeared" { return true }
         if sonyCardFollowup(job) { return false }
         return ["failed", "paused", "camera_action_required"].contains(job["state"].string)
             || job["state"].string == "source_retained" && job["release_stalker_source"].bool
@@ -648,6 +659,17 @@ enum OperationScope { case ingest, library, space, settings, source }
     func prepareCaptureBatch(_ root: String) {
         prepareSource(root, kind: "stalker")
         goToStep(.content)
+    }
+    /// A Sony card whose backed-up clips reappeared: open a new reviewed plan for that same card (nothing is removed
+    /// without the person applying it). Nil when the card is not connected.
+    func reappearedCard(_ job: JSONValue) -> String? {
+        let uuid = job["source_volume_uuid"].string
+        return sourceCards.first { !uuid.isEmpty && $0["identity"]["volume_uuid"].string == uuid }?["path"].string
+    }
+    func reviewReappeared(_ job: JSONValue) {
+        guard let path = reappearedCard(job) else { return }
+        useCard(path)
+        changeMode?(.full)
     }
     func useCard(_ path: String) {
         if source != path { parkIngestDraft() }
@@ -846,8 +868,24 @@ enum OperationScope { case ingest, library, space, settings, source }
     func deliver() {
         let ids = selected.sorted()
         operation(String(localized: "Preparando copias para editar"), scope: .library) {
-            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work)])
+            let progressID = JSONValue.string(UUID().uuidString.lowercased())
+            let monitor = self.watchAction("deliver", progressID)
+            defer { monitor.cancel(); self.runningAction = "" }
+            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work), "progress_id": progressID])
             self.message = String(localized: "Copias para editar verificadas"); self.selected = []
+        }
+    }
+    /// Polls the engine's measure for a release or a delivery; the action view reads `actionProgress`.
+    func watchAction(_ name: String, _ id: JSONValue) -> Task<Void, Never> {
+        runningAction = name
+        actionProgress = .object([:])
+        return Task { @MainActor in
+            while !Task.isCancelled {
+                if let value = try? await self.reader?.call("action_progress", ["id": id]), !Task.isCancelled, value != .object([:]) {
+                    self.actionProgress = value
+                }
+                try? await Task.sleep(for: .milliseconds(400))
+            }
         }
     }
     func skip() {

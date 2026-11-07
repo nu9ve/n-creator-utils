@@ -2,6 +2,18 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Por publicar, vista de acción en todas las acciones largas y etapas Sony · 2026-11-07
+
+En working tree, sin commit, sobre `de2aecd`. **Sin instalar todavía**: la build instalada sigue siendo `ad51c488d304`.
+
+- **Por publicar** ([contrato](contracts/project-closeout-v1.md#por-publicar-en-proyectos--2026-11-07)): el motor (`closure.delivery_states`) dice por entrega si está por publicar, publicada en edición, movida a publicados, ya respaldada o no encontrada. Proyectos muestra «Terminado · N por publicar» y el filtro **Por publicar**. La hoja al reabrir lee la misma lista y propone la nueva ubicación de una entrega movida a `subidos`.
+- **Vista de acción** ([interacción](contracts/nu9ve-interaction-v1.md#acciones-largas)): `media/progress.py` da una medida por acción que no retrocede, con archivo actual (origen → destino) y log. La usan Ingreso (también «Respaldar publicados» desde Discos), Revisar liberación con **Pausar** y Copiar al SSD desde Biblioteca con **Pausar**, además del cierre.
+- **Sony** ([contrato](contracts/ingest-flow-v1.md#etapas-observadas-del-retiro-sony--2026-11-07)): `sony_stage` distingue respaldo verificado, retiro observado, retiro registrado con lectura final fallida, retiro comprobado al reconectar y formato observado, sin confirmaciones. Si reaparece un clip respaldado, Actividad muestra cuáles y ofrece **Volver a revisar la SD…** (un plan nuevo, nada se retira sin aplicarlo).
+- **Baches `060b585d`:** diagnóstico en sólo lectura del catálogo, en el contrato de ingreso. Seis retiros journalizados; el fallo fue la lectura final de la tarjeta (entrada de directorio ya retirada), el caso que `checking_card` reintenta desde `060f59f`. Sigue `failed`; no se reanudó.
+- **Proyectos relacionados:** sólo [propuesta](contracts/project-closeout-v1.md#proyectos-relacionados--propuesta-pendiente-de-confirmación--2026-11-07), pendiente de confirmación del usuario.
+
+Evidencia: Python **302 OK, 4 omitidas** (`/usr/bin/python3`), **19/19 contratos** (Python 3.9.16 con jsonschema), `swift test` **25/25**, localización **760 claves** sin faltantes ni sobrantes, `git diff --check`. Pruebas nuevas: `test_projects_report_finals_awaiting_publication_until_backed_up`, `tests/test_action_progress.py` (ingreso, liberación con servicio, recuperación) y `test_sony_stages_follow_observations_without_confirmation`. `--qa-snapshots` aislado (HOME y NU9VE_MEDIA_HOME temporales) en Cristal y Macintosh: fila «Terminado · 6 por publicar» y la vista de acción del ingreso; capturas revisadas, sólo fixtures. La QA `--qa-closeout` tiene ahora la comprobación de Proyectos, pero **no se corrió**: su fixture de catálogo no está en el repo. **Sin probar:** todo lo físico (reconectar la Sony, Terra en Proyectos, pausar una liberación real, recuperar un raw de MEDIA502, clics en skins).
+
 ## Cierre editorial con publicación pendiente · 2026-11-07
 
 Instalada la build **`face3d2b2657`** en `~/Applications/nuun.app`.

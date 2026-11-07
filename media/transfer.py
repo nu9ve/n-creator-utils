@@ -10,6 +10,7 @@ import threading
 import time
 import uuid
 
+from .progress import ActionMeter
 from .common import CHUNK_SIZE, MediaError, Tree, canonical, content_stamp, digest, full_sync, hash_fd, now, require, uncached
 from .layout import sony_index_member
 from .planner import destination_path, preflight, scan, validate_plan
@@ -41,6 +42,31 @@ def sony_removal_recorded(catalog, job):
     return bool(plan['files']) and any(cleaned == 1 for _, cleaned in members.values())
 
 
+def sony_stage(state, check=None, removal_recorded=False):
+    """Where a Sony card stands after its backup, from observations only; never asks the person to confirm.
+
+    backup_verified → removal_observed (this run removed the verified clips and saw them gone; `removal_recorded`
+    when the removals are journaled but the final card read failed)
+    → removal_durable (the same card came back with the clips still absent and its indexes untouched)
+    → formatted (the camera rewrote an index and no backed-up clip is left). `originals_reappeared` means a
+    backed-up clip is on the card again: the job stays open and Actividad offers a new review.
+    """
+    if check == 'ready' or state == 'completed':
+        return 'formatted'
+    if check == 'originals_present':
+        return 'originals_reappeared'
+    if check == 'waiting_camera':
+        return 'removal_durable'
+    if state == 'failed' and removal_recorded:
+        # Every removal is journaled but the final look at the card failed (060b585d): nothing was observed after it.
+        return 'removal_recorded'
+    if state == 'camera_action_required':
+        return 'removal_observed'
+    if state in {'backup_verified', 'cleaning_source'}:
+        return 'backup_verified'
+    return ''
+
+
 def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None, cancel=None):
     """Observe a returning card. This can update its jobs but never changes the card."""
     from .volumes import card_identity, destination_identities, reject_destination, validate_card
@@ -67,7 +93,7 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
             except FileNotFoundError:
                 return None
 
-        observed, hashes = {}, {}
+        observed, hashes, details = {}, {}, {}
         for row in rows:
             plan = json.loads(row['plan'])
             old = plan['source_identity']
@@ -88,7 +114,7 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
                     originals.append((path, previous, current))
             if not originals or not indexes or not all(members.get(path, (None, 0))[1] == 1 for path, _, _ in originals):
                 continue
-            old_present = False
+            reappeared = []
             for path, previous, current in originals:
                 if not current or current['size'] != previous['size']:
                     continue
@@ -98,14 +124,15 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
                         hashes[path] = hash_fd(stream.fileno(), cancel)
                         require(content_stamp(os.fstat(stream.fileno())) == current, 'source_changed', 'Card changed during check')
                 if hashes[path] == members[path][0]:
-                    old_present = True
-                    break
+                    reappeared.append(path)
+            old_present = bool(reappeared)
             # Ignore inode/ctime differences from exFAT remounts. Require a live Sony index.
             changed = any(current and current['size'] > 0 and
                           (current['size'], current['mtime_ns']) != (previous['size'], previous['mtime_ns'])
                           for previous, current in indexes)
             result = 'originals_present' if old_present else 'ready' if changed else 'waiting_camera'
             checked.append((row['id'], result))
+            details[row['id']] = reappeared
         updated = []
         if checked:
             # Revalidate the exact observations under the writer lock before touching the catalog.
@@ -114,9 +141,9 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
                 require(all(stamp(path) == value for path, value in observed.items()), 'source_changed', 'Card changed during check')
                 for checked_id, result in checked:
                     row = catalog.db.execute('SELECT state FROM jobs WHERE id=?', (checked_id,)).fetchone()
-                    if row and row['state'] == 'camera_action_required' and catalog.record_sony_check(checked_id, result):
+                    if row and row['state'] == 'camera_action_required' and catalog.record_sony_check(checked_id, result, details[checked_id]):
                         updated.append(checked_id)
-    return {'checked': dict(checked), 'updated': updated}
+    return {'checked': dict(checked), 'updated': updated, 'reappeared': {k: v for k, v in details.items() if v}}
 
 
 def confirm_camera_cleanup(catalog, backend, job_id, source):
@@ -187,6 +214,9 @@ class Transfer:
         self.volume_tokens = {}
         self.source_token = None
         self.progress = None
+        # One overall measure for the action view; `sink` receives snapshots instead of a job's progress key.
+        self.meter = None
+        self.sink = None
         self.progress_lock = threading.Lock()
         self.progress_started = self.progress_flushed = time.monotonic()
 
@@ -257,9 +287,16 @@ class Transfer:
                 remaining = max(0, p['backup_budget'] - measured)
                 p['eta_seconds'] = int(remaining * elapsed / measured) if elapsed >= 3 and measured > 0 and remaining else None
                 p['eta_scope'] = 'backup' if p.get('release_budget', 0) else 'operation'
+                if self.meter:
+                    self.meter.reach(p['global_done'])
+            if self.meter:
+                p.update({k: v for k, v in self.meter.fields().items() if k not in {'files_done', 'files_total'}})
             snapshot = dict(self.progress)
             self.progress_flushed = moment
-        self.catalog.set('progress:' + snapshot['job_id'], snapshot)
+        if self.sink:
+            self.sink(snapshot)
+        else:
+            self.catalog.set('progress:' + snapshot['job_id'], snapshot)
 
     def copy_file(self, source_tree, source_rel, target_tree, target_rel, record, expected=None, source_stamp=None):
         return self.copy_many(source_tree, source_rel, [(target_tree, target_rel, record)], expected, source_stamp)[0]
@@ -335,6 +372,8 @@ class Transfer:
             for index, (target_tree, _, _) in pending:
                 self.checkpoint('before_verify', {'path': partials[index], 'root': str(target_tree.root)})
             if self.progress:
+                if self.meter and self.meter.current:
+                    self.meter.current['action'] = 'verify'
                 self.report(phase='verifying')
 
             def verify(index):
@@ -367,6 +406,8 @@ class Transfer:
                 require(stamp['size'] == initial.st_size, 'checksum_mismatch', 'Destination size changed: ' + target_rel)
                 results[index] = (sha, stamp)
             if self.progress:
+                if self.meter and self.meter.current:
+                    self.meter.current['action'] = 'copy'
                 self.report(phase='copying')
             return results
         finally:
@@ -431,6 +472,11 @@ class Transfer:
         previous = self.catalog.get('progress:' + plan['id'], {})
         self.progress.update(global_total=backup_budget + release_total, backup_budget=backup_budget,
                              release_budget=release_total, cleanup_bytes=0, global_done=previous.get('global_done', 0))
+        source_name = Path(plan['source']).name
+        target_names = ' + '.join(r['name'] for r in records)
+        cleanable = sum(1 for f in plan['files'] if not sony_index_member(f['path']) or plan['cleanup_profile'] != 'sony_clips_then_format') if cleanup_total else 0
+        self.meter = ActionMeter(self.progress['global_total'], len(plan['files']) + cleanable)
+        self.meter.reach(self.progress['global_done'])
         self.progress_started = time.monotonic()
         self.report(force=True)
         with Tree(plan['source']) as source_tree, contextlib.ExitStack() as stack:
@@ -441,6 +487,7 @@ class Transfer:
             claimed = set()
             for file in plan['files']:
                 self.checkpoint('before_file', file)
+                self.meter.holding(file['path'], source_name, target_names, 'copy')
                 unit = units[file['unit_id']]
                 member = self.catalog.db.execute('SELECT * FROM members WHERE job_id=? AND relative_path=?', (plan['id'], file['path'])).fetchone()
                 expected = member['sha256'] if member else None
@@ -503,6 +550,7 @@ class Transfer:
                         destination['files_done'] += 1
                 if not pending:
                     self.progress['copied_bytes'] += file['stamp']['size']
+                self.meter.finished('copied', file['path'], ' + '.join(r['name'] for r in records if r['id'] in done))
                 self.report(files_done=self.progress['files_done'] + 1, file=file['path'], destinations=destination_progress)
             for record in records:
                 target = trees[record['id']]
@@ -546,6 +594,7 @@ class Transfer:
                 removable = [f for f in plan['files'] if not sony or not sony_index_member(f['path'])]
                 for file in removable:
                     self.checkpoint('cleanup_file', file)
+                    self.meter.holding(file['path'], source_name, '', 'release')
                     self.source_check(plan)
                     for required in records:
                         self.check_volume(required)
@@ -580,6 +629,8 @@ class Transfer:
                         source_tree.unlink(file['path'], file['stamp'])
                     with self.catalog.db:
                         self.catalog.db.execute('UPDATE members SET cleaned=1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
+                    self.meter.finished('cleaned', file['path'], source_name)
+                    self.report()
                 if sony:
                     self.report(force=True, phase='checking_card')
                     self.source_check(plan, full=True)
@@ -600,7 +651,10 @@ class Transfer:
             self.catalog.state(plan['id'], final)
             self.report(force=True, phase=final, destinations=destination_progress)
             if not release_total:
-                self.progress.update(global_done=self.progress['global_total'], global_fraction=1.0, eta_seconds=None)
+                self.meter.reach(self.progress['global_total'])
+                self.meter.current = {}
+                self.progress.update(global_done=self.progress['global_total'], global_fraction=1.0, eta_seconds=None, **{
+                    k: v for k, v in self.meter.fields().items() if k not in {'files_done', 'files_total'}})
                 self.catalog.set('progress:' + plan['id'], self.progress)
         return self.catalog.job(plan['id'])
 

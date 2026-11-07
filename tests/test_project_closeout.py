@@ -274,6 +274,46 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(self.apply(published_plan)['state'], 'completed')
         self.assertFalse(selected.exists())
 
+    def test_projects_report_finals_awaiting_publication_until_backed_up(self):
+        from media.projects import overview
+        shorts = self.work / '002_finales/e64/02_shorts'
+        shorts.mkdir(parents=True)
+        waiting = [shorts / f'intro_vertical_{n}.mov' for n in (1, 2)]
+        for index, path in enumerate(waiting):
+            path.write_bytes(b'vertical %d' % index)
+        finals = closure.settings(self.catalog, self.project_id)['finals'] + [
+            {'volume_id': self.w['id'], 'path': str(p.relative_to(self.work)), 'role': 'vertical', 'published': False} for p in waiting]
+        self.configure(required=['horizontal', 'vertical'], published=False, finals=finals)
+        self.apply(self.plan_close())
+        row = lambda: next(p for p in overview(self.catalog, [], self.backend) if p['project_id'] == self.project_id)
+        sheet = lambda: closure.candidates(self.catalog, self.backend, self.project_id)['deliveries']
+        self.assertEqual(row()['stage'], 'finished')
+        self.assertTrue(row()['released'])
+        self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['published']), (2, 0))
+        self.assertEqual(sorted(s['name'] for s in sheet() if s['state'] == 'awaiting'), sorted(row()['deliveries']['awaiting_names']))
+        # Publishing by moving one short into the published folder is the same file, reported but not relinked.
+        uploaded = self.work / '002_finales/e64/03_subidos/shorts' / waiting[0].name
+        uploaded.parent.mkdir(parents=True)
+        waiting[0].rename(uploaded)
+        moved = next(s for s in sheet() if s['name'] == uploaded.name)
+        self.assertEqual((moved['state'], moved['current_path']), ('moved', str(uploaded.relative_to(self.work))))
+        self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['published']), (1, 1))
+        self.assertEqual(closure.settings(self.catalog, self.project_id)['finals'][1]['path'], str(waiting[0].relative_to(self.work)))
+        # The sheet saves the new location as published; «Respaldar publicados…» clears the mark by itself.
+        config = closure.settings(self.catalog, self.project_id)
+        for item in config['finals']:
+            if Path(item['path']).name == uploaded.name:
+                item.update(path=moved['current_path'], published=True)
+        self.configure(required=['horizontal', 'vertical'], published=False, finals=config['finals'])
+        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        self.apply(published_plan)
+        self.assertFalse(uploaded.exists())
+        self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['published']), (1, 0))
+        self.assertEqual([s['state'] for s in sheet() if s['name'] == uploaded.name], ['archived'])
+        # A short gone for an unknown reason is not counted as waiting, and nothing claims where it went.
+        waiting[1].unlink()
+        self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['missing']), (0, 1))
+
     def test_already_absent_work_closes_without_deletion_or_clipper(self):
         import shutil
 

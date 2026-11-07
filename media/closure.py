@@ -198,7 +198,8 @@ def candidates(catalog, backend, project_id, query=None, cancel=None):
                            'published': declared, 'suggested': suggested,
                            'publication_changed': bool(prior and prior[1]['stamp'] != content_stamp(info))})
     values.sort(key=lambda v: (not v['suggested'], v['archived'], v['name']))
-    return {'files': values[:1000], 'truncated': len(values) > 1000, 'settings': settings(catalog, project_id)}
+    return {'files': values[:1000], 'truncated': len(values) > 1000, 'settings': saved,
+            'deliveries': delivery_states(catalog, backend, project_id, saved)}
 
 
 def roots(catalog, backend, project):
@@ -307,6 +308,74 @@ def overview(catalog):
         values.append(dict(project, **config, released=released,
                            needs_release=not released and config['no_more'] and complete and bool(config['finals'])))
     return values
+
+
+def delivery_states(catalog, backend, project_id, config=None):
+    """Where each saved delivery stands now; read-only, one stat per final on an online editing disk.
+
+    Projects and the reopened closeout sheet read this same list, so the row and the summary always agree.
+    - `archived`: the selection already points at the backup.
+    - `awaiting`: kept on the editing disk and not published yet («por publicar»).
+    - `published`: published on the editing disk, waiting for «Respaldar publicados…».
+    - `moved`: the same file (name, size, mtime and inode) now sits in the profile's published folder; reported with
+      `current_path` so the sheet can offer it. The saved selection is never rewritten here.
+    - `published_archived`: gone from the editing disk after a verified transfer out of the published folder.
+    - `missing`: gone for an unknown reason; not counted as waiting, and nothing infers why.
+    A disk that is offline keeps the saved decision and reports `offline`.
+    """
+    config = settings(catalog, project_id) if config is None else config
+    profile = project_record(catalog, project_id)['profile']
+    volumes = {v['id']: v for v in catalog.volumes()}
+    online, receipts, states = {}, None, []
+    for final in config.get('finals', []):
+        volume = volumes.get(final['volume_id']) or {}
+        published = bool(final.get('published', config.get('published', False)))
+        item = {'volume_id': final['volume_id'], 'path': final['path'], 'role': final['role'],
+                'name': Path(final['path']).name, 'published': published}
+        if volume.get('role') != 'work':
+            states.append(dict(item, state='archived'))
+            continue
+        if volume['id'] not in online:
+            online[volume['id']] = bool(backend is not None and backend.online(volume))
+        state = 'published' if published else 'awaiting'
+        if not online[volume['id']]:
+            states.append(dict(item, state=state, offline=True))
+            continue
+        root = Path(volume['root'])
+        try:
+            os.stat(root / final['path'], follow_symlinks=False)
+        except FileNotFoundError:
+            saved = final.get('stamp') or {}
+            profile_root = root / volume.get('finals_prefix', '002_finales') / profile
+            folder = published_folder(catalog, profile, subfolders(profile_root)) if profile_root.is_dir() else ''
+            moved = ''
+            if folder and not published:
+                for path, info in delivery_files(profile_root / folder):
+                    if path.name == item['name'] and (info.st_size, info.st_mtime_ns, info.st_ino) == (
+                            saved.get('size'), saved.get('mtime_ns'), saved.get('inode')):
+                        moved = str(path.relative_to(root))
+                        break
+            if moved:
+                state = 'moved'
+                item['current_path'] = moved
+            else:
+                if receipts is None:
+                    receipts = published_receipts(catalog)
+                # A receipt keeps the destination stamp: name and size identify the delivery, the closeout rehashes later.
+                matched = any(Path(dest).name == item['name'] and (stamp or {}).get('size') == saved.get('size')
+                              for (_, dest), stamp in receipts.items())
+                state = 'published_archived' if matched else 'missing'
+        states.append(dict(item, state=state))
+    return states
+
+
+def delivery_summary(states):
+    """The counts a project row shows: what still waits on the editing disk, never a backup claim."""
+    awaiting = [s for s in states if s['state'] == 'awaiting']
+    return {'awaiting': len(awaiting), 'awaiting_names': [s['name'] for s in awaiting][:20],
+            'published': sum(s['state'] in {'published', 'moved'} for s in states),
+            'missing': sum(s['state'] == 'missing' for s in states),
+            'offline': any(s.get('offline') for s in states)}
 
 
 def archived_final_settings(catalog, plan, guards):

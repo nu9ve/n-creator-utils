@@ -672,13 +672,26 @@ struct FlowSummary: View {
 struct RunStep: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
+    private var runNote: LocalizedStringKey {
+        guard let plan = model.plan else { return "Cancelar se detiene en un punto recuperable." }
+        if plan["cleanup"].bool {
+            return "Cada archivo se copia y se verifica en cada destino; el origen se relee antes de retirarlo. Cancelar se detiene en un punto recuperable y lo verificado se conserva."
+        }
+        return "Cada archivo se copia y se verifica en cada destino; el origen se conserva. Cancelar se detiene en un punto recuperable y lo verificado se conserva."
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if model.busy {
-                SectionTitle("Copiando y verificando")
-                if let job = model.jobProgress { JobProgressView(model: model, job: job) }
-                else { ProgressView().progressViewStyle(.linear); Text(model.message).font(.caption) }
-                Text("Puedes seguir usando Biblioteca, Actividad e Inicio mientras termina. Cancelar se detiene en un punto recuperable.").font(.caption).foregroundStyle(.secondary)
+                let progress = model.jobProgress?["progress"] ?? .object([:])
+                ActionProgressView(title: model.plan?["source_kind"].string == "delivery" ? "Respaldando publicados" : "Copiando y verificando",
+                                   note: runNote,
+                                   state: .transfer(progress, phase: model.jobProgress.map { model.progressLabel($0) } ?? model.message))
+                    .frame(minHeight: 380)
+                if let job = model.jobProgress, job["progress"]["eta_seconds"].double > 0 {
+                    let minutes = max(1, Int((job["progress"]["eta_seconds"].double / 60).rounded(.up)))
+                    Text(job["progress"]["eta_scope"].string == "backup" ? "Respaldo: ~\(minutes) min; después se revisa la liberación" : "Restante aproximado: \(minutes) min")
+                        .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity)
+                }
             } else if let result = model.lastResult {
                 Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(palette.success)
                 if result["state"].string == "camera_action_required", model.cleanupProfile(result) == "sony_clips_then_format" {

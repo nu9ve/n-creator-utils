@@ -132,10 +132,13 @@ class Catalog:
                             (state, error, now(), job_id))
         self.event(job_id, state, {'error': error} if error else {})
 
-    def record_sony_check(self, job_id, result):
-        """Persist a changed observation and close a pending job in the same transaction."""
+    def record_sony_check(self, job_id, result, reappeared=()):
+        """Persist a changed observation and close a pending job in the same transaction.
+
+        Reappeared originals are kept by path (`sony-card-reappeared:`) so Actividad can say which came back."""
         key = 'sony-card-check:' + job_id
-        if self.get(key) == result:
+        reappeared = sorted(reappeared)
+        if self.get(key) == result and self.get('sony-card-reappeared:' + job_id, []) == reappeared:
             return False
         with self.db:
             if result == 'ready':
@@ -145,9 +148,18 @@ class Catalog:
                     self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)',
                                     ('progress:' + job_id, canonical(dict(progress, phase='completed')).decode()))
             self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)', (key, canonical(result).decode()))
+            self.db.execute('INSERT OR REPLACE INTO metadata VALUES(?,?)', ('sony-card-reappeared:' + job_id, canonical(reappeared).decode()))
+            payload = {'result': result, 'reappeared': reappeared} if reappeared else {'result': result}
             self.db.execute('INSERT INTO events(job_id,kind,payload,created_at) VALUES(?,?,?,?)',
-                            (job_id, 'sony_card_checked', canonical({'result': result}).decode(), now()))
+                            (job_id, 'sony_card_checked', canonical(payload).decode(), now()))
         return True
+
+    def sony_followup(self, value):
+        """Add the observed Sony stage (transfer.sony_stage) and any reappeared originals to a job row."""
+        from .transfer import sony_stage
+        value['sony_card_check'] = self.get('sony-card-check:' + value['id'])
+        value['sony_reappeared'] = self.get('sony-card-reappeared:' + value['id'], [])
+        value['sony_stage'] = sony_stage(value['state'], value['sony_card_check'], value.get('sony_removal_recorded', False))
 
     def job(self, job_id):
         row = self.db.execute('SELECT * FROM jobs WHERE id=?', (job_id,)).fetchone()
@@ -163,7 +175,7 @@ class Catalog:
         if stalker_release is not None:
             result['stalker_release'] = stalker_release
         if result['plan'].get('cleanup_profile') == 'sony_clips_then_format':
-            result['sony_card_check'] = self.get('sony-card-check:' + job_id)
+            self.sony_followup(result)
         return result
 
     def jobs(self):
@@ -179,11 +191,11 @@ class Catalog:
             summary = self.get('stalker-release:' + value['id'])
             if summary is not None:
                 value['stalker_release'] = summary
-            if value['cleanup_profile'] == 'sony_clips_then_format':
-                value['sony_card_check'] = self.get('sony-card-check:' + value['id'])
             if (value['cleanup_profile'], value['state'], value['error']) == ('sony_clips_then_format', 'failed', 'FileNotFoundError'):
                 from .transfer import sony_removal_recorded
                 value['sony_removal_recorded'] = sony_removal_recorded(self, self.job(value['id']))
+            if value['cleanup_profile'] == 'sony_clips_then_format':
+                self.sony_followup(value)
         return values
 
     def project_for(self, profile, title):

@@ -165,6 +165,8 @@ extension Model {
     func applyRelease() {
         guard let reviewed = releasePlan else { return }
         operation(String(localized: "Liberando copias verificadas"), scope: .space) {
+            let monitor = self.watchAction("release", reviewed["id"])
+            defer { monitor.cancel(); self.runningAction = "" }
             self.releasePlan = try await self.client!.call("apply_release", ["plan_id": reviewed["id"], "digest": reviewed["digest"]])
             self.message = String(localized: "Espacio liberado; respaldo y catálogo conservados en MEDIA")
             if let result = self.releasePlan, !result["metadata_backup_error"].string.isEmpty {
@@ -202,6 +204,11 @@ struct ReleaseSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Revisar liberación", subtitle: "Comprueba las copias actuales antes de retirar nada. No se borra sin tu confirmación.")
             ErrorBanner(model: model)
+            if model.runningAction == "release" {
+                ActionProgressView(title: "Liberando copias verificadas",
+                                   note: "Cada copia del respaldo se vuelve a verificar y cada original se relee antes de retirarlo. Puedes pausar: lo retirado queda en el registro y se reanuda el mismo plan.",
+                                   state: .transfer(model.actionProgress, phase: model.stageLabel(model.actionProgress["stage"].string)))
+            } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if let plan = model.releasePlan {
@@ -225,10 +232,13 @@ struct ReleaseSheet: View {
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
+            }
             HStack(spacing: 9) {
-                Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cerrar") { dismiss() }.keyboardShortcut(.cancelAction).disabled(model.runningAction == "release")
                 Spacer(minLength: 0)
-                if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
+                if model.runningAction == "release" {
+                    Button("Pausar") { model.client?.cancel() }
+                } else if model.busy { ProgressView().controlSize(.small); Text(model.message).font(.caption).lineLimit(1) }
                 if let plan = model.releasePlan {
                     if plan["state"].string != "completed" {
                         Button("Actualizar dependencias") { model.reviewRelease() }.disabled(model.busy)

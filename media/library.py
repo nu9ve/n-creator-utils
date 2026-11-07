@@ -33,12 +33,28 @@ def set_work_state(catalog, asset_ids, state):
     return {'updated': asset_ids, 'state': state}
 
 
-def deliver_work(catalog, backend, asset_ids, work, cancel=None):
+def deliver_work(catalog, backend, asset_ids, work, cancel=None, progress=None):
+    """Copy verified archive members back to the editing disk. `progress` gets one overall measure (copy + verify)."""
     require(asset_ids, 'empty_selection', 'Select assets to deliver')
     record = catalog.volume(work)
     require(record['role'] == 'work', 'invalid_role', 'Work volume required')
     engine = Transfer(catalog, backend, cancel)
     delivered = []
+    base = 0
+    if progress:
+        from .progress import ActionMeter
+        wanted = []
+        for asset_id in asset_ids:
+            asset = asset_record(catalog, asset_id)
+            plan = catalog.job(asset['job_id'])['plan']
+            wanted += [f for f in plan['files'] if f['unit_id'] == asset_id and destination_path(record, plan, asset, f['path'], selected_only=False)]
+        size = sum(f['stamp']['size'] for f in wanted)
+        engine.meter = ActionMeter(2 * size, len(wanted))
+        engine.progress = {'job_id': '', 'phase': 'delivering', 'files_total': len(wanted), 'files_done': 0, 'bytes_total': size,
+                           'copied_bytes': 0, 'verified_bytes': 0, 'verify_total': size, 'global_total': 2 * size,
+                           'backup_budget': 2 * size, 'release_budget': 0, 'cleanup_bytes': 0, 'global_done': 0}
+        engine.sink = lambda snapshot: progress('delivering_work', **{k: snapshot[k] for k in (
+            'overall_done', 'overall_total', 'current', 'log', 'files_done', 'files_total') if k in snapshot})
     with catalog.writer():
         for asset_id in asset_ids:
             asset = asset_record(catalog, asset_id)
@@ -65,7 +81,15 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
                     dest = destination_path(record, plan, asset, file['path'], selected_only=False)
                     if override.get(file['path'], {}).get('work'):
                         dest = record['prefix'] + '/' + override[file['path']]['work']  # Bundle renamed in place after ingest.
+                    if engine.meter:
+                        engine.meter.holding(dest, archive['name'], record['name'], 'copy')
+                        engine.report(force=True)
                     sha, stamp = engine.copy_file(source, prior['destination'], target, dest, record, expected=prior['sha256'])
+                    if engine.meter:
+                        base += 2 * file['stamp']['size']
+                        engine.meter.reach(base)
+                        engine.meter.finished('copied', dest, record['name'])
+                        engine.report(force=True, files_done=engine.progress['files_done'] + 1)
                     copy = {'job_id': plan['id'], 'volume_id': record['id'], 'path': file['path'], 'destination': dest,
                             'sha256': sha, 'bytes': file['stamp']['size'], 'verified_at': now(), 'stamp': stamp, 'receipt_id': str(uuid.uuid5(uuid.NAMESPACE_URL, plan['id'] + ':' + record['id'] + ':' + asset_id))}
                     with catalog.db:
@@ -78,6 +102,9 @@ def deliver_work(catalog, backend, asset_ids, work, cancel=None):
                 catalog.db.execute('UPDATE work SET state=?,target=?,updated_at=? WHERE asset_id=?', ('ready', record['id'], now(), asset_id))
             catalog.event(plan['id'], 'work_ready', {'asset_id': asset_id, 'volume_id': record['id']})
             delivered.append(asset_id)
+    if engine.meter:
+        engine.meter.current = {}
+        engine.report(force=True)
     return {'delivered': delivered, 'volume_id': record['id']}
 
 

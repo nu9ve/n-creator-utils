@@ -489,6 +489,7 @@ class MediaEngineTests(MediaFixture):
         job = self.catalog.jobs()[0]
         self.assertEqual(job['state'], 'failed')
         self.assertTrue(job['sony_removal_recorded'])
+        self.assertEqual(job['sony_stage'], 'removal_recorded')
         with self.catalog.db:
             self.catalog.db.execute("DELETE FROM copies WHERE job_id=? AND relative_path LIKE '%C0001.MP4'", (plan['id'],))
         self.assertFalse(self.catalog.jobs()[0]['sony_removal_recorded'])
@@ -526,6 +527,43 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(self.catalog.job(plan['id'])['state'], 'completed')
         self.assertEqual(self.catalog.jobs()[0]['sony_card_check'], 'ready')
         self.assertEqual(reconcile()['updated'], [])
+
+    def test_sony_stages_follow_observations_without_confirmation(self):
+        from media.service import Service
+        from media.volumes import card_identity
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'old-clip')
+        index = self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML'
+        index.write_bytes(b'<index/>')
+        plan = self.plan()
+        self.run_plan(plan)
+        service = Service(self.catalog, self.backend)
+        stage = lambda: next(j for j in self.catalog.jobs() if j['id'] == plan['id'])['sony_stage']
+        reconcile = lambda: service.call('reconcile_sony_cleanup', {'source': str(self.source),
+                                         'identity': card_identity(self.backend.describe(self.source))})
+        # The run saw its own removal; nothing has been checked on a remount yet.
+        self.assertEqual(stage(), 'removal_observed')
+        self.assertEqual(self.catalog.job(plan['id'])['sony_stage'], 'removal_observed')
+        reconcile()
+        self.assertEqual(stage(), 'removal_durable')
+        # A backed-up clip comes back: Actividad gets which one and the job stays open.
+        clip.write_bytes(b'old-clip')
+        result = reconcile()
+        self.assertEqual(result['reappeared'], {plan['id']: ['PRIVATE/M4ROOT/CLIP/C0001.MP4']})
+        job = next(j for j in self.catalog.jobs() if j['id'] == plan['id'])
+        self.assertEqual((job['state'], job['sony_stage'], job['sony_reappeared']),
+                         ('camera_action_required', 'originals_reappeared', ['PRIVATE/M4ROOT/CLIP/C0001.MP4']))
+        events = [json.loads(r[0]) for r in self.catalog.db.execute(
+            "SELECT payload FROM events WHERE job_id=? AND kind='sony_card_checked'", (plan['id'],))]
+        self.assertIn({'result': 'originals_present', 'reappeared': ['PRIVATE/M4ROOT/CLIP/C0001.MP4']}, events)
+        # The camera formats: the clip is gone and an index was rewritten.
+        clip.unlink()
+        index.write_bytes(b'<formatted/>')
+        reconcile()
+        job = next(j for j in self.catalog.jobs() if j['id'] == plan['id'])
+        self.assertEqual((job['state'], job['sony_stage'], job['sony_reappeared']), ('completed', 'formatted', []))
 
     def test_dji_requires_per_file_classification_and_mixed_assignments(self):
         (self.source / 'DJI_001.MP4').write_bytes(b'dji')

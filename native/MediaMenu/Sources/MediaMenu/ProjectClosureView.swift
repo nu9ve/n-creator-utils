@@ -10,7 +10,7 @@ extension Model {
     func openProjectClosure(_ item: JSONValue, stored: JSONValue? = nil) {
         guard !busy else { return }
         closureProject = item
-        closureSettings = .object([:]); closureCandidates = []; closureProgress = .object([:])
+        closureSettings = .object([:]); closureCandidates = []; closureDeliveries = []; closureProgress = .object([:])
         let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
         closurePlan = stored ?? releaseHistory.filter { $0["closure_project_id"].string == id && $0["state"].string != "completed" }.max { $0["created_at"].string < $1["created_at"].string }
         showClosure = true
@@ -18,6 +18,7 @@ extension Model {
             let data = try await self.client!.call("closure_candidates", ["project_id": item["project_id"].string.isEmpty ? item["id"] : item["project_id"]])
             self.closureCandidates = data["files"].array
             self.closureTruncated = data["truncated"].bool
+            self.closureDeliveries = data["deliveries"].array
             self.closureSettings = data["settings"]
         }
     }
@@ -53,6 +54,7 @@ extension Model {
             } else {
                 self.message = String(localized: "Entregas guardadas; no se ha movido ni borrado media")
             }
+            self.closureDeliveries = (try? await self.client!.call("closure_deliveries", ["project_id": id]).array) ?? self.closureDeliveries
         }
     }
     private func watchClosureProgress(_ id: JSONValue) -> Task<Void, Never> {
@@ -75,6 +77,7 @@ extension Model {
             defer { monitor.cancel() }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
             if let result = self.closurePlan, result["closure_settings"] != .null { self.closureSettings = result["closure_settings"] }
+            self.closureDeliveries = (try? await self.client!.call("closure_deliveries", ["project_id": reviewed["closure_project_id"]]).array) ?? self.closureDeliveries
             self.message = reviewed["closure_finish"] == .bool(false) ? String(localized: "Finales publicados respaldados") : String(localized: "Proyecto completado")
             self.captureChanged([])
             self.finalsCheckedAt = nil
@@ -213,22 +216,27 @@ struct ProjectClosureSheet: View {
         return model.releaseHistory.filter { $0["closure_project_id"].string == id && $0["state"].string == "completed" }
             .max { $0["created_at"].string < $1["created_at"].string }
     }
-    /// Finals still on the editing disk and not yet published: what the project is waiting for.
-    private var awaitingPublication: [JSONValue] {
-        model.closureSettings["finals"].array.filter { !$0["published"].bool && model.volume($0["volume_id"].string)?["role"].string == "work" }
-    }
+    /// Finals still on the editing disk and not yet published, as the engine reads them (the Projects row uses the same list).
+    private var awaitingPublication: [JSONValue] { model.closureDeliveries.filter { $0["state"].string == "awaiting" } }
+    /// Published on the editing disk (or moved into the published folder): «Respaldar publicados…» finishes them.
+    private var publishedOnWork: [JSONValue] { model.closureDeliveries.filter { ["published", "moved"].contains($0["state"].string) } }
+    private var movedDeliveries: [JSONValue] { model.closureDeliveries.filter { $0["state"].string == "moved" } }
     @ViewBuilder private var closedSummary: some View {
         if let last = lastClosure {
             let waiting = awaitingPublication
-            let names = waiting.map { URL(fileURLWithPath: $0["path"].string).lastPathComponent }
+            let names = waiting.map(\.["name"].string)
             VStack(alignment: .leading, spacing: 6) {
                 Label {
                     Text("Cierre aplicado el \(String(last["created_at"].string.prefix(10))) · \(last["entries"].array.count) archivos retirados · \(bytesLabel(last["bytes"].double)) liberados")
                 } icon: { Image(systemName: "checkmark.seal.fill").foregroundStyle(palette.success) }
                 .font(.callout.weight(.medium))
-                if waiting.isEmpty {
+                if !publishedOnWork.isEmpty {
+                    Text("\(publishedOnWork.count) entregas publicadas esperan «Respaldar publicados…» para retirar su copia de edición.")
+                        .font(.caption).foregroundStyle(palette.info)
+                }
+                if waiting.isEmpty && publishedOnWork.isEmpty {
                     Text("No queda nada por liberar: las entregas están publicadas y respaldadas.").font(.caption).foregroundStyle(palette.muted)
-                } else {
+                } else if !waiting.isEmpty {
                     Text("\(waiting.count) entregas siguen en edición, esperando publicarse: \(names.prefix(3).joined(separator: ", "))\(names.count > 3 ? "…" : "")")
                         .font(.caption)
                     Text("Ya están respaldadas. Cuando las publiques, «Respaldar publicados…» retira su copia de edición; no hace falta preparar el cierre otra vez.")
@@ -243,6 +251,10 @@ struct ProjectClosureSheet: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
             closedSummary
+            if !movedDeliveries.isEmpty {
+                Label("\(movedDeliveries.count) entregas se movieron a la carpeta de publicados. La selección usa su nueva ubicación como publicada; se guarda al guardar o respaldar.", systemImage: "arrow.right.doc.on.clipboard")
+                    .font(.caption).foregroundStyle(palette.info)
+            }
             DisclosureGroup("Requisitos del perfil") {
                 HStack {
                     ForEach(roles.filter { $0.0 != "auxiliary" }, id: \.0) { role, label in
@@ -497,6 +509,13 @@ struct ProjectClosureSheet: View {
             }
             return (key(item), JSONValue.object(value))
         }, uniquingKeysWith: { _, new in new })
+        // The same file moved into the published folder (engine-matched by name, size, mtime and inode): follow it.
+        for moved in model.closureDeliveries where moved["state"].string == "moved" {
+            guard let old = picked.removeValue(forKey: key(moved)) else { continue }
+            var value = old.object
+            value["path"] = moved["current_path"]; value["published"] = .bool(true)
+            picked[moved["volume_id"].string + "|" + moved["current_path"].string] = .object(value)
+        }
         if config["updated_at"].string.isEmpty {
             select(model.closureCandidates.filter { $0["suggested"].bool && $0["published"].bool })
         }
