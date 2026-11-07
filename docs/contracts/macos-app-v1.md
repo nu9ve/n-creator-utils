@@ -25,6 +25,8 @@ Referencias: **SoundShop** para una app de documento en ciclo de vida SwiftUI (`
 
 ## 3. Temas
 
+Qué se configura, cómo se nombran los colores y qué es un skin: [tema visual v1](nu9ve-theme-v1.md). Esta sección cubre solo su aplicación a la ventana.
+
 - **Debe** aplicar el tema a la ventana (`backgroundColor`, `appearance`), no solo al contenido, para que barra, sheets y controles nativos coincidan. Un solo punto, por valor.
 - **Debe** verificar contraste de texto (4.5:1) en el tema por defecto, y texto sobre el acento.
 - Los menús respaldados por AppKit pueden conservar el color de texto al cambiar de claro a oscuro: probar ese cambio con la app abierta.
