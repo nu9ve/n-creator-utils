@@ -5,6 +5,7 @@ FCP libraries and unknown files are preserved. All media IO uses the shared engi
 """
 import json
 import os
+from contextlib import nullcontext
 from pathlib import Path
 import re
 import stat
@@ -225,8 +226,7 @@ def roots(catalog, backend, project):
         raw_dir = catalog.get('creative-profiles', {}).get(project['profile'], {}).get('raw_dir', project['profile'] + '_raw')
         raw.update(volume['prefix'] + '/' + raw_dir + '/' + title for title in titles)
         editor = [volume['prefix'] + '/' + project['profile'] + '/' + title for title in titles]
-        existing = lambda paths: sorted(p for p in paths if (Path(volume['root']) / p).is_dir())
-        found[volume['id']] = {'volume': volume, 'raw': existing(raw), 'editor': existing(editor)}
+        found[volume['id']] = {'volume': volume, 'raw': sorted(raw), 'editor': sorted(editor)}
     return found
 
 
@@ -280,6 +280,12 @@ def validate(catalog, backend, plan, cancel=None):
     archive = catalog.volume(plan['archive_id'])
     backend.check(archive)
     guards = []
+    kept = [final for final in plan['closure_finals'] if final.get('keep_work')]
+    if kept:
+        with Tree(plan['source_root']) as work:
+            for final in kept:
+                require(content_stamp(work.stat(final['original']['path'])) == final['original_stamp'],
+                        'source_changed', 'Una entrega conservada cambió; revisa un plan nuevo')
     with Tree(archive['root']) as tree:
         for final in plan['closure_finals']:
             sha, stamp = checked_hash(tree, final['archive_path'], cancel)
@@ -299,7 +305,7 @@ def overview(catalog):
         released = catalog.get('project-released:' + project_id)
         complete = set(config['required']) <= {f['role'] for f in config['finals']}
         values.append(dict(project, **config, released=released,
-                           needs_release=not released and config['no_more'] and config['published'] and complete and bool(config['finals'])))
+                           needs_release=not released and config['no_more'] and complete and bool(config['finals'])))
     return values
 
 
@@ -312,7 +318,7 @@ def archived_final_settings(catalog, plan, guards):
     config = settings(catalog, plan['closure_project_id'])
     stamps = {g['archive_path']: g['stamp'] for g in guards}
     by_original = {(f['original']['volume_id'], f['original']['path']): f
-                   for f in plan['closure_finals'] if f.get('original')}
+                   for f in plan['closure_finals'] if f.get('original') and not f.get('keep_work')}
     finals, seen = [], set()
     for item in config['finals']:
         final = by_original.get((item['volume_id'], item['path']))
@@ -331,7 +337,7 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     config_digest = digest(config)
     require(isinstance(release_work, bool), 'invalid_request', 'release_work debe ser booleano')
     if release_work:
-        require(config['no_more'] and config['published'], 'project_incomplete', 'Confirma que ya publicaste todo y no habrá más entregas')
+        require(config['no_more'], 'project_incomplete', 'Confirma que la selección contiene todas las entregas definitivas')
         require(set(config['required']) <= {f['role'] for f in config['finals']}, 'missing_deliveries', 'Faltan tipos de entrega requeridos')
     else:
         config = dict(config, finals=[f for f in config['finals'] if f.get('published', config['published'])])
@@ -342,12 +348,15 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     scoped = roots(catalog, backend, project).get(source['id'], {'raw': [], 'editor': []}) if release_work else {'raw': [], 'editor': []}
     entries, preserved, replacements, scopes, copies, finals, retained = [], [], {}, [], [], [], []
     for path in scoped['raw']:
-        # Empty/already-released raw folders do not prevent cleaning remaining renders.
-        with Tree(source['root']) as tree:
-            from .release import selected_files
-            selected, kept = selected_files(tree, path, cancel=cancel)
-        preserved.extend(kept)
+        # Freeze known scopes even when absent, so arrivals invalidate a reviewed plan.
         scopes.append({'kind': 'raw', 'path': path})
+        try:
+            with Tree(source['root']) as tree:
+                from .release import selected_files
+                selected, kept = selected_files(tree, path, cancel=cancel)
+        except FileNotFoundError:
+            continue
+        preserved.extend(kept)
         if not selected:
             continue
         part = plan_release(catalog, backend, target['id'], work=source['id'], path=path, project=project['title'], cancel=cancel)
@@ -370,39 +379,46 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             if (copy['destination'], copy['sha256']) not in already_verified:
                 with Tree(target['root']) as tree:
                     require(checked_hash(tree, copy['destination'], cancel)[0] == copy['sha256'], 'checksum_mismatch', 'Respaldo raw alterado')
+                already_verified.add((copy['destination'], copy['sha256']))
             finals.append({'archive_path': copy['destination'], 'sha256': copy['sha256'], 'role': 'source'})
     with Tree(source['root']) as tree:
         for editor in scoped['editor']:
             renders = editor + '/renders'
+            scopes.append({'kind': 'discard', 'path': renders})
             if (Path(source['root']) / renders).is_dir():
-                scopes.append({'kind': 'discard', 'path': renders})
                 for path in folder_files(tree, renders, cancel):
                     sha, stamp = checked_hash(tree, path, cancel)
                     entries.append({'path': path, 'stamp': stamp, 'sha256': sha, 'archive_path': None, 'category': 'intermediate'})
                     replacements[str(Path(source['root']) / path)] = None
-            retained.append(editor + ' (editable, Final Cut y contenido fuera de renders se conservan)')
+            if (Path(source['root']) / editor).is_dir():
+                retained.append(editor + ' (editable, Final Cut y contenido fuera de renders se conservan)')
+    archived_candidates = None
     for item in config['finals']:
         volume = catalog.volume(item['volume_id'])
         backend.check(volume)
         with Tree(volume['root']) as tree:
             sha, stamp = checked_hash(tree, item['path'], cancel)
         require(stamp == item['stamp'], 'source_changed', 'Un final cambió; vuelve a vincularlo')
+        copy_required = keep_work = False
         if volume['role'] == 'archive':
             require(volume['id'] == target['id'], 'invalid_volume', 'El final está en otro respaldo')
             archive_path = item['path']
         else:
             require(volume['id'] == source['id'], 'invalid_volume', 'El final está en otro disco de trabajo')
+            keep_work = not item.get('published', config['published'])
             # Selected deliveries go through the same verified Transfer engine, without ingest cleanup.
             prefix = source.get('finals_prefix', '002_finales') + '/' + project['profile']
             rel = str(Path(item['path']).relative_to(prefix))
             existing = None
-            for candidate, info in delivery_files(Path(target['root']) / target.get('finals_prefix', '002_finales') / project['profile'], cancel):
-                if candidate.name == Path(rel).name and info.st_size == stamp['size']:
-                    candidate_rel = str(candidate.relative_to(target['root']))
-                    with Tree(target['root']) as tree:
-                        if checked_hash(tree, candidate_rel, cancel)[0] == sha:
-                            existing = candidate_rel
-                            break
+            if archived_candidates is None:
+                archived_candidates = {}
+                for candidate, info in delivery_files(Path(target['root']) / target.get('finals_prefix', '002_finales') / project['profile'], cancel):
+                    archived_candidates.setdefault((candidate.name, info.st_size), []).append(str(candidate.relative_to(target['root'])))
+            for candidate_rel in archived_candidates.get((Path(rel).name, stamp['size']), []):
+                with Tree(target['root']) as tree:
+                    if checked_hash(tree, candidate_rel, cancel)[0] == sha:
+                        existing = candidate_rel
+                        break
             if existing:
                 archive_path = existing
             else:
@@ -423,10 +439,13 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     else:
                         require(existing_hash == sha, 'destination_conflict', 'Ya existe otro final distinto en el destino elegido')
                 copies.append(transfer)
-            entries.append({'path': item['path'], 'stamp': stamp, 'sha256': sha, 'archive_path': archive_path, 'category': 'final'})
-            replacements[str(Path(source['root']) / item['path'])] = str(Path(target['root']) / archive_path)
+                copy_required = True
+            if not keep_work:
+                entries.append({'path': item['path'], 'stamp': stamp, 'sha256': sha, 'archive_path': archive_path, 'category': 'final'})
+                replacements[str(Path(source['root']) / item['path'])] = str(Path(target['root']) / archive_path)
         finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role'],
-                       'original': {'volume_id': item['volume_id'], 'path': item['path']}})
+                       'original': {'volume_id': item['volume_id'], 'path': item['path']},
+                       'original_stamp': stamp, 'copy_required': copy_required, 'keep_work': keep_work})
     targets, roles = {}, {}
     for final in finals:
         previous = targets.setdefault(final['archive_path'], final['sha256'])
@@ -437,10 +456,10 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     needed = sum(f['stamp']['size'] for p in copies for f in p['files'])
     require(not needed or backend.check(target)['free'] >= needed + max(64 * 1024 * 1024, needed // 20),
             'insufficient_space', 'No hay espacio para todos los finales seleccionados')
-    require(entries, 'nothing_to_release', 'No queda trabajo liberable en este disco; se conservan editables y Final Cut')
+    require(release_work or entries, 'nothing_to_release', 'Los finales publicados elegidos ya están en el respaldo')
     require(len({e['path'] for e in entries}) == len(entries), 'overlapping_roots', 'Hay carpetas superpuestas; revisa las asociaciones')
     try:
-        consumers = clipper.inspect(catalog, replacements)
+        consumers = clipper.inspect(catalog, replacements) if entries else {'blockers': [], 'relinks': [], 'dependencies': None}
     except (RuntimeError, OSError, ValueError) as error:
         consumers = {'blockers': [str(error)], 'relinks': [], 'dependencies': None}
     value = {'schema': 'nu9ve-release/1', 'id': uid(), 'created_at': now(), 'archive_id': target['id'],
@@ -449,14 +468,13 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
              'replacements': replacements, 'replacement_checks': [], 'bytes': sum(e['stamp']['size'] for e in entries),
              'consumers': consumers, 'state': 'review', 'cleaned': {}, 'retained_editors': retained, 'closure_project_id': project_id,
              'closure_settings_digest': config_digest, 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies,
-             'closure_finish': release_work}
+             'closure_finish': release_work, 'closure_inventory_checked': True}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
     return value
 
 
-@clipper.guarded_release
 def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progress=None, confirm_discard=False):
     from .release import apply_release, relink_release, stored_plan, check_source, validate_remaining
     from .transfer import Transfer
@@ -464,23 +482,26 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
     require(plan.get('closure_project_id'), 'invalid_plan', 'No es un plan de cierre')
     if plan['state'] == 'completed':
         return dict(plan, closure_settings=settings(catalog, plan['closure_project_id']))
-    require(confirm_discard is True, 'confirmation_required', 'Confirma el descarte de los intermedios y la revisión de dependencias externas')
-    with catalog.writer():
-        catalog.set('closure-consent:' + plan_id, {'digest': reviewed_digest, 'confirmed_at': now()})
-    check_source(backend, plan)
-    require(digest(settings(catalog, plan['closure_project_id'])) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
-    with Tree(plan['source_root']) as tree:
-        validate_remaining(tree, plan, cancel)
-    report = lambda stage, **details: progress(stage, **details) if progress else None
-    # Recheck all dependencies before doing even copy-only work.
-    consumers = clipper.inspect(catalog, plan['replacements'])
-    require(not consumers['blockers'], 'dependencies_blocked', '; '.join(consumers['blockers']))
-    for index, transfer in enumerate(plan['closure_copies']):
-        report('copying_finals', files_done=index, files_total=len(plan['closure_copies']))
-        Transfer(catalog, backend, cancel).apply(transfer, transfer['digest'])
-    validate(catalog, backend, plan, cancel)
-    if consumers['relinks']:
-        relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
-    result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
-    report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
-    return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))
+    require(confirm_discard is True, 'confirmation_required', 'Confirma el plan revisado antes de completar')
+    with clipper.release_guard(catalog) if plan['entries'] else nullcontext():
+        with catalog.writer():
+            catalog.set('closure-consent:' + plan_id, {'digest': reviewed_digest, 'confirmed_at': now()})
+        check_source(backend, plan)
+        require(digest(settings(catalog, plan['closure_project_id'])) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
+        with Tree(plan['source_root']) as tree:
+            validate_remaining(tree, plan, cancel)
+        report = lambda stage, **details: progress(stage, **details) if progress else None
+        relinks = []
+        if plan['entries']:
+            consumers = clipper.inspect(catalog, plan['replacements'])
+            require(not consumers['blockers'], 'dependencies_blocked', '; '.join(consumers['blockers']))
+            relinks = consumers['relinks']
+        for index, transfer in enumerate(plan['closure_copies']):
+            report('copying_finals', files_done=index, files_total=len(plan['closure_copies']))
+            Transfer(catalog, backend, cancel).apply(transfer, transfer['digest'])
+        validate(catalog, backend, plan, cancel)
+        if relinks:
+            relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
+        result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=progress)
+        report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
+        return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))

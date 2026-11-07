@@ -14,8 +14,8 @@ verificado son estados independientes. Un archivo modificado exige revisión.
 
 **Respaldar publicados…** prepara sólo los finales elegidos publicados: copia,
 verifica y retira sus copias de trabajo. No exige «ya no habrá más» ni toca raws
-o renders, y no termina el proyecto. **Revisar liberación** mantiene las puertas
-del cierre completo: requisitos, publicación y declaración de entregas completas.
+o renders, y no termina el proyecto. **Revisar cierre** mantiene los requisitos
+del proyecto y la declaración de entregas completas.
 En la revisión, el botón final aplica el plan sin un segundo modal; el descarte
 de intermedios y dependencias externas requiere la casilla explícita de revisión.
 
@@ -53,15 +53,39 @@ genera una sugerencia en Inicio durante la consulta de finales. Cuenta
 entregas y no sus réplicas. La sugerencia abre la revisión y no suma al badge
 ni emite una notificación. Queda pendiente decidir el aviso opcional para
 varios verticales con más de un día y cómo registrar su antigüedad.
-**Ya no habrá más entregas** y el consentimiento de descarte se mantienen
+**Estas son todas las entregas definitivas** y el consentimiento de descarte se mantienen
 para el cierre completo. La revisión separa finales, raws e intermedios.
+
+## Completar antes de publicar · 2026-11-07
+
+Elegir archivos los vincula a la selección. La publicación se declara por
+carpeta o desde el menú **Publicación**. Marcar la selección como definitiva
+autoriza revisar el cierre editorial aunque haya entregas pendientes de subir.
+Si el proyecto requiere menos tipos que el perfil, se pueden usar los tipos
+elegidos como excepción sólo para el proyecto.
+
+Un final pendiente de publicar se copia a MEDIA cuando falta y se verifica.
+Su copia de ESSD se conserva para publicar y el estado de publicación
+permanece pendiente. Un final publicado de trabajo conserva la política
+de retirar esa copia sólo tras verificar el respaldo y sus dependencias.
+El plan identifica estas acciones mediante `keep_work`, `copy_required`
+y el stamp de la selección conservada. Un cambio posterior de esa copia
+invalida el plan antes del retiro de otros archivos.
+
+El plan congela rutas raw y renders conocidas incluso cuando están vacías o
+ausentes. La revisión muestra **Sin acción** en esas categorías. Un archivo
+nuevo en una ruta revisada invalida el plan. Se siguen verificando los
+originales catalogados y las entregas, incluso si el cierre retira cero
+archivos y sólo respalda entregas pendientes. El registro del cierre
+puede terminar con cero bytes liberados. La exclusión con Clipper se
+requiere para planes con retiro.
 
 ## Autoridades y alcance
 
 - nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`
   sólo horizontal; `e64` horizontal, al menos un vertical y thumbnail. La
-  persona confirma «ya publiqué» y «ya no habrá más entregas». No se certifican
-  canales ni URLs. Marcar terminado y guardar decisiones no borran media.
+  persona confirma la selección definitiva. La publicación tiene su propia
+  declaración. Marcar terminado y guardar decisiones no borran media.
 - Los nombres sólo filtran candidatos. La persona vincula finales de trabajo
   o archivo a un proyecto existente; una ubicación no se reasigna en silencio.
   No se renombran carpetas ni cambia el mapping `e64` / `erikiado64`.

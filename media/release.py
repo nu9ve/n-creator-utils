@@ -1,6 +1,7 @@
 """Explicit, catalog-recorded release plans. No deletion from a coverage summary or caller-supplied plan."""
 import json
 import os
+from contextlib import nullcontext
 from pathlib import Path
 import uuid
 
@@ -324,9 +325,12 @@ def review_release(catalog, backend, plan_id, digest):
         return plan
 
 
-@clipper.guarded_release
 def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None):
-    with catalog.writer():
+    plan = stored_plan(catalog, plan_id, digest)
+    if plan['state'] == 'completed':
+        return plan
+    guard = clipper.release_guard(catalog) if plan['entries'] else nullcontext()
+    with guard, catalog.writer():
         plan = stored_plan(catalog, plan_id, digest)
         if plan['state'] == 'completed': return plan
         if plan.get('closure_project_id'):
@@ -337,9 +341,10 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         archive = catalog.volume(plan['archive_id'])
         backend.check(archive)
         if plan['work_id']: backend.check(catalog.volume(plan['work_id']))
-        report(progress, 'revalidating_clipper')
-        consumers = clipper.inspect(catalog, plan['replacements'])
-        require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Resolve Clipper references/queues/offline projects before releasing')
+        if plan['entries']:
+            report(progress, 'revalidating_clipper')
+            consumers = clipper.inspect(catalog, plan['replacements'])
+            require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Resolve Clipper references/queues/offline projects before releasing')
         verify_replacements(catalog, backend, plan, cancel, progress)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
