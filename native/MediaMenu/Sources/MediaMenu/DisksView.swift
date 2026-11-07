@@ -426,7 +426,7 @@ struct TargetStrip: View {
                             Text(usage(target)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                         }
                         .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(selected ? palette.accent.opacity(0.32) : palette.inset.opacity(0.5), in: Capsule())
+                        .background(selected ? palette.accentSoft : palette.raised.opacity(0.5), in: Capsule())
                         .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -518,13 +518,13 @@ struct TreemapView: View {
                     }
                     .padding(5)
                     .frame(width: max(0, rect.width - 2), height: max(0, rect.height - 2), alignment: .topLeading)
-                    .background(palette.inset, in: RoundedRectangle(cornerRadius: 4))
+                    .background(palette.raised, in: RoundedRectangle(cornerRadius: 4))
                     .offset(x: rect.minX + 1, y: rect.minY + 1)
                     .help(String(localized: "Otros") + " · " + bytesLabel(others))
                 }
             }
         }
-        .background(palette.card, in: RoundedRectangle(cornerRadius: 10))
+        .background(palette.surface, in: RoundedRectangle(cornerRadius: 10))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay { if rows.isEmpty && rest <= 0 { Text("Esta carpeta está vacía").font(.callout).foregroundStyle(.secondary) } }
     }
@@ -546,7 +546,7 @@ struct TreemapView: View {
             }
             .padding(5)
             .frame(width: max(0, rect.width - 2), height: max(0, rect.height - 2), alignment: .topLeading)
-            .background(key == "mixed" ? palette.inset : diskClassColor(key).opacity(key == "unknown" || key == "other" ? 0.14 : 0.28), in: RoundedRectangle(cornerRadius: 4))
+            .background(key == "mixed" ? palette.raised : diskClassColor(key).opacity(key == "unknown" || key == "other" ? 0.14 : 0.28), in: RoundedRectangle(cornerRadius: 4))
             .overlay(RoundedRectangle(cornerRadius: 4).stroke(selection == row.id ? palette.ink : .clear, lineWidth: 1.5))
             .contentShape(Rectangle())
         }

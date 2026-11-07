@@ -93,7 +93,7 @@ struct AssetThumbnail: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 6).fill(palette.inset.opacity(0.35))
+                RoundedRectangle(cornerRadius: 6).fill(palette.raised.opacity(0.35))
                 if let image { Image(decorative: image, scale: 1).resizable().scaledToFit() }
                 else if loading { ProgressView().controlSize(.small) }
                 else { Image(systemName: "doc.richtext").font(.title2).foregroundStyle(.secondary) }
@@ -220,7 +220,7 @@ struct UnitPreview: View {
                     AssetThumbnail(url: model.previewURL(unit), height: geometry.size.height)
                 }
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(selected ? palette.control : .clear, lineWidth: 3))
+                .overlay(RoundedRectangle(cornerRadius: 7).stroke(selected ? palette.accentText : .clear, lineWidth: 3))
                 .overlay(alignment: .bottomLeading) {
                     if unit.category == "stalker" {
                         VStack(alignment: .leading, spacing: 2) {
@@ -246,7 +246,7 @@ struct UnitPreview: View {
                     if model.copyChoice == "some" && unit.previewPath != nil {
                         Button { unit.copyForEditing.toggle() } label: {
                             Image(systemName: unit.copyForEditing ? "checkmark.circle.fill" : "circle")
-                                .font(.title3).foregroundStyle(unit.copyForEditing ? palette.control : palette.ink)
+                                .font(.title3).foregroundStyle(unit.copyForEditing ? palette.accentText : palette.ink)
                                 .padding(4).background(palette.canvas.opacity(0.9), in: Circle())
                         }
                         .buttonStyle(.plain).padding(4)

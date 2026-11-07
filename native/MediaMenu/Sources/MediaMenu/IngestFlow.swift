@@ -75,12 +75,12 @@ struct StepBar: View {
                 Button { model.goToStep(step) } label: {
                     HStack(spacing: 5) {
                         Image(systemName: done(step) && !current ? "checkmark.circle.fill" : step.symbol)
-                            .foregroundStyle(done(step) && !current ? palette.control : (current ? palette.ink : palette.muted))
+                            .foregroundStyle(done(step) && !current ? palette.accentText : (current ? palette.ink : palette.muted))
                         Text(step.title).lineLimit(1)
                     }
                     .font(.callout.weight(current ? .semibold : .regular))
                     .padding(.horizontal, 9).padding(.vertical, 5)
-                    .background(current ? palette.accent.opacity(0.32) : .clear, in: Capsule())
+                    .background(current ? palette.accentSoft : .clear, in: Capsule())
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -224,7 +224,7 @@ struct SourceTile: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(selected ? palette.control : palette.muted).frame(width: 28)
+                Image(systemName: symbol).font(.title2).foregroundStyle(selected ? palette.accentText : palette.muted).frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(.callout.weight(.semibold)).lineLimit(1)
                     Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
@@ -234,8 +234,8 @@ struct SourceTile: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .background(palette.inset.opacity(selected ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? palette.control : palette.border.opacity(0.6), lineWidth: selected ? 1.5 : 1))
+            .background(palette.raised.opacity(selected ? 0.6 : 0.35), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? palette.accentText : palette.line.opacity(0.6), lineWidth: selected ? 1.5 : 1))
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
@@ -370,7 +370,7 @@ struct DestinationSummary: View {
             }
             .font(.callout)
             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.inset.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .background(palette.raised.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 }
@@ -566,12 +566,12 @@ struct VolumeChoices: View {
     private func row(id: String, title: String, detail: String, online: Bool) -> some View {
         Button { selection = id } label: {
             HStack {
-                Image(systemName: selection == id ? "largecircle.fill.circle" : "circle").foregroundStyle(selection == id ? palette.control : palette.muted)
+                Image(systemName: selection == id ? "largecircle.fill.circle" : "circle").foregroundStyle(selection == id ? palette.accentText : palette.muted)
                 Text(title).fontWeight(selection == id ? .semibold : .regular)
                 Text(detail).font(.caption).foregroundStyle(online ? Color.secondary : Color.orange)
                 Spacer()
             }.padding(.vertical, 5).padding(.horizontal, 8).contentShape(Rectangle())
-            .background(selection == id ? palette.inset.opacity(0.5) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .background(selection == id ? palette.raised.opacity(0.5) : .clear, in: RoundedRectangle(cornerRadius: 8))
         }.buttonStyle(.plain)
     }
 }
@@ -658,7 +658,7 @@ struct FlowSummary: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 6) {
-                ForEach(items, id: \.self) { Text($0).font(.caption.weight(.medium)).padding(.horizontal, 8).padding(.vertical, 3).background(palette.inset.opacity(0.6), in: Capsule()) }
+                ForEach(items, id: \.self) { Text($0).font(.caption.weight(.medium)).padding(.horizontal, 8).padding(.vertical, 3).background(palette.raised.opacity(0.6), in: Capsule()) }
             }
         }.scrollIndicators(.hidden)
     }

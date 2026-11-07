@@ -1,6 +1,21 @@
 # Implementation status
 
-Updated: 2026-11-06, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
+
+## Tema visual nu9ve-theme-v1 en nüün · 2026-11-07
+
+Primera adopción del [contrato de tema](contracts/nu9ve-theme-v1.md), en working tree y sin commit. La paleta pasa a los roles comunes (`surface`, `raised`, `line`, `ink`, `muted`, `accent`, `onAccent`, `accentText`, `accentSoft`). Se resuelve en `MediaMenuCore/ThemeColor.swift`, que es pura y lleva la copia comentada de `readable` de SoundShop. Las superficies conservan la receta anterior. Los textos solo se ajustan cuando no llegarían al mínimo: `ink` 7:1, `muted` y `accentText` 4.5:1, e `ink` sobre `accentSoft` 7:1. Antes, un color base oscuro en tema oscuro dibujaba casillas y radios a ~1:1. Los trazos e iconos que usaban el acento crudo ahora usan `accentText`. En Apariencia hay presets suizos: Ámbar (por defecto), Navaja, Acero y Glaciar. Elegir uno solo cambia el color, no el modo.
+
+Evidencia:
+- `swift test`: **19/19**, incluida una matriz de 196 colores base × claro/oscuro, y la prueba de que el color por defecto conserva sus valores.
+- `check_localization.py`: 654 claves, sin faltantes ni sobrantes.
+- `git diff --check`.
+- Capturas offscreen `--qa-snapshots` con estado aislado (`NU9VE_MEDIA_HOME` temporal, preferencias por argumento) en tres casos: claro por defecto, oscuro con Navaja y oscuro con azul a V=0.15.
+  - El claro por defecto se ve como antes.
+  - En el azul oscuro los radios y casillas se leen, pero sin matiz. El relleno del segmento seleccionado casi no se distingue: el texto en negrita lo sostiene.
+  - En los fixtures de estas corridas aparece el aviso «Root unavailable» de la carpeta de media temporal; no tiene que ver con el tema.
+
+**Sin probar:** clics reales en los presets, cambio de modo con la app abierta y Aumentar contraste. Sin build instalada.
 
 ## Aceptación reportada, Sony y trabajo por defecto · 2026-11-06
 

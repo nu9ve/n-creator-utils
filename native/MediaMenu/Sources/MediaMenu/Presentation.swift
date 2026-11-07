@@ -29,12 +29,12 @@ struct AppNavigation: View {
                         if !compact { Text(route.title) }
                         if route == .home && attention > 0 {
                             Text("\(attention)").font(.caption2.monospacedDigit()).padding(.horizontal, 5)
-                                .background(palette.accent, in: Capsule()).foregroundStyle(palette.accentInk)
+                                .background(palette.accent, in: Capsule()).foregroundStyle(palette.onAccent)
                         }
                     }
                     .font(.callout.weight(model.route == route ? .semibold : .regular))
                     .padding(.horizontal, compact ? 8 : 10).padding(.vertical, 4)
-                    .background(model.route == route ? palette.accent.opacity(0.32) : .clear, in: Capsule())
+                    .background(model.route == route ? palette.accentSoft : .clear, in: Capsule())
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

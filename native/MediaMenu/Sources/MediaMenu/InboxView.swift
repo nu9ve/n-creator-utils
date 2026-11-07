@@ -61,7 +61,7 @@ struct Panel: ViewModifier {
     @Environment(\.creatorPalette) private var palette
     func body(content: Content) -> some View {
         content.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
-            .background(palette.inset.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+            .background(palette.raised.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -221,7 +221,7 @@ struct FinalsSection: View {
 
 struct Chip: ViewModifier {
     @Environment(\.creatorPalette) private var palette
-    func body(content: Content) -> some View { content.background(palette.inset.opacity(0.5), in: Capsule()) }
+    func body(content: Content) -> some View { content.background(palette.raised.opacity(0.5), in: Capsule()) }
 }
 
 struct CardSuggestion: View {
@@ -277,7 +277,7 @@ struct CaptureInboxRow: View {
                 // Like Finder: a click selects, the space bar or a double click looks, and it never opens a player.
                 AssetThumbnail(url: preview, height: 116)
                     .frame(width: 190)
-                    .overlay { RoundedRectangle(cornerRadius: 6).stroke(thumbnailFocused ? palette.accent : .clear, lineWidth: 2) }
+                    .overlay { RoundedRectangle(cornerRadius: 6).stroke(thumbnailFocused ? palette.accentText : .clear, lineWidth: 2) }
                     .contentShape(Rectangle())
                     .focusable()
                     .focusEffectDisabled()
@@ -352,7 +352,7 @@ struct CaptureInboxRow: View {
                 Text(verbatim: savedProject).fontWeight(.medium).lineLimit(1)
                 if !savedCountry.isEmpty { Text(verbatim: savedCountry.uppercased()).font(.caption2).opacity(0.7) }
             }
-            .font(.callout).foregroundStyle(palette.accentInk)
+            .font(.callout).foregroundStyle(palette.onAccent)
             .padding(.horizontal, 9).padding(.vertical, 4)
             .background(palette.accent, in: Capsule())
             Button { editing = true } label: { Image(systemName: "arrow.triangle.2.circlepath") }
