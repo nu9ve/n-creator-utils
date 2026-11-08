@@ -773,7 +773,14 @@
 "queda menos de un minuto" = "less than a minute left";
 "quedan ~%lld min" = "~%lld min left";
 "%@ · sugerido" = "%@ · suggested";
-"Audio de caché de Clipper" = "Clipper cache audio";
+"Clipper · %@" = "Clipper · %@";
+"Clipper los borra" = "Clipper deletes them";
+"Borrados por Clipper" = "Deleted by Clipper";
+"Sin borrar" = "Not deleted";
+"Clipper no borró sus regenerables: %@" = "Clipper did not delete its regenerable files: %@";
+"Clipper conservó %lld archivos que cambiaron desde la revisión." = "Clipper kept %lld files that changed since the review.";
+"Pidiendo a Clipper su lista de regenerables" = "Asking Clipper for its regenerable files";
+"Clipper borra sus regenerables revisados" = "Clipper is deleting its reviewed regenerable files";
 "Cierre conjunto con %@: sus entregas cuentan para los requisitos y sus intermedios entran en la revisión. Cada entrega conserva su proyecto." = "Joint closeout with %@: their deliveries count toward the requirements and their intermediates enter the review. Each delivery keeps its project.";
 "Cierre conjunto: %@" = "Joint closeout: %@";
 "Desvinculando proyectos" = "Unlinking projects";

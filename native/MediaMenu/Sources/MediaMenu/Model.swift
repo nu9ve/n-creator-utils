@@ -447,6 +447,8 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "matching_archive": return String(localized: "Comparando con el respaldo")
         case "validating_bundle": return String(localized: "Validando bundle Stalker")
         case "inspecting_clipper": return String(localized: "Revisando dependencias de Clipper")
+        case "review_clipper_regenerable": return String(localized: "Pidiendo a Clipper su lista de regenerables")
+        case "clipper_cleanup": return String(localized: "Clipper borra sus regenerables revisados")
         case "verifying_work_copy": return String(localized: "Verificando copia de trabajo")
         case "revalidating_source": return String(localized: "Revalidando origen")
         case "revalidating_clipper": return String(localized: "Revalidando dependencias de Clipper")
