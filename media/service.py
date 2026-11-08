@@ -207,6 +207,15 @@ class Service:
         if method == 'devices':
             from .recipes import devices
             return devices(self.catalog)
+        if method == 'missions_review':
+            from .missions import review
+            return review(self.catalog, self.backend, **params)
+        if method == 'missions_incorporate':
+            from .missions import incorporate
+            return incorporate(self.catalog, self.backend, **params)
+        if method == 'missions_status':
+            from .missions import status
+            return status(self.catalog, **params)
         if method == 'confirm_device':
             from .recipes import confirm_device
             return confirm_device(self.catalog, **params)

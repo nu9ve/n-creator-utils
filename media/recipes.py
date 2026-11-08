@@ -29,13 +29,45 @@ TEMPLATE = {
     'categories': {
         'dji-drone': {'archive': {'video': 'vdron', 'image': 'dron/fotos', 'raw_image': 'dron/fotos'}},
     },
+    # Mission registries: exports of a flight app merged into one history (Atlas A13). Another setup may have
+    # none, or another producer; nothing in media/missions.py names subaereo.
+    'missions': [{
+        'id': 'subaereo',
+        'label': 'Misiones de subaereo',
+        'project': 'subaereo',                     # default project of a photo matched to a mission
+        'devices': ['dji-drone'],                  # categories whose stills may belong to a mission
+        'inbox': '~/Downloads',                    # where AirDrop leaves the exports
+        'patterns': ['coverage-*.json', 'JSON-*.json'],
+        'schema_versions': [1, 2, 3],
+        'merge_keys': {'plans': 'id', 'captures': 'captureID', 'captureLog': 'captureID',
+                       'flightSessions': 'id', 'fieldNotes': 'id'},
+        'record_dates': {'plans': 'updatedAt', 'captures': 'capturedAt', 'captureLog': 'capturedAt',
+                         'flightSessions': 'updatedAt', 'fieldNotes': 'createdAt'},
+        'tombstones': {'plans': 'deletedPlanIDs'},  # additive list once the app publishes deletions
+        'archive_area': '004_datos/subaereo/coverage',   # below the archive volume root
+        'work_mirror': 'atlas-subaereo/_missions',       # below the work volume prefix
+        'match': {'seconds': 2, 'meters': 40},
+    }],
 }
+
+
+def mission_flow(value, flow_id=None):
+    flows = value.get('missions') or []
+    require(flows, 'no_mission_flow', 'This recipe has no mission registry')
+    if flow_id is None:
+        return flows[0]
+    flow = next((f for f in flows if f['id'] == flow_id), None)
+    require(flow is not None, 'no_mission_flow', 'Unknown mission registry: ' + str(flow_id))
+    return flow
 
 REGISTRY_KEY = 'device-registry'
 
 
 def recipe(catalog=None):
-    """Effective recipe. Today the template; an edited recipe will replace it from the catalog."""
+    """Effective recipe: an edited one saved in the catalog (`recipe`), else the initial template."""
+    saved = catalog.get('recipe') if catalog is not None else None
+    if isinstance(saved, dict) and saved.get('schema') == TEMPLATE['schema']:
+        return copy.deepcopy(saved)
     return copy.deepcopy(TEMPLATE)
 
 

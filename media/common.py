@@ -156,20 +156,26 @@ class Tree:
             full_sync(fd)
 
     def write_json(self, rel, value):
+        self.write_bytes(rel, canonical(value) + b'\n')
+
+    def write_bytes(self, rel, data, replace=True):
+        """Durable whole-file write via a temp + rename. `replace=False` never overwrites an existing name."""
         with self.parent(rel, True) as (fd, name):
             temp = '.' + name + '.' + uid() + '.tmp'
             out = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
             try:
                 with os.fdopen(out, 'wb') as stream:
-                    stream.write(canonical(value) + b'\n')
+                    stream.write(data)
                     stream.flush()
                     full_sync(stream.fileno())
-                # JSON is owned metadata. Refuse replacing links/special entries.
+                # Owned metadata. Refuse replacing links/special entries.
                 try:
                     old = os.stat(name, dir_fd=fd, follow_symlinks=False)
                     require(stat.S_ISREG(old.st_mode), 'unsafe_file', 'Unsafe metadata target')
+                    require(replace, 'destination_exists', 'Already exists: ' + rel)
                 except FileNotFoundError:
                     pass
+                # Without replace the check above runs under the caller's writer lock; exFAT has no hard links.
                 os.replace(temp, name, src_dir_fd=fd, dst_dir_fd=fd)
                 full_sync(fd)
             finally:
@@ -177,6 +183,17 @@ class Tree:
                     os.unlink(temp, dir_fd=fd)
                 except FileNotFoundError:
                     pass
+
+    def read_bytes(self, rel, limit=64 * 1024 * 1024):
+        """Whole small file, or None when absent."""
+        try:
+            fd = self.open(rel)
+        except (FileNotFoundError, NotADirectoryError):
+            return None
+        with os.fdopen(fd, 'rb') as stream:
+            data = stream.read(limit + 1)
+        require(len(data) <= limit, 'file_too_large', 'File too large: ' + rel)
+        return data
 
 
 def hash_fd(fd, cancel=lambda: False, progress=None):
