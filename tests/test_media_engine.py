@@ -490,9 +490,40 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(job['state'], 'failed')
         self.assertTrue(job['sony_removal_recorded'])
         self.assertEqual(job['sony_stage'], 'removal_recorded')
+        # Reconnecting the same card: unchanged indexes keep it open; a formatted card closes it, never resumed.
+        from media.transfer import reconcile_sony_cleanup
+        self.assertEqual(reconcile_sony_cleanup(self.catalog, self.backend, str(self.source))['checked'], {plan['id']: 'waiting_camera'})
+        self.assertEqual(self.catalog.jobs()[0]['state'], 'failed')
+        (self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML').write_bytes(b'<formatted/>')
+        self.assertEqual(reconcile_sony_cleanup(self.catalog, self.backend, str(self.source))['checked'], {plan['id']: 'ready'})
+        job = self.catalog.jobs()[0]
+        self.assertEqual((job['state'], job['sony_stage']), ('completed', 'formatted'))
+
+    def test_failed_sony_job_without_recorded_removal_is_not_closed_by_a_card_check(self):
+        from unittest import mock
+        from media.planner import scan
+        from media.transfer import reconcile_sony_cleanup
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'sony')
+        index = self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML'
+        index.write_bytes(b'<index/>')
+        plan = self.plan()
+
+        def failed_scan(root, **kwargs):
+            if not clip.exists():
+                raise FileNotFoundError('C0001.MP4')
+            return scan(root, **kwargs)
+
+        with mock.patch('media.transfer.scan', side_effect=failed_scan), self.assertRaises(FileNotFoundError):
+            self.run_plan(plan)
         with self.catalog.db:
             self.catalog.db.execute("DELETE FROM copies WHERE job_id=? AND relative_path LIKE '%C0001.MP4'", (plan['id'],))
         self.assertFalse(self.catalog.jobs()[0]['sony_removal_recorded'])
+        index.write_bytes(b'<formatted/>')
+        self.assertEqual(reconcile_sony_cleanup(self.catalog, self.backend, str(self.source))['checked'], {})
+        self.assertEqual(self.catalog.jobs()[0]['state'], 'failed')
 
     def test_sony_mount_checks_returned_original_and_reused_filename(self):
         from media.service import Service

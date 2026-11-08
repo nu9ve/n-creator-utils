@@ -78,8 +78,10 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
     if identity is not None:
         require(card_identity(info) == identity, 'volume_replaced', 'Card changed before checking it')
     reject_destination(info, destination_identities(catalog, backend))
+    # A failed job whose removals are all journaled (sony_removal_recorded) is observed too: a formatted card closes
+    # it with an event; it is never resumed and nothing on the card changes.
     rows = catalog.db.execute("""
-        SELECT id,plan FROM jobs WHERE state='camera_action_required'
+        SELECT id,plan,state FROM jobs WHERE (state='camera_action_required' OR (state='failed' AND error='FileNotFoundError'))
           AND json_extract(plan,'$.cleanup_profile')='sony_clips_then_format'
           AND json_extract(plan,'$.source_kind')='card'
           AND json_extract(plan,'$.source_identity.volume_uuid')=?
@@ -95,6 +97,8 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
 
         observed, hashes, details = {}, {}, {}
         for row in rows:
+            if row['state'] == 'failed' and not sony_removal_recorded(catalog, catalog.job(row['id'])):
+                continue
             plan = json.loads(row['plan'])
             old = plan['source_identity']
             if not plan['cleanup'] or any(old.get(k) != info.get(k) for k in ('mode', 'volume_uuid', 'disk_uuid')):
@@ -141,7 +145,7 @@ def reconcile_sony_cleanup(catalog, backend, source, identity=None, job_id=None,
                 require(all(stamp(path) == value for path, value in observed.items()), 'source_changed', 'Card changed during check')
                 for checked_id, result in checked:
                     row = catalog.db.execute('SELECT state FROM jobs WHERE id=?', (checked_id,)).fetchone()
-                    if row and row['state'] == 'camera_action_required' and catalog.record_sony_check(checked_id, result, details[checked_id]):
+                    if row and row['state'] in {'camera_action_required', 'failed'} and catalog.record_sony_check(checked_id, result, details[checked_id]):
                         updated.append(checked_id)
     return {'checked': dict(checked), 'updated': updated, 'reappeared': {k: v for k, v in details.items() if v}}
 
@@ -346,6 +350,7 @@ class Transfer:
                     outputs[index] = uncached(target_tree.open(partials[index], os.O_WRONLY | os.O_CREAT | os.O_EXCL, True))
                 writes = []
                 os.lseek(src, 0, os.SEEK_SET)
+                read = 0
                 while True:
                     self.checkpoint('copy_block', {'path': source_rel})
                     block = os.read(src, CHUNK_SIZE)  # Overlaps with the previous block's writes.
@@ -355,8 +360,10 @@ class Transfer:
                         break
                     h.update(block)
                     writes = [pool.submit(write_all, fd, block) for fd in outputs.values()]
+                    read += len(block)
                     if self.progress:
-                        self.report(copied_bytes=self.progress['copied_bytes'] + len(block))
+                        # The file in hand, for the action view's small per-file indicator.
+                        self.report(copied_bytes=self.progress['copied_bytes'] + len(block), file_done=read, file_total=initial.st_size)
                 for future in [pool.submit(finish_partial, fd, initial) for fd in outputs.values()]:
                     future.result()
             finally:

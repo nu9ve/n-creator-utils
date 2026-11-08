@@ -425,7 +425,7 @@ import MediaMenuCore
         }
         model.ingestStep = .run; model.activeScope = .ingest; model.activeJobID = "job-1"
         model.jobProgress = .object(["state": .string("copying"), "progress": .object(["phase": .string("copying"), "copied_bytes": .number(21e9), "bytes_total": .number(38e9), "bytes_per_second": .number(180e6), "files_done": .integer(120), "files_total": .integer(212),
-            "overall_done": .number(52e9), "overall_total": .number(152e9),
+            "overall_done": .number(52e9), "overall_total": .number(152e9), "file_done": .number(1.6e9), "file_total": .number(4.2e9),
             "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("ESSD + MEDIA502"), "action": .string("copy")]),
             "log": .array((118...120).map { .object(["kind": .string("copied"), "name": .string("C0\($0).MP4"), "target": .string("ESSD + MEDIA502")]) }),
             "destinations": .array([.object(["name": .string("MEDIA502"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("ESSD"), "files_done": .integer(96), "files_total": .integer(110)])])])])

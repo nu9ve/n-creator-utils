@@ -769,3 +769,7 @@
 "Retiro comprobado al reconectar · falta formatear en la cámara" = "Removal confirmed on reconnect · format in the camera next";
 "Retiro observado · formatea en la cámara y vuelve a conectar la SD" = "Removal observed · format in the camera and reconnect the SD card";
 "Volver a revisar la SD…" = "Review the SD card again…";
+"Nada que aplicar: el proyecto ya está completo" = "Nothing to apply: the project is already complete";
+"Ya está completo: todo verificado en el respaldo y nada por copiar ni retirar" = "Already complete: everything verified in the backup and nothing to copy or remove";
+"queda menos de un minuto" = "less than a minute left";
+"quedan ~%lld min" = "~%lld min left";

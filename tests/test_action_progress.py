@@ -54,6 +54,7 @@ class IngestProgressTests(MediaFixture):
         self.assertEqual(copied['target'], 'ESSD + MEDIA')
         self.assertTrue(any(s['current'].get('action') == 'copy' and s['current']['from'] == 'card' for s in measured))
         self.assertTrue(any(s['current'].get('action') == 'release' for s in measured))
+        self.assertTrue(any(0 < s.get('file_done', 0) <= s.get('file_total', 0) for s in measured), 'per-file indicator')
         # The job's own progress (what Actividad and the app poll) carries the same fields.
         stored = self.catalog.get('progress:' + plan['id'], {})
         self.assertEqual(stored['overall_done'], stored['overall_total'])
@@ -80,6 +81,7 @@ class ReleaseProgressTests(WorkflowFixture):
         self.assertTrue(any(e['current'].get('action') == 'verify' and e['current']['from'] == 'MEDIA' for e in measured))
         self.assertTrue(any(e['current'].get('action') == 'release' and e['current']['from'] == 'ESSD' for e in measured))
         self.assertEqual({line['target'] for line in measured[-1]['log']}, {'ESSD'})
+        self.assertTrue(any(0 < e.get('file_done', 0) <= e.get('file_total', 0) for e in measured), 'per-file indicator')
 
     def test_service_keeps_the_measure_for_the_reader(self):
         plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')

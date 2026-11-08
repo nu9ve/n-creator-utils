@@ -417,6 +417,9 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     require(source['role'] == 'work' and target['role'] == 'archive', 'invalid_role', 'Elige trabajo y respaldo')
     require(independent(backend.check(source), backend.check(target)), 'same_physical_disk', 'Trabajo y respaldo deben ser discos distintos')
     scoped = roots(catalog, backend, project).get(source['id'], {'raw': [], 'editor': []}) if release_work else {'raw': [], 'editor': []}
+    if progress:
+        total, count = review_estimate(catalog, project, config, source, target, scoped, release_work, cancel)
+        progress = ReviewMeter(progress, total, count, source['name'], target['name'])
     entries, preserved, replacements, scopes, copies, finals, retained = [], [], {}, [], [], [], []
     for path in scoped['raw']:
         # Freeze known scopes even when absent, so arrivals invalidate a reviewed plan.
@@ -537,6 +540,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             'insufficient_space', 'No hay espacio para todos los finales seleccionados')
     require(release_work or entries, 'nothing_to_release', 'Los finales publicados elegidos ya están en el respaldo')
     require(len({e['path'] for e in entries}) == len(entries), 'overlapping_roots', 'Hay carpetas superpuestas; revisa las asociaciones')
+    if progress:
+        progress.finish()
     report(progress, 'inspecting_clipper' if entries else 'review_finishing')
     try:
         consumers = clipper.inspect(catalog, replacements) if entries else {'blockers': [], 'relinks': [], 'dependencies': None}
@@ -548,7 +553,9 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
              'replacements': replacements, 'replacement_checks': [], 'bytes': sum(e['stamp']['size'] for e in entries),
              'consumers': consumers, 'state': 'review', 'cleaned': {}, 'retained_editors': retained, 'closure_project_id': project_id,
              'closure_settings_digest': config_digest, 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies,
-             'closure_finish': release_work, 'closure_inventory_checked': True}
+             'closure_finish': release_work, 'closure_inventory_checked': True,
+             # Already closed and this review finds nothing to copy or retire: applying would only rewrite the record.
+             'already_complete': bool(catalog.get('project-released:' + project_id)) and not entries and not copies}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
@@ -590,6 +597,88 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event)
         report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
         return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))
+
+
+def review_estimate(catalog, project, config, source, target, scoped, release_work, cancel=None):
+    """Bytes and files a review will read, from sizes only (no hashing), so its bar is one measure from the start.
+
+    Raw copies on the editing disk are read there and matched in the backup (twice), catalogued sources once in the
+    backup, intermediates once, every chosen final once and an editing final once more when the backup has a file of
+    the same name and size to compare. It is an estimate: overlaps make it a little high, never the bar go back.
+    """
+    from .release import selected_files
+    total = count = 0
+    with Tree(source['root']) as tree:
+        for path in scoped['raw']:
+            try:
+                selected, _ = selected_files(tree, path, cancel=cancel)
+            except FileNotFoundError:
+                continue
+            for item in selected:
+                total += 2 * tree.stat(item).st_size
+                count += 2
+        for editor in scoped['editor']:
+            if (Path(source['root']) / editor / 'renders').is_dir():
+                for item in folder_files(tree, editor + '/renders', cancel):
+                    total += tree.stat(item).st_size
+                    count += 1
+    if release_work:
+        for asset in (a for a in catalog.search() if a.get('project_id') == project['id'] and a['kind'] != 'delivery'):
+            for original in asset['paths']:
+                row = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
+                                         (asset['job_id'], target['id'], original)).fetchone()
+                if row:
+                    total += json.loads(row[0])['bytes']
+                    count += 1
+    archived = {}
+    archive_root = Path(target['root']) / target.get('finals_prefix', '002_finales') / project['profile']
+    if any(catalog.volume(f['volume_id'])['role'] == 'work' for f in config['finals']) and archive_root.is_dir():
+        archived = {(p.name, info.st_size) for p, info in delivery_files(archive_root, cancel)}
+    for final in config['finals']:
+        size = final['stamp']['size']
+        total += size
+        count += 1
+        if catalog.volume(final['volume_id'])['role'] == 'work' and (Path(final['path']).name, size) in archived:
+            total += size
+            count += 1
+    return total, count
+
+
+class ReviewMeter:
+    """Turns a review's per-step reports into one overall measure plus the file in hand (`file_done`/`file_total`).
+
+    Each hashed file adds what it read; the bar stops just short of the end until the review finishes, so an estimate
+    that ran low never makes it go back."""
+
+    def __init__(self, progress, total, count, work_name, archive_name):
+        from .progress import ActionMeter
+        self.progress, self.meter = progress, ActionMeter(max(1, total), count)
+        self.names = {'review_raw_archive': archive_name, 'review_final_archive': archive_name, 'matching_archive': archive_name}
+        self.work_name = work_name
+        self.base, self.key, self.read = 0, None, 0
+
+    def __call__(self, stage, **details):
+        # Only a file being read counts: release also sends a stage total and a start marker at 0 bytes.
+        reading = bool(details.get('path')) and details.get('bytes_done', 0) > 0
+        if reading:
+            key = (stage, details.get('path'))
+            if key != self.key or details['bytes_done'] < self.read:
+                self.base += self.read
+                if self.key is not None:
+                    self.meter.files_done = min(self.meter.files_total, self.meter.files_done + 1)
+                self.key, self.read = key, 0
+            self.read = details['bytes_done']
+            self.meter.reach(min(self.base + self.read, int(self.meter.total * 0.99)))
+            self.meter.holding(details.get('path', ''), self.names.get(stage, self.work_name), '', 'verify')
+        file = {'file_done': details['bytes_done'], 'file_total': details.get('bytes_total', 0)} if reading else {}
+        self.progress(stage, **dict(details, **file, overall_done=self.meter.done, overall_total=self.meter.total,
+                                   overall_files_done=self.meter.files_done, overall_files_total=self.meter.files_total,
+                                   current=dict(self.meter.current)))
+
+    def finish(self):
+        self.meter.reach(self.meter.total)
+        self.meter.files_done = self.meter.files_total
+        self.meter.current = {}
 
 
 class ActionProgress:
