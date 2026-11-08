@@ -122,6 +122,8 @@ struct ProjectRow: View {
                         Button("Ver archivos", systemImage: "square.stack") { model.openFiles(project: title) }
                         if title != "finales" {
                             Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
+                            Button("Respaldar transcripciones", systemImage: "text.quote") { model.backupTranscripts(item) }
+                                .disabled(model.busy || model.archive.isEmpty)
                             linkMenu
                         }
                         Divider()

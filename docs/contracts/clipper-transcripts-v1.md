@@ -1,4 +1,4 @@
-# Transcripciones de Clipper en MEDIA · v1 · propuesta · 2026-11-07
+# Transcripciones de Clipper en MEDIA · v1 · 2026-11-07
 
 Decisión del usuario (7 nov): las transcripciones que Clipper va sacando se conservan a largo plazo, **ligadas a los videos ya respaldados**, en un área de datos por programa dentro de MEDIA. La caché regenerable no se respalda.
 
@@ -75,8 +75,16 @@ El ingreso de la SD no espera transcripciones.
 | Parte | Estado |
 | --- | --- |
 | Clipper `transcripts-export` | Implementado sin commit (7 nov), con pruebas en carpetas temporales |
-| nüün área `004_datos`, copia y recibo | Pendiente, este repo |
-| nüün revisión de cierre y acción por proyecto | Pendiente, este repo |
-| Nombre del área en [media-naming-v1](media-naming-v1.md) | Se registra al implementar |
+| nüün área `004_datos`, copia y recibo | Implementado sin commit (7 nov): `media/transcripts.py`, recibo `nu9ve-data-receipt/1` en `.ncreator/receipts/data-<id>.json` |
+| nüün revisión de cierre y acción por proyecto | Implementado sin commit (7 nov): grupo «Transcripciones de Clipper» en la revisión, copia verificada antes del primer retiro, y «Respaldar transcripciones» en Proyectos (`transcripts_backup`) |
+| Nombre del área en [media-naming-v1](media-naming-v1.md) | Registrado (7 nov) |
 
 Las pruebas de las dos partes usan fixtures y carpetas temporales; nunca ESSD ni MEDIA502. La aceptación física es una prueba aparte con un proyecto pequeño.
+
+### Precisiones de la implementación de nüün (2026-11-07)
+
+- El vínculo usa primero `asset_id` + `member_sha256`, y si no `source.path` frente a los destinos de trabajo de los recibos. Una fuente sin miembro archivado queda como nota.
+- Una versión nueva se nombra `<base>.vAAAAMMDDTHHMMSS.<ext>` junto a la anterior, y una versión idéntica ya guardada se adopta.
+- Antes de copiar se compara el stamp del export con el archivo actual. Si cambió, se detiene sin deshacer lo ya verificado.
+- En el cierre, Clipper sin respuesta o una fuente sin respaldo es una nota en «Conservar», no un bloqueo, porque nada de `transcripts/` se borra. Una copia que no verifica detiene el cierre antes del primer retiro.
+- Prueba con la CLI real (sólo plan, sin copiar) sobre una copia del catálogo: `terra-6-1-extra` y `el-repositorio-de-nu9ve` ligan cada uno sus 5 archivos al clip archivado (`2026/10/…` y `2026/11/…`), 1.8 y 1.9 MB.

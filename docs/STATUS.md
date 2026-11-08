@@ -2,6 +2,22 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Transcripciones de Clipper en MEDIA (parte de nüün) · 2026-11-07
+
+En working tree, sin commit. Instalada como build **`7715ca5b0648`** con la app cerrada; la anterior quedó en `app-backups/f428fe1f.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-235058-245bba.app`, los 30 módulos de `media/` idénticos al checkout y `capture_overview` instalado con 12 proyectos sobre una copia del catálogo. Python **316 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa. Clipper implementó en su sesión `library transcripts-export`. Esta sesión implementó la parte de nüün del [contrato](contracts/clipper-transcripts-v1.md):
+- `media/transcripts.py`: valida el export y liga cada archivo al miembro archivado. Lo copia con Transfer verificado a `004_datos/clipper/transcripts/AAAA/MM/<clip archivado>/` y deja el recibo `nu9ve-data-receipt/1`. Adopta lo idéntico, guarda versiones nuevas al lado y no borra nada.
+- Cierre: grupo «Transcripciones de Clipper» en la revisión, y copia verificada antes del primer retiro; si no verifica, el cierre se detiene. «Ya está completo» las considera.
+- Proyectos: **Respaldar transcripciones** (`transcripts_backup`) para el proyecto y sus vinculados.
+- El área quedó registrada en [media-naming-v1](contracts/media-naming-v1.md).
+
+Evidencia: 5 pruebas nuevas en `tests/test_transcripts.py`, y el mock de Clipper de `test_project_closeout` ahora responde `transcripts-export`. Con la CLI real, sólo el plan, sin copiar a MEDIA: `terra-6-1-extra` (5 archivos, 1.8 MB, 5.4 s) y `el-repositorio-de-nu9ve` (5 archivos, 1.9 MB, 0.6 s) ligan al clip archivado.
+
+## Pruebas físicas del usuario: Baches y clics en skins · 2026-11-07
+
+Build `cc6c379d630a`.
+- **Baches:** el usuario conectó la SD Sony. Lectura en sólo lectura: `060b585d` pasó de `failed` a `completed` a las 04:27:02 UTC del 8 nov, con `sony_card_checked: ready`. Lo cerró la comprobación por observación, sin reanudar ni tocar la tarjeta.
+- **Clics reales:** el usuario reporta que funcionan los controles × − + y los bordes de los skins cuadrados, Acerca de y los presets suizos.
+
 ## Contrato de transcripciones de Clipper en MEDIA · 2026-11-07
 
 Sólo documentación, sin commit. El usuario pidió coordinar las transcripciones durables. Reparto acordado: Clipper sólo exporta (`library transcripts-export --json`, `clipper-transcript-export/1`) y nüün copia, verifica y deja recibo en `004_datos/clipper/transcripts/AAAA/MM/<nombre del clip archivado>/`, ligado al asset respaldado y comprobado en el cierre. Detalle en [transcripciones de Clipper v1](contracts/clipper-transcripts-v1.md). Las dos partes están pendientes; la de Clipper, en su sesión `Clipper project retirement and storage cleanup`.

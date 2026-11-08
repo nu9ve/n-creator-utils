@@ -404,6 +404,8 @@ class ClosureTests(WorkflowFixture):
         calls = []
 
         def invoke(catalog, args, timeout=120):
+            if args[0] == 'transcripts-export':
+                raise MediaError('clipper_failed', 'sin exportación de transcripciones en esta prueba')
             if args[0] == 'cleanup-plan':
                 document = documents.get(os.path.realpath(args[1]))
                 if document is None:
