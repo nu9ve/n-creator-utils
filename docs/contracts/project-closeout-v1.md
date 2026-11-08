@@ -105,6 +105,16 @@ Solo informa: no cambia qué se copia ni qué se retira.
 
 Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: fecha, archivos retirados, bytes liberados y las entregas que siguen en edición sin publicar. Estas ya están respaldadas. Al publicarlas, **Respaldar publicados…** retira su copia de edición sin preparar todo el cierre otra vez.
 
+## Carpeta de Clipper y caché · decisión del usuario · 2026-11-07
+
+Medido en ESSD, en sólo lectura: las carpetas `clipper/` de cuatro proyectos `e64` suman 9.9 GB y sus transcripciones unos 16 MB. Dos de esos proyectos ya están retirados en Clipper, `terra-6-1-extra` (634 MB, 509 de caché) y `debloateando-mi-tele` (833 MB, 740 de caché). `buscando-baches-con-el-dron` guarda 4.6 GB de exports, 2.7 GB de caché y 314 MB de temporales `.clipper-multicam-*` que quedaron en `logs/`. Ningún export coincide en tamaño con un final de ESSD o MEDIA502.
+
+Decisión:
+- A largo plazo se conservan las transcripciones y lo necesario para recuperar la edición. Al retirar un proyecto no deben quedar archivos inaccesibles acumulándose.
+- **Qué es regenerable dentro de `clipper/` lo decide Clipper.** Pedido registrado en su repo: [retiro con limpieza](../../../../ai/clipper/docs/2026-11-07-retire-cleanup-from-nuun.md). Pide limpieza revisada al retirar, cerrar la fuga de temporales, una política de caché y una lista legible por máquina. Hasta que exista esa lista, nüün no borra dentro de `clipper/`.
+- **Duplicados de finales (por implementar):** un archivo en `renders/` o `clipper/exports/` idéntico por SHA-256 a un final ya verificado en MEDIA se puede retirar en el cierre, con su propia línea en la revisión. Un nombre parecido sólo sirve para sugerir candidatos; la decisión la da el hash. Hoy no hay ninguno en esos proyectos.
+- **Proyectos vinculados:** el usuario quiere vincularlos desde Proyectos y que «Estas son todas las entregas definitivas» autorice limpiar los intermedios de todo el grupo. El diseño de la sección «Proyectos relacionados» se mantiene, con el vínculo hecho desde Proyectos. Queda en espera porque en Terra no liberaría espacio hasta que Clipper exponga lo regenerable.
+
 ## Revisión con medida global y proyecto ya completo · 2026-11-07
 
 **Preparar revisión…** ya no muestra el avance de cada paso. `closure.review_estimate` calcula al empezar, sólo con tamaños, los bytes y archivos que la revisión va a leer:
