@@ -41,6 +41,13 @@ Sólo lectura. Responde un documento `clipper-transcript-export/1`:
 
 - Lista sólo las transcripciones vigentes de ese proyecto, no la caché global ni variantes descartadas.
 - `source.path` es la ruta que Clipper transcribió. `asset_id` y `member_sha256` van cuando la fuente llegó desde nüün (`sources`), y si no, `null`.
+- **Precisiones de la implementación de Clipper (2026-11-07):**
+  - «Vigente» es el `transcript_path` actual de cada fuente del proyecto, más sus hermanos `.provider-response.json`, `.srt`, `.vtt` y `.ass` cuando existen. No entran otras transcripciones de `transcripts/` ni `transcripts/derived/` (las de cortes, que se regeneran desde la edición).
+  - `source.path` es la ruta actual del item en el proyecto, la misma que usa Clipper al transcribir o tras un relink. Campo aditivo: `source.source_id`, el id del item en Clipper.
+  - `member_sha256` sale de los miembros que guardó el handoff (`editable_members`, `media_members` o `members`, comparando `local_path` o la ruta dentro del bundle). En un asset de un solo archivo sin miembros, sale de su `sha256`.
+  - `clipper_fingerprint` es `null` si la fuente está offline; la entrada se lista igual.
+  - `generated_at` entra en el digest, así que dos exports del mismo contenido tienen digests distintos. Para comparar contenido se usan `sha256` y `stamp` de cada entrada.
+  - Funciona igual con un proyecto retirado (`clipper-retired-project.json`). Storage / Cleanup protege todo `transcripts/` y nunca lo lista en `cleanup-plan`.
 - Clipper no garantiza que la fuente esté respaldada: eso lo comprueba nüün.
 
 ## 2. Lo que hace nüün
@@ -67,7 +74,7 @@ El ingreso de la SD no espera transcripciones.
 
 | Parte | Estado |
 | --- | --- |
-| Clipper `transcripts-export` | Pendiente, sesión de Clipper |
+| Clipper `transcripts-export` | Implementado sin commit (7 nov), con pruebas en carpetas temporales |
 | nüün área `004_datos`, copia y recibo | Pendiente, este repo |
 | nüün revisión de cierre y acción por proyecto | Pendiente, este repo |
 | Nombre del área en [media-naming-v1](media-naming-v1.md) | Se registra al implementar |
