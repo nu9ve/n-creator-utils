@@ -597,7 +597,6 @@
 "Plan de cierre" = "Closeout plan";
 "Respaldando finales y liberando trabajo" = "Backing up finals and releasing work";
 "Revisar cierre…" = "Review closeout…";
-"Revisé la lista: los intermedios son descartables y ninguna otra edición necesita los archivos a retirar" = "I reviewed the list: intermediates can be discarded and no other edit needs the files being removed";
 "Sin coincidencias. Cambia la búsqueda para encontrar los finales." = "No matches. Change your search to find the finals.";
 "Thumbnail" = "Thumbnail";
 "Usar estos requisitos como predeterminados del perfil" = "Use these requirements as the profile defaults";
@@ -787,3 +786,6 @@
 "Vincular" = "Link";
 "Vincular con otro proyecto…" = "Link with another project…";
 "¿«%@» es una regrabación de este trabajo?" = "Is “%@” a re-recording of this work?";
+"Actualizando vínculo…" = "Updating link…";
+"Al completar se descartan los intermedios de la lista, sin respaldo. Revisa que ninguna otra edición los necesite." = "Completing discards the listed intermediates, without a backup. Check that no other edit needs them.";
+"Vinculando…" = "Linking…";

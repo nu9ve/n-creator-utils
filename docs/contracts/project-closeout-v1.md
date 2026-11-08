@@ -16,8 +16,11 @@ verificado son estados independientes. Un archivo modificado exige revisión.
 verifica y retira sus copias de trabajo. No exige «ya no habrá más» ni toca raws
 o renders, y no termina el proyecto. **Revisar cierre** mantiene los requisitos
 del proyecto y la declaración de entregas completas.
-En la revisión, el botón final aplica el plan sin un segundo modal; el descarte
-de intermedios y dependencias externas requiere la casilla explícita de revisión.
+En la revisión, el botón final aplica el plan sin un segundo modal. Desde el
+7 nov, por decisión del usuario, pulsar **Completar y liberar** sobre la lista
+revisada es el consentimiento del descarte de intermedios: ya no hay casilla.
+La revisión avisa que se descartan sin respaldo y el motor sigue registrando
+`closure-consent` con el digest.
 
 `closure_save.finals[]` añade `published` opcional; el booleano global anterior
 sigue siendo compatible como declaración de todas las elegidas. `closure_plan`
@@ -117,7 +120,13 @@ Decisión:
   - El proyecto tiene sesiones Stalker en el catálogo.
   - El cierre verifica esas sesiones en el respaldo.
 
-  Entran como intermedios con `origin: clipper_cache`, en su propio grupo «Audio de caché de Clipper», con la casilla de consentimiento. Nada más dentro de `clipper/` se toca: ni locks ocultos, transcripciones, análisis, exports ni el manifest.
+  Entran como intermedios con `origin: clipper_cache`, en su propio grupo «Audio de caché de Clipper», y se retiran al pulsar **Completar y liberar**. Nada más dentro de `clipper/` se toca: ni locks ocultos, transcripciones, análisis, exports ni el manifest.
+- **Lista de regenerables de Clipper (implementada en Clipper, 7 nov; nüün aún no la consume):** sustituye a la excepción anterior cuando nüün la adopte. La fuente única es Clipper:
+  - `clipper library cleanup-plan <carpeta> --json` (proyecto activo o retirado) y la clave `regenerable` de `clipper library retire-plan --json` devuelven `schema: clipper-regenerable-files/1`, `project_root`, `project_state` (`active`/`retired`), `inventory_complete`, `categories[]` (`id`, `files`, `bytes`, `default_selected`), `preserved[]` y `entries[]` con `path`, `category`, `bytes`, `hardlink_duplicate` y `stamp` (`device`, `inode`, `size`, `mtime_ns`, `ctime_ns`), más `digest`. Generarla no borra nada.
+  - `cache/stalker/*.wav` y `cache/sync-clock/*.mov` forman la categoría `project_cache`, preseleccionada sólo en proyectos retirados o en la revisión de retiro. `exports` y `queue` se ofrecen sin preseleccionar. Transcripciones, manifest o `clipper-retired-project.json`, reports, JSON de análisis, locks, fuentes y finales nunca aparecen.
+  - Para borrar: `clipper library cleanup --plan <doc> --digest <digest> [--category …]` o `clipper library retire … --cleanup-digest <digest>`. Clipper revalida categoría, dueño y stamp bajo su lease de Storage y omite lo cambiado (`skipped[]`). Una entrada sin dueño único (fuente compartida con otro proyecto) no se lista.
+  - Los proyectos retirados siguen en Storage / Cleanup de Clipper (por `clipper-retired-project.json` y los recibos de retiro). Las carpetas `.clipper-multicam-*` ya no se acumulan en `logs/`: Clipper las borra al terminar, fallar o cancelar el export, y barre las de ejecuciones muertas en el siguiente export multicam.
+  - nüün puede mostrar `entries[]` como intermedios en su revisión y pedir el borrado a Clipper con el digest revisado, sin borrar dentro de `clipper/` por su cuenta.
 - **Duplicados de finales (por implementar):** un archivo en `renders/` o `clipper/exports/` idéntico por SHA-256 a un final ya verificado en MEDIA se puede retirar en el cierre, con su propia línea en la revisión. Un nombre parecido sólo sirve para sugerir candidatos; la decisión la da el hash. Hoy no hay ninguno en esos proyectos.
 - **Proyectos vinculados (implementado):** se vinculan desde Proyectos y «Estas son todas las entregas definitivas» del proyecto que se cierra autoriza los intermedios de todo el grupo. Ver la sección «Proyectos relacionados».
 

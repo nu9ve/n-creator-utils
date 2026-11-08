@@ -26,10 +26,15 @@ extension Model {
     /// The person confirms two projects are one work (a re-recording); it moves no media and changes any open review.
     func linkProjects(_ item: JSONValue, with otherID: String, linked: Bool = true) {
         let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
+        linkingProject = otherID
         operation(linked ? String(localized: "Vinculando proyectos") : String(localized: "Desvinculando proyectos"), scope: .space) {
+            defer { self.linkingProject = "" }
             _ = try await self.client!.call("closure_link", ["project_id": .string(id), "other_id": .string(otherID), "linked": .bool(linked)])
+            // Read the projects again inside the same step, so the row changes as the indicator goes away.
+            if let data = try? await self.reader?.call("capture_overview", ["override": .string(self.captureRoot)]) {
+                self.projectIndex = data["projects"].array
+            }
             self.message = linked ? String(localized: "Proyectos vinculados; no se movió media") : String(localized: "Proyectos desvinculados; no se movió media")
-            self.captureChanged([])
         }
     }
     func findClosureFinals(_ query: String) {
@@ -139,7 +144,6 @@ struct ProjectClosureSheet: View {
     @State private var profileDefault = false
     @State private var picked: [String: JSONValue] = [:]
     @State private var query = ""
-    @State private var discardConfirmed = false
     @State private var showOtherMatches = false
     @State private var showFinalActions = true
     private let roles: [(String, LocalizedStringKey)] = [("horizontal", "Horizontal"), ("vertical", "Vertical"), ("thumbnail", "Thumbnail"), ("auxiliary", "Auxiliar")]
@@ -193,13 +197,13 @@ struct ProjectClosureSheet: View {
                     Button(model.closureReviewing ? "Cancelar revisión" : "Pausar") { model.client?.cancel() }
                 } else if let plan = model.closurePlan {
                     if plan["already_complete"].bool {
-                        Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
+                        Button("Editar entregas") { model.closurePlan = nil }
                         Text("Nada que aplicar: el proyecto ya está completo").font(.caption).foregroundStyle(palette.muted)
                     } else if plan["state"].string != "completed" {
-                        Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
+                        Button("Editar entregas") { model.closurePlan = nil }
                         Button(applyTitle(plan), role: plan["entries"].array.isEmpty ? nil : .destructive) { model.applyProjectClosure() }
                             .buttonStyle(CreatorButtonStyle(prominent: true))
-                            .disabled((plan["entries"].array.contains { $0["category"].string != "final" } && !discardConfirmed) || !plan["consumers"]["blockers"].array.isEmpty)
+                            .disabled(!plan["consumers"]["blockers"].array.isEmpty)
                     }
                 } else {
                     Button("Guardar") { save(review: false) }.disabled(required.isEmpty)
@@ -429,9 +433,10 @@ struct ProjectClosureSheet: View {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
                 if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
-                if plan["state"].string != "completed" && plan["entries"].array.contains(where: { $0["category"].string != "final" }) {
-                    Toggle("Revisé la lista: los intermedios son descartables y ninguna otra edición necesita los archivos a retirar", isOn: $discardConfirmed)
-                        .toggleStyle(.checkbox).disabled(model.busy)
+                if plan["state"].string != "completed" && plan["entries"].array.contains(where: { $0["category"].string == "intermediate" }) {
+                    // User decision 2026-11-07: the reviewed list plus the apply button is the consent; no extra checkbox.
+                    Text("Al completar se descartan los intermedios de la lista, sin respaldo. Revisa que ninguna otra edición los necesite.")
+                        .font(.caption).foregroundStyle(palette.muted)
                 }
                 if model.busy && model.closureProgress["released_files"].double > 0 {
                     Text("Archivos retirados: \(Int(model.closureProgress["released_files"].double)) de \(plan["entries"].array.count)").font(.caption).monospacedDigit()
