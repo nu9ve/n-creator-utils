@@ -6,6 +6,8 @@ Fuera de media, y para cualquier app nativa de nu9ve: [apps de macOS v1](macos-a
 
 Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, finales vinculados, descarte confirmado de renders y límites de Clipper/Final Cut.
 
+[Transcripciones de Clipper en MEDIA](clipper-transcripts-v1.md), 2026-11-07, propuesta: Clipper exporta y nüün copia y verifica en `004_datos/clipper/transcripts/`, ligadas al video respaldado.
+
 [Ingreso directo](ingest-flow-v1.md), 2026-11-05: tres pantallas, soporte sin proyecto editorial, una autorización del plan y progreso global.
 
 ## Lectura vigente · 2026-11-06

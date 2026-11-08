@@ -2,6 +2,23 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Contrato de transcripciones de Clipper en MEDIA · 2026-11-07
+
+Sólo documentación, sin commit. El usuario pidió coordinar las transcripciones durables. Reparto acordado: Clipper sólo exporta (`library transcripts-export --json`, `clipper-transcript-export/1`) y nüün copia, verifica y deja recibo en `004_datos/clipper/transcripts/AAAA/MM/<nombre del clip archivado>/`, ligado al asset respaldado y comprobado en el cierre. Detalle en [transcripciones de Clipper v1](contracts/clipper-transcripts-v1.md). Las dos partes están pendientes; la de Clipper, en su sesión `Clipper project retirement and storage cleanup`.
+
+## Integración con la lista de regenerables de Clipper instalada · 2026-11-07
+
+Commits del usuario `481b020` (nüün) y `77df153` (Clipper). Otra sesión sustituyó la excepción del audio de caché por la lista de Clipper: `library cleanup-plan --json` en la revisión, y `library cleanup --plan --digest --category` al completar. nüün ya no borra dentro de `clipper/`. Revisado contra las decisiones vigentes:
+- sólo Clipper decide y borra dentro de su carpeta, con el digest revisado;
+- sin respuesta, un documento inesperado o un inventario incompleto no se ofrece nada;
+- **Completar y liberar** sigue siendo el consentimiento;
+- el vínculo de proyectos, la medida global y «Ya está completo» se conservan, y «Ya está completo» también considera los regenerables de Clipper;
+- un plan anterior con la excepción se rechaza y hay que revisarlo otra vez.
+
+**Prueba de sólo lectura con la CLI real** sobre `terra-6-1-extra/clipper`: 9 s, `project_state: retired`, inventario completo y `project_cache` con 2 archivos y 534.1 MB, preseleccionado.
+
+Instalada la build **`cc6c379d630a`** con la app cerrada; la anterior quedó en `app-backups/68955cf0.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-232848-133e59.app` y módulos de `media/` idénticos al checkout. El `capture_overview` instalado devolvió 12 proyectos sobre una copia del catálogo. Python **311 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa. **Pendiente:** aplicar el cierre conjunto de Terra desde la app.
+
 ## El cierre usa la lista de regenerables de Clipper · 2026-11-07
 
 En working tree, sin commit ni build instalada. El cierre ya no retira por su cuenta los `.wav` de `clipper/cache/stalker/`. Ahora pide a Clipper su lista y le deja el borrado ([contrato](contracts/project-closeout-v1.md#carpeta-de-clipper-y-caché--decisión-del-usuario--2026-11-07)).

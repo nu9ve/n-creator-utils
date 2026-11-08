@@ -133,6 +133,14 @@ Decisión:
 - **Duplicados de finales (por implementar):** un archivo en `renders/` o `clipper/exports/` idéntico por SHA-256 a un final ya verificado en MEDIA se puede retirar en el cierre, con su propia línea en la revisión. Un nombre parecido sólo sirve para sugerir candidatos; la decisión la da el hash. Hoy no hay ninguno en esos proyectos.
 - **Proyectos vinculados (implementado):** se vinculan desde Proyectos y «Estas son todas las entregas definitivas» del proyecto que se cierra autoriza los intermedios de todo el grupo. Ver la sección «Proyectos relacionados».
 
+## Transcripciones durables en MEDIA · 2026-11-07
+
+El usuario quiere conservar las transcripciones de Clipper ligadas a los videos ya respaldados, en un área de datos por programa dentro de MEDIA. Clipper ofreció escribirlas ahí. Para respetar las fronteras vigentes (nüün es el único que escribe en MEDIA, con copia verificada y recibos; Clipper es dueño de su contenido), se propone:
+- **Clipper** exporta, sin escribir en MEDIA, la lista de transcripciones de un proyecto: ruta, formato y la fuente a la que pertenecen (SHA-256 del miembro o `asset_id` de nüün).
+- **nüün** las copia y verifica a un área nueva de MEDIA, por ejemplo `004_datos/clipper/transcripts/<asset>/`, con recibo y ligadas al asset respaldado. Lo hace en el ingreso posterior o en el cierre, y el cierre comprueba que estén antes de liberar.
+
+El usuario pidió avanzar el 7 nov: el intercambio quedó definido en [transcripciones de Clipper v1](clipper-transcripts-v1.md). Clipper implementa la exportación y nüün el área, la copia y la comprobación en el cierre.
+
 ## Revisión con medida global y proyecto ya completo · 2026-11-07
 
 **Preparar revisión…** ya no muestra el avance de cada paso. `closure.review_estimate` calcula al empezar, sólo con tamaños, los bytes y archivos que la revisión va a leer:
