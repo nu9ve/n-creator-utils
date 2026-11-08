@@ -2,6 +2,62 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## A11: plan para respaldar lo que sólo está en el ESSD · 2026-11-08
+
+Working tree, sin commit. Instalada como **`e799494274d5`**; firma estricta, binario idéntico al último `dist/` y `media/` idéntico al checkout. Python **351 OK**.
+- **Respaldar la carpeta del consumidor:** si la fuente está dentro de la raíz de Atlas en un disco de trabajo registrado (`atlas-subaereo/101MEDIA`), esas fotos *son* la copia de trabajo. `work_existing` apunta a ellas, el plan guarda `source_work_id` y `units.ndjson` lleva `work.jpg = 101MEDIA/DJI_…` con `card_uuid: null`.
+- **Ya respaldadas:** sin limpieza, una foto de misión cuyo destino en el archivo ya tiene un recibo verificado con el mismo tamaño se queda fuera (`already_archived`), para no tener dos assets ni dos líneas para la misma foto. `validate_source` acepta esos archivos en el origen. Con limpieza no se excluye, porque liberar exige verificar en este mismo job. Los conteos de `plan.missions` se recalculan después.
+- **Reproducción en sólo lectura** con el motor instalado, sólo respaldo, sin limpieza y agosto descartado: **534 unidades, 1,068 archivos, 16.31 GB**. Son 516 de misión en 17 sesiones (`dron/misiones/2026/05|06`) y 18 «parecen de misión» en `dron/fotos/2026/05|06`, todas SUBAEREO. 25 de noviembre ya respaldadas (50 archivos) y 64 de agosto descartadas, que se quedan en el ESSD.
+
+**Pendiente:** el usuario prepara este plan en la app (Otra carpeta → `101MEDIA`, Ninguno · sólo respaldo, sin limpiar, descartar agosto), lo revisa y lo aplica.
+
+## Primer ingreso real de dron aplicado (`MAVIC200`) · 2026-11-08
+
+Build `0e06154caaf5`, aplicado por el usuario desde la app. Job `cc8bd128-6001-5628-b0ab-97ef88f76517`: **`completed`** en 61 min (11:42–12:43 UTC). Lectura posterior en sólo lectura:
+- **Archivo MEDIA502:** 2,554 copias verificadas. Son 1,276 pares de misión con SUBAEREO en 25 carpetas `001_raw/dron/misiones/2026/11/<sesión>_<PLAN>/`, más el soporte en `metadata/dji/support/2026/11/…_MAVICAIR2/MISC/` (`dji.gis`, `IDX_BLOCK`).
+- **Trabajo ESSD:** 769 JPG en `atlas-subaereo/misiones/…`; los 507 que ya estaban en `101MEDIA`/`102MEDIA` no se copiaron.
+- **`units.ndjson`:** 1,276 líneas, todas `matched`. 769 apuntan a `misiones/`, 482 a `102MEDIA/` y 25 a `101MEDIA/`.
+- **Verificación independiente:** ninguna copia falta en disco y una muestra de 24 rehasheada coincide con su SHA-256.
+- **SD:** los 2,554 miembros se limpiaron. Las 66 descartadas se borraron sin copia (132 eventos `discard_removing`/`discard_removed`): 64 del 31 ago y la 0340, que siguen en `ESSD/atlas-subaereo/101MEDIA|102MEDIA`, y la 0606, decisión del usuario. Quedan 3 MB y ningún archivo de usuario.
+
+**Siguiente:**
+1. Formatear la SD desde el dron.
+2. Cambiar «Ingreso rápido» a «tocar para previsualizar».
+3. A11: archivar los 534 pares de mayo–junio y los 64 de agosto que sólo están en el ESSD.
+4. Docs y pedido de Atlas.
+
+## Dron: soporte de tarjeta en `metadata/dji` y plan listo para aplicar · 2026-11-08
+
+Working tree, sin commit. Instalada como **`0e06154caaf5`**; la anterior quedó en `app-backups/aab2b0de.app`. Firma estricta, binario idéntico al último `dist/` y `media/` idéntico al checkout.
+
+- **Corrección:** cuando todas las unidades de media de un ingreso son del mismo dispositivo, el soporte de la tarjeta (`MISC/GIS/dji.gis`, `MISC/IDX_BLOCK`) va a `metadata/dji/support/…_MAVICAIR2/`, no a `metadata/generic/…_GENERIC/`. Prueba nueva: `test_card_support_files_go_under_the_drone_family`. Python **349 OK**.
+- **Revisión previa** (sólo lectura, plan equivalente al del usuario con las 66 sin misión descartadas y limpieza activada):
+  - **Archivo:** 37.74 GB, las 1,276 de misión con SUBAEREO. MEDIA502 tiene 2.1 TB libres.
+  - **Trabajo:** 769 JPG (3.88 GB); 507 ya estaban en `102MEDIA`. ESSD tiene 41 GB libres.
+  - **Registro y cobertura:** 0 esperan export y no queda nada fuera del plan.
+  - **Descartadas:** 2.01 GB. 64 de agosto y la 0340 siguen en `ESSD/atlas-subaereo`; la 0606 (6 nov, nadir a 43 m) no existe en otro lado.
+- **Pendiente:**
+  1. El usuario reabre la app, vuelve a marcar los descartes (se perdieron al cerrar para instalar), revisa y aplica.
+  2. Después, formatear la SD desde el dron.
+  3. Después, A11 para los 534 pares de mayo–junio que sólo están en el ESSD.
+
+## Dron: descartar, misiones sin registro y revisión en tabla · 2026-11-08
+
+Segunda prueba del usuario con `42d4f8e1853b`:
+- La SD aparecía resaltada sin haberla elegido.
+- 0911–0974 (31 ago) quedaban «sin misión» aunque son nadir a ~99 m cada 8–14 s.
+- La 0340 es una toma desde el suelo y quería descartarla.
+- La revisión del plan, con una tarjeta por unidad, era lenta y difícil de leer.
+- Después pidió que las descartadas **no queden en la SD**.
+
+Working tree, sin commit. Instalada como **`a8a92513f456`**; la anterior quedó en `app-backups/d34d6755.app`. Firma estricta, binario idéntico al último `dist/Nu9veMedia-local-*` y `media/` idéntico al checkout.
+- **Fuente:** la tarjeta sólo se resalta mientras se lee o ya leída. «Ingresar» e «Ingreso rápido» en Inicio empiezan a leerla.
+- **Sin registro:** `MissionIndex.match` devuelve `none` con `likely_mission` (nadir a altura de vuelo), sin clasificar. La app muestra «Sin registro · parece de misión», el filtro **Parecen de misión** y «Usar «subaereo» en las N». El plan cuenta `unregistered_likely`. En la SD real, las 64 de agosto tienen gimbal −90° a 43–99 m; la 0340, 0° a 0 m.
+- **Descartar:** botón en cada miniatura y en el panel de asignación, y filtro **Descartadas**. Es una asignación `discard`: la unidad no se respalda ni se copia y el plan la lista en `discarded`, con stamps, dentro del digest. Con limpieza, Transfer la borra de la SD en la misma limpieza journalizada, después de todo lo verificado, sólo si su stamp coincide con la revisión (eventos `discard_removing`/`discard_removed`). Sin limpieza se queda. `validate_source` la trata como miembro conocido y el rescaneo final no la cuenta como material nuevo.
+- **Revisión:** `PlanTable.swift` sustituye a `PlannedUnitRow`. Muestra un resumen por destino (cada carpeta de sesión, `fotos/AAAA/MM`, datos de cámara, descartadas) con íconos de respaldo, SSD (copia, ya está, pendiente) y origen (se libera, se conserva, formato, se borra sin copia). Al elegir un grupo se filtra una `Table` nativa virtualizada, una fila por unidad y ordenable. QA aislado (`--qa-snapshots`, `plan-review-drone.png`): 1,344 unidades y 27 grupos en 0.13 s.
+
+Evidencia: Python **348 OK**; Swift **25/25**; localización completa; `git diff --check`. **Pendiente:** aceptación en la app; luego el plan A11 revisado por el usuario.
+
 ## Dron: primera prueba en la app y ajustes · 2026-11-08
 
 El usuario probó la build `b657310aab11` con la SD `MAVIC200` y reportó:

@@ -132,6 +132,89 @@ class MissionMatchTests(DroneFixture):
         self.assertNotIn('work_existing', self.unit(plan))
         self.assertIsNotNone(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'])
 
+    def test_a_discarded_still_is_not_backed_up_and_leaves_the_card_with_cleanup(self):
+        self.pair('DJI_0340', when='2026:11:04 16:40:00')
+        bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
+        plan = self.plan(assignments=bad)
+        self.assertEqual([d['paths'] for d in plan['discarded']], [['DCIM/101MEDIA/DJI_0340.DNG', 'DCIM/101MEDIA/DJI_0340.JPG']])
+        self.assertNotIn('DCIM/101MEDIA/DJI_0340.JPG', plan['layout'])
+        result = self.apply(plan)
+        self.assertEqual(result['state'], 'completed')
+        self.assertFalse((self.folder / 'DJI_0340.JPG').exists() or (self.folder / 'DJI_0340.DNG').exists())
+        self.assertFalse((self.folder / 'DJI_0001.JPG').exists())
+        self.assertFalse(any('DJI_0340' in str(p) for p in self.archive.rglob('*')))
+        removed = [e for e in self.catalog.db.execute("SELECT payload FROM events WHERE job_id=? AND kind='discard_removed'", (plan['id'],))]
+        self.assertEqual(len(removed), 2)
+
+    def test_backing_up_the_consumers_own_folder_keeps_it_as_the_work_copy(self):
+        from tests.test_devices import jpeg, dng
+        self.registry(self.record())
+        folder = self.work / '001_proyectos/atlas-subaereo/101MEDIA'
+        folder.mkdir(parents=True)
+        (folder / 'DJI_0001.JPG').write_bytes(jpeg())
+        (folder / 'DJI_0001.DNG').write_bytes(dng())
+        plan = self.plan(source=str(folder), work=None, cleanup=False, archive_only=True, confirm_archive_only=True, work_decision='skipped')
+        unit = self.unit(plan)
+        self.assertEqual(unit['work_existing'], {'DJI_0001.JPG': '001_proyectos/atlas-subaereo/101MEDIA/DJI_0001.JPG'})
+        self.assertEqual(plan['source_work_id'], self.w['id'])
+        result = self.apply(plan)
+        self.assertEqual((result['state'], result['units_map']), ('source_retained', 'written'))
+        self.assertTrue((folder / 'DJI_0001.JPG').exists() and (folder / 'DJI_0001.DNG').exists())
+        self.assertTrue((self.archive / '001_raw/dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625' / NAME.format('SUBAEREO', 'DNG')).is_file())
+        [line] = self.units_map()
+        self.assertEqual((line['work']['jpg'], line['dcim_folder']), ('101MEDIA/DJI_0001.JPG', '101MEDIA'))
+
+    def test_a_photo_already_backed_up_from_its_card_is_not_backed_up_twice(self):
+        from tests.test_devices import jpeg, dng
+        self.registry(self.record())
+        self.apply(self.plan(cleanup=False))
+        folder = self.work / '001_proyectos/atlas-subaereo/101MEDIA'
+        folder.mkdir(parents=True)
+        (folder / 'DJI_0001.JPG').write_bytes(jpeg())
+        (folder / 'DJI_0001.DNG').write_bytes(dng())
+        (folder / 'DJI_0002.JPG').write_bytes(jpeg(when='2026:05:30 10:00:00'))
+        (folder / 'DJI_0002.DNG').write_bytes(dng(when='2026:05:30 10:00:00'))
+        plan = self.plan(source=str(folder), work=None, cleanup=False, archive_only=True, confirm_archive_only=True, work_decision='skipped')
+        self.assertEqual(plan['already_archived'], ['DJI_0001.DNG', 'DJI_0001.JPG'])
+        self.assertEqual((plan['missions']['subaereo']['units']['matched'] + plan['missions']['subaereo']['units']['none'],
+                          plan['missions']['subaereo']['already_archived']), (1, 1))
+        self.assertEqual([u['paths'] for u in plan['units'] if not u.get('support')], [['DJI_0002.DNG', 'DJI_0002.JPG']])
+        result = self.apply(plan)
+        self.assertEqual(result['state'], 'source_retained')
+        self.assertEqual(len(self.units_map()), 2)
+
+    def test_card_support_files_go_under_the_drone_family(self):
+        (self.source / 'MISC/GIS').mkdir(parents=True)
+        (self.source / 'MISC/GIS/dji.gis').write_bytes(b'geofence')
+        plan = self.plan()
+        target = plan['layout']['MISC/GIS/dji.gis']['archive']
+        self.assertTrue(target.startswith('metadata/dji/support/2026/11/'), target)
+        self.assertTrue(target.endswith('_MAVICAIR2/MISC/GIS/dji.gis'), target)
+
+    def test_without_cleanup_a_discarded_still_stays_on_the_card(self):
+        self.pair('DJI_0340', when='2026:11:04 16:40:00')
+        bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
+        plan = self.plan(assignments=bad, cleanup=False)
+        self.apply(plan)
+        self.assertTrue((self.folder / 'DJI_0340.JPG').exists())
+
+    def test_a_discarded_still_changed_after_review_stops_the_cleanup(self):
+        self.pair('DJI_0340', when='2026:11:04 16:40:00')
+        bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
+        plan = self.plan(assignments=bad)
+        (self.folder / 'DJI_0340.JPG').write_bytes(b'replaced after review')
+        with self.assertRaises(Exception):
+            self.apply(plan)
+        self.assertTrue((self.folder / 'DJI_0340.JPG').exists())
+
+    def test_an_unregistered_survey_is_a_hint_not_a_mission(self):
+        self.registry(exported='2026-11-06T00:00:00Z')
+        plan = self.plan()
+        mission = self.unit(plan)['mission']
+        self.assertEqual((mission['state'], mission['likely_mission']), ('none', True))
+        self.assertEqual((plan['missions']['subaereo']['unregistered_likely'], plan['missions']['subaereo']['likely']), (1, 0))
+        self.assertEqual(self.unit(plan)['project'], 'intro')
+
     def test_discover_tells_the_app_which_device_needs_no_question(self):
         self.registry(self.record())
         units = self.service.call('discover', {'source': str(self.source), 'archive': 'MEDIA'})['units']

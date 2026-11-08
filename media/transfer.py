@@ -265,8 +265,13 @@ class Transfer:
         else:
             removed = {row['relative_path'] for row in self.catalog.db.execute(
                 'SELECT relative_path FROM members WHERE job_id=? AND cleaned IN (1,-1)', (plan['id'],))}
-            require(set(actual_map) <= set(expected) and set(expected) - set(actual_map) <= removed,
+            # Discarded in the review: known members that stay on the card, unchanged.
+            discarded = {p: stamp for d in plan.get('discarded', []) for p, stamp in d['stamps'].items()}
+            known = set(expected) | set(discarded) | set(plan.get('already_archived', []))
+            require(set(actual_map) <= known and set(expected) - set(actual_map) <= removed,
                     'source_changed', 'Source membership changed; new/missing files require review')
+            for path, stamp in discarded.items():
+                require(path not in actual_map or actual_map[path]['stamp'] == stamp, 'source_changed', 'Discarded file changed: ' + path)
         for path, file in expected.items():
             if path in actual_map:
                 require(actual_map[path]['stamp'] == file['stamp'], 'source_changed', 'Source changed: ' + path)
@@ -638,6 +643,24 @@ class Transfer:
                         self.catalog.db.execute('UPDATE members SET cleaned=1 WHERE job_id=? AND relative_path=?', (plan['id'], file['path']))
                     self.meter.finished('cleaned', file['path'], source_name)
                     self.report()
+                # Discarded by the person in the reviewed plan: no copy exists by design. They leave the card in the
+                # same journaled cleanup, only after every kept file is verified, and only if unchanged since review.
+                removing = {json.loads(row[0])['path'] for row in self.catalog.db.execute(
+                    "SELECT payload FROM events WHERE job_id=? AND kind='discard_removing'", (plan['id'],))}
+                for item in plan.get('discarded', []):
+                    for path, stamp in sorted(item['stamps'].items()):
+                        self.checkpoint('cleanup_discarded', {'path': path})
+                        self.source_check(plan)
+                        try:
+                            st = source_tree.stat(path)
+                        except FileNotFoundError:
+                            require(path in removing, 'source_changed', 'A discarded file disappeared before cleanup: ' + path)
+                            continue
+                        require(content_stamp(st) == stamp, 'source_changed', 'A discarded file changed since review: ' + path)
+                        self.catalog.event(plan['id'], 'discard_removing', {'path': path, 'stamp': stamp})
+                        source_tree.unlink(path, stamp)
+                        self.catalog.event(plan['id'], 'discard_removed', {'path': path, 'bytes': stamp['size']})
+                        self.meter.finished('cleaned', path, source_name)
                 if sony:
                     self.report(force=True, phase='checking_card')
                     self.source_check(plan, full=True)
@@ -653,7 +676,9 @@ class Transfer:
                     remaining, _, _ = scan(plan['source'], cancel=self.cancel)
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
                 kept = {f['path']: f['stamp'] for f in plan['files'] if f not in removable}
-                unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp'] and f['path'] not in plan.get('already_archived', [])]
+                # Discarded by the person in the review: left on the card on purpose, not new material.
+                left = set(plan.get('already_archived', [])) | {p for d in plan.get('discarded', []) for p in d['paths']}
+                unexpected = [f for f in remaining if kept.get(f['path']) != f['stamp'] and f['path'] not in left]
                 final = 'source_has_new_material' if unexpected else ('camera_action_required' if sony else 'completed')
             self.catalog.state(plan['id'], final)
             self.report(force=True, phase=final, destinations=destination_progress)

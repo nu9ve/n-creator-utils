@@ -250,9 +250,9 @@ struct CardSuggestion: View {
             if hint != .null { Label(model.recommendationLabel(hint["recommendation"].string), systemImage: "lightbulb").font(.callout) }
             if !hint["last_project"].string.isEmpty { Text("Usada antes en: \(hint["last_project"].string)").font(.caption).foregroundStyle(.secondary) }
             HStack {
-                Button("Ingreso rápido") { model.useCard(path); model.changeMode?(.compact) }
+                Button("Ingreso rápido") { model.useCard(path); model.discover(); model.changeMode?(.compact) }
                 Spacer()
-                Button("Ingresar", systemImage: "arrow.right") { model.useCard(path) }.buttonStyle(CreatorButtonStyle(prominent: true))
+                Button("Ingresar", systemImage: "arrow.right") { model.useCard(path); model.discover() }.buttonStyle(CreatorButtonStyle(prominent: true))
             }
         }.modifier(Panel())
     }
