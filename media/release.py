@@ -340,6 +340,8 @@ def release_meter(catalog, plan, progress):
         if meter.base is not None and 'bytes_done' in details:
             meter.reach(meter.base + details['bytes_done'])
         payload = dict(details, **{k: v for k, v in meter.fields().items() if k not in {'files_done', 'files_total'}})
+        if details.get('path') and details.get('bytes_done', 0) > 0:
+            payload.update(file_done=details['bytes_done'], file_total=details.get('bytes_total', 0))
         payload.setdefault('files_done', meter.files_done)
         payload.setdefault('files_total', meter.files_total)
         progress(stage, **payload)

@@ -44,6 +44,7 @@ class ClosureTests(WorkflowFixture):
 
     def test_archived_final_closes_and_discards_renders_without_archiving_editables(self):
         plan = self.plan_close()
+        self.assertFalse(plan['already_complete'])
         self.assertEqual({e['category'] for e in plan['entries']}, {'raw', 'intermediate'})
         self.assertTrue(closure.overview(self.catalog)[0]['needs_release'])
         result = self.apply(plan)
@@ -232,6 +233,27 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
         self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
 
+    def test_review_reports_one_overall_measure_and_the_file_in_hand(self):
+        selected = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        selected.parent.mkdir(parents=True); selected.write_bytes(b'vertical waiting')
+        finals = closure.settings(self.catalog, self.project_id)['finals'] + [
+            {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'vertical', 'published': False}]
+        self.configure(required=['horizontal', 'vertical'], published=False, finals=finals)
+        events = []
+        closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD',
+                           progress=lambda stage, **details: events.append(dict(details, stage=stage)))
+        measured = [e for e in events if 'overall_total' in e]
+        self.assertTrue(measured)
+        self.assertEqual(len({e['overall_total'] for e in measured}), 1, 'one total from the start')
+        done = [e['overall_done'] for e in measured]
+        self.assertEqual(done, sorted(done), 'never goes back across review steps')
+        self.assertEqual(measured[-1]['overall_done'], measured[-1]['overall_total'])
+        self.assertEqual(measured[-1]['overall_files_done'], measured[-1]['overall_files_total'])
+        stages = {e['stage'] for e in measured if e.get('file_total')}
+        self.assertTrue({'hashing_source', 'matching_archive', 'review_intermediates', 'review_final'} <= stages)
+        self.assertTrue(all(0 < e['file_done'] <= e['file_total'] for e in measured if e.get('file_total')))
+        self.assertTrue(any(e['current'].get('from') == 'MEDIA' for e in measured))
+
     def test_discard_requires_recorded_consent_even_through_raw_release_endpoint(self):
         plan = self.plan_close()
         with self.assertRaisesRegex(MediaError, 'Confirma'):
@@ -342,6 +364,7 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(self.catalog.get('project-released:' + self.project_id)['bytes'], 0)
         already_backed_up = self.plan_close()
         self.assertEqual(already_backed_up['closure_copies'], [])
+        self.assertTrue(already_backed_up['already_complete'])
         self.assertEqual(self.apply(already_backed_up)['state'], 'completed')
 
     def test_new_files_in_previously_absent_scopes_invalidate_close(self):

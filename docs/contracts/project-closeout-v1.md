@@ -105,6 +105,18 @@ Solo informa: no cambia qué se copia ni qué se retira.
 
 Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: fecha, archivos retirados, bytes liberados y las entregas que siguen en edición sin publicar. Estas ya están respaldadas. Al publicarlas, **Respaldar publicados…** retira su copia de edición sin preparar todo el cierre otra vez.
 
+## Revisión con medida global y proyecto ya completo · 2026-11-07
+
+**Preparar revisión…** ya no muestra el avance de cada paso. `closure.review_estimate` calcula al empezar, sólo con tamaños, los bytes y archivos que la revisión va a leer:
+- raws en edición dos veces (leer y comparar con el respaldo);
+- fuentes catalogadas una vez en el respaldo;
+- intermedios una vez;
+- cada entrega elegida una vez, y otra más si el respaldo tiene un archivo con el mismo nombre y tamaño.
+
+`ReviewMeter` emite en `closure_progress` estos campos: `overall_done`/`overall_total`, `overall_files_done`/`overall_files_total`, el archivo actual (`current`, `file_done`/`file_total`) y la etapa. La medida se detiene en 99 % hasta terminar, así una estimación baja nunca hace retroceder la barra. Los hashes siguen completos.
+
+Si el proyecto ya está liberado y la revisión no encuentra nada que copiar ni retirar, el plan trae `already_complete`. La hoja dice «Ya está completo» y no ofrece aplicarlo: aplicarlo sólo reescribiría el registro del cierre.
+
 ## Por publicar en Proyectos · 2026-11-07
 
 El motor lee dónde está cada entrega guardada (`closure.delivery_states`). Proyectos (`capture_overview` → `projects[].deliveries`) y la hoja al reabrir (`closure_candidates.deliveries`, `closure_deliveries`) usan esa misma lectura, así que la fila y el resumen coinciden:

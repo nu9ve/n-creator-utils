@@ -179,7 +179,10 @@ struct ProjectClosureSheet: View {
                     }
                     Button(model.closureReviewing ? "Cancelar revisión" : "Pausar") { model.client?.cancel() }
                 } else if let plan = model.closurePlan {
-                    if plan["state"].string != "completed" {
+                    if plan["already_complete"].bool {
+                        Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
+                        Text("Nada que aplicar: el proyecto ya está completo").font(.caption).foregroundStyle(palette.muted)
+                    } else if plan["state"].string != "completed" {
                         Button("Editar entregas") { model.closurePlan = nil; discardConfirmed = false }
                         Button(applyTitle(plan), role: plan["entries"].array.isEmpty ? nil : .destructive) { model.applyProjectClosure() }
                             .buttonStyle(CreatorButtonStyle(prominent: true))
@@ -376,7 +379,9 @@ struct ProjectClosureSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 Label(plan["state"].string == "completed" ? (plan["closure_finish"] == .bool(false) ? "Finales respaldados" : "Proyecto completado") : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
-                if plan["entries"].array.isEmpty {
+                if plan["already_complete"].bool {
+                    Text("Ya está completo: todo verificado en el respaldo y nada por copiar ni retirar").font(.title3)
+                } else if plan["entries"].array.isEmpty {
                     Text("Sin archivos para retirar").font(.title3)
                 } else if plan["state"].string == "completed" {
                     Text("\(plan["entries"].array.count) archivos retirados · \(bytesLabel(plan["bytes"].double))").font(.title3)

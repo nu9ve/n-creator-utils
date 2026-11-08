@@ -2,6 +2,16 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Revisión con progreso global, «ya está completo» y Baches por observación · 2026-11-07
+
+En working tree, sin commit, todavía sin instalar. El usuario confirmó que la app se sintió más fluida con `0ced823923b6`. Pidió un progreso que se sienta global, con un indicador pequeño por archivo, y no volver a ver la opción de completar Terra.
+- **Revisión:** una sola medida para toda la revisión ([contrato](contracts/project-closeout-v1.md#revisión-con-medida-global-y-proyecto-ya-completo--2026-11-07)), un indicador del archivo actual también en ingreso y liberación, y el tiempo restante estimado.
+- **Completar:** un proyecto ya liberado sin nada que copiar ni retirar muestra «Ya está completo» y no ofrece aplicar.
+- **Baches:** la comprobación al reconectar también observa trabajos `failed` con retiro registrado y los cierra al ver la tarjeta formateada ([contrato](contracts/ingest-flow-v1.md#etapas-observadas-del-retiro-sony--2026-11-07)). Falta reconectar la SD con esta build.
+- **Terra extra, lectura de nombres en ESSD:** `renders/` sólo tiene `.DS_Store` y una carpeta oculta (8 KB). Los 634 MB están en `clipper/` (caché, análisis, exports, transcripciones, logs), con `clipper-retired-project.json`. Por contrato nüün conserva esa carpeta. Vincular proyectos no liberaría espacio en Terra; queda como decisión del usuario.
+
+Evidencia: Python **305 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización sin faltantes ni sobrantes, `git diff --check`. Pruebas nuevas: `test_review_reports_one_overall_measure_and_the_file_in_hand`, `test_failed_sony_job_without_recorded_removal_is_not_closed_by_a_card_check`, la comprobación de Baches dentro de `test_sony_failure_with_recorded_removal_is_distinct_from_missing_receipts`, `already_complete` y el indicador por archivo en `test_action_progress`. `--qa-snapshots` aislado en Macintosh, con captura revisada (sólo fixtures). **Sin probar:** en la app instalada.
+
 ## Animación de la vista de acción fuera del hilo principal · 2026-11-07
 
 En working tree, sin commit. Instalada como build **`0ced823923b6`** con la app cerrada por el usuario; la anterior quedó en `app-backups/1f844b31.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-205120-133870.app`, 29 módulos de `media/` idénticos al checkout y RPC instalado con catálogo temporal.

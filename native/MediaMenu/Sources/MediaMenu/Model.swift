@@ -943,7 +943,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         guard sonyCheckPending, !busy, !Task.isCancelled else { return }
         sonyCheckPending = false
         let pending = Set(jobs.filter {
-            $0["state"].string == "camera_action_required" && cleanupProfile($0) == "sony_clips_then_format"
+            ($0["state"].string == "camera_action_required" || $0["sony_removal_recorded"].bool) && cleanupProfile($0) == "sony_clips_then_format"
         }.map { $0["source_volume_uuid"].string }.filter { !$0.isEmpty })
         let candidates = sourceCards.filter { pending.contains($0["identity"]["volume_uuid"].string) }
         var changed = false

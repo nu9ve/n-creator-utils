@@ -27,6 +27,13 @@ struct ActionProgressState: Equatable {
     var to: String
     var action: String
     var log: [LogLine]
+    /// The file in hand (`file_done`/`file_total`), for the small indicator beside the travel. Nil when unknown.
+    var fileFraction: Double? = nil
+
+    private static func file(_ value: JSONValue) -> Double? {
+        let total = value["file_total"].double
+        return total > 0 ? min(1, value["file_done"].double / total) : nil
+    }
 
     /// Any long action with one overall measure from the engine (`overall_done`/`overall_total`): closeout, ingest,
     /// release or delivery from the archive (media/progress.py).
@@ -39,11 +46,20 @@ struct ActionProgressState: Equatable {
         return Self(kind: .transfer, phase: phase, fraction: total > 0 ? min(1, done / total) : nil, bytesDone: done, bytesTotal: total,
                     filesDone: Int(value["files_done"].double), filesTotal: Int(value["files_total"].double),
                     fileName: current["name"].string, from: current["from"].string, to: current["to"].string,
-                    action: current["action"].string, log: log)
+                    action: current["action"].string, log: log, fileFraction: file(value))
     }
 
-    /// A review: reading files to verify them, per step and per file.
+    /// A review: reading files to verify them. The engine gives one measure for the whole review (closure.ReviewMeter);
+    /// older reports without it fall back to the current step.
     static func verify(_ value: JSONValue, phase: String, volume: String) -> Self {
+        if value["overall_total"].double > 0 {
+            let total = value["overall_total"].double, current = value["current"]
+            return Self(kind: .verify, phase: phase, fraction: min(1, value["overall_done"].double / total),
+                        bytesDone: value["overall_done"].double, bytesTotal: total,
+                        filesDone: Int(value["overall_files_done"].double), filesTotal: Int(value["overall_files_total"].double),
+                        fileName: current["name"].string, from: current["from"].string.isEmpty ? volume : current["from"].string,
+                        to: "", action: "verify", log: [], fileFraction: file(value))
+        }
         let files = value["files_total"].double, size = value["bytes_total"].double
         let fraction: Double? = files > 0 ? min(1, (value["files_done"].double + (size > 0 ? value["bytes_done"].double / size : 0)) / files)
             : size > 0 ? min(1, value["bytes_done"].double / size) : nil
@@ -60,6 +76,9 @@ struct ActionProgressView: View {
     let note: LocalizedStringKey
     let state: ActionProgressState
     @State private var showDetails = false
+    /// First measured point of this action, to estimate what is left from its real pace.
+    @State private var origin: (date: Date, bytes: Double)?
+    @State private var remaining: TimeInterval?
 
     var body: some View {
         VStack(spacing: 18) {
@@ -82,6 +101,15 @@ struct ActionProgressView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
+        .onChange(of: state.bytesDone) { _, done in estimate(done) }
+    }
+
+    /// What is left, from the pace of the one overall measure since it started; shown after a few seconds of data.
+    private func estimate(_ done: Double) {
+        guard state.bytesTotal > 0, state.fraction != nil else { remaining = nil; return }
+        guard let start = origin, done >= start.bytes else { origin = (Date(), done); remaining = nil; return }
+        let elapsed = Date().timeIntervalSince(start.date), moved = done - start.bytes
+        remaining = elapsed >= 5 && moved > 0 ? (state.bytesTotal - done) * elapsed / moved : nil
     }
 
     private var summary: String {
@@ -89,6 +117,10 @@ struct ActionProgressView: View {
         if let fraction = state.fraction { parts.append("\(Int((fraction * 100).rounded(.down))) %") }
         if state.bytesTotal > 0 { parts.append(String(localized: "\(bytesLabel(state.bytesDone)) de \(bytesLabel(state.bytesTotal))")) }
         if state.filesTotal > 0 { parts.append(String(localized: "\(state.filesDone) de \(state.filesTotal) archivos")) }
+        if let remaining, remaining > 0 {
+            let minutes = Int((remaining / 60).rounded(.up))
+            parts.append(minutes <= 1 ? String(localized: "queda menos de un minuto") : String(localized: "quedan ~\(minutes) min"))
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -98,6 +130,7 @@ struct ActionProgressView: View {
                 HStack(spacing: 6) {
                     Image(systemName: icon(state.action)).foregroundStyle(color(state.action))
                     Text(verbatim: state.fileName).lineLimit(1).truncationMode(.middle)
+                    if let file = state.fileFraction { Text(verbatim: "\(Int(file * 100)) %").monospacedDigit().foregroundStyle(palette.muted) }
                     Spacer()
                     Text(verbatim: route(state.from, state.to)).foregroundStyle(palette.muted)
                 }.font(.caption)
@@ -192,10 +225,14 @@ struct ActionTravel: View {
                 }
                 .frame(height: 30)
                 .offset(y: -8)
-                // The file in hand is named once, above the way.
-                Text(verbatim: name).font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                    .foregroundStyle(palette.ink).padding(.horizontal, 12)
-                    .offset(y: -38)
+                // The file in hand is named once, above the way, with its own small bar.
+                VStack(spacing: 3) {
+                    Text(verbatim: name).font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
+                        .foregroundStyle(palette.ink)
+                    if let file = state.fileFraction { FileMeter(fraction: file) }
+                }
+                .padding(.horizontal, 12)
+                .offset(y: state.fileFraction == nil ? -38 : -44)
             }
             if !verifying {
                 endpoint(icon: releasing ? "checkmark.seal" : "externaldrive.fill.badge.checkmark",
@@ -224,12 +261,32 @@ struct ActionTravel: View {
         let right = verifying ? "sha256" : releasing ? "free" : (state.to.isEmpty ? "dst" : state.to)
         return VStack(alignment: .leading, spacing: 6) {
             Text(verbatim: "\(left) [\(track)] \(right)")
-            Text(verbatim: "$ \(verifying ? "verify" : releasing ? "release" : "cp --verify") \(name)").foregroundStyle(palette.muted)
+            Text(verbatim: "$ \(verifying ? "verify" : releasing ? "release" : "cp --verify") \(name)" + (state.fileFraction.map { "  \(Int($0 * 100))%" } ?? ""))
+                .foregroundStyle(palette.muted)
         }
         .font(.system(size: 13, weight: .medium, design: .monospaced))
         .foregroundStyle(palette.ink)
         .lineLimit(1)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// The file in hand, small and quiet next to the one overall bar. Decorative like the travel; the bar carries the value.
+private struct FileMeter: View {
+    @Environment(\.creatorPalette) private var palette
+    let fraction: Double
+    var body: some View {
+        HStack(spacing: 6) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(palette.line.opacity(0.6))
+                    Rectangle().fill(palette.accentText).frame(width: geometry.size.width * fraction)
+                }
+            }
+            .frame(width: 120, height: 3)
+            .clipShape(palette.skin == .glass ? AnyShape(Capsule()) : AnyShape(Rectangle()))
+            Text(verbatim: "\(Int(fraction * 100)) %").font(.caption2.monospacedDigit()).foregroundStyle(palette.muted)
+        }
     }
 }
 

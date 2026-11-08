@@ -157,9 +157,12 @@ caso que la fase `checking_card` reintenta desde `a439bb378645`. Es coherente
 con la reaparición observada el 7 nov tras la interrupción de FSKit, pero no
 la prueba: la tarjeta ya se formateó y reutilizó. Los recibos en MEDIA502 y la
 entrega posterior a ESSD constan verificados. El trabajo sigue `failed` y la
-comprobación al reconectar no lo incluye. Propuesta pendiente de decisión:
-incluir en esa comprobación los trabajos `failed` con `removal_recorded`, para
-que una tarjeta ya formateada los cierre con un evento, sin reanudarlos.
+comprobación al reconectar no lo incluía. Decisión del usuario (7 nov): la
+comprobación al reconectar observa también los trabajos `failed` con
+`removal_recorded`. Con la tarjeta formateada (clips ausentes y un índice
+reescrito) los cierra como `completed` con `sony_card_checked`, sin
+reanudarlos ni tocar la tarjeta. Un fallo sin todos los retiros journalizados
+queda fuera.
 
 ## Pruebas y límites
 
