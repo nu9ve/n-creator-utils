@@ -2,6 +2,16 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Regresión de Proyectos vacío y arreglos del compacto · 2026-11-07
+
+Con `20eb2321376c`, el usuario vio **Proyectos vacío**. Reproducido con una copia del catálogo y el backend instalado: `capture_overview` fallaba con `invalid_project` porque el cálculo de vínculos y de «por publicar» se aplicaba también a la colección `finales`. Ya no se calcula para esa colección. Con el arreglo, la copia devuelve 12 proyectos y `terra-6-1` aparece terminado con 6 por publicar. Prueba nueva: `test_projects_overview_survives_the_finales_collection`.
+
+Otros dos reportes del usuario:
+- En el compacto aparecía «Aplicar a los 0 visibles» sin archivos leídos. Ahora el panel de asignación sólo aparece si hay algo a qué aplicarlo.
+- Al abrir nüün con la SD ya conectada, la app pasaba a compacto. Ahora sólo una inserción ocurrida con la app abierta avisa y abre el compacto; las tarjetas presentes al arrancar o al despertar se muestran en Inicio.
+
+En working tree, sin commit. Instalada como build **`e1ec995b5f16`** con la app cerrada por el usuario; la anterior quedó en `app-backups/261bd64f.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-220316-8f6fd8.app` y módulos de `media/` idénticos al checkout. El `capture_overview` instalado devolvió 12 proyectos sobre la copia del catálogo. Python **309 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa, `git diff --check`.
+
 ## Proyectos vinculados y audio de caché de Clipper retirado · 2026-11-07
 
 En working tree, sin commit. Instalada como build **`20eb2321376c`** con la app cerrada por el usuario; la anterior quedó en `app-backups/7eb16940.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-214458-553f66.app`, módulos de `media/` idénticos al checkout y RPC instalado con catálogo temporal. Incluye también el filtro Terminados y Por publicar. El usuario aprobó implementar dos cosas.
