@@ -87,6 +87,11 @@ Reemplazan lo que diga lo contrario en las secciones de 2026-11-05/06 de abajo
    tolerancias de misión (±2 s, ≤ 40 m) y patrones de exports viven como datos de una
    **receta**, con la del usuario (`nu9ve-default`) como plantilla inicial. Otros usuarios
    no tendrán subaereo ni esos nombres; la receta se podrá editar por nodos después.
+10. **DNG en trabajo, sólo una muestra (2026-11-08).** Sustituye «los DNG que ya están en el ESSD se quedan como
+   semilla». El ESSD conserva los DNG de las fotos etiquetadas por Atlas, de la sesión más reciente de cada
+   iluminación, de una sesión mala (para medir si el DNG rescata) y de una misión vieja buena; el resto se libera
+   tras verificarlo contra MEDIA502. `units.ndjson` (`work.dng`) dice dónde está cada DNG en trabajo. Atlas puede
+   pedir otros con A16 (`dng_plan` con `keep`).
 
 ### Layout (propuesta concreta)
 
@@ -320,6 +325,7 @@ específicas:
 | --- | --- | --- |
 | Atlas | Catálogo v2 recursivo con IDs estables; lee cualquier árbol bajo la raíz; `ev100`/`exposure_light_class` por foto. | 2026-11-05, working tree sobre `ba60ffa` |
 | Atlas | Ignora carpetas `_*` (para A8); `odm clean` para intermedios; docs de respaldo. | 2026-11-06, working tree sobre `0e4d0d2` |
+| nüün | **A16 (muestra de DNG):** 128 DNG en trabajo (etiquetadas, una sesión por iluminación, malas, una vieja) y 999 liberados tras verificar contra MEDIA502 (operación `dng-d9549817`) | 2026-11-08 · working tree |
 | nüün | **A11 aplicado:** 534 pares de mayo–junio de `ESSD/atlas-subaereo/101MEDIA` respaldados en MEDIA502 (job `77bdcb73`, 16.31 GB), sin tocar el ESSD; `units.ndjson` con 1,810 líneas | 2026-11-08 · build `e799494274d5` |
 | nüün | **Primer ingreso real:** SD `MAVIC200`, job `cc8bd128`. 1,276 pares de misión en `dron/misiones` (25 sesiones), 769 JPG nuevos en `atlas-subaereo/misiones`, 507 ya presentes, `units.ndjson` con 1,276 líneas, SD liberada | 2026-11-08 · build `0e06154caaf5` |
 | nüün | **A12 y UI:** misión o no al planear (nombre + hora ±2 s/±8 s + ≤ 40 m), `dron/misiones|fotos`, trabajo sólo JPG, `units.ndjson`, sección en Inicio y aviso en la revisión del plan. Fixtures y planes de sólo lectura; instalado en `a8a92513f456` (descartar, «parece de misión» sin registro, revisión en tabla), con trabajo sin duplicar lo que ya está en `atlas-subaereo` (por nombre, tamaño, hora EXIF y serial); falta la aceptación desde la app | 2026-11-08 · working tree |

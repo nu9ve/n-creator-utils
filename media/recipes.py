@@ -55,6 +55,10 @@ TEMPLATE = {
         'work_root': 'atlas-subaereo',              # the consumer's root: a still already anywhere here is not copied again
         'work_kinds': ['image'],                    # JPG to work; DNG stays in the archive until asked (A16)
         'units_map': 'atlas-subaereo/_nuun/units.ndjson',
+        # Which DNGs stay in work (A16 sample); the archive keeps all of them.
+        'dng': {'labels': 'atlas-derived/labels/cells/*/manifest.json', 'labels_key': 'photos',
+                'light_classes': ['directSun', 'lowSun', 'diffuseDusk', 'deepDusk', 'night'], 'dominance': 0.6,
+                'per_light': 24, 'poor_sample': 24, 'older_sample': 12, 'older_than_days': 30},
     }],
 }
 

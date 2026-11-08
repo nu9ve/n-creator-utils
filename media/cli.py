@@ -61,6 +61,11 @@ def parser():
     merge = commands.add_parser('missions-incorporate', help='Merge reviewed exports into the archive registry; clears verified inbox files')
     merge.add_argument('paths', nargs='*'); merge.add_argument('--archive', required=True); merge.add_argument('--digest', required=True)
     merge.add_argument('--work'); merge.add_argument('--flow-id'); merge.add_argument('--keep-inbox', action='store_true')
+    dng = commands.add_parser('dng-plan', help='Read-only: DNG sample kept in work, DNGs released to the Trash after verification')
+    dng.add_argument('--archive', required=True); dng.add_argument('--work', required=True); dng.add_argument('--flow-id')
+    dng.add_argument('--trash-unbacked', nargs='*', default=None, help='Work-relative stills without backup to move to the Trash')
+    dng_apply = commands.add_parser('dng-apply', help='Apply a reviewed DNG plan (JSON file from dng-plan)')
+    dng_apply.add_argument('plan'); dng_apply.add_argument('--digest', required=True)
     commands.add_parser('missions-status', help='Read-only: what the mission registry covers').add_argument('--flow-id')
     commands.add_parser('projects', help='Read-only: projects with ingested sources, newest first')
     listing = commands.add_parser('sources', help='Read-only: a project\'s editable sources in capture order with local paths (editor quick import)')
@@ -167,6 +172,9 @@ def main(argv=None):
                 params['assignments'] = read_json(params['assignments'])
             elif method in {'retitle-capture', 'publish-revision'}:
                 params['project'] = json.loads(params['project'])
+            elif method == 'dng-apply':
+                value = read_json(params['plan'])
+                params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
             elif method in {'missions-review', 'missions-incorporate'}:
                 params['paths'] = params['paths'] or None
                 if method == 'missions-incorporate':
@@ -175,7 +183,7 @@ def main(argv=None):
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup', 'confirm-device': 'confirm_device', 'missions-review': 'missions_review', 'missions-incorporate': 'missions_incorporate', 'missions-status': 'missions_status',
+            method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup', 'confirm-device': 'confirm_device', 'missions-review': 'missions_review', 'missions-incorporate': 'missions_incorporate', 'missions-status': 'missions_status', 'dng-plan': 'dng_plan', 'dng-apply': 'dng_apply',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',

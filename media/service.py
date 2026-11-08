@@ -213,6 +213,15 @@ class Service:
         if method == 'missions_incorporate':
             from .missions import incorporate
             return incorporate(self.catalog, self.backend, **params)
+        if method == 'dng_plan':
+            from .dng import plan as dng_plan
+            return dng_plan(self.catalog, self.backend, **params)
+        if method == 'dng_apply':
+            from .dng import apply as dng_apply
+            value = params['plan']
+            if isinstance(value, str):
+                value = json.loads(value)
+            return dng_apply(self.catalog, self.backend, value, params['digest'], self.cancel)
         if method == 'missions_status':
             from .missions import status
             return status(self.catalog, **params)
