@@ -3,7 +3,8 @@
 Estado: **propuesta 2026-11-05, actualizada 2026-11-08** (ver
 [«Primer ingreso real»](#actualización-2026-11-08--primer-ingreso-real-y-exports)), escrita desde una sesión de Atlas
 (`/Users/nu9ve/code/data/atlas`, working tree sobre `ba60ffa`) tras inventariar la
-SD `MAVIC200`, el ESSD y MEDIA502. Nüün no la ha implementado. Atlas es
+SD `MAVIC200`, el ESSD y MEDIA502. Lado nüün implementado y aplicado el 2026-11-08: ver
+[estado del lado nüün](#estado-del-lado-nüün--2026-11-08). Atlas es
 consumidor; subaereo (app iOS de vuelo) es productor de los exports JSON. Índice:
 [contratos](README.md). Contrato de captura del lado Atlas/subaereo:
 [`atlas/docs/contracts/subaereo-capture-v1.md`](../../../../data/atlas/docs/contracts/subaereo-capture-v1.md).
@@ -175,6 +176,22 @@ en cada ingreso y ordenada por `captured_at`. Las rutas de `work` son relativas 
 
 `mission_state` puede ser `matched`, `none` o `pending_export`. En `pending_export`, `mission` es `null` y el JPG
 no está todavía en el trabajo. `utc_basis: host_zone` significa que el EXIF de DJI no trae zona horaria y se usó la del Mac.
+
+### Estado del lado nüün · 2026-11-08
+
+| Pedido | Estado | Evidencia |
+| --- | --- | --- |
+| A15/A1 identidad | Hecho: EXIF `Make+Model+Serial`, XMP de vuelo, receta `nu9ve-default`, `device-registry` | [STATUS](../STATUS.md#dron-para-atlas-paso-1-registro-de-dispositivos-y-receta--2026-11-08) |
+| A13 registro de misiones | Hecho y aplicado: 22 exports, 65 planes, espejo `_missions/`; Inicio avisa cuando cae un JSON en Descargas | [STATUS](../STATUS.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08) |
+| A12 misión o no + trabajo JPG + `units.ndjson` | Hecho y aplicado: SD `MAVIC200` (job `cc8bd128`), 1,276 de misión en 25 sesiones | [STATUS](../STATUS.md#primer-ingreso-real-de-dron-aplicado-mavic200--2026-11-08) |
+| A11 copias únicas | Hecho: SD (6–7 nov) y `ESSD/101MEDIA` mayo–junio (job `77bdcb73`, 534 pares) | [STATUS](../STATUS.md#a11-aplicado-mayojunio-del-essd-respaldado-en-media502--2026-11-08) |
+| A14 liberar la SD | Hecho: SD vacía tras verificar; un plan con limpieza se rechaza si alguna foto espera export (`mission_export_missing`). Falta formatear desde el dron | idem |
+| A16 DNG a pedido | Hecho: muestra de 128 en trabajo y 999 liberados tras verificar (`dng-d9549817`); `dng-plan` con `keep` para pedir más | [STATUS](../STATUS.md#dng-del-essd-muestra-conservada-y-el-resto-a-la-papelera-a16--2026-11-08) |
+
+Pendiente del lado nüün:
+- **Reclasificar al llegar el export:** pasar `pending_export` → `misiones/` renombrando dentro del archivo. Hoy sólo puede pasar con la limpieza apagada.
+- **Confirmar un dispositivo nuevo desde la app.**
+- **Interfaz para el plan de DNG.** Hoy es CLI/servicio.
 
 ### Retención de lo que produce Atlas
 

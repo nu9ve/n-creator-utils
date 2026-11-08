@@ -2,6 +2,8 @@
 import json
 import unittest
 
+from media.common import MediaError
+
 from media.service import Service
 from tests.test_devices import DroneFixture
 from tests.test_missions import capture, export
@@ -81,7 +83,10 @@ class MissionMatchTests(MissionFixture):
 
     def test_photo_newer_than_the_registry_waits_for_the_export_with_work_pending(self):
         self.registry(exported='2026-11-01T00:00:00Z')
-        plan = self.plan()
+        with self.assertRaises(MediaError) as raised:
+            self.plan()   # cleanup on: the card is not released while the export is missing (A14)
+        self.assertEqual(raised.exception.code, 'mission_export_missing')
+        plan = self.plan(cleanup=False)
         mission = self.unit(plan)['mission']
         self.assertEqual((mission['state'], mission['likely_mission']), ('pending_export', True))
         self.assertTrue(all(v['work'] is None for k, v in plan['layout'].items() if k.startswith('DCIM/101MEDIA/')))
@@ -93,7 +98,7 @@ class MissionMatchTests(MissionFixture):
         self.assertEqual((line['mission'], line['mission_state']), (None, 'pending_export'))
 
     def test_without_any_registry_drone_stills_wait_for_an_export(self):
-        self.assertEqual(self.unit(self.plan())['mission']['state'], 'pending_export')
+        self.assertEqual(self.unit(self.plan(cleanup=False))['mission']['state'], 'pending_export')
 
     def test_an_explicit_project_wins_over_the_mission_default(self):
         self.registry(self.record())
@@ -136,6 +141,7 @@ class MissionMatchTests(MissionFixture):
         self.assertIsNotNone(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'])
 
     def test_a_discarded_still_is_not_backed_up_and_leaves_the_card_with_cleanup(self):
+        self.registry(self.record())
         self.pair('DJI_0340', when='2026:11:04 16:40:00')
         bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
         plan = self.plan(assignments=bad)
@@ -186,7 +192,17 @@ class MissionMatchTests(MissionFixture):
         self.assertEqual(result['state'], 'source_retained')
         self.assertEqual(len(self.units_map()), 2)
 
+    def test_a_work_disk_folder_with_an_editing_copy_explains_backup_only(self):
+        folder = self.work / '001_proyectos/atlas-subaereo/101MEDIA'
+        folder.mkdir(parents=True)
+        (folder / 'DJI_0001.JPG').write_bytes(b'x')
+        with self.assertRaises(MediaError) as raised:
+            self.plan(source=str(folder), cleanup=False)
+        self.assertEqual(raised.exception.code, 'source_on_work_disk')
+        self.assertIn('ESSD', str(raised.exception))
+
     def test_card_support_files_go_under_the_drone_family(self):
+        self.registry(self.record())
         (self.source / 'MISC/GIS').mkdir(parents=True)
         (self.source / 'MISC/GIS/dji.gis').write_bytes(b'geofence')
         plan = self.plan()
@@ -195,6 +211,7 @@ class MissionMatchTests(MissionFixture):
         self.assertTrue(target.endswith('_MAVICAIR2/MISC/GIS/dji.gis'), target)
 
     def test_without_cleanup_a_discarded_still_stays_on_the_card(self):
+        self.registry(self.record())
         self.pair('DJI_0340', when='2026:11:04 16:40:00')
         bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
         plan = self.plan(assignments=bad, cleanup=False)
@@ -202,6 +219,7 @@ class MissionMatchTests(MissionFixture):
         self.assertTrue((self.folder / 'DJI_0340.JPG').exists())
 
     def test_a_discarded_still_changed_after_review_stops_the_cleanup(self):
+        self.registry(self.record())
         self.pair('DJI_0340', when='2026:11:04 16:40:00')
         bad = {p: {'discard': True} for p in ('DCIM/101MEDIA/DJI_0340.JPG', 'DCIM/101MEDIA/DJI_0340.DNG')}
         plan = self.plan(assignments=bad)

@@ -421,6 +421,20 @@ struct ContentStep: View {
                     }
                 }.scrollIndicators(.hidden)
                 Spacer(minLength: 0)
+                if model.unitDays.count > 1 {
+                    Menu {
+                        Button("Todas las fechas") { model.dayFilter = "" }
+                        ForEach(model.unitDays, id: \.0) { day, total in Button("\(day) · \(total)") { model.dayFilter = day; model.gridSelection = [] } }
+                    } label: { Label(model.dayFilter.isEmpty ? String(localized: "Fecha") : model.dayFilter, systemImage: "calendar") }
+                        .fixedSize().controlSize(.small)
+                }
+                if model.unitSessions.count > 1 {
+                    Menu {
+                        Button("Todas las sesiones") { model.sessionFilter = "" }
+                        ForEach(model.unitSessions, id: \.0) { plan, total in Button("\(plan) · \(total)") { model.sessionFilter = plan; model.gridSelection = [] } }
+                    } label: { Label(model.sessionFilter.isEmpty ? String(localized: "Sesión") : model.sessionFilter, systemImage: "map") }
+                        .fixedSize().controlSize(.small)
+                }
                 Text(bytesLabel(model.visibleUnits.reduce(0) { $0 + $1.bytes })).font(.caption).foregroundStyle(.secondary)
                 Button(model.units.isEmpty ? "Inspeccionar" : "Actualizar", systemImage: "arrow.clockwise") { model.discover() }
                     .disabled(model.source.isEmpty || model.discoveryLoading).controlSize(.small)
@@ -566,7 +580,12 @@ struct DestinationsStep: View {
             SectionTitle("Respaldo")
             VolumeChoices(model: model, role: "archive", selection: $model.archive, allowNone: false)
             SectionTitle("Copia para editar")
-            EditingChoice(model: model, compact: compact)
+            if let volume = model.sourceWorkVolume {
+                Label("Esta carpeta ya está en \(volume["name"].string): es su propia copia para editar, así que sólo se respalda.", systemImage: "info.circle")
+                    .font(.callout).foregroundStyle(.secondary)
+            } else {
+                EditingChoice(model: model, compact: compact)
+            }
             if model.copyChoice != "none" {
                 VolumeChoices(model: model, role: "work", selection: $model.work, allowNone: true)
                 Toggle("Si el SSD no está conectado, dejar la copia para editar pendiente", isOn: $model.deferWork)

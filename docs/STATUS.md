@@ -2,6 +2,17 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Tarjeta para ver, respaldo desde el SSD, filtros y A14 · 2026-11-08
+
+Working tree, sin commit. Artefacto `dist/Nu9veMedia-local-20261108-065258-6e4329.app` compilado; **sin instalar**, porque la app estaba abierta y el instalador se negó como debe. Instalar con la app cerrada.
+- **Inicio:** tocar una tarjeta (o «Ver contenido») sólo abre Contenido y lee las miniaturas; «Preparar respaldo» abre el Flujo. Se quitó «Ingreso rápido», que parecía arrancar un flujo.
+- **Fuente dentro de un disco de trabajo:** la app elige «Ninguno · sólo respaldo» y lo explica. El planner responde `source_on_work_disk` con el nombre del disco, en lugar de `overlapping_roots`.
+- **Filtros:** menús Fecha (día de la hora EXIF, que `discover` devuelve como `created_at`) y Sesión (plan de misión), combinables con los chips.
+- **A14:** con limpieza, un plan con fotos `pending_export` se rechaza con `mission_export_missing`; sin limpieza se puede respaldar igual.
+- **Eficiencia:** las validaciones de Transfer, la reconciliación Sony, las revisiones y la liberación escanean con `photos=False`, sin releer EXIF. El EXIF se lee sólo al inspeccionar y al planear.
+
+Evidencia: Python **356 OK**; Swift **25/25**; localización completa; QA aislado de Inicio revisado. Usuario: Papelera del ESSD vaciada, 64 GB libres.
+
 ## DNG del ESSD: muestra conservada y el resto a la Papelera (A16) · 2026-11-08
 
 Working tree, sin commit; ejecutado con el checkout (CLI/servicio) a petición del usuario, después de revisar el plan. Nuevo `media/dng.py` (`dng_plan` de sólo lectura con digest, `dng_apply`) y reglas `dng` en la receta.

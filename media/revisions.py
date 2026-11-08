@@ -36,7 +36,7 @@ def verify(catalog, backend, asset, volume_id, rows):
             require(row['destination'] == root + '/' + path[len(prefix):], 'revision_mismatch', 'Member outside revision bundle')
             sha, stamp = checked_hash(tree, row['destination'])
             require(sha == row['sha256'] and stamp['size'] == row['bytes'], 'revision_mismatch', 'Revision bytes changed')
-    files, _, _ = scan(str(Path(volume['root']) / root))
+    files, _, _ = scan(str(Path(volume['root']) / root), photos=False)
     require({f['path'] for f in files} == {p[len(prefix):] for p in rows}, 'revision_mismatch', 'Revision membership changed')
     return str(Path(volume['root']) / root)
 
@@ -123,7 +123,7 @@ def publish_revision(catalog, backend, operation_id, asset_id, expected_revision
                 and {k:v for k,v in manifest.items() if k != 'project'} == {k:v for k,v in op['previous_manifest'].items() if k != 'project'},
                 'revision_mismatch', 'Only manifest.project may change')
         from .planner import scan
-        files, _, _ = scan(target)
+        files, _, _ = scan(target, photos=False)
         require({f['path'] for f in files} == {p[len(prefix):] for p in rows}, 'revision_mismatch', 'Membership changed')
         from .release import checked_hash
         copies, hashes = [], []

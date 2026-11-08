@@ -9,7 +9,7 @@ import uuid
 
 from manager.inventory import camera_evidence, IGNORED_DIRS, IGNORED_FILES
 from .volumes import independent
-from .common import Tree, content_stamp, digest, fingerprint, read_json, relative, require, slug
+from .common import MediaError, Tree, content_stamp, digest, fingerprint, read_json, relative, require, slug
 from .layout import build_layout
 from .photo_meta import PHOTO_SUFFIXES, read as read_photo
 from .recipes import recipe as current_recipe, recipe_ref, unit_device
@@ -42,7 +42,9 @@ def finder_only_residue(folder, max_entries=256, max_depth=12):
     return True
 
 
-def scan(root, skip_active=False, cancel=None, stalker_only=False):
+def scan(root, skip_active=False, cancel=None, stalker_only=False, photos=True):
+    """Files, Stalker bundles and skipped active captures. `photos=False` skips the EXIF read: membership and
+    stamp checks (e.g. Transfer's validation) need only paths and stamps."""
     files, bundles, skipped = [], {}, []
     root = Path(root).absolute()
     with Tree(root) as tree:
@@ -103,7 +105,7 @@ def scan(root, skip_active=False, cancel=None, stalker_only=False):
                     st = tree.stat(rel)
                     record = {'path': rel, 'stamp': content_stamp(st), 'bundle': bundle,
                               'evidence': camera_evidence(Path(entry.path))}
-                    if bundle is None and Path(entry.name).suffix.lower() in PHOTO_SUFFIXES:
+                    if photos and bundle is None and Path(entry.name).suffix.lower() in PHOTO_SUFFIXES:
                         # Device identity of a still (Make+Model+Serial, flight XMP): bounded read, never a guess by name.
                         photo = read_photo(entry.path)
                         if photo:
@@ -221,6 +223,9 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         work_decision = 'ready'
     for target in [archive_record] + ([active_work] if active_work else []):
         root = Path(target['root']).absolute()
+        if target is active_work and root in source.parents:
+            # A folder already on the work disk is its own editing copy: back it up only.
+            raise MediaError('source_on_work_disk', 'This folder is already on {}: choose backup only (no editing copy)'.format(target['name']))
         require(source != root and source not in root.parents and root not in source.parents,
                 'overlapping_roots', 'Source and destination roots must not overlap')
     files, bundles, skipped = scan(source, skip_active=source_kind == 'stalker', cancel=cancel, stalker_only=source_kind == 'stalker')
@@ -380,6 +385,11 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
                 if found:
                     unit['work_existing'] = found
                     plan['source_work_id'] = record['id']
+    waiting = sum(1 for u in units if (u.get('mission') or {}).get('state') == 'pending_export')
+    # A14: the card is the only source of these stills and the export only lives on the phone until shared.
+    require(not (cleanup and waiting), 'mission_export_missing',
+            '{} drone photos wait for the flight-app export: send it to Downloads and add it, then review again; '
+            'or back up without cleaning the card'.format(waiting))
     if mission_indexes:
         # Frozen per plan: the registry version it matched against and the flow's folders.
         flows = {f['id']: f for f in rules['missions']}

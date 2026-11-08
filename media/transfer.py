@@ -163,7 +163,7 @@ def confirm_camera_cleanup(catalog, backend, job_id, source):
         return catalog.job(job_id)
     info = backend.describe(source, external_required=True)
     require(info['mount'] == str(Path(source).absolute()), 'card_root_required', 'Choose the root of the mounted card')
-    files, _, _ = scan(source)
+    files, _, _ = scan(source, photos=False)
     present = {(f['path'], f['stamp']['size'], f['stamp']['mtime_ns']) for f in files}
     # A new recording may reuse C0001.MP4; only the exact backed-up clip (path, size, mtime) still blocks.
     remaining = [f['path'] for f in job['plan']['files'] if kind_of(f['path']) in MEDIA_KINDS
@@ -247,7 +247,8 @@ class Transfer:
 
     def validate_source(self, plan):
         self.source_check(plan, full=True)
-        actual, bundles, skipped = scan(plan['source'], skip_active=plan['source_kind'] == 'stalker', cancel=self.cancel, stalker_only=plan['source_kind'] == 'stalker')
+        actual, bundles, skipped = scan(plan['source'], skip_active=plan['source_kind'] == 'stalker', cancel=self.cancel,
+                                        stalker_only=plan['source_kind'] == 'stalker', photos=False)
         actual_map = {f['path']: f for f in actual}
         expected = {f['path']: f for f in plan['files']}
         if plan['source_kind'] == 'stalker':
@@ -665,15 +666,15 @@ class Transfer:
                     self.report(force=True, phase='checking_card')
                     self.source_check(plan, full=True)
                     try:
-                        remaining, _, _ = scan(plan['source'], cancel=self.cancel)
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)
                     except FileNotFoundError:
                         # A directory entry can disappear during enumeration. Retry only the
                         # read, on the same card, after all removals have been journaled.
                         self.source_check(plan, full=True)
-                        remaining, _, _ = scan(plan['source'], cancel=self.cancel)
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)
                     self.source_check(plan, full=True)
                 else:
-                    remaining, _, _ = scan(plan['source'], cancel=self.cancel)
+                    remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)
                 # Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
                 kept = {f['path']: f['stamp'] for f in plan['files'] if f not in removable}
                 # Discarded by the person in the review: left on the card on purpose, not new material.

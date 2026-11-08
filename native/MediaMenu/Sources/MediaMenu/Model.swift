@@ -190,7 +190,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     @ObservationIgnored var pendingReadID: UUID?
     @ObservationIgnored var sourceReadTask: Task<Void, Never>?
     @ObservationIgnored var changeMode: ((WindowMode) -> Void)?
-    var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; archiveExceptionConfirmed = false; units = []; plan = nil; loadedSourceKey = ""; gridSelection = [] } } }
+    var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; archiveExceptionConfirmed = false; units = []; plan = nil; loadedSourceKey = ""; gridSelection = []; dayFilter = ""; sessionFilter = "" } } }
     var bundledRuntime = false
     var captureRoot = ""
     var pendingCaptures: [JSONValue] = []
@@ -245,6 +245,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     var gridSelection: Set<String> = []
     @ObservationIgnored var selectionAnchor: String?
     var typeFilter = ""
+    /// Narrow the grid to one capture day (`YYYY-MM-DD`) and/or one mission session; combined with `typeFilter`.
+    var dayFilter = ""
+    var sessionFilter = ""
     var quickLookURL: URL?
     @ObservationIgnored var reviewedPlan: ReviewedPlan?
     var plan: JSONValue? { didSet { if plan == nil { reviewedPlan = nil } } }
@@ -697,6 +700,16 @@ enum OperationScope { case ingest, library, space, settings, source }
         if source != path || sourceKind != kind { parkIngestDraft(); copyChoice = "all" }
         sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
+        // Already on the work disk: it is its own editing copy, so only the backup applies.
+        if sourceWorkVolume != nil { copyChoice = "none" }
+    }
+    /// The registered work disk that already holds the chosen source folder, if any.
+    var sourceWorkVolume: JSONValue? {
+        guard !source.isEmpty else { return nil }
+        return volumes.first { volume in
+            let root = volume["root"].string
+            return volume["role"].string == "work" && !root.isEmpty && (source + "/").hasPrefix(root.hasSuffix("/") ? root : root + "/")
+        }
     }
     func prepareCaptureBatch(_ root: String) {
         prepareSource(root, kind: "stalker")
@@ -721,9 +734,22 @@ enum OperationScope { case ingest, library, space, settings, source }
         route = .ingest; ingestStep = .source
         if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
     }
+    /// Show a card's content (read only). Keeps the current window mode; the grid fills as files are read.
+    func previewCard(_ path: String) {
+        if source != path || sourceKind != "card" || (!contentLoaded && !discoveryLoading) {
+            useCard(path); discover()
+        }
+        route = .ingest
+        goToStep(.content)
+    }
+    /// Start the backup flow for a card: its content is read and the flow step opens; the plan is still reviewed.
+    func prepareCardBackup(_ path: String) {
+        previewCard(path)
+        goToStep(.destinations)
+    }
     func newIngest() {
         copyChoice = "all"
-        source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""
+        source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""; dayFilter = ""; sessionFilter = ""
         ingestStep = .source; message = String(localized: "Listo")
     }
 
@@ -877,6 +903,19 @@ enum OperationScope { case ingest, library, space, settings, source }
     // MARK: Bulk assignment on the grid
 
     var visibleUnits: [DraftUnit] {
+        let typed = typedUnits
+        guard !dayFilter.isEmpty || !sessionFilter.isEmpty else { return typed }
+        return typed.filter { (dayFilter.isEmpty || $0.createdAt.hasPrefix(dayFilter)) && (sessionFilter.isEmpty || $0.missionPlan == sessionFilter) }
+    }
+    /// Capture days and mission sessions present in the source, with counts, for the grid menus.
+    var unitDays: [(String, Int)] {
+        Dictionary(grouping: units.filter { !$0.isSupport && $0.createdAt.count >= 10 }, by: { String($0.createdAt.prefix(10)) })
+            .map { ($0.key, $0.value.count) }.sorted { $0.0 > $1.0 }
+    }
+    var unitSessions: [(String, Int)] {
+        Dictionary(grouping: units.filter { !$0.missionPlan.isEmpty }, by: \.missionPlan).map { ($0.key, $0.value.count) }.sorted { $0.0 > $1.0 }
+    }
+    private var typedUnits: [DraftUnit] {
         switch typeFilter {
         case "": return units.filter { !$0.isSupport }
         case "all": return units
