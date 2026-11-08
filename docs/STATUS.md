@@ -2,6 +2,17 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## A11 aplicado: mayo–junio del ESSD respaldado en MEDIA502 · 2026-11-08
+
+Build `e799494274d5`, aplicado por el usuario desde la app. Job `77bdcb73-05cd-52eb-bdc2-e77b23bb3094`: **`source_retained`** en 13 min (13:06–13:20 UTC), sólo respaldo y sin limpieza.
+- **Copiado:** 534 unidades, 1,068 archivos y 16.31 GB a MEDIA502. 516 de misión en 17 sesiones de `dron/misiones/2026/05|06/` y 18 en `dron/fotos/2026/05|06/`, todas SUBAEREO.
+- **Fuera del plan:** las 25 de noviembre ya respaldadas (50 archivos) y las 64 de agosto descartadas, que siguen en el ESSD.
+- **Verificación independiente:** las 1,068 copias están en disco y 20 rehasheadas coinciden. Los 1,068 originales siguen en `ESSD/atlas-subaereo/101MEDIA`.
+- **`units.ndjson`:** 1,810 líneas, una por foto y sin repetidas. 769 apuntan a `misiones/`, 559 a `101MEDIA/` y 482 a `102MEDIA/`.
+- **Observado por el usuario:** el primer intento dio `overlapping_roots`, porque la app dejó «Todo el lote» (copia al SSD) con una fuente que ya está en el ESSD. Funcionó con «Ninguno · sólo respaldo». Pendiente en la app: con una fuente dentro de un disco de trabajo, elegir sólo respaldo por defecto y explicarlo.
+
+Con esto, todo el material de dron que había en la SD y en `atlas-subaereo` tiene respaldo en MEDIA502, salvo las 64 fotos sin misión del 31 ago (descartadas, siguen en el ESSD).
+
 ## A11: plan para respaldar lo que sólo está en el ESSD · 2026-11-08
 
 Working tree, sin commit. Instalada como **`e799494274d5`**; firma estricta, binario idéntico al último `dist/` y `media/` idéntico al checkout. Python **351 OK**.

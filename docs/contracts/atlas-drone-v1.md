@@ -320,6 +320,7 @@ específicas:
 | --- | --- | --- |
 | Atlas | Catálogo v2 recursivo con IDs estables; lee cualquier árbol bajo la raíz; `ev100`/`exposure_light_class` por foto. | 2026-11-05, working tree sobre `ba60ffa` |
 | Atlas | Ignora carpetas `_*` (para A8); `odm clean` para intermedios; docs de respaldo. | 2026-11-06, working tree sobre `0e4d0d2` |
+| nüün | **A11 aplicado:** 534 pares de mayo–junio de `ESSD/atlas-subaereo/101MEDIA` respaldados en MEDIA502 (job `77bdcb73`, 16.31 GB), sin tocar el ESSD; `units.ndjson` con 1,810 líneas | 2026-11-08 · build `e799494274d5` |
 | nüün | **Primer ingreso real:** SD `MAVIC200`, job `cc8bd128`. 1,276 pares de misión en `dron/misiones` (25 sesiones), 769 JPG nuevos en `atlas-subaereo/misiones`, 507 ya presentes, `units.ndjson` con 1,276 líneas, SD liberada | 2026-11-08 · build `0e06154caaf5` |
 | nüün | **A12 y UI:** misión o no al planear (nombre + hora ±2 s/±8 s + ≤ 40 m), `dron/misiones|fotos`, trabajo sólo JPG, `units.ndjson`, sección en Inicio y aviso en la revisión del plan. Fixtures y planes de sólo lectura; instalado en `a8a92513f456` (descartar, «parece de misión» sin registro, revisión en tabla), con trabajo sin duplicar lo que ya está en `atlas-subaereo` (por nombre, tamaño, hora EXIF y serial); falta la aceptación desde la app | 2026-11-08 · working tree |
 | nüün | **A13:** registro de misiones con espejo (`missions-review`/`missions-incorporate`/`missions-status`), primera importación real (22 exports) verificada | 2026-11-08 · working tree sobre `3998dc9`, sin commit |
