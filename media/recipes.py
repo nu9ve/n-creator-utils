@@ -52,6 +52,7 @@ TEMPLATE = {
         'hint': {'max_gimbal_pitch': -80, 'min_relative_altitude': 15},   # «probably a mission» while the export is missing
         'archive_folder': 'dron/misiones',          # + AAAA/MM/<session start>_<PLAN>/
         'work_folder': 'atlas-subaereo/misiones',   # below the work prefix; same session folder
+        'work_root': 'atlas-subaereo',              # the consumer's root: a still already anywhere here is not copied again
         'work_kinds': ['image'],                    # JPG to work; DNG stays in the archive until asked (A16)
         'units_map': 'atlas-subaereo/_nuun/units.ndjson',
     }],

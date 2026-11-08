@@ -170,7 +170,7 @@ struct SourceTiles: View {
                 let hint = card["hint"]
                 SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card",
                            symbol: "sdcard.fill", title: card["name"].string,
-                           subtitle: hint == .null ? String(localized: "SD conectada") : model.familyLabel(hint["family"].string) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
+                           subtitle: hint == .null ? String(localized: "SD conectada") : model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
                            detail: hint == .null ? nil : model.recommendationLabel(hint["recommendation"].string),
                            eject: { model.eject(card["path"].string) }) {
                     model.useCard(card["path"].string); model.discover()
@@ -382,7 +382,10 @@ struct ContentStep: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let compact: Bool
-    private let filters: [(String, LocalizedStringKey, String)] = [("", "Principal", "square.grid.2x2"), ("all", "Todos los archivos", "doc.on.doc"), ("video", "Videos", "film"), ("image", "Fotos", "photo"),
+    /// Mission chips first: they are the decision on a drone card. A type chip that repeats «Principal» is hidden.
+    private let filters: [(String, LocalizedStringKey, String)] = [("", "Principal", "square.grid.2x2"),
+        ("mission", "De misión", "map"), ("pending_export", "Esperan export", "clock.badge.questionmark"), ("no_mission", "Sin misión", "photo.on.rectangle"),
+        ("video", "Videos", "film"), ("image", "Fotos", "photo"),
         ("raw_image", "RAW", "camera.aperture"), ("audio", "Audio", "waveform"), ("drone", "Dron", "airplane"), ("360", "360°", "view.360"),
         ("stalker", "Stalker", "record.circle"), ("support", "Auxiliares", "doc"), ("dji", "DJI sin clasificar", "questionmark.circle")]
     private func count(_ key: String) -> Int {
@@ -390,6 +393,9 @@ struct ContentStep: View {
         case "": return model.units.filter { !$0.isSupport }.count
         case "all": return model.units.count
         case "dji": return model.units.filter(\.needsCameraReview).count
+        case "mission": return model.units.filter { $0.missionState == "matched" }.count
+        case "no_mission": return model.units.filter { $0.missionState == "none" }.count
+        case "pending_export": return model.units.filter { $0.missionState == "pending_export" }.count
         default: return model.units.filter { $0.displayCategory == key }.count
         }
     }
@@ -400,7 +406,8 @@ struct ContentStep: View {
                     HStack(spacing: 6) {
                         ForEach(filters, id: \.0) { key, label, symbol in
                             let total = count(key)
-                            if key.isEmpty || total > 0 {
+                            let mission = ["mission", "no_mission", "pending_export", "dji"].contains(key)
+                            if key.isEmpty || total > 0 && (mission || total != count("")) || model.typeFilter == key {
                                 Button { model.typeFilter = key; model.gridSelection = [] } label: {
                                     Label { Text(label) + Text(" \(total)").foregroundStyle(.secondary) } icon: { Image(systemName: symbol) }
                                 }

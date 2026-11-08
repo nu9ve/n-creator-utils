@@ -288,6 +288,9 @@ def build_layout(source, plan, units, files):
                 session = '{}/{}_{}'.format(start.strftime('%Y/%m'), stamp(start), tag(mission['plan_name']))
                 layout[file['path']] = {'archive': '{}/{}/{}'.format(rules['archive_folder'], session, name),
                                         'work': '{}/{}/{}'.format(rules['work_folder'], session, name) if kind in rules['work_kinds'] else None}
+            if file['path'] in (unit.get('work_existing') or {}):
+                # Already in the consumer's work root (verified by name, size, EXIF time and serial): no second copy.
+                layout[file['path']]['work'] = None
             elif mission.get('state') == 'pending_export' or (work_kinds is not None and kind not in work_kinds):
                 # Waiting for the export: no work copy yet (work stays pending). DNG/RAW stay archive-only.
                 layout[file['path']]['work'] = None

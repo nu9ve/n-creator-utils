@@ -233,12 +233,16 @@ class Service:
             units = []
             from .recipes import recipe as current_recipe, unit_device
             rules = current_recipe(self.catalog)
+            mission_indexes = {}
             for key, members in groups.items():
                 evidence = [e for f in members for e in f['evidence']]
                 device = unit_device(members, self.catalog, rules) if key != 'camera-support' else None
                 if device and not device.get('conflict'):
                     # The planner decides the same way; the app only stops asking when no confirmation is needed.
-                    metadata_device = {'device': {k: device.get(k) for k in ('make', 'model', 'serial', 'source', 'label', 'category', 'rule', 'requires_confirmation')}}
+                    metadata_device = {'device': {k: device.get(k) for k in ('make', 'model', 'source', 'label', 'category', 'rule', 'requires_confirmation')}}
+                    mission = self._discover_mission(members, device, rules, params.get('archive'), mission_indexes)
+                    if mission:
+                        metadata_device['mission'] = mission
                 else:
                     metadata_device = {}
                 kinds = [kind_of(f['path']) for f in members]
@@ -397,6 +401,29 @@ class Service:
             except (MediaError, OSError, ValueError) as error:
                 result['source_cards'], result['errors']['source_cards'] = [], str(error)
         return result
+
+    def _discover_mission(self, members, device, rules, archive, indexes):
+        """Mission or not while inspecting, with the same rule as the planner; None without a flow or archive."""
+        if device.get('requires_confirmation') or not archive:
+            return None
+        flow = next((f for f in rules.get('missions') or [] if device.get('category') in f.get('devices', [])), None)
+        from .layout import kind_of
+        still = next((f for f in sorted(members, key=lambda f: kind_of(f['path']) != 'image')
+                      if (f.get('photo') or {}).get('captured_at')), None)
+        if not flow or not still:
+            return None
+        if flow['id'] not in indexes:
+            try:
+                from .missions import index_for
+                record = self.catalog.volume(archive)
+                self.backend.check(record)
+                indexes[flow['id']] = index_for(record, flow)
+            except (MediaError, OSError, ValueError):
+                indexes[flow['id']] = None  # archive offline: the plan decides later
+        if indexes[flow['id']] is None:
+            return None
+        found = indexes[flow['id']].match(still['photo'], Path(still['path']).name)
+        return dict(found, flow=flow['id'], flow_label=flow['label'], project=flow['project'] if found['state'] == 'matched' else None)
 
     def _apply_ingest(self, plan, reviewed_digest):
         if plan.get('cleanup') and plan.get('source_kind') == 'delivery':

@@ -8,7 +8,7 @@ import re
 import struct
 
 PHOTO_SUFFIXES = {'.jpg', '.jpeg', '.dng'}
-JPEG_HEAD = 1024 * 1024
+JPEG_HEAD = 1024 * 1024  # never walk segments past this offset
 MAX_ENTRIES = 512
 MAX_VALUE = 256 * 1024
 XMP_HEADER = b'http://ns.adobe.com/xap/1.0/\x00'
@@ -117,21 +117,29 @@ def _xmp_facts(xmp):
 
 
 def _jpeg(handle):
-    head = handle.read(JPEG_HEAD)
-    if head[:2] != b'\xff\xd8':
+    """Walk segment headers with seeks; read only APP1 bodies (EXIF, XMP). Stops at the image data."""
+    if handle.read(2) != b'\xff\xd8':
         return {}, None
-    position, exif, xmp = 2, None, None
-    while position + 4 <= len(head) and head[position] == 0xFF:
-        marker = head[position + 1]
-        if marker in (0xD9, 0xDA):  # end of image / start of scan: no more metadata
+    exif = xmp = None
+    position = 2
+    while position < JPEG_HEAD:
+        head = handle.read(4)
+        if len(head) < 4 or head[0] != 0xFF or head[1] in (0xD9, 0xDA):  # end of image / start of scan
             break
-        length = struct.unpack('>H', head[position + 2:position + 4])[0]
-        body = head[position + 4:position + 2 + length]
-        if marker == 0xE1 and body.startswith(b'Exif\x00\x00') and exif is None:
-            exif = body[6:]
-        elif marker == 0xE1 and body.startswith(XMP_HEADER) and xmp is None:
-            xmp = body[len(XMP_HEADER):]
+        length = struct.unpack('>H', head[2:4])[0]
+        if length < 2:
+            break
+        if head[1] == 0xE1 and (exif is None or xmp is None):
+            body = handle.read(length - 2)
+            if body.startswith(b'Exif\x00\x00') and exif is None:
+                exif = body[6:]
+            elif body.startswith(XMP_HEADER) and xmp is None:
+                xmp = body[len(XMP_HEADER):]
+        else:
+            handle.seek(length - 2, 1)
         position += 2 + length
+        if exif is not None and xmp is not None:
+            break
     if exif is None:
         return {}, xmp
     found, embedded = _tiff_facts(lambda at, size: exif[at:at + size])
@@ -141,7 +149,7 @@ def _jpeg(handle):
 def read(path):
     """{make, model, serial, captured_at, offset, gps, flight} for a JPEG/DNG; {} when absent or unreadable."""
     try:
-        with open(path, 'rb') as handle:
+        with open(path, 'rb', buffering=0) as handle:
             if str(path).lower().endswith('.dng'):
                 def at(offset, size):
                     handle.seek(offset)

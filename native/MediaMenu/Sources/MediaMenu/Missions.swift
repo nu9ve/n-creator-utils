@@ -99,8 +99,10 @@ struct PlanMissions: View {
             let units = value["units"]
             let matched = Int(units["matched"].double), none = Int(units["none"].double), waiting = Int(units["pending_export"].double)
             let likely = Int(value["likely"].double)
+            let existing = Int(value["work_existing"].double)
             VStack(alignment: .leading, spacing: 4) {
                 Label("Fotos de dron · \(matched) de misión (\(value["project"].string.uppercased())) · \(none) sin misión · \(waiting) esperan export", systemImage: "airplane")
+                if existing > 0 { Text("\(existing) ya están en el SSD de trabajo: no se copian otra vez; el mapa apunta a esa copia.").foregroundStyle(.secondary) }
                 if waiting > 0 {
                     Text("Manda el JSON de la app de vuelo a Descargas antes de aplicar: nüün lo detecta y vuelve a revisar el plan. Si sigues sin él, se archivan en fotos/ y la copia para editar queda pendiente.")
                         .foregroundStyle(palette.warning)
