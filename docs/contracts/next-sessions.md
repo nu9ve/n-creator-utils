@@ -1,4 +1,62 @@
-# Próximas sesiones: Stalker y luego Clipper
+# Próximas sesiones: Atlas (dron), Stalker y Clipper
+
+## Pedido de Atlas · 2026-11-08 · fotos de dron, misiones y exports (A11–A16)
+
+Escrito desde una sesión de Atlas; no se envió a ninguna sesión. Detalle y decisiones del
+usuario en [atlas-drone-v1](atlas-drone-v1.md#actualización-2026-11-08--primer-ingreso-real-y-exports).
+
+```text
+Repo: /Users/nu9ve/code/nu9ve/n-creator-utils (nüün). Lee AGENTS.md, docs/CONTEXT.md,
+docs/STATUS.md, PLAN.md y docs/contracts/atlas-drone-v1.md empezando por
+«Actualización 2026-11-08» y «Decisiones del usuario (2026-11-08)»; nombres en
+docs/contracts/media-naming-v1.md.
+
+Objetivo: completar el lado nüün del contrato con Atlas (A11–A15; A16 al final) para
+las fotos del dron (DJI Mavic Air 2: EXIF Model FC3170, serial 1TCLH9N03BJ5N9) y los
+exports JSON de la app subaereo.
+
+Decisiones ya tomadas por el usuario:
+- Nombres de nüün (YYMONDD-HHMMSS_MAVICAIR2_<PAIS>-<PROYECTO>[].JPG|.DNG), no DJI_NNNN.
+  El nombre original, la carpeta DCIM y el UUID de la tarjeta quedan como metadato.
+- Carpeta de dron por fecha: 001_raw/dron/misiones/AAAA/MM/<YYMONDD-HHMMSS>_<PLAN>/
+  (fotos de una misión de subaereo) y 001_raw/dron/fotos/AAAA/MM/ (el resto). JPG y DNG
+  juntos con el mismo stem. El video de dron sigue en 001_raw/vdron/.
+- Archivo: JPG+DNG. Trabajo (ESSD 001_proyectos/atlas-subaereo/misiones/…): sólo JPG,
+  más el mapa atlas-subaereo/_nuun/units.ndjson para Atlas.
+- Exports: llegan por AirDrop a ~/Downloads (coverage-*.json, JSON-*.json). nüün
+  incorpora sólo lo nuevo a un registro unificado (004_datos/subaereo/coverage/
+  history.json + changes.ndjson; crudo comprimido en raw/AAAA/MM/), borra el archivo de
+  Descargas tras verificar y deja un espejo en atlas-subaereo/_missions/. Reglas de
+  unión: /Users/nu9ve/code/ios/subaereo/docs/DATA_AND_EXPORTS.md («Exports parciales y
+  cómo unirlos») y tools/subaereo_merge_exports.py de ese repo.
+
+Orden sugerido (cortes verticales, cada uno con pruebas en fixtures):
+1) A15 + A1: registro de dispositivos (Make+Model+Serial → dji-drone, FUENTE
+   MAVICAIR2); dron contra 360/acción por XMP de vuelo; tarjeta por UUID del volumen.
+2) A13: registro unificado de misiones; importar también una vez los 20 JSON de
+   /Users/nu9ve/code/data/atlas/coverage_exports/ (sin borrarlos de ahí sin confirmación).
+3) Misión o no + A12: una foto es de misión si coincide con captureLog (misma hora ±2 s,
+   nombre original y posición ≤ 40 m; para may–jun, que no tienen captureLog, usar
+   plans[].captures). Sin export que cubra la fecha: pending: export. Trabajo sólo JPG
+   + units.ndjson (asset_id, rutas, original_name, dcim_folder, card_uuid, captured_at y
+   UTC, make, model, serial, SHA-256 de JPG y DNG, mission {planID, sessionID,
+   captureID} o null).
+4) A11: archivar lo que es copia única: 534 pares en /Volumes/ESSD/001_proyectos/
+   atlas-subaereo/101MEDIA (30 may – 3 jun; sólo copiar al archivo, no mover ni
+   renombrar los originales del ESSD) y los 770 pares nuevos de la SD (6–7 nov).
+   Plan revisado por el usuario antes de ejecutar.
+5) A14: liberar la SD sólo con archivo verificado y registro que cubra su última foto;
+   terminar en camera_action_required (formatear desde el dron).
+6) A16, después: extraer DNG del archivo al trabajo a partir de una lista de asset_id
+   que dará Atlas.
+
+Reglas: pruebas sólo con fixtures temporales; la corrida física (SD, ESSD, MEDIA502)
+es explícita y con plan revisado por el usuario; nada se borra de la SD ni del ESSD
+sin verificación y confirmación; no editar el repo de Atlas salvo docs/contracts/*.md.
+Actualizar STATUS, PLAN y la fila de adopción en docs/contracts/atlas-drone-v1.md y
+README.md con fecha y commit. Al terminar, dejar para Atlas la ruta y el esquema de
+units.ndjson y _missions/ con un ejemplo.
+```
 
 ## Pedido para Clipper · 2026-11-04 · atendido por CLI/TUI el 5 noviembre
 

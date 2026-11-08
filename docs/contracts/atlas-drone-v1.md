@@ -1,6 +1,7 @@
 # Fotos de dron para Atlas · v1 (propuesta)
 
-Estado: **propuesta 2026-11-05**, escrita desde una sesión de Atlas
+Estado: **propuesta 2026-11-05, actualizada 2026-11-08** (ver
+[«Primer ingreso real»](#actualización-2026-11-08--primer-ingreso-real-y-exports)), escrita desde una sesión de Atlas
 (`/Users/nu9ve/code/data/atlas`, working tree sobre `ba60ffa`) tras inventariar la
 SD `MAVIC200`, el ESSD y MEDIA502. Nüün no la ha implementado. Atlas es
 consumidor; subaereo (app iOS de vuelo) es productor de los exports JSON. Índice:
@@ -26,6 +27,82 @@ existen en ambas carpetas con fotos distintas (mayo vs noviembre). Un consumidor
 que identifique por nombre mezcla vuelos. Atlas ya lo resolvió de su lado
 (catálogo v2: IDs estables, sufijo de fecha en colisiones); nüün no debe
 aplanar carpetas DCIM ni identificar por nombre.
+
+## Actualización 2026-11-08 · primer ingreso real y exports
+
+Escrito desde Atlas (`/Users/nu9ve/code/data/atlas`, sobre `10ba32a`) tras leer la SD
+montada (sólo lectura: EXIF y miniaturas en un directorio temporal; nada copiado ni
+escrito en la tarjeta), el ESSD y MEDIA502.
+
+### Evidencia
+
+| Lugar | Estado 2026-11-08 |
+| --- | --- |
+| SD `MAVIC200` (exFAT, UUID `8486AB6C-…-F4B3A87CD60A`, 37 GB usados) | `101MEDIA` 89 pares (31 ago) · `102MEDIA` 999 pares (4–7 nov) · `103MEDIA` 254 pares (7 nov) · `100CANON`/`CANONMSC` vacías · `MISC` 58 MB · `LOST.DIR` 128 KB. 1,342 pares, todos `FC3170` / `1TCLH9N03BJ5N9`. El nombre del volumen no es identidad: puede cambiar. |
+| Fotos sólo en la SD | **770 pares** (6–7 nov, 10 sesiones, todas nadir a 45 m) que no están en el ESSD. Una sesión del 7 nov cruza `102MEDIA` → `103MEDIA`: la sesión no es la carpeta. |
+| Fotos sólo en el ESSD | **534 pares, 16.3 GB** (30 may – 3 jun) en `atlas-subaereo/101MEDIA`. Ya no están en la SD y **no hay copia en MEDIA502**: hoy son copia única. |
+| ESSD | 92 % (41 GB libres); `atlas-subaereo` 28 GB (JPG + DNG), `atlas-derived` 18 GB. |
+| MEDIA502 | 54 % (2.1 TB libres). Sin fotos de Atlas archivadas. |
+| Exports de subaereo | 22 JSON sueltos en `atlas/coverage_exports/` (may–nov, 20 KB – 9 MB). Desde el 8 nov la app exporta **24 h / 7 días / todo** con `exportWindow.mergeKeys`; el completo ya pesa 9 MB y crece 1–2 MB por día de vuelo. |
+
+### Decisiones del usuario (2026-11-08)
+
+Reemplazan lo que diga lo contrario en las secciones de 2026-11-05/06 de abajo
+(sobre todo «Rutas y nombres: Atlas conserva los originales»).
+
+1. **Nombres de nüün, no los de DJI.** Las fotos de dron usan la gramática de
+   [naming v1](media-naming-v1.md) y viven en una carpeta de dron por fecha. El nombre
+   original (`DJI_NNNN`, carpeta DCIM, UUID de la tarjeta) queda como **metadato** del
+   catálogo de nüün y en el mapa que se publica para Atlas: nadie identifica por nombre.
+2. **Misión contra no misión.** Lo que pertenece a una misión de subaereo se separa de
+   las demás fotos de dron, ambas por fecha.
+3. **Un solo registro de misiones.** Los exports de subaereo llegan por AirDrop a
+   `~/Downloads`; nüün los detecta, incorpora sólo lo nuevo a un registro unificado y
+   quita el archivo de Descargas. Atlas lee ese registro y se entera de los puntos nuevos.
+4. **DNG:** el archivo guarda JPG+DNG por ahora. El trabajo sólo JPG; los DNG que ya están
+   en el ESSD se quedan como semilla de la prueba de Atlas. Después de A11–A15, Atlas pide
+   algunos DNG extra al archivo (prueba también la extracción) y decide si conservar DNG
+   vale la pena o basta el JPG.
+
+### Layout (propuesta concreta)
+
+| Destino | Ruta | Contenido |
+| --- | --- | --- |
+| Archivo, misiones | `001_raw/dron/misiones/AAAA/MM/<YYMONDD-HHMMSS>_<PLAN>/` | Fotos ligadas a una misión. `<YYMONDD-HHMMSS>` = primera foto de la sesión; `<PLAN>` = slug del nombre del plan (`CALLESHUECOS-45M`). JPG y DNG **en la misma carpeta y con el mismo stem** |
+| Archivo, otras fotos de dron | `001_raw/dron/fotos/AAAA/MM/` | Fotos del dron sin registro en subaereo (manuales, otras apps) |
+| Archivo, video de dron | `001_raw/vdron/AAAA/MM/` | Sin cambio |
+| Archivo, soporte | `001_raw/metadata/dji/support/AAAA/MM/<…>/MISC/…` | Sin cambio (`dji.gis` se puede omitir) |
+| Trabajo (Atlas) | `ESSD/001_proyectos/atlas-subaereo/misiones/AAAA/MM/<YYMONDD-HHMMSS>_<PLAN>/` | Sólo JPG de misiones; DNG por pedido (A16). Las carpetas `101MEDIA/`, `102MEDIA/` existentes no se tocan |
+| Mapa para Atlas | `ESSD/001_proyectos/atlas-subaereo/_nuun/units.ndjson` | Una línea por unidad: `asset_id`, rutas de archivo y trabajo, `original_name`, `dcim_folder`, `card_uuid`, `captured_at` (+ UTC), `make`, `model`, `serial`, SHA-256 de JPG y DNG, y `mission` (`planID`, `sessionID`, `captureID`) o `null` |
+
+Nombre de cada foto: `YYMONDD-HHMMSS_MAVICAIR2_<PAIS>-<PROYECTO>[].JPG|.DNG` (fotos sin
+duración; `-N` si dos caen en el mismo segundo). `FUENTE` sale del registro de
+dispositivos (`FC3170` → `MAVICAIR2`).
+
+**Misión o no:** una foto es de misión si coincide con un registro de `captureLog` del
+registro unificado: misma hora (`mediaCreatedAt` = EXIF `DateTimeOriginal`, ±2 s),
+mismo nombre de la SD y posición a ≤ 40 m (la regla de
+`subaereo/tools/subaereo_ingest.py`). Sin export que cubra la fecha, la unidad queda
+`pending: export` en vez de adivinar.
+
+### Pedidos en orden
+
+| # | Pedido | Por qué ahora |
+| --- | --- | --- |
+| A11 | **Archivar lo que es copia única**, con el layout de arriba: (a) los 534 pares de `ESSD/atlas-subaereo/101MEDIA` (30 may – 3 jun); (b) los 770 pares nuevos de la SD (6–7 nov). JPG+DNG, SHA-256 verificado | Pérdida de un disco = pérdida de esos vuelos |
+| A12 | **Trabajo sólo JPG** de las misiones que faltan en el ESSD (~4 GB) y `units.ndjson` con el mapa de todo lo ingresado. Deduplicar contra lo presente por hora + serial + nombre original o por SHA, nunca por nombre solo | Atlas no analiza desde la SD; el ESSD está al 92 % |
+| A13 | **Registro unificado de misiones.** Vigilar `~/Downloads` por `coverage-*.json` y `JSON-*.json` (validar `schemaVersion` y listas). Unir en `004_datos/subaereo/coverage/history.json` con las reglas del export: upsert por `exportWindow.mergeKeys`, gana el `exportedAt` más nuevo, procedencia por registro, tombstones cuando la app los publique. Agregar `changes.ndjson` (cuándo, qué export, lista, id, `new`/`updated`). Guardar el crudo comprimido en `004_datos/subaereo/coverage/raw/AAAA/MM/` (unos MB; permite rehacer la unión si hay un error) y **después** borrarlo de Descargas. Espejo en `ESSD/…/atlas-subaereo/_missions/` (`history.json` + `changes.ndjson`) para que Atlas lo lea sin MEDIA montado. Importar también una vez los 20 JSON de `atlas/coverage_exports/` | Hoy hay exports completos que repiten los mismos puntos y archivos sueltos en dos lugares |
+| A14 | **Liberar la SD sólo si** (1) el archivo JPG+DNG está verificado y (2) el registro unificado cubre la última `DateTimeOriginal` de la tarjeta. Si falta (2): `pending: export`. Formatear desde el dron (`camera_action_required`) | La SD es la única fuente de las fotos y el export sólo vive en el iPhone hasta compartirse |
+| A15 | **Identidad por evidencia**: tarjeta = UUID del volumen (el nombre `MAVIC200` puede cambiar); dispositivo = `Make+Model+Serial`; dron contra 360/acción por XMP de vuelo. `100CANON`, `CANONMSC` vacías y `LOST.DIR` no clasifican | El nombre es de la tarjeta, no del dron; la cámara 360 también es DJI |
+| A16 | **Extracción de DNG a pedido** (después de A11–A15): Atlas entrega una lista de `asset_id` (fotos etiquetadas, mejores misiones recientes, crepúsculo profundo) y nüün copia esos DNG del archivo al trabajo, junto a su JPG, con recibo | Probar la extracción desde el archivo y medir si el DNG aporta |
+
+### Retención de lo que produce Atlas
+
+| Clase | Qué | Respaldo |
+| --- | --- | --- |
+| Estado humano | `atlas-derived/atlas_state.sqlite3`, `labels/cells/*/manifest.json` | Siempre (A6); irreemplazable |
+| Productos caros | Ortofotos ODM + `opensfm/reconstruction.json` (A9), `surface/*/session.json`, `traces/`, `ortho-cells.npz`, `reports/*/report.json` | Sí: días de cómputo, pocos GB |
+| Regenerable | Miniaturas, recortes de etiquetas, `frames/`, mosaicos, tiles, intermedios ODM, `surface/_backup-*` | No; Atlas los borra (`odm clean`, limpieza por versión) |
 
 ## Clasificación DJI: dron frente a 360/acción
 
@@ -57,6 +134,8 @@ confirmada `FC3170/1TCLH9N03BJ5N9 → dji-drone` para no volver a preguntar.
 - Videos del dron (`.MP4`) siguen el flujo `vdron` existente; este contrato cubre fotos.
 
 ## Rutas y nombres: Atlas conserva los originales
+
+> **Sustituido el 2026-11-08** por [decisiones del usuario y layout](#decisiones-del-usuario-2026-11-08): nombres de nüün, carpeta de dron con misiones separadas, nombre original como metadato. Se conserva como historia.
 
 Atlas, subaereo y ODM referencian `DJI_NNNN.JPG`. El naming v1
 (`YYMONDD-HHMMSS_FUENTE_…[]`) **no** se aplica a fotos de Atlas:
@@ -167,4 +246,5 @@ específicas:
 | Atlas | Catálogo v2 recursivo con IDs estables; lee cualquier árbol bajo la raíz; `ev100`/`exposure_light_class` por foto. | 2026-11-05, working tree sobre `ba60ffa` |
 | Atlas | Ignora carpetas `_*` (para A8); `odm clean` para intermedios; docs de respaldo. | 2026-11-06, working tree sobre `0e4d0d2` |
 | nüün | Sin iniciar. | — |
-| subaereo | Ver contrato de captura en Atlas. | — |
+| subaereo | Ver contrato de captura en Atlas. Exports 24 h / 7 d / todo con `mergeKeys` (8 nov) | 2026-11-08 · subaereo `e4894e1` |
+| Atlas | Inventario SD/ESSD/MEDIA; pedidos A11–A16 con las decisiones del usuario (nombres de nüün, misiones separadas, registro unificado de exports, trabajo sólo JPG, DNG a pedido). Atlas adaptará su catálogo para identificar por hora EXIF + serial y leer `units.ndjson` y `_missions/` | 2026-11-08 · atlas sobre `10ba32a` |
