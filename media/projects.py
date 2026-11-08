@@ -116,10 +116,12 @@ def overview(catalog, sessions, backend=None):
         else:
             stage = 'backed_up'
         touched = catalog.get('project-touch:' + key, '')
-        item['deliveries'] = _deliveries(catalog, backend, item['project_id'])
-        item['released'] = bool(item['project_id'] and catalog.get('project-released:' + item['project_id']))
-        item['related'] = _related(catalog, item['project_id'])
-        item['link_suggestions'] = _suggestions(catalog, item['project_id'])
+        # «finales» is the archive's collection, not a project: no closeout reading, links or suggestions.
+        closable = item['project_id'] if item['project'] != 'finales' else ''
+        item['deliveries'] = _deliveries(catalog, backend, closable)
+        item['released'] = bool(closable and catalog.get('project-released:' + closable))
+        item['related'] = _related(catalog, closable)
+        item['link_suggestions'] = _suggestions(catalog, closable)
         item.update(state=state, stage=stage, jobs=len(linked), open_jobs=open_jobs, cameras=sorted(item['cameras']), places=sorted(item['places']),
                     aliases=[name for name in names.get(item['project_id'], []) if name != item['project']],
                     updated_at=max([touched, seen] + [jobs[job][1] for job in linked if job in jobs]))

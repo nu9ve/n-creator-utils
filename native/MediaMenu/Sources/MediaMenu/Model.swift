@@ -998,7 +998,11 @@ enum OperationScope { case ingest, library, space, settings, source }
             notifiedCards.formIntersection(shown)
             var opened = false
             for path in shown where !notifiedCards.contains(path) {
-                notifiedCards.insert(path); notifyCard(path)
+                notifiedCards.insert(path)
+                // Only an insertion while nüün runs announces the card. Cards already there at launch (or after a wake)
+                // show in Inicio, and opening the app keeps the normal window.
+                guard arrival != nil else { continue }
+                notifyCard(path)
                 if !busy && !opened && UserDefaults.standard.bool(forKey: "showQuickImporter") {
                     if source != path || lastResult != nil || (units.isEmpty && plan == nil) { useCard(path) }
                     openImporter?()

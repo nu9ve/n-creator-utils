@@ -422,11 +422,14 @@ struct ContentStep: View {
             if !model.discoveryError.isEmpty { HStack { Label(model.discoveryError, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning); Button("Reintentar") { model.discover() } } }
             if compact {
                 ImportGrid(model: model, dense: true).frame(maxHeight: .infinity)
-                AssignPanel(model: model, compact: true)
+                // Nothing read yet (or nothing visible): there is nothing to assign to.
+                if !model.targetIDs.isEmpty { AssignPanel(model: model, compact: true) }
             } else {
                 HStack(alignment: .top, spacing: 16) {
                     ImportGrid(model: model, dense: false).frame(maxHeight: .infinity)
-                    ScrollView { AssignPanel(model: model, compact: false) }.frame(width: 280).scrollIndicators(.hidden)
+                    if !model.targetIDs.isEmpty {
+                        ScrollView { AssignPanel(model: model, compact: false) }.frame(width: 280).scrollIndicators(.hidden)
+                    }
                 }.frame(maxHeight: .infinity)
             }
         }.disabled(model.ingestLocked)

@@ -368,6 +368,17 @@ class ClosureTests(WorkflowFixture):
                      [{'volume_id': self.a['id'], 'path': str(horizontal.relative_to(self.archive)), 'role': 'horizontal'}])
         return extra_id, editor
 
+    def test_projects_overview_survives_the_finales_collection(self):
+        from media.projects import overview
+        self.catalog.project_for('e64', 'finales')
+        self.catalog.set('project-closure:' + self.catalog.project_for('e64', 'finales'), {'required': ['horizontal'], 'finals': [], 'no_more': False, 'published': False})
+        finales = self.catalog.project_for('e64', 'finales')
+        asset = dict(self.catalog.search()[0], project='finales', project_id=finales)
+        with mock.patch.object(self.catalog, 'search', return_value=self.catalog.search() + [asset]):
+            rows = overview(self.catalog, [], self.backend)
+        self.assertEqual(next(r for r in rows if r['project'] == 'finales')['related'], [])
+        self.assertIn('intro', [r['project'] for r in rows])
+
     def test_linked_projects_close_together_and_drop_retired_clipper_audio(self):
         extra_id, editor = self.linked_rerecording()
         self.assertTrue(next(c for c in closure.link_candidates(self.catalog, self.project_id) if c['id'] == extra_id)['suggested'])
