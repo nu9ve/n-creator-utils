@@ -2,9 +2,29 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Dron para Atlas, paso 2: registro unificado de misiones · 2026-11-08
+
+En working tree sobre `3998dc9`, sin commit ni build instalada. Lado nüün de A13 ([contrato](contracts/atlas-drone-v1.md#registro-de-misiones-en-nüün-a13)):
+- `media/missions.py` une los exports del productor según el flujo `missions` de la receta: bandeja, patrones, claves de unión, rutas y tolerancias son datos, y para el usuario el flujo es `subaereo`. Une con upsert por lista y gana el `exportedAt` más nuevo, aunque el export viejo llegue después. Los tombstones (`deletedPlanIDs`) borran y un export más viejo no los revive.
+- Sólo lectura: `missions_review` muestra por archivo `new`, `nothing_new`, `incorporated` o `invalid`, con los cambios que traería, y devuelve un digest. `missions_status` muestra qué cubre el registro.
+- `missions_incorporate` exige ese digest y vuelve a hashear cada export. En el archivo escribe primero `raw/AAAA/MM/<export>.gz` y lo verifica descomprimiendo, luego `changes.ndjson` y al final `history.json`. Si una importación se interrumpe, se descartan sus líneas de cambios. Después escribe el espejo en el trabajo (`pending` si el disco no está) y sólo entonces borra de la bandeja los archivos verificados; lo que está fuera de la bandeja nunca se borra. El resumen queda en el catálogo (`mission-registry:subaereo`) para A14.
+- `Tree.write_bytes`/`read_bytes` en `media/common.py`: escritura atómica sin hard links, compatible con exFAT.
+- CLI: `missions-review`, `missions-incorporate --digest` (`--keep-inbox`) y `missions-status`. `recipe()` ya lee una receta guardada en el catálogo.
+
+Evidencia: `tests/test_missions.py` (9 pruebas). Python **334 OK**, `git diff --check`. Unión en memoria, de sólo lectura, de los 20 exports de `atlas/coverage_exports` más los 4 de Descargas: 24 válidos (2 repetidos byte a byte), 3,164 registros nuevos y 1,064 actualizados; 65 planes, 1,793 `captures`, 1,276 `captureLog` y 30 sesiones. `history.json` pesa 9.2 MB; el último registro es del 8 nov a las 06:13:42 UTC.
+
+**Importación real, autorizada por el usuario el 8 nov** (CLI del checkout sobre el catálogo real):
+- **Los 20 de `atlas/coverage_exports`** (digest `7c2cdf11…`): 3,161 registros nuevos y 1,063 actualizados en 5 s, con el espejo escrito. Los 20 siguen en esa carpeta.
+- **Los 4 de Descargas** (digest `b4d39d5f…`): dos ya estaban byte a byte y los otros dos trajeron 3 planes. Los 4 se borraron de Descargas después de verificarlos.
+- **Resultado** en `MEDIA502/004_datos/subaereo/coverage/` (25 MB): 22 fuentes, 65 planes, 1,793 `captures`, 1,276 `captureLog`, 30 sesiones y 4,227 líneas de cambios. El último export es del 8 nov a las 08:01:19 UTC y la última foto, del 7 nov a las 23:13:40 hora local.
+- **Verificación independiente:** los 22 crudos descomprimidos coinciden con su SHA-256. El espejo en `ESSD/001_proyectos/atlas-subaereo/_missions/` es idéntico (`history.json` `f800a081…`, `changes.ndjson` `fdea4d0c…`). Los 20 archivos de Atlas están en el registro.
+- macOS dejó archivos `._*` (AppleDouble) junto a los nuevos en MEDIA502, como en el resto del disco.
+
+**Pendiente:** faltan el aviso en la app cuando cae un export (FSEvents sobre la bandeja) y la sugerencia en el Flujo, que van con el paso 3. Los 65 planes incluyen duplicados que subaereo borró sin publicar tombstones.
+
 ## Dron para Atlas, paso 1: registro de dispositivos y receta · 2026-11-08
 
-En working tree sobre `f2d05fb`, sin commit ni build instalada. Primer corte del pedido de Atlas (A15/A1), con las [decisiones del usuario](contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08):
+Commit del usuario `3998dc9`, sin build instalada. Primer corte del pedido de Atlas (A15/A1), con las [decisiones del usuario](contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08):
 - `media/photo_meta.py`: lectura acotada de EXIF/XMP en JPEG y DNG sin dependencias: Make, Model, serial (`BodySerialNumber` o `CameraSerialNumber`), `DateTimeOriginal`, GPS y XMP `drone-dji`. El `tiff:Model` del XMP de DJI no se usa porque dice `Test_Pro`.
 - `media/recipes.py`: receta `nu9ve-recipe/1` con la plantilla inicial `nu9ve-default` (`FC3170` → `dji-drone`, fuente `MAVICAIR2`; carpetas por categoría) y registro `device-registry` en el catálogo, que gana sobre la plantilla. El planner no nombra modelos; el plan congela `recipe` (id + digest) y `category_folders`.
 - Planner: una unidad JPG+DNG con dispositivo conocido se clasifica sola. DJI sin XMP de vuelo, un modelo nuevo o un par con dos dispositivos siguen pidiendo categoría; el error sugiere `dji-drone` cuando hay vuelo. Nombres `YYMONDD-HHMMSS_MAVICAIR2_PAIS-PROYECTO[]` con la hora EXIF en `dron/fotos/AAAA/MM/`, JPG y DNG con el mismo stem. Videos sin EXIF siguen en `vdron` y piden categoría.
