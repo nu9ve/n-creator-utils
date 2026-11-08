@@ -225,7 +225,7 @@ struct ProjectClosureSheet: View {
         return stage.isEmpty ? model.message : model.stageLabel(stage)
     }
     private func applyTitle(_ plan: JSONValue) -> LocalizedStringKey {
-        if !plan["entries"].array.isEmpty {
+        if !plan["entries"].array.isEmpty || !plan["clipper_regenerable"].array.isEmpty {
             return plan["closure_finish"] == .bool(false) ? "Respaldar y liberar" : "Completar y liberar"
         }
         return plan["closure_copies"].array.isEmpty ? "Completar proyecto" : "Respaldar y completar"
@@ -248,7 +248,7 @@ struct ProjectClosureSheet: View {
             let names = waiting.map(\.["name"].string)
             VStack(alignment: .leading, spacing: 6) {
                 Label {
-                    Text("Cierre aplicado el \(String(last["created_at"].string.prefix(10))) · \(last["entries"].array.count) archivos retirados · \(bytesLabel(last["bytes"].double)) liberados")
+                    Text("Cierre aplicado el \(String(last["created_at"].string.prefix(10))) · \(last["entries"].array.count + clipperDeleted(last).files) archivos retirados · \(bytesLabel(last["bytes"].double + clipperDeleted(last).bytes)) liberados")
                 } icon: { Image(systemName: "checkmark.seal.fill").foregroundStyle(palette.success) }
                 .font(.callout.weight(.medium))
                 if !publishedOnWork.isEmpty {
@@ -402,12 +402,12 @@ struct ProjectClosureSheet: View {
                 Label(plan["state"].string == "completed" ? (plan["closure_finish"] == .bool(false) ? "Finales respaldados" : "Proyecto completado") : "Plan de cierre", systemImage: "checkmark.shield").font(.headline)
                 if plan["already_complete"].bool {
                     Text("Ya está completo: todo verificado en el respaldo y nada por copiar ni retirar").font(.title3)
-                } else if plan["entries"].array.isEmpty {
+                } else if plan["entries"].array.isEmpty && plan["clipper_regenerable"].array.isEmpty {
                     Text("Sin archivos para retirar").font(.title3)
                 } else if plan["state"].string == "completed" {
-                    Text("\(plan["entries"].array.count) archivos retirados · \(bytesLabel(plan["bytes"].double))").font(.title3)
+                    Text("\(plan["entries"].array.count + clipperDeleted(plan).files) archivos retirados · \(bytesLabel(plan["bytes"].double + clipperDeleted(plan).bytes))").font(.title3)
                 } else {
-                    Text("\(plan["entries"].array.count) archivos para retirar · \(bytesLabel(plan["bytes"].double))").font(.title3)
+                    Text("\(plan["entries"].array.count + Int(plan["clipper_files"].double)) archivos para retirar · \(bytesLabel(plan["bytes"].double + plan["clipper_bytes"].double))").font(.title3)
                 }
                 if plan["closure_group"].array.count > 1 {
                     Label("Cierre conjunto: \(plan["closure_group"].array.map { plan["closure_group_titles"][$0.string].string }.joined(separator: " + "))", systemImage: "link")
@@ -428,12 +428,12 @@ struct ProjectClosureSheet: View {
                 finalActions(plan)
                 releaseGroup("Copias raw", category: "raw", plan: plan)
                 releaseGroup("Intermedios", category: "intermediate", plan: plan)
-                releaseGroup("Audio de caché de Clipper", category: "intermediate", origin: "clipper_cache", plan: plan)
+                clipperGroups(plan)
                 DisclosureGroup("Conservar") {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
                 if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
-                if plan["state"].string != "completed" && plan["entries"].array.contains(where: { $0["category"].string == "intermediate" }) {
+                if plan["state"].string != "completed" && (plan["entries"].array.contains(where: { $0["category"].string == "intermediate" }) || !plan["clipper_regenerable"].array.isEmpty) {
                     // User decision 2026-11-07: the reviewed list plus the apply button is the consent; no extra checkbox.
                     Text("Al completar se descartan los intermedios de la lista, sin respaldo. Revisa que ninguna otra edición los necesite.")
                         .font(.caption).foregroundStyle(palette.muted)
@@ -492,6 +492,48 @@ struct ProjectClosureSheet: View {
             .font(.caption.weight(.medium)).foregroundStyle(color)
             .padding(.horizontal, 7).padding(.vertical, 3)
             .background(palette.raised, in: palette.pill)
+    }
+    /// Clipper's own reviewed list of regenerable files, one group per category; Clipper deletes them, never nüün.
+    @ViewBuilder private func clipperGroups(_ plan: JSONValue) -> some View {
+        ForEach(Array(plan["clipper_regenerable"].array.enumerated()), id: \.offset) { _, group in
+            let result = plan["clipper_cleaned"][group["project_root"].string]
+            ForEach(Array(group["categories"].array.enumerated()), id: \.offset) { _, category in
+                let entries = group["entries"].array.filter { $0["category"] == category["id"] }
+                DisclosureGroup {
+                    ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                        Text(entry["path"].string).font(.caption).textSelection(.enabled)
+                            .padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Clipper · \(category["label"].string.isEmpty ? category["id"].string : category["label"].string)")
+                            Text(group["editor"].string).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text("\(Int(category["files"].double)) archivos · \(bytesLabel(category["bytes"].double))")
+                            .font(.caption).foregroundStyle(.secondary)
+                        if plan["state"].string != "completed" {
+                            actionBadge("Clipper los borra", icon: "trash", color: palette.danger)
+                        } else if !result["error"].string.isEmpty {
+                            actionBadge("Sin borrar", icon: "exclamationmark.triangle", color: palette.warning)
+                        } else {
+                            actionBadge("Borrados por Clipper", icon: "checkmark.circle", color: palette.success)
+                        }
+                    }
+                }
+            }
+            if !result["error"].string.isEmpty {
+                Label("Clipper no borró sus regenerables: \(result["error"].string)", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(palette.warning).textSelection(.enabled)
+            } else if result["skipped_count"].double > 0 {
+                Text("Clipper conservó \(Int(result["skipped_count"].double)) archivos que cambiaron desde la revisión.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+    private func clipperDeleted(_ plan: JSONValue) -> (files: Int, bytes: Double) {
+        plan["clipper_cleaned"].object.values.reduce((0, 0)) { ($0.0 + Int($1["deleted_files"].double), $0.1 + $1["deleted_bytes"].double) }
     }
     private func releaseGroup(_ label: LocalizedStringKey, category: String, origin: String = "", plan: JSONValue) -> some View {
         let entries = plan["entries"].array.filter { $0["category"].string == category && $0["origin"].string == origin }

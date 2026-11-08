@@ -11,7 +11,7 @@ import re
 import stat
 
 from . import clipper
-from .common import Tree, content_stamp, digest, now, relative, require, uid
+from .common import MediaError, Tree, content_stamp, digest, now, relative, require, uid
 from .finals import OPAQUE, published_folder, published_receipts, subfolders, year_in_name
 from .layout import MEDIA_KINDS, kind_of
 from .release import checked_hash, checked_hash_progress, plan_release, report
@@ -317,8 +317,6 @@ def inventory(tree, plan, cancel=None):
             if scope['kind'] == 'raw':
                 files, kept = selected_files(tree, scope['path'], cancel=cancel)
                 preserved.extend(kept)
-            elif scope['kind'] == 'clipper_cache':
-                files = [f for f in folder_files(tree, scope['path'], cancel) if f.lower().endswith('.wav')]
             else:
                 files = list(folder_files(tree, scope['path'], cancel))
         except FileNotFoundError:
@@ -492,9 +490,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     if path not in scoped[kind]:
                         scoped[kind].append(path)
                         scoped['owner'][path] = member['id']
-    caches = retired_caches(catalog, source, members, scoped) if release_work else []
     if progress:
-        total, count = review_estimate(catalog, members, config, source, target, scoped, release_work, cancel, caches)
+        total, count = review_estimate(catalog, members, config, source, target, scoped, release_work, cancel)
         progress = ReviewMeter(progress, total, count, source['name'], target['name'])
     entries, preserved, replacements, scopes, copies, finals, retained = [], [], {}, [], [], [], []
     for path in scoped['raw']:
@@ -549,17 +546,6 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     replacements[str(Path(source['root']) / path)] = None
             if (Path(source['root']) / editor).is_dir():
                 retained.append(editor + ' (editable, Final Cut y contenido fuera de renders se conservan)')
-        for cache in caches:
-            # Audio Clipper extracted from a Stalker session of a project Clipper already retired; the session itself was
-            # verified in the backup above, so this copy can be made again. Only .wav files, nothing else in clipper/.
-            scopes.append({'kind': 'clipper_cache', 'path': cache})
-            for path in folder_files(tree, cache, cancel):
-                if not path.lower().endswith('.wav'):
-                    continue
-                sha, stamp = checked_hash_progress(tree, path, cancel, progress, 'review_intermediates')
-                entries.append({'path': path, 'stamp': stamp, 'sha256': sha, 'archive_path': None, 'category': 'intermediate',
-                                'origin': 'clipper_cache'})
-                replacements[str(Path(source['root']) / path)] = None
     archived_candidates = None
     for index, item in enumerate(config['finals']):
         volume = catalog.volume(item['volume_id'])
@@ -631,6 +617,10 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     require(len({e['path'] for e in entries}) == len(entries), 'overlapping_roots', 'Hay carpetas superpuestas; revisa las asociaciones')
     if progress:
         progress.finish()
+    # Inside clipper/ only Clipper's own reviewed list is offered, and only Clipper deletes it.
+    report(progress, 'review_clipper_regenerable')
+    regenerable, notes = clipper_regenerables(catalog, source, scoped['editor'], cancel) if release_work else ([], [])
+    retained.extend(notes)
     report(progress, 'inspecting_clipper' if entries else 'review_finishing')
     try:
         consumers = clipper.inspect(catalog, replacements) if entries else {'blockers': [], 'relinks': [], 'dependencies': None}
@@ -644,8 +634,11 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
              'closure_settings_digest': config_digest, 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies,
              'closure_finish': release_work, 'closure_inventory_checked': True, 'closure_group': [m['id'] for m in members],
              'closure_group_titles': {m['id']: m['title'] for m in members},
+             'clipper_regenerable': regenerable, 'clipper_files': sum(g['files'] for g in regenerable),
+             'clipper_bytes': sum(g['bytes'] for g in regenerable), 'clipper_cleaned': {},
              # Already closed and this review finds nothing to copy or retire: applying would only rewrite the record.
-             'already_complete': all(catalog.get('project-released:' + m['id']) for m in members) and not entries and not copies}
+             'already_complete': all(catalog.get('project-released:' + m['id']) for m in members) and not entries and not copies
+                                 and not regenerable}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
@@ -658,8 +651,13 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
     plan = stored_plan(catalog, plan_id, reviewed_digest)
     require(plan.get('closure_project_id'), 'invalid_plan', 'No es un plan de cierre')
     if plan['state'] == 'completed':
+        # A request to Clipper that failed or was interrupted after the release is asked again with the same digest.
+        plan = clipper_cleanup(catalog, plan)
         return dict(plan, closure_settings=settings(catalog, plan['closure_project_id']))
     require(confirm_discard is True, 'confirmation_required', 'Confirma el plan revisado antes de completar')
+    # Reviews from before 2026-11-07 let nüün delete Clipper's Stalker audio itself; that exception is gone.
+    require(not any(e.get('origin') == 'clipper_cache' for e in plan['entries']),
+            'plan_changed', 'Este plan es anterior a la lista de regenerables de Clipper; revisa un plan nuevo')
     with clipper.release_guard(catalog) if plan['entries'] else nullcontext():
         with catalog.writer():
             catalog.set('closure-consent:' + plan_id, {'digest': reviewed_digest, 'confirmed_at': now()})
@@ -685,36 +683,81 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         if relinks:
             relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.passthrough)
         result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event)
+        if result.get('clipper_regenerable'):
+            report('clipper_cleanup')
+            result = clipper_cleanup(catalog, result)
         report('release_complete', files_done=len(plan['entries']), files_total=len(plan['entries']))
         return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))
 
 
-def retired_caches(catalog, source, members, scoped):
-    """`clipper/cache/stalker` folders that may enter a closeout as intermediates (user decision, 2026-11-07).
+def clipper_regenerables(catalog, source, editors, cancel=None):
+    """What Clipper says it can rebuild in each editor's Clipper folder (`library cleanup-plan`, 2026-11-07).
 
-    Only when Clipper already retired that project (its `clipper-retired-project.json` is there and fresh deps list no
-    active project at that folder) and the project has Stalker sessions in the catalog, whose backup the closeout
-    verifies. If Clipper cannot be asked, nothing is offered."""
-    retired = [e for e in scoped['editor'] if (Path(source['root']) / e / 'clipper/clipper-retired-project.json').is_file()
-               and (Path(source['root']) / e / 'clipper/cache/stalker').is_dir()]
-    if not retired:
-        return []
-    try:
-        active = [str(p.get('clipper_root', '')) for p in clipper.dependencies(catalog)['projects']]
-    except (RuntimeError, OSError, ValueError, KeyError, TypeError):
-        return []
-    sessions = {a.get('project_id') for a in catalog.search() if a['kind'] == 'stalker_session'}
-    values = []
-    for editor in retired:
-        folder = str(Path(source['root']) / editor / 'clipper')
-        if any(root and (root == folder or root.startswith(folder + '/') or folder.startswith(root.rstrip('/') + '/')) for root in active):
+    Clipper is the only source of what is regenerable inside `clipper/`. The review shows the categories Clipper
+    preselects (for a retired project, `project_cache` with `cache/stalker/*.wav` among them) and, with the
+    closeout's consent, Clipper deletes them with the reviewed digest. No answer, an incomplete inventory or an
+    unexpected document offers nothing. Returns the groups to offer and notes for what is kept."""
+    groups, notes = [], []
+    for editor in editors:
+        for rel in (editor + '/clipper', editor):
+            folder = Path(source['root']) / rel
+            if (folder / 'clipper-project.json').is_file() or (folder / 'clipper-retired-project.json').is_file():
+                break
+        else:
             continue
-        if scoped['owner'].get(editor) in sessions:
-            values.append(editor + '/clipper/cache/stalker')
-    return values
+        require(not (cancel and cancel()), 'cancelled', 'Operación cancelada')
+        try:
+            document = clipper.cleanup_plan(catalog, folder)
+        except (MediaError, RuntimeError, OSError, ValueError, KeyError, TypeError) as error:
+            notes.append(rel + ': Clipper no dio su lista de regenerables; se conserva todo (' + str(error) + ')')
+            continue
+        if not document['inventory_complete']:
+            notes.append(rel + ': el inventario de Clipper está incompleto; se conserva todo')
+            continue
+        chosen = [c for c in document['categories'] if c['default_selected']]
+        for category in document['categories']:
+            if not category['default_selected']:
+                notes.append('%s: %s (%d archivos) se conserva; Clipper no lo preselecciona'
+                             % (rel, category.get('label') or category['id'], category['files']))
+        if not chosen:
+            continue
+        ids = {c['id'] for c in chosen}
+        groups.append({'editor': rel, 'project_root': document['project_root'], 'project_state': document['project_state'],
+                       'digest': document['digest'], 'categories': chosen,
+                       'entries': [e for e in document['entries'] if e['category'] in ids],
+                       'files': sum(c['files'] for c in chosen), 'bytes': sum(c['bytes'] for c in chosen),
+                       'document': document})
+    return groups, notes
 
 
-def review_estimate(catalog, members, config, source, target, scoped, release_work, cancel=None, caches=()):
+def clipper_cleanup(catalog, plan):
+    """After the release, ask Clipper to delete what the review showed. nüün never deletes inside `clipper/` itself.
+
+    Clipper revalidates category, owner and stamp and skips what changed. A failure is recorded, not raised: the
+    closeout already completed and those files simply stay, to be asked again or cleaned from Clipper's Storage."""
+    done = dict(plan.get('clipper_cleaned') or {})
+    pending = [(i, g) for i, g in enumerate(plan.get('clipper_regenerable') or [])
+               if g['project_root'] not in done or done[g['project_root']].get('error')]
+    if not pending:
+        return plan
+    for index, group in pending:
+        name = 'clipper-cleanup/%s-%d.json' % (plan['id'], index)
+        try:
+            with Tree(catalog.home) as tree:
+                tree.write_json(name, group['document'])
+            ack = clipper.cleanup(catalog, Path(catalog.home) / name, group['digest'], [c['id'] for c in group['categories']])
+            done[group['project_root']] = {'deleted_files': ack['deleted_files'], 'deleted_bytes': ack['deleted_bytes'],
+                                           'skipped': ack['skipped'][:200], 'skipped_count': len(ack['skipped']), 'at': now()}
+        except (MediaError, RuntimeError, OSError, ValueError) as error:
+            done[group['project_root']] = {'error': str(error), 'deleted_files': 0, 'deleted_bytes': 0, 'skipped': [], 'at': now()}
+    with catalog.writer():
+        stored = catalog.get('release:' + plan['id'])
+        stored['clipper_cleaned'] = done
+        catalog.set('release:' + plan['id'], stored)
+    return stored
+
+
+def review_estimate(catalog, members, config, source, target, scoped, release_work, cancel=None):
     """Bytes and files a review will read, from sizes only (no hashing), so its bar is one measure from the start.
 
     Raw copies on the editing disk are read there and matched in the backup (twice), catalogued sources once in the
@@ -735,11 +778,6 @@ def review_estimate(catalog, members, config, source, target, scoped, release_wo
         for editor in scoped['editor']:
             if (Path(source['root']) / editor / 'renders').is_dir():
                 for item in folder_files(tree, editor + '/renders', cancel):
-                    total += tree.stat(item).st_size
-                    count += 1
-        for cache in caches:
-            for item in folder_files(tree, cache, cancel):
-                if item.lower().endswith('.wav'):
                     total += tree.stat(item).st_size
                     count += 1
     project = members[0]

@@ -2,6 +2,24 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## El cierre usa la lista de regenerables de Clipper · 2026-11-07
+
+En working tree, sin commit ni build instalada. El cierre ya no retira por su cuenta los `.wav` de `clipper/cache/stalker/`. Ahora pide a Clipper su lista y le deja el borrado ([contrato](contracts/project-closeout-v1.md#carpeta-de-clipper-y-caché--decisión-del-usuario--2026-11-07)).
+- **Revisión:** por cada carpeta de edición con proyecto Clipper (activo o retirado), `clipper library cleanup-plan --json`. Se ofrecen sólo las categorías que Clipper preselecciona: en un retirado, `project_cache` (Stalker y sync-clock); `exports` y `queue` quedan en «Conservar». Se muestran como intermedios, un grupo por categoría con archivos y bytes según Clipper, y suman a los totales de la cabecera. Sin respuesta, con un documento que no encaja o con `inventory_complete: false`, no se ofrece nada y «Conservar» dice por qué.
+- **Aplicar:** con **Completar y liberar** y tras terminar el release, nüün llama a `clipper library cleanup --plan … --digest <revisado> --category …` y registra `deleted_files`/`deleted_bytes`/`skipped` en `clipper_cleaned`. Si falla se guarda el error, el cierre sigue completado y volver a aplicar repite sólo eso. nüün no borra ni hashea nada dentro de `clipper/`.
+- **Excepción retirada:** `retired_caches` y el scope `clipper_cache` ya no existen. Un plan revisado antes con entradas `clipper_cache` se rechaza al aplicar. **La revisión de Terra preparada con la build `d2f4a96d08da` (2 WAV, 534 MB) hay que prepararla otra vez** con una build nueva; los WAV aparecerán como «Clipper · Project media caches».
+- `media/clipper.py`: `cleanup_plan` y `cleanup` validan esquema, carpeta, tipos, digest y la respuesta.
+
+Evidencia: Python **311 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización sin faltantes ni sobrantes, `git diff --check`. Pruebas en `test_project_closeout` (el `invoke` de Clipper simulado en todas):
+- `test_linked_projects_close_together_and_clipper_deletes_its_reviewed_regenerables`: sólo `project_cache` se ofrece, Clipper recibe el documento y digest revisados, nüün no toca `clipper/` y no repite una petición completada.
+- `test_clipper_failure_after_release_is_recorded_and_asked_again`.
+- `test_clipper_regenerables_need_a_complete_matching_answer`: proyecto activo, inventario incompleto, otra carpeta, esquema desconocido y Clipper sin responder no ofrecen nada.
+- `test_review_from_the_old_stalker_audio_exception_must_be_redone`.
+
+Prueba corta con la **CLI real de Clipper** (`~/.local/bin/clipper`) y `HOME`/`CLIPPER_PROJECTS_ROOT` temporales: un retirado con un WAV y una transcripción devolvió `project_cache` preseleccionado, `cleanup` borró el WAV (5 bytes) y la transcripción quedó. Un `clipper-retired-project.json` sin `items` da `inventory_complete: false` y nüün no ofrece nada.
+
+**Pendiente:** build e instalación; una prueba real pequeña desde la app con un proyecto retirado (Terra) y medir cuánto tarda `cleanup-plan` en ESSD (timeout 600 s, inventaria todos los proyectos enlazados). Cuando Clipper tenga el archivo durable de transcripciones, el cierre podría verificarlo en el respaldo.
+
 ## Revisión vinculada de Terra, consentimiento directo y feedback al vincular · 2026-11-07
 
 Build `e1ec995b5f16`: el usuario vinculó `terra-6-1` con `terra-6-1-extra` y preparó la revisión, sin aplicar. Su captura coincide con la simulación:

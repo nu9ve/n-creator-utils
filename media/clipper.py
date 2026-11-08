@@ -74,6 +74,53 @@ def dependencies(catalog, timeout=120):
     return data
 
 
+REGENERABLE_SCHEMA = 'clipper-regenerable-files/1'
+REGENERABLE_CLEANUP_SCHEMA = 'clipper-regenerable-cleanup/1'
+
+
+def _count(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def cleanup_plan(catalog, root, timeout=600):
+    """Clipper's read-only list of what it can rebuild for one project folder (`library cleanup-plan`).
+
+    Clipper alone decides what is regenerable inside its folder. A document that is not exactly the expected shape,
+    or that describes another folder, raises so the caller offers nothing."""
+    data = invoke(catalog, ['cleanup-plan', str(root)], timeout=timeout)
+    keys = ('device', 'inode', 'size', 'mtime_ns', 'ctime_ns')
+    require(isinstance(data, dict) and data.get('schema') == REGENERABLE_SCHEMA
+            and data.get('project_root') == os.path.realpath(root) and data.get('project_state') in {'active', 'retired'}
+            and isinstance(data.get('inventory_complete'), bool) and isinstance(data.get('categories'), list)
+            and isinstance(data.get('entries'), list) and isinstance(data.get('digest'), str) and len(data['digest']) == 64,
+            'clipper_invalid', 'Lista de regenerables de Clipper desconocida')
+    ids = set()
+    for category in data['categories']:
+        require(isinstance(category, dict) and isinstance(category.get('id'), str) and category['id']
+                and _count(category.get('files')) and _count(category.get('bytes'))
+                and isinstance(category.get('default_selected'), bool), 'clipper_invalid', 'Categoría de regenerables incompleta')
+        ids.add(category['id'])
+    for entry in data['entries']:
+        require(isinstance(entry, dict) and isinstance(entry.get('path'), str) and Path(entry['path']).is_absolute()
+                and entry.get('category') in ids and _count(entry.get('bytes'))
+                and isinstance(entry.get('hardlink_duplicate'), bool) and isinstance(entry.get('stamp'), dict)
+                and all(_count(entry['stamp'].get(k)) for k in keys), 'clipper_invalid', 'Entrada de regenerables incompleta')
+    return data
+
+
+def cleanup(catalog, document, digest, categories, timeout=600):
+    """Ask Clipper to delete the reviewed entries of `categories`; it revalidates owner, category and stamp itself."""
+    args = ['cleanup', '--plan', str(document), '--digest', digest]
+    for category in categories:
+        args += ['--category', category]
+    ack = invoke(catalog, args, timeout=timeout)
+    require(isinstance(ack, dict) and ack.get('schema') == REGENERABLE_CLEANUP_SCHEMA and ack.get('plan_digest') == digest
+            and _count(ack.get('deleted_files')) and _count(ack.get('deleted_bytes')) and isinstance(ack.get('skipped'), list)
+            and sorted(ack.get('categories') or []) == sorted(categories),
+            'clipper_ack_invalid', 'Clipper no confirmó el borrado de sus regenerables')
+    return ack
+
+
 def overlaps(a, b):
     a, b = os.path.realpath(a), os.path.realpath(b)
     if sys.platform == 'darwin':

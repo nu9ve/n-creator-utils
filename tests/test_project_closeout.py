@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 from test_media_release import WorkflowFixture, empty_deps
-from media import closure
+from media import clipper, closure
 from media.common import MediaError
 from media.release import apply_release
 from media.service import Service
@@ -15,6 +15,9 @@ class ClosureTests(WorkflowFixture):
         super().setUp()
         patcher = mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps())
         self.deps = patcher.start(); self.addCleanup(patcher.stop)
+        # Never ask a real Clipper from tests; each Clipper test fakes its CLI answers.
+        patcher = mock.patch('media.clipper.invoke', side_effect=MediaError('clipper_unavailable', 'Clipper en pruebas'))
+        self.invoke = patcher.start(); self.addCleanup(patcher.stop)
         self.run_plan()
         self.project_id = self.catalog.db.execute("SELECT id FROM projects WHERE title='intro'").fetchone()[0]
         self.editor = self.work / '001_proyectos/e64/intro'
@@ -360,8 +363,7 @@ class ClosureTests(WorkflowFixture):
         (cache / 'abc.wav').write_bytes(b'extracted audio')
         (cache / '.abc.wav.lock').write_bytes(b'')
         (editor / 'clipper/transcripts').mkdir(); (editor / 'clipper/transcripts/take.json').write_text('{}')
-        if retired:
-            (editor / 'clipper/clipper-retired-project.json').write_text('{}')
+        (editor / 'clipper' / ('clipper-retired-project.json' if retired else 'clipper-project.json')).write_text('{}')
         horizontal = self.archive / '002_finales/e64/2026/intro-extra.mov'
         horizontal.write_bytes(b'extra final')
         closure.save(self.catalog, self.backend, extra_id, ['horizontal'], False, True,
@@ -379,47 +381,132 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(next(r for r in rows if r['project'] == 'finales')['related'], [])
         self.assertIn('intro', [r['project'] for r in rows])
 
-    def test_linked_projects_close_together_and_drop_retired_clipper_audio(self):
+    def regenerable(self, folder, state='retired', complete=True, root=None):
+        """A `clipper-regenerable-files/1` document as Clipper's `library cleanup-plan` returns it."""
+        import os
+        wav = folder / 'cache/stalker/abc.wav'
+        export = folder / 'exports/preview.mp4'
+        export.parent.mkdir(parents=True, exist_ok=True); export.write_bytes(b'preview')
+        rows = [(wav, 'project_cache'), (export, 'exports')]
+        entries = [{'path': os.path.realpath(p), 'category': c, 'bytes': p.stat().st_size, 'hardlink_duplicate': False,
+                    'stamp': {'device': 1, 'inode': 2, 'size': p.stat().st_size, 'mtime_ns': 3, 'ctime_ns': 4}} for p, c in rows]
+        return {'schema': 'clipper-regenerable-files/1', 'project_root': root or os.path.realpath(folder), 'project_state': state,
+                'inventory_complete': complete, 'errors': [], 'preserved': ['transcripts'],
+                'categories': [{'id': 'project_cache', 'label': 'Project media caches', 'files': 1, 'bytes': wav.stat().st_size,
+                                'default_selected': state == 'retired'},
+                               {'id': 'exports', 'label': 'Project renders / previews', 'files': 1, 'bytes': export.stat().st_size,
+                                'default_selected': False}],
+                'entries': entries, 'digest': 'd' * 64}
+
+    def fake_clipper(self, documents, deleted=None, fail=None):
+        """Answers `cleanup-plan` from `documents` (by folder) and records `cleanup` requests without deleting."""
+        import json, os
+        calls = []
+
+        def invoke(catalog, args, timeout=120):
+            if args[0] == 'cleanup-plan':
+                document = documents.get(os.path.realpath(args[1]))
+                if document is None:
+                    raise MediaError('clipper_failed', 'not a Clipper project')
+                return document
+            self.assertEqual(args[0], 'cleanup')
+            plan = json.loads(Path(args[args.index('--plan') + 1]).read_text())
+            categories = [args[i + 1] for i, a in enumerate(args) if a == '--category']
+            calls.append({'plan': plan, 'digest': args[args.index('--digest') + 1], 'categories': categories})
+            if fail:
+                raise fail
+            return {'schema': 'clipper-regenerable-cleanup/1', 'project_root': plan['project_root'], 'plan_digest': plan['digest'],
+                    'categories': sorted(categories), 'deleted_files': 1, 'deleted_bytes': deleted or 15, 'skipped': []}
+        self.invoke.side_effect = invoke
+        return calls
+
+    def test_linked_projects_close_together_and_clipper_deletes_its_reviewed_regenerables(self):
+        import os
         extra_id, editor = self.linked_rerecording()
+        folder = editor / 'clipper'
+        document = self.regenerable(folder)
+        calls = self.fake_clipper({os.path.realpath(folder): document})
         self.assertTrue(next(c for c in closure.link_candidates(self.catalog, self.project_id) if c['id'] == extra_id)['suggested'])
         before = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
         self.assertFalse(any('intro-extra' in e['path'] for e in before['entries']), 'nothing of another project before linking')
+        self.assertEqual(before['clipper_regenerable'], [])
         closure.link(self.catalog, self.project_id, extra_id)
         self.assertEqual(closure.related(self.catalog, extra_id), [self.project_id])
         # The rerecording's horizontal covers this project's requirement without being reassigned.
         self.configure(required=['horizontal'], finals=[])
         plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
         self.assertEqual(set(plan['closure_group']), {self.project_id, extra_id})
-        cache = [e for e in plan['entries'] if e.get('origin') == 'clipper_cache']
-        self.assertEqual([Path(e['path']).name for e in cache], ['abc.wav'])
+        self.assertFalse(any('/clipper/' in e['path'] for e in plan['entries']), 'nüün itself retires nothing inside clipper/')
+        [group] = plan['clipper_regenerable']
+        self.assertEqual(group['editor'], '001_proyectos/e64/intro-extra/clipper')
+        self.assertEqual([c['id'] for c in group['categories']], ['project_cache'])
+        self.assertEqual([Path(e['path']).name for e in group['entries']], ['abc.wav'])
+        self.assertEqual((plan['clipper_files'], plan['clipper_bytes']), (1, len(b'extracted audio')))
+        self.assertTrue(any('exports' in n or 'Project renders' in n for n in plan['retained_editors']), 'unselected categories are listed as kept')
+        self.assertTrue(any('intro/clipper' in n and 'se conserva todo' in n for n in plan['retained_editors']), 'no answer offers nothing')
         self.assertIn('001_proyectos/e64/intro-extra/renders/extra-intermediate.mov', [e['path'] for e in plan['entries']])
         self.assertTrue(any(f['owner'] == extra_id for f in plan['closure_finals'] if f['role'] == 'horizontal'))
         with self.assertRaisesRegex(MediaError, 'final_already_linked|otro proyecto'):
             self.configure(finals=closure.settings(self.catalog, extra_id)['finals'])
-        self.apply(plan)
-        self.assertFalse((editor / 'clipper/cache/stalker/abc.wav').exists())
-        self.assertTrue((editor / 'clipper/cache/stalker/.abc.wav.lock').exists())
-        self.assertTrue((editor / 'clipper/transcripts/take.json').exists())
-        self.assertTrue((editor / 'clipper/clipper-retired-project.json').exists())
+        result = self.apply(plan)
+        self.assertEqual(calls, [{'plan': document, 'digest': 'd' * 64, 'categories': ['project_cache']}])
+        self.assertEqual(result['clipper_cleaned'][document['project_root']]['deleted_bytes'], 15)
+        # Clipper was faked: whatever is still there is what nüün did not delete on its own.
+        for kept in ('cache/stalker/abc.wav', 'cache/stalker/.abc.wav.lock', 'transcripts/take.json', 'clipper-retired-project.json', 'exports/preview.mp4'):
+            self.assertTrue((folder / kept).exists(), kept)
+        self.assertFalse((editor / 'renders/extra-intermediate.mov').exists())
         for pid in (self.project_id, extra_id):
             self.assertEqual(self.catalog.get('project-state:' + pid)['state'], 'finished')
             self.assertTrue(self.catalog.get('project-released:' + pid))
         self.assertEqual(self.catalog.db.execute("SELECT COUNT(*) FROM projects WHERE title IN ('intro','intro-extra')").fetchone()[0], 2)
+        self.apply(plan)
+        self.assertEqual(len(calls), 1, 'a completed request is not repeated')
 
-    def test_clipper_audio_stays_unless_clipper_retired_the_project(self):
+    def test_clipper_failure_after_release_is_recorded_and_asked_again(self):
+        import os
+        extra_id, editor = self.linked_rerecording()
+        closure.link(self.catalog, self.project_id, extra_id)
+        self.configure(required=['horizontal'], finals=[])
+        document = self.regenerable(editor / 'clipper')
+        calls = self.fake_clipper({os.path.realpath(editor / 'clipper'): document}, fail=MediaError('clipper_failed', 'Storage ocupado'))
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        result = self.apply(plan)
+        self.assertEqual(result['state'], 'completed')
+        self.assertIn('Storage ocupado', result['clipper_cleaned'][document['project_root']]['error'])
+        self.fake_clipper({os.path.realpath(editor / 'clipper'): document})
+        again = self.apply(plan)
+        self.assertEqual(again['clipper_cleaned'][document['project_root']]['deleted_files'], 1)
+        self.assertEqual(len(calls), 1)
+
+    def test_clipper_regenerables_need_a_complete_matching_answer(self):
+        import os
         extra_id, editor = self.linked_rerecording(retired=False)
         closure.link(self.catalog, self.project_id, extra_id)
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
-        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in plan['entries']))
-        (editor / 'clipper/clipper-retired-project.json').write_text('{}')
-        active = dict(empty_deps(), projects=[{'clipper_root': str(editor / 'clipper'), 'assets': [], 'relinks': []}])
-        self.deps.side_effect = lambda _: active
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
-        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in plan['entries']), 'still active in Clipper')
-        self.deps.side_effect = RuntimeError('Clipper offline')
+        folder = os.path.realpath(editor / 'clipper')
+        cases = {
+            'active': self.regenerable(editor / 'clipper', state='active'),
+            'incomplete': self.regenerable(editor / 'clipper', complete=False),
+            'other folder': self.regenerable(editor / 'clipper', root='/elsewhere/clipper'),
+            'bad schema': dict(self.regenerable(editor / 'clipper'), schema='clipper-regenerable-files/2'),
+        }
+        for name, document in cases.items():
+            self.fake_clipper({folder: document})
+            plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+            self.assertEqual(plan['clipper_regenerable'], [], name)
+            self.assertTrue(any('intro-extra/clipper' in n for n in plan['retained_editors']), name)
+        self.invoke.side_effect = MediaError('clipper_unavailable', 'Clipper offline')
         offline = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
-        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in offline['entries']), 'unknown Clipper keeps the audio')
-        self.assertTrue(offline['consumers']['blockers'])
+        self.assertEqual(offline['clipper_regenerable'], [], 'unknown Clipper keeps everything')
+        self.assertTrue((editor / 'clipper/cache/stalker/abc.wav').exists())
+
+    def test_review_from_the_old_stalker_audio_exception_must_be_redone(self):
+        plan = self.plan_close()
+        stored = self.catalog.get('release:' + plan['id'])
+        stored['entries'].append(dict(stored['entries'][0], path='001_proyectos/e64/intro/clipper/cache/stalker/a.wav',
+                                      category='intermediate', origin='clipper_cache'))
+        self.catalog.set('release:' + plan['id'], stored)
+        with self.assertRaisesRegex(MediaError, 'anterior a la lista'):
+            self.apply(stored)
 
     def test_link_change_after_review_invalidates_the_plan(self):
         extra_id, _ = self.linked_rerecording()
