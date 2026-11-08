@@ -620,6 +620,13 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     # Inside clipper/ only Clipper's own reviewed list is offered, and only Clipper deletes it.
     report(progress, 'review_clipper_regenerable')
     regenerable, notes = clipper_regenerables(catalog, source, scoped['editor'], cancel) if release_work else ([], [])
+    transcripts = None
+    if release_work:
+        # Clipper's current transcripts go to MEDIA next to their backed-up video before anything is released
+        # (contracts/clipper-transcripts-v1.md). Clipper offline or a source without backup is a note, not a block.
+        from .transcripts import clipper_roots, plan as transcript_plan
+        report(progress, 'review_transcripts')
+        transcripts = transcript_plan(catalog, backend, target['id'], clipper_roots(source['root'], scoped['editor']), cancel)
     retained.extend(notes)
     report(progress, 'inspecting_clipper' if entries else 'review_finishing')
     try:
@@ -635,10 +642,10 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
              'closure_finish': release_work, 'closure_inventory_checked': True, 'closure_group': [m['id'] for m in members],
              'closure_group_titles': {m['id']: m['title'] for m in members},
              'clipper_regenerable': regenerable, 'clipper_files': sum(g['files'] for g in regenerable),
-             'clipper_bytes': sum(g['bytes'] for g in regenerable), 'clipper_cleaned': {},
+             'clipper_bytes': sum(g['bytes'] for g in regenerable), 'clipper_cleaned': {}, 'transcripts': transcripts,
              # Already closed and this review finds nothing to copy or retire: applying would only rewrite the record.
              'already_complete': all(catalog.get('project-released:' + m['id']) for m in members) and not entries and not copies
-                                 and not regenerable}
+                                 and not regenerable and not (transcripts and transcripts['files'])}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
@@ -682,7 +689,19 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         validate(catalog, backend, plan, cancel)
         if relinks:
             relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.passthrough)
+        copied_transcripts = None
+        if plan.get('transcripts') and plan['transcripts']['files']:
+            # Verified in MEDIA before the first file is released; a failure stops the closeout here.
+            from .transcripts import copy as copy_transcripts
+            report('copying_transcripts')
+            copied_transcripts = copy_transcripts(catalog, backend, plan['transcripts'], receipt_id=plan_id, cancel=cancel)
         result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event)
+        if copied_transcripts:
+            with catalog.writer():
+                stored = catalog.get('release:' + plan_id)
+                stored['transcripts_result'] = copied_transcripts
+                catalog.set('release:' + plan_id, stored)
+            result = dict(result, transcripts_result=copied_transcripts)
         if result.get('clipper_regenerable'):
             report('clipper_cleanup')
             result = clipper_cleanup(catalog, result)

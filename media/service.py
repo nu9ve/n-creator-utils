@@ -188,6 +188,11 @@ class Service:
         if method == 'relink_release':
             from .release import relink_release
             return relink_release(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel)
+        if method == 'transcripts_backup':
+            from .transcripts import project_backup
+            progress_id = params.get('progress_id') or str(uuid.uuid4())
+            with self._action_progress(progress_id) as progress:
+                return project_backup(self.catalog, self.backend, params['project_id'], params['archive'], self.cancel, progress)
         if method == 'action_progress':
             return self.catalog.get('action-progress:' + params['id'], {})
         if method == 'release_plans':

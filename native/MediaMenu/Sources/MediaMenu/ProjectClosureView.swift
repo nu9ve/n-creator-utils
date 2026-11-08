@@ -37,6 +37,16 @@ extension Model {
             self.message = linked ? String(localized: "Proyectos vinculados; no se movió media") : String(localized: "Proyectos desvinculados; no se movió media")
         }
     }
+    /// «Respaldar transcripciones»: Clipper exports, nüün copies and verifies them into MEDIA. Nothing is deleted.
+    func backupTranscripts(_ item: JSONValue) {
+        let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
+        operation(String(localized: "Respaldando transcripciones"), scope: .space) {
+            let result = try await self.client!.call("transcripts_backup", ["project_id": .string(id), "archive": .string(self.archive)])
+            let copied = Int(result["copied"].double), adopted = Int(result["adopted"].double)
+            self.message = String(localized: "Transcripciones: \(copied) respaldadas, \(adopted) ya estaban en MEDIA")
+            if !result["notes"].array.isEmpty { self.error = result["notes"].array.map(\.string).prefix(3).joined(separator: "\n") }
+        }
+    }
     func findClosureFinals(_ query: String) {
         guard let item = closureProject else { return }
         operation(String(localized: "Buscando finales del proyecto"), scope: .space) {
@@ -429,8 +439,9 @@ struct ProjectClosureSheet: View {
                 releaseGroup("Copias raw", category: "raw", plan: plan)
                 releaseGroup("Intermedios", category: "intermediate", plan: plan)
                 clipperGroups(plan)
+                transcriptGroup(plan)
                 DisclosureGroup("Conservar") {
-                    ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
+                    ForEach(Array((plan["preserved"].array + plan["retained_editors"].array + plan["transcripts"]["notes"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
                 if !plan["metadata_backup_error"].string.isEmpty { Label(plan["metadata_backup_error"].string, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
                 if plan["state"].string != "completed" && (plan["entries"].array.contains(where: { $0["category"].string == "intermediate" }) || !plan["clipper_regenerable"].array.isEmpty) {
@@ -494,6 +505,35 @@ struct ProjectClosureSheet: View {
             .background(palette.raised, in: palette.pill)
     }
     /// Clipper's own reviewed list of regenerable files, one group per category; Clipper deletes them, never nüün.
+    /// Clipper's current transcripts, copied and verified into MEDIA next to their video before anything is released.
+    @ViewBuilder private func transcriptGroup(_ plan: JSONValue) -> some View {
+        let all = plan["transcripts"]["entries"].array
+        if !all.isEmpty {
+            let pending = all.filter { $0["action"].string != "archived" }
+            let done = plan["transcripts_result"]
+            DisclosureGroup {
+                ForEach(Array(all.enumerated()), id: \.offset) { _, entry in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(URL(fileURLWithPath: entry["path"].string).lastPathComponent).font(.caption)
+                        Text(verbatim: "MEDIA · " + entry["target"].string).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                    }.padding(.vertical, 2)
+                }
+            } label: {
+                HStack {
+                    Text("Transcripciones de Clipper")
+                    Spacer()
+                    Text("\(all.count) archivos · \(bytesLabel(all.reduce(0) { $0 + $1["bytes"].double }))").font(.caption).foregroundStyle(.secondary)
+                    if done != .null {
+                        actionBadge("Respaldadas en MEDIA", icon: "checkmark.circle", color: palette.success)
+                    } else if pending.isEmpty {
+                        actionBadge("Ya en MEDIA", icon: "checkmark.circle", color: palette.success)
+                    } else {
+                        actionBadge("Respaldar en MEDIA · \(pending.count)", icon: "doc.on.doc", color: palette.info)
+                    }
+                }
+            }
+        }
+    }
     @ViewBuilder private func clipperGroups(_ plan: JSONValue) -> some View {
         ForEach(Array(plan["clipper_regenerable"].array.enumerated()), id: \.offset) { _, group in
             let result = plan["clipper_cleaned"][group["project_root"].string]

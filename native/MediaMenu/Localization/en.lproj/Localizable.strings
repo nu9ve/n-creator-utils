@@ -796,3 +796,12 @@
 "Actualizando vínculo…" = "Updating link…";
 "Al completar se descartan los intermedios de la lista, sin respaldo. Revisa que ninguna otra edición los necesite." = "Completing discards the listed intermediates, without a backup. Check that no other edit needs them.";
 "Vinculando…" = "Linking…";
+"Pidiendo a Clipper sus transcripciones" = "Asking Clipper for its transcripts";
+"Respaldadas en MEDIA" = "Backed up in MEDIA";
+"Respaldando transcripciones" = "Backing up transcripts";
+"Respaldando transcripciones en MEDIA" = "Backing up transcripts in MEDIA";
+"Respaldar en MEDIA · %lld" = "Back up in MEDIA · %lld";
+"Respaldar transcripciones" = "Back up transcripts";
+"Transcripciones de Clipper" = "Clipper transcripts";
+"Transcripciones: %lld respaldadas, %lld ya estaban en MEDIA" = "Transcripts: %lld backed up, %lld already in MEDIA";
+"Ya en MEDIA" = "Already in MEDIA";

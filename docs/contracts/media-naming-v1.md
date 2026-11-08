@@ -48,6 +48,7 @@ Fuentes de tiempo, en orden: Sony `CreationDate` + `Duration`/`captureFps` del X
 | `001_raw/stalker/AAAA/MM/<nombre>.stalker/` | Sesiones Stalker completas. |
 | `001_raw/metadata/<familia>/AAAA/MM/<nombre del clip>.<EXT>` | Sidecars del clip (XML Sony, LRV/THM). |
 | `001_raw/metadata/<familia>/support/AAAA/MM/<DDMM-HHMMSS>_<PAIS>-<PROYECTO>_<FUENTE>/<árbol original>` | Índices, miniaturas, `AVF_INFO`, `PRIVATE/SONY`: árbol de la tarjeta para reconstruirla. |
+| `004_datos/clipper/transcripts/AAAA/MM/<nombre del clip archivado>/<archivo original>` | Transcripciones vigentes de Clipper (`.transcript.json`, `.provider-response.json`, `.srt`, `.vtt`, `.ass`), con el `AAAA/MM` y el nombre del miembro archivado en `001_raw`. Una versión nueva se guarda al lado con `.vAAAAMMDDTHHMMSS`, sin reemplazar la anterior. [Contrato](clipper-transcripts-v1.md), 2026-11-07. |
 
 Copias aterrizan como `.<nombre>.ncpartial`, se verifican por lectura y se renombran sin reemplazar nada. Un archivo idéntico ya presente se adopta; uno distinto bloquea el plan en revisión.
 
