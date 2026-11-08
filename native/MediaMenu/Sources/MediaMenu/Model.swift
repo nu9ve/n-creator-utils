@@ -134,6 +134,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var actionProgress: JSONValue = .object([:])
     /// Where each saved delivery stands now (`closure.delivery_states`): the same reading as the Projects row.
     var closureDeliveries: [JSONValue] = []
+    /// Linked projects (closure.related) with their saved deliveries, from `closure_candidates.group`.
+    var closureGroup: [JSONValue] = []
     var closureTruncated = false
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])

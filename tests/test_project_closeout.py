@@ -341,6 +341,84 @@ class ClosureTests(WorkflowFixture):
         waiting[1].unlink()
         self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['missing']), (0, 1))
 
+    def linked_rerecording(self, retired=True):
+        """A second project (`intro-extra`) recorded with Stalker, its editor folder, Clipper cache and a final."""
+        import json, uuid
+        from media.planner import build_plan
+        from media.transfer import Transfer
+        card = self.root / 'stalker-card'; bundle = card / 'take.stalker'; bundle.mkdir(parents=True)
+        (bundle / 'screen.mov').write_bytes(b'extra screen')
+        (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': str(uuid.uuid4()),
+                                                          'status': 'completed', 'tracks': [{'relativePath': 'screen.mov'}]}))
+        plan = build_plan(self.catalog, self.backend, source=str(card), archive='MEDIA', work='ESSD', project='intro-extra',
+                          profile='e64', source_kind='stalker', cleanup=False)
+        Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
+        extra_id = self.catalog.db.execute("SELECT id FROM projects WHERE title='intro-extra'").fetchone()[0]
+        editor = self.work / '001_proyectos/e64/intro-extra'
+        (editor / 'renders').mkdir(parents=True); (editor / 'renders/extra-intermediate.mov').write_bytes(b'extra render')
+        cache = editor / 'clipper/cache/stalker'; cache.mkdir(parents=True)
+        (cache / 'abc.wav').write_bytes(b'extracted audio')
+        (cache / '.abc.wav.lock').write_bytes(b'')
+        (editor / 'clipper/transcripts').mkdir(); (editor / 'clipper/transcripts/take.json').write_text('{}')
+        if retired:
+            (editor / 'clipper/clipper-retired-project.json').write_text('{}')
+        horizontal = self.archive / '002_finales/e64/2026/intro-extra.mov'
+        horizontal.write_bytes(b'extra final')
+        closure.save(self.catalog, self.backend, extra_id, ['horizontal'], False, True,
+                     [{'volume_id': self.a['id'], 'path': str(horizontal.relative_to(self.archive)), 'role': 'horizontal'}])
+        return extra_id, editor
+
+    def test_linked_projects_close_together_and_drop_retired_clipper_audio(self):
+        extra_id, editor = self.linked_rerecording()
+        self.assertTrue(next(c for c in closure.link_candidates(self.catalog, self.project_id) if c['id'] == extra_id)['suggested'])
+        before = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        self.assertFalse(any('intro-extra' in e['path'] for e in before['entries']), 'nothing of another project before linking')
+        closure.link(self.catalog, self.project_id, extra_id)
+        self.assertEqual(closure.related(self.catalog, extra_id), [self.project_id])
+        # The rerecording's horizontal covers this project's requirement without being reassigned.
+        self.configure(required=['horizontal'], finals=[])
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        self.assertEqual(set(plan['closure_group']), {self.project_id, extra_id})
+        cache = [e for e in plan['entries'] if e.get('origin') == 'clipper_cache']
+        self.assertEqual([Path(e['path']).name for e in cache], ['abc.wav'])
+        self.assertIn('001_proyectos/e64/intro-extra/renders/extra-intermediate.mov', [e['path'] for e in plan['entries']])
+        self.assertTrue(any(f['owner'] == extra_id for f in plan['closure_finals'] if f['role'] == 'horizontal'))
+        with self.assertRaisesRegex(MediaError, 'final_already_linked|otro proyecto'):
+            self.configure(finals=closure.settings(self.catalog, extra_id)['finals'])
+        self.apply(plan)
+        self.assertFalse((editor / 'clipper/cache/stalker/abc.wav').exists())
+        self.assertTrue((editor / 'clipper/cache/stalker/.abc.wav.lock').exists())
+        self.assertTrue((editor / 'clipper/transcripts/take.json').exists())
+        self.assertTrue((editor / 'clipper/clipper-retired-project.json').exists())
+        for pid in (self.project_id, extra_id):
+            self.assertEqual(self.catalog.get('project-state:' + pid)['state'], 'finished')
+            self.assertTrue(self.catalog.get('project-released:' + pid))
+        self.assertEqual(self.catalog.db.execute("SELECT COUNT(*) FROM projects WHERE title IN ('intro','intro-extra')").fetchone()[0], 2)
+
+    def test_clipper_audio_stays_unless_clipper_retired_the_project(self):
+        extra_id, editor = self.linked_rerecording(retired=False)
+        closure.link(self.catalog, self.project_id, extra_id)
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in plan['entries']))
+        (editor / 'clipper/clipper-retired-project.json').write_text('{}')
+        active = dict(empty_deps(), projects=[{'clipper_root': str(editor / 'clipper'), 'assets': [], 'relinks': []}])
+        self.deps.side_effect = lambda _: active
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in plan['entries']), 'still active in Clipper')
+        self.deps.side_effect = RuntimeError('Clipper offline')
+        offline = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        self.assertFalse(any(e.get('origin') == 'clipper_cache' for e in offline['entries']), 'unknown Clipper keeps the audio')
+        self.assertTrue(offline['consumers']['blockers'])
+
+    def test_link_change_after_review_invalidates_the_plan(self):
+        extra_id, _ = self.linked_rerecording()
+        closure.link(self.catalog, self.project_id, extra_id)
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        closure.link(self.catalog, self.project_id, extra_id, linked=False)
+        with self.assertRaisesRegex(MediaError, 'Cambió'):
+            self.apply(plan)
+        self.assertTrue((self.work / '001_proyectos/e64/intro-extra/clipper/cache/stalker/abc.wav').exists())
+
     def test_already_absent_work_closes_without_deletion_or_clipper(self):
         import shutil
 

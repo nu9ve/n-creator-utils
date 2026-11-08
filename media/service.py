@@ -60,6 +60,10 @@ class Service:
                 return closure.candidates(self.catalog, self.backend, params['project_id'], params.get('query'), self.cancel)
             if method == 'closure_save':
                 return closure.save(self.catalog, self.backend, **params)
+            if method == 'closure_link':
+                return closure.link(self.catalog, params['project_id'], params['other_id'], params.get('linked', True))
+            if method == 'closure_link_candidates':
+                return closure.link_candidates(self.catalog, params['project_id'])
             if method == 'closure_deliveries':
                 return closure.delivery_states(self.catalog, CachedBackend(self.backend), params['project_id'])
             if method == 'closure_plan':

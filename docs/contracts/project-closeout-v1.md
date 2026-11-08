@@ -107,13 +107,19 @@ Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: f
 
 ## Carpeta de Clipper y caché · decisión del usuario · 2026-11-07
 
-Medido en ESSD, en sólo lectura: las carpetas `clipper/` de cuatro proyectos `e64` suman 9.9 GB y sus transcripciones unos 16 MB. Dos de esos proyectos ya están retirados en Clipper, `terra-6-1-extra` (634 MB, 509 de caché) y `debloateando-mi-tele` (833 MB, 740 de caché). `buscando-baches-con-el-dron` guarda 4.6 GB de exports, 2.7 GB de caché y 314 MB de temporales `.clipper-multicam-*` que quedaron en `logs/`. Ningún export coincide en tamaño con un final de ESSD o MEDIA502.
+Medido en ESSD, en sólo lectura: las carpetas `clipper/` de cuatro proyectos `e64` suman 9.9 GB y sus transcripciones unos 16 MB. Dos de esos proyectos ya están retirados en Clipper, `terra-6-1-extra` (634 MB, 509 de caché) y `debloateando-mi-tele` (833 MB, 740 de caché). `buscando-baches-con-el-dron` guarda 4.6 GB de exports, 2.7 GB de caché y 314 MB de temporales `.clipper-multicam-*` que quedaron en `logs/`. Ningún export coincide en tamaño con un final de ESSD o MEDIA502. El usuario ya había limpiado la caché desde Clipper en los demás proyectos; lo que queda (268–740 MB por proyecto) es siempre `cache/stalker/*.wav`, el audio que Clipper extrae de las sesiones Stalker y que su Storage / Cleanup no ofrece borrar.
 
 Decisión:
 - A largo plazo se conservan las transcripciones y lo necesario para recuperar la edición. Al retirar un proyecto no deben quedar archivos inaccesibles acumulándose.
-- **Qué es regenerable dentro de `clipper/` lo decide Clipper.** Pedido registrado en su repo: [retiro con limpieza](../../../../ai/clipper/docs/2026-11-07-retire-cleanup-from-nuun.md). Pide limpieza revisada al retirar, cerrar la fuga de temporales, una política de caché y una lista legible por máquina. Hasta que exista esa lista, nüün no borra dentro de `clipper/`.
+- **Qué es regenerable dentro de `clipper/` lo decide Clipper.** Pedido registrado en su repo: [retiro con limpieza](../../../../ai/clipper/docs/2026-11-07-retire-cleanup-from-nuun.md). Pide limpieza revisada al retirar, cerrar la fuga de temporales, una política de caché y una lista legible por máquina.
+- **Excepción aprobada por el usuario (implementada):** el cierre puede retirar los `.wav` de `clipper/cache/stalker/` de un proyecto si se cumplen tres condiciones:
+  - Clipper ya lo retiró: existe `clipper-retired-project.json` y los deps frescos no tienen un proyecto activo en esa carpeta. Si Clipper no responde, no se ofrece nada.
+  - El proyecto tiene sesiones Stalker en el catálogo.
+  - El cierre verifica esas sesiones en el respaldo.
+
+  Entran como intermedios con `origin: clipper_cache`, en su propio grupo «Audio de caché de Clipper», con la casilla de consentimiento. Nada más dentro de `clipper/` se toca: ni locks ocultos, transcripciones, análisis, exports ni el manifest.
 - **Duplicados de finales (por implementar):** un archivo en `renders/` o `clipper/exports/` idéntico por SHA-256 a un final ya verificado en MEDIA se puede retirar en el cierre, con su propia línea en la revisión. Un nombre parecido sólo sirve para sugerir candidatos; la decisión la da el hash. Hoy no hay ninguno en esos proyectos.
-- **Proyectos vinculados:** el usuario quiere vincularlos desde Proyectos y que «Estas son todas las entregas definitivas» autorice limpiar los intermedios de todo el grupo. El diseño de la sección «Proyectos relacionados» se mantiene, con el vínculo hecho desde Proyectos. Queda en espera porque en Terra no liberaría espacio hasta que Clipper exponga lo regenerable.
+- **Proyectos vinculados (implementado):** se vinculan desde Proyectos y «Estas son todas las entregas definitivas» del proyecto que se cierra autoriza los intermedios de todo el grupo. Ver la sección «Proyectos relacionados».
 
 ## Revisión con medida global y proyecto ya completo · 2026-11-07
 
@@ -144,11 +150,19 @@ Con el disco desconectado se conserva la decisión guardada (`offline`). La lect
 
 Proyectos agrega el filtro **Por publicar**: proyectos terminados que todavía tienen entregas en el disco de edición. Al reabrir, si una entrega se movió a la carpeta de publicados, la hoja la propone con su nueva ubicación y como publicada. Se guarda sólo cuando la persona guarda o respalda; el motor no reescribe la selección. Tras **Respaldar publicados…**, el cierre actualiza la selección al respaldo y la marca baja sola.
 
-## Proyectos relacionados · propuesta pendiente de confirmación · 2026-11-07
+## Proyectos relacionados · implementado · 2026-11-07
 
-Caso: `terra-6-1` y su regrabación `terra-6-1-extra`. El horizontal publicado y las miniaturas son de la regrabación. No se implementa hasta que el usuario confirme este diseño.
+Caso: `terra-6-1` y su regrabación `terra-6-1-extra`. El horizontal publicado y las miniaturas son de la regrabación. El usuario confirmó el diseño y pidió hacer el vínculo desde Proyectos.
 
-1. **Sugerir y confirmar.** En la hoja de cierre, **Incluir proyecto relacionado…** lista proyectos del mismo perfil cuyo título normalizado empieza por el del otro seguido de `-` (`terra-6-1` ↔ `terra-6-1-extra`). La persona confirma «es una regrabación del mismo trabajo». Se guarda en ambos `project-closure:` como `related[{project_id, kind: 'rerecording'}]`, con el evento `project_relation_confirmed`. Quitar la relación es otra decisión registrada.
+Implementación:
+- `closure_link` (`project_id`, `other_id`, `linked`) y `closure_link_candidates`. Proyectos ofrece **Vincular con otro proyecto…** y, en el detalle, la sugerencia por nombre con un botón **Vincular**.
+- `project-closure:<id>.related` es simétrico y se conserva al guardar entregas.
+- El plan lleva `closure_group` y `closure_group_titles`, y cada final su `owner`. `closure_settings_digest` cubre las decisiones de todo el grupo; un proyecto solo conserva su digest anterior. Vincular o desvincular invalida una revisión abierta.
+- El commit terminal escribe estado, liberación y selección de cada proyecto del grupo.
+
+Diseño original, que sigue vigente:
+
+1. **Sugerir y confirmar.** Desde Proyectos (antes se pensó en la hoja de cierre), se listan proyectos del mismo perfil cuyo título normalizado empieza por el del otro seguido de `-` (`terra-6-1` ↔ `terra-6-1-extra`). La persona confirma «es una regrabación del mismo trabajo». Se guarda en ambos `project-closure:` como `related[{project_id, kind: 'rerecording'}]`, con el evento `project_relation_confirmed`. Quitar la relación es otra decisión registrada.
 2. **Una lista de entregas.** La selección muestra las entregas de los dos proyectos en un solo grupo por tipo. Cada final conserva su proyecto dueño: la regla `final_already_linked` no cambia y nada se reasigna. Los requisitos de cada proyecto se cumplen con la unión: un horizontal de `terra-6-1-extra` cubre el horizontal de `terra-6-1`, y la revisión dice «cubre el requisito de terra-6-1 · pertenece a terra-6-1-extra».
 3. **Fuentes y acciones por tanda.** El plan es uno solo, con un digest, pero `closure_scopes` lleva el proyecto de cada scope. La revisión muestra una sección por tanda: raws, intermedios y badges de efecto. Una tanda sin trabajo en ESSD sale con **Sin acción**.
 4. **Sin fusionar historiales.** Cada proyecto conserva su catálogo, sus alias, recibos y eventos. Al terminar, el commit terminal escribe `project-state`, `project-released` y `project-closure` de cada uno en la misma transacción.

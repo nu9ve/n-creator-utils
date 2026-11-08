@@ -136,6 +136,8 @@ import MediaMenuCore
                      "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z"),
                      // A closed project with verticals still waiting on the editing disk (closure.delivery_summary).
                      "released": .bool(index == 5),
+                     "related": .array(index == 5 ? [.object(["id": .string("p6"), "title": .string("demo")])] : []),
+                     "link_suggestions": .array(index == 4 ? [.string("p5")] : []),
                      "deliveries": index == 5 ? .object(["awaiting": .integer(6), "published": .integer(1), "missing": .integer(0), "offline": .bool(false),
                          "awaiting_names": .array((1...6).map { .string("podcast-07_vertical_\($0).mov") })]) : .object([:])]) }
         model.pendingCaptures = (0..<3).map { index in
@@ -402,7 +404,7 @@ import MediaMenuCore
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
         await render(InboxView(model: model), size: NSSize(width: 1180, height: 1500), to: folder.appendingPathComponent("route-home-full.png"))
         await render(VStack { ForEach(model.projectIndex.prefix(4), id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 500), to: folder.appendingPathComponent("project-details.png"))
-        await render(VStack { ForEach(model.projectIndex.filter { $0["stage"].string == "finished" }, id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 260), to: folder.appendingPathComponent("projects-awaiting.png"))
+        await render(VStack { ForEach(model.projectIndex.filter { $0["stage"].string == "finished" || !$0["link_suggestions"].array.isEmpty }, id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 480), to: folder.appendingPathComponent("projects-awaiting.png"))
         model.route = .flows
         for flow in model.productFlows {
             model.flowSelection = flow.id

@@ -35,6 +35,60 @@ def settings(catalog, project_id):
                        {'required': profile, 'no_more': False, 'published': False, 'finals': []})
 
 
+def related(catalog, project_id):
+    """Projects the person confirmed as the same work (a re-recording). Symmetric, one level, same profile."""
+    known = {row[0] for row in catalog.db.execute('SELECT id FROM projects')}
+    return [p for p in settings(catalog, project_id).get('related', []) if p in known and p != project_id]
+
+
+def group(catalog, project_id):
+    return [project_id] + related(catalog, project_id)
+
+
+def group_digest(catalog, project_id):
+    """Digest of every linked project's decisions; a lone project keeps its historical digest."""
+    ids = group(catalog, project_id)
+    if len(ids) == 1:
+        return digest(settings(catalog, project_id))
+    return digest({pid: settings(catalog, pid) for pid in ids})
+
+
+def link_candidates(catalog, project_id):
+    """Same-profile projects to link. Suggested when one title is the other's followed by «-»
+    (terra-6-1 ↔ terra-6-1-extra); the person confirms, nothing is linked here."""
+    project = project_record(catalog, project_id)
+    mine, linked = normalized_name(project['title']), set(related(catalog, project_id))
+    values = []
+    for row in catalog.db.execute("SELECT id,title,profile FROM projects WHERE profile=? AND id!=? AND title!='finales'",
+                                  (project['profile'], project_id)):
+        other = normalized_name(row['title'])
+        values.append({'id': row['id'], 'title': row['title'], 'linked': row['id'] in linked,
+                       'suggested': other.startswith(mine + '-') or mine.startswith(other + '-')})
+    values.sort(key=lambda v: (not v['linked'], not v['suggested'], v['title']))
+    return values
+
+
+def link(catalog, project_id, other_id, linked=True):
+    """Record (or remove) the person's confirmation that two projects are one work. Moves no media."""
+    first, second = project_record(catalog, project_id), project_record(catalog, other_id)
+    require(isinstance(linked, bool), 'invalid_request', 'linked debe ser booleano')
+    require(first['id'] != second['id'], 'invalid_request', 'Elige otro proyecto')
+    require(first['profile'] == second['profile'], 'invalid_request', 'Vincula proyectos del mismo perfil')
+    with catalog.writer():
+        changes = {}
+        for me, other in ((first, second), (second, first)):
+            config = settings(catalog, me['id'])
+            ids = set(config.get('related', []))
+            if linked:
+                ids.add(other['id'])
+            else:
+                ids.discard(other['id'])
+            changes['project-closure:' + me['id']] = dict(config, related=sorted(ids), updated_at=now())
+        catalog.set_many(changes, event=(project_id, 'project_relation_confirmed' if linked else 'project_relation_removed',
+                                         {'projects': [first['id'], second['id']], 'kind': 'rerecording'}))
+    return {'project_id': project_id, 'related': related(catalog, project_id)}
+
+
 def save(catalog, backend, project_id, required, no_more, published, finals, profile_default=False):
     with catalog.writer():
         return _save(catalog, backend, project_id, required, no_more, published, finals, profile_default)
@@ -76,7 +130,7 @@ def _save(catalog, backend, project_id, required, no_more, published, finals, pr
         normalized.append({'volume_id': volume['id'], 'path': path, 'role': item['role'], 'stamp': stamp,
                            'published': published or item.get('published', in_published or receipts.get(key) == stamp)})
     value = {'required': sorted(set(required)), 'no_more': no_more, 'published': bool(normalized) and all(f['published'] for f in normalized),
-             'finals': normalized, 'updated_at': now()}
+             'finals': normalized, 'updated_at': now(), 'related': settings(catalog, project_id).get('related', [])}
     changes = {'project-closure:' + project_id: value}
     if profile_default:
         changes['closure-profile:' + project['profile']] = value['required']
@@ -198,8 +252,12 @@ def candidates(catalog, backend, project_id, query=None, cancel=None):
                            'published': declared, 'suggested': suggested,
                            'publication_changed': bool(prior and prior[1]['stamp'] != content_stamp(info))})
     values.sort(key=lambda v: (not v['suggested'], v['archived'], v['name']))
+    linked = [{'id': pid, 'title': project_record(catalog, pid)['title'],
+               'finals': [{'volume_id': f['volume_id'], 'path': f['path'], 'name': Path(f['path']).name, 'role': f['role'],
+                           'published': f.get('published', False)} for f in settings(catalog, pid)['finals']]}
+              for pid in related(catalog, project_id)]
     return {'files': values[:1000], 'truncated': len(values) > 1000, 'settings': saved,
-            'deliveries': delivery_states(catalog, backend, project_id, saved)}
+            'deliveries': delivery_states(catalog, backend, project_id, saved), 'group': linked}
 
 
 def roots(catalog, backend, project):
@@ -259,6 +317,8 @@ def inventory(tree, plan, cancel=None):
             if scope['kind'] == 'raw':
                 files, kept = selected_files(tree, scope['path'], cancel=cancel)
                 preserved.extend(kept)
+            elif scope['kind'] == 'clipper_cache':
+                files = [f for f in folder_files(tree, scope['path'], cancel) if f.lower().endswith('.wav')]
             else:
                 files = list(folder_files(tree, scope['path'], cancel))
         except FileNotFoundError:
@@ -276,7 +336,7 @@ def inventory(tree, plan, cancel=None):
 
 def validate(catalog, backend, plan, cancel=None):
     """Frozen human decisions and every final are gates, including already-moved deliveries."""
-    require(digest(settings(catalog, plan['closure_project_id'])) == plan['closure_settings_digest'],
+    require(group_digest(catalog, plan['closure_project_id']) == plan['closure_settings_digest'],
             'plan_changed', 'Cambió el cierre del proyecto; revisa un plan nuevo')
     archive = catalog.volume(plan['archive_id'])
     backend.check(archive)
@@ -378,13 +438,13 @@ def delivery_summary(states):
             'offline': any(s.get('offline') for s in states)}
 
 
-def archived_final_settings(catalog, plan, guards):
-    """Build the association update for the release's atomic terminal commit.
+def archived_final_settings(catalog, plan, guards, project_id=None):
+    """Build the association update for the release's atomic terminal commit, for one project of the plan's group.
 
     Use the stamps just checked under the release guard; no source or editor JSON
     is rewritten, and a later changed final will still require a fresh review.
     """
-    config = settings(catalog, plan['closure_project_id'])
+    config = settings(catalog, project_id or plan['closure_project_id'])
     stamps = {g['archive_path']: g['stamp'] for g in guards}
     by_original = {(f['original']['volume_id'], f['original']['path']): f
                    for f in plan['closure_finals'] if f.get('original') and not f.get('keep_work')}
@@ -405,7 +465,14 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     report(progress, 'review_inventory')
     project = project_record(catalog, project_id)
     config = settings(catalog, project_id)
-    config_digest = digest(config)
+    config_digest = group_digest(catalog, project_id)
+    # Linked projects are one work: one list of deliveries (each keeps its owner) and every project's sources/scopes.
+    members = [project] + [project_record(catalog, pid) for pid in related(catalog, project_id)]
+    owned = []
+    for member in members:
+        member_config = config if member['id'] == project_id else settings(catalog, member['id'])
+        owned += [dict(f, owner=member['id'], published=f.get('published', member_config['published'])) for f in member_config['finals']]
+    config = dict(config, finals=owned)
     require(isinstance(release_work, bool), 'invalid_request', 'release_work debe ser booleano')
     if release_work:
         require(config['no_more'], 'project_incomplete', 'Confirma que la selección contiene todas las entregas definitivas')
@@ -416,9 +483,18 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
     target, source = catalog.volume(archive), catalog.volume(work)
     require(source['role'] == 'work' and target['role'] == 'archive', 'invalid_role', 'Elige trabajo y respaldo')
     require(independent(backend.check(source), backend.check(target)), 'same_physical_disk', 'Trabajo y respaldo deben ser discos distintos')
-    scoped = roots(catalog, backend, project).get(source['id'], {'raw': [], 'editor': []}) if release_work else {'raw': [], 'editor': []}
+    scoped = {'raw': [], 'editor': [], 'owner': {}}
+    if release_work:
+        for member in members:
+            found = roots(catalog, backend, member).get(source['id'], {'raw': [], 'editor': []})
+            for kind in ('raw', 'editor'):
+                for path in found[kind]:
+                    if path not in scoped[kind]:
+                        scoped[kind].append(path)
+                        scoped['owner'][path] = member['id']
+    caches = retired_caches(catalog, source, members, scoped) if release_work else []
     if progress:
-        total, count = review_estimate(catalog, project, config, source, target, scoped, release_work, cancel)
+        total, count = review_estimate(catalog, members, config, source, target, scoped, release_work, cancel, caches)
         progress = ReviewMeter(progress, total, count, source['name'], target['name'])
     entries, preserved, replacements, scopes, copies, finals, retained = [], [], {}, [], [], [], []
     for path in scoped['raw']:
@@ -438,7 +514,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
         entries.extend(dict(e, category='raw') for e in part['entries'])
         replacements.update(part['replacements'])
     # A project with no work receipts is not silently assumed to have backed-up sources.
-    assets = [a for a in catalog.search() if a.get('project_id') == project_id and a['kind'] != 'delivery'] if release_work else []
+    member_ids = {m['id'] for m in members}
+    assets = [a for a in catalog.search() if a.get('project_id') in member_ids and a['kind'] != 'delivery'] if release_work else []
     require(assets or not release_work, 'missing_sources', 'Este proyecto no tiene fuentes catalogadas; adopta/verifica sus raws antes de liberar')
     job_states = dict(catalog.db.execute('SELECT id,state FROM jobs'))
     already_verified = {(e['archive_path'], e['sha256']) for e in entries}
@@ -472,6 +549,17 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     replacements[str(Path(source['root']) / path)] = None
             if (Path(source['root']) / editor).is_dir():
                 retained.append(editor + ' (editable, Final Cut y contenido fuera de renders se conservan)')
+        for cache in caches:
+            # Audio Clipper extracted from a Stalker session of a project Clipper already retired; the session itself was
+            # verified in the backup above, so this copy can be made again. Only .wav files, nothing else in clipper/.
+            scopes.append({'kind': 'clipper_cache', 'path': cache})
+            for path in folder_files(tree, cache, cancel):
+                if not path.lower().endswith('.wav'):
+                    continue
+                sha, stamp = checked_hash_progress(tree, path, cancel, progress, 'review_intermediates')
+                entries.append({'path': path, 'stamp': stamp, 'sha256': sha, 'archive_path': None, 'category': 'intermediate',
+                                'origin': 'clipper_cache'})
+                replacements[str(Path(source['root']) / path)] = None
     archived_candidates = None
     for index, item in enumerate(config['finals']):
         volume = catalog.volume(item['volume_id'])
@@ -506,7 +594,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                 role = item['role']
                 if role == 'auxiliary' and any('thumbnail' in p.lower() for p in Path(item['path']).parts):
                     role = 'thumbnail'
-                transfer = build_plan(catalog, backend, source=parent, archive=target['id'], project=project['title'], profile=project['profile'],
+                owner = next((m for m in members if m['id'] == item.get('owner')), project)
+                transfer = build_plan(catalog, backend, source=parent, archive=target['id'], project=owner['title'], profile=project['profile'],
                                       archive_only=True, confirm_archive_only=True, work_decision='skipped', cleanup=False,
                                       camera='generic', source_kind='delivery', delivery_paths=[Path(item['path']).name],
                                       finals_route=True, finals_role=role, cancel=cancel)
@@ -523,7 +612,7 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             if not keep_work:
                 entries.append({'path': item['path'], 'stamp': stamp, 'sha256': sha, 'archive_path': archive_path, 'category': 'final'})
                 replacements[str(Path(source['root']) / item['path'])] = str(Path(target['root']) / archive_path)
-        finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role'],
+        finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role'], 'owner': item.get('owner', project_id),
                        'original': {'volume_id': item['volume_id'], 'path': item['path']},
                        'original_stamp': stamp, 'copy_required': copy_required, 'keep_work': keep_work})
     targets, roles = {}, {}
@@ -553,9 +642,10 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
              'replacements': replacements, 'replacement_checks': [], 'bytes': sum(e['stamp']['size'] for e in entries),
              'consumers': consumers, 'state': 'review', 'cleaned': {}, 'retained_editors': retained, 'closure_project_id': project_id,
              'closure_settings_digest': config_digest, 'closure_scopes': scopes, 'closure_finals': finals, 'closure_copies': copies,
-             'closure_finish': release_work, 'closure_inventory_checked': True,
+             'closure_finish': release_work, 'closure_inventory_checked': True, 'closure_group': [m['id'] for m in members],
+             'closure_group_titles': {m['id']: m['title'] for m in members},
              # Already closed and this review finds nothing to copy or retire: applying would only rewrite the record.
-             'already_complete': bool(catalog.get('project-released:' + project_id)) and not entries and not copies}
+             'already_complete': all(catalog.get('project-released:' + m['id']) for m in members) and not entries and not copies}
     value['digest'] = digest(value)
     with catalog.writer():
         catalog.set('release:' + value['id'], value)
@@ -574,7 +664,7 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         with catalog.writer():
             catalog.set('closure-consent:' + plan_id, {'digest': reviewed_digest, 'confirmed_at': now()})
         check_source(backend, plan)
-        require(digest(settings(catalog, plan['closure_project_id'])) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
+        require(group_digest(catalog, plan['closure_project_id']) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
         with Tree(plan['source_root']) as tree:
             validate_remaining(tree, plan, cancel)
         tracker = ActionProgress(progress, plan, catalog)
@@ -599,7 +689,32 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         return dict(result, closure_settings=settings(catalog, plan['closure_project_id']))
 
 
-def review_estimate(catalog, project, config, source, target, scoped, release_work, cancel=None):
+def retired_caches(catalog, source, members, scoped):
+    """`clipper/cache/stalker` folders that may enter a closeout as intermediates (user decision, 2026-11-07).
+
+    Only when Clipper already retired that project (its `clipper-retired-project.json` is there and fresh deps list no
+    active project at that folder) and the project has Stalker sessions in the catalog, whose backup the closeout
+    verifies. If Clipper cannot be asked, nothing is offered."""
+    retired = [e for e in scoped['editor'] if (Path(source['root']) / e / 'clipper/clipper-retired-project.json').is_file()
+               and (Path(source['root']) / e / 'clipper/cache/stalker').is_dir()]
+    if not retired:
+        return []
+    try:
+        active = [str(p.get('clipper_root', '')) for p in clipper.dependencies(catalog)['projects']]
+    except (RuntimeError, OSError, ValueError, KeyError, TypeError):
+        return []
+    sessions = {a.get('project_id') for a in catalog.search() if a['kind'] == 'stalker_session'}
+    values = []
+    for editor in retired:
+        folder = str(Path(source['root']) / editor / 'clipper')
+        if any(root and (root == folder or root.startswith(folder + '/') or folder.startswith(root.rstrip('/') + '/')) for root in active):
+            continue
+        if scoped['owner'].get(editor) in sessions:
+            values.append(editor + '/clipper/cache/stalker')
+    return values
+
+
+def review_estimate(catalog, members, config, source, target, scoped, release_work, cancel=None, caches=()):
     """Bytes and files a review will read, from sizes only (no hashing), so its bar is one measure from the start.
 
     Raw copies on the editing disk are read there and matched in the backup (twice), catalogued sources once in the
@@ -622,8 +737,15 @@ def review_estimate(catalog, project, config, source, target, scoped, release_wo
                 for item in folder_files(tree, editor + '/renders', cancel):
                     total += tree.stat(item).st_size
                     count += 1
+        for cache in caches:
+            for item in folder_files(tree, cache, cancel):
+                if item.lower().endswith('.wav'):
+                    total += tree.stat(item).st_size
+                    count += 1
+    project = members[0]
+    member_ids = {m['id'] for m in members}
     if release_work:
-        for asset in (a for a in catalog.search() if a.get('project_id') == project['id'] and a['kind'] != 'delivery'):
+        for asset in (a for a in catalog.search() if a.get('project_id') in member_ids and a['kind'] != 'delivery'):
             for original in asset['paths']:
                 row = catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
                                          (asset['job_id'], target['id'], original)).fetchone()

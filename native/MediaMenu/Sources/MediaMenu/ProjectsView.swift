@@ -15,7 +15,8 @@ struct ProjectsView: View {
         case "backed_up": return item["stage"].string == "backed_up"
         // Released (closed) but with deliveries still on the editing disk: computed by the engine, not here.
         case "awaiting": return item["stage"].string == "finished" && ProjectStageBadge.waiting(item) > 0
-        case "finished": return item["stage"].string == "finished"
+        // Finished means nothing left on the editing disk; a released project still waiting is under «Por publicar».
+        case "finished": return item["stage"].string == "finished" && ProjectStageBadge.waiting(item) == 0
         default: return true
         }
     }
@@ -88,6 +89,8 @@ struct ProjectRow: View {
         let deliveries = item["deliveries"]
         if deliveries["published"].double > 0 { parts.append(String(localized: "Publicadas por respaldar: \(Int(deliveries["published"].double))")) }
         if deliveries["missing"].double > 0 { parts.append(String(localized: "Entregas no encontradas: \(Int(deliveries["missing"].double))")) }
+        let related = item["related"].array.map(\.["title"].string)
+        if !related.isEmpty { parts.append(String(localized: "Vinculado con \(related.joined(separator: ", "))")) }
         return parts.joined(separator: " · ")
     }
     var body: some View {
@@ -116,6 +119,7 @@ struct ProjectRow: View {
                         Button("Ver archivos", systemImage: "square.stack") { model.openFiles(project: title) }
                         if title != "finales" {
                             Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
+                            linkMenu
                         }
                         Divider()
                         if item["state"].string == "active" {
@@ -132,6 +136,12 @@ struct ProjectRow: View {
                 VStack(alignment: .leading, spacing: 6) {
                     if !item["project_id"].string.isEmpty && title != "finales" {
                         Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
+                        ForEach(model.projectIndex.filter { item["link_suggestions"].array.map(\.string).contains($0["project_id"].string) }, id: \.["project_id"].string) { other in
+                            HStack(spacing: 6) {
+                                Label(String(localized: "¿«\(other["project"].string)» es una regrabación de este trabajo?"), systemImage: "link")
+                                Button("Vincular") { model.linkProjects(item, with: other["project_id"].string) }.disabled(model.busy)
+                            }
+                        }
                     }
                     if renaming { rename }
                     if !kinds.isEmpty {
@@ -155,6 +165,32 @@ struct ProjectRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }.padding(.vertical, 8)
+    }
+    /// Link a re-recording of the same work. The engine suggests by name; choosing one is the confirmation.
+    @ViewBuilder private var linkMenu: some View {
+        let linked = Set(item["related"].array.map(\.["id"].string))
+        let suggested = Set(item["link_suggestions"].array.map(\.string))
+        let others = model.projectIndex.filter {
+            !$0["project_id"].string.isEmpty && $0["project_id"] != item["project_id"] && $0["profile"] == item["profile"]
+                && $0["project"].string != "finales" && !linked.contains($0["project_id"].string)
+        }.sorted { (suggested.contains($0["project_id"].string) ? 0 : 1, $0["project"].string) < (suggested.contains($1["project_id"].string) ? 0 : 1, $1["project"].string) }
+        Menu {
+            Section("Es una regrabación del mismo trabajo") {
+                ForEach(others, id: \.["project_id"].string) { other in
+                    Button(suggested.contains(other["project_id"].string) ? String(localized: "\(other["project"].string) · sugerido") : other["project"].string) {
+                        model.linkProjects(item, with: other["project_id"].string)
+                    }
+                }
+            }
+            if !linked.isEmpty {
+                Section("Desvincular") {
+                    ForEach(item["related"].array, id: \.["id"].string) { other in
+                        Button(other["title"].string) { model.linkProjects(item, with: other["id"].string, linked: false) }
+                    }
+                }
+            }
+        } label: { Label("Vincular con otro proyecto…", systemImage: "link") }
+        .disabled(model.busy || (others.isEmpty && linked.isEmpty))
     }
     private var trimmedName: String { newName.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var canRename: Bool { !trimmedName.isEmpty && trimmedName != title && !model.busy }

@@ -2,6 +2,24 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Proyectos vinculados y audio de caché de Clipper retirado · 2026-11-07
+
+En working tree, sin commit. Instalada como build **`20eb2321376c`** con la app cerrada por el usuario; la anterior quedó en `app-backups/7eb16940.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-214458-553f66.app`, módulos de `media/` idénticos al checkout y RPC instalado con catálogo temporal. Incluye también el filtro Terminados y Por publicar. El usuario aprobó implementar dos cosas.
+- **Vínculo entre proyectos:** desde Proyectos se marca una regrabación del mismo trabajo. El cierre del grupo revisa una sola lista de entregas (cada una conserva su proyecto), las fuentes y raws de todos, y los intermedios de todos.
+- **Excepción para Clipper:** los `.wav` de `clipper/cache/stalker/` de un proyecto ya retirado en Clipper y con sesiones Stalker verificadas en el respaldo entran como intermedios ([contrato](contracts/project-closeout-v1.md#carpeta-de-clipper-y-caché--decisión-del-usuario--2026-11-07)).
+- **Simulación en una copia del catálogo** (sin leer contenido): nüün sugiere `terra-6-1-extra` para `terra-6-1`, y Clipper (deps reales, sólo lectura) no lo tiene activo. La revisión vinculada ofrecería sus dos WAV (2 × 267 MB). No hay raws de ninguno de los dos en ESSD, y `renders/` de la regrabación queda vacío para el cierre (sólo archivos ocultos). La revisión también verificará en MEDIA502 las fuentes de la regrabación (una sesión Stalker, dos bundles de cámara y siete archivos).
+
+Evidencia: Python **308 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización sin faltantes ni sobrantes, `git diff --check`. Pruebas nuevas en `test_project_closeout`:
+- `test_linked_projects_close_together_and_drop_retired_clipper_audio`: el requisito se cubre con el final de la regrabación sin reasignarlo, se borra el WAV y se conservan lock, transcripción y manifest, y los dos proyectos quedan terminados sin fusionarse.
+- `test_clipper_audio_stays_unless_clipper_retired_the_project`: sin marca de retiro, con el proyecto activo en Clipper o con Clipper sin responder, el audio se conserva.
+- `test_link_change_after_review_invalidates_the_plan`.
+
+**Sin probar:** en la app instalada.
+
+## Progreso global aceptado y filtros de Proyectos · 2026-11-07
+
+Build `a7b1bd203a91`: el usuario probó la revisión de `terra-6-1` y reporta que el progreso global se ve bien. Observó que el proyecto salía a la vez en **Terminados** y en **Por publicar**. Corregido en working tree, sin instalar: Terminados excluye los proyectos que aún tienen entregas en el disco de edición. Lectura en ESSD: lo que la limpieza de Clipper deja es `cache/stalker/*.wav`; se corrigió el pedido en el repo de Clipper. El usuario espera que la revisión de Terra borre esos intermedios; propuesta pendiente de su confirmación.
+
 ## Revisión con progreso global, «ya está completo» y Baches por observación · 2026-11-07
 
 En working tree, sin commit. Instalada como build **`a7b1bd203a91`** con la app cerrada por el usuario; la anterior quedó en `app-backups/8c326c96.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-211812-0186e5.app` y los módulos de `media/` idénticos al checkout. El usuario confirmó que la app se sintió más fluida con `0ced823923b6`. Pidió un progreso que se sienta global, con un indicador pequeño por archivo, y no volver a ver la opción de completar Terra.
