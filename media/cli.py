@@ -52,6 +52,10 @@ def parser():
     for name in ('operation_id', 'path', 'session_id', 'expected_manifest_sha256'):
         retitle.add_argument(name)
     retitle.add_argument('--project', required=True, help='JSON {version:1,name,country}')
+    commands.add_parser('devices', help='Read-only: recipe device rules and confirmed devices (Make+Model+Serial)')
+    device = commands.add_parser('confirm-device', help='Remember a device so its files are classified without asking')
+    device.add_argument('--make', required=True); device.add_argument('--model', required=True); device.add_argument('--serial', required=True)
+    device.add_argument('--category', required=True); device.add_argument('--source'); device.add_argument('--label')
     commands.add_parser('projects', help='Read-only: projects with ingested sources, newest first')
     listing = commands.add_parser('sources', help='Read-only: a project\'s editable sources in capture order with local paths (editor quick import)')
     listing.add_argument('--project', required=True); listing.add_argument('--purpose', choices=['edit', 'archive'], default='edit')
@@ -99,7 +103,7 @@ def parser():
 
 
 # Mutations keep one process per request so cancellation interrupts exactly that operation.
-READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles',
+READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles', 'devices',
                 'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions',
                 'storage_overview', 'storage_progress', 'storage_tree'}
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
@@ -160,7 +164,7 @@ def main(argv=None):
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
-            method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup',
+            method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup', 'confirm-device': 'confirm_device',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',

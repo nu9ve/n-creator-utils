@@ -11,6 +11,8 @@ from manager.inventory import camera_evidence, IGNORED_DIRS, IGNORED_FILES
 from .volumes import independent
 from .common import Tree, content_stamp, digest, fingerprint, read_json, relative, require, slug
 from .layout import build_layout
+from .photo_meta import PHOTO_SUFFIXES, read as read_photo
+from .recipes import recipe as current_recipe, recipe_ref, unit_device
 
 CAMERAS = {'sony', 'canon', 'nikon', 'gopro', 'h6', 'dji-drone', 'dji-360', 'dji-action', 'insta360', 'generic'}
 
@@ -99,8 +101,14 @@ def scan(root, skip_active=False, cancel=None, stalker_only=False):
                 else:
                     require(entry.is_file(follow_symlinks=False), 'unsafe_file', 'Special entry in source: ' + rel)
                     st = tree.stat(rel)
-                    files.append({'path': rel, 'stamp': content_stamp(st), 'bundle': bundle,
-                                  'evidence': camera_evidence(Path(entry.path))})
+                    record = {'path': rel, 'stamp': content_stamp(st), 'bundle': bundle,
+                              'evidence': camera_evidence(Path(entry.path))}
+                    if bundle is None and Path(entry.name).suffix.lower() in PHOTO_SUFFIXES:
+                        # Device identity of a still (Make+Model+Serial, flight XMP): bounded read, never a guess by name.
+                        photo = read_photo(entry.path)
+                        if photo:
+                            record['photo'] = photo
+                    files.append(record)
         visit(root)
     normalized = [unicodedata.normalize('NFC', f['path']).casefold() for f in files]
     require(len(set(normalized)) == len(normalized), 'name_collision', 'Source has case/Unicode name collisions')
@@ -236,6 +244,7 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     require(set(assignments) <= known, 'invalid_assignment', 'Assignment references an unknown file')
     groups = {'delivery': files} if source_kind == 'delivery' else grouped_files(files)
     source_key = {k: source_info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')}
+    rules = current_recipe(catalog)
     units = []
     for key, members in sorted(groups.items()):
         support = key == 'camera-support'
@@ -252,10 +261,16 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         selected_camera = 'generic' if support else assignment.get('camera', camera)
         require(selected_camera is None or selected_camera in CAMERAS, 'invalid_camera', 'Unknown assigned camera category')
         evidence = [e for f in members for e in f['evidence']]
-        if selected_camera is None:
+        device = None if support else unit_device(members, catalog, rules)
+        if selected_camera is None and device and device.get('category') and not device['requires_confirmation']:
+            # A registered device or a recipe rule decided it from the file's own EXIF, not from its name.
+            selected_camera = device['category']
+        elif selected_camera is None:
             families = {e['family'] for e in evidence if e.get('family') and e.get('confidence') != 'low'}
             selected_camera = next(iter(families)) if len(families) == 1 else 'generic'
-            require(not any(e.get('family') == 'dji' for e in evidence), 'camera_review_required', 'Classify DJI files as drone/360/action in assignments before ingest')
+            ambiguous = any(e.get('family') == 'dji' for e in evidence) or bool(device and device['requires_confirmation'])
+            hint = ' (suggested: {})'.format(device['category']) if device and device.get('category') else ''
+            require(not ambiguous, 'camera_review_required', 'Classify DJI files as drone/360/action in assignments before ingest' + hint)
         bundle = members[0]['bundle']
         session = bundles.get(bundle) if bundle is not None else None
         unit_id = str(uuid.uuid5(uuid.NAMESPACE_URL, digest({'source': source_key, 'members': members})))
@@ -268,6 +283,9 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             unit['work_selected'] = assignment['work']
         if 'country' in assignment:
             unit['country'] = slug(assignment['country'])
+        if device and not device.get('conflict'):
+            unit['device'] = {k: device[k] for k in ('make', 'model', 'serial', 'source', 'label', 'rule')}
+            unit['device']['category'] = device.get('category')
         units.append(unit)
         for file in members:
             file['unit_id'] = unit_id
@@ -287,6 +305,12 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     routes = {u['profile']: configured[u['profile']]['raw_dir'] for u in units if u['profile'] in configured}
     if routes:
         plan['profile_routes'] = routes
+    if any(u.get('device') for u in units):
+        # Frozen like profile routes: the recipe can change later without changing a reviewed plan.
+        plan['recipe'] = recipe_ref(rules)
+    folders = {u['camera']: rules['categories'][u['camera']]['archive'] for u in units if u['camera'] in rules['categories']}
+    if folders:
+        plan['category_folders'] = folders
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)
     elif finals_route:

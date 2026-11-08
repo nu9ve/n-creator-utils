@@ -204,6 +204,12 @@ class Service:
         if method == 'profiles':
             from .workspaces import profiles
             return profiles(self.catalog)
+        if method == 'devices':
+            from .recipes import devices
+            return devices(self.catalog)
+        if method == 'confirm_device':
+            from .recipes import confirm_device
+            return confirm_device(self.catalog, **params)
         if method == 'save_profile':
             from .workspaces import save_profile
             return save_profile(self.catalog, **params)
