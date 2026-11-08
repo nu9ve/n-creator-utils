@@ -242,6 +242,19 @@ struct UnitPreview: View {
                     let flags = NSEvent.modifierFlags
                     model.select(unit.id, extend: flags.contains(.command), range: flags.contains(.shift))
                 })
+                .opacity(unit.discard ? 0.35 : 1)
+                .overlay(alignment: .bottomTrailing) {
+                    if !unit.isSupport && unit.category != "stalker" {
+                        Button { unit.discard.toggle() } label: {
+                            Image(systemName: unit.discard ? "trash.fill" : "trash")
+                                .font(.caption).foregroundStyle(unit.discard ? palette.warning : palette.ink)
+                                .padding(5).background(palette.canvas.opacity(0.85), in: Circle())
+                        }
+                        .buttonStyle(.plain).padding(5)
+                        .help(unit.discard ? "Conservar: vuelve al respaldo" : "Descartar: no se respalda; si limpias la SD, se borra sin copia")
+                        .accessibilityLabel(unit.discard ? "Conservar" : "Descartar")
+                    }
+                }
                 .overlay(alignment: .topLeading) {
                     if model.copyChoice == "some" && unit.previewPath != nil {
                         Button { unit.copyForEditing.toggle() } label: {
@@ -265,8 +278,12 @@ struct UnitPreview: View {
                     .font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
                 Text(bytesLabel(unit.bytes) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                if unit.missionState == "matched" {
+                if unit.discard {
+                    Label("Descartada · no se respalda", systemImage: "trash").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+                } else if unit.missionState == "matched" {
                     Label(unit.missionPlan, systemImage: "map").font(.caption2).lineLimit(1).truncationMode(.middle).help("Foto de misión")
+                } else if unit.missionState == "none" && unit.missionLikely {
+                    Label("Sin registro · parece de misión", systemImage: "scope").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 } else if unit.missionState == "pending_export" {
                     Label(unit.missionLikely ? "Falta el export · parece de misión" : "Falta el export", systemImage: "clock.badge.questionmark")
                         .font(.caption2).foregroundStyle(palette.warning).lineLimit(1)

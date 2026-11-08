@@ -423,7 +423,8 @@ class Service:
         if indexes[flow['id']] is None:
             return None
         found = indexes[flow['id']].match(still['photo'], Path(still['path']).name)
-        return dict(found, flow=flow['id'], flow_label=flow['label'], project=flow['project'] if found['state'] == 'matched' else None)
+        return dict(found, flow=flow['id'], flow_label=flow['label'], flow_project=flow['project'],
+                    project=flow['project'] if found['state'] == 'matched' else None)
 
     def _apply_ingest(self, plan, reviewed_digest):
         if plan.get('cleanup') and plan.get('source_kind') == 'delivery':

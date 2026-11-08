@@ -28,6 +28,9 @@ struct DraftUnit: Identifiable, Equatable {
     var missionState = ""
     var missionPlan = ""
     var missionLikely = false
+    var missionFlowProject = ""
+    /// Left out of the backup by the person; the reviewed cleanup deletes it from the card without a copy.
+    var discard = false
     var previewPath: String? {
         if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
         return paths.first { path in
@@ -40,7 +43,7 @@ struct DraftUnit: Identifiable, Equatable {
         let effective = camera == "auto" ? deviceCategory : camera
         return effective == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(effective) ? "360" : category
     }
-    var needsCameraReview: Bool { !isSupport && camera == "auto" && deviceCategory.isEmpty && detectedCamera.lowercased().hasPrefix("dji") }
+    var needsCameraReview: Bool { !isSupport && !discard && camera == "auto" && deviceCategory.isEmpty && detectedCamera.lowercased().hasPrefix("dji") }
     var isSupport: Bool { category == "support" }
 }
 
@@ -668,7 +671,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
                 let mission = value["mission"]
                 unit.missionState = mission["state"].string; unit.missionPlan = mission["plan_name"].string
-                unit.missionLikely = mission["likely_mission"].bool
+                unit.missionLikely = mission["likely_mission"].bool; unit.missionFlowProject = mission["flow_project"].string
                 // A mission photo arrives with the flow's project (e.g. subaereo); the person can still change it.
                 if existing[value["id"].string] == nil && unit.project.isEmpty && !mission["project"].string.isEmpty {
                     unit.project = mission["project"].string
@@ -736,7 +739,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var projectIsReady: Bool {
         let hasBatchProject = !project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         if hasBatchProject { return true }
-        let media = units.filter { !$0.isSupport }
+        let media = units.filter { !$0.isSupport && !$0.discard }
         return !units.isEmpty && media.allSatisfy { !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
     var flowReviewKey: String {
@@ -822,6 +825,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
                 if !unit.country.isEmpty { values["country"] = .string(unit.country) }
                 if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
+                if unit.discard { values["discard"] = .bool(true) }
                 if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
                 if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
             }
@@ -880,6 +884,8 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "mission": return units.filter { $0.missionState == "matched" }
         case "no_mission": return units.filter { $0.missionState == "none" }
         case "pending_export": return units.filter { $0.missionState == "pending_export" }
+        case "likely_unregistered": return units.filter { $0.missionState == "none" && $0.missionLikely }
+        case "discarded": return units.filter(\.discard)
         default: return units.filter { $0.displayCategory == typeFilter }
         }
     }

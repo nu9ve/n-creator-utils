@@ -248,15 +248,23 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     from .layout import kind_of
     from .missions import index_for
     mission_indexes = {}
-    units = []
+    units, discarded = [], []
     for key, members in sorted(groups.items()):
         support = key == 'camera-support'
         choices = [] if support else [assignments[f['path']] for f in members if f['path'] in assignments]
         for choice in choices:
-            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'country', 'camera', 'work'}), 'invalid_assignment', 'Invalid assignment fields')
+            require(isinstance(choice, dict) and not (set(choice) - {'project', 'profile', 'country', 'camera', 'work', 'discard'}), 'invalid_assignment', 'Invalid assignment fields')
             require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
+            require('discard' not in choice or isinstance(choice['discard'], bool), 'invalid_assignment', 'discard must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
+        if assignment.get('discard'):
+            # Discarded by the person: not backed up nor copied, and never deleted here. It stays on the card
+            # until the camera formats it; the plan lists it so the review shows exactly what is left behind.
+            require(members[0]['bundle'] is None, 'invalid_assignment', 'A Stalker session cannot be discarded here')
+            discarded.append({'paths': [f['path'] for f in members], 'bytes': sum(f['stamp']['size'] for f in members),
+                              'stamps': {f['path']: f['stamp'] for f in members}})
+            continue
         selected_camera = 'generic' if support else assignment.get('camera', camera)
         require(selected_camera is None or selected_camera in CAMERAS, 'invalid_camera', 'Unknown assigned camera category')
         evidence = [e for f in members for e in f['evidence']]
@@ -304,6 +312,10 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         units.append(unit)
         for file in members:
             file['unit_id'] = unit_id
+    if discarded:
+        gone = {p for d in discarded for p in d['paths']}
+        files = [f for f in files if f['path'] not in gone]
+        require(files, 'empty_source', 'Everything was discarded; nothing to back up')
     require(archive_only or any(u.get('work_selected', True) for u in units),
             'confirmation_required', 'No editing copies selected; explicitly confirm archive-only')
     units.sort(key=lambda u: bool(u.get('support')))
@@ -316,6 +328,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             'release_stalker_source': release_stalker_source,
             'media_date': timestamp.strftime('%Y/%m'), 'source_name': relative(source.name),
             'files': files, 'units': units, 'bundles': bundles, 'skipped': skipped}
+    if discarded:
+        plan['discarded'] = sorted(discarded, key=lambda d: d['paths'][0])
     configured = catalog.get('creative-profiles', {})
     routes = {u['profile']: configured[u['profile']]['raw_dir'] for u in units if u['profile'] in configured}
     if routes:
@@ -347,6 +361,25 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
                         found[path] = existing
             if found:
                 unit['work_existing'] = found
+    if mission_indexes and not active_work:
+        # Backing up a folder that already is the consumer's work copy (e.g. ESSD atlas-subaereo/101MEDIA): those
+        # stills are the work copy, so the units map points to them instead of leaving them without one.
+        flows = {f['id']: f for f in rules['missions']}
+        for record in catalog.volumes():
+            root = Path(record['root']).absolute()
+            if record['role'] != 'work' or root not in source.parents:
+                continue
+            for unit in units:
+                flow = flows.get((unit.get('mission') or {}).get('flow'))
+                if not flow or not flow.get('work_root'):
+                    continue
+                base = root / record['prefix'].strip('/') / flow['work_root'].strip('/')
+                if source != base and base not in source.parents:
+                    continue
+                found = {path: str((source / path).relative_to(root)) for path in unit['paths'] if kind_of(path) in flow['work_kinds']}
+                if found:
+                    unit['work_existing'] = found
+                    plan['source_work_id'] = record['id']
     if mission_indexes:
         # Frozen per plan: the registry version it matched against and the flow's folders.
         flows = {f['id']: f for f in rules['missions']}
@@ -356,11 +389,46 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
                                       'layout': {k: flows[flow_id][k] for k in ('archive_folder', 'work_folder', 'work_kinds')},
                                       'units': {state: sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id and u['mission']['state'] == state)
                                                 for state in ('matched', 'none', 'pending_export')},
-                                      'likely': sum(1 for u in units if (u.get('mission') or {}).get('likely_mission')),
+                                      'likely': sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id
+                                                    and u['mission']['state'] == 'pending_export' and u['mission'].get('likely_mission')),
+                                      'unregistered_likely': sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id
+                                                                 and u['mission']['state'] == 'none' and u['mission'].get('likely_mission')),
                                       'work_existing': sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id and u.get('work_existing'))}
                             for flow_id, index in mission_indexes.items()}
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)
+        if mission_indexes and not cleanup:
+            # A still already backed up by an earlier verified job at the same archive name and size (e.g. the
+            # card ingest of the same flight) stays out: no second asset or units-map line for one photo.
+            # Only without cleanup: releasing a source still requires this job's own verification.
+            archived = {}
+            for (payload,) in catalog.db.execute('SELECT payload FROM copies WHERE volume_id=?', (archive_record['id'],)):
+                receipt = json.loads(payload)
+                archived[receipt['destination']] = receipt.get('bytes')
+            sizes = {f['path']: f['stamp']['size'] for f in files}
+            skip = set()
+            for unit in units:
+                if not unit.get('mission'):
+                    continue
+                targets = [(archive_record['prefix'] + '/' + plan['layout'][path]['archive'], sizes[path]) for path in unit['paths']]
+                if all(archived.get(target) == size for target, size in targets):
+                    skip.update(unit['paths'])
+            if skip:
+                units_before = list(units)
+                files[:] = [f for f in files if f['path'] not in skip]
+                units[:] = [u for u in units if not set(u['paths']) & skip]
+                for path in skip:
+                    del plan['layout'][path]
+                plan['already_archived'] = sorted(skip)
+                require(files, 'empty_source', 'Everything here is already backed up')
+                for flow_id, summary in (plan.get('missions') or {}).items():
+                    # Counts describe what this plan backs up, not what an earlier job already did.
+                    mine = [u for u in units if (u.get('mission') or {}).get('flow') == flow_id]
+                    summary['units'] = {state: sum(1 for u in mine if u['mission']['state'] == state) for state in ('matched', 'none', 'pending_export')}
+                    summary['work_existing'] = sum(1 for u in mine if u.get('work_existing'))
+                    summary['likely'] = sum(1 for u in mine if u['mission']['state'] == 'pending_export' and u['mission'].get('likely_mission'))
+                    summary['unregistered_likely'] = sum(1 for u in mine if u['mission']['state'] == 'none' and u['mission'].get('likely_mission'))
+                    summary['already_archived'] = sum(1 for u in units_before if (u.get('mission') or {}).get('flow') == flow_id and set(u['paths']) & skip)
     elif finals_route:
         plan['layout'] = finals_targets
         plan['already_archived'] = already_archived

@@ -306,9 +306,16 @@ def build_layout(source, plan, units, files):
 
     if support:
         when = first_capture or max(datetime.datetime.fromtimestamp(f['stamp']['mtime_ns'] / 1e9) for _, m in support for f in m)
+        # Card support (indexes, MISC) belongs to the device of the ingest when all its media agree on one.
+        media_cameras = {u['camera'] for u in units if not u.get('support')}
+        sources = {(u.get('device') or {}).get('source') for u in units if not u.get('support')}
+        card_camera = next(iter(media_cameras)) if len(media_cameras) == 1 else None
+        card_source = next(iter(sources)) if len(sources) == 1 and None not in sources else None
         for unit, members in support:
-            family = 'sony' if unit['camera'] == 'sony' or any('/private/' in '/' + f['path'].lower() or f['path'].lower().startswith(('avf_info/', 'private/')) for f in members) else slug(unit['camera'])
-            model = MODELS['ILCE-6400'] if family == 'sony' else tag(unit['camera'])
+            camera = card_camera if unit['camera'] == 'generic' and card_camera else unit['camera']
+            family = 'sony' if camera == 'sony' or any('/private/' in '/' + f['path'].lower() or f['path'].lower().startswith(('avf_info/', 'private/')) for f in members) else \
+                'dji' if camera.startswith('dji-') else slug(camera)
+            model = MODELS['ILCE-6400'] if family == 'sony' else card_source or tag(camera)
             label = ('ingest-' + unit['id']) if unit.get('support') else tag(unit['project'])
             folder = 'metadata/{}/support/{}/{}_{}-{}_{}'.format(family, when.strftime('%Y/%m'), when.strftime('%d%m-%H%M%S'),
                                                                  tag(plan['country']), label, model)

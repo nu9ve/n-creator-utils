@@ -449,7 +449,8 @@ class MissionIndex:
             return {'state': 'matched', 'planID': entry['planID'], 'sessionID': entry['sessionID'], 'captureID': entry['captureID'],
                     'plan_name': entry['plan_name'], 'session_start': start.isoformat()}
         if self.covered_until and when <= self.covered_until:
-            return {'state': 'none'}
+            # No record, but it can still look like a survey (e.g. flown before the app exported): a hint only.
+            return {'state': 'none', 'likely_mission': likely_mission(photo, self.flow)}
         return {'state': 'pending_export', 'likely_mission': likely_mission(photo, self.flow)}
 
 
@@ -490,7 +491,7 @@ def unit_entries(catalog, plan, map_rel):
     from .layout import kind_of
     from .planner import destination_path
     archive = catalog.volume(plan['archive_id'])
-    work_id = plan.get('work_id') or plan.get('expected_work_id')
+    work_id = plan.get('work_id') or plan.get('expected_work_id') or plan.get('source_work_id')
     work = catalog.volume(work_id) if work_id else None
     base = os.path.dirname(os.path.dirname(map_rel))  # the consumer's root: parent of `_nuun/`
     files = {f['path']: f for f in plan['files']}
@@ -521,8 +522,10 @@ def unit_entries(catalog, plan, map_rel):
             'schema': UNIT_SCHEMA, 'asset_id': unit['id'], 'job_id': plan['id'], 'project': unit['project'],
             'archive': {'volume': archive['name'], 'jpg': (member.get('jpg') or {}).get('archive'), 'dng': (member.get('dng') or {}).get('archive')},
             'work': {'volume': work['name'] if work else None, 'jpg': (member.get('jpg') or {}).get('work'), 'dng': (member.get('dng') or {}).get('work')},
-            'original_name': Path(first['path']).name, 'dcim_folder': Path(first['path']).parent.name,
-            'card_uuid': (plan.get('source_identity') or {}).get('volume_uuid'),
+            'original_name': Path(first['path']).name,
+            'dcim_folder': Path(first['path']).parent.name or Path(plan['source']).name,
+            # A folder on the work disk is not a card: no card identity to report.
+            'card_uuid': None if plan.get('source_work_id') else (plan.get('source_identity') or {}).get('volume_uuid'),
             'captured_at': photo.get('captured_at'), 'captured_at_utc': utc, 'utc_basis': basis,
             'make': device.get('make'), 'model': device.get('model'), 'serial': device.get('serial'),
             'sha256': {'jpg': (member.get('jpg') or {}).get('sha256'), 'dng': (member.get('dng') or {}).get('sha256')},
@@ -536,7 +539,7 @@ def write_units_map(catalog, backend, plan):
     """Upsert this job's drone units into the consumer's map on the work volume. 'pending' when it is offline."""
     flows = {f['id']: f for f in recipe(catalog).get('missions') or []}
     used = {u['mission']['flow'] for u in plan['units'] if u.get('mission')}
-    work_id = plan.get('work_id') or plan.get('expected_work_id')
+    work_id = plan.get('work_id') or plan.get('expected_work_id') or plan.get('source_work_id')
     if not used or not work_id:
         return 'skipped'
     record = catalog.volume(work_id)

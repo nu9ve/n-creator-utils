@@ -449,6 +449,14 @@ import MediaMenuCore
         UserDefaults.standard.set("appearance", forKey: "settingsSection")
         await render(SettingsView(model: model), size: NSSize(width: 760, height: 600), to: folder.appendingPathComponent("settings-appearance.png"))
         UserDefaults.standard.removeObject(forKey: "settingsSection")
+        // Drone plan review at real scale (1,342 units): grouped destinations + virtualized table, fixture data only.
+        let drone = dronePlanFixture()
+        let clock = ContinuousClock(), started = clock.now
+        let built = PlanRows.make(drone)
+        print("QA plan rows: \(built.units.count) units, \(built.groups.count) groups in \(clock.now - started)")
+        model.plan = drone
+        await render(ScrollView { PlanReview(model: model).padding(16) }, size: full, to: folder.appendingPathComponent("plan-review-drone.png"))
+        model.plan = nil
         // README image: compact window, fixture data only (no real libraries, sessions or paths).
         model.captureRoots = ["/Users/demo/Stalker"]; model.pendingCaptures = []; model.captureSessions = []; model.finals = nil
         if model.units.count > 1 { model.units[1].camera = "dji-drone" }
@@ -468,6 +476,39 @@ import MediaMenuCore
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("empty-content.png"))
         print("QA snapshots written to \(folder.path)")
         NSApp.terminate(nil)
+    }
+
+    /// A drone card plan shaped like the planner's: mission sessions, unregistered survey, already on SSD, a discard.
+    static func dronePlanFixture() -> JSONValue {
+        var units: [JSONValue] = [], preview: [JSONValue] = []
+        for index in 0..<1342 {
+            let stem = String(format: "DJI_%04d", index % 999 + 1), session = index / 54
+            let matched = index >= 64
+            let folder = matched ? "dron/misiones/2026/11/26NOV07-\(String(format: "%02d", session))0000_CALLESHUECOS-45M-1107" : "dron/fotos/2026/08"
+            let existing = index < 572
+            var unit: [String: JSONValue] = ["id": .string("u\(index)"), "project": .string(matched ? "subaereo" : "dron"), "kind": .string("camera_bundle"),
+                "paths": .array([.string("DCIM/10\(index / 999 + 1)MEDIA/\(stem).DNG"), .string("DCIM/10\(index / 999 + 1)MEDIA/\(stem).JPG")]),
+                "mission": .object(["state": .string(matched ? "matched" : "none"), "plan_name": .string("CallesHuecos-45m-1107"), "likely_mission": .bool(!matched)])]
+            if existing { unit["work_existing"] = .object(["x": .string("102MEDIA/\(stem).JPG")]) }
+            units.append(.object(unit))
+            for ext in ["DNG", "JPG"] {
+                let name = "26NOV07-1545\(String(format: "%02d", index % 60))_MAVICAIR2_MX-SUBAEREO[].\(ext)"
+                preview.append(.object(["source": .string("DCIM/10\(index / 999 + 1)MEDIA/\(stem).\(ext)"), "bytes": .number(ext == "DNG" ? 30.5e6 : 5.3e6),
+                    "archive_path": .string("/Volumes/MEDIA502/001_raw/\(folder)/\(name)"),
+                    "work_path": ext == "JPG" && !existing ? .string("/Volumes/ESSD/001_proyectos/atlas-subaereo/misiones/\(name)") : .null,
+                    "source_action": .string("release_verified")]))
+            }
+        }
+        units.append(.object(["id": .string("support"), "support": .bool(true), "kind": .string("file"), "project": .string("camera-support"), "paths": .array([.string("MISC/IDX/a.idx")])]))
+        preview.append(.object(["source": .string("MISC/IDX/a.idx"), "bytes": .number(4e6), "archive_path": .string("/Volumes/MEDIA502/001_raw/metadata/dji/support/2026/11/x/MISC/IDX/a.idx"), "work_path": .null, "source_action": .string("release_verified")]))
+        return .object(["id": .string("drone-plan"), "digest": .string("qa"), "archive_id": .string("media"), "work_id": .string("essd"), "source_kind": .string("card"),
+            "cleanup": .bool(true), "cleanup_profile": .string("files"), "work_delivery_status": .string("ready"),
+            "destinations": .object(["media": .object(["root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw"), "role": .string("archive")])]),
+            "files": .array(preview.map { .object(["path": $0["source"], "stamp": .object(["size": $0["bytes"]])]) }),
+            "units": .array(units), "preview": .array(preview),
+            "discarded": .array([.object(["paths": .array([.string("DCIM/102MEDIA/DJI_0340.DNG"), .string("DCIM/102MEDIA/DJI_0340.JPG")]), "bytes": .number(35.8e6)])]),
+            "missions": .object(["subaereo": .object(["project": .string("subaereo"), "units": .object(["matched": .integer(1278), "none": .integer(64), "pending_export": .integer(0)]),
+                                                       "likely": .integer(0), "unregistered_likely": .integer(64), "work_existing": .integer(572)])])])
     }
 
     /// Real engine and real Model paths on whatever `NU9VE_MEDIA_HOME` registers: scans each online disk, read-only.

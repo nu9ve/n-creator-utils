@@ -168,7 +168,8 @@ struct SourceTiles: View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
             ForEach(model.sourceCards, id: \.["path"].string) { card in
                 let hint = card["hint"]
-                SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card",
+                // Highlighted only once chosen and read (or being read): a card parked as source is not a choice yet.
+                SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card" && (model.contentLoaded || model.discoveryLoading),
                            symbol: "sdcard.fill", title: card["name"].string,
                            subtitle: hint == .null ? String(localized: "SD conectada") : model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
                            detail: hint == .null ? nil : model.recommendationLabel(hint["recommendation"].string),
@@ -385,6 +386,7 @@ struct ContentStep: View {
     /// Mission chips first: they are the decision on a drone card. A type chip that repeats «Principal» is hidden.
     private let filters: [(String, LocalizedStringKey, String)] = [("", "Principal", "square.grid.2x2"),
         ("mission", "De misión", "map"), ("pending_export", "Esperan export", "clock.badge.questionmark"), ("no_mission", "Sin misión", "photo.on.rectangle"),
+        ("likely_unregistered", "Parecen de misión", "scope"), ("discarded", "Descartadas", "trash"),
         ("video", "Videos", "film"), ("image", "Fotos", "photo"),
         ("raw_image", "RAW", "camera.aperture"), ("audio", "Audio", "waveform"), ("drone", "Dron", "airplane"), ("360", "360°", "view.360"),
         ("stalker", "Stalker", "record.circle"), ("support", "Auxiliares", "doc"), ("dji", "DJI sin clasificar", "questionmark.circle")]
@@ -396,6 +398,8 @@ struct ContentStep: View {
         case "mission": return model.units.filter { $0.missionState == "matched" }.count
         case "no_mission": return model.units.filter { $0.missionState == "none" }.count
         case "pending_export": return model.units.filter { $0.missionState == "pending_export" }.count
+        case "likely_unregistered": return model.units.filter { $0.missionState == "none" && $0.missionLikely }.count
+        case "discarded": return model.units.filter(\.discard).count
         default: return model.units.filter { $0.displayCategory == key }.count
         }
     }
@@ -406,7 +410,7 @@ struct ContentStep: View {
                     HStack(spacing: 6) {
                         ForEach(filters, id: \.0) { key, label, symbol in
                             let total = count(key)
-                            let mission = ["mission", "no_mission", "pending_export", "dji"].contains(key)
+                            let mission = ["mission", "no_mission", "pending_export", "likely_unregistered", "discarded", "dji"].contains(key)
                             if key.isEmpty || total > 0 && (mission || total != count("")) || model.typeFilter == key {
                                 Button { model.typeFilter = key; model.gridSelection = [] } label: {
                                     Label { Text(label) + Text(" \(total)").foregroundStyle(.secondary) } icon: { Image(systemName: symbol) }
@@ -424,6 +428,16 @@ struct ContentStep: View {
             let support = model.units.filter(\.isSupport)
             if !support.isEmpty && model.typeFilter != "support" && model.typeFilter != "all" {
                 Text("Datos de cámara incluidos en el respaldo: \(support.reduce(0) { $0 + $1.paths.count }) archivos").font(.caption).foregroundStyle(.secondary)
+            }
+            if model.typeFilter == "likely_unregistered", let flowProject = model.visibleUnits.first?.missionFlowProject, !flowProject.isEmpty {
+                // Nadir at flight height but no record in the registry (e.g. flown before the app exported).
+                HStack {
+                    Text("Sin registro de misión, pero son nadir a altura de vuelo.").font(.caption).foregroundStyle(.secondary)
+                    Button("Usar «\(flowProject)» en las \(model.visibleUnits.count)") {
+                        let ids = Set(model.visibleUnits.map(\.id))
+                        for index in model.units.indices where ids.contains(model.units[index].id) { model.units[index].project = flowProject }
+                    }.buttonStyle(.link).font(.caption)
+                }
             }
             if model.discoveryLoading { HStack { ProgressView().controlSize(.small); Text("Leyendo archivos… Las miniaturas se cargan conforme aparecen.").font(.caption) } }
             if !model.discoveryError.isEmpty { HStack { Label(model.discoveryError, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning); Button("Reintentar") { model.discover() } } }
@@ -466,10 +480,12 @@ struct AssignPanel: View {
                 projectField
                 HStack(spacing: 6) { metadataMenus; Spacer(minLength: 0) }
                 HStack(spacing: 6) { chips; Spacer(minLength: 0); copyControls }
+                discardControls
             } else {
                 projectField
                 chips
                 Button("Usar el proyecto del lote") { model.updateTargets { $0.project = "" } }.buttonStyle(.link).font(.caption)
+                discardControls
                 HStack(spacing: 8) { metadataMenus }.controlSize(.small)
                 Divider()
                 copyControls
@@ -503,6 +519,20 @@ struct AssignPanel: View {
             ForEach(cameras, id: \.self) { value in Button(value == "auto" ? String(localized: "Detectada") : value) { model.updateTargets { $0.camera = value } } }
         } label: { Label("Cámara", systemImage: "camera") }.fixedSize()
         TextField("País", text: $place).frame(width: 72).onSubmit { let value = place; model.updateTargets { $0.country = value } }
+    }
+    /// Left out of the backup and the editing copy; with cleanup, the reviewed plan deletes it from the card.
+    @ViewBuilder private var discardControls: some View {
+        let targets = model.units.filter { model.targetIDs.contains($0.id) && !$0.isSupport && $0.category != "stalker" }
+        if !targets.isEmpty {
+            HStack(spacing: 8) {
+                if targets.contains(where: { !$0.discard }) {
+                    Button("Descartar", systemImage: "trash") { model.updateTargets { if !$0.isSupport && $0.category != "stalker" { $0.discard = true } } }
+                }
+                if targets.contains(where: \.discard) {
+                    Button("Conservar", systemImage: "arrow.uturn.backward") { model.updateTargets { $0.discard = false } }
+                }
+            }.controlSize(.small)
+        }
     }
     @ViewBuilder private var copyControls: some View {
         if model.copyChoice == "some" {
@@ -645,9 +675,18 @@ struct PlanReview: View {
                     let skipped = plan["already_archived"].array.count
                     if skipped > 0 { Label("Ya en el respaldo con igual nombre y tamaño; se quedan en la carpeta: \(skipped)", systemImage: "equal.circle").font(.callout) }
                 }
-                ForEach(Array(plan["units"].array.enumerated()), id: \.offset) { _, unit in
-                    PlannedUnitRow(model: model, plan: plan, unit: unit)
+                if !plan["discarded"].array.isEmpty {
+                    let bytes = plan["discarded"].array.reduce(0.0) { $0 + $1["bytes"].double }
+                    Label(plan["cleanup"].bool
+                          ? String(localized: "\(plan["discarded"].array.count) descartadas (\(bytesLabel(bytes))): no se respaldan y se borran de la SD al limpiar, sin copia.")
+                          : String(localized: "\(plan["discarded"].array.count) descartadas (\(bytesLabel(bytes))): no se respaldan y se quedan en el origen."), systemImage: "xmark.bin")
+                        .font(.callout).foregroundStyle(palette.warning)
                 }
+                if plan["source_kind"].string != "delivery" && !plan["already_archived"].array.isEmpty {
+                    Label("\(plan["already_archived"].array.count) archivos ya están en el respaldo por un ingreso anterior (mismo nombre y tamaño): no se copian otra vez y se quedan en el origen.", systemImage: "equal.circle")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                PlanTable(model: model, plan: plan)
             }
             .modifier(Panel(padding: 14))
         }
