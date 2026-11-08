@@ -10,7 +10,8 @@ NAME = '26NOV04-163212_MAVICAIR2_MX-{}[].{}'
 LAT, LON = 29.0984139, -110.9622728   # the fixture EXIF position
 
 
-class MissionMatchTests(DroneFixture):
+class MissionFixture(DroneFixture):
+    """A drone card plus a mission registry; helpers only, no tests."""
     def setUp(self):
         super().setUp()
         self.inbox = self.root / 'Downloads'
@@ -42,6 +43,8 @@ class MissionMatchTests(DroneFixture):
         path = self.work / '001_proyectos/atlas-subaereo/_nuun/units.ndjson'
         return [json.loads(line) for line in path.read_text().splitlines()]
 
+
+class MissionMatchTests(MissionFixture):
     def test_matched_photo_takes_the_mission_project_folder_and_only_its_jpg_goes_to_work(self):
         self.registry(self.record(when='2026-11-04 16:30:00', name='DJI_0000.JPG', cid='C0'), self.record())
         plan = self.plan()

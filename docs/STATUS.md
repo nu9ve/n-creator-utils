@@ -2,6 +2,22 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## DNG del ESSD: muestra conservada y el resto a la Papelera (A16) · 2026-11-08
+
+Working tree, sin commit; ejecutado con el checkout (CLI/servicio) a petición del usuario, después de revisar el plan. Nuevo `media/dng.py` (`dng_plan` de sólo lectura con digest, `dng_apply`) y reglas `dng` en la receta.
+- **Muestra (128 DNG):**
+  - las 30 fotos del set etiquetado por Atlas `crepusculo-2026-11-05-v1`, leído de sus manifiestos sin modificarlos;
+  - la sesión más reciente de cada iluminación: sol bajo `1107-1559` (24), crepúsculo difuso `1107-0703` (24) y noche `1107-2257` (14, sólo las aceptables);
+  - 24 `poor` de `1107-2150`, para probar si el DNG las mejora;
+  - 12 de `TestGrid8x8-45m-0603-1138`.
+
+  42 ya estaban en el ESSD; 86 se copiaron desde MEDIA502 junto a su JPG en `misiones/` y se verificaron.
+- **Liberados:** 999 DNG (24.65 GB) de `101MEDIA`/`102MEDIA`. Cada uno se rehasheó, se comparó con el SHA-256 de su copia en MEDIA502 (cuyo stamp debía seguir igual) y se movió a `ESSD/.Trashes/501`. Además, a petición explícita, 130 archivos sin respaldo (las 64 de agosto y la 0340, JPG+DNG, 1.98 GB) también van a la Papelera; al vaciarla se pierden.
+- **Evidencia:** operación `dng-d9549817cd383445` en 74 s, con 86 `dng_copied`, 999 `dng_released` y 130 `unbacked_trashed`. `units.ndjson` lleva `work.dng` en 128 fotos y `null` en el resto. Los 128 están en disco y 12 rehasheados coinciden. En el ESSD quedan `101MEDIA` 559 JPG + 12 DNG, `102MEDIA` 482 JPG + 30 DNG y 86 DNG en `misiones/`. Python **355 OK** (`tests/test_dng.py`: 4 pruebas).
+- **Pendiente:**
+  - El usuario vacía la Papelera del ESSD para recuperar unos 26.6 GB; hoy hay 36 GB libres.
+  - Avisar a Atlas: los DNG de su semilla ya no están todos en `101MEDIA`/`102MEDIA`, y `units.ndjson` dice cuáles quedan.
+
 ## A11 aplicado: mayo–junio del ESSD respaldado en MEDIA502 · 2026-11-08
 
 Build `e799494274d5`, aplicado por el usuario desde la app. Job `77bdcb73-05cd-52eb-bdc2-e77b23bb3094`: **`source_retained`** en 13 min (13:06–13:20 UTC), sólo respaldo y sin limpieza.
