@@ -348,7 +348,7 @@ def release_meter(catalog, plan, progress):
     return meter, measured, verify, sizes
 
 
-def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None):
+def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, progress=None, archive_guards=None):
     plan = stored_plan(catalog, plan_id, digest)
     if plan['state'] == 'completed':
         return plan
@@ -374,10 +374,12 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         verify_replacements(catalog, backend, plan, cancel, progress)
         with Tree(plan['source_root']) as origin, Tree(archive['root']) as target:
             validate_remaining(origin, plan, cancel)
-            archive_guards = []
+            # A closeout already checked its backup in this apply (closure.apply_close); its guards are watched by stamp
+            # before every unlink below, so the whole backup is not read a second time.
+            provided, archive_guards = archive_guards, []
             if plan.get('closure_project_id'):
                 from .closure import validate
-                archive_guards = validate(catalog, backend, plan, cancel)
+                archive_guards = provided if provided is not None else validate(catalog, backend, plan, cancel)
             # All archive copies must verify again before the first deletion.
             report(progress, 'verifying_archive', files_done=0, files_total=len(plan['entries']))
             work_name = ((catalog.volume(plan['work_id']) or {}).get('name') if plan.get('work_id') else '') or Path(plan['source_root']).name

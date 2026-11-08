@@ -14,7 +14,7 @@ Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
 | 4 | Recuperación física y rendimiento | Tras asegurar material de prueba, desconexión/reconexión y reanudación controladas, popup/remount, ExFAT/HFS+, tamaños reales y contención con captura. No interrumpir deliberadamente la única copia de las grabaciones nuevas. |
 | 5 | Cobertura de almacenamiento real | Analizar MEDIA502 y `coverage --no-hash` de ESSD contra MEDIA; informe orientativo antes de elegir carpeta/proyecto. Liberación exige hash actual, no coincidencia de tamaño. [Política](docs/features/replication-policy.md). |
 
-Última build instalada registrada `7715ca5b0648` (7 noviembre), con transcripciones de Clipper en MEDIA, proyectos vinculados, regenerables de Clipper por su lista, progreso global, «ya está completo», etapas Sony y cierre de Baches por observación. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
+Última build instalada registrada `c777003effff` (8 noviembre), con una sola verificación al aplicar, transcripciones de Clipper en MEDIA, proyectos vinculados, regenerables de Clipper por su lista, progreso global, «ya está completo», etapas Sony y cierre de Baches por observación. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
 
 La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
 retiro ya está registrado o falta el formato. En la prueba física de un clip

@@ -84,7 +84,9 @@ class ClosureTests(WorkflowFixture):
         events = []
         self.apply(plan, progress=lambda stage, **details: events.append(dict(details, stage=stage)))
         measured = [e for e in events if 'overall_total' in e]
-        total = plan_total = 2 * sum(f['stamp']['size'] for t in plan['closure_copies'] for f in t['files']) + plan['bytes']
+        # nüün releases files here, so every backup copy is hashed once (and only once) before the first release.
+        verify = sum((self.archive / f['archive_path']).stat().st_size for f in plan['closure_finals'])
+        total = plan_total = 2 * sum(f['stamp']['size'] for t in plan['closure_copies'] for f in t['files']) + verify + plan['bytes']
         self.assertTrue(measured and all(e['overall_total'] == total for e in measured))
         done = [e['overall_done'] for e in measured]
         self.assertEqual(done, sorted(done), 'overall progress never goes back')
@@ -96,6 +98,32 @@ class ClosureTests(WorkflowFixture):
         self.assertIn('copied', kinds)
         self.assertEqual(kinds.count('released'), len(plan['entries']))
         self.assertTrue(any(e['current'].get('action') == 'copy' and e['current']['name'] == selected.name for e in measured))
+
+    def test_apply_without_release_watches_reviewed_stamps_instead_of_rehashing(self):
+        from media import release
+        selected = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        selected.parent.mkdir(parents=True); selected.write_bytes(b'kept for publishing')
+        finals = closure.settings(self.catalog, self.project_id)['finals'] + [
+            {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'vertical', 'published': False}]
+        self.configure(required=['horizontal', 'vertical'], published=False, finals=finals)
+        self.apply(self.plan_close())  # Releases raws and renders; the vertical is copied and kept.
+        plan = self.plan_close()
+        self.assertEqual((plan['entries'], plan['closure_copies']), ([], []))
+        self.assertTrue(all(f.get('archive_stamp') for f in plan['closure_finals']), 'the review stamped every backup copy')
+        hashed = []
+        original = closure.checked_hash_progress
+        def counting(tree, path, *args, **kwargs):
+            hashed.append(path)
+            return original(tree, path, *args, **kwargs)
+        with mock.patch('media.closure.checked_hash_progress', side_effect=counting), \
+             mock.patch.object(release, 'checked_hash', side_effect=AssertionError('the backup is not read a second time')):
+            self.apply(plan)
+        self.assertEqual(hashed, [], 'nothing of nüün released: unchanged reviewed copies are not read again')
+        # A backup copy changed after the review is hashed again and the closeout stops.
+        plan = self.plan_close()
+        self.final.write_bytes(b'tampered')
+        with self.assertRaisesRegex(MediaError, 'íntegro'):
+            self.apply(plan)
 
     def test_vertical_and_thumbnail_route_and_requirements(self):
         selected = self.work / '002_finales/e64/shorts/intro-short.mov'
