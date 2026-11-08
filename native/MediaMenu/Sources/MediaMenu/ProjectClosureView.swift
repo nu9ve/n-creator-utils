@@ -10,7 +10,7 @@ extension Model {
     func openProjectClosure(_ item: JSONValue, stored: JSONValue? = nil) {
         guard !busy else { return }
         closureProject = item
-        closureSettings = .object([:]); closureCandidates = []; closureDeliveries = []; closureProgress = .object([:])
+        closureSettings = .object([:]); closureCandidates = []; closureDeliveries = []; closureGroup = []; closureProgress = .object([:])
         let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
         closurePlan = stored ?? releaseHistory.filter { $0["closure_project_id"].string == id && $0["state"].string != "completed" }.max { $0["created_at"].string < $1["created_at"].string }
         showClosure = true
@@ -19,7 +19,17 @@ extension Model {
             self.closureCandidates = data["files"].array
             self.closureTruncated = data["truncated"].bool
             self.closureDeliveries = data["deliveries"].array
+            self.closureGroup = data["group"].array
             self.closureSettings = data["settings"]
+        }
+    }
+    /// The person confirms two projects are one work (a re-recording); it moves no media and changes any open review.
+    func linkProjects(_ item: JSONValue, with otherID: String, linked: Bool = true) {
+        let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
+        operation(linked ? String(localized: "Vinculando proyectos") : String(localized: "Desvinculando proyectos"), scope: .space) {
+            _ = try await self.client!.call("closure_link", ["project_id": .string(id), "other_id": .string(otherID), "linked": .bool(linked)])
+            self.message = linked ? String(localized: "Proyectos vinculados; no se movió media") : String(localized: "Proyectos desvinculados; no se movió media")
+            self.captureChanged([])
         }
     }
     func findClosureFinals(_ query: String) {
@@ -143,7 +153,10 @@ struct ProjectClosureSheet: View {
         let visible = model.closureCandidates.filter { showOtherMatches || $0["suggested"].bool || picked[key($0)] != nil }
         return picked.values.filter { !listed.contains(key($0)) }.sorted { key($0) < key($1) } + visible
     }
-    private var selectedTypes: Set<String> { Set(picked.values.map { $0["role"].string }).subtracting(["auxiliary"]) }
+    /// Roles chosen here plus those of linked projects: a re-recording's final can cover this project's requirement.
+    private var selectedTypes: Set<String> {
+        Set(picked.values.map { $0["role"].string } + model.closureGroup.flatMap { $0["finals"].array.map { $0["role"].string } }).subtracting(["auxiliary"])
+    }
     private var missing: Set<String> { required.subtracting(selectedTypes) }
     private var hasPublishedWork: Bool {
         picked.values.contains { value in
@@ -255,6 +268,10 @@ struct ProjectClosureSheet: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 10) {
             closedSummary
+            if !model.closureGroup.isEmpty {
+                Label("Cierre conjunto con \(model.closureGroup.map(\.["title"].string).joined(separator: ", ")): sus entregas cuentan para los requisitos y sus intermedios entran en la revisión. Cada entrega conserva su proyecto.", systemImage: "link")
+                    .font(.caption).foregroundStyle(palette.info)
+            }
             if !movedDeliveries.isEmpty {
                 Label("\(movedDeliveries.count) entregas se movieron a la carpeta de publicados. La selección usa su nueva ubicación como publicada; se guarda al guardar o respaldar.", systemImage: "arrow.right.doc.on.clipboard")
                     .font(.caption).foregroundStyle(palette.info)
@@ -388,6 +405,10 @@ struct ProjectClosureSheet: View {
                 } else {
                     Text("\(plan["entries"].array.count) archivos para retirar · \(bytesLabel(plan["bytes"].double))").font(.title3)
                 }
+                if plan["closure_group"].array.count > 1 {
+                    Label("Cierre conjunto: \(plan["closure_group"].array.map { plan["closure_group_titles"][$0.string].string }.joined(separator: " + "))", systemImage: "link")
+                        .font(.callout)
+                }
                 if plan["closure_finish"] == .bool(false) {
                     Text("Sólo se respaldan y retiran los finales publicados elegidos. Los raws y los intermedios se conservan.").font(.callout)
                 } else {
@@ -403,6 +424,7 @@ struct ProjectClosureSheet: View {
                 finalActions(plan)
                 releaseGroup("Copias raw", category: "raw", plan: plan)
                 releaseGroup("Intermedios", category: "intermediate", plan: plan)
+                releaseGroup("Audio de caché de Clipper", category: "intermediate", origin: "clipper_cache", plan: plan)
                 DisclosureGroup("Conservar") {
                     ForEach(Array((plan["preserved"].array + plan["retained_editors"].array).enumerated()), id: \.offset) { _, value in Text(value.string).font(.caption).textSelection(.enabled) }
                 }
@@ -466,8 +488,8 @@ struct ProjectClosureSheet: View {
             .padding(.horizontal, 7).padding(.vertical, 3)
             .background(palette.raised, in: palette.pill)
     }
-    private func releaseGroup(_ label: LocalizedStringKey, category: String, plan: JSONValue) -> some View {
-        let entries = plan["entries"].array.filter { $0["category"].string == category }
+    private func releaseGroup(_ label: LocalizedStringKey, category: String, origin: String = "", plan: JSONValue) -> some View {
+        let entries = plan["entries"].array.filter { $0["category"].string == category && $0["origin"].string == origin }
         return Group {
             if !entries.isEmpty {
                 DisclosureGroup {
@@ -494,7 +516,7 @@ struct ProjectClosureSheet: View {
                         }
                     }
                 }
-            } else if plan["closure_finish"].bool && plan["closure_inventory_checked"].bool {
+            } else if origin.isEmpty && plan["closure_finish"].bool && plan["closure_inventory_checked"].bool {
                 HStack {
                     Text(label)
                     Spacer()

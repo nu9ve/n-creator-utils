@@ -463,10 +463,12 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         finished = {'release:' + plan_id: plan}
         if plan.get('closure_project_id'):
             from .closure import archived_final_settings
-            finished['project-closure:' + plan['closure_project_id']] = archived_final_settings(catalog, plan, archive_guards)
-            if plan.get('closure_finish', True):
-                finished['project-state:' + plan['closure_project_id']] = {'state': 'finished', 'updated_at': now()}
-                finished['project-released:' + plan['closure_project_id']] = {'plan_id': plan_id, 'bytes': plan['bytes'], 'updated_at': now()}
+            # Linked projects close together, each with its own decisions; histories are not merged.
+            for member in plan.get('closure_group') or [plan['closure_project_id']]:
+                finished['project-closure:' + member] = archived_final_settings(catalog, plan, archive_guards, member)
+                if plan.get('closure_finish', True):
+                    finished['project-state:' + member] = {'state': 'finished', 'updated_at': now()}
+                    finished['project-released:' + member] = {'plan_id': plan_id, 'bytes': plan['bytes'], 'updated_at': now()}
         if plan['work_id']:
             removed = {entry['path'] for entry in plan['entries']}
             for asset in catalog.search():

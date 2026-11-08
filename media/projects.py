@@ -118,6 +118,8 @@ def overview(catalog, sessions, backend=None):
         touched = catalog.get('project-touch:' + key, '')
         item['deliveries'] = _deliveries(catalog, backend, item['project_id'])
         item['released'] = bool(item['project_id'] and catalog.get('project-released:' + item['project_id']))
+        item['related'] = _related(catalog, item['project_id'])
+        item['link_suggestions'] = _suggestions(catalog, item['project_id'])
         item.update(state=state, stage=stage, jobs=len(linked), open_jobs=open_jobs, cameras=sorted(item['cameras']), places=sorted(item['places']),
                     aliases=[name for name in names.get(item['project_id'], []) if name != item['project']],
                     updated_at=max([touched, seen] + [jobs[job][1] for job in linked if job in jobs]))
@@ -131,3 +133,24 @@ def _deliveries(catalog, backend, project_id):
     if not config or not config.get('finals'):
         return {'awaiting': 0, 'awaiting_names': [], 'published': 0, 'missing': 0, 'offline': False}
     return delivery_summary(delivery_states(catalog, backend, project_id, config))
+
+
+def _related(catalog, project_id):
+    """Projects confirmed as the same work (closure.related), with their titles."""
+    if not project_id:
+        return []
+    from .closure import related
+    return [{'id': pid, 'title': catalog.db.execute('SELECT title FROM projects WHERE id=?', (pid,)).fetchone()[0]}
+            for pid in related(catalog, project_id)]
+
+
+def _suggestions(catalog, project_id):
+    """Ids the engine suggests linking by name (closure.link_candidates); the person confirms in Proyectos."""
+    if not project_id:
+        return []
+    from .closure import link_candidates
+    from .common import MediaError
+    try:
+        return [c['id'] for c in link_candidates(catalog, project_id) if c['suggested'] and not c['linked']]
+    except MediaError:  # «finales» is a collection, not a project to link.
+        return []

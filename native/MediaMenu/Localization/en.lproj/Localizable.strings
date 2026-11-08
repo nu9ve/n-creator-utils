@@ -773,3 +773,17 @@
 "Ya está completo: todo verificado en el respaldo y nada por copiar ni retirar" = "Already complete: everything verified in the backup and nothing to copy or remove";
 "queda menos de un minuto" = "less than a minute left";
 "quedan ~%lld min" = "~%lld min left";
+"%@ · sugerido" = "%@ · suggested";
+"Audio de caché de Clipper" = "Clipper cache audio";
+"Cierre conjunto con %@: sus entregas cuentan para los requisitos y sus intermedios entran en la revisión. Cada entrega conserva su proyecto." = "Joint closeout with %@: their deliveries count toward the requirements and their intermediates enter the review. Each delivery keeps its project.";
+"Cierre conjunto: %@" = "Joint closeout: %@";
+"Desvinculando proyectos" = "Unlinking projects";
+"Desvincular" = "Unlink";
+"Es una regrabación del mismo trabajo" = "It is a re-recording of the same work";
+"Proyectos desvinculados; no se movió media" = "Projects unlinked; no media was moved";
+"Proyectos vinculados; no se movió media" = "Projects linked; no media was moved";
+"Vinculado con %@" = "Linked with %@";
+"Vinculando proyectos" = "Linking projects";
+"Vincular" = "Link";
+"Vincular con otro proyecto…" = "Link with another project…";
+"¿«%@» es una regrabación de este trabajo?" = "Is “%@” a re-recording of this work?";
