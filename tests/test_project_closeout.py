@@ -211,6 +211,11 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(service.call('snapshot', {'cards': False})['project_closures'][0]['id'], self.project_id)
         with self.assertRaises(MediaError): self.configure(finals=[{'volume_id': self.a['id'], 'path': '../escape.mov', 'role': 'horizontal'}])
 
+    def test_applied_closeout_leaves_no_progress_key(self):
+        plan = self.plan_close()
+        Service(self.catalog, self.backend).call('closure_apply', {'plan_id': plan['id'], 'digest': plan['digest'], 'confirm_discard': True})
+        self.assertIsNone(self.catalog.get('closure-progress:' + plan['id']))
+
     def test_review_reports_verification_bytes_without_copy_or_release(self):
         from uuid import uuid4
 

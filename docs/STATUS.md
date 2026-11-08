@@ -2,9 +2,53 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Animación de la vista de acción fuera del hilo principal · 2026-11-07
+
+En working tree, sin commit. Instalada como build **`0ced823923b6`** con la app cerrada por el usuario; la anterior quedó en `app-backups/1f844b31.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-205120-133870.app`, 29 módulos de `media/` idénticos al checkout y RPC instalado con catálogo temporal.
+
+Cambios, a partir de la medición de abajo:
+- En `ActionTravel`, los discos y el nombre son vistas fijas. Sólo la línea y los documentos que se mueven se dibujan, en un `Canvas(rendersAsynchronously:)` a 12 cuadros por segundo.
+- Esa animación y la barra indeterminada se pausan con la app inactiva y con «Reducir movimiento».
+- Cierre, liberación y recuperación borran su clave de progreso al terminar.
+
+Evidencia: Python **303 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización sin faltantes ni sobrantes, `git diff --check`. `--qa-skins` aislado en los 5 skins, con capturas revisadas: sólo fixtures, y cada skin conserva su estilo. Gótico pierde el brillo de sombra de los documentos. Medición con la build instalada y la misma revisión real de `terra-6-1` (skin Macintosh, sin aplicar), mismo método:
+
+| | Antes (`48779e1516c1`) | Después (`0ced823923b6`) |
+| --- | --- | --- |
+| Hilo principal en espera | 56 % y 73 % | 93 % y 98 % |
+| Bloqueado esperando a WindowServer (muestras) | 1477 y 128 | 0 y 0 |
+| Layout de la ventana (muestras) | 830 y 935 | 155 y 18 |
+| CPU de la app (`top`) | sin dato | 1–15 % |
+| Duración de la revisión | ~88 s | ~88 s (la pone MEDIA502) |
+
+WindowServer marcó 35–54 % de CPU, pero no hay medición previa con qué compararlo. Falta la impresión del usuario.
+
+## Medición de la lentitud al preparar la revisión · 2026-11-07
+
+Build **`48779e1516c1`**, skin Macintosh, revisión real de `terra-6-1`, sin aplicar. Se tomó `sample` del proceso de la app durante 10 s y 8 s, más `iostat` de los discos. Sólo lectura; las muestras quedaron en el scratchpad de la sesión.
+- **Duración:** unos 88 s. MEDIA502 es un disco duro USB y leyó a su máximo, ~116 MB/s, de forma sostenida; ESSD y la SD estuvieron casi quietos. El tiempo de la revisión lo pone la velocidad de MEDIA502.
+- **Hilo principal:** ~57 % en espera y ~43 % ocupado. Casi todo lo ocupado es Core Animation volcando cuadros: ~19 % bloqueado en `CA::Render::Context::wait_for_synchronize`, esperando a WindowServer para redibujar capas dibujadas por CPU, y ~10 % en el layout de la ventana (`NSHostingView.layout`) que dispara la `TimelineView` de `ActionTravel` a 30 cuadros por segundo.
+- **Descartado:** el hash corre en el proceso de Python y las llamadas al motor van en hilos aparte. Las lecturas de la app sobre pipes son esperas sin CPU.
+- **Conclusión:** la lentitud es la animación decorativa, que redibuja cada cuadro (línea punteada con desfase, documentos y texto) y relayoutea la ventana. No es la verificación.
+- **Defecto menor encontrado:** `closure_apply` deja su clave `closure-progress:<plan>` para siempre.
+- La primera medición se descartó: se disparó con esa clave vieja antes de que empezara la revisión.
+
+## Revisión de cierre real de Terra en la build instalada · 2026-11-07
+
+Build **`48779e1516c1`**. El usuario abrió `terra-6-1` y preparó la revisión. Su captura muestra todo en verde: seis verticales «Ya en respaldo · conservar en edición», y el horizontal, los títulos y las miniaturas «Ya en respaldo · sin cambios». Plan `17e58aaa` en estado `review`, leído en sólo lectura: 0 retiros, 0 copias, `closure_finish` activo, 28 fuentes y 14 entregas verificadas, scopes raw y `renders` de `terra-6-1` ausentes, sin bloqueos de Clipper. No se aplicó. El usuario reporta que la app se trabó mucho mientras se preparaba la revisión. **Sin diagnosticar:** el hash corre en el proceso de Python, no en el hilo principal; falta medir con `sample` durante una revisión.
+
+## Reconexión Sony aceptada en la build instalada · 2026-11-07
+
+Build **`48779e1516c1`**. El usuario conectó la SD `Untitled` de la α6400 y reportó que Actividad se veía bien. Lectura del catálogo en sólo lectura:
+- A las 23:08:45 UTC, la comprobación automática al montar cerró los cuatro trabajos `camera_action_required` de esa tarjeta: `f8b43f00` (27 oct), `8a7e94f3` y `4d9e2722` (3 nov) y `a7839591` (`prueba-sony-261107`). Cada uno tiene su evento `sony_card_checked` con `ready`, sin archivos reaparecidos, y quedó `completed` (etapa «Formato observado»). Nadie confirmó nada a mano.
+- `060b585d` (Baches) sigue `failed` con `FileNotFoundError`, como se esperaba.
+- Listado de la tarjeta, sin leer contenido: una grabación nueva `C0001.MP4` de 58,733,928 bytes (16:03 local), con su XML y su miniatura. Reutiliza el nombre del clip de prueba retirado (33,563,329 bytes), así que no cuenta como reaparecido y se conservó intacta. Ningún respaldo la incluye todavía.
+
+Con esto queda aceptado en la build instalada el cierre automático de los trabajos Sony al reconectar. Sigue pendiente, como prueba aparte, la durabilidad del retiro dentro del flujo normal de la app (ingreso → retiro → remontar sin formatear → «Retiro comprobado al reconectar»).
+
 ## Por publicar, vista de acción en todas las acciones largas y etapas Sony · 2026-11-07
 
-En working tree, sin commit, sobre `de2aecd`. **Sin instalar todavía**: la build instalada sigue siendo `ad51c488d304`.
+En working tree, sin commit, sobre `de2aecd`. Instalada como build **`48779e1516c1`** con la app cerrada por el usuario; la anterior quedó en `app-backups/a7e88c1f.app`. Firma estricta, binario instalado idéntico al artefacto `dist/Nu9veMedia-local-20261107-080517-daf7d1.app`, 29 módulos de `media/` idénticos al checkout (37 fuentes Python en el bundle). El RPC instalado respondió `action_progress` con un catálogo temporal. Runtime externo `/usr/bin/python3`, firma ad-hoc, `release_ready: false`.
 
 - **Por publicar** ([contrato](contracts/project-closeout-v1.md#por-publicar-en-proyectos--2026-11-07)): el motor (`closure.delivery_states`) dice por entrega si está por publicar, publicada en edición, movida a publicados, ya respaldada o no encontrada. Proyectos muestra «Terminado · N por publicar» y el filtro **Por publicar**. La hoja al reabrir lee la misma lista y propone la nueva ubicación de una entrega movida a `subidos`.
 - **Vista de acción** ([interacción](contracts/nu9ve-interaction-v1.md#acciones-largas)): `media/progress.py` da una medida por acción que no retrocede, con archivo actual (origen → destino) y log. La usan Ingreso (también «Respaldar publicados» desde Discos), Revisar liberación con **Pausar** y Copiar al SSD desde Biblioteca con **Pausar**, además del cierre.

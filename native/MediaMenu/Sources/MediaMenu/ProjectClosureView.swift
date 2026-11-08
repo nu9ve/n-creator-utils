@@ -60,7 +60,8 @@ extension Model {
     private func watchClosureProgress(_ id: JSONValue) -> Task<Void, Never> {
         Task { @MainActor in
             while !Task.isCancelled {
-                if let value = try? await self.reader?.call("closure_progress", ["plan_id": id]), !Task.isCancelled {
+                // A finished action removes its key; keep the last measure instead of blanking the view.
+                if let value = try? await self.reader?.call("closure_progress", ["plan_id": id]), !Task.isCancelled, value != .object([:]) {
                     self.closureProgress = value
                 }
                 try? await Task.sleep(for: .milliseconds(500))

@@ -151,90 +151,60 @@ struct ActionProgressView: View {
 
 /// The file in hand travelling from one disk to the other (or through the reader, when verifying).
 /// Drawn by the skin; static under Reduce Motion.
+///
+/// Measured 2026-11-07 (STATUS): a 30 fps TimelineView that rebuilt the whole travel kept the main thread ~43 % busy,
+/// mostly waiting on WindowServer for CPU-drawn layers and relayouting the window. Now the disks and the file name are
+/// plain views that change only with the state, and only the moving dashes and documents are drawn, at 12 fps, by a
+/// Canvas that renders off the main thread. It also stops while the app is inactive.
 struct ActionTravel: View {
     @Environment(\.creatorPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.controlActiveState) private var activeState
     let state: ActionProgressState
+    static let framesPerSecond = 12.0
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
-            let time = reduceMotion ? 0.35 : timeline.date.timeIntervalSinceReferenceDate
-            if palette.skin == .terminal { terminal(time) } else { drawn(time) }
+        Group {
+            if palette.skin == .terminal {
+                TimelineView(.animation(minimumInterval: 1 / Self.framesPerSecond, paused: paused)) { timeline in
+                    terminal(paused ? 0.35 : timeline.date.timeIntervalSinceReferenceDate)
+                }
+            } else {
+                drawn
+            }
         }
         .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 
+    private var paused: Bool { reduceMotion || activeState == .inactive }
     private var releasing: Bool { state.action == "release" }
     private var verifying: Bool { state.kind == .verify }
     private var name: String { state.fileName.isEmpty ? "…" : state.fileName }
 
-    private func drawn(_ time: Double) -> some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width, mid = geometry.size.height / 2 - 8
-            let left = CGPoint(x: 60, y: mid), right = CGPoint(x: width - 60, y: mid)
+    private var drawn: some View {
+        HStack(spacing: 0) {
+            endpoint(icon: verifying ? "externaldrive" : "externaldrive.fill", label: state.from)
             ZStack {
-                path(from: left, to: right, time: time)
-                // The file in hand is named once, above the way; small documents travel along it.
+                TimelineView(.animation(minimumInterval: 1 / Self.framesPerSecond, paused: paused)) { timeline in
+                    TravelCanvas(skin: palette.skin, palette: palette, releasing: releasing,
+                                 time: paused ? 0.35 : timeline.date.timeIntervalSinceReferenceDate)
+                }
+                .frame(height: 30)
+                .offset(y: -8)
+                // The file in hand is named once, above the way.
                 Text(verbatim: name).font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                    .foregroundStyle(palette.ink).frame(maxWidth: max(80, right.x - left.x - 110))
-                    .position(x: width / 2, y: mid - 30)
-                ForEach(0..<3) { index in
-                    let phase = (time * 0.45 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
-                    chip("", phase: phase)
-                        .position(x: left.x + 46 + (right.x - left.x - 92) * phase, y: mid - 5 * sin(phase * .pi))
-                        .opacity(fade(phase, releasing: releasing))
-                }
-                endpoint(icon: verifying ? "externaldrive" : "externaldrive.fill", label: state.from).position(left)
-                if !verifying {
-                    endpoint(icon: releasing ? "checkmark.seal" : "externaldrive.fill.badge.checkmark",
-                             label: releasing ? String(localized: "liberado") : state.to).position(right)
-                } else {
-                    endpoint(icon: "checkmark.shield", label: String(localized: "huellas")).position(right)
-                }
+                    .foregroundStyle(palette.ink).padding(.horizontal, 12)
+                    .offset(y: -38)
+            }
+            if !verifying {
+                endpoint(icon: releasing ? "checkmark.seal" : "externaldrive.fill.badge.checkmark",
+                         label: releasing ? String(localized: "liberado") : state.to)
+            } else {
+                endpoint(icon: "checkmark.shield", label: String(localized: "huellas"))
             }
         }
-    }
-
-    /// Releasing fades a file as it goes; copying keeps it whole to the other disk.
-    private func fade(_ phase: Double, releasing: Bool) -> Double {
-        let edge = min(phase, 1 - phase) * 6
-        return min(1, edge) * (releasing ? 1 - phase * 0.7 : 1)
-    }
-
-    @ViewBuilder private func path(from: CGPoint, to: CGPoint, time: Double) -> some View {
-        let line = Path { $0.move(to: CGPoint(x: from.x + 30, y: from.y)); $0.addLine(to: CGPoint(x: to.x - 30, y: to.y)) }
-        switch palette.skin {
-        case .classicMac:
-            // Marching ants, the 1-bit selection.
-            line.stroke(palette.ink, style: StrokeStyle(lineWidth: 1, dash: [3, 3], dashPhase: CGFloat(-time * 12)))
-        case .win9x:
-            line.stroke(Win9xBevel.lightShadow, style: StrokeStyle(lineWidth: 2, dash: [1, 3]))
-        case .gothic:
-            line.stroke(palette.accent.opacity(0.5), style: StrokeStyle(lineWidth: 1)).shadow(color: palette.accent.opacity(0.6), radius: 4)
-        default:
-            line.stroke(palette.line, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 5], dashPhase: CGFloat(-time * 20)))
-        }
-    }
-
-    @ViewBuilder private func chip(_ text: String, phase: Double) -> some View {
-        let label = HStack(spacing: 4) {
-            Image(systemName: "doc.fill").font(.system(size: 10))
-            if !text.isEmpty { Text(verbatim: text).font(.system(size: 10, weight: .medium)).lineLimit(1).truncationMode(.middle) }
-        }
-        .padding(.horizontal, 6).padding(.vertical, 3)
-        .frame(maxWidth: text.isEmpty ? 26 : 180)
-        switch palette.skin {
-        case .classicMac:
-            label.foregroundStyle(palette.ink).background(Color.white).overlay(Rectangle().stroke(palette.ink, lineWidth: 1))
-        case .win9x:
-            // The paper that flew between folders.
-            label.foregroundStyle(Color.black).background(Color.white).overlay(Win9xBevel())
-        case .gothic:
-            label.foregroundStyle(palette.ink).background(palette.raised, in: Rectangle())
-                .overlay(Rectangle().stroke(palette.accent.opacity(0.6), lineWidth: 1)).shadow(color: palette.accent.opacity(0.4), radius: 3)
-        default:
-            label.foregroundStyle(palette.onAccent).background(palette.accent, in: palette.pill)
-        }
+        .frame(maxHeight: .infinity)
     }
 
     private func endpoint(icon: String, label: String) -> some View {
@@ -263,10 +233,79 @@ struct ActionTravel: View {
     }
 }
 
+/// Only what moves: the way between the disks and three small documents on it, in each skin's era.
+private struct TravelCanvas: View {
+    let skin: ThemeSkin
+    let palette: CreatorPalette
+    let releasing: Bool
+    let time: Double
+
+    var body: some View {
+        Canvas(rendersAsynchronously: true) { context, size in
+            let mid = size.height / 2, inset: CGFloat = 8
+            var way = Path()
+            way.move(to: CGPoint(x: inset, y: mid)); way.addLine(to: CGPoint(x: size.width - inset, y: mid))
+            switch skin {
+            case .classicMac:
+                // Marching ants, the 1-bit selection.
+                context.stroke(way, with: .color(palette.ink), style: StrokeStyle(lineWidth: 1, dash: [3, 3], dashPhase: CGFloat(-time * 12)))
+            case .win9x:
+                context.stroke(way, with: .color(Win9xBevel.lightShadow), style: StrokeStyle(lineWidth: 2, dash: [1, 3]))
+            case .gothic:
+                context.stroke(way, with: .color(palette.accent.opacity(0.5)), lineWidth: 1)
+            default:
+                context.stroke(way, with: .color(palette.line), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 5], dashPhase: CGFloat(-time * 20)))
+            }
+            let span = size.width - 2 * inset - 26
+            for index in 0..<3 {
+                let phase = (time * 0.45 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
+                let edge = min(1, min(phase, 1 - phase) * 6)
+                let center = CGPoint(x: inset + 13 + span * phase, y: mid - 5 * sin(phase * .pi))
+                var chip = context
+                // Releasing fades a file as it goes; copying keeps it whole to the other disk.
+                chip.opacity = edge * (releasing ? 1 - phase * 0.7 : 1)
+                document(&chip, at: center)
+            }
+        } symbols: {
+            Image(systemName: "doc.fill").font(.system(size: 10)).tag(0)
+        }
+    }
+
+    private func document(_ context: inout GraphicsContext, at center: CGPoint) {
+        let rect = CGRect(x: center.x - 13, y: center.y - 9, width: 26, height: 18)
+        var ink = palette.ink
+        switch skin {
+        case .classicMac:
+            context.fill(Path(rect), with: .color(.white))
+            context.stroke(Path(rect), with: .color(palette.ink), lineWidth: 1)
+        case .win9x:
+            // The paper that flew between folders, with its bevel.
+            context.fill(Path(rect), with: .color(.white))
+            context.stroke(Path { $0.move(to: CGPoint(x: rect.minX, y: rect.maxY)); $0.addLine(to: rect.origin); $0.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)) },
+                           with: .color(Win9xBevel.highlight), lineWidth: 1)
+            context.stroke(Path { $0.move(to: CGPoint(x: rect.maxX, y: rect.minY)); $0.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY)); $0.addLine(to: CGPoint(x: rect.minX, y: rect.maxY)) },
+                           with: .color(Win9xBevel.darkShadow), lineWidth: 1)
+            ink = .black
+        case .gothic:
+            context.fill(Path(rect), with: .color(palette.raised))
+            context.stroke(Path(rect), with: .color(palette.accent.opacity(0.6)), lineWidth: 1)
+        default:
+            context.fill(Path(roundedRect: rect, cornerRadius: 9), with: .color(palette.accent))
+            ink = palette.onAccent
+        }
+        if let icon = context.resolveSymbol(id: 0) {
+            var tinted = context
+            tinted.addFilter(.colorMultiply(ink))
+            tinted.draw(icon, at: center)
+        }
+    }
+}
+
 /// The one bar of a long action, drawn by the skin. Nil fraction: working, amount unknown.
 struct SkinProgressBar: View {
     @Environment(\.creatorPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.controlActiveState) private var activeState
     let fraction: Double?
 
     var body: some View {
@@ -277,7 +316,7 @@ struct SkinProgressBar: View {
                     .font(.system(size: 12, design: .monospaced)).foregroundStyle(palette.accentText)
             } else {
                 GeometryReader { geometry in
-                    TimelineView(.animation(minimumInterval: 1 / 30, paused: fraction != nil || reduceMotion)) { timeline in
+                    TimelineView(.animation(minimumInterval: 1 / ActionTravel.framesPerSecond, paused: fraction != nil || reduceMotion || activeState == .inactive)) { timeline in
                         let width = geometry.size.width
                         let shown = fraction.map { CGFloat($0) * width }
                         let sweep = CGFloat((timeline.date.timeIntervalSinceReferenceDate * 0.6).truncatingRemainder(dividingBy: 1))

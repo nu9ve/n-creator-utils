@@ -14,15 +14,15 @@ Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
 | 4 | Recuperación física y rendimiento | Tras asegurar material de prueba, desconexión/reconexión y reanudación controladas, popup/remount, ExFAT/HFS+, tamaños reales y contención con captura. No interrumpir deliberadamente la única copia de las grabaciones nuevas. |
 | 5 | Cobertura de almacenamiento real | Analizar MEDIA502 y `coverage --no-hash` de ESSD contra MEDIA; informe orientativo antes de elegir carpeta/proyecto. Liberación exige hash actual, no coincidencia de tamaño. [Política](docs/features/replication-policy.md). |
 
-Última build instalada registrada `ad51c488d304` (7 noviembre), con cierre editorial, vista de acción del cierre y comprobación Sony automática. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
+Última build instalada registrada `0ced823923b6` (7 noviembre), con por publicar, vista de acción en todas las acciones largas (animación fuera del hilo principal) y etapas Sony observadas. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
 
 La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
 retiro ya está registrado o falta el formato. En la prueba física de un clip
 el primer retiro se revirtió al reconectar. El retiro repetido persistió tras
 desmontar y montar en el mismo lector. El usuario confirmó que el formato
 en cámara funcionó. La comprobación al reconectar quedó automatizada en
-la build instalada. Falta reconectar la misma SD para
-aceptar el cierre en Actividad. La durabilidad del retiro en el flujo normal
+la build instalada. La reconexión del 7 de noviembre cerró ese trabajo
+en Actividad. La durabilidad del retiro en el flujo normal
 queda como prueba física aparte.
 [Evidencia Sony](docs/sony-validation.md#prueba-física-con-un-clip--2026-11-07).
 El cierre agrupa
@@ -31,7 +31,7 @@ detectar el primer vertical publicado. Falta aceptación con un proyecto real,
 incluida la selección por grupo. La notificación opcional por varios verticales
 con más de un día queda por definir. [Evidencia](docs/STATUS.md).
 
-Entrega del 7 noviembre en working tree, aún sin instalar: marca y filtro **Por publicar**, vista de acción en ingreso, liberación y recuperación, y etapas Sony observadas. Falta la aceptación física, en este orden: reconectar la Sony (los cuatro trabajos `camera_action_required` de esa tarjeta deberían pasar a «Formato observado»), Terra en Proyectos y su marca, una liberación pequeña con Pausar en Cristal y en un skin cuadrado, recuperar un raw de MEDIA502 y los clics en skins. Decisiones abiertas del usuario: diseño de proyectos relacionados y si la comprobación al reconectar debe cerrar también `060b585d`. [Evidencia](docs/STATUS.md).
+Entrega del 7 noviembre en working tree, instalada como `48779e1516c1`: marca y filtro **Por publicar**, vista de acción en ingreso, liberación y recuperación, y etapas Sony observadas. Reconexión Sony aceptada: los cuatro trabajos de la tarjeta cerraron solos ([evidencia](docs/STATUS.md#reconexión-sony-aceptada-en-la-build-instalada--2026-11-07)). Falta la aceptación física, en este orden: Terra en Proyectos y su marca, una liberación pequeña con Pausar en Cristal y en un skin cuadrado, recuperar un raw de MEDIA502 y los clics en skins. Decisiones abiertas del usuario: diseño de proyectos relacionados y si la comprobación al reconectar debe cerrar también `060b585d`. [Evidencia](docs/STATUS.md).
 
 Pendiente de producto solicitado el 6 noviembre: selector de todas las fuentes/capturas pendientes para un mismo proyecto, con planes por fuente y reglas claras; no está resuelto por las sugerencias de nombres.
 
