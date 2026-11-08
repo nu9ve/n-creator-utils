@@ -327,6 +327,26 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     if folders:
         plan['category_folders'] = folders
         plan['category_work'] = {c: rules['categories'][c]['work_kinds'] for c in folders if 'work_kinds' in rules['categories'][c]}
+    if mission_indexes and active_work:
+        # A drone still already in the consumer's work root (same name, size, EXIF time and serial) is not copied
+        # again: the work copy is that existing file, and the units map points to it.
+        from .missions import WorkPresence
+        flows = {f['id']: f for f in rules['missions']}
+        presence = {flow_id: WorkPresence(active_work, flows[flow_id]) for flow_id in mission_indexes if flows[flow_id].get('work_root')}
+        by_path = {f['path']: f for f in files}
+        for unit in units:
+            index = presence.get((unit.get('mission') or {}).get('flow'))
+            if not index:
+                continue
+            found = {}
+            for path in unit['paths']:
+                record = by_path[path]
+                if kind_of(path) in flows[unit['mission']['flow']]['work_kinds'] and record.get('photo'):
+                    existing = index.find(Path(path).name, record['stamp']['size'], record['photo'])
+                    if existing:
+                        found[path] = existing
+            if found:
+                unit['work_existing'] = found
     if mission_indexes:
         # Frozen per plan: the registry version it matched against and the flow's folders.
         flows = {f['id']: f for f in rules['missions']}
@@ -336,7 +356,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
                                       'layout': {k: flows[flow_id][k] for k in ('archive_folder', 'work_folder', 'work_kinds')},
                                       'units': {state: sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id and u['mission']['state'] == state)
                                                 for state in ('matched', 'none', 'pending_export')},
-                                      'likely': sum(1 for u in units if (u.get('mission') or {}).get('likely_mission'))}
+                                      'likely': sum(1 for u in units if (u.get('mission') or {}).get('likely_mission')),
+                                      'work_existing': sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id and u.get('work_existing'))}
                             for flow_id, index in mission_indexes.items()}
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)

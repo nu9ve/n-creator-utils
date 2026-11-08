@@ -2,6 +2,24 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Dron: primera prueba en la app y ajustes · 2026-11-08
+
+El usuario probó la build `b657310aab11` con la SD `MAVIC200` y reportó:
+- Inicio decía «Canon» por la carpeta vacía `DCIM/100CANON`.
+- Leer la SD tardaba mucho.
+- Los filtros repetían 1,342 en Principal, Todos y Dron, sin ninguno por misión.
+- Las fotos de subaereo no traían proyecto.
+- Faltaba resolver los duplicados en el trabajo.
+
+Corregido en working tree, sin commit. Instalada como **`42d4f8e1853b`**; la anterior quedó en `app-backups/f1d764a9.app`. Firma estricta, binario idéntico a `dist/Nu9veMedia-local-20261108-032856-ed2961.app` y `media/` idéntico al checkout.
+- **Lectura:** el lector JPEG recorre los encabezados de segmento con `seek` y sólo lee APP1, en lugar del primer MB. El escaneo de la SD pasa de 72.5 s a 7.1 s (puede haber caché) y el plan completo de la SD, de 76 s a 14 s.
+- **Tarjeta:** `card_hint` clasifica primero con las carpetas que tienen contenido; `DCIM/1xxMEDIA` + `MISC` cuenta como DJI. `card_device` lee el EXIF de una sola foto. En la SD real: `dji`, «DJI Mavic Air 2», recomendación `drone_missions` (0.06 s). Una tarjeta formateada conserva su familia por las carpetas vacías.
+- **Inspección:** `discover` devuelve misión o no con el registro del archivo, si está en línea. La app pone el proyecto del flujo (`subaereo`) a las fotos de misión y muestra el plan de la misión, o «Falta el export · parece de misión», en cada miniatura.
+- **Filtros:** De misión, Esperan export y Sin misión van primero. Un filtro por tipo que repite el conteo de Principal se oculta y «Todos los archivos» se quitó, porque Auxiliares lo cubre.
+- **Sin duplicados:** `WorkPresence` busca en la raíz del consumidor (`work_root`: `atlas-subaereo`, sin carpetas `_*`) por nombre original y tamaño, y confirma con la hora EXIF y el serial; nunca por nombre solo. Lo que ya está no se copia al trabajo, y `units.ndjson` apunta a esa copia (`102MEDIA/DJI_0001.JPG`). El archivo recibe JPG+DNG igual. En el plan real de la SD, 572 ya están (507 de misión de noviembre y 65 de agosto) y sólo se copiarían **770** al trabajo, los pares nuevos que contó Atlas.
+
+Evidencia: Python **344 OK** (5 pruebas nuevas en `test_mission_match`); Swift **25/25**, localización completa; `git diff --check`. **Pendiente:** aceptación del usuario en la app; luego el plan A11, que el usuario revisa antes de aplicar.
+
 ## Dron para Atlas, paso 3: misión o no, trabajo JPG, `units.ndjson` y UI · 2026-11-08
 
 En working tree, sin commit. Instalada como build **`b657310aab11`** con la app cerrada; la anterior quedó en `app-backups/850e78b1.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261108-030421-a775e7.app` y módulos de `media/` idénticos al checkout. El motor instalado responde a `missions_review`, con Descargas vacía y el registro en 65 planes, y a `devices` con `nu9ve-default`. Falta probarla desde la app. A12 más la parte visible de A13, con las [decisiones del usuario](contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08):

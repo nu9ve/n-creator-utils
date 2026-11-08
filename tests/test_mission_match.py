@@ -106,10 +106,45 @@ class MissionMatchTests(DroneFixture):
         mission = self.unit(self.plan())['mission']
         self.assertEqual((mission['state'], mission['captureID'], mission['sessionID']), ('matched', 'C5', 'RUN'))
 
+    def test_a_still_already_in_the_work_root_is_not_copied_again(self):
+        from tests.test_devices import jpeg
+        self.registry(self.record())
+        old = self.work / '001_proyectos/atlas-subaereo/102MEDIA'
+        old.mkdir(parents=True)
+        (old / 'DJI_0001.JPG').write_bytes(jpeg())
+        plan = self.plan()
+        unit = self.unit(plan)
+        self.assertEqual(unit['work_existing'], {'DCIM/101MEDIA/DJI_0001.JPG': '001_proyectos/atlas-subaereo/102MEDIA/DJI_0001.JPG'})
+        self.assertIsNone(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'])
+        self.assertEqual(plan['missions']['subaereo']['work_existing'], 1)
+        self.apply(plan)
+        [line] = self.units_map()
+        self.assertEqual(line['work']['jpg'], '102MEDIA/DJI_0001.JPG')
+        self.assertFalse((self.work / '001_proyectos/atlas-subaereo/misiones').exists())
+
+    def test_same_name_with_another_capture_is_still_copied(self):
+        from tests.test_devices import jpeg
+        self.registry(self.record())
+        old = self.work / '001_proyectos/atlas-subaereo/101MEDIA'
+        old.mkdir(parents=True)
+        (old / 'DJI_0001.JPG').write_bytes(jpeg(when='2026:05:30 10:00:00'))
+        plan = self.plan()
+        self.assertNotIn('work_existing', self.unit(plan))
+        self.assertIsNotNone(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'])
+
     def test_discover_tells_the_app_which_device_needs_no_question(self):
-        units = self.service.call('discover', {'source': str(self.source)})['units']
-        device = next(u for u in units if u['paths'][0].startswith('DCIM/101MEDIA/'))['device']
-        self.assertEqual((device['category'], device['requires_confirmation'], device['source']), ('dji-drone', False, 'MAVICAIR2'))
+        self.registry(self.record())
+        units = self.service.call('discover', {'source': str(self.source), 'archive': 'MEDIA'})['units']
+        unit = next(u for u in units if u['paths'][0].startswith('DCIM/101MEDIA/'))
+        self.assertEqual((unit['device']['category'], unit['device']['requires_confirmation'], unit['device']['source']), ('dji-drone', False, 'MAVICAIR2'))
+        self.assertEqual((unit['mission']['state'], unit['mission']['project']), ('matched', 'subaereo'))
+        offline = self.service.call('discover', {'source': str(self.source)})['units']
+        self.assertNotIn('mission', next(u for u in offline if u['paths'][0].startswith('DCIM/101MEDIA/')))
+
+    def test_card_hint_names_the_drone_not_an_empty_residue_folder(self):
+        from media.volumes import card_hint
+        hint = card_hint(self.source, self.catalog)
+        self.assertEqual((hint['family'], hint['recommendation'], hint['device']['label']), ('dji', 'drone_missions', 'DJI Mavic Air 2'))
 
 
 if __name__ == '__main__':

@@ -241,7 +241,7 @@ struct CardSuggestion: View {
                 Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(palette.warning)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(card["name"].string).font(.headline)
-                    Text(model.familyLabel(hint["family"].string) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
+                    Text(model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()

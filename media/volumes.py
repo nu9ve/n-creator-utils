@@ -170,11 +170,39 @@ CARD_SIGNATURES = (
     ('gopro', lambda top, second: any(name.endswith('gopro') for name in second.get('dcim', set()))),
     ('insta360', lambda top, second: any(name.endswith('insta360') or name.startswith('camera') for name in second.get('dcim', set()))
                                      and 'misc' in top),
-    ('dji', lambda top, second: any(name.startswith('dji') for name in top | second.get('dcim', set()))),
+    ('dji', lambda top, second: any(name.startswith('dji') for name in top | second.get('dcim', set()))
+                                or 'misc' in top and any(re.fullmatch(r'\d{3}media', name) for name in second.get('dcim', set()))),
     ('canon', lambda top, second: any(name.endswith('canon') or name.startswith('eos') for name in second.get('dcim', set()))),
 )
 RECOMMENDATIONS = {'sony': 'sony_format_in_camera', 'h6': 'audio_needs_work_disk', 'dji': 'dji_choose_category',
                    'stalker': 'stalker_batch', 'gopro': 'archive_and_work', 'insta360': 'dji_choose_category'}
+
+
+def card_device(root, catalog=None, limit=64):
+    """Device of the first still under DCIM (one bounded EXIF read; no deep scan on insertion)."""
+    from .photo_meta import PHOTO_SUFFIXES, read
+    from .recipes import recipe, resolve
+    dcim = next((Path(root) / n for n in ('DCIM', 'dcim') if (Path(root) / n).is_dir()), None)
+    if dcim is None:
+        return None
+    seen = 0
+    try:
+        folders = sorted(e.path for e in os.scandir(dcim) if e.is_dir(follow_symlinks=False) and not e.name.startswith('.'))
+        for folder in folders:
+            for entry in sorted(os.scandir(folder), key=lambda e: e.name):
+                seen += 1
+                if seen > limit:
+                    return None
+                if entry.is_file(follow_symlinks=False) and Path(entry.name).suffix.lower() in PHOTO_SUFFIXES:
+                    found = resolve(read(entry.path), catalog, recipe(catalog))
+                    if not found:
+                        continue
+                    flow = next((f for f in recipe(catalog).get('missions') or [] if found.get('category') in f.get('devices', [])), None)
+                    return {k: found.get(k) for k in ('make', 'model', 'source', 'label', 'category', 'requires_confirmation')} | \
+                        ({'mission_flow': flow['label']} if flow and not found['requires_confirmation'] else {})
+    except OSError:
+        return None
+    return None
 
 
 def card_hint(root, catalog=None, identity=None):
@@ -191,7 +219,13 @@ def card_hint(root, catalog=None, identity=None):
             for entry in entries:
                 if entry.name.lower() in {'dcim', 'private'} and entry.is_dir(follow_symlinks=False):
                     second[entry.name.lower()] = names(entry.path)
-    family = next((key for key, matches in CARD_SIGNATURES if matches(top, second)), 'generic')
+    # Folders with content decide first: an empty residue (100CANON left by another camera) must not win over
+    # 101MEDIA full of photos. A freshly formatted card (only empty folders) still gets its family.
+    filled = {key: {n for n in values if names(os.path.join(root, key, n)) or not os.path.isdir(os.path.join(root, key, n))}
+              for key, values in second.items()}
+    family = next((key for key, matches in CARD_SIGNATURES if matches(top, filled)), None) or \
+        next((key for key, matches in CARD_SIGNATURES if matches(top, second)), 'generic')
+    device = card_device(root, catalog)
     try:
         usage = shutil.disk_usage(root)
         used, capacity = usage.used, usage.total
@@ -199,6 +233,11 @@ def card_hint(root, catalog=None, identity=None):
         used = capacity = 0
     hint = {'family': family, 'recommendation': RECOMMENDATIONS.get(family, 'archive_and_work'),
             'used_bytes': used, 'capacity_bytes': capacity}
+    if device:
+        hint['device'] = device
+        if device.get('category') and not device.get('requires_confirmation'):
+            # A known device needs no category question; a mission flow separates its stills.
+            hint['recommendation'] = 'drone_missions' if device.get('mission_flow') else 'archive_and_work'
     if catalog is not None and identity and identity.get('volume_uuid'):
         row = catalog.db.execute(
             "SELECT json_extract(unit.value,'$.project') AS project, json_extract(unit.value,'$.profile') AS profile "

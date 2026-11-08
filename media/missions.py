@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat as stat_module
 
 from .common import MediaError, Tree, content_stamp, digest, now, require
 from .recipes import mission_flow, recipe
@@ -505,7 +506,8 @@ def unit_entries(catalog, plan, map_rel):
             if not label:
                 continue
             row = catalog.db.execute('SELECT sha256 FROM members WHERE job_id=? AND relative_path=?', (plan['id'], path)).fetchone()
-            work_rel = destination_path(work, plan, unit, path) if work else None
+            # A still that was already in the work root keeps that location instead of a second copy.
+            work_rel = (unit.get('work_existing') or {}).get(path) or (destination_path(work, plan, unit, path) if work else None)
             member[label] = {'path': path, 'sha256': row[0] if row else None,
                              'archive': destination_path(archive, plan, unit, path),
                              'work': (work_rel[len(base) + 1:] if work_rel and work_rel.startswith(base + '/') else work_rel)}
@@ -562,3 +564,38 @@ def write_units_map(catalog, backend, plan):
             require(tree.read_bytes(rel) == data, 'checksum_mismatch', 'units map did not read back identical')
         catalog.set('units-map-pending:' + plan['id'], None)
     return 'written'
+
+
+# --- Work copies already present for the consumer (no duplicates) -------------------------------------------
+
+class WorkPresence:
+    """Stills already in the consumer's work root (e.g. ESSD atlas-subaereo/101MEDIA), found by original name +
+    size and confirmed by EXIF capture time + serial. Never by name alone. Folders starting with `_` are skipped."""
+
+    def __init__(self, work_record, flow):
+        from .photo_meta import PHOTO_SUFFIXES
+        self.root = Path(work_record['root'])
+        self.base = work_record['prefix'].strip('/') + '/' + flow['work_root'].strip('/')
+        self.by_name = {}
+        top = self.root / self.base
+        for folder, dirs, names in os.walk(top):
+            dirs[:] = [d for d in dirs if not d.startswith(('_', '.'))]
+            for name in names:
+                if Path(name).suffix.lower() in PHOTO_SUFFIXES and not name.startswith('._'):
+                    path = Path(folder) / name
+                    try:
+                        st = path.lstat()
+                    except OSError:
+                        continue
+                    if not stat_module.S_ISREG(st.st_mode):
+                        continue  # never follow a link out of the work root
+                    size = st.st_size
+                    self.by_name.setdefault((name.upper(), size), []).append(path)
+
+    def find(self, original_name, size, photo):
+        from .photo_meta import read
+        for path in self.by_name.get((original_name.upper(), size), []):
+            other = read(path)
+            if other.get('captured_at') == photo.get('captured_at') and other.get('serial') == photo.get('serial') and photo.get('serial'):
+                return str(path.relative_to(self.root))
+        return None

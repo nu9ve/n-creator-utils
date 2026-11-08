@@ -265,6 +265,12 @@ struct UnitPreview: View {
                     .font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
                 Text(bytesLabel(unit.bytes) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                if unit.missionState == "matched" {
+                    Label(unit.missionPlan, systemImage: "map").font(.caption2).lineLimit(1).truncationMode(.middle).help("Foto de misión")
+                } else if unit.missionState == "pending_export" {
+                    Label(unit.missionLikely ? "Falta el export · parece de misión" : "Falta el export", systemImage: "clock.badge.questionmark")
+                        .font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+                }
             }
             if unit.isSupport {
                 Text("Datos de cámara incluidos · sin proyecto propio").font(.caption).foregroundStyle(.secondary)

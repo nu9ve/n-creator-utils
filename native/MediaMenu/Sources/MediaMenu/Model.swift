@@ -24,6 +24,10 @@ struct DraftUnit: Identifiable, Equatable {
     /// Device decided from the file's own EXIF (recipe or confirmed registry); empty when it still needs a choice.
     var deviceCategory = ""
     var deviceLabel = ""
+    /// Mission or not from the archive's registry while inspecting (matched / none / pending_export); the plan decides again.
+    var missionState = ""
+    var missionPlan = ""
+    var missionLikely = false
     var previewPath: String? {
         if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
         return paths.first { path in
@@ -415,8 +419,14 @@ enum OperationScope { case ingest, library, space, settings, source }
     func familyLabel(_ raw: String) -> String {
         ["sony": "Sony", "h6": "Zoom H6", "gopro": "GoPro", "dji": "DJI", "insta360": "Insta360", "canon": "Canon", "stalker": "Stalker"][raw] ?? String(localized: "Tarjeta")
     }
+    /// The device read from one photo (recipe or confirmed registry) names the card better than its folders.
+    func cardKindLabel(_ hint: JSONValue) -> String {
+        let device = hint["device"]["label"].string.isEmpty ? hint["device"]["source"].string : hint["device"]["label"].string
+        return device.isEmpty ? familyLabel(hint["family"].string) : device
+    }
     func recommendationLabel(_ raw: String) -> String {
         switch raw {
+        case "drone_missions": return String(localized: "Fotos de dron: separa las de misión y copia sólo sus JPG para editar")
         case "sony_format_in_camera": return String(localized: "Respaldo y copia para editar; al terminar, formatea en la cámara")
         case "audio_needs_work_disk": return String(localized: "Audio: conecta el SSD de trabajo o confirma sólo respaldo")
         case "dji_choose_category": return String(localized: "Elige dron, 360 o action en Contenido antes de revisar")
@@ -656,6 +666,13 @@ enum OperationScope { case ingest, library, space, settings, source }
                 unit.deviceCategory = device["requires_confirmation"].bool ? "" : device["category"].string
                 unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
                 if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
+                let mission = value["mission"]
+                unit.missionState = mission["state"].string; unit.missionPlan = mission["plan_name"].string
+                unit.missionLikely = mission["likely_mission"].bool
+                // A mission photo arrives with the flow's project (e.g. subaereo); the person can still change it.
+                if existing[value["id"].string] == nil && unit.project.isEmpty && !mission["project"].string.isEmpty {
+                    unit.project = mission["project"].string
+                }
                 unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
                 unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
                 unit.manifestPreviewPath = value["preview_path"].string
@@ -860,6 +877,9 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "": return units.filter { !$0.isSupport }
         case "all": return units
         case "dji": return units.filter { $0.detectedCamera.lowercased().hasPrefix("dji") }
+        case "mission": return units.filter { $0.missionState == "matched" }
+        case "no_mission": return units.filter { $0.missionState == "none" }
+        case "pending_export": return units.filter { $0.missionState == "pending_export" }
         default: return units.filter { $0.displayCategory == typeFilter }
         }
     }
@@ -996,7 +1016,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             let center = UNUserNotificationCenter.current()
             guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
             let content = UNMutableNotificationContent()
-            content.title = card.map { familyLabel($0["hint"]["family"].string) + " · " + $0["name"].string } ?? String(localized: "Tarjeta detectada")
+            content.title = card.map { cardKindLabel($0["hint"]) + " · " + $0["name"].string } ?? String(localized: "Tarjeta detectada")
             content.body = card.map { recommendationLabel($0["hint"]["recommendation"].string) } ?? String(localized: "Abre nüün para revisar el plan")
             try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }

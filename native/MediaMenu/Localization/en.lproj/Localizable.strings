@@ -623,7 +623,6 @@
 "Restante aproximado: %lld min" = "Estimated remaining: %lld min";
 "Resultado" = "Result";
 "Retomar otro ingreso de esta sesión" = "Resume another ingest from this session";
-"Todos los archivos" = "All files";
 "Entrada → Flujo → Resultado. El botón final autoriza el plan mostrado, incluida la limpieza verificada que hayas elegido. Las excepciones se resuelven en la misma pantalla." = "Input → Workflow → Result. The final button authorizes the displayed plan, including the verified cleanup you selected. Exceptions are resolved on the same screen.";
 "Finales publicados respaldados" = "Published finals backed up";
 "Finales respaldados" = "Finals backed up";
@@ -819,3 +818,11 @@
 "Registro de misiones actualizado: %lld registros; Descargas quedó limpia" = "Mission registry updated: %lld records; Downloads is clear";
 "Traen %lld registros nuevos o actualizados. Se guardan en el respaldo, se unen al registro y salen de Descargas." = "They bring %lld new or updated records. They are saved to the backup, merged into the registry and removed from Downloads.";
 "Ya están en el registro; al incorporarlos sólo salen de Descargas." = "Already in the registry; adding them only removes them from Downloads.";
+"%lld ya están en el SSD de trabajo: no se copian otra vez; el mapa apunta a esa copia." = "%lld are already on the work SSD: they are not copied again; the map points to that copy.";
+"De misión" = "Mission";
+"Esperan export" = "Waiting for export";
+"Falta el export" = "Export missing";
+"Falta el export · parece de misión" = "Export missing · looks like a mission";
+"Foto de misión" = "Mission photo";
+"Fotos de dron: separa las de misión y copia sólo sus JPG para editar" = "Drone photos: separates mission photos and copies only their JPGs for editing";
+"Sin misión" = "No mission";
