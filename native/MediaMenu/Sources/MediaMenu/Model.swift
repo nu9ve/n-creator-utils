@@ -136,6 +136,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closureDeliveries: [JSONValue] = []
     /// Linked projects (closure.related) with their saved deliveries, from `closure_candidates.group`.
     var closureGroup: [JSONValue] = []
+    /// The project being linked or unlinked right now, so its row shows that it is working.
+    var linkingProject = ""
     var closureTruncated = false
     var closurePlan: JSONValue?
     var closureProgress: JSONValue = .object([:])

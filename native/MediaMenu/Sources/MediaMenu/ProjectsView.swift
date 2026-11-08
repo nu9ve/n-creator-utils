@@ -91,6 +91,9 @@ struct ProjectRow: View {
         if deliveries["missing"].double > 0 { parts.append(String(localized: "Entregas no encontradas: \(Int(deliveries["missing"].double))")) }
         let related = item["related"].array.map(\.["title"].string)
         if !related.isEmpty { parts.append(String(localized: "Vinculado con \(related.joined(separator: ", "))")) }
+        if !model.linkingProject.isEmpty && (item["related"].array.contains { $0["id"].string == model.linkingProject } || item["link_suggestions"].array.contains(.string(model.linkingProject))) {
+            parts.append(String(localized: "Actualizando vínculo…"))
+        }
         return parts.joined(separator: " · ")
     }
     var body: some View {
@@ -139,7 +142,12 @@ struct ProjectRow: View {
                         ForEach(model.projectIndex.filter { item["link_suggestions"].array.map(\.string).contains($0["project_id"].string) }, id: \.["project_id"].string) { other in
                             HStack(spacing: 6) {
                                 Label(String(localized: "¿«\(other["project"].string)» es una regrabación de este trabajo?"), systemImage: "link")
-                                Button("Vincular") { model.linkProjects(item, with: other["project_id"].string) }.disabled(model.busy)
+                                if model.linkingProject == other["project_id"].string {
+                                    ProgressView().controlSize(.small)
+                                    Text("Vinculando…").foregroundStyle(.secondary)
+                                } else {
+                                    Button("Vincular") { model.linkProjects(item, with: other["project_id"].string) }.disabled(model.busy)
+                                }
                             }
                         }
                     }

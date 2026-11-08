@@ -2,6 +2,22 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Revisión vinculada de Terra, consentimiento directo y feedback al vincular · 2026-11-07
+
+Build `e1ec995b5f16`: el usuario vinculó `terra-6-1` con `terra-6-1-extra` y preparó la revisión, sin aplicar. Su captura coincide con la simulación:
+- entregas en verde, «Ya en respaldo · sin cambios»;
+- raws e intermedios en «Sin acción»;
+- **Audio de caché de Clipper · 2 archivos · 534.1 MB** con «Descartar sin respaldo».
+
+El usuario notó que vincular no daba señal inmediata y pidió no tener que marcar la casilla.
+
+Instalada la build **`d2f4a96d08da`** con la app cerrada; la anterior quedó en `app-backups/2bfb8d3c.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-224159-c2d599.app` y módulos de `media/` idénticos al checkout.
+- Al vincular, la fila muestra un indicador del sistema y «Vinculando…». La lista de proyectos se relee dentro del mismo paso, así que el cambio aparece cuando desaparece el indicador.
+- **Completar y liberar** sobre la lista revisada es el consentimiento: se quitó la casilla y la revisión avisa que los intermedios se descartan sin respaldo ([contrato](contracts/project-closeout-v1.md#actualización-vigente--2026-11-05)). El motor sigue exigiendo `confirm_discard` y registra el consentimiento con el digest.
+- Clipper: las transcripciones están por proyecto en `clipper/transcripts` y en una caché global `~/.cache/clipper/transcripts` (122 MB, sin respaldo). La misma caché tiene 3.2 GB de renders. Se añadió al pedido en su repo.
+
+Python **309 OK, 4 omitidas**, Swift **25/25**, localización completa, `git diff --check`. **Pendiente:** aplicar el cierre conjunto real.
+
 ## Regresión de Proyectos vacío y arreglos del compacto · 2026-11-07
 
 Con `20eb2321376c`, el usuario vio **Proyectos vacío**. Reproducido con una copia del catálogo y el backend instalado: `capture_overview` fallaba con `invalid_project` porque el cálculo de vínculos y de «por publicar» se aplicaba también a la colección `finales`. Ya no se calcula para esa colección. Con el arreglo, la copia devuelve 12 proyectos y `terra-6-1` aparece terminado con 6 por publicar. Prueba nueva: `test_projects_overview_survives_the_finales_collection`.
