@@ -628,6 +628,7 @@ struct PlanReview: View {
                     Label(cleanupText(plan), systemImage: plan["cleanup"].bool || plan["release_stalker_source"].bool ? "exclamationmark.triangle" : "lock")
                         .foregroundStyle(plan["cleanup"].bool || plan["release_stalker_source"].bool ? palette.warning : palette.ink)
                 }.font(.callout)
+                PlanMissions(model: model, plan: plan)
                 if plan["source_kind"].string == "delivery" {
                     Toggle("Conservar en el disco de edición", isOn: Binding(get: { model.finalsKeepSource }, set: { value in
                         model.finalsKeepSource = value

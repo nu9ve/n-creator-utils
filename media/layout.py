@@ -279,6 +279,18 @@ def build_layout(source, plan, units, files):
             name = claim('{}/{}_{}[].{}'.format(created.strftime('%Y/%m'), '_'.join(parts), label, ext)).split('/', 2)[2]
             layout[file['path']] = {'archive': '{}/{}/{}'.format(folder, created.strftime('%Y/%m'), name),
                                     'work': '{}/{}'.format(work_root, name)}
+            mission = unit.get('mission') or {}
+            work_kinds = (plan.get('category_work') or {}).get(unit['camera'])
+            if mission.get('state') == 'matched':
+                # A mission keeps its session together: <first photo of the session>_<PLAN>/ in archive and work.
+                rules = plan['missions'][mission['flow']]['layout']
+                start = datetime.datetime.fromisoformat(mission['session_start'])
+                session = '{}/{}_{}'.format(start.strftime('%Y/%m'), stamp(start), tag(mission['plan_name']))
+                layout[file['path']] = {'archive': '{}/{}/{}'.format(rules['archive_folder'], session, name),
+                                        'work': '{}/{}/{}'.format(rules['work_folder'], session, name) if kind in rules['work_kinds'] else None}
+            elif mission.get('state') == 'pending_export' or (work_kinds is not None and kind not in work_kinds):
+                # Waiting for the export: no work copy yet (work stays pending). DNG/RAW stay archive-only.
+                layout[file['path']]['work'] = None
             primary_base = primary_base or (created.strftime('%Y/%m'), name.rsplit('.', 1)[0])
         family = 'sony' if unit['camera'] == 'sony' else slug(unit['camera'])
         for file in members:

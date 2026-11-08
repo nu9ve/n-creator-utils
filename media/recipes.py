@@ -27,7 +27,8 @@ TEMPLATE = {
     'review_makes': ['DJI'],
     # Archive folders per category and media kind (below the archive prefix, then AAAA/MM).
     'categories': {
-        'dji-drone': {'archive': {'video': 'vdron', 'image': 'dron/fotos', 'raw_image': 'dron/fotos'}},
+        'dji-drone': {'archive': {'video': 'vdron', 'image': 'dron/fotos', 'raw_image': 'dron/fotos'},
+                      'work_kinds': ['video', 'image']},
     },
     # Mission registries: exports of a flight app merged into one history (Atlas A13). Another setup may have
     # none, or another producer; nothing in media/missions.py names subaereo.
@@ -46,7 +47,13 @@ TEMPLATE = {
         'tombstones': {'plans': 'deletedPlanIDs'},  # additive list once the app publishes deletions
         'archive_area': '004_datos/subaereo/coverage',   # below the archive volume root
         'work_mirror': 'atlas-subaereo/_missions',       # below the work volume prefix
-        'match': {'seconds': 2, 'meters': 40},
+        # Same original name, camera time ±2 s (±8 s against the command time of older exports), ≤ 40 m.
+        'match': {'seconds': 2, 'seconds_command_time': 8, 'meters': 40},
+        'hint': {'max_gimbal_pitch': -80, 'min_relative_altitude': 15},   # «probably a mission» while the export is missing
+        'archive_folder': 'dron/misiones',          # + AAAA/MM/<session start>_<PLAN>/
+        'work_folder': 'atlas-subaereo/misiones',   # below the work prefix; same session folder
+        'work_kinds': ['image'],                    # JPG to work; DNG stays in the archive until asked (A16)
+        'units_map': 'atlas-subaereo/_nuun/units.ndjson',
     }],
 }
 

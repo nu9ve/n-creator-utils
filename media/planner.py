@@ -245,6 +245,9 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     groups = {'delivery': files} if source_kind == 'delivery' else grouped_files(files)
     source_key = {k: source_info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')}
     rules = current_recipe(catalog)
+    from .layout import kind_of
+    from .missions import index_for
+    mission_indexes = {}
     units = []
     for key, members in sorted(groups.items()):
         support = key == 'camera-support'
@@ -254,10 +257,6 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             require('work' not in choice or isinstance(choice['work'], bool), 'invalid_assignment', 'work must be boolean')
         require(not choices or all(c == choices[0] for c in choices), 'assignment_conflict', 'Paired files/bundles must be assigned together')
         assignment = choices[0] if choices else {}
-        requested_project = 'camera-support' if support else assignment.get('project') or project
-        require(isinstance(requested_project, str) and requested_project.strip(), 'missing_project',
-                'Asigna un proyecto a cada sesión Stalker o elige un proyecto para el lote')
-        unit_project, unit_profile = slug(requested_project), slug(assignment.get('profile', profile))
         selected_camera = 'generic' if support else assignment.get('camera', camera)
         require(selected_camera is None or selected_camera in CAMERAS, 'invalid_camera', 'Unknown assigned camera category')
         evidence = [e for f in members for e in f['evidence']]
@@ -271,6 +270,20 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             ambiguous = any(e.get('family') == 'dji' for e in evidence) or bool(device and device['requires_confirmation'])
             hint = ' (suggested: {})'.format(device['category']) if device and device.get('category') else ''
             require(not ambiguous, 'camera_review_required', 'Classify DJI files as drone/360/action in assignments before ingest' + hint)
+        mission = None
+        flow = next((f for f in rules.get('missions') or [] if selected_camera in f.get('devices', [])), None)
+        still = next((f for f in sorted(members, key=lambda f: kind_of(f['path']) != 'image')
+                      if (f.get('photo') or {}).get('captured_at')), None)
+        if flow and still and device and not device.get('conflict') and not support:
+            # Mission or not, from the archive's registry: same original name, camera time and position.
+            if flow['id'] not in mission_indexes:
+                mission_indexes[flow['id']] = index_for(archive_record, flow)
+            mission = dict(mission_indexes[flow['id']].match(still['photo'], Path(still['path']).name), flow=flow['id'])
+        mission_project = flow['project'] if mission and mission['state'] == 'matched' else None
+        requested_project = 'camera-support' if support else assignment.get('project') or mission_project or project
+        require(isinstance(requested_project, str) and requested_project.strip(), 'missing_project',
+                'Asigna un proyecto a cada sesión Stalker o elige un proyecto para el lote')
+        unit_project, unit_profile = slug(requested_project), slug(assignment.get('profile', profile))
         bundle = members[0]['bundle']
         session = bundles.get(bundle) if bundle is not None else None
         unit_id = str(uuid.uuid5(uuid.NAMESPACE_URL, digest({'source': source_key, 'members': members})))
@@ -286,6 +299,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         if device and not device.get('conflict'):
             unit['device'] = {k: device[k] for k in ('make', 'model', 'serial', 'source', 'label', 'rule')}
             unit['device']['category'] = device.get('category')
+        if mission:
+            unit['mission'] = mission
         units.append(unit)
         for file in members:
             file['unit_id'] = unit_id
@@ -311,6 +326,18 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     folders = {u['camera']: rules['categories'][u['camera']]['archive'] for u in units if u['camera'] in rules['categories']}
     if folders:
         plan['category_folders'] = folders
+        plan['category_work'] = {c: rules['categories'][c]['work_kinds'] for c in folders if 'work_kinds' in rules['categories'][c]}
+    if mission_indexes:
+        # Frozen per plan: the registry version it matched against and the flow's folders.
+        flows = {f['id']: f for f in rules['missions']}
+        plan['missions'] = {flow_id: {'history_sha256': index.history_sha256,
+                                      'covered_until': index.covered_until.isoformat() if index.covered_until else None,
+                                      'project': flows[flow_id]['project'],
+                                      'layout': {k: flows[flow_id][k] for k in ('archive_folder', 'work_folder', 'work_kinds')},
+                                      'units': {state: sum(1 for u in units if (u.get('mission') or {}).get('flow') == flow_id and u['mission']['state'] == state)
+                                                for state in ('matched', 'none', 'pending_export')},
+                                      'likely': sum(1 for u in units if (u.get('mission') or {}).get('likely_mission'))}
+                            for flow_id, index in mission_indexes.items()}
     if source_kind != 'delivery':
         plan['layout'] = build_layout(source, plan, units, files)
     elif finals_route:

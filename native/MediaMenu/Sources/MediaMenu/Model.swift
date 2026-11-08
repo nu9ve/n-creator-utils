@@ -21,6 +21,9 @@ struct DraftUnit: Identifiable, Equatable {
     var country = ""
     var suggestedProject = ""
     var suggestedCountry = ""
+    /// Device decided from the file's own EXIF (recipe or confirmed registry); empty when it still needs a choice.
+    var deviceCategory = ""
+    var deviceLabel = ""
     var previewPath: String? {
         if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
         return paths.first { path in
@@ -30,9 +33,10 @@ struct DraftUnit: Identifiable, Equatable {
     }
     /// Drone/360 only when explicitly classified; never inferred from the DJI brand.
     var displayCategory: String {
-        camera == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(camera) ? "360" : category
+        let effective = camera == "auto" ? deviceCategory : camera
+        return effective == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(effective) ? "360" : category
     }
-    var needsCameraReview: Bool { !isSupport && camera == "auto" && detectedCamera.lowercased().hasPrefix("dji") }
+    var needsCameraReview: Bool { !isSupport && camera == "auto" && deviceCategory.isEmpty && detectedCamera.lowercased().hasPrefix("dji") }
     var isSupport: Bool { category == "support" }
 }
 
@@ -184,6 +188,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     var captureRoot = ""
     var pendingCaptures: [JSONValue] = []
     @ObservationIgnored var captureWatchers: [CaptureWatcher] = []
+    /// Flight-app exports waiting in the inbox, compared with the archive's mission registry (read only).
+    var missionInbox: JSONValue?
+    @ObservationIgnored var missionWatcher: CaptureWatcher?
+    @ObservationIgnored var missionWatcherRoot = ""
+    @ObservationIgnored var missionTask: Task<Void, Never>?
     var captureSessions: [JSONValue] = []
     var captureRoots: [String] = []
     var captureError = ""
@@ -327,6 +336,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
             if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
             captureChanged([])
+            missionsChanged()
             statusChanged?()
         } catch { self.error = error.localizedDescription }
     }
@@ -642,6 +652,10 @@ enum OperationScope { case ingest, library, space, settings, source }
                     unit.country = value["tag"]["country"].string
                 }
                 unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
+                let device = value["device"]
+                unit.deviceCategory = device["requires_confirmation"].bool ? "" : device["category"].string
+                unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
+                if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
                 unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
                 unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
                 unit.manifestPreviewPath = value["preview_path"].string

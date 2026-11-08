@@ -31,6 +31,7 @@ struct InboxView: View {
                         ForEach(model.sourceCards, id: \.["path"].string) { card in CardSuggestion(model: model, card: card) }
                     }
                 }
+                if !model.pendingMissionExports.isEmpty { MissionsSection(model: model) }
                 if !model.attentionJobs.isEmpty || pendingWork > 0 {
                     AttentionSection(model: model, pendingWork: pendingWork)
                 }

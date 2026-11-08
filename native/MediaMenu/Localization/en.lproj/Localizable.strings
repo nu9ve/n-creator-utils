@@ -805,3 +805,17 @@
 "Transcripciones de Clipper" = "Clipper transcripts";
 "Transcripciones: %lld respaldadas, %lld ya estaban en MEDIA" = "Transcripts: %lld backed up, %lld already in MEDIA";
 "Ya en MEDIA" = "Already in MEDIA";
+
+/* Mission registry (flight-app exports) and drone stills in the plan */
+"%lld exports en Descargas" = "%lld exports in Downloads";
+"%lld parecen de misión: nadir a altura de vuelo." = "%lld look like mission photos: nadir at flight height.";
+"Conecta el disco de respaldo para incorporarlos al registro." = "Connect the backup disk to add them to the registry.";
+"El registro cubre hasta %@" = "The registry covers up to %@";
+"Fotos de dron · %lld de misión (%@) · %lld sin misión · %lld esperan export" = "Drone photos · %lld from missions (%@) · %lld without a mission · %lld waiting for an export";
+"Incorporando exports de misiones" = "Adding mission exports";
+"Incorporar" = "Add";
+"Incorporar export y revisar de nuevo" = "Add the export and review again";
+"Manda el JSON de la app de vuelo a Descargas antes de aplicar: nüün lo detecta y vuelve a revisar el plan. Si sigues sin él, se archivan en fotos/ y la copia para editar queda pendiente." = "Send the flight app's JSON to Downloads before applying: nüün detects it and reviews the plan again. If you continue without it, they are archived in fotos/ and the editing copy stays pending.";
+"Registro de misiones actualizado: %lld registros; Descargas quedó limpia" = "Mission registry updated: %lld records; Downloads is clear";
+"Traen %lld registros nuevos o actualizados. Se guardan en el respaldo, se unen al registro y salen de Descargas." = "They bring %lld new or updated records. They are saved to the backup, merged into the registry and removed from Downloads.";
+"Ya están en el registro; al incorporarlos sólo salen de Descargas." = "Already in the registry; adding them only removes them from Downloads.";
