@@ -1,5 +1,30 @@
 # Próximas sesiones: Atlas (dron), Stalker y Clipper
 
+## Pedido para Atlas · 2026-11-08 · leer misiones del registro de nüün
+
+Escrito desde nüün; no se envió a ninguna sesión. El usuario pidió dejar de copiar exports dentro del repo de Atlas.
+Los 20 JSON de `atlas/coverage_exports/` ya están en el registro y verificados, y la carpeta se movió a la Papelera
+(`~/.Trash/atlas-coverage_exports-20261108`).
+
+```text
+Repo: /Users/nu9ve/code/data/atlas. Lee docs/contracts del repo nüün
+(/Users/nu9ve/code/nu9ve/n-creator-utils/docs/contracts/atlas-drone-v1.md, sección «Registro de misiones en nüün (A13)»).
+
+Hoy atlas_vision/flightplans.py:176 lee coverage_exports/*.json, y esa carpeta ya no existe. Cambiar
+build_flight_plan_manifest para que lea el registro unificado de nüün:
+- Ruta por configuración (config/atlas.json), por defecto
+  /Volumes/ESSD/001_proyectos/atlas-subaereo/_missions/history.json. Es el espejo de
+  MEDIA502/004_datos/subaereo/coverage/ y tiene la misma forma que un export de subaereo (schemaVersion 3,
+  plans/captures/captureLog/flightSessions, exportWindow.kind = "merged"), más un bloque aditivo `nuun`.
+- La unión, la regla de que gana el export más nuevo y la procedencia ya las hace nüün. `_source_scope`
+  y `_record_rank` pueden tratar el registro como una sola fuente. `nuun.records` dice de qué export vino cada registro.
+- Para saber qué hay nuevo: `_missions/changes.ndjson`, una línea por registro (list, id, change, export, at).
+- Sin el registro montado, un error claro en lugar de un manifiesto vacío.
+- Actualizar README, docs/data.md y docs/workflow.md; quitar coverage_exports/ de .gitignore. Las pruebas,
+  con fixtures temporales.
+Atlas no escribe en _missions/: es de nüün.
+```
+
 ## Pedido de Atlas · 2026-11-08 · fotos de dron, misiones y exports (A11–A16)
 
 Escrito desde una sesión de Atlas; no se envió a ninguna sesión. Detalle y decisiones del

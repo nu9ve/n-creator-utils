@@ -231,8 +231,16 @@ class Service:
                 files, bundles = pending_stalker_files(self.catalog, self.catalog.volume(params['archive']), files, bundles)
             groups = grouped_files(files)
             units = []
+            from .recipes import recipe as current_recipe, unit_device
+            rules = current_recipe(self.catalog)
             for key, members in groups.items():
                 evidence = [e for f in members for e in f['evidence']]
+                device = unit_device(members, self.catalog, rules) if key != 'camera-support' else None
+                if device and not device.get('conflict'):
+                    # The planner decides the same way; the app only stops asking when no confirmation is needed.
+                    metadata_device = {'device': {k: device.get(k) for k in ('make', 'model', 'serial', 'source', 'label', 'category', 'rule', 'requires_confirmation')}}
+                else:
+                    metadata_device = {}
                 kinds = [kind_of(f['path']) for f in members]
                 bundle = members[0]['bundle']
                 metadata = {}
@@ -251,7 +259,7 @@ class Service:
                               'bytes': sum(f['stamp']['size'] for f in members), 'evidence': evidence,
                               'category': 'stalker' if bundle is not None else next((k for k in kinds if k in {'video', 'image', 'raw_image', 'audio'}), 'support'),
                               'camera': next((e['model'] for e in evidence if e.get('model')), '') or next((e['family'] for e in evidence if e.get('family')), ''),
-                              **metadata})
+                              **metadata_device, **metadata})
             return {'units': units, 'skipped': skipped, 'bytes': sum(f['stamp']['size'] for f in files)}
         if method in {'plan', 'plan_document'}:
             plan = build_plan(self.catalog, self.backend, cancel=self.cancel, **params)
@@ -400,6 +408,13 @@ class Service:
                 result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
         else:
             result = Transfer(self.catalog, self.backend, self.cancel).apply(plan, reviewed_digest)
+        if any(u.get('mission') for u in plan['units']) and result.get('state') in {'source_retained', 'completed', 'camera_action_required'}:
+            # The consumer's map (units.ndjson); a failure here must not hide a completed ingest.
+            try:
+                from .missions import write_units_map
+                result['units_map'] = write_units_map(self.catalog, self.backend, plan)
+            except (MediaError, OSError, ValueError, RuntimeError) as error:
+                result['units_map'], result['units_map_error'] = 'failed', str(error)
         release_summary = None
         if plan.get('release_stalker_source') and result['state'] in {'source_retained', 'completed'}:
             release_summary = self._release_stalker_sources(plan)

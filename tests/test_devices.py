@@ -89,7 +89,8 @@ class PhotoMetaTests(MediaFixture):
             self.assertEqual(read(self.root / name), {})
 
 
-class DroneStillTests(MediaFixture):
+class DroneFixture(MediaFixture):
+    """A DJI-like card: DCIM/101MEDIA plus MISC and an empty foreign DCIM folder."""
     def setUp(self):
         super().setUp()
         for name in ('photo.JPG', 'photo.DNG'):
@@ -105,6 +106,8 @@ class DroneStillTests(MediaFixture):
         (folder / (stem + '.JPG')).write_bytes(jpeg(**facts))
         (folder / (stem + '.DNG')).write_bytes(dng(**facts))
 
+
+class DroneStillTests(DroneFixture):
     def test_known_drone_is_classified_by_exif_and_named_by_the_recipe(self):
         self.pair('DJI_0001')
         plan = self.plan()

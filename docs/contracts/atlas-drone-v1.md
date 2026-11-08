@@ -122,7 +122,7 @@ mismo nombre de la SD y posición a ≤ 40 m (la regla de
 
 ### Registro de misiones en nüün (A13)
 
-Implementado el 2026-11-08. Primera importación real el mismo día: los 20 exports de `atlas/coverage_exports` (no se borraron) y 4 de Descargas, 22 fuentes y 65 planes; registro y espejo verificados ([evidencia](../STATUS.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08)). Rutas, patrones y reglas salen
+Implementado el 2026-11-08. Desde entonces `atlas/coverage_exports/` ya no existe (se movió a la Papelera a pedido del usuario): Atlas debe leer `_missions/history.json` ([pedido](next-sessions.md#pedido-para-atlas--2026-11-08--leer-misiones-del-registro-de-nüün)). Primera importación real el mismo día: los 20 exports de `atlas/coverage_exports` (no se borraron) y 4 de Descargas, 22 fuentes y 65 planes; registro y espejo verificados ([evidencia](../STATUS.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08)). Rutas, patrones y reglas salen
 del flujo `missions` de la receta (`media/recipes.py`).
 
 | Lugar | Ruta |
@@ -150,6 +150,26 @@ posteriores a la última que procesó:
 Gana el `exportedAt` más nuevo aunque el export viejo llegue después. Un tombstone (`deletedPlanIDs`, cuando subaereo
 lo publique) borra el plan y un export más viejo no lo revive. Los archivos fuera de `~/Downloads` (por ejemplo
 `atlas/coverage_exports/`) se incorporan pero nunca se borran.
+
+### `units.ndjson` (A12)
+
+`ESSD/001_proyectos/atlas-subaereo/_nuun/units.ndjson`: una línea por unidad de dron, reemplazada por `asset_id`
+en cada ingreso y ordenada por `captured_at`. Las rutas de `work` son relativas a `atlas-subaereo/`; las de
+`archive`, a la raíz del volumen.
+
+```json
+{"schema":"nu9ve-drone-unit/1","asset_id":"…","job_id":"…","project":"subaereo",
+ "archive":{"volume":"MEDIA502","jpg":"001_raw/dron/misiones/2026/11/26NOV07-153422_CALLESHUECOS-45M-1107-1533/26NOV07-154516_MAVICAIR2_MX-SUBAEREO[].JPG","dng":"…[].DNG"},
+ "work":{"volume":"ESSD","jpg":"misiones/2026/11/26NOV07-153422_CALLESHUECOS-45M-1107-1533/26NOV07-154516_MAVICAIR2_MX-SUBAEREO[].JPG","dng":null},
+ "original_name":"DJI_0001.JPG","dcim_folder":"103MEDIA","card_uuid":"8486AB6C-…",
+ "captured_at":"2026-11-07T15:45:16","captured_at_utc":"2026-11-07T22:45:16Z","utc_basis":"host_zone",
+ "make":"DJI","model":"FC3170","serial":"1TCLH9N03BJ5N9","sha256":{"jpg":"…","dng":"…"},
+ "gps":{"lat":29.09,"lon":-110.96,"alt":43.8},"flight":{"gimbal_pitch":-89.9,"relative_altitude":43.8},
+ "mission":{"planID":"…","sessionID":"…","captureID":"…"},"mission_state":"matched","plan_name":"CallesHuecos-45m-1107-1533"}
+```
+
+`mission_state` puede ser `matched`, `none` o `pending_export`. En `pending_export`, `mission` es `null` y el JPG
+no está todavía en el trabajo. `utc_basis: host_zone` significa que el EXIF de DJI no trae zona horaria y se usó la del Mac.
 
 ### Retención de lo que produce Atlas
 
@@ -300,6 +320,7 @@ específicas:
 | --- | --- | --- |
 | Atlas | Catálogo v2 recursivo con IDs estables; lee cualquier árbol bajo la raíz; `ev100`/`exposure_light_class` por foto. | 2026-11-05, working tree sobre `ba60ffa` |
 | Atlas | Ignora carpetas `_*` (para A8); `odm clean` para intermedios; docs de respaldo. | 2026-11-06, working tree sobre `0e4d0d2` |
+| nüün | **A12 y UI:** misión o no al planear (nombre + hora ±2 s/±8 s + ≤ 40 m), `dron/misiones|fotos`, trabajo sólo JPG, `units.ndjson`, sección en Inicio y aviso en la revisión del plan. Fixtures y planes de sólo lectura; instalado en `b657310aab11`, falta aceptación desde la app | 2026-11-08 · working tree |
 | nüün | **A13:** registro de misiones con espejo (`missions-review`/`missions-incorporate`/`missions-status`), primera importación real (22 exports) verificada | 2026-11-08 · working tree sobre `3998dc9`, sin commit |
 | nüün | **A15/A1:** identidad de dispositivo por EXIF `Make+Model+Serial` (lector propio, sin dependencias), XMP de vuelo para dron frente a 360/acción, receta `nu9ve-default` como plantilla inicial (`FC3170` → `dji-drone`, `MAVICAIR2`) y registro `device-registry` (`devices`, `confirm-device`). Fotos de dron: nombre de nüün con la hora EXIF y `dron/fotos/AAAA/MM/` con JPG y DNG juntos. Tarjeta: ya se identifica por UUID del volumen (`source_identity`). Sólo fixtures; A11–A14 y A16 pendientes | 2026-11-08 · `3998dc9` |
 | subaereo | Ver contrato de captura en Atlas. Exports 24 h / 7 d / todo con `mergeKeys` (8 nov) | 2026-11-08 · subaereo `e4894e1` |

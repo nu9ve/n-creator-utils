@@ -688,7 +688,9 @@ class Transfer:
                     continue  # Recovering an old job must not replace the current revision's work state.
                 # Camera indexes/thumbnails have no work copy in a named layout; never leave them pending.
                 needs_work = any(destination_path({'role': 'work', 'prefix': 'x'}, plan, unit, p) for p in unit['paths'])
+                # A drone still waiting for its mission export gets its work copy later: pending, not skipped.
+                waiting = (unit.get('mission') or {}).get('state') == 'pending_export'
                 self.catalog.db.execute('INSERT OR IGNORE INTO work VALUES(?,?,?,?)',
-                    (unit['id'], plan['work_delivery_status'] if needs_work else 'skipped', plan['expected_work_id'], now()))
+                    (unit['id'], plan['work_delivery_status'] if needs_work else ('pending' if waiting else 'skipped'), plan['expected_work_id'], now()))
                 if plan['work_delivery_status'] == 'ready' and needs_work:
                     self.catalog.db.execute('UPDATE work SET state=?,target=?,updated_at=? WHERE asset_id=?', ('ready', plan['work_id'], now(), unit['id']))

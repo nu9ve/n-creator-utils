@@ -2,6 +2,27 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Dron para Atlas, paso 3: misión o no, trabajo JPG, `units.ndjson` y UI · 2026-11-08
+
+En working tree, sin commit. Instalada como build **`b657310aab11`** con la app cerrada; la anterior quedó en `app-backups/850e78b1.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261108-030421-a775e7.app` y módulos de `media/` idénticos al checkout. El motor instalado responde a `missions_review`, con Descargas vacía y el registro en 65 planes, y a `devices` con `nu9ve-default`. Falta probarla desde la app. A12 más la parte visible de A13, con las [decisiones del usuario](contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08):
+- **Planner** (`media/missions.py` `MissionIndex`, `media/planner.py`): una foto de una categoría del flujo (`dji-drone`) se compara con el registro del archivo. Coincide si tiene el mismo nombre original y está a ≤ 40 m, con la hora de cámara a ±2 s; contra la hora de comando de los exports viejos, que no traen `mediaCreatedAt`, la ventana es de ±8 s. El resultado es `matched`, `none` (el registro ya cubre esa hora) o `pending_export` (sugiere `likely_mission` si es nadir a altura de vuelo). El plan congela el `history_sha256`, la carpeta y los conteos (`plan.missions`).
+- **Layout:** una foto de misión toma el proyecto del flujo (`subaereo`) salvo que se asigne otro a mano, y va a `dron/misiones/AAAA/MM/<inicio de sesión>_<PLAN>/`. Su JPG va al trabajo en `atlas-subaereo/misiones/…/` y el DNG sólo al archivo. Lo que no es de misión va a `dron/fotos/`, con el JPG en el proyecto elegido. `pending_export` va a `dron/fotos/` sin copia de trabajo, con el trabajo `pending` en el catálogo (`transfer._index`).
+- **`units.ndjson`:** al terminar un ingreso con misiones se actualiza `ESSD/001_proyectos/atlas-subaereo/_nuun/units.ndjson` por `asset_id`. Si el disco no está, queda `pending`, y un fallo no oculta el ingreso.
+- **`discover`** devuelve el dispositivo resuelto, y la app ya no pide clasificar un dispositivo conocido.
+- **App:** `Missions.swift`.
+  - **Inicio:** la sección del flujo muestra los exports de Descargas, cuántos registros traen y hasta dónde llega el registro, con el botón **Incorporar**, que usa el digest revisado. La bandeja se vigila con FSEvents (`CaptureWatcher`) y sólo reacciona a cambios de `.json`.
+  - **Revisión del plan:** una línea con las fotos de misión, sin misión y esperando export. Si falta el export, pide mandar el JSON y ofrece **Incorporar export y revisar de nuevo**, que vuelve a preparar el plan.
+
+Evidencia: `tests/test_mission_match.py` (7 pruebas); Python **341 OK**; Swift **25/25**, build y localización completas; `git diff --check`. Sobre datos reales, sólo lectura:
+- **ESSD `atlas-subaereo`:** 516 de 534 pares de mayo–junio y 507 de 508 de noviembre se emparejan; las 64 de agosto no son de misión.
+- **Plan de la SD `MAVIC200`** con `_build_plan`, sin escribir en el catálogo y en 76 s: 1,276 de misión en 25 carpetas de sesión, 66 sin misión y 0 esperando export. La sesión del 7 nov que cruza `102MEDIA` → `103MEDIA` queda en una sola carpeta.
+
+**Pendiente:**
+- **Probar la UI** en la build instalada: la sección de Inicio aparece cuando cae un export en Descargas; la primera lectura de Descargas puede pedir permiso de macOS.
+- **Reclasificar `pending_export` → `misiones`** al llegar el export, con renombrado dentro del archivo y entrega de trabajo.
+- **Deduplicar el trabajo** contra lo que ya está en `ESSD/atlas-subaereo/101MEDIA|102MEDIA`, por hora + serial + nombre o SHA, antes de A11: hoy el plan de la SD copiaría al trabajo también los JPG de noviembre que ya están ahí.
+- **Confirmar dispositivos desde la app.**
+
 ## Dron para Atlas, paso 2: registro unificado de misiones · 2026-11-08
 
 En working tree sobre `3998dc9`, sin commit ni build instalada. Lado nüün de A13 ([contrato](contracts/atlas-drone-v1.md#registro-de-misiones-en-nüün-a13)):
