@@ -1,0 +1,118 @@
+"""Recipes: device and flow rules kept as data, not code.
+
+`nu9ve-default` is the user's own setup and only the *initial template*: another person will not have
+a Mavic Air 2 or subaereo. Later the recipe becomes editable by nodes; until then the planner reads it
+from here and freezes what it used (id + digest) in each plan, like `profile_routes`.
+
+Device identity is Make + Model + Serial (never a filename, DCIM folder or card name). Confirmed devices
+live in the catalog (`device-registry`) and win over template rules.
+"""
+import copy
+import datetime
+
+from .common import digest, require, slug
+
+TEMPLATE = {
+    'schema': 'nu9ve-recipe/1',
+    'id': 'nu9ve-default',
+    'name': 'nu9ve · plantilla inicial',
+    # Devices by EXIF Make + Model; `source` is FUENTE in media-naming-v1.
+    'devices': [
+        {'make': 'DJI', 'model': 'FC3170', 'category': 'dji-drone', 'source': 'MAVICAIR2',
+         'label': 'DJI Mavic Air 2', 'aliases': ['MAVIC2']},
+    ],
+    # Evidence that a still was taken in flight (drone, not DJI 360/action). Any key is enough.
+    'flight_evidence': {'xmp': ['gimbal_pitch', 'flight_yaw', 'relative_altitude'], 'category': 'dji-drone'},
+    # Makes whose files never classify by brand alone: a camera category must come from evidence.
+    'review_makes': ['DJI'],
+    # Archive folders per category and media kind (below the archive prefix, then AAAA/MM).
+    'categories': {
+        'dji-drone': {'archive': {'video': 'vdron', 'image': 'dron/fotos', 'raw_image': 'dron/fotos'}},
+    },
+}
+
+REGISTRY_KEY = 'device-registry'
+
+
+def recipe(catalog=None):
+    """Effective recipe. Today the template; an edited recipe will replace it from the catalog."""
+    return copy.deepcopy(TEMPLATE)
+
+
+def recipe_ref(value):
+    return {'id': value['id'], 'digest': digest(value)}
+
+
+def device_key(make, model, serial):
+    return '|'.join((part or '').strip().upper() for part in (make, model, serial))
+
+
+def _same(a, b):
+    return (a or '').strip().upper() == (b or '').strip().upper()
+
+
+def resolve(meta, catalog=None, value=None):
+    """Device opinion for one still's facts, or None when it has no Make.
+
+    `requires_confirmation` means the planner must not choose a category on its own: either the brand is
+    ambiguous (DJI drone/360/action) without flight evidence, or the model is new to the recipe.
+    """
+    if not meta or not meta.get('make'):
+        return None
+    value = value or recipe(catalog)
+    make, model, serial = meta.get('make'), meta.get('model'), meta.get('serial')
+    device = {'make': make, 'model': model, 'serial': serial, 'key': device_key(make, model, serial)}
+    registry = catalog.get(REGISTRY_KEY, {}) if catalog is not None else {}
+    known = registry.get(device['key'])
+    if known:
+        return dict(device, category=known['category'], source=known['source'], label=known.get('label'),
+                    rule='registry', requires_confirmation=False)
+    rule = next((r for r in value['devices'] if _same(r['make'], make) and _same(r['model'], model)), None)
+    if rule:
+        return dict(device, category=rule['category'], source=rule['source'], label=rule.get('label'),
+                    rule='template', requires_confirmation=False)
+    flight = set((meta.get('flight') or {})) & set(value['flight_evidence']['xmp'])
+    source = slug(model or make).upper().replace('-', '')
+    if flight:
+        # A new flying model: suggest the drone category once, the user confirms and it is registered.
+        return dict(device, category=value['flight_evidence']['category'], source=source, label=None,
+                    rule='flight_evidence', requires_confirmation=True)
+    review = any(_same(m, make) for m in value['review_makes'])
+    return dict(device, category=None, source=source, label=None, rule='unknown', requires_confirmation=review)
+
+
+def unit_device(members, catalog=None, value=None):
+    """One device for a unit (JPG+DNG pair), or a conflict when members disagree."""
+    found = [f['photo'] for f in members if f.get('photo')]
+    if not found:
+        return None
+    keys = {device_key(m.get('make'), m.get('model'), m.get('serial')) for m in found}
+    if len(keys) != 1:
+        return {'conflict': True, 'requires_confirmation': True, 'category': None}
+    return resolve(found[0], catalog, value)
+
+
+def devices(catalog):
+    value = recipe(catalog)
+    registry = catalog.get(REGISTRY_KEY, {})
+    return {'recipe': recipe_ref(value), 'rules': value['devices'],
+            'registry': sorted(registry.values(), key=lambda d: d['key'])}
+
+
+def confirm_device(catalog, make, model, serial, category, source=None, label=None):
+    """Remember a confirmed device so its files are classified without asking again."""
+    require(all(isinstance(v, str) and v.strip() for v in (make, model, serial)), 'invalid_device',
+            'Device needs Make, Model and Serial from the file')
+    from .planner import CAMERAS
+    require(category in CAMERAS, 'invalid_camera', 'Unknown camera category')
+    source = slug(source or model).upper().replace('-', '')
+    require(source and len(source) <= 40, 'invalid_device', 'Invalid source tag')
+    require(label is None or isinstance(label, str) and len(label) <= 120, 'invalid_device', 'Invalid label')
+    key = device_key(make, model, serial)
+    entry = {'key': key, 'make': make.strip(), 'model': model.strip(), 'serial': serial.strip(), 'category': category,
+             'source': source, 'label': label, 'confirmed_at': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    with catalog.writer():
+        registry = catalog.get(REGISTRY_KEY, {})
+        registry[key] = entry
+        catalog.set(REGISTRY_KEY, registry)
+    return entry

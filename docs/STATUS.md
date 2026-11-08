@@ -2,6 +2,18 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Dron para Atlas, paso 1: registro de dispositivos y receta · 2026-11-08
+
+En working tree sobre `f2d05fb`, sin commit ni build instalada. Primer corte del pedido de Atlas (A15/A1), con las [decisiones del usuario](contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08):
+- `media/photo_meta.py`: lectura acotada de EXIF/XMP en JPEG y DNG sin dependencias: Make, Model, serial (`BodySerialNumber` o `CameraSerialNumber`), `DateTimeOriginal`, GPS y XMP `drone-dji`. El `tiff:Model` del XMP de DJI no se usa porque dice `Test_Pro`.
+- `media/recipes.py`: receta `nu9ve-recipe/1` con la plantilla inicial `nu9ve-default` (`FC3170` → `dji-drone`, fuente `MAVICAIR2`; carpetas por categoría) y registro `device-registry` en el catálogo, que gana sobre la plantilla. El planner no nombra modelos; el plan congela `recipe` (id + digest) y `category_folders`.
+- Planner: una unidad JPG+DNG con dispositivo conocido se clasifica sola. DJI sin XMP de vuelo, un modelo nuevo o un par con dos dispositivos siguen pidiendo categoría; el error sugiere `dji-drone` cuando hay vuelo. Nombres `YYMONDD-HHMMSS_MAVICAIR2_PAIS-PROYECTO[]` con la hora EXIF en `dron/fotos/AAAA/MM/`, JPG y DNG con el mismo stem. Videos sin EXIF siguen en `vdron` y piden categoría.
+- Servicio/CLI: `devices` (lectura, también en `rpc-serve`) y `confirm_device` / `confirm-device`.
+
+Evidencia: `tests/test_devices.py` (8 pruebas: lector, clasificación y layout, numeración repetida entre `101MEDIA`/`102MEDIA`, DJI sin vuelo o modelo nuevo, registro confirmado, par con dos seriales, receta sin modelos en el código). Python **325 OK**, `git diff --check`. Lectura de sólo lectura sobre 200 fotos reales de `ESSD/atlas-subaereo/102MEDIA`: coincide con exiftool en JPG y DNG, 0.43 s. Sin cambios Swift.
+
+**Pendiente:** misión o no y `pending: export` (A13/A12), la sugerencia «probablemente de misión», la carpeta de trabajo de Atlas, A11, A14 y A16. La app todavía no ofrece confirmar un dispositivo; sólo CLI/servicio.
+
 ## Aplicar un cierre sin releer el respaldo de más · 2026-11-08
 
 En working tree, sin commit. Instalada como build **`c777003effff`** con la app cerrada; la anterior quedó en `app-backups/dad55f80.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261108-002700-acef82.app`, módulos de `media/` idénticos al checkout y `capture_overview` con 12 proyectos sobre una copia del catálogo. Hay una sola verificación del respaldo por aplicación, y ninguna relectura cuando nüün no retira nada y las copias siguen con el stamp que hasheó la revisión ([contrato](contracts/project-closeout-v1.md#una-sola-verificación-al-aplicar--2026-11-08)). La verificación cuenta en la barra global. Para un cierre como el de Terra esto quita dos lecturas completas de ~10 GB en MEDIA502: aplicar pasa de varios minutos a lo que tarden las transcripciones y Clipper. Prueba nueva: `test_apply_without_release_watches_reviewed_stamps_instead_of_rehashing`, que también detecta una copia alterada después de revisar. Python **317 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa.

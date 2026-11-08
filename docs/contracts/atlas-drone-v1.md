@@ -64,6 +64,30 @@ Reemplazan lo que diga lo contrario en las secciones de 2026-11-05/06 de abajo
    algunos DNG extra al archivo (prueba también la extracción) y decide si conservar DNG
    vale la pena o basta el JPG.
 
+### Decisiones del usuario, desde nüün (2026-11-08)
+
+5. **Proyecto por defecto de las misiones.** Una foto que coincide con un registro de
+   misión toma el proyecto por defecto del flujo de misiones (para el usuario,
+   `SUBAEREO`): `…_MAVICAIR2_MX-SUBAEREO[].JPG`. Las fotos de dron sin misión usan el
+   proyecto que se elija en el ingreso.
+6. **Export antes del plan.** Lo ideal es mandar el JSON a `~/Downloads` antes de revisar
+   el plan, y que nüün lo detecte en ese momento para clasificar bien. Si al insertar la SD
+   hay fotos de dron posteriores al último export registrado y parecen de misión por
+   evidencia barata de EXIF/XMP (nadir, `GimbalPitchDegree` ≤ −80°, altura relativa
+   constante, intervalos regulares), el Flujo sugiere «Probablemente de misión: falta el
+   export de subaereo». Es una **sugerencia**, no una clasificación.
+7. **Sin export, se archiva igual.** Las unidades que quedan `pending: export` se pueden
+   archivar verificadas, para que dejen de ser copia única. Cuando llega el export, se
+   resuelven: pasan de `fotos/` a `misiones/…` como un renombrado dentro del archivo, sin
+   copiar otra vez. La SD no se libera mientras falte (A14).
+8. **Nada automático por ahora.** Ninguna copia empieza sola mientras los flujos no estén
+   identificados y probados; siempre hay un plan revisado. Automatizar los flujos que se
+   puedan automatizar queda como prioridad futura de nüün ([PLAN](../../PLAN.md)).
+9. **Recetas, no código fijo.** Dispositivos, categorías, carpetas, proyecto por defecto,
+   tolerancias de misión (±2 s, ≤ 40 m) y patrones de exports viven como datos de una
+   **receta**, con la del usuario (`nu9ve-default`) como plantilla inicial. Otros usuarios
+   no tendrán subaereo ni esos nombres; la receta se podrá editar por nodos después.
+
 ### Layout (propuesta concreta)
 
 | Destino | Ruta | Contenido |
@@ -245,6 +269,6 @@ específicas:
 | --- | --- | --- |
 | Atlas | Catálogo v2 recursivo con IDs estables; lee cualquier árbol bajo la raíz; `ev100`/`exposure_light_class` por foto. | 2026-11-05, working tree sobre `ba60ffa` |
 | Atlas | Ignora carpetas `_*` (para A8); `odm clean` para intermedios; docs de respaldo. | 2026-11-06, working tree sobre `0e4d0d2` |
-| nüün | Sin iniciar. | — |
+| nüün | **A15/A1:** identidad de dispositivo por EXIF `Make+Model+Serial` (lector propio, sin dependencias), XMP de vuelo para dron frente a 360/acción, receta `nu9ve-default` como plantilla inicial (`FC3170` → `dji-drone`, `MAVICAIR2`) y registro `device-registry` (`devices`, `confirm-device`). Fotos de dron: nombre de nüün con la hora EXIF y `dron/fotos/AAAA/MM/` con JPG y DNG juntos. Tarjeta: ya se identifica por UUID del volumen (`source_identity`). Sólo fixtures; A11–A14 y A16 pendientes | 2026-11-08 · working tree sobre `f2d05fb`, sin commit |
 | subaereo | Ver contrato de captura en Atlas. Exports 24 h / 7 d / todo con `mergeKeys` (8 nov) | 2026-11-08 · subaereo `e4894e1` |
 | Atlas | Inventario SD/ESSD/MEDIA; pedidos A11–A16 con las decisiones del usuario (nombres de nüün, misiones separadas, registro unificado de exports, trabajo sólo JPG, DNG a pedido). Atlas adaptará su catálogo para identificar por hora EXIF + serial y leer `units.ndjson` y `_missions/` | 2026-11-08 · atlas sobre `10ba32a` |

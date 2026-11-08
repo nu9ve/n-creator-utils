@@ -116,11 +116,21 @@ def wav_seconds(path):
         return None
 
 
-def facts(source, file):
+def photo_facts(photo):
+    """Capture start of a still from its EXIF DateTimeOriginal (+ OffsetTimeOriginal when present)."""
+    from .evidence import capture_time
+    value = photo['captured_at'] + photo.get('offset', '')
+    created = datetime.datetime.fromisoformat(value)
+    return {'created': created, 'capture_time': capture_time(value, 'exif.DateTimeOriginal')}
+
+
+def facts(source, file, use_photo=False):
     """Capture time (local wall clock), duration and model for one media file."""
     path = source / file['path']
     kind = kind_of(file['path'])
     found = {}
+    if use_photo and kind in {'image', 'raw_image'} and (file.get('photo') or {}).get('captured_at'):
+        found = photo_facts(file['photo'])
     if kind == 'video' and path.suffix.lower() == '.mp4':
         found = sony_xml(path.with_name(path.stem + 'M01.XML'))
     if kind in {'video', 'audio'} and 'seconds' not in found:
@@ -157,6 +167,8 @@ def duration(seconds):
 
 
 def model_for(unit, file, found):
+    if (unit.get('device') or {}).get('source'):
+        return unit['device']['source']
     if found.get('model'):
         return found['model']
     if unit['camera'] == 'sony':
@@ -167,7 +179,10 @@ def model_for(unit, file, found):
     return tag(unit['camera'])
 
 
-def archive_folder(kind, found, camera):
+def archive_folder(kind, found, camera, folders=None):
+    if (folders or {}).get(camera, {}).get(kind):
+        # Recipe folders, frozen in the plan (e.g. drone stills: JPG and DNG together in dron/fotos).
+        return folders[camera][kind]
     if kind == 'video':
         if camera in {'dji-drone'}:
             return 'vdron'
@@ -248,7 +263,7 @@ def build_layout(source, plan, units, files):
         primary_base = None
         for file in media:
             kind = kind_of(file['path'])
-            found = facts(source, file)
+            found = facts(source, file, use_photo=bool(unit.get('device')))
             created = found['created']
             if 'capture_time' not in unit and found.get('capture_time'):
                 unit['capture_time'] = found['capture_time']
@@ -260,7 +275,7 @@ def build_layout(source, plan, units, files):
             if kind in {'video', 'audio'}:
                 parts.append(duration(found.get('seconds')))
             ext = Path(file['path']).suffix.lstrip('.').upper()
-            folder = archive_folder(kind, found, unit['camera'])
+            folder = archive_folder(kind, found, unit['camera'], plan.get('category_folders'))
             name = claim('{}/{}_{}[].{}'.format(created.strftime('%Y/%m'), '_'.join(parts), label, ext)).split('/', 2)[2]
             layout[file['path']] = {'archive': '{}/{}/{}'.format(folder, created.strftime('%Y/%m'), name),
                                     'work': '{}/{}'.format(work_root, name)}

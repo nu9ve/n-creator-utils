@@ -43,7 +43,7 @@ no se ha decidido adelantar dron frente a carpetas vivas.
 | Área | Pendiente real | Dueño / aceptación |
 | --- | --- | --- |
 | Carpetas vivas | Ingreso incremental sin renombrar, limpiar origen ni propagar borrados; música/samples, editables y adopción de carpetas antiguas | Planner/índice/catálogo; destino de música en MEDIA por decidir. [Colecciones](docs/features/product-flows.md#carpetas-vivas-música-y-samples). |
-| Atlas / fotos de dron | Propuesta actualizada 6 noviembre, **A1–A10**, sin implementación nüün | Primero clasificación confirmada, pares por carpeta y layout original; después trabajo selectivo/handoff, respaldo de estado/exports/productos costosos y coordinación de uso. [Contrato propietario](docs/contracts/atlas-drone-v1.md). No ejecutar ODM ni limpiar al montar. |
+| Atlas / fotos de dron | **En curso desde el 8 nov:** A11–A16 con nombres de nüün, misiones separadas y registro de exports. Orden: dispositivos (A15/A1) → registro de misiones (A13) → misión o no + trabajo JPG y `units.ndjson` (A12) → archivo de copias únicas (A11, plan revisado) → liberar SD (A14) → DNG a pedido (A16) | [Contrato propietario](docs/contracts/atlas-drone-v1.md), [decisiones de nüün](docs/contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08). No ejecutar ODM ni limpiar al montar. |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG y aceptación real | Kyū es dueño del importador; nüün mantiene unidades, selección y recibos. [Fotos](docs/features/product-flows.md#fotos-y-kyū). |
 | Audio / cámaras | H6/SSD1, DJI dron frente a 360/acción, GoPro; registro persistente de modelo/categoría y reloj | Evidencia por dispositivo y confirmación; sin inferir por marca/carpeta residual. |
 | Stalker | Casos reales recording/finalizing/recovery; nombre genérico y tamaño de micrófono reportados; sugerencia SD desde sesión reciente | Stalker conserva manifests/reloj/audio. Reconciliar filas antiguas con código/pruebas antes de reimplementar. [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils). |
@@ -55,7 +55,8 @@ Nüün conserva el editable y observa deps frescos; invocar automáticamente ese
 
 ## P2 · configuración, fluidez y distribución
 
-- Recetas editables y registro de cámaras: la pestaña Flujos actual es sólo lectura. Una receta genera parámetros del mismo planner; no sustituye digest, revisión ni verificación.
+- Recetas editables y registro de cámaras: la pestaña Flujos actual es sólo lectura. Una receta genera parámetros del mismo planner; no sustituye digest, revisión ni verificación. Decidido el 8 nov: dispositivos, categorías, carpetas, proyecto por defecto y reglas de flujos (por ejemplo, misiones de subaereo) se guardan como datos de receta; las del usuario son la plantilla inicial (`nu9ve-default`) y después se editan por nodos. [Decisiones](docs/contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08).
+- Automatizar los flujos automatizables (prioridad futura, 8 nov): por ejemplo, incorporar exports al llegar o archivar una tarjeta conocida. Hasta tener cada flujo identificado y probado, nada se copia sin un plan revisado.
 - Onboarding de discos/perfiles, diagnósticos redactados, salud del runtime y acciones claras sobre pendientes.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/RSS/IO, accesibilidad, fullscreen/pantallas y contención. DiskArbitration, progreso empujado y agrupación de grilla siguen pendientes; no requieren reescritura de plataforma ni daemon.
 - Revisar validación/autenticación de planes, ownership/leases y durabilidad/replay según la frontera actual; exclusión host-local ya existe, no es lease distribuido.
