@@ -141,6 +141,14 @@ El usuario quiere conservar las transcripciones de Clipper ligadas a los videos 
 
 El usuario pidió avanzar el 7 nov: el intercambio quedó definido en [transcripciones de Clipper v1](clipper-transcripts-v1.md). Clipper implementa la exportación y nüün el área, la copia y la comprobación en el cierre.
 
+## Una sola verificación al aplicar · 2026-11-08
+
+Medido en el cierre de Terra: aplicar rehasheaba dos veces todas las fuentes y entregas del grupo en MEDIA502 (unos 10 GB a ~117 MB/s) aunque nüün no retiraba nada. Ahora:
+- **Una verificación del respaldo por aplicación.** `apply_close` la hace y pasa sus guardas a `apply_release`, que ya no relee todo. Antes de cada retiro se siguen vigilando por stamp, y un cambio obliga a rehashear. Se conserva la relectura por archivo previa a cada retiro de nüün.
+- **Sin retiros de nüün** (el plan sólo copia transcripciones, conserva entregas o deja que Clipper borre sus regenerables), una copia del respaldo cuyo stamp coincide con el que la revisión registró al hashearla (`archive_stamp`) no se vuelve a leer. Una copia cambiada, una hecha en esta misma aplicación o una sin stamp de revisión se hashea completa. Es la misma vigilancia por stamp que Transfer usa con destinos verificados.
+- **Con retiros de nüün** se hashea cada copia del respaldo una vez antes del primer retiro, como exige «liberación con hash actual».
+- La verificación entra en la medida global (`verify_total`), con su archivo y su avance, así que la barra no se queda quieta.
+
 ## Revisión con medida global y proyecto ya completo · 2026-11-07
 
 **Preparar revisión…** ya no muestra el avance de cada paso. `closure.review_estimate` calcula al empezar, sólo con tamaños, los bytes y archivos que la revisión va a leer:

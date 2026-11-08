@@ -332,8 +332,29 @@ def inventory(tree, plan, cancel=None):
     return paths, preserved
 
 
-def validate(catalog, backend, plan, cancel=None):
-    """Frozen human decisions and every final are gates, including already-moved deliveries."""
+def verification_work(catalog, plan, quick=False):
+    """[(final, needs_hash, bytes)] for applying. Every backup copy is hashed when nüün releases something; otherwise
+    only copies the review did not stamp, copies made by this apply and copies whose stamp changed since the review."""
+    archive = catalog.volume(plan['archive_id'])
+    work = []
+    with Tree(archive['root']) as tree:
+        for final in plan['closure_finals']:
+            try:
+                current = content_stamp(tree.stat(final['archive_path']))
+            except FileNotFoundError:
+                require(final.get('copy_required'), 'checksum_mismatch', 'Falta en el respaldo: ' + final['archive_path'])
+                work.append((final, True, final['original_stamp']['size']))  # Copied by this apply, hashed after.
+                continue
+            unchanged = quick and final.get('archive_stamp') and current == final['archive_stamp']
+            work.append((final, not unchanged, 0 if unchanged else current['size']))
+    return work
+
+
+def validate(catalog, backend, plan, cancel=None, quick=False, progress=None):
+    """Frozen human decisions and every final are gates, including already-moved deliveries.
+
+    `quick` (nothing of nüün's is released): a backup copy whose stamp still matches what the review hashed is not
+    read again; any change, or a copy made by this apply, is hashed in full."""
     require(group_digest(catalog, plan['closure_project_id']) == plan['closure_settings_digest'],
             'plan_changed', 'Cambió el cierre del proyecto; revisa un plan nuevo')
     archive = catalog.volume(plan['archive_id'])
@@ -345,9 +366,16 @@ def validate(catalog, backend, plan, cancel=None):
             for final in kept:
                 require(content_stamp(work.stat(final['original']['path'])) == final['original_stamp'],
                         'source_changed', 'Una entrega conservada cambió; revisa un plan nuevo')
+    work = verification_work(catalog, plan, quick)
+    hashed = sum(1 for _, needs, _ in work if needs)
+    index = 0
     with Tree(archive['root']) as tree:
-        for final in plan['closure_finals']:
-            sha, stamp = checked_hash(tree, final['archive_path'], cancel)
+        for final, needs, _ in work:
+            if not needs:
+                guards.append(dict(final, stamp=final['archive_stamp']))
+                continue
+            sha, stamp = checked_hash_progress(tree, final['archive_path'], cancel, progress, 'verifying_finals', index, hashed)
+            index += 1
             require(sha == final['sha256'],
                     'checksum_mismatch', 'Final sin respaldo íntegro: ' + final['archive_path'])
             guards.append(dict(final, stamp=stamp))
@@ -530,11 +558,18 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             if key not in already_verified:
                 raw_to_verify[key] = None
             finals.append({'archive_path': copy['destination'], 'sha256': copy['sha256'], 'role': 'source'})
+    reviewed_stamps = {}
     if raw_to_verify:
         with Tree(target['root']) as tree:
             for index, (path, expected) in enumerate(raw_to_verify):
-                sha, _ = checked_hash_progress(tree, path, cancel, progress, 'review_raw_archive', index, len(raw_to_verify))
+                sha, verified = checked_hash_progress(tree, path, cancel, progress, 'review_raw_archive', index, len(raw_to_verify))
                 require(sha == expected, 'checksum_mismatch', 'Respaldo raw alterado')
+                reviewed_stamps[path] = verified
+    # The stamp each backup copy had when this review hashed it: applying watches it instead of hashing again
+    # when nothing of nüün's is released (the same stamp guard Transfer uses for verified destinations).
+    for final in finals:
+        if final['archive_path'] in reviewed_stamps:
+            final['archive_stamp'] = reviewed_stamps[final['archive_path']]
     with Tree(source['root']) as tree:
         for editor in scoped['editor']:
             renders = editor + '/renders'
@@ -554,9 +589,11 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
             sha, stamp = checked_hash_progress(tree, item['path'], cancel, progress, 'review_final', index, len(config['finals']))
         require(stamp == item['stamp'], 'source_changed', 'Un final cambió; vuelve a vincularlo')
         copy_required = keep_work = False
+        archive_stamp = None
         if volume['role'] == 'archive':
             require(volume['id'] == target['id'], 'invalid_volume', 'El final está en otro respaldo')
             archive_path = item['path']
+            archive_stamp = stamp
         else:
             require(volume['id'] == source['id'], 'invalid_volume', 'El final está en otro disco de trabajo')
             keep_work = not item.get('published', config['published'])
@@ -570,8 +607,9 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                     archived_candidates.setdefault((candidate.name, info.st_size), []).append(str(candidate.relative_to(target['root'])))
             for candidate_rel in archived_candidates.get((Path(rel).name, stamp['size']), []):
                 with Tree(target['root']) as tree:
-                    if checked_hash_progress(tree, candidate_rel, cancel, progress, 'review_final_archive')[0] == sha:
-                        existing = candidate_rel
+                    candidate_sha, candidate_stamp = checked_hash_progress(tree, candidate_rel, cancel, progress, 'review_final_archive')
+                    if candidate_sha == sha:
+                        existing, archive_stamp = candidate_rel, candidate_stamp
                         break
             if existing:
                 archive_path = existing
@@ -600,7 +638,8 @@ def plan_close(catalog, backend, project_id, archive, work, cancel=None, release
                 replacements[str(Path(source['root']) / item['path'])] = str(Path(target['root']) / archive_path)
         finals.append({'archive_path': archive_path, 'sha256': sha, 'role': item['role'], 'owner': item.get('owner', project_id),
                        'original': {'volume_id': item['volume_id'], 'path': item['path']},
-                       'original_stamp': stamp, 'copy_required': copy_required, 'keep_work': keep_work})
+                       'original_stamp': stamp, 'copy_required': copy_required, 'keep_work': keep_work,
+                       'archive_stamp': archive_stamp})
     targets, roles = {}, {}
     for final in finals:
         previous = targets.setdefault(final['archive_path'], final['sha256'])
@@ -672,7 +711,10 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
         require(group_digest(catalog, plan['closure_project_id']) == plan['closure_settings_digest'], 'plan_changed', 'Cambió el cierre; revisa de nuevo')
         with Tree(plan['source_root']) as tree:
             validate_remaining(tree, plan, cancel)
-        tracker = ActionProgress(progress, plan, catalog)
+        # One backup check per apply. When nüün releases nothing, the review's fresh hashes are watched by stamp.
+        quick = not plan['entries']
+        tracker = ActionProgress(progress, plan, catalog,
+                                 verify_total=sum(size for _, needs, size in verification_work(catalog, plan, quick) if needs))
         report = tracker.stage
         relinks = []
         if plan['entries']:
@@ -686,7 +728,7 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
             copier.apply(transfer, transfer['digest'])
             tracker.copy_finished(transfer)
         report('verifying_finals')
-        validate(catalog, backend, plan, cancel)
+        guards = validate(catalog, backend, plan, cancel, quick=quick, progress=tracker.verify_event)
         if relinks:
             relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.passthrough)
         copied_transcripts = None
@@ -695,7 +737,8 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
             from .transcripts import copy as copy_transcripts
             report('copying_transcripts')
             copied_transcripts = copy_transcripts(catalog, backend, plan['transcripts'], receipt_id=plan_id, cancel=cancel)
-        result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event)
+        result = apply_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.release_event,
+                               archive_guards=guards)
         if copied_transcripts:
             with catalog.writer():
                 stored = catalog.get('release:' + plan_id)
@@ -868,11 +911,13 @@ class ActionProgress:
     """
     LOG_LIMIT = 60
 
-    def __init__(self, progress, plan, catalog):
+    def __init__(self, progress, plan, catalog, verify_total=0):
         self.progress = progress
         self.copy_total = sum(f['stamp']['size'] for t in plan['closure_copies'] for f in t['files'])
         self.release_sizes = [e['stamp']['size'] for e in plan['entries']]
-        self.total = 2 * self.copy_total + sum(self.release_sizes)
+        # Copy + verify each new copy, then check the backup (one pass), then hash and retire each editing copy.
+        self.verify_total, self.verify_base, self.verify_key, self.verify_read = verify_total, 0, None, 0
+        self.total = 2 * self.copy_total + verify_total + sum(self.release_sizes)
         self.copy_base = 0
         self.files_total = sum(len(t['files']) for t in plan['closure_copies']) + len(plan['entries'])
         self.files_done = 0
@@ -914,6 +959,21 @@ class ActionProgress:
         self.copy_base += 2 * sum(f['stamp']['size'] for f in transfer['files'])
         self.done = self.copy_base
 
+    def verify_event(self, stage, **details):
+        """Hashing a backup copy before release: the file in hand and its share of the one measure."""
+        self.stage_name = 'verifying_finals'
+        path = details.get('path')
+        if path and details.get('bytes_done', 0) > 0:
+            if path != self.verify_key:
+                self.verify_base += self.verify_read
+                self.verify_key, self.verify_read = path, 0
+            self.verify_read = details['bytes_done']
+            self.current = {'name': Path(path).name, 'from': self.archive_name, 'to': '', 'action': 'verify'}
+            self.done = max(self.done, 2 * self.copy_total + min(self.verify_total, self.verify_base + self.verify_read))
+            self.emit(file_done=details['bytes_done'], file_total=details.get('bytes_total', 0))
+            return
+        self.emit()
+
     def release_event(self, stage, **details):
         self.stage_name = stage
         if stage == 'releasing_originals' and details.get('path'):
@@ -923,7 +983,7 @@ class ActionProgress:
             finished = 'bytes_done' not in details
             reading = 0 if finished else details.get('bytes_done', 0)
             completed = index if finished else index
-            self.done = 2 * self.copy_total + sum(self.release_sizes[:completed]) + reading
+            self.done = 2 * self.copy_total + self.verify_total + sum(self.release_sizes[:completed]) + reading
             if finished and path not in self.retired:
                 self.retired.add(path)
                 self.files_done += 1

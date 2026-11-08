@@ -2,6 +2,20 @@
 
 Updated: 2026-11-07, America/Hermosillo. Current contract closure is recorded below; entries describe their own snapshots/builds. Check Git status and HEAD before resuming. It is **not a production release**. [Next priorities](../PLAN.md), [release gates](release.md).
 
+## Aplicar un cierre sin releer el respaldo de más · 2026-11-08
+
+En working tree, sin commit. Instalada como build **`c777003effff`** con la app cerrada; la anterior quedó en `app-backups/dad55f80.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261108-002700-acef82.app`, módulos de `media/` idénticos al checkout y `capture_overview` con 12 proyectos sobre una copia del catálogo. Hay una sola verificación del respaldo por aplicación, y ninguna relectura cuando nüün no retira nada y las copias siguen con el stamp que hasheó la revisión ([contrato](contracts/project-closeout-v1.md#una-sola-verificación-al-aplicar--2026-11-08)). La verificación cuenta en la barra global. Para un cierre como el de Terra esto quita dos lecturas completas de ~10 GB en MEDIA502: aplicar pasa de varios minutos a lo que tarden las transcripciones y Clipper. Prueba nueva: `test_apply_without_release_watches_reviewed_stamps_instead_of_rehashing`, que también detecta una copia alterada después de revisar. Python **317 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa.
+
+## Cierre conjunto de Terra aplicado · 2026-11-08
+
+Build `7715ca5b0648`, plan `8fe6e578`, aplicado por el usuario desde la app. Lectura en sólo lectura después de aplicar:
+- **Estado:** `completed`; `terra-6-1` y `terra-6-1-extra` quedan `finished`. nüün no retiró archivos propios (0 entradas).
+- **Transcripciones:** 5 copiadas y verificadas (1,826,950 bytes) en MEDIA502 `004_datos/clipper/transcripts/2026/10/26OCT27-040446_SONYA6400_23-11_MX-TERRA-6-1-EXTRA[]/`, con el recibo `.ncreator/receipts/data-8fe6e578….json`. El SHA-256 coincide con los originales, que siguen en `clipper/transcripts`.
+- **Clipper:** con el digest revisado borró 2 archivos y 534,101,916 bytes de `cache/stalker`, sin omitir ninguno.
+- **Seis verticales:** siguen en `02_shorts`, por publicar.
+
+Observado por el usuario: aplicar tardó varios minutos con la barra casi quieta. Medición en vivo: MEDIA502 leía a ~117 MB/s porque el cierre rehasheaba dos veces todas las fuentes y entregas del grupo, aunque nüün no retiraba nada. Se corrige en la entrada siguiente.
+
 ## Transcripciones de Clipper en MEDIA (parte de nüün) · 2026-11-07
 
 En working tree, sin commit. Instalada como build **`7715ca5b0648`** con la app cerrada; la anterior quedó en `app-backups/f428fe1f.app`. Firma estricta, binario idéntico al artefacto `dist/Nu9veMedia-local-20261107-235058-245bba.app`, los 30 módulos de `media/` idénticos al checkout y `capture_overview` instalado con 12 proyectos sobre una copia del catálogo. Python **316 OK, 4 omitidas**, **19/19 contratos**, Swift **25/25**, localización completa. Clipper implementó en su sesión `library transcripts-export`. Esta sesión implementó la parte de nüün del [contrato](contracts/clipper-transcripts-v1.md):
