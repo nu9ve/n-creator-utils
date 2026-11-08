@@ -108,6 +108,11 @@ class DroneFixture(MediaFixture):
 
 
 class DroneStillTests(DroneFixture):
+    def plan(self, **overrides):
+        # No mission registry here: drone stills wait for an export, so the card is not cleaned (A14).
+        overrides.setdefault('cleanup', False)
+        return super().plan(**overrides)
+
     def test_known_drone_is_classified_by_exif_and_named_by_the_recipe(self):
         self.pair('DJI_0001')
         plan = self.plan()

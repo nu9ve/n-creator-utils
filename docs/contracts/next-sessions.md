@@ -23,6 +23,20 @@ build_flight_plan_manifest para que lea el registro unificado de nüün:
 - Actualizar README, docs/data.md y docs/workflow.md; quitar coverage_exports/ de .gitignore. Las pruebas,
   con fixtures temporales.
 Atlas no escribe en _missions/: es de nüün.
+
+Además (estado al cierre del 8 nov, ver «Estado del lado nüün» en atlas-drone-v1.md):
+- Fotos nuevas: ESSD/001_proyectos/atlas-subaereo/misiones/AAAA/MM/<sesión>_<PLAN>/ con nombres de nüün
+  (26NOV07-154516_MAVICAIR2_MX-SUBAEREO[].JPG). 101MEDIA/ y 102MEDIA/ siguen con sus JPG.
+- El mapa es atlas-subaereo/_nuun/units.ndjson (1,810 fotos): asset_id, rutas en archivo y trabajo
+  (relativas a atlas-subaereo/), original_name, dcim_folder, captured_at (+UTC y utc_basis), serial,
+  SHA-256 de JPG y DNG, gps, flight y mission {planID, sessionID, captureID}. Identificar por asset_id o
+  por original_name + captured_at + serial, nunca por nombre solo.
+- DNG en trabajo: sólo una muestra de 128 (las 30 etiquetadas de crepusculo-2026-11-05-v1, una sesión
+  reciente por iluminación, 24 malas y 12 de junio). work.dng dice dónde está cada uno; el resto vive en
+  MEDIA502 (archive.dng). Atlas no debe asumir DNG junto a cada JPG de 101MEDIA/102MEDIA.
+- Para pedir más DNG: una lista de asset_id a nüün (`nu9ve media dng-plan` con `keep`).
+- Adaptar el catálogo para leer units.ndjson y las carpetas misiones/; las 64 fotos de agosto y la 0340 ya no
+  están en el ESSD (el usuario las descartó).
 ```
 
 ## Pedido de Atlas · 2026-11-08 · fotos de dron, misiones y exports (A11–A16)

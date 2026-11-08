@@ -230,6 +230,8 @@ struct Chip: ViewModifier {
     func body(content: Content) -> some View { content.background(palette.raised.opacity(0.5), in: palette.pill) }
 }
 
+/// Touching a card only shows what it holds (thumbnails load as they arrive); nothing is planned or copied.
+/// The one button prepares the backup flow; the plan is still reviewed before anything moves.
 struct CardSuggestion: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
@@ -237,24 +239,36 @@ struct CardSuggestion: View {
     var body: some View {
         let hint = card["hint"], path = card["path"].string
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(palette.warning)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(card["name"].string).font(.headline)
-                    Text(model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button { model.eject(path) } label: { Image(systemName: "eject") }.buttonStyle(.borderless).help("Expulsar SD de forma segura").disabled(model.busy)
+            Button { model.previewCard(path) } label: {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top) {
+                        Image(systemName: "sdcard.fill").font(.title2).foregroundStyle(palette.warning)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(card["name"].string).font(.headline)
+                            Text(model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    if hint != .null { Label(model.recommendationLabel(hint["recommendation"].string), systemImage: "lightbulb").font(.callout) }
+                    if !hint["last_project"].string.isEmpty { Text("Usada antes en: \(hint["last_project"].string)").font(.caption).foregroundStyle(.secondary) }
+                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }
-            if hint != .null { Label(model.recommendationLabel(hint["recommendation"].string), systemImage: "lightbulb").font(.callout) }
-            if !hint["last_project"].string.isEmpty { Text("Usada antes en: \(hint["last_project"].string)").font(.caption).foregroundStyle(.secondary) }
+            .buttonStyle(.plain)
+            .help("Ver su contenido; no copia nada")
+            .accessibilityHint("Muestra las fotos y videos de la tarjeta")
             HStack {
-                Button("Ingreso rápido") { model.useCard(path); model.discover(); model.changeMode?(.compact) }
+                Button("Ver contenido", systemImage: "square.grid.2x2") { model.previewCard(path) }
                 Spacer()
-                Button("Ingresar", systemImage: "arrow.right") { model.useCard(path); model.discover() }.buttonStyle(CreatorButtonStyle(prominent: true))
+                Button("Preparar respaldo", systemImage: "arrow.right") { model.prepareCardBackup(path) }
+                    .buttonStyle(CreatorButtonStyle(prominent: true))
             }
-        }.modifier(Panel())
+        }
+        .overlay(alignment: .topTrailing) {
+            Button { model.eject(path) } label: { Image(systemName: "eject") }.buttonStyle(.borderless)
+                .help("Expulsar SD de forma segura").accessibilityLabel("Expulsar SD de forma segura").disabled(model.busy)
+        }
+        .modifier(Panel())
     }
 }
 

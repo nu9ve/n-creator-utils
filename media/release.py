@@ -216,8 +216,8 @@ def plan_release(catalog, backend, archive, work=None, path='', source=None, pro
                 require(left.get('producer') == 'stalker' and left.get('status') == 'completed' and digest(left) == digest(right),
                         'revision_mismatch', 'Stalker replacement must have the same completed manifest')
                 from .planner import scan
-                left_files, _, _ = scan(original)
-                right_files, _, _ = scan(replacement)
+                left_files, _, _ = scan(original, photos=False)
+                right_files, _, _ = scan(replacement, photos=False)
                 require({f['path'] for f in left_files} == {f['path'] for f in right_files}, 'revision_mismatch', 'Stalker bundle membership differs')
     replacement_checks = prefer_work(catalog, backend, archive_record, entries, replacements, cancel, progress) if source else []
     report(progress, 'inspecting_clipper')

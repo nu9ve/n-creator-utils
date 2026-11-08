@@ -175,9 +175,7 @@
 "Igual que el sistema" = "Same as the system";
 "Importador rápido…" = "Quick Importer…";
 "Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar." = "Includes projects, tags, profiles, decisions and the operation log. It is also saved after ingest and before/after releasing.";
-"Ingresar" = "Ingest";
 "Ingreso" = "Ingest";
-"Ingreso rápido" = "Quick ingest";
 "Inicio" = "Home";
 "Inspeccionar" = "Inspect";
 "Instalación local de desarrollo; el runtime externo y la firma de distribución siguen siendo gates de release." = "Local development install; the external runtime and distribution signing are still release gates.";
@@ -853,3 +851,15 @@
 "%lld descartadas (%@): no se respaldan y se quedan en el origen." = "%lld discarded (%@): not backed up; they stay at the source.";
 "Descartadas · se quedan en el origen" = "Discarded · stay at the source";
 "%lld archivos ya están en el respaldo por un ingreso anterior (mismo nombre y tamaño): no se copian otra vez y se quedan en el origen." = "%lld files are already in the backup from an earlier ingest (same name and size): they are not copied again and stay at the source.";
+
+/* Card preview, backup preparation, date and session filters */
+"%@ · %lld" = "%@ · %lld";
+"Esta carpeta ya está en %@: es su propia copia para editar, así que sólo se respalda." = "This folder is already on %@: it is its own editing copy, so it is only backed up.";
+"Fecha" = "Date";
+"Muestra las fotos y videos de la tarjeta" = "Shows the card's photos and videos";
+"Preparar respaldo" = "Prepare backup";
+"Sesión" = "Session";
+"Todas las fechas" = "All dates";
+"Todas las sesiones" = "All sessions";
+"Ver contenido" = "View content";
+"Ver su contenido; no copia nada" = "View its content; nothing is copied";

@@ -252,6 +252,9 @@ class Service:
                     mission = self._discover_mission(members, device, rules, params.get('archive'), mission_indexes)
                     if mission:
                         metadata_device['mission'] = mission
+                captured = next(((f.get('photo') or {}).get('captured_at') for f in members if (f.get('photo') or {}).get('captured_at')), None)
+                if captured:
+                    metadata_device['created_at'] = captured  # camera time (EXIF), for date filters
                 else:
                     metadata_device = {}
                 kinds = [kind_of(f['path']) for f in members]
