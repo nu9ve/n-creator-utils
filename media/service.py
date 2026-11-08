@@ -96,8 +96,12 @@ class Service:
                     if current - last['at'] >= 0.25 or stage == 'release_complete':
                         self.catalog.set('closure-progress:' + params['plan_id'], dict(details, stage=stage, released_files=last['done']))
                         last['at'] = current
-                return closure.apply_close(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress,
-                                           confirm_discard=params.get('confirm_discard', False))
+                try:
+                    return closure.apply_close(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress,
+                                               confirm_discard=params.get('confirm_discard', False))
+                finally:
+                    # Observers only need it while the action runs; a finished closeout leaves nothing behind.
+                    self._forget('closure-progress:' + params['plan_id'])
             require(False, 'unknown_method', 'Unknown closure method')
         if method == 'eject_card':
             from .volumes import eject_card
@@ -324,7 +328,14 @@ class Service:
                     or details.get('overall_done') == details.get('overall_total')):
                 self.catalog.set('action-progress:' + key, dict(details, stage=stage))
                 last.update(stage=stage, at=moment)
-        yield progress
+        try:
+            yield progress
+        finally:
+            self._forget('action-progress:' + key)
+
+    def _forget(self, key):
+        with self.catalog.db:
+            self.catalog.db.execute('DELETE FROM metadata WHERE key=?', (key,))
 
     def _snapshot(self, params):
         """Everything the native shell shows at rest, in one read; each mounted volume is described once."""

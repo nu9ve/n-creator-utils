@@ -1,6 +1,6 @@
 # Validación Sony: respaldo, limpieza y formato en cámara
 
-Estado actual: con una α6400 y la build `a439bb378645`, la primera retirada pareció terminar con la SD montada y los archivos reaparecieron tras reconectarla. La repetición controlada con los mismos tres archivos persistió al desmontar y montar la tarjeta en macOS. Falta comprobar el formato posterior y el cierre de ese job. [Prueba del 7 de noviembre](#prueba-física-con-un-clip--2026-11-07).
+Estado actual (7 nov, `48779e1516c1`): la reconexión tras el formato cerró los cuatro trabajos pendientes de la tarjeta sin confirmaciones ([detalle](#reconexión-tras-el-formato--2026-11-07)). Antes, con una α6400 y la build `a439bb378645`, la primera retirada pareció terminar con la SD montada y los archivos reaparecieron tras reconectarla. La repetición controlada con los mismos tres archivos persistió al desmontar y montar la tarjeta en macOS. Falta comprobar el formato posterior y el cierre de ese job. [Prueba del 7 de noviembre](#prueba-física-con-un-clip--2026-11-07).
 
 ## Hipótesis
 
@@ -103,3 +103,7 @@ El usuario confirmó que la cámara formateó la SD correctamente después
 del retiro. Se volvieron a verificar las 13 copias. La SD estaba fuera del
 Mac al comprobar el catálogo. Falta reconectarla para comprobar la reescritura
 de índices y confirmar el formato del job en Actividad.
+
+### Reconexión tras el formato · 2026-11-07
+
+Build `48779e1516c1`. Al conectar la SD, la comprobación automática cerró como `completed` los cuatro trabajos Sony pendientes de esa tarjeta, incluido `a7839591`, con `sony_card_checked: ready` y sin archivos reaparecidos. Un clip nuevo con el nombre `C0001.MP4` y otro tamaño se conservó intacto. `060b585d` sigue `failed`. [Evidencia](STATUS.md#reconexión-sony-aceptada-en-la-build-instalada--2026-11-07).

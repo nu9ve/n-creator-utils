@@ -84,10 +84,18 @@ class ReleaseProgressTests(WorkflowFixture):
     def test_service_keeps_the_measure_for_the_reader(self):
         plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')
         service = Service(self.catalog, self.backend)
-        service.call('apply_release', {'plan_id': plan['id'], 'digest': plan['digest']})
-        stored = service.call('action_progress', {'id': plan['id']})
-        self.assertEqual(stored['stage'], 'release_complete')
-        self.assertEqual(stored['overall_done'], stored['overall_total'])
+        seen = []
+        original = service.catalog.set
+        def remember(key, value):
+            if key == 'action-progress:' + plan['id']:
+                seen.append(value)
+            return original(key, value)
+        with mock.patch.object(service.catalog, 'set', side_effect=remember):
+            service.call('apply_release', {'plan_id': plan['id'], 'digest': plan['digest']})
+        self.assertEqual(seen[-1]['stage'], 'release_complete')
+        self.assertEqual(seen[-1]['overall_done'], seen[-1]['overall_total'])
+        # The reader saw it while it ran; a finished action leaves no key behind.
+        self.assertEqual(service.call('action_progress', {'id': plan['id']}), {})
 
 
 class DeliveryProgressTests(MediaFixture):
