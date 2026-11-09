@@ -11,6 +11,10 @@ La referencia operativa vigente está en [operations](operations.md): registro d
 - `nu9ve doctor`: configuración/ejecutables/directorios del legado, no estado completo del catálogo ni certificación de discos.
 - `nu9ve clip`: retirado; informa [sucesor](https://github.com/nu9ve/clipper) y termina con código 2.
 
+## Liberar una colección (SSD1)
+
+`nu9ve media collection-release-plan --source CARPETA --archive MEDIA500 [--archive …] [--als-root CARPETA] [--keep RUTA] [--search ARCHIVO:CARPETA]` planea sin mover nada; `collection-release-apply PLAN --digest D` mueve a la Papelera del volumen exactamente lo revisado; `collection-release-plans` lista los planes. Garantías y runbook en [music-flows](features/music-flows.md#m1--liberar-una-colección-implementado-2026-11-09).
+
 ## Descargas y stems
 
 ```sh
