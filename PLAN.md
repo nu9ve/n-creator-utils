@@ -33,7 +33,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 | Área | Pendiente real | Referencia |
 | --- | --- | --- |
-| **Música y SSD1** | Carpetas vivas: ingreso incremental sin renombrar ni propagar borrados; separar biblioteca de curado/Rekordbox, samples, loops, MIDI y proyectos de producción; destino en MEDIA y trabajo en SSD1. Primero inventario de sólo lectura con el usuario | [Carpetas vivas](docs/features/product-flows.md#carpetas-vivas-música-y-samples) |
+| **Música y SSD1** | Orden decidido en [music-flows](docs/features/music-flows.md): (1) liberar `recordingslong`/`recordings` (~252 GB) contra MEDIA500/501 por hash, conservando lo que usa un set (`.asd` o `.als`, 10.5 GB); (2) carpeta viva para producción y `~/Music`; (3) triage de audio con Clipper (`audio-triage-v1`); (4) biblioteca con curado (`music-library-v1`) | [Inventario](docs/features/music-ssd1-inventory-2026-11-09.md) |
 | Dron, resto | Reclasificar `pending_export` → misión al llegar el export; confirmar dispositivo nuevo en la app; UI del plan de DNG | [Atlas](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
 | Selector por proyecto | Todas las fuentes y capturas pendientes de un proyecto, con un plan por fuente | Pedido del 6 nov |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG | [Fotos](docs/features/product-flows.md#fotos-y-kyū) |

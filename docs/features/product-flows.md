@@ -188,6 +188,8 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 ### Carpetas vivas: música y samples
 
+Inventario real de SSD1 (9 nov): [music-ssd1-inventory-2026-11-09](music-ssd1-inventory-2026-11-09.md).
+
 Las fotos y el video de cámara **no** son carpetas vivas: siguen el respaldo general por tipo que ya aplica [layout.py](../../media/layout.py) (`images/`, `rimages/`, `360/images/`, por año y mes). Las selecciones terminadas de fotos son entregas y van a finales, organizadas por fecha y nombre de proyecto.
 
 Una carpeta viva es otra cosa: música, samples o bibliotecas que cambian y se respaldan muchas veces. Es un `source_kind` nuevo, distinto de una tarjeta:
