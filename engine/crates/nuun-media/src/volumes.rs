@@ -1,0 +1,645 @@
+//! Volume identity rules and source cards. Port of `media/volumes.py` (`card_identity`, `validate_card`,
+//! `independent`, `destination_identities`, `reject_destination`, `check`/`online`, `source_cards`, `card_hint`)
+//! and of the `volumes` RPC in `media/service.py`.
+//!
+//! Divergences, all on purpose:
+//! - Windows identity is new (`mode: "windows"`, see nu9ve-volumes); Python has no Windows backend.
+//! - A card's `name` is the folder name as in Python, or, for a drive root (which has none), its label or letter.
+//! - `hint.device` (the first still's EXIF, `card_device`) is not there yet: `photo_meta` is not ported.
+
+use crate::catalog::Catalog;
+use nu9ve_json::{Error, Result, require};
+use serde_json::{Map, Value, json};
+use std::cell::RefCell;
+use std::collections::{BTreeSet, HashMap};
+use std::path::{Path, PathBuf};
+
+/// What the engine needs from the operating system. Tests use a fixture backend; they never list real mounts.
+pub trait Backend {
+    /// Mounted roots that could be cards. Metadata only: never recurses into media.
+    fn mounted_roots(&self) -> Vec<PathBuf>;
+    /// The identity of the volume at `root` (the `info` dictionary of Python's `describe`).
+    fn describe(&self, root: &Path, external_required: bool) -> Result<Value>;
+    /// `(used, capacity)` bytes, like `shutil.disk_usage`.
+    fn usage(&self, root: &Path) -> Option<(u64, u64)>;
+}
+
+/// The comparable form of a root: drive roots as `E:\`, other paths as written.
+pub fn normalize(root: &Path) -> String {
+    if nu9ve_volumes::is_drive_root(root) {
+        nu9ve_volumes::drive_root_of(root)
+            .map(|r| r.display().to_string())
+            .unwrap_or_default()
+    } else {
+        std::path::absolute(root)
+            .unwrap_or_else(|_| root.to_path_buf())
+            .display()
+            .to_string()
+    }
+}
+
+/// The real backend on Windows.
+pub struct WindowsBackend;
+
+impl Backend for WindowsBackend {
+    fn mounted_roots(&self) -> Vec<PathBuf> {
+        use nu9ve_volumes::DriveKind;
+        // Network shares and optical drives are never cards, and asking them can block.
+        nu9ve_volumes::mounted_roots()
+            .into_iter()
+            .filter(|root| {
+                matches!(
+                    nu9ve_volumes::drive_kind(root),
+                    DriveKind::Removable | DriveKind::Fixed
+                )
+            })
+            .collect()
+    }
+
+    fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
+        require(
+            root.is_dir() && !root.is_symlink(),
+            "volume_offline",
+            format!("Root unavailable: {}", root.display()),
+        )?;
+        let info = nu9ve_volumes::describe(root)?;
+        // Fail closed like Python: no physical identity, no volume.
+        require(
+            !info.physical_disks.is_empty(),
+            "volume_identity_unavailable",
+            "Physical disk identity missing",
+        )?;
+        require(
+            !external_required || info.external(),
+            "external_required",
+            "Use a mounted external volume",
+        )?;
+        Ok(json!({
+            "mode": "windows",
+            "volume_uuid": info.volume_guid,
+            "disk_uuid": info.serial,
+            "mount": info.root.display().to_string(),
+            "external": info.external(),
+            "physical": info.physical_disks.join(","),
+            "physical_disks": info.physical_disks,
+            "filesystem": info.filesystem,
+            "block_size": info.block_size,
+            "root_inode": info.root_index,
+            "device": info.serial_number,
+            "free": info.free,
+            "removable": info.removable(),
+            "disk_image": info.disk_image(),
+            "label": info.label,
+            "bus": info.bus.id(),
+        }))
+    }
+
+    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+        nu9ve_volumes::describe(root)
+            .ok()
+            .map(|i| (i.total.saturating_sub(i.total_free), i.total))
+    }
+}
+
+/// One request's memo: each root is described once (Python `CachedBackend`).
+pub struct Cached<'a> {
+    inner: &'a dyn Backend,
+    described: RefCell<HashMap<(String, bool), Result<Value>>>,
+}
+
+impl<'a> Cached<'a> {
+    pub fn new(inner: &'a dyn Backend) -> Self {
+        Self {
+            inner,
+            described: RefCell::new(HashMap::new()),
+        }
+    }
+}
+
+impl Backend for Cached<'_> {
+    fn mounted_roots(&self) -> Vec<PathBuf> {
+        self.inner.mounted_roots()
+    }
+
+    fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
+        let key = (normalize(root), external_required);
+        if let Some(found) = self.described.borrow().get(&key) {
+            return found.clone();
+        }
+        let result = self.inner.describe(root, external_required);
+        self.described.borrow_mut().insert(key, result.clone());
+        result
+    }
+
+    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+        self.inner.usage(root)
+    }
+}
+
+/// The keys that identify a card for one operation (eject, plan).
+pub fn card_identity(info: &Value) -> Value {
+    let keys = [
+        "mode",
+        "volume_uuid",
+        "disk_uuid",
+        "mount",
+        "physical",
+        "root_inode",
+        "device",
+    ];
+    Value::Object(
+        keys.iter()
+            .map(|k| {
+                (
+                    (*k).to_owned(),
+                    info.get(*k).cloned().unwrap_or(Value::Null),
+                )
+            })
+            .collect(),
+    )
+}
+
+fn truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+
+pub fn validate_card(root: &Path, info: &Value) -> Result<()> {
+    let mount_matches =
+        info["mount"].as_str().map(|m| normalize(Path::new(m))) == Some(normalize(root));
+    require(
+        truthy(&info["external"])
+            && truthy(&info["removable"])
+            && !truthy(&info["disk_image"])
+            && mount_matches,
+        "not_a_card",
+        "Choose the root of a mounted removable SD/camera card",
+    )
+}
+
+fn disks(info: &Value) -> BTreeSet<String> {
+    match info["physical_disks"].as_array() {
+        Some(list) if !list.is_empty() => list
+            .iter()
+            .filter_map(|d| d.as_str().map(str::to_owned))
+            .collect(),
+        _ => info["physical"]
+            .as_str()
+            .map(|p| [p.to_owned()].into())
+            .unwrap_or_default(),
+    }
+}
+
+/// A mounted image's bytes live on some other disk; it never counts as a separate replica.
+pub fn independent(first: &Value, second: &Value) -> bool {
+    if truthy(&first["disk_image"]) || truthy(&second["disk_image"]) {
+        return false;
+    }
+    disks(first).is_disjoint(&disks(second))
+}
+
+/// Current identity of a registered volume, or an error when it is offline or was replaced.
+pub fn check(backend: &dyn Backend, record: &Value) -> Result<Value> {
+    let root = record["root"].as_str().unwrap_or_default();
+    let identity = &record["identity"];
+    let current = backend.describe(Path::new(root), truthy(&identity["external"]))?;
+    for key in ["mode", "volume_uuid", "disk_uuid", "root_inode"] {
+        let expected = identity.get(key).unwrap_or(&Value::Null);
+        require(
+            current.get(key).unwrap_or(&Value::Null) == expected,
+            "volume_replaced",
+            format!(
+                "Registered volume identity changed: {}",
+                record["name"].as_str().unwrap_or("")
+            ),
+        )?;
+    }
+    Ok(current)
+}
+
+pub fn online(backend: &dyn Backend, record: &Value) -> Option<Value> {
+    check(backend, record).ok()
+}
+
+/// Disk numbers change on remount: compare current physical stores when available.
+pub fn destination_identities(catalog: &Catalog, backend: &dyn Backend) -> Result<Vec<Value>> {
+    Ok(catalog
+        .volumes()?
+        .iter()
+        .map(|record| online(backend, record).unwrap_or_else(|| record["identity"].clone()))
+        .collect())
+}
+
+pub fn reject_destination(info: &Value, identities: &[Value]) -> Result<()> {
+    require(
+        identities.iter().all(|identity| {
+            info.get("volume_uuid") != identity.get("volume_uuid") && independent(info, identity)
+        }),
+        "destination_volume",
+        "Archive/work disks cannot be ejected from Ingreso",
+    )
+}
+
+/// The `volumes` RPC: each registered record with `online`.
+pub fn volumes(catalog: &Catalog, backend: &dyn Backend) -> Result<Value> {
+    let cached = Cached::new(backend);
+    Ok(Value::Array(
+        catalog
+            .volumes()?
+            .into_iter()
+            .map(|record| {
+                let up = online(&cached, &record).is_some();
+                let mut record = record;
+                if let Some(map) = record.as_object_mut() {
+                    map.insert("online".into(), Value::Bool(up));
+                }
+                record
+            })
+            .collect(),
+    ))
+}
+
+/// Family, recommendation, usage and last project of a mounted card (volumes.py `card_hint`).
+pub fn card_hint(
+    root: &Path,
+    catalog: &Catalog,
+    backend: &dyn Backend,
+    identity: Option<&Value>,
+) -> Result<Value> {
+    let recipe = nuun_recipe::effective(catalog.get("recipe")?.as_ref());
+    let rule = nuun_recipe::card_rule(root, &recipe)?;
+    let (used, capacity) = backend.usage(root).unwrap_or((0, 0));
+    let mut hint = Map::new();
+    hint.insert("family".into(), rule["family"].clone());
+    hint.insert("recommendation".into(), rule["recommendation"].clone());
+    hint.insert("used_bytes".into(), json!(used));
+    hint.insert("capacity_bytes".into(), json!(capacity));
+    if let Some(uuid) = identity
+        .and_then(|i| i["volume_uuid"].as_str())
+        .filter(|u| !u.is_empty())
+        && let Some((project, profile)) = catalog.last_project(uuid)?
+    {
+        hint.insert("last_project".into(), json!(project));
+        hint.insert("last_profile".into(), json!(profile));
+    }
+    Ok(Value::Object(hint))
+}
+
+/// The `source_cards` RPC. Without a registered destination online, mounts stay silent: cards are listed without
+/// reading their contents (`hint`), as in Python.
+pub fn source_cards(
+    catalog: &Catalog,
+    backend: &dyn Backend,
+    hints: Option<bool>,
+) -> Result<Value> {
+    let cached = Cached::new(backend);
+    let protected = destination_identities(catalog, &cached)?;
+    let hints = match hints {
+        Some(h) => h,
+        None => catalog
+            .volumes()?
+            .iter()
+            .any(|record| online(&cached, record).is_some()),
+    };
+    let mut cards = Vec::new();
+    for root in cached.mounted_roots() {
+        let Ok(info) = cached
+            .describe(&root, false)
+            .and_then(|info| validate_card(&root, &info).map(|_| info))
+            .and_then(|info| reject_destination(&info, &protected).map(|_| info))
+        else {
+            continue;
+        };
+        let name = root
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .filter(|n| !n.is_empty())
+            .or_else(|| {
+                info["label"]
+                    .as_str()
+                    .filter(|l| !l.is_empty())
+                    .map(str::to_owned)
+            })
+            .unwrap_or_else(|| normalize(&root).trim_end_matches('\\').to_owned());
+        let identity = card_identity(&info);
+        let mut card = json!({"path": root.display().to_string(), "name": name, "kind": "card", "identity": identity});
+        if hints {
+            card["hint"] = card_hint(&root, catalog, &cached, Some(&identity))?;
+        }
+        cards.push(card);
+    }
+    Ok(Value::Array(cards))
+}
+
+/// Not a card, a destination or offline: why, in words (for tests and diagnosis).
+pub fn explain(error: &Error) -> String {
+    format!("{}: {}", error.code, error.message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::catalog::fixture;
+    use std::collections::HashSet;
+
+    /// Port of tests/test_media_engine.py `FixtureVolumes`: temporary folders that behave like mounted volumes.
+    #[derive(Default)]
+    struct Fixture {
+        roots: Vec<PathBuf>,
+        offline: HashSet<String>,
+        physical: HashMap<String, String>,
+        replaced: HashSet<String>,
+        overrides: HashMap<String, Value>,
+    }
+
+    impl Backend for Fixture {
+        fn mounted_roots(&self) -> Vec<PathBuf> {
+            self.roots.clone()
+        }
+        fn describe(&self, root: &Path, _: bool) -> Result<Value> {
+            let key = normalize(root);
+            if self.offline.contains(&key) || !root.is_dir() {
+                return Err(Error::new("volume_offline", "Fixture disk disconnected"));
+            }
+            let mut info = json!({"mode": "fixture",
+                "volume_uuid": format!("{key}{}", if self.replaced.contains(&key) { "-replaced" } else { "" }),
+                "disk_uuid": "fixture", "mount": key, "external": true,
+                "physical": self.physical.get(&key).cloned().unwrap_or_else(|| key.clone()),
+                "filesystem": "fixture", "block_size": 4096, "root_inode": 1, "device": 1, "free": 1_000_000_000_000u64,
+                "removable": true});
+            if let Some(Value::Object(changes)) = self.overrides.get(&key) {
+                for (k, v) in changes {
+                    info[k] = v.clone();
+                }
+            }
+            Ok(info)
+        }
+        fn usage(&self, _: &Path) -> Option<(u64, u64)> {
+            Some((21_400_000_000, 64_000_000_000))
+        }
+    }
+
+    struct Setup {
+        _temp: tempfile::TempDir,
+        home: PathBuf,
+        card: PathBuf,
+        archive: PathBuf,
+        work: PathBuf,
+        backend: Fixture,
+    }
+
+    /// MediaFixture.setUp: a card, MEDIA (archive) and ESSD (work) registered with their fixture identities.
+    fn setup() -> Setup {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().to_path_buf();
+        let (card, archive, work) = (root.join("card"), root.join("archive"), root.join("work"));
+        for path in [&card, &archive, &work] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let backend = Fixture {
+            roots: vec![card.clone(), archive.clone(), work.clone()],
+            ..Default::default()
+        };
+        let home = root.join("state");
+        let db = fixture::create(&home);
+        fixture::register(
+            &db,
+            "MEDIA",
+            "archive",
+            &archive,
+            &backend.describe(&archive, false).unwrap(),
+            "001_raw",
+        );
+        fixture::register(
+            &db,
+            "ESSD",
+            "work",
+            &work,
+            &backend.describe(&work, false).unwrap(),
+            "001_proyectos",
+        );
+        Setup {
+            _temp: temp,
+            home,
+            card,
+            archive,
+            work,
+            backend,
+        }
+    }
+
+    fn catalog(s: &Setup) -> Catalog {
+        Catalog::open(&s.home).unwrap()
+    }
+
+    fn paths(cards: &Value) -> Vec<String> {
+        cards
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c["path"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn listing_is_metadata_only_and_excludes_destinations() {
+        let s = setup();
+        let cards = source_cards(&catalog(&s), &s.backend, None).unwrap();
+        assert_eq!(paths(&cards), [s.card.display().to_string()]);
+        assert_eq!(cards[0]["name"], "card");
+        assert_eq!(cards[0]["identity"]["mode"], "fixture");
+    }
+
+    #[test]
+    fn a_card_on_the_same_physical_disk_as_a_destination_is_rejected() {
+        let mut s = setup();
+        s.backend
+            .physical
+            .insert(normalize(&s.card), normalize(&s.archive));
+        assert_eq!(
+            source_cards(&catalog(&s), &s.backend, None).unwrap(),
+            json!([])
+        );
+    }
+
+    #[test]
+    fn non_cards_and_images_are_rejected() {
+        for change in [
+            json!({"removable": false}),
+            json!({"external": false}),
+            json!({"disk_image": true}),
+            json!({"mount": "/different-mount"}),
+        ] {
+            let mut s = setup();
+            s.backend
+                .overrides
+                .insert(normalize(&s.card), change.clone());
+            assert_eq!(
+                source_cards(&catalog(&s), &s.backend, None).unwrap(),
+                json!([]),
+                "{change}"
+            );
+        }
+    }
+
+    #[test]
+    fn hints_read_the_family_when_a_destination_is_online() {
+        let s = setup();
+        std::fs::create_dir_all(s.card.join("DCIM/100GOPRO")).unwrap();
+        let hint = &source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"];
+        assert_eq!(hint["family"], "gopro");
+        assert_eq!(hint["recommendation"], "archive_and_work");
+        assert_eq!(hint["capacity_bytes"], 64_000_000_000u64);
+        assert!(hint.get("last_project").is_none());
+    }
+
+    #[test]
+    fn offline_destinations_keep_cards_without_content_hints() {
+        let mut s = setup();
+        std::fs::create_dir_all(s.card.join("DCIM/100GOPRO")).unwrap();
+        s.backend.offline.insert(normalize(&s.archive));
+        s.backend.offline.insert(normalize(&s.work));
+        let cards = source_cards(&catalog(&s), &s.backend, None).unwrap();
+        assert_eq!(cards.as_array().unwrap().len(), 1);
+        assert!(cards[0].get("hint").is_none());
+        // Without hints requested, never the contents.
+        let s = setup();
+        assert!(
+            source_cards(&catalog(&s), &s.backend, Some(false)).unwrap()[0]
+                .get("hint")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn volumes_say_online_and_a_replaced_disk_is_offline() {
+        let mut s = setup();
+        let list = volumes(&catalog(&s), &s.backend).unwrap();
+        assert_eq!(
+            list.as_array()
+                .unwrap()
+                .iter()
+                .map(|v| (v["name"].as_str().unwrap(), v["online"].as_bool().unwrap()))
+                .collect::<Vec<_>>(),
+            [("ESSD", true), ("MEDIA", true)]
+        );
+        s.backend.replaced.insert(normalize(&s.work));
+        let list = volumes(&catalog(&s), &s.backend).unwrap();
+        assert_eq!(list[0]["online"], false);
+        assert_eq!(
+            check(&s.backend, &list[0]).unwrap_err().code,
+            "volume_replaced"
+        );
+    }
+
+    #[test]
+    fn last_project_comes_from_the_newest_plan_of_that_card() {
+        let s = setup();
+        let db = rusqlite::Connection::open(s.home.join("catalog.sqlite3")).unwrap();
+        let uuid = normalize(&s.card);
+        let plan = |project: &str| {
+            json!({"source_identity": {"volume_uuid": uuid}, "units": [{"project": "support", "support": true}, {"project": project, "profile": "e64"}]}).to_string()
+        };
+        db.execute(
+            "INSERT INTO jobs VALUES('j1','d',?,'completed',NULL,'2026-11-01','2026-11-01')",
+            [plan("viejo-demo")],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO jobs VALUES('j2','d',?,'completed',NULL,'2026-11-08','2026-11-08')",
+            [plan("nuevo-demo")],
+        )
+        .unwrap();
+        drop(db);
+        let hint = &source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"];
+        assert_eq!(
+            (hint["last_project"].as_str(), hint["last_profile"].as_str()),
+            (Some("nuevo-demo"), Some("e64"))
+        );
+    }
+
+    #[test]
+    fn a_saved_recipe_changes_what_a_card_is() {
+        let s = setup();
+        std::fs::create_dir_all(s.card.join("BlackmagicPocket")).unwrap();
+        let mut saved = nuun_recipe::template();
+        saved["cards"].as_array_mut().unwrap().insert(0, json!({"family": "blackmagic", "label": "Blackmagic", "recommendation": "archive_and_work", "any": [{"top_prefix": ["blackmagic"]}]}));
+        let db = rusqlite::Connection::open(s.home.join("catalog.sqlite3")).unwrap();
+        db.execute(
+            "INSERT INTO metadata VALUES('recipe',?)",
+            [saved.to_string()],
+        )
+        .unwrap();
+        drop(db);
+        assert_eq!(
+            source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"]["family"],
+            "blackmagic"
+        );
+    }
+
+    #[test]
+    fn missing_catalog_is_empty_and_an_unknown_version_is_refused() {
+        let temp = tempfile::tempdir().unwrap();
+        let empty = Catalog::open(temp.path()).unwrap();
+        assert!(empty.volumes().unwrap().is_empty());
+        assert!(
+            !temp.path().join("catalog.sqlite3").exists(),
+            "reading never creates the catalog"
+        );
+        let db = fixture::create(temp.path());
+        db.execute("UPDATE metadata SET value='2' WHERE key='schema'", [])
+            .unwrap();
+        drop(db);
+        assert_eq!(
+            Catalog::open(temp.path()).err().unwrap().code,
+            "unsupported_catalog"
+        );
+    }
+
+    #[test]
+    fn independence_follows_physical_disks_and_images() {
+        let a = json!({"physical_disks": ["PhysicalDrive1"], "physical": "PhysicalDrive1"});
+        let b = json!({"physical_disks": ["PhysicalDrive2"]});
+        let same = json!({"physical": "PhysicalDrive1"});
+        assert!(independent(&a, &b));
+        assert!(!independent(&a, &same));
+        assert!(!independent(
+            &a,
+            &json!({"physical_disks": ["PhysicalDrive9"], "disk_image": true})
+        ));
+    }
+
+    // The real Windows backend, on the temporary folder's volume only: the system disk is never a card.
+    #[cfg(windows)]
+    #[test]
+    fn the_system_volume_has_a_windows_identity_and_is_not_a_card() {
+        let folder = tempfile::tempdir().unwrap();
+        let root = nu9ve_volumes::drive_root_of(folder.path()).unwrap();
+        let info = WindowsBackend.describe(&root, false).unwrap();
+        assert_eq!(info["mode"], "windows");
+        assert!(
+            info["volume_uuid"]
+                .as_str()
+                .unwrap()
+                .starts_with("\\\\?\\Volume{")
+        );
+        assert!(!info["physical_disks"].as_array().unwrap().is_empty());
+        assert_eq!(validate_card(&root, &info).unwrap_err().code, "not_a_card");
+        // Registered as a destination, it is online with the same identity and offline once replaced.
+        let record = json!({"name": "SYS", "root": root.display().to_string(), "identity": info});
+        assert!(online(&WindowsBackend, &record).is_some());
+        let mut replaced = record.clone();
+        replaced["identity"]["volume_uuid"] =
+            json!("\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\");
+        assert_eq!(
+            check(&WindowsBackend, &replaced).unwrap_err().code,
+            "volume_replaced"
+        );
+    }
+}

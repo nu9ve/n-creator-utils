@@ -85,9 +85,13 @@ public static class SettingsView
             UI.Text("Todo se puede hacer con el teclado. Alt muestra las teclas de acceso del sistema; Ctrl+/ abre todos los atajos.", TextRole.Muted, 13),
             UI.Button("Ver atajos", shell.ShowShortcuts, glyph: "", shortcut: "app.shortcuts")));
 
-        var engine = shell.State.Engine.IsFixture
-            ? "Maqueta: datos ficticios, ningún disco se lee ni se escribe. Con NUUN_PYTHON y NUUN_ENGINE (ruta a nu9ve.py) la ventana lee snapshot y recipe del motor real."
-            : "Motor: media rpc-serve. Planear y aplicar siguen pendientes en Windows (adaptador de volúmenes).";
+        var engine = shell.State.Engine switch
+        {
+            Nuun.Core.Engine.MethodByMethodEngine mixed =>
+                $"Motor de Rust (engine\\nuun-engine.exe) para lo ya portado: {(mixed.AnsweredByPrimary.Count == 0 ? "nada todavía" : string.Join(", ", mixed.AnsweredByPrimary.Order()))}. El resto sigue en maqueta, con datos ficticios.",
+            { IsFixture: true } => "Maqueta: datos ficticios, ningún disco se lee ni se escribe. Con NUUN_PYTHON y NUUN_ENGINE (ruta a nu9ve.py) la ventana lee snapshot y recipe del motor de Python; con NUUN_ENGINE_BIN, del motor de Rust.",
+            _ => "Motor: media rpc-serve. Planear y aplicar siguen pendientes en Windows (adaptador de volúmenes).",
+        };
         column.Children.Add(UI.Section("Motor", UI.Text(engine, TextRole.Muted, 13),
             UI.Text($"Preferencias de la ventana: {Storage.Root}", TextRole.Mono)));
         column.Children.Add(UI.Section("Acerca de", UI.Button("Acerca de nüün", () => shell.Navigate("about"), glyph: "")));

@@ -27,6 +27,12 @@ public sealed class FixtureEngine(TimeSpan? step = null) : IMediaEngine
     public Task<IReadOnlyList<RecipeCard>> RecipeAsync(CancellationToken cancellation = default) =>
         Task.FromResult(RecipeCard.ParseSummary(Load("recipe.json")));
 
+    public async Task<IReadOnlyList<Volume>> VolumesAsync(CancellationToken cancellation = default) =>
+        (await SnapshotAsync(cancellation).ConfigureAwait(false)).Volumes;
+
+    public async Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default) =>
+        (await SnapshotAsync(cancellation).ConfigureAwait(false)).Cards;
+
     public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default)
     {
         var name = string.IsNullOrWhiteSpace(project) ? "proyecto-demo" : project.Trim();
@@ -88,6 +94,12 @@ public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner 
     public async Task<IReadOnlyList<RecipeCard>> RecipeAsync(CancellationToken cancellation = default) =>
         RecipeCard.ParseSummary(await connection.CallAsync("recipe", null, cancellation).ConfigureAwait(false));
 
+    public async Task<IReadOnlyList<Volume>> VolumesAsync(CancellationToken cancellation = default) =>
+        (await connection.CallAsync("volumes", null, cancellation).ConfigureAwait(false) as JsonArray ?? []).Where(n => n is not null).Select(n => Volume.Parse(n!)).ToList();
+
+    public async Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default) =>
+        (await connection.CallAsync("source_cards", null, cancellation).ConfigureAwait(false) as JsonArray ?? []).Where(n => n is not null).Select(n => SourceCard.Parse(n!)).ToList();
+
     // Planning and applying go through `plan_document`/`apply` with the reviewed digest, as on Mac. Not wired
     // on Windows: the volume layer (media/volumes.py) is macOS-specific (diskutil/DiskArbitration).
     public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default) =>
@@ -100,5 +112,55 @@ public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner 
     {
         await connection.DisposeAsync().ConfigureAwait(false);
         if (owner is not null) await owner.DisposeAsync().ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// Method by method (rust-engine.md §7): ask <paramref name="primary"/> and, when it answers `not_ported`, ask
+/// <paramref name="fallback"/>. This is how the Windows window uses the Rust engine while it grows, and how the
+/// Mac app will switch from Python one method at a time. The window still says «Maqueta» while any read falls
+/// back to fixture data.
+/// </summary>
+public sealed class MethodByMethodEngine(IMediaEngine primary, IMediaEngine fallback) : IMediaEngine
+{
+    readonly HashSet<string> answeredByPrimary = [];
+    public bool IsFixture => fallback.IsFixture;
+    /// <summary>Methods the primary engine answered so far (shown in Ajustes → Motor).</summary>
+    public IReadOnlyCollection<string> AnsweredByPrimary => answeredByPrimary;
+
+    async Task<T> Try<T>(string method, Func<IMediaEngine, Task<T>> call)
+    {
+        try
+        {
+            var value = await call(primary).ConfigureAwait(false);
+            lock (answeredByPrimary) answeredByPrimary.Add(method);
+            return value;
+        }
+        catch (EngineFailure failure) when (failure.Code is "not_ported" or "not_on_windows")
+        {
+            return await call(fallback).ConfigureAwait(false);
+        }
+    }
+
+    public Task<Snapshot> SnapshotAsync(CancellationToken cancellation = default) => Try("snapshot", e => e.SnapshotAsync(cancellation));
+    public Task<IReadOnlyList<RecipeCard>> RecipeAsync(CancellationToken cancellation = default) => Try("recipe", e => e.RecipeAsync(cancellation));
+    public Task<IReadOnlyList<Volume>> VolumesAsync(CancellationToken cancellation = default) => Try("volumes", e => e.VolumesAsync(cancellation));
+    public Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default) => Try("source_cards", e => e.SourceCardsAsync(cancellation));
+
+    /// <summary>Only what the primary engine itself answers (never the fallback): real data, or null when not ported.</summary>
+    public async Task<T?> PrimaryOnlyAsync<T>(Func<IMediaEngine, Task<T>> call) where T : class
+    {
+        try { return await call(primary).ConfigureAwait(false); }
+        catch (EngineFailure failure) when (failure.Code is "not_ported" or "not_on_windows") { return null; }
+    }
+    public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default) =>
+        Try("plan", e => e.PlanAsync(source, project, cancellation));
+    public Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
+        Try("apply", async e => { await e.ApplyAsync(plan, progress, cancellation).ConfigureAwait(false); return true; });
+
+    public async ValueTask DisposeAsync()
+    {
+        await primary.DisposeAsync().ConfigureAwait(false);
+        await fallback.DisposeAsync().ConfigureAwait(false);
     }
 }

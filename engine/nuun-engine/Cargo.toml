@@ -1,0 +1,17 @@
+[package]
+name = "nuun-engine"
+description = "nüün's engine in Rust: the same rpc-serve protocol as media/cli.py, method by method"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nu9ve-json = { path = "../crates/nu9ve-json" }
+nuun-recipe = { path = "../crates/nuun-recipe" }
+nuun-media = { path = "../crates/nuun-media" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

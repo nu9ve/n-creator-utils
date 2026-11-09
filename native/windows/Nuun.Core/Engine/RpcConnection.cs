@@ -138,4 +138,42 @@ public static class EngineProcess
         var process = Process.Start(start) ?? throw new EngineFailure("runtime_missing", "No se pudo iniciar el motor");
         return (process, new RpcConnection(process.StandardOutput.BaseStream, process.StandardInput.BaseStream));
     }
+
+    /// <summary>
+    /// The Rust engine (`engine/nuun-engine`), same protocol: `nuun-engine [--state-dir …] rpc-serve`.
+    /// Found by `NUUN_ENGINE_BIN` or bundled next to the app as `engine\nuun-engine.exe` (nove's layout).
+    /// </summary>
+    public static string? FindRustEngine()
+    {
+        var configured = Environment.GetEnvironmentVariable("NUUN_ENGINE_BIN");
+        if (!string.IsNullOrEmpty(configured)) return File.Exists(configured) ? configured : null;
+        var bundled = Path.Combine(AppContext.BaseDirectory, "engine", "nuun-engine.exe");
+        return File.Exists(bundled) ? bundled : null;
+    }
+
+    public static (Process Process, RpcConnection Connection) StartRust(string binary, string? stateDirectory)
+    {
+        var start = new ProcessStartInfo(binary)
+        {
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        if (stateDirectory is not null) { start.ArgumentList.Add("--state-dir"); start.ArgumentList.Add(stateDirectory); }
+        start.ArgumentList.Add("rpc-serve");
+        var process = Process.Start(start) ?? throw new EngineFailure("runtime_missing", "No se pudo iniciar el motor de Rust");
+        return (process, new RpcConnection(process.StandardOutput.BaseStream, process.StandardInput.BaseStream));
+    }
+}
+
+/// <summary>Ends an engine process when its client is disposed.</summary>
+public sealed class ProcessOwner(Process process) : IAsyncDisposable
+{
+    public ValueTask DisposeAsync()
+    {
+        try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { }
+        process.Dispose();
+        return ValueTask.CompletedTask;
+    }
 }

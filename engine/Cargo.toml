@@ -1,0 +1,36 @@
+# Motor de nüün en Rust (adoptado 2026-11-09, docs/platforms/rust-engine.md).
+# Python (`media/`) es el oráculo hasta la paridad de cada método: mismo protocolo `rpc-serve`, mismo sobre
+# `{ok, data | error}`, mismos códigos de error y el mismo JSON canónico para los digests.
+# Convenciones de la suite (las de nove y curado): edition 2024, fmt + clippy -D warnings, pruebas con raíces
+# temporales y nunca discos personales, dependencias fijadas y anotadas con su razón.
+[workspace]
+members = ["crates/nu9ve-json", "crates/nu9ve-volumes", "crates/nuun-recipe", "crates/nuun-media", "nuun-engine"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+# Las mismas versiones que nove/core y curado (ya en la caché local; ninguna descarga nueva).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+# Las condiciones `dcim_regex` de la receta son datos que la persona podrá editar: hace falta un motor real.
+regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_Security"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

@@ -1,0 +1,58 @@
+{
+  "schema": "nu9ve-recipe/1",
+  "id": "nu9ve-default",
+  "name": "nu9ve · plantilla inicial",
+  "cards": [
+    {"family": "stalker", "label": "Stalker", "recommendation": "stalker_batch", "any": [{"top_suffix": [".stalker"]}]},
+    {"family": "sony", "label": "Sony", "recommendation": "sony_format_in_camera", "cleanup": "sony_clips_then_format",
+     "any": [{"in": {"private": ["m4root"]}}, {"top": ["avf_info"]}]},
+    {"family": "h6", "label": "Zoom H6", "recommendation": "audio_needs_work_disk",
+     "any": [{"top_prefix": ["zoom", "folder"]}, {"top": ["h6_settings"]}]},
+    {"family": "gopro", "label": "GoPro", "recommendation": "archive_and_work", "any": [{"dcim_suffix": ["gopro"]}]},
+    {"family": "insta360", "label": "Insta360", "recommendation": "dji_choose_category",
+     "any": [{"dcim_suffix": ["insta360"], "top": ["misc"]}, {"dcim_prefix": ["camera"], "top": ["misc"]}]},
+    {"family": "dji", "label": "DJI", "recommendation": "dji_choose_category",
+     "any": [{"top_prefix": ["dji"]}, {"dcim_prefix": ["dji"]}, {"top": ["misc"], "dcim_regex": "\\d{3}media"}]},
+    {"family": "canon", "label": "Canon", "recommendation": "archive_and_work",
+     "any": [{"dcim_suffix": ["canon"]}, {"dcim_prefix": ["eos"]}]}
+  ],
+  "card_default": {"family": "generic", "recommendation": "archive_and_work"},
+  "models": {"ILCE-6400": "SONYA6400"},
+  "family_source": {"sony": "SONYA6400"},
+  "devices": [
+    {"make": "DJI", "model": "FC3170", "category": "dji-drone", "source": "MAVICAIR2",
+     "label": "DJI Mavic Air 2", "aliases": ["MAVIC2"]}
+  ],
+  "flight_evidence": {"xmp": ["gimbal_pitch", "flight_yaw", "relative_altitude"], "category": "dji-drone"},
+  "review_makes": ["DJI"],
+  "categories": {
+    "dji-drone": {"archive": {"video": "vdron", "image": "dron/fotos", "raw_image": "dron/fotos"},
+                  "work_kinds": ["video", "image"]}
+  },
+  "missions": [{
+    "id": "subaereo",
+    "label": "Misiones de subaereo",
+    "project": "subaereo",
+    "devices": ["dji-drone"],
+    "inbox": "~/Downloads",
+    "patterns": ["coverage-*.json", "JSON-*.json"],
+    "schema_versions": [1, 2, 3],
+    "merge_keys": {"plans": "id", "captures": "captureID", "captureLog": "captureID",
+                   "flightSessions": "id", "fieldNotes": "id"},
+    "record_dates": {"plans": "updatedAt", "captures": "capturedAt", "captureLog": "capturedAt",
+                     "flightSessions": "updatedAt", "fieldNotes": "createdAt"},
+    "tombstones": {"plans": "deletedPlanIDs"},
+    "archive_area": "004_datos/subaereo/coverage",
+    "work_mirror": "atlas-subaereo/_missions",
+    "match": {"seconds": 2, "seconds_command_time": 8, "meters": 40},
+    "hint": {"max_gimbal_pitch": -80, "min_relative_altitude": 15},
+    "archive_folder": "dron/misiones",
+    "work_folder": "atlas-subaereo/misiones",
+    "work_root": "atlas-subaereo",
+    "work_kinds": ["image"],
+    "units_map": "atlas-subaereo/_nuun/units.ndjson",
+    "dng": {"labels": "atlas-derived/labels/cells/*/manifest.json", "labels_key": "photos",
+            "light_classes": ["directSun", "lowSun", "diffuseDusk", "deepDusk", "night"], "dominance": 0.6,
+            "per_light": 24, "poor_sample": 24, "older_sample": 12, "older_than_days": 30}
+  }]
+}

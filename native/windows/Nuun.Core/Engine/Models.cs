@@ -30,14 +30,21 @@ public sealed record Volume(string Name, VolumeRole Role, bool Online, long? Fre
 }
 
 /// <summary>A mounted card. `Family`/`Recommendation` come from the engine's recipe, never from the UI.</summary>
-public sealed record SourceCard(string Path, string Name, string Family, string Recommendation, long UsedBytes, long CapacityBytes, string? Device)
+/// <remarks>
+/// <see cref="HasHint"/> false: no destination was online, so the engine did not read the card's contents (product
+/// rule) and <see cref="Family"/>/<see cref="Recommendation"/> are placeholders the window must not show as facts.
+/// </remarks>
+public sealed record SourceCard(string Path, string Name, string Family, string Recommendation, long UsedBytes, long CapacityBytes, string? Device,
+    bool HasHint = true, string? IdentityMode = null, string? LastProject = null)
 {
     public static SourceCard Parse(JsonNode node)
     {
         var hint = node["hint"];
         var device = hint?["device"];
         return new(node.Str("path"), node.Str("name"), hint.Str("family", "generic"), hint.Str("recommendation", "archive_and_work"),
-            hint.Long("used_bytes"), hint.Long("capacity_bytes"), device is null ? null : device.Str("label", device.Str("model")));
+            hint.Long("used_bytes"), hint.Long("capacity_bytes"), device is null ? null : device.Str("label", device.Str("model")),
+            hint is not null, node["identity"].Str("mode", "") is { Length: > 0 } mode ? mode : null,
+            hint?["last_project"] is null ? null : hint.Str("last_project"));
     }
 }
 
@@ -96,6 +103,10 @@ public interface IMediaEngine : IAsyncDisposable
     bool IsFixture { get; }
     Task<Snapshot> SnapshotAsync(CancellationToken cancellation = default);
     Task<IReadOnlyList<RecipeCard>> RecipeAsync(CancellationToken cancellation = default);
+    /// <summary>Registered volumes with `online` (the `volumes` RPC).</summary>
+    Task<IReadOnlyList<Volume>> VolumesAsync(CancellationToken cancellation = default);
+    /// <summary>Mounted cards (the `source_cards` RPC); `hint` only when a destination is online.</summary>
+    Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default);
     Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default);
     Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default);
 }

@@ -1,0 +1,22 @@
+[package]
+name = "nuun-media"
+description = "nüün's media domain in Rust: read-only catalog, volume rules and source cards (port of media/catalog.py and media/volumes.py)"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nu9ve-json = { path = "../nu9ve-json" }
+nu9ve-volumes = { path = "../nu9ve-volumes" }
+nuun-recipe = { path = "../nuun-recipe" }
+serde_json.workspace = true
+# The catalog is SQLite (media/catalog.py). `bundled`: the same version on every OS, as nove does.
+rusqlite.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

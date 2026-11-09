@@ -1,0 +1,20 @@
+[package]
+name = "nu9ve-volumes"
+description = "Volume identity, mounts and free space for the suite's engines (Windows today; macOS follows media/volumes.py)"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nu9ve-json = { path = "../nu9ve-json" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

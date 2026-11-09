@@ -9,7 +9,7 @@ Cliente WinUI 3 de nüün y la primera base reutilizable de la suite para Window
 | `Nuun.Core` | Lo propio de nüün: transporte JSON con `media rpc-serve`, DTOs, maqueta (`Fixtures/*.json` con la forma real de `snapshot` y `recipe`), catálogo de atajos, modos de ventana | `Nu9ve.Core` |
 | `Nuun` | La ventana: Inicio, Ingreso (Entrada → Flujo → Resultado), Flujos, Biblioteca, Ajustes, Acerca de | todo lo anterior |
 | `Nuun.Setup` | `NuunSetup.exe`: instalador con identidad (forma de SD, skins, `PackageManager`, `--quiet`) | `Nu9ve.WinUI` |
-| `Nuun.Core.Tests` | 55 pruebas: matriz de contraste, contraste por superficie, vectores compartidos, preferencias, atajos, ventana, transporte, maqueta, instalador | `Nuun.Core` |
+| `Nuun.Core.Tests` | 58 pruebas: matriz de contraste, contraste por superficie, vectores compartidos, preferencias, atajos, ventana, transporte, maqueta, instalador, contrato con el motor de Rust | `Nuun.Core` |
 | `Package` | Plantilla del manifiesto MSIX (`app.nu9ve.media`, la misma identidad que en Mac) | — |
 
 Mismo stack y versiones que nove (`.NET 10`, Windows App SDK 1.8.260921001, xUnit 2.9.3); no se añadió ningún paquete nuevo.
@@ -24,7 +24,7 @@ $env:NUUN_QA_ROOT = "$env:TEMP\nuun-qa\lib"; native\windows\Nuun\bin\Debug\net10
 
 Con `NUUN_QA_ROOT` las preferencias de la ventana van bajo esa raíz y cada ejecución es una instancia aparte. Sin ella, Debug guarda en `%LOCALAPPDATA%\nuun\Desarrollo`. Argumentos de QA: `--page ingest|flows|library|settings|about`, `--skin glass|classicMac|win9x|terminal|gothic` (sólo con raíz de QA) y `--compact`.
 
-Motor real (sólo lectura de `snapshot` y `recipe`, si hay Python): `NUUN_PYTHON` y `NUUN_ENGINE` (ruta a `nu9ve.py`). Planear y aplicar responden `not_on_windows`.
+Motor real (sólo lectura de `snapshot` y `recipe`, si hay Python): `NUUN_PYTHON` y `NUUN_ENGINE` (ruta a `nu9ve.py`). Planear y aplicar responden `not_on_windows`. Motor de Rust: si `engine\target\debug\nuun-engine.exe` existe al compilar, se copia junto a la app y responde lo ya portado (hoy `recipe`); el resto sigue en maqueta. Ver [engine](../../engine/README.md).
 
 Regenerar los vectores de tema compartidos, a propósito: `$env:NU9VE_WRITE_THEME_VECTORS = "1"; dotnet test native\windows\Nuun.Core.Tests`.
 
