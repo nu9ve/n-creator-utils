@@ -26,18 +26,23 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | **Fotos / Kyū, H6, GoPro** | Detecta y planea con fixtures | Ninguna física | Aceptación por dispositivo |
 | **Recetas y Flujos** | La receta `nu9ve-default` describe familias de tarjeta (Stalker, Sony, H6, GoPro, Insta360, DJI, Canon) con su recomendación, tags de modelo, dispositivos por EXIF, categorías y flujos de misión. RPC/CLI `recipe` de sólo lectura; Flujos muestra «Lo que reconoce» desde ahí | Lectura del catálogo real con el motor instalado | Modelo por serial en vez de un tag por familia; editar la receta desde la app; generar los bloques de cada flujo desde la receta |
 | **Distribución** | Sólo instalación local de desarrollo | — | Runtime empaquetado, Developer ID, notarización. [Gates](release.md) |
+| **Windows (maqueta)** | Cliente WinUI 3 en [`native/windows`](../native/windows/README.md) con datos ficticios: shell con `TitleBar`, cinco skins, Inicio, Ingreso (Entrada → Flujo → Resultado), Flujos, Biblioteca, Ajustes, Acerca de, compacto/completo. Base reutilizable `Nu9ve.Core` + `Nu9ve.WinUI`. Setup con forma de SD. No lee discos | 9 nov, Windows 11: 55 pruebas C# OK (contraste de roles y de superficies, vectores, atajos, transporte, maqueta, instalador). Capturas de los cinco skins y recorrido completo del ingreso por UI Automation. MSIX empaquetado **sin firmar**; Setup probado en demostración y `--quiet` inválido | Motor en Windows (adaptador de volúmenes, Python empaquetado), firma e instalación, Setup con paquete real, alto contraste/escala/Narrador a mano. [Guía](platforms/windows.md) |
 
 ## Límites conocidos (vigentes)
 
 1. El digest del plan no está autenticado: `apply` confía en verificaciones hechas al planear. Los jobs no tienen owner/lease, así que uno matado parece activo.
 2. Los snapshots SQLite guardan decisiones humanas, pero no hay retención automática ni restauración completa desde la app. La recuperación por recibos no es un respaldo completo del catálogo.
 3. Clipper: relink/ACK adoptados por CLI/TUI; faltan leases de consumidor y aceptación cruzada amplia. Final Cut queda fuera.
-4. Sin firma Developer ID ni runtime portable. Windows/Linux no validados.
+4. Sin firma Developer ID ni runtime portable. Windows tiene sólo la maqueta sin motor; Linux no validado.
 5. CI (`.gitlab-ci.yml`) existe pero no se ha ejecutado en GitLab.
 
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Base de Windows y maqueta de nüün · 2026-11-09
+
+Sin cambios en `media/` ni en la app de Mac. Nuevo `native/windows`: `Nu9ve.Core` (port literal de `ThemeRoles`/skins de Swift, superficies por skin, reglas de atajos, ventana, instalador), `Nu9ve.WinUI` (tema → pinceles, controles con skin, franja de época, cromo DWM), `Nuun.Core` (transporte de `media rpc-serve`, maqueta con la forma real de `snapshot`/`recipe`), la app y `NuunSetup.exe`. Vectores de tema compartidos en [`contracts/examples/theme-vectors-v1.json`](contracts/examples/theme-vectors-v1.json) (C# verificado; Swift pendiente). La prueba de contraste por superficie encontró cuatro estados presionados ilegibles, corregidos antes de verlos. Scripts en `scripts/windows`. Aprendizajes en [Windows en la suite](platforms/windows.md); propuestas para [nove](../../nove/docs/suite-alignment-windows.md) y [curado](../../curado/docs/SUITE-WINDOWS.md).
 
 ### Detección de tarjetas como datos de receta · 2026-11-08
 

@@ -1,0 +1,67 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:nu="using:Nu9ve.WinUI.Controls">
+    <!-- nu9ve-theme-v1 en WinUI. Los colores NO viven aquí: ThemeService los calcula con
+         Nu9ve.Theme.ThemeRoles (puro, probado) y los escribe como pinceles Nu* compartidos.
+         Aquí sólo hay medidas (tokens de espacio, origen: nove Themes/Harbor.xaml) y las
+         plantillas de los controles con skin. Ninguna vista pregunta qué skin está activo. -->
+
+    <x:Double x:Key="Space4">4</x:Double>
+    <x:Double x:Key="Space8">8</x:Double>
+    <x:Double x:Key="Space12">12</x:Double>
+    <x:Double x:Key="Space16">16</x:Double>
+    <x:Double x:Key="Space24">24</x:Double>
+    <x:Double x:Key="Space32">32</x:Double>
+
+    <!-- Skinned button: the drawing comes from SurfaceChrome (Nu9ve.Core), the behavior is Button's. -->
+    <Style TargetType="nu:NuButton">
+        <Setter Property="Padding" Value="12,6,12,6" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="nu:NuButton">
+                    <nu:NuSurface x:Name="Surface" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter x:Name="Presenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </nu:NuSurface>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="nu:NuToggle">
+        <Setter Property="Padding" Value="12,5,12,5" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="nu:NuToggle">
+                    <nu:NuSurface x:Name="Surface" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter x:Name="Presenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </nu:NuSurface>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

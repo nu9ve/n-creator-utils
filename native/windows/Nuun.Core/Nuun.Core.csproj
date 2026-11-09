@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Lo propio de nüün, sin UI: protocolo JSON con media/service.py, maqueta de datos, catálogo de
+       atajos, modos de ventana y textos de los códigos del motor. Lo compartible de la suite vive en
+       Nu9ve.Core (puro) y Nu9ve.WinUI (controles). Lo prueban Nuun.Core.Tests sin WinUI. -->
+  <PropertyGroup>
+    <RootNamespace>Nuun.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nu9ve.Core\Nu9ve.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\*.json" />
+  </ItemGroup>
+</Project>

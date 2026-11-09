@@ -49,7 +49,13 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 - Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
 - Distribución: runtime empaquetado, versiones alineadas, Developer ID, notarización. [Gates](docs/release.md).
-- MCP con mutaciones, Windows/Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
+- MCP con mutaciones, Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
+- **Windows** (maqueta hecha 2026-11-09, [guía](docs/platforms/windows.md)). Siguiente, en orden:
+  1. Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI` y cómo se versionan antes de que nove los copie.
+  2. Que `ThemeRolesTests.swift` lea los vectores compartidos.
+  3. Adaptador de volúmenes de Windows en `media/` (serial de volumen, letras, expulsión), con fixtures.
+  4. Python empaquetado y contrato contra el motor real.
+  5. Firma e instalación del MSIX y del Setup en una máquina limpia.
 
 ## Prioridad baja · nombre interno
 

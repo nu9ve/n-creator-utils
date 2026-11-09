@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Base de la suite para Windows, sin UI: tema (nu9ve-theme-v1), superficies por skin, reglas de
+       atajos (nu9ve-interaction-v1) y de ventana (windows-app-v1). Sin dependencias.
+       Hoy vive en n-creator-utils como primera copia; candidata a paquete compartido cuando nove (o
+       curado, kyu) la adopte y se decida repo y versión (nu9ve-theme-v1 §10, regla de tres copias). -->
+  <PropertyGroup>
+    <RootNamespace>Nu9ve</RootNamespace>
+  </PropertyGroup>
+</Project>

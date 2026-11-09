@@ -1,0 +1,29 @@
+{
+  "fixture": "nüün Windows maqueta · datos ficticios; misma forma que media/service.py _snapshot",
+  "volumes": [
+    { "name": "MEDIA-DEMO", "role": "archive", "online": true, "free": 2140000000000, "capacity": 5000000000000, "prefix": "001_raw" },
+    { "name": "ESSD-DEMO", "role": "work", "online": true, "free": 412000000000, "capacity": 2000000000000, "prefix": "001_proyectos" },
+    { "name": "SSD1-DEMO", "role": "work", "online": false, "free": null, "capacity": 1000000000000, "prefix": "musica" }
+  ],
+  "source_cards": [
+    {
+      "path": "E:\\", "name": "SONY-DEMO", "kind": "card", "identity": { "serial": "fixture-0001" },
+      "hint": { "family": "sony", "recommendation": "sony_format_in_camera", "used_bytes": 21400000000, "capacity_bytes": 64000000000,
+                "device": { "label": "Cámara demo", "model": "DEMO-A" } }
+    },
+    {
+      "path": "F:\\", "name": "DRON-DEMO", "kind": "card", "identity": { "serial": "fixture-0002" },
+      "hint": { "family": "dji", "recommendation": "dji_choose_category", "used_bytes": 18400000000, "capacity_bytes": 128000000000 }
+    }
+  ],
+  "projects": [
+    { "name": "proyecto-demo", "stage": "in_progress", "units": 42 },
+    { "name": "calles-demo", "stage": "backed_up", "units": 118 },
+    { "name": "taller-demo", "stage": "draft", "units": 3 },
+    { "name": "viaje-demo", "stage": "finished", "units": 260 }
+  ],
+  "jobs": [
+    { "id": "fx-0001", "title": "proyecto-demo", "state": "camera_action_required", "attention": true },
+    { "id": "fx-0002", "title": "calles-demo", "state": "completed", "attention": false }
+  ]
+}

@@ -76,7 +76,7 @@ Una sola implementación por plataforma, pura y probada:
 
 - **Debe:** luminancia relativa WCAG (sRGB lineal, coeficientes 0.2126/0.7152/0.0722) y la razón `(L1 + 0.05) / (L2 + 0.05)`.
 - **Debe:** probar la matriz completa: skins × al menos 10 colores × 3 modos × 3 contrastes. Los colores incluyen gris, amarillo puro, un casi negro, un casi blanco y los presets de la app (curado ya lo hace con 5×10×3×3).
-- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift y TypeScript, para que las dos implementaciones den el mismo color. Pendiente: no existe todavía.
+- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift, C# y TypeScript, para que las implementaciones den el mismo color. Existe desde 2026-11-09: [`examples/theme-vectors-v1.json`](examples/theme-vectors-v1.json), 110 casos (5 skins × 2 modos × 11 bases), generado y verificado por el port de C# (`native/windows`, `ThemeVectorsTests`). Falta que lo lean `ThemeRolesTests.swift` y la matriz de curado (`theme.test.ts`, con sus propios estilos).
 
 ## 4. Lo que el usuario configura
 
@@ -285,7 +285,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
-- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark.
+- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark. **Windows (2026-11-09, maqueta):** mismos roles y cinco skins portados a C# con su matriz, más una prueba de contraste por superficie con skin (`SurfaceChromeTests`). En Windows la ventana y sus botones siguen siendo del sistema ([windows-app-v1 §3](windows-app-v1.md#3-tema)).
 - **kyu:** derivar toda la paleta desde el acento.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.

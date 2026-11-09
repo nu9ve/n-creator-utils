@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Base WinUI 3 de la suite: ThemeService (roles → pinceles compartidos, alto contraste del sistema),
+       controles con skin (NuSurface, NuButton, NuToggle), franja de título de época, cromo de ventana
+       (Mica, esquinas DWM, botones del sistema teñidos) y constructores de UI. La usan la app de nüün y su
+       Setup; no conoce el motor de ninguna app. Mismo Windows App SDK que nove. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Nu9ve.WinUI</RootNamespace>
+    <UseWinUI>true</UseWinUI>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- A library carries no runtime: self-contained / MSIX tooling here would publish the Windows App SDK
+         payload twice (NETSDK1152). The app that consumes it is the one that is self-contained. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nu9ve.Core\Nu9ve.Core.csproj" />
+  </ItemGroup>
+</Project>

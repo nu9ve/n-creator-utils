@@ -14,7 +14,7 @@ La similitud está en las capacidades, los flujos y la calidad de interacción; 
   | --- | --- | --- | --- |
   | nove | Rust | SwiftUI/AppKit por socket Unix | C#/WinUI 3 (.NET 10, Windows App SDK 1.8) por named pipe |
   | curado | Rust (`audio-engine`) + Tauri | Tauri con WebView | El mismo Tauri con WebView2 |
-  | nüün | Python (`media/service.py`) por stdin/stdout | SwiftUI/AppKit | Sin cliente |
+  | nüün | Python (`media/service.py`) por stdin/stdout | SwiftUI/AppKit | C#/WinUI 3, **maqueta** sin motor (2026-11-09): [`native/windows`](../../native/windows/README.md) |
   | kyu | Rust (`kyu-core` por FFI) | Swift + Metal | Etapa 3: wgpu/CPU |
 
 - **Debe:** un solo protocolo, independiente del transporte. En nove es JSON enmarcado, igual por socket Unix (`0700`) o por named pipe (ACL del SID del usuario más SYSTEM y Administradores, `FILE_FLAG_FIRST_PIPE_INSTANCE`, clientes remotos rechazados, PID del servidor verificado).
@@ -50,6 +50,10 @@ La similitud está en las capacidades, los flujos y la calidad de interacción; 
 - **Conviene:** el equivalente de Cristal es **Mica** de fondo y **Acrylic** en superficies flotantes, con respaldo sólido si «Efectos de transparencia» está apagado. No verificado aún en ninguna app de la suite.
 - **Skins** (§5 del tema): el juego es el mismo (original, contraste, Macintosh, Windows 9x, Terminal) y cambia **el contenido**: superficies, botones, campos, tipografía y texturas. **La ventana sigue siendo del sistema**, con sus botones a la derecha, porque es la posición original para un usuario de Windows. Un skin de época **puede** pedir esquinas cuadradas con `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND)`, pero no reemplaza el caption ni los botones.
 - **Debe:** cada ventana y diálogo propio (Ajustes, Acerca de, broker, avisos, el instalador de la §9) usa el mismo tema, skin y colores de botones de ventana. `ContentDialog` y las ventanas secundarias heredan los diccionarios; ninguna queda con la barra por defecto.
+- **Debe (2026-11-09, de nüün):** el skin de época se dibuja **detrás** de la `TitleBar` (franja con el degradado de Windows 9x, rayas de Macintosh, dintel gótico, regla de Terminal) y los botones del sistema se tiñen para leerse encima. Si la franja lleva título de época (Macintosh, Windows 9x), la barra de la app baja a una segunda fila, como `SkinWindowBar` en Mac. Mica sólo en el original de vidrio y con «Efectos de transparencia» activos.
+- **Debe:** los colores llegan a los controles nativos por **sus claves** (`SliderTrackValueFill`, `TextControlBorderBrushFocused`, `ToggleSwitchFillOn`…). Sobrescribir sólo el acento base no alcanza a las plantillas de `XamlControlsResources`.
+- **Debe:** releer alto contraste en `UISettings.ColorValuesChanged`. `AccessibilitySettings.HighContrastChanged` falla en apps de escritorio (0x80070490).
+- **Debe:** una prueba de contraste por superficie con skin (panel, botón, presionado, píldora, tarjeta) × skin × modo × color, además de la de roles. En nüün encontró cuatro estados presionados ilegibles antes de verlos en pantalla.
 - La identidad de cada app (§7 del tema) se mantiene. El tema «Puerto» de nove en Windows es su original.
 
 ## 4. Menús, comandos y teclado
@@ -141,6 +145,8 @@ El instalador nativo de MSIX (App Installer) no se puede personalizar. Para que 
   - Desinstalar sigue en Configuración de Windows.
 - **No debe** imitar marcas ni grupos reales de cracks, pedir que se desactive el antivirus, ofuscar ni empaquetar con compresores que disparen heurísticas, ni instalar nada que no se haya mostrado. La estética es un guiño; el comportamiento es el de un instalador de confianza.
 - Las imitaciones de sitios o servicios para QA (como en nove) no van nunca en el Setup de Release.
+- **Debe:** sin paquete, el Setup es una **demostración rotulada** que no escribe nada en el sistema, y `--quiet` devuelve códigos estables (0 instalado, 1 falló, 2 argumentos, 3 cancelado).
+- **Referencia (2026-11-09):** `NuunSetup.exe` con la forma de la SD del icono de nüün (`SetWindowRgn`), arrastre por `InputNonClientPointerSource`, − × a la derecha, los skins de la app y `PackageManager`. Probado en demostración y en `--quiet` con argumentos inválidos; **no** con un paquete firmado. [Guía](../platforms/windows.md#9-paquete-e-instalador-con-identidad).
 - **En Mac** el equivalente es un DMG con fondo y disposición del tema (o una app de instalación con la misma regla). Hoy nüün y SoundShop instalan con scripts de desarrollo, y eso se mantiene para desarrollo.
 
 ## 10. Validación
@@ -149,23 +155,28 @@ El instalador nativo de MSIX (App Installer) no se puede personalizar. Para que 
 - **Debe:** QA de UI por **UI Automation**, que es el mismo árbol que usa Narrador (nove: `ui-invoke.ps1`, `capture-window.ps1`). Es el equivalente de `--qa-snapshots`/`--qa-skins` en Mac, y además prueba el teclado de verdad.
 - **Debe:** registrar lo no comprobado físicamente: escala 150 %, alto contraste, Narrador escuchado, inicio de sesión, suspensión, firma real.
 - **Conviene:** probar el paquete instalado lanzando su ejecutable por ruta con la variable de QA (conserva la identidad del paquete). `Invoke-CommandInDesktopPackage` no hereda el entorno.
+- **Conviene:** capturar cada skin × página con una raíz de QA temporal, que es el par de `--qa-skins` de Mac (nüün: `scripts/windows/qa-skins.ps1`).
+
+## 11. Base compartida
+
+`Nu9ve.Core` (tema puro, superficies por skin, reglas de atajos, ventana e instalador) y `Nu9ve.WinUI` (servicio de tema, controles con skin, cromo de ventana, `Storage` por app) viven hoy en `n-creator-utils/native/windows` como primera copia. Una app nueva los referencia o los copia con comentario de origen. Se extraen a un paquete cuando haya tres consumidores y se decida repo y versión. Detalle y aprendizajes: [Windows en la suite](../platforms/windows.md).
 
 ## Adopción
 
-Leído en los repos el 2026-11-07, sin probar en Windows desde esta sesión.
+nove y curado leídos en sus repos el 2026-11-07; nüün probado en Windows 11 el 2026-11-09 (compilación, pruebas, capturas y recorrido por UI Automation).
 
-| Regla | nove 0.12 Windows | curado 0.1 (Tauri) |
-| --- | --- | --- |
-| 0 Motor común | Sí: Rust, named pipe, pruebas de contrato | Sí: Rust + comandos Tauri |
-| 1 Barra de título | Sí: `TitleBar` | Barra decorada del sistema en Windows (THEMES.md) |
-| 2 Ventana | Parcial | Sin revisar |
-| 3 Tema | Parcial: «Puerto» claro/oscuro/alto contraste en código, sin captura de alto contraste | Sí en la WebView; alto contraste sin revisar |
-| 4 Teclado | Parcial: menús de bandeja con teclado; catálogo y access keys sin revisar | Sí en la WebView (remapeo); access keys no aplican |
-| 5 Acerca de | Sí | Sin revisar |
-| 7 Ajustes | Sí | Sí |
-| 8 Sistema | Sí: host, bandeja, StartupTask, avisos, Credential Manager; falta aceptación física de sesión/suspensión | Sin segundo plano |
-| 9 Paquete | Parcial: MSIX con certificado de desarrollo | Parcial: instaladores generados, uso en Windows pendiente |
-| 10 Validación | Sí: `NOVE_QA_ROOT`, UI Automation | Pruebas automáticas en Windows 11; GUI pendiente |
+| Regla | nove 0.12 Windows | curado 0.1 (Tauri) | nüün 0.1 Windows (maqueta) |
+| --- | --- | --- | --- |
+| 0 Motor común | Sí: Rust, named pipe, pruebas de contrato | Sí: Rust + comandos Tauri | Parcial: protocolo de `media rpc-serve`, transporte probado en memoria; motor no portado (volúmenes de Mac) |
+| 1 Barra de título | Sí: `TitleBar` | Barra decorada del sistema en Windows (THEMES.md) | Sí: `TitleBar`, botones del sistema teñidos, dos filas en skins de época |
+| 2 Ventana | Parcial | Sin revisar | Parcial: tres modos con tamaños de Mac por DPI, compacto encima; no recuerda el marco |
+| 3 Tema | Parcial: «Puerto» claro/oscuro/alto contraste en código, sin captura de alto contraste | Sí en la WebView; alto contraste sin revisar | Sí en código y capturas: cinco skins, roles y superficies probados, vectores compartidos; alto contraste sin revisar a mano |
+| 4 Teclado | Parcial: menús de bandeja con teclado; catálogo y access keys sin revisar | Sí en la WebView (remapeo); access keys no aplican | Parcial: catálogo con pruebas, aceleradores, `AccessKey`, panel Ctrl+/; sin badges de Ctrl/Shift |
+| 5 Acerca de | Sí | Sin revisar | Sí (maqueta) |
+| 7 Ajustes | Sí | Sí | Parcial: Apariencia y Teclado |
+| 8 Sistema | Sí: host, bandeja, StartupTask, avisos, Credential Manager; falta aceptación física de sesión/suspensión | Sin segundo plano | No aplica todavía: sin segundo plano |
+| 9 Paquete | Parcial: MSIX con certificado de desarrollo | Parcial: instaladores generados, uso en Windows pendiente | Parcial: MSIX empaquetado sin firmar; Setup con identidad en demostración |
+| 10 Validación | Sí: `NOVE_QA_ROOT`, UI Automation | Pruebas automáticas en Windows 11; GUI pendiente | Sí: `NUUN_QA_ROOT`, `qa-skins.ps1`, UI Automation; 55 pruebas |
 
 Las demás apps no tienen cliente Windows. El [mapa de la suite](../suite.md#plataformas) dice cuál podría tenerlo y con qué motor.
 

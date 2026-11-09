@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Setup con identidad de nüün (windows-app-v1 §9 «Instalador con identidad»). Opcional, junto al MSIX y
+       no en su lugar: instala con PackageManager (la misma API que Add-AppxPackage), muestra qué, dónde y
+       qué versión, progreso real, cancelar, errores en palabras, teclado y Narrador, y un modo silencioso
+       (quiet) para scripts. Usa la base de la suite (Nu9ve.WinUI) y no conoce el motor de nüün. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Nuun.Setup</RootNamespace>
+    <AssemblyName>NuunSetup</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\nuun.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nu9ve.WinUI\Nu9ve.WinUI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\nuun.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
