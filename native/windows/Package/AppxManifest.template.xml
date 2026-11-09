@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MSIX de nüün para Windows (maqueta). origen: nove apps/windows/Package/AppxManifest.template.xml.
+     Marcadores: {{VERSION}}, {{PUBLISHER}}; los llena scripts/windows/package-msix.ps1.
+     Sin StartupTask, avisos ni alias todavía: nüün para Windows no tiene segundo plano (windows-app-v1 §8). -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  IgnorableNamespaces="uap rescap desktop6">
+
+  <Identity Name="app.nu9ve.media" Publisher="{{PUBLISHER}}" Version="{{VERSION}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>nüün</DisplayName>
+    <PublisherDisplayName>nu9ve (desarrollo)</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Una multiherramienta para creadores: ingresar, respaldar y preparar media.</Description>
+    <!-- Preferences and, later, the catalog live in the real %LOCALAPPDATA%\nuun so they survive
+         uninstall/reinstall (windows-app-v1 §9); deleting them is an explicit user action. -->
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="es-MX" />
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <!-- Same identifier as the Mac bundle (CFBundleIdentifier app.nu9ve.media), per PLAN «nombre interno». -->
+    <Application Id="Nuun" Executable="Nuun.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="nüün"
+        Description="Una multiherramienta para creadores: ingresar, respaldar y preparar media."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+</Package>

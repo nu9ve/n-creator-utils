@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- nüün para Windows (maqueta). Cliente WinUI 3: presenta estado y pide acciones al motor
+       (media/service.py); nunca recalcula planes, copias ni limpieza. Mismo stack que nove:
+       sin empaquetar + autocontenido; el MSIX y el Setup con identidad se arman aparte
+       (docs/platforms/windows.md). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Nuun</RootNamespace>
+    <AssemblyName>Nuun</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\nuun.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <!-- Program.cs owns Main for single-instance redirection before XAML starts (nove pattern). -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);NUUN_DEVELOPMENT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nu9ve.WinUI\Nu9ve.WinUI.csproj" />
+    <ProjectReference Include="..\Nuun.Core\Nuun.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\nuun.ico;Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -8,7 +8,7 @@ Cada nombre es «nueve» en un idioma, y de ahí sale su identidad ([tema §7](c
 
 | App | Para qué | Identidad | Plataformas | UI | Motor y transporte | Repo | Estado según su repo |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **nüün** | Ingresar, respaldar y preparar media; biblioteca, discos y liberación de espacio | Suiza: la navaja multiherramienta | macOS | SwiftUI/AppKit, barra de menús | Python (`media/service.py`), proceso hijo por stdin/stdout con JSON | `nu9ve/n-creator-utils` | En desarrollo; instalada localmente ([STATUS](STATUS.md)) |
+| **nüün** | Ingresar, respaldar y preparar media; biblioteca, discos y liberación de espacio | Suiza: la navaja multiherramienta | macOS · Windows (maqueta) | SwiftUI/AppKit, barra de menús · C#/WinUI 3 (maqueta sin motor) | Python (`media/service.py`), proceso hijo por stdin/stdout con JSON | `nu9ve/n-creator-utils` | En desarrollo; instalada localmente ([STATUS](STATUS.md)) |
 | **Stalker** | Grabar pantalla, cámara y audio desde la barra de menús como fuente para editar | Utilidad: sigue al sistema | macOS | SwiftUI/AppKit | Swift (`StalkerCore`/`StalkerCapture`) | `nu9ve/stalker` | 0.5.0; validación larga pendiente |
 | **Clipper** | Motor editorial: proyectos, transcripción, timeline, colas, export | Motor | macOS (CLI/TUI) | Textual TUI + CLI; `ClipperStudio` (app nativa previa) | Python; `app-service` como autoridad editorial | `nu9ve/clipper` | CLI/TUI con contratos cerrados; aceptación física pendiente |
 | **neuf** | App nativa de edición sobre el motor de Clipper | Francia: el cine | macOS | SwiftUI (Xcode) | Clipper vendorizado por `AppServiceClient` (proceso) | local, sin remoto | Privada, sin instalar; sustitución de Studio en curso |
@@ -47,7 +47,7 @@ Clipper mantiene además los suyos (`clipper/apps/APP_CONTRACT.md`, `APP_SERVICE
 ## Plataformas
 
 - **macOS** es la plataforma principal de todas las apps. Las reglas: [macos-app-v1](contracts/macos-app-v1.md).
-- **Windows** está activo en **nove** (WinUI 3 nativo) y **curado** (Tauri). Las reglas: [windows-app-v1](contracts/windows-app-v1.md).
+- **Windows** está activo en **nove** (WinUI 3 nativo) y **curado** (Tauri), y **nüün** tiene una maqueta WinUI 3 sin motor (2026-11-09). Las reglas: [windows-app-v1](contracts/windows-app-v1.md); cómo hacerlo y lo aprendido: [Windows en la suite](platforms/windows.md).
 - **Candidatas a Windows** son las apps cuyo motor ya es portable:
   - **kyu:** motor Rust, en su etapa 3 con wgpu.
   - **nüün:** motor Python, pero la parte de discos y volúmenes es específica de Mac.
@@ -67,6 +67,8 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](contrac
 | Swift (Mac) | `AppIdentity` / Acerca de | Fractos `NuMacShell`, SoundShop, neuf, nove | 4 |
 | Swift (Mac) | Catálogo de atajos, badge del footer, ayuda contextual | SoundShop (`ShortcutCatalog`, `WorkspaceHelpStore`) | 1 |
 | C# (Windows) | Cliente del pipe, host de fondo, diccionarios de tema, settings cards | nove `Nove.Core` | 1 |
+| C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | nüün `native/windows` (primera copia; nove la tomaría como segunda) | 1 |
+| Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`contracts/examples/theme-vectors-v1.json`](contracts/examples/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |
 | Rust | IPC enmarcado sobre socket/pipe con ACL de usuario | nove `core` | 1 |
 | Rust / Python | Regla de `slug()` para nombres | nüün `media`, kyu `naming.rs` (copia declarada) | 2 |
 | TypeScript | Paleta pura, dither y pruebas de contraste | curado `theme.ts`, `dither.ts`; Fractos web `packages/styles` | 2 |

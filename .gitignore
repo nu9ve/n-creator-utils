@@ -13,3 +13,7 @@ config.local.json
 # Native build products
 .build/
 .swiftpm/
+
+# Windows build products
+native/windows/**/bin/
+native/windows/**/obj/

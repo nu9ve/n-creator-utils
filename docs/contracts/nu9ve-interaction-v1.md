@@ -137,7 +137,7 @@ Leído en el código el 2026-11-07, sin probar a mano. Revisar al actualizar.
 | 6 Remapeo | Sí | Sin revisar | Sin revisar | No | Sin revisar | No | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
-- **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/.
+- **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/. En Windows (maqueta, 2026-11-09) ya hay catálogo con pruebas de duplicados y de teclas del sistema, aceleradores y tooltips generados desde él, `AccessKey` en la navegación y panel Ctrl+/; es la referencia para portar el catálogo a la app de Mac.
 - **kyu y neuf:** el recorrido completo por teclado de la §10, porque son las apps de edición más densas.
 
 ## Cambios

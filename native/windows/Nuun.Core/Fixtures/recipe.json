@@ -1,0 +1,13 @@
+{
+  "fixture": "Copia de media/recipes.py summary() para la receta nu9ve-default (familias de tarjeta), 2026-11-09",
+  "name": "nu9ve-default",
+  "cards": [
+    { "family": "stalker", "label": "Stalker", "recommendation": "stalker_batch", "cleanup": null },
+    { "family": "sony", "label": "Sony", "recommendation": "sony_format_in_camera", "cleanup": "sony_clips_then_format" },
+    { "family": "h6", "label": "Zoom H6", "recommendation": "audio_needs_work_disk", "cleanup": null },
+    { "family": "gopro", "label": "GoPro", "recommendation": "archive_and_work", "cleanup": null },
+    { "family": "insta360", "label": "Insta360", "recommendation": "dji_choose_category", "cleanup": null },
+    { "family": "dji", "label": "DJI", "recommendation": "dji_choose_category", "cleanup": null },
+    { "family": "canon", "label": "Canon", "recommendation": "archive_and_work", "cleanup": null }
+  ]
+}
