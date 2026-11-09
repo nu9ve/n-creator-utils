@@ -26,6 +26,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | **Fotos / Kyū, H6, GoPro** | Detecta y planea con fixtures | Ninguna física | Aceptación por dispositivo |
 | **Recetas y Flujos** | La receta `nu9ve-default` describe familias de tarjeta (Stalker, Sony, H6, GoPro, Insta360, DJI, Canon) con su recomendación, tags de modelo, dispositivos por EXIF, categorías y flujos de misión. RPC/CLI `recipe` de sólo lectura; Flujos muestra «Lo que reconoce» desde ahí | Lectura del catálogo real con el motor instalado | Modelo por serial en vez de un tag por familia; editar la receta desde la app; generar los bloques de cada flujo desde la receta |
 | **Distribución** | Sólo instalación local de desarrollo | — | Runtime empaquetado, Developer ID, notarización. [Gates](release.md) |
+| **Motor en Rust** (adoptado 9 nov) | `engine/`: `rpc-serve` con el mismo protocolo que Python. Portados: `recipe` (lee la receta guardada y el registro de dispositivos del catálogo) y, **en Windows**, `volumes` y `source_cards` con una identidad de volumen nueva (GUID, serial, discos físicos, bus). Catálogo SQLite de sólo lectura. El resto `not_ported`; mutaciones `read_only` | 9 nov, Windows 11: 31 pruebas de Rust (fmt y clippy limpios), con las de tarjetas y expulsión portadas de Python sobre un backend de fixture y el volumen del sistema con el backend real; 4 pruebas de contrato desde C#. La ventana muestra lo leído por Rust aparte, en Biblioteca → Discos, sin mezclarlo con el ingreso simulado | 3 diferenciales contra Python esperan `scripts/engine_golden.py` (**sin ejecutar**: no hay Python aquí). Probar con una SD y un disco USB reales; `register_volume`, `snapshot`; medir fases. [Ruta](platforms/rust-engine.md#7-ruta-recomendada) |
 | **Windows (maqueta)** | Cliente WinUI 3 en [`native/windows`](../native/windows/README.md) con datos ficticios: shell con `TitleBar`, cinco skins, Inicio, Ingreso (Entrada → Flujo → Resultado), Flujos, Biblioteca, Ajustes, Acerca de, compacto/completo. Base reutilizable `Nu9ve.Core` + `Nu9ve.WinUI`. Setup con forma de SD. No lee discos | 9 nov, Windows 11: 55 pruebas C# OK (contraste de roles y de superficies, vectores, atajos, transporte, maqueta, instalador). Capturas de los cinco skins y recorrido completo del ingreso por UI Automation. MSIX empaquetado **sin firmar**; Setup probado en demostración y `--quiet` inválido | Motor en Windows (adaptador de volúmenes, Python empaquetado), firma e instalación, Setup con paquete real, alto contraste/escala/Narrador a mano. [Guía](platforms/windows.md) |
 
 ## Límites conocidos (vigentes)
@@ -39,6 +40,14 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Motor en Rust: adoptado y primer método · 2026-11-09
+
+El usuario adoptó la ruta. Nuevo `engine/` (`nu9ve-json`, `nu9ve-volumes`, `nuun-recipe`, `nuun-engine`), sin cambios en `media/` ni en la app de Mac. `recipe` responde desde Rust con la forma de Python (digest de la plantilla `36f803f0…`, por confirmar contra Python con `scripts/engine_golden.py`). La ventana de Windows lo usa método por método (`MethodByMethodEngine`). Dependencias: las mismas versiones que nove y curado, ya en caché; ninguna descarga.
+
+### Contrato MCP de la suite y análisis del motor en Rust · 2026-11-09
+
+Sólo documentación, sin cambios de código. [nu9ve-mcp-v1](contracts/nu9ve-mcp-v1.md) toma el MCP de nove (niveles, permiso por sesión, cambios de agente deshacibles) como estándar, con estado por app; `nove_status` respondió desde un cliente Claude real en esta máquina. [Motor en Rust](platforms/rust-engine.md): SHA-256 medido a 1,67 GB/s en Rust `sha2` y en .NET; la ganancia de migrar es distribución y motor común, no la verificación. Recomendación por fases con prueba diferencial contra Python; decisión pendiente.
 
 ### Base de Windows y maqueta de nüün · 2026-11-09
 

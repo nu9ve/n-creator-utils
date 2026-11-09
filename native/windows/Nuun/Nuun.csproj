@@ -33,4 +33,15 @@
   <ItemGroup>
     <Content Include="Assets\nuun.ico;Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Rust engine next to the app (engine\nuun-engine.exe), as nove bundles engine\nove.exe. Optional while the
+       engine grows: without it the window is the maqueta. Build it with `cargo build` in engine\. -->
+  <PropertyGroup>
+    <NuunEngineProfile Condition="'$(NuunEngineProfile)' == '' and '$(Configuration)' == 'Release'">release</NuunEngineProfile>
+    <NuunEngineProfile Condition="'$(NuunEngineProfile)' == ''">debug</NuunEngineProfile>
+    <NuunEngineBinary>$(MSBuildThisFileDirectory)..\..\..\engine\target\$(NuunEngineProfile)\nuun-engine.exe</NuunEngineBinary>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(NuunEngineBinary)" Link="engine\nuun-engine.exe" CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(NuunEngineBinary)')" />
+  </ItemGroup>
 </Project>

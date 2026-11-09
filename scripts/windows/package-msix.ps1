@@ -25,6 +25,11 @@ Write-Output "nüün $version"
 
 if (-not $SkipBuild) {
     if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+    # Rust engine first, so the publish bundles engine/nuun-engine.exe (optional while the engine grows).
+    if (Get-Command cargo -ErrorAction SilentlyContinue) {
+        Push-Location (Join-Path $repo 'engine')
+        try { cargo build --release --offline; if ($LASTEXITCODE -ne 0) { throw 'cargo build failed' } } finally { Pop-Location }
+    }
     dotnet publish (Join-Path $repo 'native\windows\Nuun\Nuun.csproj') -c Release -r win-x64 -o $stage -p:FileVersion=$version
     if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
 }

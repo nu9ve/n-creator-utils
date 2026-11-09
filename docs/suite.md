@@ -8,7 +8,7 @@ Cada nombre es «nueve» en un idioma, y de ahí sale su identidad ([tema §7](c
 
 | App | Para qué | Identidad | Plataformas | UI | Motor y transporte | Repo | Estado según su repo |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **nüün** | Ingresar, respaldar y preparar media; biblioteca, discos y liberación de espacio | Suiza: la navaja multiherramienta | macOS · Windows (maqueta) | SwiftUI/AppKit, barra de menús · C#/WinUI 3 (maqueta sin motor) | Python (`media/service.py`), proceso hijo por stdin/stdout con JSON | `nu9ve/n-creator-utils` | En desarrollo; instalada localmente ([STATUS](STATUS.md)) |
+| **nüün** | Ingresar, respaldar y preparar media; biblioteca, discos y liberación de espacio | Suiza: la navaja multiherramienta | macOS · Windows (maqueta) | SwiftUI/AppKit, barra de menús · C#/WinUI 3 (maqueta sin motor) | Python (`media/service.py`), proceso hijo por stdin/stdout con JSON; **migrando a Rust** (`engine/`, adoptado 2026-11-09) | `nu9ve/n-creator-utils` | En desarrollo; instalada localmente ([STATUS](STATUS.md)) |
 | **Stalker** | Grabar pantalla, cámara y audio desde la barra de menús como fuente para editar | Utilidad: sigue al sistema | macOS | SwiftUI/AppKit | Swift (`StalkerCore`/`StalkerCapture`) | `nu9ve/stalker` | 0.5.0; validación larga pendiente |
 | **Clipper** | Motor editorial: proyectos, transcripción, timeline, colas, export | Motor | macOS (CLI/TUI) | Textual TUI + CLI; `ClipperStudio` (app nativa previa) | Python; `app-service` como autoridad editorial | `nu9ve/clipper` | CLI/TUI con contratos cerrados; aceptación física pendiente |
 | **neuf** | App nativa de edición sobre el motor de Clipper | Francia: el cine | macOS | SwiftUI (Xcode) | Clipper vendorizado por `AppServiceClient` (proceso) | local, sin remoto | Privada, sin instalar; sustitución de Studio en curso |
@@ -30,7 +30,7 @@ Otros proyectos del colectivo, fuera de este mapa por ahora: docufin (documentos
 | Fotos | SD → nüün → kyu reconecta por huella, solo lectura (`nu9ve media projects/sources`) | [README de contratos](contracts/README.md), [fotos y Kyū](features/product-flows.md#fotos-y-kyū) |
 | Dron | SD + exports de subaereo → nüün → Atlas | [atlas-drone](contracts/atlas-drone-v1.md) |
 | Audio | Descargas/stems en nüün (CLI legado); curado y SoundShop con sus propias bibliotecas | Sin contrato común todavía |
-| Datos | nove por su cuenta; MCP local de solo lectura | Contratos propios en `nove/docs/contracts` |
+| Datos | nove por su cuenta; MCP local con lectura, «muéstramelo» y cambios de agente deshacibles ([MCP v1](contracts/nu9ve-mcp-v1.md)) | Contratos propios en `nove/docs/contracts` |
 
 ## Contratos de la suite
 
@@ -40,6 +40,7 @@ Otros proyectos del colectivo, fuera de este mapa por ahora: docufin (documentos
 | [windows-app-v1](contracts/windows-app-v1.md) | Lo mismo en Windows, con motor compartido y equivalencias con Mac | Propuesta; referencia nove |
 | [nu9ve-theme-v1](contracts/nu9ve-theme-v1.md) | Roles de color, contraste, Apariencia, skins (original, contraste, Macintosh, Windows 9x, Terminal), identidad | Propuesta; nüün completo, kyu en curso |
 | [nu9ve-interaction-v1](contracts/nu9ve-interaction-v1.md) | Todo por teclado, catálogo de atajos, badges con capas, ayuda contextual, panel ⌘/ | Propuesta |
+| [nu9ve-mcp-v1](contracts/nu9ve-mcp-v1.md) | Servidor MCP por app: stdio local, cliente del motor, niveles leer/mostrar/editar/actuar, permiso por sesión, datos `_untrusted` | Propuesta; nove completo en Windows, nüün sólo lectura |
 | [Contratos de media](contracts/README.md) | Ingreso, naming, biblioteca/handoff, cierre, Stalker, Atlas | Vigentes, con adopción por app en su índice |
 
 Clipper mantiene además los suyos (`clipper/apps/APP_CONTRACT.md`, `APP_SERVICES_CONTRACT.md`, `CROSS_APP_EDITORIAL_GUIDE.md`), y nove los de su motor (`nove/docs/contracts`).
@@ -70,6 +71,8 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](contrac
 | C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | nüün `native/windows` (primera copia; nove la tomaría como segunda) | 1 |
 | Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`contracts/examples/theme-vectors-v1.json`](contracts/examples/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |
 | Rust | IPC enmarcado sobre socket/pipe con ACL de usuario | nove `core` | 1 |
+| Rust | Servidor MCP con niveles y permiso por sesión | nove `core/src/mcp.rs` (nüün lo tiene en Python, sólo lectura) | 1 |
+| Rust | Identidad de volumen por serial, letras y espacio libre en Windows | curado `identity.rs`/`relink.rs` (nüün lo necesitará: [motor en Rust](platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps)) | 1 |
 | Rust / Python | Regla de `slug()` para nombres | nüün `media`, kyu `naming.rs` (copia declarada) | 2 |
 | TypeScript | Paleta pura, dither y pruebas de contraste | curado `theme.ts`, `dither.ts`; Fractos web `packages/styles` | 2 |
 | Todas | QA aislada por variable de entorno; instalar en la carpeta de apps del usuario con respaldo del anterior | nüün, nove, curado, kyu, SoundShop | 5 |

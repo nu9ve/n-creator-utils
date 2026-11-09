@@ -8,7 +8,7 @@ Actualizado: 2026-11-09. Las **reglas** están en [apps de Windows v1](../contra
 | --- | --- | --- | --- | --- |
 | **nove** | C#/WinUI 3 nativo | Rust por named pipe | 0.12.0.x por MSIX de desarrollo; host de fondo, avisos, broker, MCP; QA por UI Automation | `nove/apps/windows`, [A14–A19](../../../nove/docs/decisions.md) |
 | **curado** | Tauri + WebView2 | Rust (`audio-engine`) | Compila y pasa pruebas en Windows 11; NSIS y MSI generados; no escuchado en Windows | `curado/docs/WINDOWS.md` |
-| **nüün** | C#/WinUI 3 nativo (**maqueta**) | Python (`media/service.py`), no portado | Shell, cinco skins, Ingreso/Flujos/Biblioteca/Ajustes/Acerca de con datos ficticios; Setup con forma; MSIX empaquetado sin firmar | [`native/windows`](../../native/windows/README.md) |
+| **nüün** | C#/WinUI 3 nativo (**maqueta**) | Rust en migración ([`engine/`](../../engine/README.md)); Python en Mac | Shell, cinco skins, Ingreso/Flujos/Biblioteca/Ajustes/Acerca de con datos ficticios. El motor de Rust responde `recipe` y, en sólo lectura, los destinos y las tarjetas montadas de este PC (Biblioteca → Discos). Setup con forma; MSIX empaquetado sin firmar | [`native/windows`](../../native/windows/README.md) |
 
 nüün en Windows **no** lee discos todavía: la capa de volúmenes (`media/volumes.py`) usa `diskutil`/DiskArbitration. La maqueta lo dice en la barra («Maqueta») y en Ajustes.
 
@@ -156,3 +156,4 @@ flowchart TB
 - nüün: motor en Windows (adaptador de volúmenes, runtime de Python empaquetado), contrato contra `media/service.py` real, firma e instalación del MSIX, Setup con un paquete real, recordar el marco por modo, tema de `TextBox`/`ComboBox` en skins de época, fuentes OFL, sonidos de tema, capa de badges con Ctrl/Shift, inglés.
 - Alto contraste, escala 125/150/200 % y Narrador escuchado: **no** revisados a mano en nüün.
 - Swift todavía no lee `theme-vectors-v1.json` (la app de Mac no se compiló desde esta máquina).
+- Motor de nüün en Windows: ver [¿Pasar el motor a Rust?](rust-engine.md) para la opción de un motor común; MCP de cada app: [nu9ve-mcp-v1](../contracts/nu9ve-mcp-v1.md).

@@ -20,6 +20,8 @@
 | Keyboard-first interaction: shortcut catalog, key badges and modifier layers, context help, ⌘/ panel | [Interaction contract](contracts/nu9ve-interaction-v1.md) (proposal) |
 | Build or review a native Windows app sharing an engine with its Mac app | [Windows app contract](contracts/windows-app-v1.md) (proposal) |
 | Build a Windows app on the suite base; Windows lessons from nove, curado and nüün; nüün's Windows maqueta | [Windows in the suite](platforms/windows.md), [native/windows](../native/windows/README.md) |
+| Add or review an app's MCP server: tiers (read, show, edit, act), per-session permission, untrusted data, per-app status | [MCP contract](contracts/nu9ve-mcp-v1.md) (proposal) |
+| Decide whether to move the media engine to Rust: measurements, gains, risks, migration path, shared crates | [Rust engine analysis](platforms/rust-engine.md) |
 | See every nu9ve app, what it is for, its platforms, shared flows/contracts and package candidates | [Suite map](suite.md) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |

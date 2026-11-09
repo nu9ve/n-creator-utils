@@ -17,3 +17,6 @@ config.local.json
 # Windows build products
 native/windows/**/bin/
 native/windows/**/obj/
+
+# Rust engine build products
+engine/target/

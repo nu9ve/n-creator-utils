@@ -20,6 +20,9 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
     public IMediaEngine Engine { get; private set; } = new FixtureEngine();
     public Snapshot Snapshot { get; private set; } = new([], [], [], []);
     public IReadOnlyList<RecipeCard> Recipe { get; private set; } = [];
+    /// <summary>What the Rust engine itself read from this PC (never fixture data); null when not ported here.</summary>
+    public IReadOnlyList<Volume>? LiveVolumes { get; private set; }
+    public IReadOnlyList<SourceCard>? LiveCards { get; private set; }
     public string? Error { get; private set; }
 
     public WindowMode Mode { get; set; } = WindowMode.Full;
@@ -48,6 +51,19 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
                 Report($"Motor no disponible, se usa la maqueta: {error.Message}");
             }
         }
+        // The Rust engine answers what it has ported; the maqueta answers the rest (rust-engine.md §7).
+        else if (EngineProcess.FindRustEngine() is { } rust)
+        {
+            try
+            {
+                var (process, connection) = EngineProcess.StartRust(rust, Environment.GetEnvironmentVariable("NUUN_QA_ROOT"));
+                Engine = new MethodByMethodEngine(new RpcEngine(connection, new ProcessOwner(process)), new FixtureEngine());
+            }
+            catch (Exception error) when (error is EngineFailure or System.ComponentModel.Win32Exception)
+            {
+                Report($"Motor de Rust no disponible, se usa la maqueta: {error.Message}");
+            }
+        }
         await RefreshAsync();
     }
 
@@ -57,6 +73,11 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
         {
             Snapshot = await Engine.SnapshotAsync();
             Recipe = await Engine.RecipeAsync();
+            if (Engine is MethodByMethodEngine mixed)
+            {
+                LiveVolumes = await mixed.PrimaryOnlyAsync(e => e.VolumesAsync());
+                LiveCards = await mixed.PrimaryOnlyAsync(e => e.SourceCardsAsync());
+            }
             Source ??= Snapshot.Cards.FirstOrDefault();
             Changed(nameof(Snapshot));
         }
@@ -124,15 +145,5 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
         if (Busy) return;
         Plan = null; Progress = null; Step = IngestStep.Entry;
         Changed(nameof(Step));
-    }
-
-    sealed class ProcessOwner(System.Diagnostics.Process process) : IAsyncDisposable
-    {
-        public ValueTask DisposeAsync()
-        {
-            try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { }
-            process.Dispose();
-            return ValueTask.CompletedTask;
-        }
     }
 }

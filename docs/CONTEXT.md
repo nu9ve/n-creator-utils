@@ -41,6 +41,7 @@ media/workspaces.py → creative profile registry; planner freezes profile_route
 media/recipes.py → devices, card families, categories, mission flows as data (frozen per plan)
 manager/file.py → legacy-save + existing downloads/stems
 native/windows → Windows maqueta (WinUI 3): Nu9ve.Core + Nu9ve.WinUI (suite base), Nuun.Core (rpc + fixtures), Nuun, Nuun.Setup
+engine → Rust engine (adopted 2026-11-09): same rpc-serve as media/cli.py, ported method by method; Python stays the oracle
 ```
 
 Use [modules](modules.md), [operations](operations.md) and [development](development.md) for details. Contracts are indexed [here](contracts/README.md); avoid new direct writes to an editor's JSON.

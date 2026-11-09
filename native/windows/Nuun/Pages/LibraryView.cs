@@ -38,9 +38,38 @@ public static class LibraryView
         return list;
     }
 
+    /// <summary>
+    /// What the Rust engine read from this PC, apart from the maqueta. Read only: Windows cannot back up yet, so
+    /// these cards never enter the maqueta's ingest (a simulated «backup» of a real card would mislead).
+    /// </summary>
+    static UIElement? Live(AppState state)
+    {
+        if (state.LiveVolumes is null && state.LiveCards is null) return null;
+        var column = UI.Column(8,
+            UI.Text("Leído por el motor de Rust en este equipo · sólo lectura", TextRole.Heading, 15),
+            UI.Text("Todavía no se puede respaldar desde Windows: estas tarjetas no entran al Ingreso de la maqueta.", TextRole.Muted, 12));
+        var volumes = state.LiveVolumes ?? [];
+        column.Children.Add(UI.Text(volumes.Count == 0
+            ? "Destinos registrados: ninguno. Registrar MEDIA o ESSD en Windows llega con el siguiente paso del motor."
+            : $"Destinos registrados: {string.Join(", ", volumes.Select(v => $"{v.Name} ({(v.Online ? "en línea" : "desconectado")})"))}", TextRole.Body, 13));
+        var cards = state.LiveCards ?? [];
+        if (cards.Count == 0)
+            column.Children.Add(UI.Text("Tarjetas: ninguna montada (unidades extraíbles y externas, nunca C: ni un destino).", TextRole.Muted, 12));
+        foreach (var card in cards)
+        {
+            var detail = card.HasHint
+                ? $"{HomeView.FamilyLabel(card.Family)} · {Presentation.Recommendation(card.Recommendation)}{(card.LastProject is { } p ? $" · último proyecto: {p}" : "")}"
+                : "Sin leer su contenido: ningún destino registrado está en línea (regla del producto).";
+            column.Children.Add(UI.Surface(SurfaceKind.Well, UI.Row(10, UI.Icon("", 16, "accentText"),
+                UI.Column(0, UI.Text($"{card.Name} · {card.Path}"), UI.Text(detail, TextRole.Muted, 12))), 10));
+        }
+        return UI.Surface(SurfaceKind.Panel, column);
+    }
+
     static UIElement Disks(AppState state)
     {
         var list = UI.Column(12);
+        if (Live(state) is { } live) list.Children.Add(live);
         foreach (var volume in state.Snapshot.Volumes)
         {
             list.Children.Add(HomeView.Disk(volume));
