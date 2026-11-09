@@ -15,8 +15,11 @@ import xml.etree.ElementTree as ET
 
 from manager.inventory import KINDS
 from .common import slug
+from .recipes import TEMPLATE as _RECIPE
 
-MODELS = {'ILCE-6400': 'SONYA6400'}
+# Naming tags come from the recipe (`models`, `family_source`), not from code.
+MODELS = _RECIPE['models']
+FAMILY_SOURCE = _RECIPE['family_source']
 MEDIA_KINDS = ('video', 'audio', 'image', 'raw_image')
 LONG_RECORDING_SECONDS = 600
 
@@ -28,6 +31,12 @@ def kind_of(path):
         return 'support'
     suffix = Path(path).suffix.lower()
     return next((kind for kind, suffixes in KINDS.items() if suffix in suffixes), None)
+
+
+def sony_card_path(path):
+    """A file in Sony's card structure (XAVC/AVCHD clips or AVF_INFO): the card needs the Sony cleanup profile."""
+    lowered = '/' + path.lower()
+    return '/private/m4root/' in lowered or '/private/avchd/' in lowered or lowered.startswith('/avf_info/')
 
 
 def sony_index_member(path):
@@ -171,8 +180,8 @@ def model_for(unit, file, found):
         return unit['device']['source']
     if found.get('model'):
         return found['model']
-    if unit['camera'] == 'sony':
-        return MODELS['ILCE-6400']
+    if unit['camera'] in FAMILY_SOURCE:
+        return FAMILY_SOURCE[unit['camera']]
     if unit['camera'] == 'h6':
         mic = re.search(r'_(TR\d+|LR|MS)$', Path(file['path']).stem.upper())
         return 'H6' + (mic.group(1) if mic else '')
@@ -315,7 +324,7 @@ def build_layout(source, plan, units, files):
             camera = card_camera if unit['camera'] == 'generic' and card_camera else unit['camera']
             family = 'sony' if camera == 'sony' or any('/private/' in '/' + f['path'].lower() or f['path'].lower().startswith(('avf_info/', 'private/')) for f in members) else \
                 'dji' if camera.startswith('dji-') else slug(camera)
-            model = MODELS['ILCE-6400'] if family == 'sony' else card_source or tag(camera)
+            model = FAMILY_SOURCE.get(family) or card_source or tag(camera)
             label = ('ingest-' + unit['id']) if unit.get('support') else tag(unit['project'])
             folder = 'metadata/{}/support/{}/{}_{}-{}_{}'.format(family, when.strftime('%Y/%m'), when.strftime('%d%m-%H%M%S'),
                                                                  tag(plan['country']), label, model)

@@ -1,83 +1,60 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-07, America/Hermosillo. Éste es el backlog priorizado;
-[STATUS](docs/STATUS.md) conserva la evidencia por entrega y
-[CONTEXT](docs/CONTEXT.md) las decisiones. Las propuestas históricas no son otra lista de pendientes vigente.
+Actualizado: 2026-11-08, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
-## P0 · aceptar el flujo actual
+## Cerrado (no reabrir sin un hecho nuevo)
 
-| Orden | Trabajo | Criterio de cierre / referencia |
+- **Sony:** retiro de clips verificados, índices conservados, cierre automático al reconectar ya formateada. Baches `060b585d` cerrado por observación el 8 nov. Lo único abierto es mirar, en el próximo ingreso normal, que el retiro sobreviva a remontar sin formatear.
+- **Dron, ingreso completo:** una SD del Mavic se respalda, se verifica, se copia el trabajo sin duplicados y queda vacía, siempre que el export de subaereo ya esté incorporado. Si falta, A14 bloquea la limpieza a propósito.
+- **Cierre de Terra:** aplicado el 8 nov.
+
+## P0 · uso diario sin sorpresas
+
+| Orden | Trabajo | Criterio de cierre |
 | --- | --- | --- |
-| 1 | Continuar aceptación de los dos multicams; usuario ya está editando | Compacto flotante implementado/instalado el 6 noviembre (`88fa9b79a571`); preferencia popup local habilitada. Flotante aceptado por el usuario; detección/popup sigue incierto (posible tardanza/apertura manual). Menubar → insertar SD → Entrada → Flujo → revisión → copiar/verificar → limpieza Sony → formato/confirmación; descubrir sesiones terminadas y entregar a Clipper sin perder miembros. Usuario reportó Stalker correcto y Sony fallido al finalizar. Dos clips Sony ya entregados/verificados a ESSD por petición explícita; defaults/nombres/destinos instalados en `17acd51df25c`. [Recorrido](docs/sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06). |
-| 2 | Aclarar el aviso recurrente Sony y cambios externos | Prioridad de diagnóstico: Sony terminó failed con FileNotFoundError de C0001.MP4 pese a seis retiradas journalizadas; no reanudar a ciegas ni afirmar doble borrado. Observar desde la app los intermedios/proyectos Clipper eliminados y cualquier referencia residual, sin preparar planes por CLI ni cambiar catálogo. Identificar job, texto y estado real: clips retirados, índices conservados, formato pendiente o aviso histórico. Confirmar no vuelve a borrar. Si hay defecto, corregir mensaje/reconciliación con fixtures y sin eliminar guardas. |
-| 3 | Aceptar el cierre editorial con Terra | Revisar selección definitiva y requisitos del proyecto, respaldar los verticales pendientes conservándolos en ESSD y comprobar la indicación Sin acción para raw/render ausentes. Con trabajo presente, el retiro exige rehash, deps/ACK y consentimiento. [Contrato](docs/contracts/project-closeout-v1.md). |
-| 4 | Recuperación física y rendimiento | Tras asegurar material de prueba, desconexión/reconexión y reanudación controladas, popup/remount, ExFAT/HFS+, tamaños reales y contención con captura. No interrumpir deliberadamente la única copia de las grabaciones nuevas. |
-| 5 | Cobertura de almacenamiento real | Analizar MEDIA502 y `coverage --no-hash` de ESSD contra MEDIA; informe orientativo antes de elegir carpeta/proyecto. Liberación exige hash actual, no coincidencia de tamaño. [Política](docs/features/replication-policy.md). |
+| 1 | Aceptar en la app la build `a350af7f16af` | Tarjeta para ver, «sólo respaldo» dentro del ESSD, filtros Fecha/Sesión, Flujos → «Lo que reconoce» |
+| 2 | Formatear la SD `MAVIC200` en el dron y reconectar | El trabajo de dron cierra por observación, como Sony |
+| 3 | Popup al insertar | Medir latencia con la app cerrada y en menubar; aceptar o corregir |
+| 4 | Cobertura ESSD contra MEDIA502 | `coverage --no-hash` como informe; liberar exige hash actual. [Política](docs/features/replication-policy.md) |
 
-Última build instalada registrada `c777003effff` (8 noviembre), con una sola verificación al aplicar, transcripciones de Clipper en MEDIA, proyectos vinculados, regenerables de Clipper por su lista, progreso global, «ya está completo», etapas Sony y cierre de Baches por observación. Se conserva el estado de los trabajos históricos hasta comprobar cada SD.
+## P1 · escalabilidad del motor (en curso)
 
-La entrega del 7 noviembre deja el seguimiento Sony en Actividad cuando el
-retiro ya está registrado o falta el formato. En la prueba física de un clip
-el primer retiro se revirtió al reconectar. El retiro repetido persistió tras
-desmontar y montar en el mismo lector. El usuario confirmó que el formato
-en cámara funcionó. La comprobación al reconectar quedó automatizada en
-la build instalada. La reconexión del 7 de noviembre cerró ese trabajo
-en Actividad. La durabilidad del retiro en el flujo normal
-queda como prueba física aparte.
-[Evidencia Sony](docs/sony-validation.md#prueba-física-con-un-clip--2026-11-07).
-El cierre agrupa
-entregas, propone coincidencias exactas y sugiere revisar desde Inicio al
-detectar el primer vertical publicado. Falta aceptación con un proyecto real,
-incluida la selección por grupo. La notificación opcional por varios verticales
-con más de un día queda por definir. [Evidencia](docs/STATUS.md).
+Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una receta**, no código, sin tocar la garantía plan → digest → revisión → copia verificada → limpieza.
 
-Entrega del 7 noviembre en working tree, instalada como `48779e1516c1`: marca y filtro **Por publicar**, vista de acción en ingreso, liberación y recuperación, y etapas Sony observadas. Reconexión Sony aceptada: los cuatro trabajos de la tarjeta cerraron solos ([evidencia](docs/STATUS.md#reconexión-sony-aceptada-en-la-build-instalada--2026-11-07)). Falta la aceptación física, en este orden: Terra en Proyectos y su marca, una liberación pequeña con Pausar en Cristal y en un skin cuadrado, recuperar un raw de MEDIA502 y los clics en skins. Decidido el 7 nov: la comprobación al reconectar también cierra `060b585d` cuando ve la tarjeta formateada. Lo regenerable dentro de `clipper/` lo define Clipper ([pedido](../../ai/clipper/docs/2026-11-07-retire-cleanup-from-nuun.md)). Los regenerables de `clipper/` vienen de la lista de Clipper (`cleanup-plan`) y Clipper los borra con el digest revisado. Los proyectos se vinculan desde Proyectos. Instalado en `cc6c379d630a`; falta aplicar el cierre conjunto de Terra. Transcripciones durables en MEDIA: [contrato v1](docs/contracts/clipper-transcripts-v1.md) implementado en los dos lados (sin commit). Falta la aceptación desde la app. [Evidencia](docs/STATUS.md).
-
-Pendiente de producto solicitado el 6 noviembre: selector de todas las fuentes/capturas pendientes para un mismo proyecto, con planes por fuente y reglas claras; no está resuelto por las sugerencias de nombres.
-
-## P1 · siguiente entrega de producto
-
-El recorrido de arriba tiene prioridad. Después, elegir una entrega pequeña según uso;
-no se ha decidido adelantar dron frente a carpetas vivas.
-
-| Área | Pendiente real | Dueño / aceptación |
+| Paso | Trabajo | Estado |
 | --- | --- | --- |
-| Carpetas vivas | Ingreso incremental sin renombrar, limpiar origen ni propagar borrados; música/samples, editables y adopción de carpetas antiguas | Planner/índice/catálogo; destino de música en MEDIA por decidir. [Colecciones](docs/features/product-flows.md#carpetas-vivas-música-y-samples). |
-| Atlas / fotos de dron | **En curso desde el 8 nov** (hechos: dispositivos A15/A1; registro de misiones A13 con la primera importación real del 8 nov; misión o no, trabajo JPG, `units.ndjson` y UI en fixtures. A11–A16 hechos y aplicados el 8 nov (SD `MAVIC200`, ESSD mayo–junio, muestra de DNG). [Estado](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08). Siguiente: instalar la build pendiente, formatear la SD en el dron, reclasificar `pending_export` al llegar el export y que Atlas adopte `units.ndjson`/`_missions`): A11–A16 con nombres de nüün, misiones separadas y registro de exports. Orden: dispositivos (A15/A1) → registro de misiones (A13) → misión o no + trabajo JPG y `units.ndjson` (A12) → archivo de copias únicas (A11, plan revisado) → liberar SD (A14) → DNG a pedido (A16) | [Contrato propietario](docs/contracts/atlas-drone-v1.md), [decisiones de nüün](docs/contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08). No ejecutar ODM ni limpiar al montar. |
-| Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG y aceptación real | Kyū es dueño del importador; nüün mantiene unidades, selección y recibos. [Fotos](docs/features/product-flows.md#fotos-y-kyū). |
-| Audio / cámaras | H6/SSD1, DJI dron frente a 360/acción, GoPro; registro persistente de modelo/categoría y reloj | Evidencia por dispositivo y confirmación; sin inferir por marca/carpeta residual. |
-| Stalker | Casos reales recording/finalizing/recovery; nombre genérico y tamaño de micrófono reportados; sugerencia SD desde sesión reciente | Stalker conserva manifests/reloj/audio. Reconciliar filas antiguas con código/pruebas antes de reimplementar. [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils). |
-| Trabajo y estado humano | Aceptar entrega posterior desde archivo, restore sin SD, retención de snapshots, respaldo de editables y rehash periódico | Catálogo/library/recovery; preservar decisiones humanas y ubicaciones. |
+| 1 | Detección de tarjetas (Sony, H6, GoPro, Stalker, DJI, Canon…) y su recomendación como datos de la receta; las guardas de limpieza siguen en código | Hecho 8 nov (`a350af7f16af`) |
+| 2 | La receta efectiva se expone por RPC (`recipe`) y Flujos muestra lo que reconoce | Hecho 8 nov. Falta generar los bloques de cada flujo desde la receta |
+| 3 | Modelos por serial/EXIF en lugar de `ILCE-6400` fijo | Pendiente |
+| 4 | Sobre común para intercambios con otras apps (productor, schema, digest, ACK) para handoff, `units.ndjson`, `cleanup-plan` y transcripciones | Diseño; [contratos](docs/contracts/README.md) |
+| 5 | Recetas editables desde la app (frase → bloques) | Después de 1–3. [Diseño](docs/features/product-flows.md#flujos) |
 
-**Clipper:** sources/handoff, reenlace integral y ACK ya adoptados en CLI/TUI.
-Desde el 5 noviembre también dispone de `library retire-plan` / `retire` con desregistro.
-Nüün conserva el editable y observa deps frescos; invocar automáticamente ese retiro desde nüün sería otra entrega, no un bloqueo por API inexistente. Studio y Final Cut fuera del cierre actual.
+## P2 · siguientes flujos de producto
 
-## P2 · configuración, fluidez y distribución
+| Área | Pendiente real | Referencia |
+| --- | --- | --- |
+| **Música y SSD1** | Carpetas vivas: ingreso incremental sin renombrar ni propagar borrados; separar biblioteca de curado/Rekordbox, samples, loops, MIDI y proyectos de producción; destino en MEDIA y trabajo en SSD1. Primero inventario de sólo lectura con el usuario | [Carpetas vivas](docs/features/product-flows.md#carpetas-vivas-música-y-samples) |
+| Dron, resto | Reclasificar `pending_export` → misión al llegar el export; confirmar dispositivo nuevo en la app; UI del plan de DNG | [Atlas](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
+| Selector por proyecto | Todas las fuentes y capturas pendientes de un proyecto, con un plan por fuente | Pedido del 6 nov |
+| Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG | [Fotos](docs/features/product-flows.md#fotos-y-kyū) |
+| Audio / cámaras | H6/SSD1, DJI 360/acción, GoPro con evidencia real | Por dispositivo |
+| Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |
+| Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
-- Recetas editables y registro de cámaras: la pestaña Flujos actual es sólo lectura. Una receta genera parámetros del mismo planner; no sustituye digest, revisión ni verificación. Decidido el 8 nov: dispositivos, categorías, carpetas, proyecto por defecto y reglas de flujos (por ejemplo, misiones de subaereo) se guardan como datos de receta; las del usuario son la plantilla inicial (`nu9ve-default`) y después se editan por nodos. [Decisiones](docs/contracts/atlas-drone-v1.md#decisiones-del-usuario-desde-nüün-2026-11-08).
-- Automatizar los flujos automatizables (prioridad futura, 8 nov): por ejemplo, incorporar exports al llegar o archivar una tarjeta conocida. Hasta tener cada flujo identificado y probado, nada se copia sin un plan revisado.
-- Onboarding de discos/perfiles, diagnósticos redactados, salud del runtime y acciones claras sobre pendientes.
-- Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/RSS/IO, accesibilidad, fullscreen/pantallas y contención. DiskArbitration, progreso empujado y agrupación de grilla siguen pendientes; no requieren reescritura de plataforma ni daemon.
-- Revisar validación/autenticación de planes, ownership/leases y durabilidad/replay según la frontera actual; exclusión host-local ya existe, no es lease distribuido.
-- Si se prepara distribución: snapshot final y suites vigentes, wheel fuera del checkout, versiones alineadas, runtime/licencias empaquetados, firma Developer ID/notarización/Gatekeeper. [Gates completos](docs/release.md). La instalación ad-hoc con Python externo sigue siendo desarrollo.
+**Clipper:** sources/handoff, relink y ACK ya adoptados; `library retire-plan`/`retire` existe del lado de Clipper. Que nüün lo invoque sería otra entrega.
 
-## P3 · expansión
+## P3 · robustez y distribución
 
-MCP actual de sólo lectura. Mutaciones necesitan aprobación/cancelación y contrato común de plan/digest/progreso. Windows/Linux, catálogo multiusuario, nube y segunda réplica son entregas futuras. Descargas/stems pueden incorporarse como derivados; MIDI, iluminación, IoT y Raspberry Pi siguen exploratorios.
+- Digest de plan autenticado o reverificación en `apply`; owner/lease de jobs.
+- Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
+- Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
+- Distribución: runtime empaquetado, versiones alineadas, Developer ID, notarización. [Gates](docs/release.md).
+- MCP con mutaciones, Windows/Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
 
 ## Prioridad baja · nombre interno
 
-Renombrar el código `MediaMenu` a nüün:
-- Paquete `native/MediaMenu` → por ejemplo `native/Nuun`; targets `MediaMenu`/`MediaMenuCore`/`MediaMenuCoreTests` → `Nuun`/`NuunCore`/`NuunCoreTests`.
-- `CFBundleExecutable`, el prefijo de los artefactos `Nu9veMedia-local-*` y las rutas en `scripts/build_media_app.py`, `scripts/install_media_app.py`, `scripts/check_localization.py` y los docs.
-
-Se conserva `CFBundleIdentifier` `app.nu9ve.media`, porque de él dependen las preferencias, permisos y la entrada de LaunchServices, igual que `~/Applications/nuun.app` y el catálogo. Va en un cambio propio, sin comportamiento nuevo: build, pruebas, localización e instalación encima de la versión anterior deben quedar iguales.
+Renombrar `MediaMenu` → `Nuun` (paquete, targets, ejecutable, prefijo `Nu9veMedia-local-*`, scripts y docs) en un cambio propio sin comportamiento nuevo. Se conservan `CFBundleIdentifier` `app.nu9ve.media`, `~/Applications/nuun.app` y el catálogo.
 
 ## Retomar en otra sesión
 
-Leer CONTEXT → primera entrada de STATUS → fila de este PLAN → contrato/módulo dueño.
-Para la prueba actual basta [el recorrido acompañado](docs/sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06).
-Registrar sólo resultados observados, job/build y siguiente paso; no heredar aprobación física de otra build o de fixtures. Historial de entregas en STATUS, no volver a copiarlo aquí.
-Respetar `git status`, sin commits/restage ni mensajes a otras sesiones como efecto lateral.
-[Formato de handoff](docs/development.md#cerrar-y-retomar-una-sesión).
+Leer CONTEXT → STATUS (tabla por área) → fila de este PLAN → contrato o módulo dueño. Registrar sólo resultados observados con job/build; no heredar aprobación física de otra build o de fixtures. Respetar `git status`, sin commits/restage ni mensajes a otras sesiones como efecto lateral. [Formato de handoff](docs/development.md#cerrar-y-retomar-una-sesión).

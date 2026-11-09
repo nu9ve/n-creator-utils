@@ -13,7 +13,7 @@ en esta sesión.
 
 ## Implementado el 2026-10-29
 
-Evidencia y build en [STATUS](../STATUS.md#implementación-de-la-revisión--2026-10-29); flujo vigente en [nuun-window](nuun-window.md#ingreso-por-pasos-2026-10-29).
+Evidencia y build en [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#implementación-de-la-revisión--2026-10-29); flujo vigente en [nuun-window](nuun-window.md#ingreso-por-pasos-2026-10-29).
 
 | Propuesta | Estado |
 | --- | --- |

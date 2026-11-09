@@ -9,6 +9,7 @@ live in the catalog (`device-registry`) and win over template rules.
 """
 import copy
 import datetime
+import re
 
 from .common import digest, require, slug
 
@@ -16,6 +17,31 @@ TEMPLATE = {
     'schema': 'nu9ve-recipe/1',
     'id': 'nu9ve-default',
     'name': 'nu9ve · plantilla inicial',
+    # Card families from the top two directory levels only. A family suggests a flow (`recommendation`); it never
+    # classifies files (DJI stays ambiguous). First match wins, so order matters. Each entry lists alternative
+    # clauses (`any`); a clause holds when all of its conditions hold, and a condition holds when any of its names
+    # matches (lowercase). Conditions: `top`/`top_prefix`/`top_suffix` (names at the root), `in` ({folder: names}
+    # one level down), `dcim_prefix`/`dcim_suffix`/`dcim_regex` (folders under DCIM). Safety invariants (Sony
+    # indexes never deleted, cleanup only after verification) stay in code and cannot be edited here.
+    'cards': [
+        {'family': 'stalker', 'label': 'Stalker', 'recommendation': 'stalker_batch', 'any': [{'top_suffix': ['.stalker']}]},
+        {'family': 'sony', 'label': 'Sony', 'recommendation': 'sony_format_in_camera', 'cleanup': 'sony_clips_then_format',
+         'any': [{'in': {'private': ['m4root']}}, {'top': ['avf_info']}]},
+        {'family': 'h6', 'label': 'Zoom H6', 'recommendation': 'audio_needs_work_disk',
+         'any': [{'top_prefix': ['zoom', 'folder']}, {'top': ['h6_settings']}]},
+        {'family': 'gopro', 'label': 'GoPro', 'recommendation': 'archive_and_work', 'any': [{'dcim_suffix': ['gopro']}]},
+        {'family': 'insta360', 'label': 'Insta360', 'recommendation': 'dji_choose_category',
+         'any': [{'dcim_suffix': ['insta360'], 'top': ['misc']}, {'dcim_prefix': ['camera'], 'top': ['misc']}]},
+        {'family': 'dji', 'label': 'DJI', 'recommendation': 'dji_choose_category',
+         'any': [{'top_prefix': ['dji']}, {'dcim_prefix': ['dji']}, {'top': ['misc'], 'dcim_regex': r'\d{3}media'}]},
+        {'family': 'canon', 'label': 'Canon', 'recommendation': 'archive_and_work',
+         'any': [{'dcim_suffix': ['canon']}, {'dcim_prefix': ['eos']}]},
+    ],
+    'card_default': {'family': 'generic', 'recommendation': 'archive_and_work'},
+    # FUENTE tag for a camera model read from its own metadata (Sony XML `modelName`), and the tag of a family whose
+    # clips carry no model (historical names on MEDIA keep it).
+    'models': {'ILCE-6400': 'SONYA6400'},
+    'family_source': {'sony': 'SONYA6400'},
     # Devices by EXIF Make + Model; `source` is FUENTE in media-naming-v1.
     'devices': [
         {'make': 'DJI', 'model': 'FC3170', 'category': 'dji-drone', 'source': 'MAVICAIR2',
@@ -79,8 +105,39 @@ def recipe(catalog=None):
     """Effective recipe: an edited one saved in the catalog (`recipe`), else the initial template."""
     saved = catalog.get('recipe') if catalog is not None else None
     if isinstance(saved, dict) and saved.get('schema') == TEMPLATE['schema']:
-        return copy.deepcopy(saved)
+        # A saved recipe predating a section inherits the template's section, never a silent empty rule set.
+        return copy.deepcopy({**TEMPLATE, **saved})
     return copy.deepcopy(TEMPLATE)
+
+
+def _clause(clause, top, second):
+    dcim = second.get('dcim', set())
+    checks = {
+        'top': lambda names: bool(top & set(names)),
+        'top_prefix': lambda names: any(n.startswith(tuple(names)) for n in top),
+        'top_suffix': lambda names: any(n.endswith(tuple(names)) for n in top),
+        'in': lambda folders: all(set(names) & second.get(folder, set()) for folder, names in folders.items()),
+        'dcim_prefix': lambda names: any(n.startswith(tuple(names)) for n in dcim),
+        'dcim_suffix': lambda names: any(n.endswith(tuple(names)) for n in dcim),
+        'dcim_regex': lambda pattern: any(re.fullmatch(pattern, n) for n in dcim),
+    }
+    require(clause and set(clause) <= set(checks), 'invalid_recipe', 'Unknown card condition: ' + ', '.join(sorted(set(clause) - set(checks))))
+    return all(checks[key](value) for key, value in clause.items())
+
+
+def card_parents(value):
+    """Top-level folders whose children the card rules look at (always DCIM)."""
+    return {'dcim'} | {folder for card in value['cards'] for clause in card['any'] for folder in clause.get('in', {})}
+
+
+def card_family(value, top, second):
+    """First card rule matching these lowercase names, or the default family."""
+    rule = next((card for card in value['cards'] if any(_clause(c, top, second) for c in card['any'])), None)
+    return rule or value['card_default']
+
+
+def model_source(value, model_name):
+    return value['models'].get(model_name) if model_name else None
 
 
 def recipe_ref(value):
@@ -160,3 +217,18 @@ def confirm_device(catalog, make, model, serial, category, source=None, label=No
         registry[key] = entry
         catalog.set(REGISTRY_KEY, registry)
     return entry
+
+
+def summary(catalog):
+    """Read-only view of the effective recipe for the Flujos tab: what is recognized and what each flow does."""
+    from .planner import CAMERAS
+    value = recipe(catalog)
+    registry = catalog.get(REGISTRY_KEY, {}) if catalog is not None else {}
+    return {'recipe': recipe_ref(value), 'name': value['name'],
+            'cards': [{k: card.get(k) for k in ('family', 'label', 'recommendation', 'cleanup')} for card in value['cards']],
+            'devices': [{k: d.get(k) for k in ('make', 'model', 'label', 'category', 'source')} for d in value['devices']],
+            'confirmed_devices': len(registry),
+            'categories': sorted(CAMERAS | set(value['categories'])),
+            'missions': [{'id': f['id'], 'label': f['label'], 'project': f['project'], 'devices': f['devices'],
+                          'archive_folder': f['archive_folder'], 'work_folder': f['work_folder']}
+                         for f in value.get('missions') or []]}

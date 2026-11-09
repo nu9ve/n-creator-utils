@@ -499,9 +499,6 @@
 "Del SD al respaldo y al disco de edición. La tarjeta queda libre sólo cuando las copias requeridas están verificadas." = "From the SD card to the backup and the editing disk. The card is freed only once the required copies are verified.";
 "Desactivado en Ajustes → Capturas" = "Turned off in Settings → Captures";
 "Disco de edición" = "Editing disk";
-"Dron y 360" = "Drone and 360";
-"Dron, 360 o acción" = "Drone, 360 or action";
-"Elegir categoría" = "Choose category";
 "En uso" = "In use";
 "Esperan publicarse" = "Waiting to be published";
 "Esperan publicarse y no cuentan aquí: %lld" = "Waiting to be published, not counted here: %lld";
@@ -529,7 +526,6 @@
 "Ninguna" = "None";
 "Ninguna conectada" = "None connected";
 "No se pudo consultar Clipper; revisa que ningún proyecto la use." = "Clipper couldn't be checked; make sure no project uses it.";
-"Nunca se clasifica por marca: cada archivo DJI se marca como dron, 360 o acción. Atlas recibe sus imágenes por su propio flujo." = "Never classified by brand: each DJI file is marked as drone, 360 or action. Atlas receives its images through its own flow.";
 "Por construir" = "To be built";
 "Por respaldar" = "To back up";
 "Por respaldar: %lld" = "To back up: %lld";
@@ -539,7 +535,6 @@
 "Publicar y mover a subidos" = "Publish and move to subidos";
 "RAW y JPG viajan juntos al respaldo general por tipo y fecha. Primero se respalda y después se criba en Kyū." = "RAW and JPG travel together to the general backup, by type and date. Back up first, then cull in Kyū.";
 "Requerido, o confirmar excepción" = "Required, or confirm an exception";
-"Revisión manual" = "Manual review";
 "Sesiones terminadas, siempre como bundle completo. El original local se libera sólo si Clipper confirma que puede seguir sin él." = "Finished sessions, always as a complete bundle. The local original is freed only if Clipper confirms it can go on without it.";
 "Sesión en la Papelera; puedes restaurarla desde ahí" = "Session in the Trash; you can restore it from there";
 "Sin reescribir nombres" = "Without rewriting names";
@@ -863,3 +858,18 @@
 "Todas las sesiones" = "All sessions";
 "Ver contenido" = "View content";
 "Ver su contenido; no copia nada" = "View its content; nothing is copied";
+"Dispositivo por EXIF" = "Device from EXIF";
+"Dispositivos" = "Devices";
+"Dispositivos confirmados: %lld" = "Confirmed devices: %lld";
+"Dron y misiones" = "Drone and missions";
+"El dispositivo se reconoce por su EXIF, nunca por la marca o la carpeta. Las fotos de una misión van a su sesión y su JPG a Atlas; la tarjeta se libera sólo si el registro de misiones cubre todas sus fotos." = "The device is recognized from its EXIF, never from the brand or the folder. Mission photos go to their session and their JPG to Atlas; the card is freed only when the mission registry covers all its photos.";
+"Lee misiones y units.ndjson" = "Reads missions and units.ndjson";
+"Lo que reconoce" = "What it recognizes";
+"Misiones" = "Missions";
+"Registro de misiones" = "Mission registry";
+"Reglas de la receta; agregar una cámara es agregar datos, no código. Las garantías de copia y verificación no se editan." = "Recipe rules: adding a camera is adding data, not code. Copy and verification guarantees cannot be edited.";
+"Si ningún export falta; luego formatear en el dron" = "If no export is missing; then format in the drone";
+"Sólo JPG, sin duplicados" = "JPG only, no duplicates";
+"Tarjetas" = "Cards";
+"Uno nuevo se confirma una vez" = "A new one is confirmed once";
+"¿De misión?" = "From a mission?";

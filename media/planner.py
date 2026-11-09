@@ -442,8 +442,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
     elif finals_route:
         plan['layout'] = finals_targets
         plan['already_archived'] = already_archived
-    sony = any('/private/m4root/' in ('/' + f['path']).lower() or '/private/avchd/' in ('/' + f['path']).lower()
-               or f['path'].lower().startswith('avf_info/') for f in files)
+    from .layout import sony_card_path
+    sony = any(sony_card_path(f['path']) for f in files)
     # Sony: after verification the clips leave the card (a fast camera format), but the camera's own indexes are
     # never edited here; the job then waits for that format (`confirm-cleanup`).
     plan['cleanup_profile'] = 'sony_clips_then_format' if sony or any(u['camera'] == 'sony' for u in units) else 'files'
@@ -533,7 +533,8 @@ def validate_plan(plan):
                     'confirmation_required', 'Archive-only confirmation missing')
         require(plan['cleanup_profile'] in {'files', 'camera_action_required', 'sony_clips_then_format'}, 'invalid_plan', 'Invalid cleanup profile')
         require(set(plan['source_identity']) == {'mode', 'volume_uuid', 'disk_uuid', 'root_inode'}, 'invalid_plan', 'Source identity is incomplete')
-        sony_paths = any('/private/m4root/' in ('/' + f['path']).lower() or '/private/avchd/' in ('/' + f['path']).lower() or f['path'].lower().startswith('avf_info/') for f in plan['files'])
+        from .layout import sony_card_path
+        sony_paths = any(sony_card_path(f['path']) for f in plan['files'])
         require(not (sony_paths or any(u['camera'] == 'sony' for u in plan['units'])) or plan['cleanup_profile'] in {'camera_action_required', 'sony_clips_then_format'},
                 'invalid_plan', 'Sony cleanup requires camera action until a validated profile exists')
     except (KeyError, TypeError, ValueError) as error:

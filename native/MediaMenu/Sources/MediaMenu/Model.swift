@@ -177,6 +177,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     @ObservationIgnored var tagTask: Task<Void, Never>?
     var finals: JSONValue?
     var flowSelection = "camera"
+    /// The effective recipe (`recipe` RPC): what the engine recognizes, so Flujos never describes rules by hand.
+    var recipeSummary: JSONValue?
     /// Reviewing again must rebuild the finals route: a plain delivery plan would nest whole folders elsewhere.
     @ObservationIgnored var finalsGroup: JSONValue?
     /// Moving is the default: publishing and backing up is how the editing disk gets its space back.

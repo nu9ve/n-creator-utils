@@ -3,7 +3,7 @@
 | Need | Read |
 | --- | --- |
 | Understand the product in a few minutes | [CONTEXT](CONTEXT.md) |
-| Know exactly what exists and what was verified | [STATUS](STATUS.md) |
+| Know what works today, per area | [STATUS](STATUS.md); history in [status log](releases/status-log-2026-10-25_2026-11-08.md) |
 | Pick the next task | [PLAN](../PLAN.md) |
 | Install, run, register disks and debug | [Operations](operations.md) |
 | Change code or resume another session | [Development](development.md), root [AGENTS](../AGENTS.md) |

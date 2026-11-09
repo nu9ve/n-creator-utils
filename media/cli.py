@@ -53,6 +53,7 @@ def parser():
         retitle.add_argument(name)
     retitle.add_argument('--project', required=True, help='JSON {version:1,name,country}')
     commands.add_parser('devices', help='Read-only: recipe device rules and confirmed devices (Make+Model+Serial)')
+    commands.add_parser('recipe', help='Read-only: effective recipe (card families, devices, mission flows)')
     device = commands.add_parser('confirm-device', help='Remember a device so its files are classified without asking')
     device.add_argument('--make', required=True); device.add_argument('--model', required=True); device.add_argument('--serial', required=True)
     device.add_argument('--category', required=True); device.add_argument('--source'); device.add_argument('--label')
@@ -114,7 +115,7 @@ def parser():
 
 
 # Mutations keep one process per request so cancellation interrupts exactly that operation.
-READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles', 'devices', 'missions_review', 'missions_status',
+READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles', 'devices', 'recipe', 'missions_review', 'missions_status',
                 'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions',
                 'storage_overview', 'storage_progress', 'storage_tree'}
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
