@@ -106,4 +106,4 @@ de índices y confirmar el formato del job en Actividad.
 
 ### Reconexión tras el formato · 2026-11-07
 
-Build `48779e1516c1`. Al conectar la SD, la comprobación automática cerró como `completed` los cuatro trabajos Sony pendientes de esa tarjeta, incluido `a7839591`, con `sony_card_checked: ready` y sin archivos reaparecidos. Un clip nuevo con el nombre `C0001.MP4` y otro tamaño se conservó intacto. `060b585d` sigue `failed`. [Evidencia](STATUS.md#reconexión-sony-aceptada-en-la-build-instalada--2026-11-07).
+Build `48779e1516c1`. Al conectar la SD, la comprobación automática cerró como `completed` los cuatro trabajos Sony pendientes de esa tarjeta, incluido `a7839591`, con `sony_card_checked: ready` y sin archivos reaparecidos. Un clip nuevo con el nombre `C0001.MP4` y otro tamaño se conservó intacto. `060b585d` sigue `failed`. [Evidencia](releases/status-log-2026-10-25_2026-11-08.md#reconexión-sony-aceptada-en-la-build-instalada--2026-11-07).

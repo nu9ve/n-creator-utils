@@ -128,7 +128,7 @@ mismo nombre de la SD y posición a ≤ 40 m (la regla de
 
 ### Registro de misiones en nüün (A13)
 
-Implementado el 2026-11-08. Desde entonces `atlas/coverage_exports/` ya no existe (se movió a la Papelera a pedido del usuario): Atlas debe leer `_missions/history.json` ([pedido](next-sessions.md#pedido-para-atlas--2026-11-08--leer-misiones-del-registro-de-nüün)). Primera importación real el mismo día: los 20 exports de `atlas/coverage_exports` (no se borraron) y 4 de Descargas, 22 fuentes y 65 planes; registro y espejo verificados ([evidencia](../STATUS.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08)). Rutas, patrones y reglas salen
+Implementado el 2026-11-08. Desde entonces `atlas/coverage_exports/` ya no existe (se movió a la Papelera a pedido del usuario): Atlas debe leer `_missions/history.json` ([pedido](next-sessions.md#pedido-para-atlas--2026-11-08--leer-misiones-del-registro-de-nüün)). Primera importación real el mismo día: los 20 exports de `atlas/coverage_exports` (no se borraron) y 4 de Descargas, 22 fuentes y 65 planes; registro y espejo verificados ([evidencia](../releases/status-log-2026-10-25_2026-11-08.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08)). Rutas, patrones y reglas salen
 del flujo `missions` de la receta (`media/recipes.py`).
 
 | Lugar | Ruta |
@@ -181,12 +181,12 @@ no está todavía en el trabajo. `utc_basis: host_zone` significa que el EXIF de
 
 | Pedido | Estado | Evidencia |
 | --- | --- | --- |
-| A15/A1 identidad | Hecho: EXIF `Make+Model+Serial`, XMP de vuelo, receta `nu9ve-default`, `device-registry` | [STATUS](../STATUS.md#dron-para-atlas-paso-1-registro-de-dispositivos-y-receta--2026-11-08) |
-| A13 registro de misiones | Hecho y aplicado: 22 exports, 65 planes, espejo `_missions/`; Inicio avisa cuando cae un JSON en Descargas | [STATUS](../STATUS.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08) |
-| A12 misión o no + trabajo JPG + `units.ndjson` | Hecho y aplicado: SD `MAVIC200` (job `cc8bd128`), 1,276 de misión en 25 sesiones | [STATUS](../STATUS.md#primer-ingreso-real-de-dron-aplicado-mavic200--2026-11-08) |
-| A11 copias únicas | Hecho: SD (6–7 nov) y `ESSD/101MEDIA` mayo–junio (job `77bdcb73`, 534 pares) | [STATUS](../STATUS.md#a11-aplicado-mayojunio-del-essd-respaldado-en-media502--2026-11-08) |
+| A15/A1 identidad | Hecho: EXIF `Make+Model+Serial`, XMP de vuelo, receta `nu9ve-default`, `device-registry` | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dron-para-atlas-paso-1-registro-de-dispositivos-y-receta--2026-11-08) |
+| A13 registro de misiones | Hecho y aplicado: 22 exports, 65 planes, espejo `_missions/`; Inicio avisa cuando cae un JSON en Descargas | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08) |
+| A12 misión o no + trabajo JPG + `units.ndjson` | Hecho y aplicado: SD `MAVIC200` (job `cc8bd128`), 1,276 de misión en 25 sesiones | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#primer-ingreso-real-de-dron-aplicado-mavic200--2026-11-08) |
+| A11 copias únicas | Hecho: SD (6–7 nov) y `ESSD/101MEDIA` mayo–junio (job `77bdcb73`, 534 pares) | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#a11-aplicado-mayojunio-del-essd-respaldado-en-media502--2026-11-08) |
 | A14 liberar la SD | Hecho: SD vacía tras verificar; un plan con limpieza se rechaza si alguna foto espera export (`mission_export_missing`). Falta formatear desde el dron | idem |
-| A16 DNG a pedido | Hecho: muestra de 128 en trabajo y 999 liberados tras verificar (`dng-d9549817`); `dng-plan` con `keep` para pedir más | [STATUS](../STATUS.md#dng-del-essd-muestra-conservada-y-el-resto-a-la-papelera-a16--2026-11-08) |
+| A16 DNG a pedido | Hecho: muestra de 128 en trabajo y 999 liberados tras verificar (`dng-d9549817`); `dng-plan` con `keep` para pedir más | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dng-del-essd-muestra-conservada-y-el-resto-a-la-papelera-a16--2026-11-08) |
 
 Pendiente del lado nüün:
 - **Reclasificar al llegar el export:** pasar `pending_export` → `misiones/` renombrando dentro del archivo. Hoy sólo puede pasar con la limpieza apagada.

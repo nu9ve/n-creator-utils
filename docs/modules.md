@@ -6,6 +6,9 @@ El mapa de ownership y reglas de cambio está en [development](development.md#d�
 nu9ve.py
   save → media.save → planner / transfer / catalog
   media → cli / service → ingest, library, recovery, publication, captures
+    recipes → reglas como datos: familias de tarjeta, dispositivos por EXIF, tags de modelo, flujos de misión
+              (planner/volumes/layout/missions/dng las leen; el plan congela id + digest; RPC `recipe` de lectura)
+    missions, dng → registro de misiones de dron y DNG a pedido (Atlas)
     storage_index → mapa de discos: índice derivado, sólo lectura de los discos
     rpc → una petición JSON; mcp → herramientas de lectura por stdio
   inspect → manager.inventory

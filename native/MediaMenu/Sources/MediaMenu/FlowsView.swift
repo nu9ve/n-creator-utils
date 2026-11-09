@@ -76,6 +76,7 @@ extension Model {
         let backupBlock = FlowBlock(symbol: "externaldrive.fill", title: backup, detail: copy, step: .automatic)
         let editingBlock = FlowBlock(symbol: "bolt.horizontal", title: editing, detail: String(localized: "Copia para editar, opcional"), step: .confirmed)
         let cleanCard = FlowBlock(symbol: "sdcard", title: String(localized: "Limpiar tarjeta"), detail: String(localized: "Sólo tras verificar; Sony termina formateando en la cámara"), step: .confirmed)
+        let missionLabel = recipeSummary?["missions"].array.first?["label"].string ?? String(localized: "Registro de misiones")
         let card = FlowBlock(symbol: "sdcard.fill", title: String(localized: "Tarjeta"), detail: cards > 0 ? String(localized: "Conectadas: \(cards)") : String(localized: "Ninguna conectada"), step: .manual)
         return [
             ProductFlow(id: "camera", symbol: "video", title: "Video de cámara", summary: "Del SD al respaldo y al disco de edición. La tarjeta queda libre sólo cuando las copias requeridas están verificadas.", maturity: .inUse, stages: [
@@ -104,12 +105,13 @@ extension Model {
                 [FlowBlock(symbol: "waveform", title: "Zoom H6", detail: String(localized: "Tarjeta de audio"), step: .manual)],
                 [backupBlock, FlowBlock(symbol: "bolt.horizontal", title: "SSD1", detail: String(localized: "Requerido, o confirmar excepción"), step: .confirmed)],
                 [cleanCard]]),
-            ProductFlow(id: "drone", symbol: "airplane", title: "Dron y 360", summary: "Nunca se clasifica por marca: cada archivo DJI se marca como dron, 360 o acción. Atlas recibe sus imágenes por su propio flujo.", maturity: .toValidate, stages: [
+            ProductFlow(id: "drone", symbol: "airplane", title: "Dron y misiones", summary: "El dispositivo se reconoce por su EXIF, nunca por la marca o la carpeta. Las fotos de una misión van a su sesión y su JPG a Atlas; la tarjeta se libera sólo si el registro de misiones cubre todas sus fotos.", maturity: .inUse, stages: [
                 [card],
-                [FlowBlock(symbol: "questionmark.circle", title: String(localized: "Elegir categoría"), detail: String(localized: "Dron, 360 o acción"), step: .manual)],
-                [backupBlock],
-                [cleanCard],
-                [FlowBlock(symbol: "map", title: "Atlas", detail: String(localized: "Revisión manual"), step: .manual)]]),
+                [FlowBlock(symbol: "cpu", title: String(localized: "Dispositivo por EXIF"), detail: String(localized: "Uno nuevo se confirma una vez"), step: .automatic)],
+                [FlowBlock(symbol: "map", title: String(localized: "¿De misión?"), detail: missionLabel, step: .automatic)],
+                [backupBlock, FlowBlock(symbol: "bolt.horizontal", title: editing, detail: String(localized: "Sólo JPG, sin duplicados"), step: .confirmed)],
+                [FlowBlock(symbol: "sdcard", title: String(localized: "Limpiar tarjeta"), detail: String(localized: "Si ningún export falta; luego formatear en el dron"), step: .confirmed)],
+                [FlowBlock(symbol: "map", title: "Atlas", detail: String(localized: "Lee misiones y units.ndjson"), step: .manual)]]),
             ProductFlow(id: "living", symbol: "music.note.list", title: "Carpetas vivas", summary: "Música y samples que cambian: copiar sólo lo nuevo, sin renombrar, sin limpiar el origen y sin propagar borrados.", maturity: .planned, stages: [
                 [FlowBlock(symbol: "music.note.list", title: String(localized: "Carpeta viva"), detail: String(localized: "Música, samples"), step: .missing)],
                 [FlowBlock(symbol: "plus.square.on.square", title: String(localized: "Sólo lo nuevo"), detail: String(localized: "Sin reescribir nombres"), step: .missing)],
@@ -156,6 +158,7 @@ struct FlowsView: View {
                     FlowPipeline(flow: selected)
                     FlowLegend()
                     if selected.id == "finals" { FinalsFolders(model: model) }
+                    if let recipe = model.recipeSummary { RecipeRecognition(recipe: recipe) }
                     Text("Muestra lo que hace nüün hoy, con tus discos. Todavía no se edita aquí; nada se mueve sin un plan revisado.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -163,7 +166,49 @@ struct FlowsView: View {
             }
         }
         // Names and sizes only, and at most every 15 minutes; the same check Inicio makes.
-        .onAppear { model.checkFinals() }
+        .onAppear { model.checkFinals(); model.loadRecipe() }
+    }
+}
+
+extension Model {
+    func loadRecipe() {
+        guard recipeSummary == nil else { return }
+        Task {
+            do { recipeSummary = try await oneShot("recipe", [:]) }
+            catch { recipeSummary = nil }
+        }
+    }
+}
+
+/// What the effective recipe recognizes, read from the engine: card families, devices and mission flows.
+struct RecipeRecognition: View {
+    let recipe: JSONValue
+    @Environment(\.creatorPalette) private var palette
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Lo que reconoce").font(.headline)
+                Spacer()
+                Text(recipe["name"].string).font(.caption).foregroundStyle(.secondary)
+            }
+            row(String(localized: "Tarjetas"), "sdcard", recipe["cards"].array.map { $0["label"].string })
+            row(String(localized: "Dispositivos"), "cpu", recipe["devices"].array.map { $0["label"].string })
+            row(String(localized: "Misiones"), "map", recipe["missions"].array.map { $0["label"].string })
+            let confirmed = Int(recipe["confirmed_devices"].double)
+            if confirmed > 0 {
+                Text("Dispositivos confirmados: \(confirmed)").font(.caption).foregroundStyle(.secondary)
+            }
+            Text("Reglas de la receta; agregar una cámara es agregar datos, no código. Las garantías de copia y verificación no se editan.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .background(palette.accentSoft.opacity(0.4), in: palette.control)
+    }
+    private func row(_ title: String, _ symbol: String, _ items: [String]) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Label(title, systemImage: symbol).font(.callout.weight(.medium)).frame(width: 130, alignment: .leading)
+            Text(items.filter { !$0.isEmpty }.joined(separator: " · ")).font(.callout).foregroundStyle(.secondary)
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 # Compact project context
 
-Snapshot: 2026-11-06, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
+Snapshot: 2026-11-08, America/Hermosillo. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
 
 ## Product and user workflow
 
@@ -24,15 +24,11 @@ Cierre de proyectos (primera entrega, 2026-11-04): conservar fuentes y finales; 
 
 Ingreso vigente (2026-11-05): Entrada → Flujo → Resultado, proyecto general como fallback, auxiliares ligados al ingreso y filas por bundle. Un botón autoriza el plan mostrado y la limpieza verificada; excepciones inline. Publicación = `subidos` o marca manual por final, sin canales. «Respaldar publicados» opera sobre finales publicados. El cierre editorial puede respaldar finales pendientes y conserva sus copias de edición para publicar después. [Ingreso](contracts/ingest-flow-v1.md), [cierre](contracts/project-closeout-v1.md).
 
-## Próxima operación y continuidad · 2026-11-06
+## Estado operativo · 2026-11-08
 
-El usuario reporta que Untitled ya se formateó y reutilizó varias veces para Sony: el incidente de montaje del 27 de octubre no es un bloqueo operativo actual. No acredita causa/reparación ni recuperación del contenido antiguo. Sí reporta un aviso recurrente de formato/limpieza pendiente. El motor Sony borra clips verificados y conserva índices; confirmar formato es un paso separado por job, sin reconciliación automática al reutilizar la SD. Falta identificar el aviso/job real; no cerrar históricos a ciegas ni quitar la guarda de índices.
+Sony, Stalker, cierre editorial y dron están en uso real; el seguimiento Sony (incluido el `FileNotFoundError` de Baches del 6 nov) quedó cerrado por observación al reconectar. Una SD del Mavic se procesa completa y queda vacía si el export de subaereo ya está incorporado; si no, A14 conserva la tarjeta. Atlas: nüün implementa A11–A16 ([estado](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08)); no cambiar el estado geoespacial de Atlas. Reglas de dispositivos y flujos viven como datos de receta (`media/recipes.py`), y el siguiente trabajo es llevar ahí también la detección de tarjetas y la limpieza. Después: carpetas vivas (música en SSD1, samples, loops, MIDI). Detalle por área en [STATUS](STATUS.md), orden en [PLAN](../PLAN.md).
 
-Próxima aceptación acompañada: dos videos multicam recién grabados; asignaciones elegidas por el usuario desde la app. Instalada build `88fa9b79a571`: compacto flotante, modos mayores normales; popup por defecto activo y preferencia local habilitada a petición (estaba false). Usuario aceptó flotante; detección aún incierta y pendiente. Reporta ingreso Stalker correcto y Sony con FileNotFoundError al finalizar limpieza; seis retiradas constan en journal, sin causa confirmada. Empezar con ventana cerrada y proceso nüün activo en menubar, insertar SD con destinos online y revisar el plan antes de aplicar. Recorrido y evidencia pendiente en [Sony/multicam](sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06). No sustituye gates de desconexión ni autoriza pruebas destructivas sobre material único.
-
-El usuario hace el ingreso desde nüün. Excepción operativa explícita del 6 noviembre: pidió recuperar los dos clips Sony de `buscando-baches-con-el-dron` a ESSD con la herramienta existente; `deliver_work` completó/verificó ambos (7.03 GB), sin tocar SD ni borrar archivo. Nuevos ingresos: trabajo Todo el lote por defecto, destinos visibles, preview de slug y sugerencias de proyectos de sesión/pendientes; ver contrato de ingreso. Reporta además borrados externos de algunos intermedios y de proyectos desde Clipper; no hay inventario ni evidencia de desregistro para cada caso. Evaluar el estado actual al revisar desde la app: ausencia de renders antes de un plan no equivale a cierre; desaparición posterior a revisión exige replanificar; registro Clipper ausente/offline puede bloquear retiro. [Límites de cambios externos](contracts/project-closeout-v1.md#cambios-externos-y-borrados-previos--2026-11-06).
-
-Atlas actualizó su [propuesta](contracts/atlas-drone-v1.md) el 6 de noviembre (A1–A10): conservar DCIM y JPG+DNG en archivo; trabajo JPG útil/DNG por demanda, no nadir separado; estado humano, exports y productos ODM costosos frente a intermedios regenerables. Desde el 8 nov nüün implementa A11–A16 (dispositivos por EXIF, registro de misiones, misión o no, `units.ndjson`, muestra de DNG) y lo aplicó a la SD `MAVIC200` y al ESSD; reglas como datos de receta (`media/recipes.py`). [Estado](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08). No cambiar el estado geoespacial de Atlas.
+Cambios externos (borrados en Clipper, intermedios eliminados a mano) no se infieren: una ausencia antes del plan no equivale a cierre y una desaparición posterior a la revisión exige replanificar. [Límites](contracts/project-closeout-v1.md#cambios-externos-y-borrados-previos--2026-11-06).
 
 ## Code map
 
@@ -42,6 +38,7 @@ media/service.py → planner + volumes + transfer + catalog + library
 media/common.py → safe tree-relative IO, hashes, errors, JSON
 native/MediaMenu → WindowRoot (3 modes) / Model / JSON bridge / FSEvents
 media/workspaces.py → creative profile registry; planner freezes profile_routes
+media/recipes.py → devices, card families, categories, mission flows as data (frozen per plan)
 manager/file.py → legacy-save + existing downloads/stems
 ```
 

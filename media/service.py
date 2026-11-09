@@ -207,6 +207,9 @@ class Service:
         if method == 'devices':
             from .recipes import devices
             return devices(self.catalog)
+        if method == 'recipe':
+            from .recipes import summary
+            return summary(self.catalog)
         if method == 'missions_review':
             from .missions import review
             return review(self.catalog, self.backend, **params)

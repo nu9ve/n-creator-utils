@@ -218,7 +218,7 @@ Selección por vuelo con «Conservar selección»; pares JPG+DNG juntos. Atlas e
 
 ## Flujos
 
-Pestaña principal por decisión del usuario (2026-11-01), en lugar de una sección de Ajustes: va a crecer y necesita espacio para entenderse. **Implementado:** vista de sólo lectura con los flujos actuales dibujados como bloques y líneas, con los discos reales y un estado honesto por bloque (automático, lo confirmas en el plan, lo haces tú, aún no disponible). **Sin implementar:** recetas editables, los niveles de abajo sobre datos guardados y registro de cámaras.
+Pestaña principal por decisión del usuario (2026-11-01), en lugar de una sección de Ajustes: va a crecer y necesita espacio para entenderse. **Implementado:** vista de sólo lectura con los flujos actuales dibujados como bloques y líneas, con los discos reales y un estado honesto por bloque (automático, lo confirmas en el plan, lo haces tú, aún no disponible). Desde el 8 nov la receta efectiva (`media/recipes.py`: familias de tarjeta, dispositivos por EXIF, tags de modelo, flujos de misión) se lee por `recipe` y Flujos la muestra en «Lo que reconoce»; el registro de dispositivos confirmados existe (`confirm-device`). **Sin implementar:** editar la receta desde la app y generar los bloques desde ella (los niveles de abajo).
 
 Tres niveles sobre un mismo dato. Cada uno es opcional y no se necesita el siguiente para usar el anterior.
 
