@@ -7,7 +7,7 @@ Adoptado el 2026-11-09 ([análisis y ruta](../docs/platforms/rust-engine.md), [P
 | `crates/nu9ve-json` | JSON canónico **byte a byte** igual al de Python (claves ordenadas, sin espacios, escapes de Python, `repr` de los decimales: `1e-07`, `1e+16`, `1.0`), digest SHA-256, error `{code, message}`, sobres de `rpc-serve` | `media/common.py` `canonical`, `digest`, `MediaError`; `media/cli.py` `serve_reads` |
 | `crates/nu9ve-volumes` | Identidad de volumen en Windows (GUID, serial, discos físicos, bus, medio extraíble, índice de la raíz, espacio); letras montadas. Sólo lectura, sin administrador | curado `identity.rs`/`relink.rs` (Windows); `media/volumes.py` (Mac, sigue en Python) |
 | `crates/nuun-recipe` | La receta como datos (`template.json`, transcripción de `TEMPLATE`), receta efectiva, familias de tarjeta por las dos primeras carpetas (contenido primero), resumen de `recipe` | `media/recipes.py`, `media/volumes.py` `card_hint` |
-| `crates/nuun-media` | Catálogo SQLite **de sólo lectura** (no crea el archivo si falta), reglas de identidad, independencia física, destinos, `volumes`, `source_cards` y `card_hint` | `media/catalog.py`, `media/volumes.py`, `media/service.py` |
+| `crates/nuun-media` | Catálogo SQLite: lectura sin crear nada; escritura sólo para `register_volume`, con el esquema de Python y el lock de escritor (`writer.lock`, el mismo `flock` que Python en Mac). Reglas de `slug` y rutas relativas, identidad, independencia física, destinos, `volumes`, `source_cards` y `card_hint` | `media/catalog.py`, `media/volumes.py`, `media/service.py` |
 | `nuun-engine` | Binario `nuun-engine [--state-dir DIR] rpc-serve \| rpc \| --version` | `media/cli.py` |
 
 Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del análisis](../docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps)); los `nuun-*` son de nüün.
@@ -21,9 +21,10 @@ Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del aná
 | `source_cards` | **Portado en Windows**: unidades extraíbles y externas, nunca un destino ni un volumen en el mismo disco físico, ni imágenes. `hint` (familia, recomendación, uso, último proyecto) **sólo** con un destino en línea. Falta `hint.device` (EXIF, `photo_meta` sin portar) | Igual que `volumes`, más el diferencial de familias sobre árboles generados por Python (pendiente del dorado) |
 | `engine_info` | Nuevo, sólo Rust: qué motor respondió y qué métodos tiene | Unitaria + contrato |
 | Resto de `READ_METHODS` | `not_ported` | Unitaria |
-| Mutaciones (`apply`, `plan`, `register_volume`…) | `read_only`, igual que `rpc-serve` de Python | Unitaria + contrato |
+| `register_volume` | **Portado en Windows**, sólo por `rpc` (un proceso por escritura, como la app de Mac con Python). Configuración, nunca media: describe el volumen (externo salvo `allow_local`), toma el lock, valida rol, nombre, prefijo y duplicados, y guarda el registro canónico con un UUID v4 | Pruebas portadas de los rechazos de Python; lock ocupado → `job_busy`; esquema y WAL del catálogo creado; contrato desde C#; registro desde la ventana por UI Automation |
+| Otras mutaciones (`apply`, `plan`…) | `read_only` por `rpc-serve`; `not_ported` por `rpc` | Unitaria |
 
-Siguiente, en orden: `register_volume` por `rpc` (primera escritura: sólo configuración, con el lock de escritor), `snapshot`, búsqueda de biblioteca y, después, el planner con el digest del plan como oráculo.
+Siguiente, en orden: `snapshot` (jobs, proyectos, perfiles y defaults leídos del catálogo), búsqueda de biblioteca y, después, el planner con el digest del plan como oráculo. **Sin comprobar:** que Python abra un catálogo creado por Rust (mismo esquema, pero no se ha cruzado en la Mac).
 
 ### Identidad de volumen en Windows (diseño nuevo)
 

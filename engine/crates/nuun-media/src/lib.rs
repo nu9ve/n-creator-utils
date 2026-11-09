@@ -1,5 +1,7 @@
 //! nüün's media domain in Rust, ported method by method from `media/` (rust-engine.md §7).
-//! Read only for now: the catalog is opened read only and no volume is written.
+//! Reads open the catalog read only. The only write so far is `register_volume`, which changes configuration
+//! (the catalog), never media, and takes the same writer lock as Python.
 
 pub mod catalog;
+pub mod rules;
 pub mod volumes;

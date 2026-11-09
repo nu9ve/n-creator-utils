@@ -270,3 +270,75 @@ mod tests {
         assert_eq!(error["error"]["code"], json!("read_only"));
     }
 }
+
+/// Random bytes from the operating system's generator.
+pub fn random_bytes<const N: usize>() -> Result<[u8; N]> {
+    let mut bytes = [0u8; N];
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Security::Cryptography::{
+            BCRYPT_USE_SYSTEM_PREFERRED_RNG, BCryptGenRandom,
+        };
+        // SAFETY: valid buffer and length; the system-preferred generator needs no algorithm handle.
+        let status = unsafe {
+            BCryptGenRandom(
+                std::ptr::null_mut(),
+                bytes.as_mut_ptr(),
+                N as u32,
+                BCRYPT_USE_SYSTEM_PREFERRED_RNG,
+            )
+        };
+        require(
+            status == 0,
+            "random_unavailable",
+            format!("BCryptGenRandom failed: {status:#x}"),
+        )?;
+    }
+    #[cfg(not(windows))]
+    {
+        use std::io::Read;
+        std::fs::File::open("/dev/urandom")
+            .and_then(|mut f| f.read_exact(&mut bytes))
+            .map_err(|e| Error::new("random_unavailable", e.to_string()))?;
+    }
+    Ok(bytes)
+}
+
+/// A random UUID version 4 in Python's `str(uuid.uuid4())` form (`media/common.py` `uid`).
+pub fn uid() -> Result<String> {
+    let mut b = random_bytes::<16>()?;
+    b[6] = (b[6] & 0x0f) | 0x40; // version 4
+    b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant
+    let h = hex(&b);
+    Ok(format!(
+        "{}-{}-{}-{}-{}",
+        &h[0..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..32]
+    ))
+}
+
+#[cfg(test)]
+mod id_tests {
+    use super::*;
+
+    #[test]
+    fn uids_are_version_4_and_differ() {
+        let a = uid().unwrap();
+        let b = uid().unwrap();
+        assert_ne!(a, b);
+        let parts: Vec<&str> = a.split('-').collect();
+        assert_eq!(
+            parts.iter().map(|p| p.len()).collect::<Vec<_>>(),
+            [8, 4, 4, 4, 12]
+        );
+        assert!(parts[2].starts_with('4'));
+        assert!(matches!(&parts[3][..1], "8" | "9" | "a" | "b"));
+        assert!(
+            a.chars()
+                .all(|c| c == '-' || c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        );
+    }
+}

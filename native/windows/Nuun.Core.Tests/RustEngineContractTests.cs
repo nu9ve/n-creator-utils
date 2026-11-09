@@ -100,3 +100,40 @@ public class RustEngineVolumeTests
         Assert.False(Directory.Exists(state));
     }
 }
+
+/// <summary>The first write of the Rust engine, end to end from C#, in a temporary state folder only.</summary>
+public class RustEngineWriteTests
+{
+    [RustEngineFact]
+    public async Task RegisteringALocalFolderNeedsConsentAndThenItIsOnline()
+    {
+        var temp = Path.Combine(Path.GetTempPath(), "nuun-engine-write-" + Guid.NewGuid().ToString("N")[..8]);
+        var state = Path.Combine(temp, "state");
+        var target = Path.Combine(temp, "destino");
+        Directory.CreateDirectory(target);
+        try
+        {
+            var refused = await Assert.ThrowsAsync<EngineFailure>(() =>
+                EngineWrites.RegisterVolumeAsync(RustEngineFactAttribute.Binary!, state, "LOCAL", "work", target, null, allowLocal: false));
+            Assert.Equal("external_required", refused.Code);
+            Assert.Contains("carpeta interna", EngineWrites.Explain(refused));
+
+            var record = await EngineWrites.RegisterVolumeAsync(RustEngineFactAttribute.Binary!, state, "LOCAL", "work", target, null, allowLocal: true);
+            Assert.Equal("001_proyectos", record!["prefix"]!.GetValue<string>());
+            Assert.Equal("windows", record["identity"]!["mode"]!.GetValue<string>());
+
+            var duplicate = await Assert.ThrowsAsync<EngineFailure>(() =>
+                EngineWrites.RegisterVolumeAsync(RustEngineFactAttribute.Binary!, state, "LOCAL", "archive", target, null, allowLocal: true));
+            Assert.Equal("volume_exists", duplicate.Code);
+
+            var (process, connection) = EngineProcess.StartRust(RustEngineFactAttribute.Binary!, state);
+            await using var reader = new RpcEngine(connection, new ProcessOwner(process));
+            var volume = Assert.Single(await reader.VolumesAsync());
+            Assert.Equal(("LOCAL", VolumeRole.Work, true), (volume.Name, volume.Role, volume.Online));
+        }
+        finally
+        {
+            try { Directory.Delete(temp, recursive: true); } catch (IOException) { }
+        }
+    }
+}

@@ -111,6 +111,8 @@ Detalle por método en [`engine/README.md`](../../engine/README.md).
 
 | 2026-11-09 | `nuun-media`: catálogo SQLite de sólo lectura (`rusqlite` embebido, como nove) y reglas de `volumes.py`. `volumes` y `source_cards` portados en Windows con la identidad `mode: "windows"` (diseño nuevo: Python no tenía backend de Windows). `recipe` lee la receta guardada y el registro de dispositivos | 31 pruebas de Rust; las de `test_media_eject.py`/`test_media_snapshot.py` sobre un backend de fixture; el backend real sobre el volumen del sistema (identidad completa, en línea como destino, `volume_replaced` si cambia); 4 de contrato desde C#. El script dorado ahora también registra familias sobre árboles de carpetas | Dorado en la Mac; una SD y un disco USB reales en Windows; `hint.device` (EXIF); `register_volume` |
 
+| 2026-11-09 | Primera escritura: `register_volume` por `rpc` (un proceso por escritura). Crea el catálogo con el esquema de Python, toma `writer.lock` (`File::try_lock`, el mismo `flock` que Python en Mac) y guarda el registro canónico con UUID v4 del generador del sistema. Diálogo «Registrar destino…» en la ventana de Windows | 39 pruebas de Rust (rechazos de Python, `job_busy`, esquema y WAL, carpeta interna sólo con consentimiento); 60 de C#; recorrido por UI Automation en raíz de QA | Que Python abra el catálogo creado por Rust; diálogos con el skin de época; `snapshot` |
+
 ## 8. Qué se puede mejorar ya, sin cambiar de lenguaje
 
 1. Medir cada fase (bytes/s de lectura, escritura y verificación por dispositivo) en `ActionMeter` y en el recibo.

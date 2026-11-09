@@ -135,6 +135,182 @@ fn parse(text: &str) -> Result<Value> {
     serde_json::from_str(text).map_err(|e| Error::new("catalog_corrupt", e.to_string()))
 }
 
+/// Python's schema (`media/catalog.py` `Catalog.__init__`), so either engine opens a catalog the other created.
+const SCHEMA: &str = "
+  CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,
+    state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,
+    kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,
+    sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));
+  CREATE TABLE IF NOT EXISTS copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,
+    relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,
+    PRIMARY KEY(job_id,volume_id,relative_path));
+  CREATE TABLE IF NOT EXISTS sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));
+  CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));
+  CREATE TABLE IF NOT EXISTS asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));
+  CREATE TABLE IF NOT EXISTS asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));
+  CREATE TABLE IF NOT EXISTS publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,
+    url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));
+  CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));
+  CREATE TABLE IF NOT EXISTS work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,
+    target TEXT, updated_at TEXT NOT NULL);
+";
+
+/// The catalog opened to write (Python `Catalog(home)`): creates the folder and the schema when missing, with the
+/// same durability settings (WAL, synchronous FULL, full fsync where the filesystem has it).
+pub struct WritableCatalog {
+    db: Connection,
+}
+
+fn schema_version_ok(db: &Connection) -> Result<()> {
+    let exists: i64 = db
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='metadata'",
+            [],
+            |r| r.get(0),
+        )
+        .map_err(sql)?;
+    if exists > 0 {
+        let version: Option<String> = db
+            .query_row("SELECT value FROM metadata WHERE key='schema'", [], |r| {
+                r.get(0)
+            })
+            .optional()
+            .map_err(sql)?;
+        require(
+            version.is_none() || version.as_deref() == Some("1"),
+            "unsupported_catalog",
+            "Unsupported catalog version",
+        )?;
+    }
+    Ok(())
+}
+
+impl WritableCatalog {
+    pub fn open(home: &Path) -> Result<Self> {
+        let home = std::path::absolute(home).map_err(io)?;
+        for path in home.ancestors() {
+            require(
+                !path.is_symlink(),
+                "unsafe_state",
+                format!("State path must not contain symlinks: {}", path.display()),
+            )?;
+        }
+        std::fs::create_dir_all(&home).map_err(io)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).map_err(io)?;
+        }
+        let path = home.join("catalog.sqlite3");
+        require(
+            !path.is_symlink(),
+            "unsafe_state",
+            "Catalog must not be a symlink",
+        )?;
+        let db = Connection::open(&path).map_err(sql)?;
+        db.busy_timeout(std::time::Duration::from_secs(15))
+            .map_err(sql)?;
+        schema_version_ok(&db)?;
+        // journal_mode returns a row; the others return nothing.
+        let _: String = db
+            .query_row("PRAGMA journal_mode=WAL", [], |r| r.get(0))
+            .map_err(sql)?;
+        db.execute_batch(
+            "PRAGMA synchronous=FULL; PRAGMA fullfsync=1; PRAGMA checkpoint_fullfsync=1;",
+        )
+        .map_err(sql)?;
+        db.execute_batch(SCHEMA).map_err(sql)?;
+        schema_version_ok(&db)?;
+        db.execute("INSERT OR IGNORE INTO metadata VALUES('schema','1')", [])
+            .map_err(sql)?;
+        Ok(Self { db })
+    }
+
+    pub fn volumes(&self) -> Result<Vec<Value>> {
+        let mut statement = self
+            .db
+            .prepare("SELECT payload FROM volumes ORDER BY name")
+            .map_err(sql)?;
+        let rows = statement
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(sql)?;
+        rows.map(|payload| parse(&payload.map_err(sql)?)).collect()
+    }
+
+    /// Python `Catalog.register`: role, name and prefix validated, root and name unique, payload canonical.
+    pub fn register(
+        &self,
+        name: &str,
+        role: &str,
+        root: &str,
+        identity: &Value,
+        prefix: &str,
+    ) -> Result<Value> {
+        require(
+            role == "archive" || role == "work",
+            "invalid_role",
+            "Volume role must be archive or work",
+        )?;
+        crate::rules::slug(name)?;
+        crate::rules::relative(prefix)?;
+        require(
+            !self
+                .volumes()?
+                .iter()
+                .any(|v| v["root"] == root || v["name"] == name),
+            "volume_exists",
+            "Root/name already registered",
+        )?;
+        let value = serde_json::json!({"id": nu9ve_json::uid()?, "name": name, "role": role, "root": root,
+            "identity": identity, "prefix": prefix});
+        let payload = String::from_utf8(nu9ve_json::canonical(&value)).unwrap_or_default();
+        self.db
+            .execute(
+                "INSERT INTO volumes VALUES(?,?,?)",
+                (value["id"].as_str().unwrap_or_default(), name, payload),
+            )
+            .map_err(sql)?;
+        Ok(value)
+    }
+}
+
+/// The global mutation lock (Python `Catalog.writer`): `writer.lock` in the state folder, exclusive and
+/// non-blocking. On macOS `File::try_lock` is `flock`, the lock Python takes, so the two engines exclude each other.
+/// Dropping the file releases it.
+pub fn writer_lock(home: &Path) -> Result<std::fs::File> {
+    std::fs::create_dir_all(home).map_err(io)?;
+    let path = home.join("writer.lock");
+    require(
+        !path.is_symlink(),
+        "unsafe_state",
+        "writer.lock must not be a symlink",
+    )?;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(io)?;
+    match file.try_lock() {
+        Ok(()) => Ok(file),
+        Err(std::fs::TryLockError::WouldBlock) => {
+            Err(Error::new("job_busy", "Another media operation is running"))
+        }
+        Err(std::fs::TryLockError::Error(e)) => Err(io(e)),
+    }
+}
+
+fn io(error: std::io::Error) -> Error {
+    Error::new("operation_failed", error.to_string())
+}
+
 /// Test support: a catalog with Python's schema, written the way `Catalog.register` writes it.
 #[cfg(test)]
 pub mod fixture {

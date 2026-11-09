@@ -53,6 +53,8 @@ public sealed class ThemeService
         ("SliderTrackValueFill", "accent"), ("SliderTrackValueFillPointerOver", "accent"), ("SliderTrackValueFillPressed", "accent"),
         ("SliderThumbBackground", "accent"), ("SliderThumbBackgroundPointerOver", "accent"), ("SliderThumbBackgroundPressed", "accent"),
         ("TextControlBorderBrushFocused", "accentText"), ("ToggleSwitchFillOn", "accent"), ("ToggleSwitchFillOnPointerOver", "accent"),
+        ("AccentButtonBackground", "accent"), ("AccentButtonBackgroundPointerOver", "accent"), ("AccentButtonBackgroundPressed", "accent"),
+        ("AccentButtonForeground", "onAccent"), ("AccentButtonForegroundPointerOver", "onAccent"), ("AccentButtonForegroundPressed", "onAccent"),
         ("ProgressBarForeground", "info"), ("ExpanderHeaderBackground", "surface"), ("ExpanderContentBackground", "surface"),
     ];
 
