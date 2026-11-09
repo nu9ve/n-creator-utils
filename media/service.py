@@ -185,6 +185,19 @@ class Service:
             from .release import apply_release
             with self._action_progress(params['plan_id']) as progress:
                 return apply_release(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress=progress)
+        if method == 'collection_release_plan':
+            from .collection_release import plan
+            require(set(params) <= {'source', 'archives', 'search', 'keep', 'progress_id'}, 'invalid_request', 'Unknown parameters')
+            progress_id = params.pop('progress_id', None) or str(uuid.uuid4())
+            with self._action_progress(progress_id) as progress:
+                return plan(self.catalog, self.backend, cancel=self.cancel, progress=progress, **params)
+        if method == 'collection_release_apply':
+            from .collection_release import apply
+            with self._action_progress(params['plan_id']) as progress:
+                return apply(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress)
+        if method == 'collection_release_plans':
+            from .collection_release import plans
+            return plans(self.catalog)
         if method == 'relink_release':
             from .release import relink_release
             return relink_release(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel)

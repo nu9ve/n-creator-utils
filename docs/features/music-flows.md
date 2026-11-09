@@ -89,7 +89,61 @@ sonidos/
 
 **Mover sin romper rekordbox ni curado:** nüün mueve sólo con un plan revisado y deja un mapa `ruta_anterior → ruta_nueva` con hash. curado reubica con ese mapa (ya tiene relink por huella) y exporta `rekordbox.xml` con las rutas nuevas, que se importa en rekordbox. Un contrato `music-library-v1` define el mapa y el ACK de curado, igual que el relink de Clipper. curado ya lo tiene en su roadmap («nüün: leer de dónde viene un archivo»).
 
-## Orden propuesto
+## Decisiones del usuario · 2026-11-09
+
+- `recordingslong` y `recordings` salieron de un `save all`; los años pasados ya tienen respaldo en **MEDIA500 o MEDIA501**. Se pueden quitar de SSD1 la mayoría, sobre todo 2019–2021, **salvo lo que use un proyecto** (`.asd` junto al WAV o referencia desde un `.als`).
+- Nada se borra sin encontrar la copia **por hash** en un archivo registrado; si no aparece, primero se respalda en MEDIA502.
+- Biblioteca: rekordbox sí, pero sobre todo **curado** a futuro. Serato casi no se usa; sus carpetas no son la biblioteca.
+- Hay producción y música también en `~/Music` (`01_produccion`, `03_final`, `00_assets`): entra en el respaldo de producción.
+- Interés en un triage de audio (silencio, ruido, voz, música) con `ffmpeg` y Qwen para decidir qué vale la pena; lo hace Clipper, nüün lo muestra.
+- Organizar `mix/` para que el respaldo quede navegable en Finder; las tandas de descarga se conservan como colecciones, no como estructura final.
+- Trabajo por fases. Al cerrar cada fase: decir cómo terminó y cómo continuar, con enlaces a los docs.
+
+## Fases
+
+Cada fase cierra con pruebas en fixtures, docs al día (esta página, [STATUS](../STATUS.md), [PLAN](../../PLAN.md)) y un resumen. Las corridas sobre discos reales son operaciones que el usuario pide, con plan revisado.
+
+| Fase | Entrega | Criterio de cierre | Estado |
+| --- | --- | --- | --- |
+| M1 · Liberar grabaciones | Liberación de una carpeta de un disco de colección (SSD1) contra archivos registrados (MEDIA500/501/502) por hash, con lista de conservación (`.asd`, referencias `.als`, rutas elegidas) congelada en el digest; CLI/RPC | Pruebas: renombrado en el archivo, sin copia → no se libera, conservados intactos, cambio tras revisar → rechazo, Papelera + journal. Corrida real: el usuario conecta MEDIA500/501 y revisa el plan | **Código hecho 9 nov** ([detalle](#m1--liberar-una-colección-implementado-2026-11-09)); falta la corrida real |
+| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | Pendiente |
+| M3 · Triage de audio | Contrato `audio-triage-v1` con Clipper (niveles 0–1 primero); filtros en la revisión | Fixture de silencio, ruido, voz y música clasificado; nunca borra | Pendiente |
+| M4 · Biblioteca | Deduplicar por hash y huella; reorganizar con curado mediante `music-library-v1` (mapa de rutas + ACK, `rekordbox.xml`) | Un lote movido sin perder cues ni playlists en curado/rekordbox | Pendiente |
+
+## M1 · Liberar una colección (implementado 2026-11-09)
+
+Código: [collection_release.py](../../media/collection_release.py), pruebas en [test_collection_release.py](../../tests/test_collection_release.py) (12, sólo fixtures). Servicio: `collection_release_plan`, `collection_release_apply`, `collection_release_plans`.
+
+**Garantías:**
+- **Planear no mueve nada.** Indexa los archivos por tamaño (sólo metadatos), hashea en la fuente sólo lo que tiene un candidato del mismo tamaño y confirma por SHA-256 contra el archivo, aunque la copia tenga otro nombre.
+- **El plan clasifica cada archivo** en *se libera*, *se conserva* (`ableton_analysis`, `ableton_set`, `explicit`, `clipper`), *sin copia* (`no_same_size`, `no_identical_copy`) o *no es media* (no se toca). Queda guardado con su digest y un resumen por primera carpeta (año).
+- **Aplicar exige el digest revisado.** Por cada archivo, justo antes de moverlo: identidad del disco fuente y del archivo, rehash de la copia en el archivo y de la fuente (hash y stamp iguales a la revisión), y luego un rename relativo a descriptor hacia `.Trashes/<uid>/nuun-<plan>/<ruta original>`. Nunca hace `unlink`.
+- **Clipper:** consulta en vivo antes del primer movimiento y cada 60 s. Cualquier bloqueo (también un proyecto desconectado) o uso de estos archivos detiene la corrida sin mover nada más.
+- **Journal** `intent`/`done` por archivo y un evento `collection_released` por movimiento. Si se interrumpe, reanudar el mismo plan termina sin mover dos veces; un `intent` se acepta si la copia en la Papelera tiene el hash revisado.
+- **Material nuevo** que aparezca en la carpeta después de revisar no bloquea ni se toca.
+- Se rechaza una fuente que se cruza con un volumen registrado o que está en el mismo disco físico que el archivo.
+
+**Runbook para SSD1 (operación física, la pide el usuario):**
+
+1. Conectar SSD1, MEDIA500, MEDIA501 y **ESSD** (los proyectos de Clipper viven ahí; sin él, aplicar se bloquea por «Proyecto Clipper no disponible»).
+2. Registrar MEDIA500/501 como archivos si no lo están (Ajustes → Discos, o `nu9ve media volumes register …`; escribe la marca de nüün en esos discos).
+3. Planear (lee y hashea; con SSD1 y los MEDIA puede tardar horas, según cuántos archivos tengan candidato):
+   ```sh
+   nu9ve media collection-release-plan --source /Volumes/SSD1/recordingslong \
+     --archive MEDIA500 --archive MEDIA501 --archive MEDIA502 \
+     --als-root /Volumes/SSD1/abletonlive --als-root ~/Music
+   ```
+   `--search ARCHIVO:carpeta` limita dónde buscar en un MEDIA y lo hace más rápido; `--keep 2024` conserva una carpeta entera.
+4. Revisar el `summary` por año, `kept` y `uncovered`. Lo que no tenga copia se respalda primero (M2).
+5. Aplicar: `nu9ve media collection-release-apply <plan_id> --digest <digest>`. Al terminar, el espacio vuelve **al vaciar la Papelera de SSD1**.
+
+Sin interfaz en la app todavía: por ahora es CLI/servicio. Pendiente de M1: la corrida real y, si se usa seguido, una vista de revisión en Discos.
+
+## Para retomar
+
+Leer esta página → [inventario](music-ssd1-inventory-2026-11-09.md) → la fila de la fase en curso. El código dueño de M1 es [release.py](../../media/release.py). Los números del inventario salieron de listados de sólo nombre y tamaño; repetirlos no requiere abrir archivos (`find … -print0 | xargs -0 stat -f '%z\t%m\t%N'`). Las referencias de Ableton se leen descomprimiendo cada `.als` (gzip XML) y buscando rutas `.wav`.
+
+## Orden propuesto (resumen)
 
 1. **Liberar `recordingslong`/`recordings` contra MEDIA500/501** (sección 1). Es el mayor alivio (~250 GB) y reutiliza la liberación existente. Necesita conectar esos discos.
 2. **Carpeta viva** para producción y `~/Music` hacia MEDIA502, con el informe de referencias externas.

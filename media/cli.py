@@ -87,6 +87,16 @@ def parser():
         action = commands.add_parser(name)
         action.add_argument('plan_id'); action.add_argument('--digest', required=True)
     commands.add_parser('release-plans')
+    collection = commands.add_parser('collection-release-plan', help='Hash a living collection folder (e.g. SSD1/recordingslong) against registered archives and record a reviewable plan; moves nothing')
+    collection.add_argument('--source', required=True, help='Folder to free')
+    collection.add_argument('--archive', action='append', required=True, help='Registered archive id or name; repeat for several')
+    collection.add_argument('--search', action='append', default=[], metavar='ARCHIVE:PATH', help='Only look for copies under this folder of that archive; repeatable')
+    collection.add_argument('--als-root', action='append', default=[], help='Folder of Ableton sets whose referenced files are kept; repeatable')
+    collection.add_argument('--keep', action='append', default=[], help='Path prefix (relative to --source) to keep; repeatable')
+    collection.add_argument('--no-asd-keep', action='store_true', help='Do not keep files that have an Ableton .asd next to them')
+    apply_collection = commands.add_parser('collection-release-apply', help='Move exactly a reviewed collection plan to the volume Trash')
+    apply_collection.add_argument('plan_id'); apply_collection.add_argument('--digest', required=True)
+    commands.add_parser('collection-release-plans')
     audit = commands.add_parser('coverage', help='Read-only: which work-disk files already exist byte-identical on the archive')
     audit.add_argument('--work', required=True); audit.add_argument('--archive', required=True)
     audit.add_argument('--path', help='Only this folder of the work disk'); audit.add_argument('--no-hash', action='store_true', help='Size matches only (fast, probable)')
@@ -181,12 +191,20 @@ def main(argv=None):
                 if method == 'missions-incorporate':
                     params['digest_value'] = params.pop('digest')
                     params['remove_from_inbox'] = not params.pop('keep_inbox')
+            elif method == 'collection-release-plan':
+                search = []
+                for item in params.pop('search'):
+                    archive, sep, folder = item.partition(':')
+                    require(sep and archive and folder, 'invalid_request', 'Use --search ARCHIVE:PATH')
+                    search.append({'archive': archive, 'path': folder})
+                params = {'source': params['source'], 'archives': params.pop('archive'), 'search': search,
+                          'keep': {'asd': not params['no_asd_keep'], 'als_roots': params['als_root'], 'paths': params['keep']}}
             elif method == 'apply':
                 value = read_json(params['plan'])
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
             method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup', 'confirm-device': 'confirm_device', 'missions-review': 'missions_review', 'missions-incorporate': 'missions_incorporate', 'missions-status': 'missions_status', 'dng-plan': 'dng_plan', 'dng-apply': 'dng_apply',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
-                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans',
+                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans', 'collection-release-plan': 'collection_release_plan', 'collection-release-apply': 'collection_release_apply', 'collection-release-plans': 'collection_release_plans',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
                       'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
         data = service.call(method, params)
