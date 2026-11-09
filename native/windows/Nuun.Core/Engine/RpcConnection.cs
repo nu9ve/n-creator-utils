@@ -167,6 +167,63 @@ public static class EngineProcess
     }
 }
 
+/// <summary>
+/// Writes to the Rust engine: one process per request (`nuun-engine [--state-dir …] rpc`), as the Mac app does with
+/// Python, so a write never shares a process with the persistent reader.
+/// </summary>
+public static class EngineWrites
+{
+    public static async Task<JsonNode?> CallOnceAsync(string binary, string? stateDirectory, string method, JsonObject parameters,
+        CancellationToken cancellation = default)
+    {
+        var start = new ProcessStartInfo(binary)
+        {
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = new UTF8Encoding(false),
+        };
+        if (stateDirectory is not null) { start.ArgumentList.Add("--state-dir"); start.ArgumentList.Add(stateDirectory); }
+        start.ArgumentList.Add("rpc");
+        using var process = Process.Start(start) ?? throw new EngineFailure("runtime_missing", "No se pudo iniciar el motor de Rust");
+        var request = new JsonObject { ["id"] = 1, ["method"] = method, ["params"] = parameters };
+        var bytes = new UTF8Encoding(false).GetBytes(request.ToJsonString());
+        await process.StandardInput.BaseStream.WriteAsync(bytes, cancellation).ConfigureAwait(false);
+        process.StandardInput.Close();
+        var output = await process.StandardOutput.ReadToEndAsync(cancellation).ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellation).ConfigureAwait(false);
+        JsonNode? envelope;
+        try { envelope = JsonNode.Parse(output); }
+        catch (JsonException) { throw new EngineFailure("invalid_response", "El motor no respondió JSON"); }
+        return RpcConnection.Unwrap(envelope);
+    }
+
+    /// <summary>`register_volume`: configuration only (the catalog), never media. External unless <paramref name="allowLocal"/>.</summary>
+    public static Task<JsonNode?> RegisterVolumeAsync(string binary, string? stateDirectory, string name, string role, string root,
+        string? prefix, bool allowLocal, CancellationToken cancellation = default)
+    {
+        var parameters = new JsonObject { ["name"] = name, ["role"] = role, ["root"] = root, ["allow_local"] = allowLocal };
+        if (!string.IsNullOrWhiteSpace(prefix)) parameters["prefix"] = prefix.Trim();
+        return CallOnceAsync(binary, stateDirectory, "register_volume", parameters, cancellation);
+    }
+
+    /// <summary>The engine's codes in words, for the registration dialog.</summary>
+    public static string Explain(EngineFailure failure) => failure.Code switch
+    {
+        "external_required" => "Ese disco no es externo. Si de verdad quieres usar una carpeta interna como destino, marca «Es una carpeta interna».",
+        "volume_exists" => "Ya hay un destino con ese nombre o en esa carpeta.",
+        "invalid_role" => "El papel debe ser Archivo o Trabajo.",
+        "invalid_tag" => "El nombre necesita al menos una letra o un número.",
+        "unsafe_path" => "La carpeta dentro del disco debe ser relativa, con «/» y sin «..».",
+        "job_busy" => "Otra operación de media está en curso. Intenta de nuevo al terminar.",
+        "volume_offline" => "Esa carpeta no está disponible. ¿El disco está conectado?",
+        "volume_identity_unavailable" => "Windows no dijo en qué disco físico está ese volumen; nüün no registra un destino sin saberlo.",
+        "not_ported" => "Esta versión del motor todavía no hace esto en este sistema.",
+        _ => failure.Message,
+    };
+}
+
 /// <summary>Ends an engine process when its client is disposed.</summary>
 public sealed class ProcessOwner(Process process) : IAsyncDisposable
 {

@@ -21,7 +21,7 @@ serde_json = "1"
 sha2 = "0.10"
 # Las condiciones `dcim_regex` de la receta son datos que la persona podrá editar: hace falta un motor real.
 regex = { version = "1.13", default-features = false, features = ["std", "unicode-perl"] }
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_Security"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_Security", "Win32_Security_Cryptography"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tempfile = "3"
 
