@@ -11,6 +11,8 @@ publish.workspace = true
 nu9ve-json = { path = "../nu9ve-json" }
 nu9ve-volumes = { path = "../nu9ve-volumes" }
 nuun-recipe = { path = "../nuun-recipe" }
+nu9ve-time = { path = "../nu9ve-time" }
+sha2.workspace = true
 serde_json.workspace = true
 # The catalog is SQLite (media/catalog.py). `bundled`: the same version on every OS, as nove does.
 rusqlite.workspace = true

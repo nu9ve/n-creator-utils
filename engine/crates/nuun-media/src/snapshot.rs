@@ -472,11 +472,7 @@ mod tests {
         let home = temp.path().join("state");
         let db = fixture::create(&home);
         db.execute_batch(
-            "CREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);
-             CREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL, target TEXT, updated_at TEXT NOT NULL);
-             CREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);
-             CREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));
-             INSERT INTO projects VALUES('p1','e64','proyecto-demo');
+            "INSERT INTO projects VALUES('p1','e64','proyecto-demo');
              INSERT INTO assets VALUES('a1','j1','{\"id\":\"a1\",\"job_id\":\"j1\",\"kind\":\"camera_clip\",\"paths\":[\"PRIVATE/M4ROOT/CLIP/C0001.MP4\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"e64\"}');
              INSERT INTO assets VALUES('a2','j1','{\"id\":\"a2\",\"job_id\":\"j1\",\"kind\":\"camera_support\",\"paths\":[\"PRIVATE/M4ROOT/THMBNL/C0001T01.JPG\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"e64\"}');
              INSERT INTO work VALUES('a1','ready',NULL,'2026-11-08');

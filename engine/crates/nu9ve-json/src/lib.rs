@@ -342,3 +342,120 @@ mod id_tests {
         );
     }
 }
+
+/// SHA-1 (FIPS 180-4), only for name-based UUIDs: Python's `uuid.uuid5` hashes with it. Never for integrity.
+fn sha1(data: &[u8]) -> [u8; 20] {
+    let mut h: [u32; 5] = [
+        0x6745_2301,
+        0xEFCD_AB89,
+        0x98BA_DCFE,
+        0x1032_5476,
+        0xC3D2_E1F0,
+    ];
+    let mut message = data.to_vec();
+    message.push(0x80);
+    while message.len() % 64 != 56 {
+        message.push(0);
+    }
+    message.extend(((data.len() as u64) * 8).to_be_bytes());
+    for block in message.chunks(64) {
+        let mut w = [0u32; 80];
+        for i in 0..16 {
+            w[i] = u32::from_be_bytes([
+                block[4 * i],
+                block[4 * i + 1],
+                block[4 * i + 2],
+                block[4 * i + 3],
+            ]);
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+        let [mut a, mut b, mut c, mut d, mut e] = h;
+        for (i, word) in w.iter().enumerate() {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | (!b & d), 0x5A82_7999),
+                20..=39 => (b ^ c ^ d, 0x6ED9_EBA1),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1B_BCDC),
+                _ => (b ^ c ^ d, 0xCA62_C1D6),
+            };
+            let t = a
+                .rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(*word);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = t;
+        }
+        for (slot, v) in h.iter_mut().zip([a, b, c, d, e]) {
+            *slot = slot.wrapping_add(v);
+        }
+    }
+    let mut out = [0u8; 20];
+    for (i, word) in h.iter().enumerate() {
+        out[4 * i..4 * i + 4].copy_from_slice(&word.to_be_bytes());
+    }
+    out
+}
+
+/// `uuid.NAMESPACE_URL`.
+pub const NAMESPACE_URL: [u8; 16] = [
+    0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
+];
+
+/// Python `str(uuid.uuid5(namespace, name))`.
+pub fn uuid5(namespace: &[u8; 16], name: &str) -> String {
+    let mut data = namespace.to_vec();
+    data.extend(name.as_bytes());
+    let hash = sha1(&data);
+    let mut b = [0u8; 16];
+    b.copy_from_slice(&hash[..16]);
+    b[6] = (b[6] & 0x0F) | 0x50;
+    b[8] = (b[8] & 0x3F) | 0x80;
+    let h = hex(&b);
+    format!(
+        "{}-{}-{}-{}-{}",
+        &h[..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..]
+    )
+}
+
+#[cfg(test)]
+mod uuid5_tests {
+    use super::*;
+
+    #[test]
+    fn sha1_and_uuid5_match_known_vectors() {
+        assert_eq!(
+            hex(&sha1(b"abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
+        );
+        assert_eq!(hex(&sha1(b"")), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+        let long = vec![b'a'; 1000];
+        assert_eq!(
+            hex(&sha1(&long)),
+            "291e9a6c66994949b57ba5e650361e98fc36b1ba"
+        );
+        // Python: str(uuid.uuid5(uuid.NAMESPACE_URL, 'http://python.org/'))
+        assert_eq!(
+            uuid5(&NAMESPACE_URL, "http://python.org/"),
+            "4c565f0d-3f5a-5890-b41b-20cf47701c5e"
+        );
+        // Python docs: uuid.uuid5(uuid.NAMESPACE_DNS, 'python.org')
+        let dns = [
+            0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4,
+            0x30, 0xc8,
+        ];
+        assert_eq!(
+            uuid5(&dns, "python.org"),
+            "886313e1-3b8a-5372-9b90-0c9aee199e5d"
+        );
+    }
+}

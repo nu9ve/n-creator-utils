@@ -26,7 +26,8 @@ fn discover_matches_python_on_the_same_card_trees() {
         }
         let source = root.path().display().to_string();
         let mut found =
-            nuun_media::scan::discover(None, &serde_json::json!({ "source": source })).unwrap();
+            nuun_media::scan::discover(None, None, &serde_json::json!({ "source": source }))
+                .unwrap();
         // Rust names what it cannot look up yet (`mission`, only with an archive); these cases have none.
         found.as_object_mut().unwrap().remove("not_ported");
         assert_eq!(found, case["discover"], "{}", case["tree"]);
