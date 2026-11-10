@@ -59,6 +59,9 @@ class Catalog:
           CREATE TABLE IF NOT EXISTS asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));
           CREATE TABLE IF NOT EXISTS work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,
             target TEXT, updated_at TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,
+            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,
+            PRIMARY KEY(collection_id,path));
         ''')
         version = self.db.execute("SELECT value FROM metadata WHERE key='schema'").fetchone()
         require(version is None or version[0] == '1', 'unsupported_catalog', 'Unsupported catalog version')

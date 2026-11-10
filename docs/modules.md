@@ -9,6 +9,8 @@ nu9ve.py
     recipes → reglas como datos: familias de tarjeta, dispositivos por EXIF, tags de modelo, flujos de misión
               (planner/volumes/layout/missions/dng las leen; el plan congela id + digest; RPC `recipe` de lectura)
     missions, dng → registro de misiones de dron y DNG a pedido (Atlas)
+    collection_release → M1: liberar una carpeta viva contra copias idénticas en archivos registrados (Papelera)
+    living → M2: respaldo incremental de una carpeta viva, con versiones en `_nuun/versions` y tabla `living_files`
     storage_index → mapa de discos: índice derivado, sólo lectura de los discos
     rpc → una petición JSON; mcp → herramientas de lectura por stdio
   inspect → manager.inventory
