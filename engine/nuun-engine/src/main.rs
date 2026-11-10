@@ -48,9 +48,15 @@ const MAX_LINE: usize = 1024 * 1024;
 /// Methods this engine answers. Everything else in READ_METHODS is `not_ported`. Volume methods need a backend
 /// for the platform: Windows is in Rust; macOS is still Python (diskutil), so there they stay `not_ported`.
 #[cfg(windows)]
-const PORTED: [&str; 4] = ["recipe", "volumes", "source_cards", "engine_info"];
+const PORTED: [&str; 5] = [
+    "recipe",
+    "volumes",
+    "source_cards",
+    "snapshot",
+    "engine_info",
+];
 #[cfg(not(windows))]
-const PORTED: [&str; 2] = ["recipe", "engine_info"];
+const PORTED: [&str; 3] = ["recipe", "snapshot", "engine_info"];
 
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// `register_volume` changes configuration (the catalog), never media, under the writer lock.
@@ -58,6 +64,9 @@ const PORTED: [&str; 2] = ["recipe", "engine_info"];
 const PORTED_WRITES: [&str; 1] = ["register_volume"];
 #[cfg(not(windows))]
 const PORTED_WRITES: [&str; 0] = [];
+
+/// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
+const ONCE_READS: [&str; 1] = ["discover"];
 
 /// How a request arrived: a line of `rpc-serve` (reads only, 1 MiB) or the one-shot `rpc` (16 MiB, writes allowed).
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -102,12 +111,23 @@ impl Engine {
             "volumes" => {
                 nuun_media::volumes::volumes(&self.catalog()?, &nuun_media::volumes::WindowsBackend)
             }
+            // Pieces this platform cannot read yet are named in `errors`, as Python reports a failing piece.
+            "snapshot" => {
+                #[cfg(windows)]
+                let backend: Option<&dyn nuun_media::volumes::Backend> =
+                    Some(&nuun_media::volumes::WindowsBackend);
+                #[cfg(not(windows))]
+                let backend: Option<&dyn nuun_media::volumes::Backend> = None;
+                nuun_media::snapshot::snapshot(&self.catalog()?, backend, params)
+            }
             #[cfg(windows)]
             "source_cards" => nuun_media::volumes::source_cards(
                 &self.catalog()?,
                 &nuun_media::volumes::WindowsBackend,
                 None,
             ),
+            // Cards only: units, bytes, evidence, category, camera, device and camera time (`mission` in `not_ported`).
+            "discover" => nuun_media::scan::discover(Some(&self.catalog()?), params),
             #[cfg(windows)]
             "register_volume" => nuun_media::volumes::register_volume(
                 &self.home(),
@@ -120,6 +140,7 @@ impl Engine {
                 "version": env!("CARGO_PKG_VERSION"),
                 "ported": PORTED,
                 "writes": PORTED_WRITES,
+                "once": ONCE_READS,
                 "state_dir": self.state_dir.as_ref().map(|p| p.display().to_string()),
             })),
             _ if READ_METHODS.contains(&method) || READ_WHEN_EMPTY.contains(&method) => {
@@ -168,7 +189,8 @@ impl Engine {
                     "read_only",
                     format!("rpc-serve only answers reads: {method}"),
                 )?;
-            } else if !readable && !PORTED_WRITES.contains(&method) {
+            } else if !readable && !PORTED_WRITES.contains(&method) && !ONCE_READS.contains(&method)
+            {
                 return Err(Error::new(
                     "not_ported",
                     format!("Write not ported to the Rust engine yet: {method}"),
@@ -294,7 +316,7 @@ mod tests {
     fn unported_reads_mutations_and_garbage_have_stable_codes() {
         let e = engine();
         assert_eq!(
-            e.answer(r#"{"id": 1, "method": "snapshot"}"#, Mode::Serve)["error"]["code"],
+            e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],
             "not_ported"
         );
         assert_eq!(
@@ -324,6 +346,24 @@ mod tests {
             e.answer(&long, Mode::Serve)["error"]["code"],
             "request_too_large"
         );
+    }
+
+    #[test]
+    fn discover_answers_only_through_the_one_shot_rpc() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(temp.path().join("DCIM/100GOPRO")).unwrap();
+        std::fs::write(temp.path().join("DCIM/100GOPRO/GX010001.MP4"), b"video").unwrap();
+        let request = json!({"id": 3, "method": "discover", "params": {"source": temp.path().display().to_string()}}).to_string();
+        let e = engine();
+        assert_eq!(
+            e.answer(&request, Mode::Serve)["error"]["code"],
+            "read_only"
+        );
+        let reply = e.answer(&request, Mode::Once);
+        assert_eq!(reply["ok"], true, "{reply}");
+        assert_eq!(reply["data"]["units"][0]["id"], "DCIM/100GOPRO/GX010001");
+        assert_eq!(reply["data"]["units"][0]["category"], "video");
+        assert_eq!(reply["data"]["bytes"], 5);
     }
 
     #[test]

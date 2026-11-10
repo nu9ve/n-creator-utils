@@ -43,6 +43,7 @@ public static class Presentation
         "backed_up" => "Respaldado",
         "finished" => "Terminado",
         "paused" => "En pausa",
+        "" => "—",
         _ => "Borrador",
     };
 

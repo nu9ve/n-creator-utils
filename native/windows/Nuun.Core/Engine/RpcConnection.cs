@@ -208,6 +208,10 @@ public static class EngineWrites
         return CallOnceAsync(binary, stateDirectory, "register_volume", parameters, cancellation);
     }
 
+    /// <summary>`discover` (read only, one-shot like Python): what a card holds, grouped in units.</summary>
+    public static async Task<Discovery> DiscoverAsync(string binary, string? stateDirectory, string source, CancellationToken cancellation = default) =>
+        Discovery.Parse(await CallOnceAsync(binary, stateDirectory, "discover", new JsonObject { ["source"] = source }, cancellation).ConfigureAwait(false));
+
     /// <summary>The engine's codes in words, for the registration dialog.</summary>
     public static string Explain(EngineFailure failure) => failure.Code switch
     {

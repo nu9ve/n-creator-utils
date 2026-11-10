@@ -3,5 +3,9 @@
 //! (the catalog), never media, and takes the same writer lock as Python.
 
 pub mod catalog;
+pub mod devices;
+pub mod photo_meta;
 pub mod rules;
+pub mod scan;
+pub mod snapshot;
 pub mod volumes;

@@ -5,7 +5,6 @@
 //! Divergences, all on purpose:
 //! - Windows identity is new (`mode: "windows"`, see nu9ve-volumes); Python has no Windows backend.
 //! - A card's `name` is the folder name as in Python, or, for a drive root (which has none), its label or letter.
-//! - `hint.device` (the first still's EXIF, `card_device`) is not there yet: `photo_meta` is not ported.
 
 use crate::catalog::Catalog;
 use nu9ve_json::{Error, Result, require};
@@ -280,6 +279,21 @@ pub fn card_hint(
     hint.insert("recommendation".into(), rule["recommendation"].clone());
     hint.insert("used_bytes".into(), json!(used));
     hint.insert("capacity_bytes".into(), json!(capacity));
+    let registry = catalog.get("device-registry")?;
+    if let Some(device) = crate::devices::card_device(root, registry.as_ref(), &recipe, 64)? {
+        if device["category"].as_str().is_some_and(|c| !c.is_empty())
+            && device["requires_confirmation"] != true
+        {
+            // A known device needs no category question; a mission flow separates its stills.
+            let next = if device.get("mission_flow").is_some() {
+                "drone_missions"
+            } else {
+                "archive_and_work"
+            };
+            hint.insert("recommendation".into(), json!(next));
+        }
+        hint.insert("device".into(), device);
+    }
     if let Some(uuid) = identity
         .and_then(|i| i["volume_uuid"].as_str())
         .filter(|u| !u.is_empty())
@@ -540,6 +554,22 @@ mod tests {
         assert_eq!(hint["recommendation"], "archive_and_work");
         assert_eq!(hint["capacity_bytes"], 64_000_000_000u64);
         assert!(hint.get("last_project").is_none());
+    }
+
+    #[test]
+    fn a_known_drone_still_changes_the_recommendation() {
+        let s = setup();
+        let folder = s.card.join("DCIM/100MEDIA");
+        std::fs::create_dir_all(&folder).unwrap();
+        let jpg = crate::photo_meta::sample::jpeg("DJI", "FC3170", "2026:05:14 10:20:30", None);
+        std::fs::write(folder.join("DJI_0001.JPG"), jpg).unwrap();
+        let hint = &source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"];
+        assert_eq!(
+            hint["family"], "generic",
+            "100MEDIA without MISC: the family stays generic, the EXIF decides"
+        );
+        assert_eq!(hint["device"]["label"], "DJI Mavic Air 2");
+        assert_eq!(hint["recommendation"], "drone_missions");
     }
 
     #[test]

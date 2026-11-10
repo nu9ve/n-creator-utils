@@ -16,6 +16,8 @@ public static class Program
     /// <summary>`--skin win9x` etc., only with NUUN_QA_ROOT: QA captures of every skin without touching preferences.</summary>
     public static string? RequestedSkin { get; private set; }
     public static bool RequestedCompact { get; private set; }
+    /// <summary>`--maqueta`: fixture data even with an engine next to the app (demos, QA captures of every skin).</summary>
+    public static bool RequestedMaqueta { get; private set; }
 
     [STAThread]
     static int Main(string[] args)
@@ -30,6 +32,7 @@ public static class Program
         RequestedPage = Value(args, "--page");
         RequestedSkin = Value(args, "--skin");
         RequestedCompact = args.Contains("--compact");
+        RequestedMaqueta = args.Contains("--maqueta");
         // QA runs are separate instances so a capture never steals the user's window.
         if (!Nu9ve.WinUI.Storage.IsQa && RedirectToExisting(InstanceKey)) return 0;
         Application.Start(init =>

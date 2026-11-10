@@ -56,6 +56,42 @@ def card_cases():
     return results
 
 
+# Card trees (path: text) for `discover`: units, bytes, evidence, category and camera. No EXIF in these files, so
+# neither engine adds a device or a camera time; `not_ported` (Rust only) is left out of the comparison.
+SONY_XML = ('<NonRealTimeMeta xmlns="urn:schemas-professionalDisc:nonRealTimeMeta:ver.2.00">'
+            '<Device manufacturer="Sony" modelName="ILCE-6400"/></NonRealTimeMeta>')
+DISCOVER_CASES = [
+    {'PRIVATE/M4ROOT/CLIP/C0001.MP4': 'video', 'PRIVATE/M4ROOT/CLIP/C0001M01.XML': SONY_XML,
+     'PRIVATE/M4ROOT/THMBNL/C0001T01.JPG': 't', 'PRIVATE/M4ROOT/MEDIAPRO.XML': '<a/>', '.DS_Store': 'x'},
+    {'DCIM/100GOPRO/GX010001.MP4': 'v', 'DCIM/100GOPRO/GX010001.LRV': 'l', 'DCIM/100GOPRO/GX010001.THM': 't'},
+    {'DCIM/100MEDIA/DJI_0001.JPG': 'j', 'DCIM/100MEDIA/DJI_0001.DNG': 'd', 'MISC/x.db': 'm'},
+    {'DCIM/Camera01/VID_0001.insv': 'v', 'DCIM/Camera01/._VID_0001.insv': 'x'},
+    {'CLIP/C0002.MP4': 'v', 'CLIP/C0002M01.XML': '<broken'},
+    {'ZOOM0001/ZOOM0001_LR.WAV': 'a', 'ZOOM0001/ZOOM0001_Tr1.WAV': 'b', 'H6_SETTINGS/x.txt': 's'},
+]
+
+
+def discover_cases():
+    from media.catalog import Catalog
+    from media.service import Service
+    results = []
+    for tree in DISCOVER_CASES:
+        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as state:
+            # macOS temporary folders sit under /var, a symlink: the scan refuses it, as the tests resolve it.
+            root = str(Path(temp).resolve())
+            for rel, text in tree.items():
+                path = Path(root) / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding='utf-8')
+            catalog = Catalog(state)
+            try:
+                found = Service(catalog).call('discover', {'source': root})
+            finally:
+                catalog.close()
+            results.append({'tree': tree, 'discover': found})
+    return results
+
+
 def main():
     out = {
         'generator': 'scripts/engine_golden.py',
@@ -67,6 +103,8 @@ def main():
         'recipe_summary': summary(None),
         # Family detection on temporary trees (volumes.py card_hint without a catalog).
         'cards': card_cases(),
+        # `discover` on temporary card trees (Service with a temporary catalog).
+        'discover': discover_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     target.parent.mkdir(parents=True, exist_ok=True)

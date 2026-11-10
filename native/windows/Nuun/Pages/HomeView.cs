@@ -18,6 +18,13 @@ public static class HomeView
         var column = UI.Column(12);
         column.Children.Add(UI.Text("Inicio", TextRole.Display));
         column.Children.Add(UI.Text("Una multiherramienta para creadores: ingresa, respalda y prepara media para trabajar.", TextRole.Muted));
+        if (!state.Engine.IsFixture)
+        {
+            // Real data from this PC: say plainly what Windows can and cannot do yet.
+            var real = new NuSurface { Kind = SurfaceKind.Well, Padding = new Thickness(14, 10, 14, 10) };
+            real.Child = UI.Row(10, UI.Icon(Glyph.Info, 16, "info"), UI.Colored("Datos reales de este equipo, leídos por el motor de Rust. Respaldar y liberar desde Windows todavía no está disponible.", "ink", 13));
+            column.Children.Add(real);
+        }
 
         var attention = snapshot.Jobs.Where(j => j.NeedsAttention).ToList();
         if (attention.Count > 0)
@@ -48,11 +55,16 @@ public static class HomeView
             ToolTipService.SetToolTip(pill, $"{Presentation.Stage(project.Stage)} · {project.Units} unidades. Úsalo en el ingreso");
             recent.Children.Add(pill);
         }
-        column.Children.Add(UI.Section("Proyectos recientes", recent));
+        column.Children.Add(UI.Section("Proyectos recientes", recent.Children.Count == 0
+            ? UI.Text("Sin proyectos todavía: aparecen al ingresar media con un proyecto.", TextRole.Muted)
+            : recent));
 
         var disks = UI.Column(8);
         foreach (var volume in snapshot.Volumes) disks.Children.Add(Disk(volume));
-        column.Children.Add(UI.Section("Discos", disks));
+        column.Children.Add(UI.Section("Discos", disks.Children.Count == 0
+            ? UI.Column(8, UI.Text("Ningún destino registrado en este equipo.", TextRole.Muted),
+                UI.Button("Registrar destino en Biblioteca → Discos", () => shell.Navigate("library"), glyph: Glyph.Add))
+            : disks));
         return PageScaffold.Build(column);
     }
 
@@ -75,7 +87,8 @@ public static class HomeView
     {
         var fraction = volume.Capacity is > 0 && volume.Free is { } free ? 1 - (double)free / volume.Capacity.Value : 0;
         var role = volume.Role switch { VolumeRole.Archive => "Archivo", VolumeRole.Work => "Trabajo", _ => "Otro" };
-        var state = volume.Online ? $"{Presentation.Bytes(volume.Free)} libres de {Presentation.Bytes(volume.Capacity)}" : "Desconectado";
+        var state = !volume.Online ? "Desconectado"
+            : volume.Capacity is null ? $"{Presentation.Bytes(volume.Free)} libres" : $"{Presentation.Bytes(volume.Free)} libres de {Presentation.Bytes(volume.Capacity)}";
         var row = UI.Columns(
             (UI.Row(10, UI.Icon("", 18, volume.Online ? "success" : "muted"), UI.Column(0, UI.Text(volume.Name, TextRole.Body), UI.Text($"{role} · {volume.Prefix}", TextRole.Muted, 12))), new GridLength(220)),
             (UI.Column(4, UI.Meter(fraction, $"{volume.Name}: {state}", volume.Online ? "accent" : "line"), UI.Text(state, TextRole.Muted, 12)), new GridLength(1, GridUnitType.Star)));
@@ -86,4 +99,11 @@ public static class HomeView
     {
         "sony" => "Sony", "dji" => "DJI", "stalker" => "Stalker", "h6" => "Zoom H6", "gopro" => "GoPro", "insta360" => "Insta360", "canon" => "Canon", _ => "Tarjeta",
     };
+}
+
+/// <summary>Segoe Fluent Icons code points by name, so a glyph never depends on how an editor writes an escape.</summary>
+static class Glyph
+{
+    public static readonly string Info = char.ConvertFromUtf32(0xE946);
+    public static readonly string Add = char.ConvertFromUtf32(0xE710);
 }

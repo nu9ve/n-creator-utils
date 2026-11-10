@@ -67,7 +67,7 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
             }
         }
         // The Rust engine answers what it has ported; the maqueta answers the rest (rust-engine.md §7).
-        else if (EngineProcess.FindRustEngine() is { } rust)
+        else if (!Program.RequestedMaqueta && EngineProcess.FindRustEngine() is { } rust)
         {
             try
             {
@@ -111,7 +111,26 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
         Source = card;
         // Changing what is planned invalidates a reviewed plan (nuun-window.md).
         Plan = null;
+        Discovery = null;
         Changed(nameof(Source));
+    }
+
+    /// <summary>What the Rust engine read on the chosen real card; null for the maqueta or before reading.</summary>
+    public Discovery? Discovery { get; private set; }
+
+    /// <summary>
+    /// Reads the chosen card's contents with `discover`. Only on request (choosing a source never deep-scans, as on
+    /// Mac) and only for real data: the maqueta keeps its fixture summary.
+    /// </summary>
+    public async Task DiscoverAsync()
+    {
+        if (Source is null || RustBinary is null || Engine.IsFixture || Busy) return;
+        try
+        {
+            Discovery = await EngineWrites.DiscoverAsync(RustBinary, StateDirectory, Source.Path);
+            Changed(nameof(Source));
+        }
+        catch (EngineFailure failure) { Report(EngineWrites.Explain(failure)); }
     }
 
     public void Go(IngestStep step)
