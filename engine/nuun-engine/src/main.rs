@@ -48,22 +48,47 @@ const MAX_LINE: usize = 1024 * 1024;
 /// Methods this engine answers. Everything else in READ_METHODS is `not_ported`. Volume methods need a backend
 /// for the platform: Windows is in Rust; macOS is still Python (diskutil), so there they stay `not_ported`.
 #[cfg(windows)]
-const PORTED: [&str; 4] = ["recipe", "volumes", "source_cards", "engine_info"];
+const PORTED: [&str; 5] = [
+    "recipe",
+    "volumes",
+    "source_cards",
+    "snapshot",
+    "engine_info",
+];
 #[cfg(not(windows))]
-const PORTED: [&str; 2] = ["recipe", "engine_info"];
+const PORTED: [&str; 3] = ["recipe", "snapshot", "engine_info"];
+
+/// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
+/// `register_volume` changes configuration (the catalog), never media, under the writer lock.
+#[cfg(windows)]
+const PORTED_WRITES: [&str; 1] = ["register_volume"];
+#[cfg(not(windows))]
+const PORTED_WRITES: [&str; 0] = [];
+
+/// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
+const ONCE_READS: [&str; 1] = ["discover"];
+
+/// How a request arrived: a line of `rpc-serve` (reads only, 1 MiB) or the one-shot `rpc` (16 MiB, writes allowed).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Serve,
+    Once,
+}
 
 struct Engine {
     state_dir: Option<PathBuf>,
 }
 
 impl Engine {
+    fn home(&self) -> PathBuf {
+        self.state_dir
+            .clone()
+            .unwrap_or_else(nuun_media::catalog::default_home)
+    }
+
     /// The catalog of `--state-dir`, or of the default home; read only, empty when it does not exist.
     fn catalog(&self) -> Result<nuun_media::catalog::Catalog> {
-        let home = self
-            .state_dir
-            .clone()
-            .unwrap_or_else(nuun_media::catalog::default_home);
-        nuun_media::catalog::Catalog::open(&home)
+        nuun_media::catalog::Catalog::open(&self.home())
     }
 
     fn call(&self, method: &str, params: &Value) -> Result<Value> {
@@ -86,17 +111,36 @@ impl Engine {
             "volumes" => {
                 nuun_media::volumes::volumes(&self.catalog()?, &nuun_media::volumes::WindowsBackend)
             }
+            // Pieces this platform cannot read yet are named in `errors`, as Python reports a failing piece.
+            "snapshot" => {
+                #[cfg(windows)]
+                let backend: Option<&dyn nuun_media::volumes::Backend> =
+                    Some(&nuun_media::volumes::WindowsBackend);
+                #[cfg(not(windows))]
+                let backend: Option<&dyn nuun_media::volumes::Backend> = None;
+                nuun_media::snapshot::snapshot(&self.catalog()?, backend, params)
+            }
             #[cfg(windows)]
             "source_cards" => nuun_media::volumes::source_cards(
                 &self.catalog()?,
                 &nuun_media::volumes::WindowsBackend,
                 None,
             ),
+            // Cards only: units, bytes, evidence, category, camera, device and camera time (`mission` in `not_ported`).
+            "discover" => nuun_media::scan::discover(Some(&self.catalog()?), params),
+            #[cfg(windows)]
+            "register_volume" => nuun_media::volumes::register_volume(
+                &self.home(),
+                &nuun_media::volumes::WindowsBackend,
+                params,
+            ),
             // Not in Python: lets a client know which engine answered and what it can do.
             "engine_info" => Ok(json!({
                 "engine": "rust",
                 "version": env!("CARGO_PKG_VERSION"),
                 "ported": PORTED,
+                "writes": PORTED_WRITES,
+                "once": ONCE_READS,
                 "state_dir": self.state_dir.as_ref().map(|p| p.display().to_string()),
             })),
             _ if READ_METHODS.contains(&method) || READ_WHEN_EMPTY.contains(&method) => {
@@ -114,11 +158,11 @@ impl Engine {
     }
 
     /// One line in, one envelope out. Never panics on input.
-    fn answer(&self, line: &str) -> Value {
+    fn answer(&self, line: &str, mode: Mode) -> Value {
         let mut id = Value::Null;
         let result = (|| -> Result<Value> {
             require(
-                line.len() <= MAX_LINE,
+                mode == Mode::Once || line.len() <= MAX_LINE,
                 "request_too_large",
                 "Request line exceeds 1 MiB",
             )?;
@@ -139,11 +183,19 @@ impl Engine {
             let readable = READ_METHODS.contains(&method)
                 || method == "engine_info"
                 || (READ_WHEN_EMPTY.contains(&method) && empty);
-            require(
-                readable,
-                "read_only",
-                format!("rpc-serve only answers reads: {method}"),
-            )?;
+            if mode == Mode::Serve {
+                require(
+                    readable,
+                    "read_only",
+                    format!("rpc-serve only answers reads: {method}"),
+                )?;
+            } else if !readable && !PORTED_WRITES.contains(&method) && !ONCE_READS.contains(&method)
+            {
+                return Err(Error::new(
+                    "not_ported",
+                    format!("Write not ported to the Rust engine yet: {method}"),
+                ));
+            }
             self.call(method, &params)
         })();
         match result {
@@ -160,7 +212,7 @@ impl Engine {
             if line.trim().is_empty() {
                 continue;
             }
-            let envelope = self.answer(&line);
+            let envelope = self.answer(&line, Mode::Serve);
             if writeln!(stdout, "{envelope}")
                 .and_then(|_| stdout.flush())
                 .is_err()
@@ -200,7 +252,7 @@ fn main() {
                 .take(16 * 1024 * 1024 + 1)
                 .read_to_string(&mut raw);
             let envelope = match read {
-                Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.answer(raw.trim()),
+                Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.answer(raw.trim(), Mode::Once),
                 _ => error_envelope(
                     &Value::Null,
                     &Error::new("request_too_large", "Request exceeds 16 MiB"),
@@ -234,16 +286,16 @@ mod tests {
     #[test]
     fn empty_catalog_reads_answer_without_creating_anything() {
         let e = engine();
-        let reply = e.answer(r#"{"id": 5, "method": "recipe"}"#);
+        let reply = e.answer(r#"{"id": 5, "method": "recipe"}"#, Mode::Serve);
         assert_eq!(reply["data"]["confirmed_devices"], 0);
         #[cfg(windows)]
         assert_eq!(
-            e.answer(r#"{"id": 6, "method": "volumes"}"#)["data"],
+            e.answer(r#"{"id": 6, "method": "volumes"}"#, Mode::Serve)["data"],
             json!([])
         );
         #[cfg(not(windows))]
         assert_eq!(
-            e.answer(r#"{"id": 6, "method": "volumes"}"#)["error"]["code"],
+            e.answer(r#"{"id": 6, "method": "volumes"}"#, Mode::Serve)["error"]["code"],
             "not_ported"
         );
         assert!(!e.state_dir.as_ref().unwrap().exists());
@@ -251,7 +303,10 @@ mod tests {
 
     #[test]
     fn recipe_answers_with_the_python_shape() {
-        let reply = engine().answer(r#"{"id": 7, "method": "recipe", "params": {}}"#);
+        let reply = engine().answer(
+            r#"{"id": 7, "method": "recipe", "params": {}}"#,
+            Mode::Serve,
+        );
         assert_eq!(reply["id"], 7);
         assert_eq!(reply["ok"], true);
         assert_eq!(reply["data"]["cards"][1]["family"], "sony");
@@ -261,24 +316,88 @@ mod tests {
     fn unported_reads_mutations_and_garbage_have_stable_codes() {
         let e = engine();
         assert_eq!(
-            e.answer(r#"{"id": 1, "method": "snapshot"}"#)["error"]["code"],
+            e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],
             "not_ported"
         );
         assert_eq!(
-            e.answer(r#"{"id": 2, "method": "apply", "params": {}}"#)["error"]["code"],
+            e.answer(r#"{"id": 2, "method": "apply", "params": {}}"#, Mode::Serve)["error"]["code"],
             "read_only"
         );
         assert_eq!(
-            e.answer(r#"{"id": 3, "method": "defaults", "params": {"x": 1}}"#)["error"]["code"],
+            e.answer(
+                r#"{"id": 3, "method": "defaults", "params": {"x": 1}}"#,
+                Mode::Serve
+            )["error"]["code"],
             "read_only"
         );
-        assert_eq!(e.answer("not json")["error"]["code"], "operation_failed");
-        assert_eq!(e.answer(r#"[1, 2]"#)["error"]["code"], "invalid_request");
+        assert_eq!(
+            e.answer("not json", Mode::Serve)["error"]["code"],
+            "operation_failed"
+        );
+        assert_eq!(
+            e.answer(r#"[1, 2]"#, Mode::Serve)["error"]["code"],
+            "invalid_request"
+        );
         let long = format!(
             r#"{{"id": 4, "method": "recipe", "params": {{"pad": "{}"}}}}"#,
             "x".repeat(MAX_LINE)
         );
-        assert_eq!(e.answer(&long)["error"]["code"], "request_too_large");
+        assert_eq!(
+            e.answer(&long, Mode::Serve)["error"]["code"],
+            "request_too_large"
+        );
+    }
+
+    #[test]
+    fn discover_answers_only_through_the_one_shot_rpc() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(temp.path().join("DCIM/100GOPRO")).unwrap();
+        std::fs::write(temp.path().join("DCIM/100GOPRO/GX010001.MP4"), b"video").unwrap();
+        let request = json!({"id": 3, "method": "discover", "params": {"source": temp.path().display().to_string()}}).to_string();
+        let e = engine();
+        assert_eq!(
+            e.answer(&request, Mode::Serve)["error"]["code"],
+            "read_only"
+        );
+        let reply = e.answer(&request, Mode::Once);
+        assert_eq!(reply["ok"], true, "{reply}");
+        assert_eq!(reply["data"]["units"][0]["id"], "DCIM/100GOPRO/GX010001");
+        assert_eq!(reply["data"]["units"][0]["category"], "video");
+        assert_eq!(reply["data"]["bytes"], 5);
+    }
+
+    #[test]
+    fn writes_go_only_through_the_one_shot_rpc() {
+        let temp = tempfile::tempdir().unwrap();
+        let e = Engine {
+            state_dir: Some(temp.path().join("state")),
+        };
+        let target = temp.path().join("destino");
+        std::fs::create_dir_all(&target).unwrap();
+        let request = json!({"id": 9, "method": "register_volume",
+            "params": {"name": "LOCAL", "role": "work", "root": target.display().to_string(), "allow_local": true}})
+        .to_string();
+        assert_eq!(
+            e.answer(&request, Mode::Serve)["error"]["code"],
+            "read_only"
+        );
+        assert!(
+            !temp.path().join("state").exists(),
+            "a refused write leaves nothing behind"
+        );
+        assert_eq!(
+            e.answer(r#"{"id": 10, "method": "apply", "params": {}}"#, Mode::Once)["error"]["code"],
+            "not_ported"
+        );
+        #[cfg(windows)]
+        {
+            let reply = e.answer(&request, Mode::Once);
+            assert_eq!(reply["ok"], true, "{reply}");
+            assert_eq!(reply["data"]["identity"]["mode"], "windows");
+            let listed = e.answer(r#"{"id": 11, "method": "volumes"}"#, Mode::Serve);
+            assert_eq!(listed["data"][0]["name"], "LOCAL");
+            assert_eq!(listed["data"][0]["online"], true);
+        }
     }
 
     #[test]

@@ -502,3 +502,162 @@ mod tests {
         assert_eq!(describe(&info.root).unwrap().volume_guid, info.volume_guid);
     }
 }
+
+/// What a directory entry is, without following it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryKind {
+    File,
+    Dir,
+    /// A symlink, junction or any other reparse point: never followed, never ingested.
+    Link,
+    Other,
+}
+
+/// Python's `content_stamp(os.stat(..., follow_symlinks=False))`: size, modification and change times in
+/// nanoseconds since 1970, and the inode (on Windows, the file index). On Windows `ctime_ns` is the NTFS/exFAT
+/// change time, the closest to POSIX ctime (Python's `st_ctime` on Windows is the creation time, but Python's
+/// planner does not run on Windows).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Stamp {
+    pub kind: EntryKind,
+    pub size: u64,
+    pub mtime_ns: i64,
+    pub ctime_ns: i64,
+    pub inode: u64,
+}
+
+#[cfg(windows)]
+pub fn stamp(path: &Path) -> Result<Stamp> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Storage::FileSystem::{
+        BY_HANDLE_FILE_INFORMATION, CreateFileW, FILE_BASIC_INFO, FileBasicInfo,
+        GetFileInformationByHandle, GetFileInformationByHandleEx,
+    };
+    const FILE_READ_ATTRIBUTES: u32 = 0x80;
+    const SHARE_ALL: u32 = 0x7;
+    const OPEN_EXISTING: u32 = 3;
+    const BACKUP_SEMANTICS: u32 = 0x0200_0000;
+    const OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    const EPOCH_DIFF: i64 = 116_444_736_000_000_000; // 1601 → 1970 in 100 ns
+    let wide: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    // SAFETY: valid NUL-terminated path; only attributes are read and the handle never follows a reparse point.
+    let handle = unsafe {
+        CreateFileW(
+            wide.as_ptr(),
+            FILE_READ_ATTRIBUTES,
+            SHARE_ALL,
+            std::ptr::null(),
+            OPEN_EXISTING,
+            BACKUP_SEMANTICS | OPEN_REPARSE_POINT,
+            std::ptr::null_mut(),
+        )
+    };
+    if handle == INVALID_HANDLE_VALUE {
+        return Err(Error::new(
+            "operation_failed",
+            format!("{}: {}", path.display(), std::io::Error::last_os_error()),
+        ));
+    }
+    // SAFETY: zeroed plain-data structs filled by the calls; the handle is closed once below.
+    let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+    let mut basic: FILE_BASIC_INFO = unsafe { std::mem::zeroed() };
+    let ok = unsafe { GetFileInformationByHandle(handle, &mut info) } != 0
+        && unsafe {
+            GetFileInformationByHandleEx(
+                handle,
+                FileBasicInfo,
+                &mut basic as *mut _ as *mut std::ffi::c_void,
+                std::mem::size_of::<FILE_BASIC_INFO>() as u32,
+            )
+        } != 0;
+    let error = std::io::Error::last_os_error();
+    // SAFETY: handle from CreateFileW, closed once.
+    unsafe { CloseHandle(handle) };
+    if !ok {
+        return Err(Error::new(
+            "operation_failed",
+            format!("{}: {error}", path.display()),
+        ));
+    }
+    let attributes = info.dwFileAttributes;
+    let kind = if attributes & 0x400 != 0 {
+        EntryKind::Link
+    } else if attributes & 0x10 != 0 {
+        EntryKind::Dir
+    } else {
+        EntryKind::File
+    };
+    let filetime = |high: u32, low: u32| (i64::from(high) << 32) | i64::from(low);
+    let ns = |ticks: i64| (ticks - EPOCH_DIFF) * 100;
+    Ok(Stamp {
+        kind,
+        size: (u64::from(info.nFileSizeHigh) << 32) | u64::from(info.nFileSizeLow),
+        mtime_ns: ns(filetime(
+            info.ftLastWriteTime.dwHighDateTime,
+            info.ftLastWriteTime.dwLowDateTime,
+        )),
+        ctime_ns: ns(basic.ChangeTime),
+        inode: (u64::from(info.nFileIndexHigh) << 32) | u64::from(info.nFileIndexLow),
+    })
+}
+
+#[cfg(unix)]
+pub fn stamp(path: &Path) -> Result<Stamp> {
+    use std::os::unix::fs::MetadataExt;
+    let meta = std::fs::symlink_metadata(path)
+        .map_err(|e| Error::new("operation_failed", format!("{}: {e}", path.display())))?;
+    let file_type = meta.file_type();
+    let kind = if file_type.is_symlink() {
+        EntryKind::Link
+    } else if file_type.is_dir() {
+        EntryKind::Dir
+    } else if file_type.is_file() {
+        EntryKind::File
+    } else {
+        EntryKind::Other
+    };
+    Ok(Stamp {
+        kind,
+        size: meta.size(),
+        mtime_ns: meta.mtime() * 1_000_000_000 + meta.mtime_nsec(),
+        ctime_ns: meta.ctime() * 1_000_000_000 + meta.ctime_nsec(),
+        inode: meta.ino(),
+    })
+}
+
+#[cfg(test)]
+mod stamp_tests {
+    use super::*;
+
+    #[test]
+    fn stamps_files_and_folders_without_following_anything() {
+        let folder = tempfile::tempdir().unwrap();
+        let file = folder.path().join("C0001.MP4");
+        std::fs::write(&file, b"twelve bytes").unwrap();
+        let s = stamp(&file).unwrap();
+        assert_eq!((s.kind, s.size), (EntryKind::File, 12));
+        assert!(s.inode != 0);
+        // Within a minute of now, in nanoseconds since 1970.
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as i64;
+        assert!(
+            (now - s.mtime_ns).abs() < 60_000_000_000,
+            "{} vs {now}",
+            s.mtime_ns
+        );
+        assert!(s.ctime_ns > 0);
+        assert_eq!(stamp(folder.path()).unwrap().kind, EntryKind::Dir);
+        assert_eq!(
+            stamp(&file).unwrap(),
+            s,
+            "a stamp does not change by reading it"
+        );
+    }
+}
