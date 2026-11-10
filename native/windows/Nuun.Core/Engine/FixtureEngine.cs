@@ -124,7 +124,10 @@ public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner 
 public sealed class MethodByMethodEngine(IMediaEngine primary, IMediaEngine fallback) : IMediaEngine
 {
     readonly HashSet<string> answeredByPrimary = [];
-    public bool IsFixture => fallback.IsFixture;
+    /// <summary>Still a maqueta until the primary engine answers `snapshot` with this PC's real catalog.</summary>
+    public bool IsFixture => fallback.IsFixture && !RealSnapshot;
+    /// <summary>The views show real data: plans and applies must never fall back to the simulated ones.</summary>
+    public bool RealSnapshot { get { lock (answeredByPrimary) return answeredByPrimary.Contains("snapshot"); } }
     /// <summary>Methods the primary engine answered so far (shown in Ajustes → Motor).</summary>
     public IReadOnlyCollection<string> AnsweredByPrimary => answeredByPrimary;
 
@@ -153,10 +156,13 @@ public sealed class MethodByMethodEngine(IMediaEngine primary, IMediaEngine fall
         try { return await call(primary).ConfigureAwait(false); }
         catch (EngineFailure failure) when (failure.Code is "not_ported" or "not_on_windows") { return null; }
     }
+    // A simulated plan of a real card would look like a backup that never happened: with a real snapshot, plan and
+    // apply go to the primary engine only and its `not_ported` reaches the person.
     public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default) =>
-        Try("plan", e => e.PlanAsync(source, project, cancellation));
+        RealSnapshot ? primary.PlanAsync(source, project, cancellation) : Try("plan", e => e.PlanAsync(source, project, cancellation));
     public Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
-        Try("apply", async e => { await e.ApplyAsync(plan, progress, cancellation).ConfigureAwait(false); return true; });
+        RealSnapshot ? primary.ApplyAsync(plan, progress, cancellation)
+            : Try("apply", async e => { await e.ApplyAsync(plan, progress, cancellation).ConfigureAwait(false); return true; });
 
     public async ValueTask DisposeAsync()
     {

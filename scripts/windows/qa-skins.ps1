@@ -19,7 +19,7 @@ foreach ($skin in $Skins) {
         $root = Join-Path $env:TEMP ("nuun-qa\root-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
         New-Item -ItemType Directory -Force -Path $root | Out-Null
         $env:NUUN_QA_ROOT = $root
-        $arguments = @('--skin', $skin, '--page', $page)
+        $arguments = @('--skin', $skin, '--page', $page, '--maqueta')
         if ($Compact) { $arguments += '--compact' }
         $process = Start-Process -FilePath $Exe -ArgumentList $arguments -PassThru
         try {

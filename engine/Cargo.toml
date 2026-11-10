@@ -24,6 +24,8 @@ regex = { version = "1.13", default-features = false, features = ["std", "unicod
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_Security", "Win32_Security_Cryptography"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tempfile = "3"
+# Sony sidecar XML (`camera_evidence`): the same version nove uses.
+quick-xml = "0.42"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

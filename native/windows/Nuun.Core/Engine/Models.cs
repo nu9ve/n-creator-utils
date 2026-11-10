@@ -50,12 +50,16 @@ public sealed record SourceCard(string Path, string Name, string Family, string 
 
 public sealed record ProjectSummary(string Name, string Stage, int Units)
 {
-    public static ProjectSummary Parse(JsonNode node) => new(node.Str("name"), node.Str("stage", "draft"), (int)node.Long("units"));
+    // The fixture uses name/stage/units; the engine's `projects` (library.projects) uses project/assets and carries no stage.
+    public static ProjectSummary Parse(JsonNode node) => new(node.Str("name", node.Str("project")), node.Str("stage"),
+        (int)(node?["units"] is null ? node.Long("assets") : node.Long("units")));
 }
 
 public sealed record JobSummary(string Id, string Title, string State, bool NeedsAttention)
 {
-    public static JobSummary Parse(JsonNode node) => new(node.Str("id"), node.Str("title", node.Str("project")), node.Str("state"), node.Bool("attention"));
+    // Engine rows (Catalog.jobs) have no title: the short id stands in. Attention = waiting on the person and not dismissed.
+    public static JobSummary Parse(JsonNode node) => new(node.Str("id"), node.Str("title", node.Str("project", node.Str("id") is { Length: > 8 } id ? id[..8] : node.Str("id"))),
+        node.Str("state"), node.Bool("attention") || (node.Str("state") is "camera_action_required" or "failed" && !node.Bool("dismissed")));
 }
 
 public sealed record Snapshot(IReadOnlyList<Volume> Volumes, IReadOnlyList<SourceCard> Cards, IReadOnlyList<ProjectSummary> Projects, IReadOnlyList<JobSummary> Jobs)
@@ -109,4 +113,28 @@ public interface IMediaEngine : IAsyncDisposable
     Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default);
     Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default);
     Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default);
+}
+
+/// <summary>
+/// What `discover` found on a source: units (a clip with its sidecars, a photo pair, a Stalker session, or the
+/// camera's support files), total bytes, the devices read from the stills' EXIF (label, else FUENTE tag), how many
+/// units wait for the user to confirm their device, and what the engine cannot look up yet (`not_ported`, e.g.
+/// `mission`).
+/// </summary>
+public sealed record Discovery(int Units, long Bytes, IReadOnlyDictionary<string, int> Categories, string Camera,
+    IReadOnlyList<string> Skipped, IReadOnlyList<string> NotPorted, IReadOnlyList<string> Devices, int ToConfirm)
+{
+    public static Discovery Parse(JsonNode? node)
+    {
+        var units = node.Items("units").ToList();
+        var categories = units.GroupBy(u => u.Str("category")).ToDictionary(g => g.Key, g => g.Count());
+        var camera = units.Select(u => u.Str("camera")).FirstOrDefault(c => c.Length > 0) ?? "";
+        var devices = units.Select(u => u["device"]).Where(d => d is not null)
+            .Select(d => d.Str("label") is { Length: > 0 } label ? label : d.Str("source"))
+            .Where(name => name.Length > 0).Distinct().ToList();
+        var toConfirm = units.Count(u => u["device"]?["requires_confirmation"]?.GetValue<bool>() == true);
+        return new(units.Count, node.Long("bytes"), categories, camera,
+            node.Items("skipped").Select(n => n.GetValue<string>()).ToList(),
+            node.Items("not_ported").Select(n => n.GetValue<string>()).ToList(), devices, toConfirm);
+    }
 }

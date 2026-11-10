@@ -75,6 +75,27 @@ impl Catalog {
         Self { db: None }
     }
 
+    /// The read-only connection, for read modules of this crate (snapshot). None for an empty catalog.
+    pub(crate) fn db(&self) -> Option<&Connection> {
+        self.db.as_ref()
+    }
+
+    /// Rows of a single text column as JSON values (`SELECT value FROM metadata …`).
+    pub(crate) fn json_rows(
+        &self,
+        sql_text: &str,
+        params: impl rusqlite::Params,
+    ) -> Result<Vec<Value>> {
+        let Some(db) = &self.db else {
+            return Ok(Vec::new());
+        };
+        let mut statement = db.prepare(sql_text).map_err(sql)?;
+        let rows = statement
+            .query_map(params, |row| row.get::<_, String>(0))
+            .map_err(sql)?;
+        rows.map(|text| parse(&text.map_err(sql)?)).collect()
+    }
+
     /// Registered volumes ordered by name (Python `volumes()`).
     pub fn volumes(&self) -> Result<Vec<Value>> {
         let Some(db) = &self.db else {

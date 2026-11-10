@@ -22,7 +22,7 @@ dotnet build native\windows\Nuun -c Debug
 $env:NUUN_QA_ROOT = "$env:TEMP\nuun-qa\lib"; native\windows\Nuun\bin\Debug\net10.0-windows10.0.22000.0\win-x64\Nuun.exe
 ```
 
-Con `NUUN_QA_ROOT` las preferencias de la ventana van bajo esa raíz y cada ejecución es una instancia aparte. Sin ella, Debug guarda en `%LOCALAPPDATA%\nuun\Desarrollo`. Argumentos de QA: `--page ingest|flows|library|settings|about`, `--skin glass|classicMac|win9x|terminal|gothic` (sólo con raíz de QA) y `--compact`.
+Con `NUUN_QA_ROOT` las preferencias de la ventana van bajo esa raíz y cada ejecución es una instancia aparte. Sin ella, Debug guarda en `%LOCALAPPDATA%\nuun\Desarrollo`. Argumentos: `--page ingest|flows|library|settings|about`, `--skin glass|classicMac|win9x|terminal|gothic` (sólo con raíz de QA), `--compact` y `--maqueta` (datos ficticios aunque el motor de Rust esté junto a la app; sin ella, la ventana muestra los datos reales de este PC y no simula respaldos).
 
 Motor real (sólo lectura de `snapshot` y `recipe`, si hay Python): `NUUN_PYTHON` y `NUUN_ENGINE` (ruta a `nu9ve.py`). Planear y aplicar responden `not_on_windows`. Motor de Rust: si `engine\target\debug\nuun-engine.exe` existe al compilar, se copia junto a la app y responde lo ya portado (hoy `recipe`); el resto sigue en maqueta. Ver [engine](../../engine/README.md).
 
