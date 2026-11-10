@@ -14,6 +14,8 @@
 //!
 //! Read only: nothing here mounts, ejects or writes. Opening `\\.\E:` with no access rights needs no administrator.
 
+pub mod fs;
+
 use nu9ve_json::{Error, Result};
 use std::path::{Path, PathBuf};
 
@@ -526,9 +528,33 @@ pub struct Stamp {
     pub inode: u64,
 }
 
+/// A NUL-terminated wide path for raw Win32 calls, in the verbatim form (`\\?\C:\…`, `\\?\UNC\…`) so paths
+/// longer than 260 characters work as they do through `std::fs`. Relative paths are left as they are.
+#[cfg(windows)]
+pub fn wide_path(path: &Path) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+    let text = path.to_string_lossy().replace('/', r"\");
+    let verbatim = if text.starts_with(r"\\?\") || text.starts_with(r"\\.\") {
+        text
+    } else if let Some(share) = text.strip_prefix(r"\\") {
+        format!(r"\\?\UNC\{share}")
+    } else if text.len() >= 3 && text.as_bytes()[1] == b':' && text.as_bytes()[2] == b'\\' {
+        format!(r"\\?\{text}")
+    } else {
+        return path
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+    };
+    std::ffi::OsStr::new(&verbatim)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
+}
+
 #[cfg(windows)]
 pub fn stamp(path: &Path) -> Result<Stamp> {
-    use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
     use windows_sys::Win32::Storage::FileSystem::{
         BY_HANDLE_FILE_INFORMATION, CreateFileW, FILE_BASIC_INFO, FileBasicInfo,
@@ -540,11 +566,7 @@ pub fn stamp(path: &Path) -> Result<Stamp> {
     const BACKUP_SEMANTICS: u32 = 0x0200_0000;
     const OPEN_REPARSE_POINT: u32 = 0x0020_0000;
     const EPOCH_DIFF: i64 = 116_444_736_000_000_000; // 1601 → 1970 in 100 ns
-    let wide: Vec<u16> = path
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect();
+    let wide = wide_path(path);
     // SAFETY: valid NUL-terminated path; only attributes are read and the handle never follows a reparse point.
     let handle = unsafe {
         CreateFileW(

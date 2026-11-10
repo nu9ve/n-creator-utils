@@ -6,7 +6,10 @@ Pure: it reads no disk, card or catalog of the user; it only imports media/ and 
 tests/fixtures/engine-golden/recipe.json. Run from the checkout:
 
     python3 scripts/engine_golden.py
-    cd engine && cargo test --offline -- --ignored
+    cd engine && TZ=America/Hermosillo TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored
+
+(`TZ`: plan names use the host zone for files without a camera time; `TMPDIR` resolved because macOS puts
+temporary folders under /var, a symlink the scan refuses.)
 
 Regenerate only on purpose (a change in TEMPLATE or in canonical JSON) and review the diff.
 """
@@ -92,6 +95,106 @@ def discover_cases():
     return results
 
 
+# `plan` on temporary cards (a Python `FixtureVolumes` backend, as tests/test_media_engine.py). Names use the host zone
+# for files without a camera time, so the zone is fixed here and the Rust test requires the same `TZ`.
+PLAN_TZ = 'America/Hermosillo'
+PLAN_MTIME_NS = 1778000000123456789
+SONY_CLIP_XML = ('<NonRealTimeMeta xmlns="urn:schemas-professionalDisc:nonRealTimeMeta:ver.2.00">'
+                 '<Duration value="300"/><CreationDate value="2026-11-04T16:32:12-07:00"/>'
+                 '<VideoFormat><VideoFrame captureFps="29.97p" formatFps="29.97p"/>'
+                 '<VideoLayout pixel="3840" numOfVerticalLine="2160"/></VideoFormat>'
+                 '<Device manufacturer="Sony" modelName="ILCE-6400"/></NonRealTimeMeta>').encode()
+
+
+def pcm_wav(seconds, rate=48000, channels=2, width=3):
+    import struct
+    data = b'\x00' * (rate * channels * width * seconds)
+    fmt = struct.pack('<HHIIHH', 1, channels, rate, rate * channels * width, channels * width, width * 8)
+    body = b'WAVE' + b'fmt ' + struct.pack('<I', len(fmt)) + fmt + b'data' + struct.pack('<I', len(data)) + data
+    return b'RIFF' + struct.pack('<I', len(body)) + body
+
+
+def plan_case_specs():
+    from tests.test_devices import dng, jpeg
+    from tests.test_mission_match import LAT, LON
+    drone = {'DCIM/101MEDIA/DJI_0001.JPG': jpeg(), 'DCIM/101MEDIA/DJI_0001.DNG': dng(), 'MISC/THM/101/DJI_0001.THM': b'thm'}
+    record = {'captureID': 'C1', 'planID': 'P1', 'sessionID': 'S1', 'mediaCreatedAt': '2026-11-04 16:32:13',
+              'capturedAt': '2026-11-04T23:32:13Z', 'imageJPEGReference': 'DJI_0001.JPG', 'latitude': LAT, 'longitude': LON}
+    history = {'plans': [{'id': 'P1', 'name': 'Calles-45m-1104-1625'}], 'captureLog': [record],
+               'nuun': {'sources': {'s': {'kind': 'all', 'exportedAt': '2026-11-05T05:00:00Z'}}}}
+    base = {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro'}
+    return [
+        ('drone_pending_export', drone, {}, base),
+        ('drone_matched_mission', drone,
+         {'004_datos/subaereo/coverage/history.json': json.dumps(history).encode()}, base),
+        ('sony_clip', {'PRIVATE/M4ROOT/CLIP/C0001.MP4': b'video', 'PRIVATE/M4ROOT/CLIP/C0001M01.XML': SONY_CLIP_XML,
+                       'PRIVATE/M4ROOT/THMBNL/C0001T01.JPG': b'thumb', 'PRIVATE/M4ROOT/MEDIAPRO.XML': b'<a/>'}, {}, base),
+        ('gopro_by_mtime', {'DCIM/100GOPRO/GX010001.MP4': b'v', 'DCIM/100GOPRO/GX010001.LRV': b'l',
+                            'DCIM/100GOPRO/GX010001.THM': b't'}, {}, base),
+        ('h6_wav', {'ZOOM0001/ZOOM0001_LR.WAV': pcm_wav(2), 'ZOOM0001/ZOOM0001_Tr1.WAV': pcm_wav(1)}, {}, base),
+        ('archive_only_with_assignments', {'DCIM/100CANON/IMG_0001.JPG': b'x', 'DCIM/100CANON/IMG_0002.JPG': b'y'}, {},
+         {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro', 'archive_only': True, 'confirm_archive_only': True,
+          'assignments': {'DCIM/100CANON/IMG_0002.JPG': {'discard': True},
+                          'DCIM/100CANON/IMG_0001.JPG': {'country': 'pe', 'work': False}}}),
+        ('dji_unknown_model_asks', {'DCIM/101MEDIA/DJI_0009.JPG': jpeg(model='FC9999', flight=False)}, {}, base),
+    ]
+
+
+def plan_cases():
+    import os
+    import time
+    os.environ['TZ'] = PLAN_TZ
+    time.tzset()
+    from media.catalog import Catalog
+    from media.common import MediaError
+    from media.planner import build_plan, scan
+    from tests.test_media_engine import FixtureVolumes
+    results = []
+    for name, card_tree, archive_tree, params in plan_case_specs():
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            card, archive, work = (root / n for n in ('card', 'archive', 'work'))
+            for folder in (card, archive, work):
+                folder.mkdir()
+            for rel, data in card_tree.items():
+                path = card / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+                os.utime(path, ns=(PLAN_MTIME_NS, PLAN_MTIME_NS))
+            for rel, data in archive_tree.items():
+                path = archive / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            backend = FixtureVolumes()
+            catalog = Catalog(root / 'state')
+            try:
+                a = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+                w = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+                info = backend.describe(card)
+                files, _, _ = scan(card)
+                applied = None
+                try:
+                    plan = build_plan(catalog, backend, source=str(card), **params)
+                    # The same plan applied: final state and verified copies (no cleanup in these cases).
+                    from media.transfer import Transfer
+                    result = Transfer(catalog, backend).apply(plan, plan['digest'])
+                    names = {a['id']: 'MEDIA', w['id']: 'ESSD'}
+                    copies = sorted([names[row[0]], json.loads(row[1])['destination'], json.loads(row[1])['sha256']]
+                                    for row in catalog.db.execute('SELECT volume_id,payload FROM copies'))
+                    applied = {'state': result['state'], 'copies': copies}
+                except MediaError as error:
+                    plan = {'error': error.code}
+            finally:
+                catalog.close()
+            results.append({
+                'name': name, 'root': str(root), 'mtime_ns': PLAN_MTIME_NS, 'params': params,
+                'card': {k: v.hex() for k, v in card_tree.items()}, 'archive': {k: v.hex() for k, v in archive_tree.items()},
+                'work': {}, 'volume_ids': {'MEDIA': a['id'], 'ESSD': w['id']},
+                'source_identity': {k: info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')},
+                'stamps': {f['path']: f['stamp'] for f in files}, 'plan': plan, 'apply': applied})
+    return results
+
+
 def main():
     out = {
         'generator': 'scripts/engine_golden.py',
@@ -105,6 +208,9 @@ def main():
         'cards': card_cases(),
         # `discover` on temporary card trees (Service with a temporary catalog).
         'discover': discover_cases(),
+        # `plan` on temporary cards (devices, missions, Sony, mtime names, WAV, archive-only, assignments, errors).
+        'plan_tz': PLAN_TZ,
+        'plans': plan_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     target.parent.mkdir(parents=True, exist_ok=True)

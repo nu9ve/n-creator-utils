@@ -21,6 +21,19 @@ pub trait Backend {
     fn describe(&self, root: &Path, external_required: bool) -> Result<Value>;
     /// `(used, capacity)` bytes, like `shutil.disk_usage`.
     fn usage(&self, root: &Path) -> Option<(u64, u64)>;
+    /// Python `fast_check(root, token)`: the volume described in `token` is still the one at `root`. By default a
+    /// full description compared on `volume_uuid`, `device` and `root_inode`.
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        let info = self.describe(root, false)?;
+        for key in ["volume_uuid", "device", "root_inode"] {
+            require(
+                info.get(key) == token.get(key),
+                "volume_replaced",
+                "Volume disconnected or root changed",
+            )?;
+        }
+        Ok(token.clone())
+    }
 }
 
 /// The comparable form of a root: drive roots as `E:\`, other paths as written.
@@ -83,7 +96,8 @@ impl Backend for WindowsBackend {
             "physical_disks": info.physical_disks,
             "filesystem": info.filesystem,
             "block_size": info.block_size,
-            "root_inode": info.root_index,
+            // The registered folder itself, as Python stats the root it was given: a replaced folder is a new volume.
+            "root_inode": nu9ve_volumes::stamp(root).map(|s| s.inode).unwrap_or(info.root_index),
             "device": info.serial_number,
             "free": info.free,
             "removable": info.removable(),
@@ -97,6 +111,20 @@ impl Backend for WindowsBackend {
         nu9ve_volumes::describe(root)
             .ok()
             .map(|i| (i.total.saturating_sub(i.total_free), i.total))
+    }
+
+    /// The root folder is still there with the same file index: a quick look between files, as Python stats the
+    /// root against its token. A full `check` runs at the start and before receipts and cleanup.
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        let same = nu9ve_volumes::fs::stamp_opt(root)?.is_some_and(|s| {
+            s.kind == nu9ve_volumes::EntryKind::Dir && Some(s.inode) == token["root_inode"].as_u64()
+        });
+        require(
+            same,
+            "volume_replaced",
+            "Volume disconnected or root changed",
+        )?;
+        Ok(token.clone())
     }
 }
 
@@ -132,6 +160,10 @@ impl Backend for Cached<'_> {
 
     fn usage(&self, root: &Path) -> Option<(u64, u64)> {
         self.inner.usage(root)
+    }
+
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        self.inner.fast_check(root, token)
     }
 }
 
@@ -400,19 +432,19 @@ pub fn explain(error: &Error) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod test_backend {
     use super::*;
     use crate::catalog::fixture;
     use std::collections::HashSet;
 
     /// Port of tests/test_media_engine.py `FixtureVolumes`: temporary folders that behave like mounted volumes.
     #[derive(Default)]
-    struct Fixture {
-        roots: Vec<PathBuf>,
-        offline: HashSet<String>,
-        physical: HashMap<String, String>,
-        replaced: HashSet<String>,
-        overrides: HashMap<String, Value>,
+    pub struct Fixture {
+        pub roots: Vec<PathBuf>,
+        pub offline: HashSet<String>,
+        pub physical: HashMap<String, String>,
+        pub replaced: HashSet<String>,
+        pub overrides: HashMap<String, Value>,
     }
 
     impl Backend for Fixture {
@@ -442,18 +474,22 @@ mod tests {
         }
     }
 
-    struct Setup {
-        _temp: tempfile::TempDir,
-        home: PathBuf,
-        card: PathBuf,
-        archive: PathBuf,
-        work: PathBuf,
-        backend: Fixture,
+    pub struct Setup {
+        pub _temp: tempfile::TempDir,
+        pub home: PathBuf,
+        pub card: PathBuf,
+        pub archive: PathBuf,
+        pub work: PathBuf,
+        pub backend: Fixture,
     }
 
     /// MediaFixture.setUp: a card, MEDIA (archive) and ESSD (work) registered with their fixture identities.
-    fn setup() -> Setup {
+    pub fn setup() -> Setup {
         let temp = tempfile::tempdir().unwrap();
+        // macOS temporary folders sit under /var, a symlink the scan refuses (Python's tests resolve it too).
+        #[cfg(unix)]
+        let root = std::fs::canonicalize(temp.path()).unwrap();
+        #[cfg(not(unix))]
         let root = temp.path().to_path_buf();
         let (card, archive, work) = (root.join("card"), root.join("archive"), root.join("work"));
         for path in [&card, &archive, &work] {
@@ -490,6 +526,13 @@ mod tests {
             backend,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test_backend::{Fixture, Setup, setup};
+    use super::*;
+    use crate::catalog::fixture;
 
     fn catalog(s: &Setup) -> Catalog {
         Catalog::open(&s.home).unwrap()

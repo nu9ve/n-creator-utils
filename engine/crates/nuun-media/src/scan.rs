@@ -9,17 +9,18 @@
 //! Divergences, on purpose and safe:
 //! - `device` and `created_at` are independent per unit, as in service.py since its fix of 2026-11-09 (before it, a
 //!   still without DateTimeOriginal lost its device and a dated still without Make inherited the previous one's).
-//! - `mission` (missions.py, against the archive's flight-app export) is not ported: with `archive` and a device
-//!   that has a mission flow, `discover` says so in `not_ported` instead of answering without it.
+//! - `mission` (missions.py) needs a volume backend to check the archive: where this platform has none, `discover`
+//!   with `archive` names it in `not_ported` instead of answering without it.
 //! - Name collisions compare a lowercase form without Unicode NFC (no normalization crate). A collision this misses
 //!   still cannot overwrite anything: copies land as `.ncpartial` and are renamed without replacing.
 //! - Stalker sources answer `not_ported` in `discover` (session metadata lives in `captures.py`).
 
+use crate::missions::MissionIndex;
 use crate::rules::relative;
 use nu9ve_json::{Error, Result, digest, require};
 use nu9ve_volumes::{EntryKind, stamp};
 use serde_json::{Map, Value, json};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// manager/inventory.py `IGNORED_DIRS` and `IGNORED_FILES`.
@@ -226,6 +227,7 @@ pub struct Scan {
 struct Walker<'a> {
     skip_active: bool,
     stalker_only: bool,
+    photos: bool,
     scan: &'a mut Scan,
 }
 
@@ -351,7 +353,10 @@ impl Walker<'_> {
                     "bundle": bundle,
                     "evidence": camera_evidence(&path),
                 });
-                if bundle.is_none() && PHOTO_SUFFIXES.contains(&suffix(&name).as_str()) {
+                if self.photos
+                    && bundle.is_none()
+                    && PHOTO_SUFFIXES.contains(&suffix(&name).as_str())
+                {
                     // Device identity of a still (Make+Model+Serial, flight XMP): bounded read, never a guess by name.
                     let photo = crate::photo_meta::read(&path);
                     if !photo.is_empty() {
@@ -365,7 +370,8 @@ impl Walker<'_> {
     }
 }
 
-pub fn scan(root: &Path, skip_active: bool, stalker_only: bool) -> Result<Scan> {
+/// `photos: false` skips the EXIF read (validation before copy and cleanup only needs membership and stamps).
+pub fn scan(root: &Path, skip_active: bool, stalker_only: bool, photos: bool) -> Result<Scan> {
     let root =
         std::path::absolute(root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
     for parent in root.ancestors() {
@@ -392,6 +398,7 @@ pub fn scan(root: &Path, skip_active: bool, stalker_only: bool) -> Result<Scan> 
     Walker {
         skip_active,
         stalker_only,
+        photos,
         scan: &mut result,
     }
     .visit(&root, "", None)?;
@@ -453,8 +460,13 @@ pub fn grouped_files(files: &[Value]) -> Vec<(String, Vec<Value>)> {
 
 /// The `discover` method for cards: units with paths, bytes, evidence, category, camera and, for stills, the
 /// device (recipe + `device-registry` of `catalog`) and the camera time. No catalog means the template and no
-/// confirmed devices.
-pub fn discover(catalog: Option<&crate::catalog::Catalog>, params: &Value) -> Result<Value> {
+/// confirmed devices. With `archive` and a volume backend, drone stills are matched against that archive's mission
+/// registry (`mission`); without a backend for this platform that piece is named in `not_ported`.
+pub fn discover(
+    catalog: Option<&crate::catalog::Catalog>,
+    backend: Option<&dyn crate::volumes::Backend>,
+    params: &Value,
+) -> Result<Value> {
     let (recipe, registry) = match catalog {
         Some(c) => (
             nuun_recipe::effective(c.get("recipe")?.as_ref()),
@@ -462,7 +474,8 @@ pub fn discover(catalog: Option<&crate::catalog::Catalog>, params: &Value) -> Re
         ),
         None => (nuun_recipe::template(), None),
     };
-    let archive = params["archive"].as_str().is_some_and(|a| !a.is_empty());
+    let archive = params["archive"].as_str().filter(|a| !a.is_empty());
+    let mut indexes: HashMap<String, Option<MissionIndex>> = HashMap::new();
     let source = params["source"]
         .as_str()
         .ok_or_else(|| Error::new("operation_failed", "'source'"))?;
@@ -472,7 +485,7 @@ pub fn discover(catalog: Option<&crate::catalog::Catalog>, params: &Value) -> Re
             "Discovering a Stalker library is still in media/service.py (session metadata)",
         ));
     }
-    let found = scan(Path::new(source), true, false)?;
+    let found = scan(Path::new(source), true, false, true)?;
     // Python adds session metadata to bundle units (captures.py); an answer without it would be incomplete.
     require(
         found.bundles.is_empty(),
@@ -514,18 +527,30 @@ pub fn discover(catalog: Option<&crate::catalog::Catalog>, params: &Value) -> Re
                 .iter()
                 .map(|k| ((*k).to_owned(), device[*k].clone()))
                 .collect();
-            // Python matches the still against the flight-app export of the archive (missions.py): not here yet.
-            let flow = recipe["missions"].as_array().is_some_and(|flows| {
-                flows.iter().any(|f| {
-                    f["devices"]
-                        .as_array()
-                        .is_some_and(|d| d.contains(&device["category"]))
-                })
-            });
-            if archive && device["requires_confirmation"] != true && flow && captured.is_some() {
-                missions = true;
-            }
             extra.insert("device".into(), Value::Object(shown));
+            match (archive, backend) {
+                (Some(archive), Some(backend)) => {
+                    let found = discover_mission(
+                        &members,
+                        &device,
+                        &recipe,
+                        archive,
+                        catalog,
+                        backend,
+                        &mut indexes,
+                    )?;
+                    if let Some(mission) = found {
+                        extra.insert("mission".into(), mission);
+                    }
+                }
+                // No volume backend here: the archive cannot be checked, so the answer names the piece.
+                (Some(_), None) => {
+                    missions |= mission_flow_for(&recipe, &device).is_some()
+                        && device["requires_confirmation"] != true
+                        && captured.is_some();
+                }
+                (None, _) => {}
+            }
         }
         if let Some(captured) = captured {
             extra.insert("created_at".into(), json!(captured)); // camera time (EXIF), for date filters
@@ -569,10 +594,86 @@ pub fn discover(catalog: Option<&crate::catalog::Catalog>, params: &Value) -> Re
         .sum();
     let mut result = json!({"units": units, "skipped": found.skipped, "bytes": bytes});
     if missions {
-        // Python would match these stills against the archive's flight-app export (`mission`). Not yet: say so.
+        // Without a volume backend the archive's mission registry cannot be checked here: say so.
         result["not_ported"] = json!(["mission"]);
     }
     Ok(result)
+}
+
+/// The recipe's mission flow for a device's category (Python: the first flow listing it in `devices`).
+fn mission_flow_for<'a>(recipe: &'a Value, device: &Value) -> Option<&'a Value> {
+    recipe["missions"].as_array()?.iter().find(|f| {
+        f["devices"]
+            .as_array()
+            .is_some_and(|d| d.contains(&device["category"]))
+    })
+}
+
+/// Python `Service._discover_mission`: mission or not while inspecting, with the planner's rule. `None` without a
+/// flow, a dated still or the archive online (the plan decides later).
+fn discover_mission(
+    members: &[Value],
+    device: &Value,
+    recipe: &Value,
+    archive: &str,
+    catalog: Option<&crate::catalog::Catalog>,
+    backend: &dyn crate::volumes::Backend,
+    indexes: &mut HashMap<String, Option<MissionIndex>>,
+) -> Result<Option<Value>> {
+    if device["requires_confirmation"] == true {
+        return Ok(None);
+    }
+    let Some(flow) = mission_flow_for(recipe, device) else {
+        return Ok(None);
+    };
+    // Images first (a stable sort, as Python's), then the first with a camera time.
+    let mut ordered: Vec<&Value> = members.iter().collect();
+    ordered.sort_by_key(|f| {
+        crate::snapshot::kind_of(f["path"].as_str().unwrap_or_default()) != Some("image")
+    });
+    let Some(still) = ordered.into_iter().find(|f| {
+        f["photo"]["captured_at"]
+            .as_str()
+            .is_some_and(|c| !c.is_empty())
+    }) else {
+        return Ok(None);
+    };
+    let id = flow["id"].as_str().unwrap_or_default().to_owned();
+    if !indexes.contains_key(&id) {
+        // Unknown or offline archive, unreadable registry: no index (Python catches MediaError/OSError/ValueError).
+        let record = catalog.and_then(|c| c.volume(archive).ok());
+        let index = match record {
+            Some(record) if crate::volumes::check(backend, &record).is_ok() => {
+                crate::missions::index_for(&record, flow).ok()
+            }
+            _ => None,
+        };
+        indexes.insert(id.clone(), index);
+    }
+    let Some(index) = indexes.get(&id).and_then(Option::as_ref) else {
+        return Ok(None);
+    };
+    let name = still["path"]
+        .as_str()
+        .unwrap_or_default()
+        .rsplit('/')
+        .next()
+        .unwrap_or_default();
+    let mut found = index.matches(&still["photo"], name)?;
+    let matched = found["state"] == "matched";
+    let map = found.as_object_mut().expect("object");
+    map.insert("flow".into(), flow["id"].clone());
+    map.insert("flow_label".into(), flow["label"].clone());
+    map.insert("flow_project".into(), flow["project"].clone());
+    map.insert(
+        "project".into(),
+        if matched {
+            flow["project"].clone()
+        } else {
+            Value::Null
+        },
+    );
+    Ok(Some(found))
 }
 
 #[cfg(test)]
@@ -611,7 +712,7 @@ mod tests {
             ("System Volume Information/IndexerVolumeGuid", b"x"),
             (".Trashes/501/a", b"x"),
         ]);
-        let found = scan(root.path(), false, false).unwrap();
+        let found = scan(root.path(), false, false, true).unwrap();
         assert_eq!(
             paths(&found),
             ["DCIM/100MSDCF/DSC0001.JPG", "DCIM/100MSDCF/DSC0002.JPG"]
@@ -628,7 +729,12 @@ mod tests {
             ("PRIVATE/M4ROOT/THMBNL/C0001T01.JPG", b"thumb"),
             ("PRIVATE/M4ROOT/MEDIAPRO.XML", b"<a/>"),
         ]);
-        let data = discover(None, &json!({"source": root.path().display().to_string()})).unwrap();
+        let data = discover(
+            None,
+            None,
+            &json!({"source": root.path().display().to_string()}),
+        )
+        .unwrap();
         let units = data["units"].as_array().unwrap();
         assert_eq!(units[0]["id"], "PRIVATE/M4ROOT/CLIP/C0001");
         assert_eq!(
@@ -673,7 +779,12 @@ mod tests {
             ev("CLIP/C0002.MP4"),
             [json!({"source": "sony_xml", "error": "invalid_xml"})]
         );
-        let data = discover(None, &json!({"source": root.path().display().to_string()})).unwrap();
+        let data = discover(
+            None,
+            None,
+            &json!({"source": root.path().display().to_string()}),
+        )
+        .unwrap();
         assert!(
             data.get("not_ported").is_none(),
             "files without EXIF give no device and nothing missing"
@@ -681,6 +792,50 @@ mod tests {
         assert!(data["units"][0].get("device").is_none());
     }
 
+    #[test]
+    fn discover_matches_a_drone_still_against_the_archive_registry() {
+        let s = crate::volumes::test_backend::setup();
+        let folder = s.card.join("DCIM/101MEDIA");
+        std::fs::create_dir_all(&folder).unwrap();
+        let sample = crate::photo_meta::sample::jpeg("DJI", "FC3170", "2026:11:04 16:32:12", None);
+        std::fs::write(folder.join("DJI_0001.JPG"), sample).unwrap();
+        let area = s.archive.join("004_datos/subaereo/coverage");
+        std::fs::create_dir_all(&area).unwrap();
+        let history = json!({"plans": [{"id": "P1", "name": "Calles"}], "captureLog": [
+            {"captureID": "C1", "planID": "P1", "sessionID": "S1", "mediaCreatedAt": "2026-11-04 16:32:13",
+             "imageJPEGReference": "DJI_0001.JPG", "latitude": 29.09, "longitude": -110.9583333}]});
+        std::fs::write(area.join("history.json"), history.to_string()).unwrap();
+        let catalog = crate::catalog::Catalog::open(&s.home).unwrap();
+        let params = json!({"source": s.card.display().to_string(), "archive": "MEDIA"});
+        let data = discover(Some(&catalog), Some(&s.backend), &params).unwrap();
+        let unit = data["units"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|u| u["id"] == "DCIM/101MEDIA/DJI_0001")
+            .unwrap();
+        assert_eq!(
+            (
+                unit["mission"]["state"].as_str(),
+                unit["mission"]["project"].as_str()
+            ),
+            (Some("matched"), Some("subaereo"))
+        );
+        assert_eq!(unit["mission"]["flow_label"], "Misiones de subaereo");
+        assert!(data.get("not_ported").is_none());
+        // Without the archive, nothing is looked up; with it offline, the plan decides later.
+        let offline = discover(
+            Some(&catalog),
+            Some(&s.backend),
+            &json!({"source": s.card.display().to_string()}),
+        )
+        .unwrap();
+        assert!(offline["units"][0].get("mission").is_none());
+        let mut gone = crate::volumes::test_backend::Fixture::default();
+        gone.offline.insert(crate::volumes::normalize(&s.archive));
+        let later = discover(Some(&catalog), Some(&gone), &params).unwrap();
+        assert!(later["units"][0].get("mission").is_none());
+    }
     #[test]
     fn stills_carry_device_and_camera_time_and_a_mission_is_named_missing() {
         let jpg = crate::photo_meta::sample::jpeg("DJI", "FC3170", "2026:05:14 10:20:30", None);
@@ -695,7 +850,7 @@ mod tests {
             ("DCIM/100MEDIA/DJI_0002.DNG", &other),
         ]);
         let source = root.path().display().to_string();
-        let data = discover(None, &json!({"source": source})).unwrap();
+        let data = discover(None, None, &json!({"source": source})).unwrap();
         let unit = &data["units"][0];
         assert_eq!(unit["id"], "DCIM/100MEDIA/DJI_0001");
         assert_eq!(
@@ -714,7 +869,8 @@ mod tests {
             data.get("not_ported").is_none(),
             "without an archive there is no mission to look up"
         );
-        let with_archive = discover(None, &json!({"source": source, "archive": "vol-1"})).unwrap();
+        let with_archive =
+            discover(None, None, &json!({"source": source, "archive": "vol-1"})).unwrap();
         assert_eq!(with_archive["not_ported"], json!(["mission"]));
     }
 
@@ -737,7 +893,7 @@ mod tests {
             ("C.stalker/.DS_Store", b"x"),
             ("export.mp4", b"not a capture"),
         ]);
-        let found = scan(root.path(), true, true).unwrap();
+        let found = scan(root.path(), true, true, true).unwrap();
         assert_eq!(
             paths(&found),
             [
@@ -755,11 +911,12 @@ mod tests {
         assert_eq!(grouped_files(&found.files)[0].0, "stalker:A.stalker");
         // Without skip_active an active capture stops the scan.
         assert_eq!(
-            scan(root.path(), false, true).err().unwrap().code,
+            scan(root.path(), false, true, true).err().unwrap().code,
             "active_capture"
         );
         assert_eq!(
             discover(
+                None,
                 None,
                 &json!({"source": root.path().display().to_string(), "source_kind": "stalker"})
             )
@@ -775,24 +932,24 @@ mod tests {
             "sessionID": "123e4567e89b12d3a456426614174000", "tracks": [{"relativePath": "gone.mov"}]}).to_string();
         let root = tree(&[("S.stalker/manifest.json", missing_track.as_bytes())]);
         assert_eq!(
-            scan(root.path(), true, false).err().unwrap().code,
+            scan(root.path(), true, false, true).err().unwrap().code,
             "operation_failed"
         );
         let bad_version =
             json!({"producer": "stalker", "schemaVersion": 9, "status": "completed"}).to_string();
         let root = tree(&[("S.stalker/manifest.json", bad_version.as_bytes())]);
         assert_eq!(
-            scan(root.path(), true, false).err().unwrap().code,
+            scan(root.path(), true, false, true).err().unwrap().code,
             "unsupported_bundle"
         );
         let root = tree(&[("Proyecto/clipper-project.json", b"{}")]);
         assert_eq!(
-            scan(root.path(), false, false).err().unwrap().code,
+            scan(root.path(), false, false, true).err().unwrap().code,
             "editor_project"
         );
         let root = tree(&[("Edit.fcpbundle/x", b"1")]);
         assert_eq!(
-            scan(root.path(), false, false).err().unwrap().code,
+            scan(root.path(), false, false, true).err().unwrap().code,
             "editor_project"
         );
     }

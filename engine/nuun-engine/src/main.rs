@@ -47,21 +47,55 @@ const MAX_LINE: usize = 1024 * 1024;
 
 /// Methods this engine answers. Everything else in READ_METHODS is `not_ported`. Volume methods need a backend
 /// for the platform: Windows is in Rust; macOS is still Python (diskutil), so there they stay `not_ported`.
-#[cfg(windows)]
-const PORTED: [&str; 5] = [
+const PORTABLE: [&str; 12] = [
     "recipe",
-    "volumes",
-    "source_cards",
     "snapshot",
     "engine_info",
+    "jobs",
+    "job",
+    "library",
+    "projects",
+    "profiles",
+    "devices",
+    "release_plans",
+    "defaults",
+    "integration_settings",
 ];
+#[cfg(windows)]
+const PORTED: [&str; 14] = concat_methods(PORTABLE, ["volumes", "source_cards"]);
 #[cfg(not(windows))]
-const PORTED: [&str; 3] = ["recipe", "snapshot", "engine_info"];
+const PORTED: [&str; 12] = PORTABLE;
+
+/// Joins two method lists at compile time (the Windows list is the portable one plus the volume methods).
+#[cfg(windows)]
+const fn concat_methods<const A: usize, const B: usize, const C: usize>(
+    a: [&'static str; A],
+    b: [&'static str; B],
+) -> [&'static str; C] {
+    assert!(A + B == C);
+    let mut out = [""; C];
+    let mut i = 0;
+    while i < A {
+        out[i] = a[i];
+        i += 1;
+    }
+    while i < C {
+        out[i] = b[i - A];
+        i += 1;
+    }
+    out
+}
 
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// `register_volume` changes configuration (the catalog), never media, under the writer lock.
 #[cfg(windows)]
-const PORTED_WRITES: [&str; 1] = ["register_volume"];
+const PORTED_WRITES: [&str; 5] = [
+    "register_volume",
+    "plan",
+    "plan_document",
+    "apply",
+    "resume",
+];
 #[cfg(not(windows))]
 const PORTED_WRITES: [&str; 0] = [];
 
@@ -127,13 +161,79 @@ impl Engine {
                 None,
             ),
             // Cards only: units, bytes, evidence, category, camera, device and camera time (`mission` in `not_ported`).
-            "discover" => nuun_media::scan::discover(Some(&self.catalog()?), params),
+            "discover" => {
+                #[cfg(windows)]
+                let backend: Option<&dyn nuun_media::volumes::Backend> =
+                    Some(&nuun_media::volumes::WindowsBackend);
+                #[cfg(not(windows))]
+                let backend: Option<&dyn nuun_media::volumes::Backend> = None;
+                nuun_media::scan::discover(Some(&self.catalog()?), backend, params)
+            }
             #[cfg(windows)]
             "register_volume" => nuun_media::volumes::register_volume(
                 &self.home(),
                 &nuun_media::volumes::WindowsBackend,
                 params,
             ),
+            // A reviewed plan for a card (Python `build_plan`); `plan_document` is its canonical text, which the app
+            // returns untouched to `apply`.
+            #[cfg(windows)]
+            "plan" | "plan_document" => {
+                let plan = nuun_media::planner::build_plan(
+                    &self.home(),
+                    &nuun_media::volumes::WindowsBackend,
+                    params,
+                )?;
+                if method == "plan" {
+                    Ok(plan)
+                } else {
+                    Ok(json!(
+                        String::from_utf8(nu9ve_json::canonical(&plan)).unwrap_or_default()
+                    ))
+                }
+            }
+            // Copy, verify and (with `cleanup`) release the card for a reviewed card plan (Python `_apply_ingest`).
+            #[cfg(windows)]
+            "apply" => {
+                let digest = params["digest"]
+                    .as_str()
+                    .ok_or_else(|| Error::new("operation_failed", "'digest'"))?;
+                let plan = params
+                    .get("plan")
+                    .ok_or_else(|| Error::new("operation_failed", "'plan'"))?;
+                nuun_media::transfer::apply(
+                    &self.home(),
+                    &nuun_media::volumes::WindowsBackend,
+                    plan,
+                    digest,
+                    &|_, _| Ok(()),
+                )
+            }
+            #[cfg(windows)]
+            "resume" => {
+                let job = params["job_id"]
+                    .as_str()
+                    .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
+                nuun_media::transfer::resume(
+                    &self.home(),
+                    &nuun_media::volumes::WindowsBackend,
+                    job,
+                )
+            }
+            "jobs" => Ok(json!(nuun_media::reads::jobs(&self.catalog()?)?)),
+            "job" => nuun_media::reads::job(&self.catalog()?, params),
+            "library" => Ok(json!(nuun_media::reads::library(&self.catalog()?, params)?)),
+            "projects" => Ok(json!(nuun_media::reads::projects(&self.catalog()?)?)),
+            "profiles" => Ok(json!(nuun_media::snapshot::profiles(&self.catalog()?)?)),
+            "devices" => nuun_media::reads::devices(&self.catalog()?),
+            "release_plans" => Ok(json!(nuun_media::reads::release_plans(&self.catalog()?)?)),
+            // Python answers these two without params only (`READ_WHEN_EMPTY`); with params they are writes.
+            "defaults" if params.as_object().is_none_or(|p| p.is_empty()) => {
+                nuun_media::snapshot::defaults(&self.catalog()?)
+            }
+            "integration_settings" if params.as_object().is_none_or(|p| p.is_empty()) => {
+                nuun_media::snapshot::integration_settings(&self.catalog()?)
+            }
             // Not in Python: lets a client know which engine answered and what it can do.
             "engine_info" => Ok(json!({
                 "engine": "rust",
@@ -316,8 +416,13 @@ mod tests {
     fn unported_reads_mutations_and_garbage_have_stable_codes() {
         let e = engine();
         assert_eq!(
-            e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],
+            e.answer(r#"{"id": 1, "method": "storage_tree"}"#, Mode::Serve)["error"]["code"],
             "not_ported"
+        );
+        assert_eq!(
+            e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],
+            "operation_failed",
+            "Python: KeyError on a missing job_id"
         );
         assert_eq!(
             e.answer(r#"{"id": 2, "method": "apply", "params": {}}"#, Mode::Serve)["error"]["code"],
@@ -386,7 +491,10 @@ mod tests {
             "a refused write leaves nothing behind"
         );
         assert_eq!(
-            e.answer(r#"{"id": 10, "method": "apply", "params": {}}"#, Mode::Once)["error"]["code"],
+            e.answer(
+                r#"{"id": 10, "method": "confirm_device", "params": {}}"#,
+                Mode::Once
+            )["error"]["code"],
             "not_ported"
         );
         #[cfg(windows)]
@@ -404,7 +512,9 @@ mod tests {
     fn every_ported_method_is_a_read() {
         for method in PORTED {
             assert!(
-                READ_METHODS.contains(&method) || method == "engine_info",
+                READ_METHODS.contains(&method)
+                    || READ_WHEN_EMPTY.contains(&method)
+                    || method == "engine_info",
                 "{method}"
             );
         }

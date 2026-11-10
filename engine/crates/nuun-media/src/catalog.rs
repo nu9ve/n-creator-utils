@@ -111,6 +111,19 @@ impl Catalog {
     }
 
     /// A metadata value (Python `get(key)`).
+    /// Python `Catalog.volume(name)`: a registered volume by name or id.
+    pub fn volume(&self, name: &str) -> Result<Value> {
+        self.volumes()?
+            .into_iter()
+            .find(|v| v["name"] == name || v["id"] == name)
+            .ok_or_else(|| {
+                Error::new(
+                    "unknown_volume",
+                    format!("Unknown registered volume: {name}"),
+                )
+            })
+    }
+
     pub fn get(&self, key: &str) -> Result<Option<Value>> {
         let Some(db) = &self.db else {
             return Ok(None);
@@ -264,6 +277,99 @@ impl WritableCatalog {
         rows.map(|payload| parse(&payload.map_err(sql)?)).collect()
     }
 
+    /// The connection, for the journal writes of `transfer` (same statements as Python).
+    pub(crate) fn db(&self) -> &Connection {
+        &self.db
+    }
+
+    /// Python `Catalog.get(key)`.
+    pub fn get(&self, key: &str) -> Result<Option<Value>> {
+        let raw: Option<String> = self
+            .db
+            .query_row("SELECT value FROM metadata WHERE key=?", [key], |row| {
+                row.get(0)
+            })
+            .optional()
+            .map_err(sql)?;
+        raw.map(|text| parse(&text)).transpose()
+    }
+
+    /// Python `Catalog.volume(name)`: a registered volume by name or id.
+    pub fn volume(&self, name: &str) -> Result<Value> {
+        self.volumes()?
+            .into_iter()
+            .find(|v| v["name"] == name || v["id"] == name)
+            .ok_or_else(|| {
+                Error::new(
+                    "unknown_volume",
+                    format!("Unknown registered volume: {name}"),
+                )
+            })
+    }
+
+    /// Python `Catalog.event(job_id, kind, data)`.
+    pub fn event(&self, job_id: &str, kind: &str, data: &Value) -> Result<()> {
+        let payload = String::from_utf8(nu9ve_json::canonical(data)).unwrap_or_default();
+        self.db
+            .execute(
+                "INSERT INTO events(job_id,kind,payload,created_at) VALUES(?,?,?,?)",
+                (job_id, kind, payload, nu9ve_time::now_utc()),
+            )
+            .map_err(sql)?;
+        Ok(())
+    }
+
+    /// Python `Catalog.state(job_id, state, error)`: the job row and an event of the same name.
+    pub fn state(&self, job_id: &str, state: &str, error: Option<&str>) -> Result<()> {
+        self.db
+            .execute(
+                "UPDATE jobs SET state=?,error=?,updated_at=? WHERE id=?",
+                (state, error, nu9ve_time::now_utc(), job_id),
+            )
+            .map_err(sql)?;
+        let data = match error {
+            Some(e) => serde_json::json!({"error": e}),
+            None => serde_json::json!({}),
+        };
+        self.event(job_id, state, &data)
+    }
+
+    /// Python `Catalog.project_for(profile, title)`: the project of an alias, created on first use.
+    pub fn project_for(&self, profile: &str, title: &str) -> Result<String> {
+        let found: Option<String> = self
+            .db
+            .query_row(
+                "SELECT project_id FROM project_aliases WHERE profile=? AND alias=?",
+                (profile, title),
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(sql)?;
+        if let Some(id) = found {
+            return Ok(id);
+        }
+        let id = nu9ve_json::uid()?;
+        let tx = self.db.unchecked_transaction().map_err(sql)?;
+        tx.execute("INSERT INTO projects VALUES(?,?,?)", (&id, profile, title))
+            .map_err(sql)?;
+        tx.execute(
+            "INSERT INTO project_aliases VALUES(?,?,?)",
+            (profile, title, &id),
+        )
+        .map_err(sql)?;
+        tx.commit().map_err(sql)?;
+        Ok(id)
+    }
+
+    /// Python `Catalog.set(key, value)`: canonical JSON in `metadata`, replacing any earlier value.
+    pub fn set(&self, key: &str, value: &Value) -> Result<()> {
+        let text = String::from_utf8(nu9ve_json::canonical(value)).unwrap_or_default();
+        self.db
+            .execute("INSERT OR REPLACE INTO metadata VALUES(?,?)", (key, text))
+            .map_err(sql)?;
+        Ok(())
+    }
+
     /// Python `Catalog.register`: role, name and prefix validated, root and name unique, payload canonical.
     pub fn register(
         &self,
@@ -340,14 +446,10 @@ pub mod fixture {
     pub fn create(home: &Path) -> Connection {
         std::fs::create_dir_all(home).unwrap();
         let db = Connection::open(home.join("catalog.sqlite3")).unwrap();
-        db.execute_batch(
-            "CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-             CREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);
-             CREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,
-               state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-             INSERT INTO metadata VALUES('schema','1');",
-        )
-        .unwrap();
+        // Python's whole schema, as a catalog Python created.
+        db.execute_batch(SCHEMA).unwrap();
+        db.execute("INSERT INTO metadata VALUES('schema','1')", [])
+            .unwrap();
         db
     }
 
