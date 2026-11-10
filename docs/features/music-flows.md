@@ -106,7 +106,7 @@ Cada fase cierra con pruebas en fixtures, docs al día (esta página, [STATUS](.
 | Fase | Entrega | Criterio de cierre | Estado |
 | --- | --- | --- | --- |
 | M1 · Liberar grabaciones | Liberación de una carpeta de un disco de colección (SSD1) contra archivos registrados (MEDIA500/501/502) por hash, con lista de conservación (`.asd`, referencias `.als`, rutas elegidas) congelada en el digest; CLI/RPC | Pruebas: renombrado en el archivo, sin copia → no se libera, conservados intactos, cambio tras revisar → rechazo, Papelera + journal. Corrida real: el usuario conecta MEDIA500/501 y revisa el plan | **Código hecho 9 nov** ([detalle](#m1--liberar-una-colección-implementado-2026-11-09)); falta la corrida real |
-| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | Pendiente |
+| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | **Código hecho 9 nov** ([detalle](#m2--carpeta-viva-implementado-2026-11-09)); falta la primera corrida real |
 | M3 · Triage de audio | Contrato `audio-triage-v1` con Clipper (niveles 0–1 primero); filtros en la revisión | Fixture de silencio, ruido, voz y música clasificado; nunca borra | Pendiente |
 | M4 · Biblioteca | Deduplicar por hash y huella; reorganizar con curado mediante `music-library-v1` (mapa de rutas + ACK, `rekordbox.xml`) | Un lote movido sin perder cues ni playlists en curado/rekordbox | Pendiente |
 
@@ -138,6 +138,41 @@ Código: [collection_release.py](../../media/collection_release.py), pruebas en 
 5. Aplicar: `nu9ve media collection-release-apply <plan_id> --digest <digest>`. Al terminar, el espacio vuelve **al vaciar la Papelera de SSD1**.
 
 Sin interfaz en la app todavía: por ahora es CLI/servicio. Pendiente de M1: la corrida real y, si se usa seguido, una vista de revisión en Discos.
+
+## M2 · Carpeta viva (implementado 2026-11-09)
+
+Código: [living.py](../../media/living.py), pruebas en [test_living.py](../../tests/test_living.py) (11, sólo fixtures). Servicio: `living_plan`, `living_apply`, `living_collections`. Tabla aditiva `living_files` en el catálogo (esquema sigue en 1).
+
+**Garantías:**
+- **Una colección** = una carpeta de origen ↔ una carpeta de un archivo registrado, con las mismas rutas relativas. Dos colecciones no pueden compartir ni anidar carpeta en el mismo archivo.
+- **Planear no copia nada.** Lo que tiene el mismo tamaño y mtime que la última copia verificada, y sigue en el archivo, cuenta como *sin cambios* y no se relee. El plan lista *nuevos*, *cambiados* y *ya no están en el origen* (se quedan en el archivo), y comprueba el espacio libre.
+- **Copiar** usa Transfer: `.ncpartial`, SHA-256 de lo escrito y luego el nombre final, sin reemplazar nada. Si en el archivo ya hay bytes idénticos, se adoptan.
+- **Nada se sobrescribe.** Si el archivo tiene bytes distintos en esa ruta, la versión anterior se mueve dentro del mismo archivo a `<carpeta>/_nuun/versions/<corrida>/<ruta>` antes de copiar. Ninguna versión respaldada se pierde.
+- **Nunca toca el origen:** no renombra, no limpia y no propaga borrados.
+- Un archivo que cambia **después de revisar** se salta y se reporta (`changed_since_review`); la siguiente corrida lo toma.
+- Si se interrumpe, se reanuda el mismo plan: lo ya copiado se adopta por hash.
+- `<carpeta>/_nuun/manifest.json` en el archivo repite el índice (ruta, tamaño, SHA-256) para reconstruirlo sin el catálogo.
+- **Informe Ableton** (`ableton` en el plan): sets leídos, referencias absolutas a muestras fuera de la carpeta, cuáles faltan en disco y cuáles **no cubre ninguna colección** (`not_covered`, con bytes). Las referencias relativas antiguas no se adivinan.
+
+**Colecciones recomendadas** (decisión del usuario pendiente; se pueden cambiar antes de la primera corrida):
+
+| Origen | Carpeta en MEDIA502 | Por qué |
+| --- | --- | --- |
+| `/Volumes/SSD1/abletonlive` (241 GB, incluye packs) | `005_produccion/ssd1-abletonlive` | Una sola colección conserva juntas las rutas que usan los sets; caben con 2.1 TB libres |
+| `~/Music/01_produccion` (42 GB) | `005_produccion/music-01_produccion` | Material ya ordenado por tipo |
+| `~/Music/03_final` (9 GB) | `005_produccion/music-03_final` | Finales de producción |
+| `~/Music/00_assets` (12 GB, 11 GB son plugins) | opcional | Instaladores; quizá no vale la pena |
+
+**Runbook (operación física, la pide el usuario):**
+
+```sh
+nu9ve media living-plan --source /Volumes/SSD1/abletonlive --archive MEDIA502 --folder 005_produccion/ssd1-abletonlive --name "Ableton (SSD1)"
+# revisar new/changed/gone_from_source, bytes, free y ableton.not_covered
+nu9ve media living-apply <plan_id> --digest <digest>
+nu9ve media living-collections
+```
+
+Repetir `living-plan` + `living-apply` cuando se quiera: la segunda vez sólo copia lo nuevo o cambiado. Lo que M1 deje *sin copia* se puede respaldar igual (por ejemplo, `recordingslong` como colección). Sin interfaz en la app todavía.
 
 ## Para retomar
 

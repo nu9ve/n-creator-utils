@@ -195,6 +195,19 @@ class Service:
             from .collection_release import apply
             with self._action_progress(params['plan_id']) as progress:
                 return apply(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress)
+        if method == 'living_plan':
+            from .living import plan
+            require(set(params) <= {'source', 'archive', 'folder', 'name', 'progress_id'}, 'invalid_request', 'Unknown parameters')
+            progress_id = params.pop('progress_id', None) or str(uuid.uuid4())
+            with self._action_progress(progress_id) as progress:
+                return plan(self.catalog, self.backend, cancel=self.cancel, progress=progress, **params)
+        if method == 'living_apply':
+            from .living import apply
+            with self._action_progress(params['plan_id']) as progress:
+                return apply(self.catalog, self.backend, params['plan_id'], params['digest'], self.cancel, progress)
+        if method == 'living_collections':
+            from .living import collections
+            return collections(self.catalog)
         if method == 'collection_release_plans':
             from .collection_release import plans
             return plans(self.catalog)

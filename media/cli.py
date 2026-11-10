@@ -97,6 +97,13 @@ def parser():
     apply_collection = commands.add_parser('collection-release-apply', help='Move exactly a reviewed collection plan to the volume Trash')
     apply_collection.add_argument('plan_id'); apply_collection.add_argument('--digest', required=True)
     commands.add_parser('collection-release-plans')
+    living = commands.add_parser('living-plan', help='Plan an incremental verified backup of a living folder to an archive folder; copies nothing')
+    living.add_argument('--source', required=True); living.add_argument('--archive', required=True)
+    living.add_argument('--folder', required=True, help='Archive folder that mirrors the source, e.g. 005_produccion/abletonlive-projects')
+    living.add_argument('--name')
+    living_apply = commands.add_parser('living-apply', help='Copy exactly a reviewed living-folder plan (new and changed files only)')
+    living_apply.add_argument('plan_id'); living_apply.add_argument('--digest', required=True)
+    commands.add_parser('living-collections', help='Read-only: living collections and how much each has backed up')
     audit = commands.add_parser('coverage', help='Read-only: which work-disk files already exist byte-identical on the archive')
     audit.add_argument('--work', required=True); audit.add_argument('--archive', required=True)
     audit.add_argument('--path', help='Only this folder of the work disk'); audit.add_argument('--no-hash', action='store_true', help='Size matches only (fast, probable)')
@@ -125,7 +132,7 @@ def parser():
 
 
 # Mutations keep one process per request so cancellation interrupts exactly that operation.
-READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles', 'devices', 'recipe', 'missions_review', 'missions_status',
+READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates', 'closure_progress', 'action_progress', 'snapshot', 'job', 'jobs', 'library', 'volumes', 'source_cards', 'capture_libraries', 'capture_overview', 'profiles', 'devices', 'recipe', 'living_collections', 'missions_review', 'missions_status',
                 'projects', 'release_plans', 'integration_capabilities', 'suggest', 'asset_revisions',
                 'storage_overview', 'storage_progress', 'storage_tree'}
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
@@ -204,7 +211,7 @@ def main(argv=None):
                 params['plan'] = value['data'] if isinstance(value, dict) and value.get('ok') is True else value
             method = {'publish-revision': 'publish_revision', 'asset-revisions': 'asset_revisions', 'integration-capabilities': 'integration_capabilities', 'retitle-capture': 'retitle_capture', 'retitle-operations': 'retitle_operations', 'cancel-plan': 'cancel_plan', 'deliver': 'deliver_work', 'work-state': 'set_work_state', 'recover-catalog': 'recover_catalog', 'rename-project': 'rename_project', 'publication': 'set_publication', 'confirm-cleanup': 'confirm_camera_cleanup', 'confirm-device': 'confirm_device', 'missions-review': 'missions_review', 'missions-incorporate': 'missions_incorporate', 'missions-status': 'missions_status', 'dng-plan': 'dng_plan', 'dng-apply': 'dng_apply',
                       'capture-libraries': 'capture_libraries', 'tag-capture': 'save_capture_tag', 'backup-metadata': 'backup_metadata',
-                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans', 'collection-release-plan': 'collection_release_plan', 'collection-release-apply': 'collection_release_apply', 'collection-release-plans': 'collection_release_plans',
+                      'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans', 'collection-release-plan': 'collection_release_plan', 'collection-release-apply': 'collection_release_apply', 'collection-release-plans': 'collection_release_plans', 'living-plan': 'living_plan', 'living-apply': 'living_apply', 'living-collections': 'living_collections',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
                       'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
         data = service.call(method, params)

@@ -9,7 +9,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | Qué | Valor |
 | --- | --- |
 | App instalada | `~/Applications/nuun.app`, build **`a350af7f16af`** (8 nov; anterior `555fe99c6c8d` en `app-backups/e86ce22c.app`). Firma ad-hoc, Python externo. Backups en `~/Library/Application Support/n-creator-utils/app-backups/` |
-| Suites | Python **374 OK** (9 nov); Swift **25/25**; localización 858 claves sin faltantes ni sobrantes (8 nov) |
+| Suites | Python **385 OK** (9 nov); Swift **25/25**; localización 858 claves sin faltantes ni sobrantes (8 nov) |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
 ## Por área
@@ -22,7 +22,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | **Dron / Atlas** | En uso de punta a punta: dispositivo por EXIF, registro de misiones, misión o no, trabajo JPG sin duplicados, descartes, `units.ndjson`, A11, A14, DNG a pedido | 8 nov: SD `MAVIC200` respaldada, verificada y vaciada (job `cc8bd128`); ESSD mayo–junio respaldado (`77bdcb73`); DNG `dng-d9549817` | Formatear la SD desde el dron. Reclasificar `pending_export` → misión cuando el export llega tarde. Confirmar un dispositivo nuevo desde la app. UI del plan de DNG. Atlas: leer `_missions/` y `units.ndjson`. [Contrato](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
 | **Cierre de proyecto** | En uso: finales, publicados, regenerables de Clipper por su `cleanup-plan`, transcripciones a MEDIA | 8 nov: cierre conjunto de Terra aplicado (`8fe6e578`) | Seis verticales de Terra por publicar; aviso opcional por verticales viejos. [Contrato](contracts/project-closeout-v1.md) |
 | **Biblioteca, Discos, cobertura** | Implementado en sólo lectura + recuperación/entrega desde archivo | Entrega desde MEDIA502 a ESSD (6 nov) | `coverage --no-hash` ESSD contra MEDIA502; restaurar sin SD; rehash periódico |
-| **Carpetas vivas** (música, samples, `0000_acomodar`) | Sin implementar | [Inventario SSD1](features/music-ssd1-inventory-2026-11-09.md) (9 nov, sólo lectura): 853 GB de audio, ~15 GB con copia en MEDIA502 | Fases M1–M4 en [music-flows](features/music-flows.md#fases): M1 código hecho (`collection-release-plan/apply`, 12 pruebas); falta la corrida real con MEDIA500/501 y ESSD conectados |
+| **Carpetas vivas** (música, samples, `0000_acomodar`) | Sin implementar | [Inventario SSD1](features/music-ssd1-inventory-2026-11-09.md) (9 nov, sólo lectura): 853 GB de audio, ~15 GB con copia en MEDIA502 | Fases M1–M4 en [music-flows](features/music-flows.md#fases): M1 código hecho (`collection-release-plan/apply`, 12 pruebas); M2 código hecho (`living-plan/apply`, 11 pruebas). Faltan las corridas reales (M1 con MEDIA500/501 y ESSD; M2 con las carpetas elegidas) |
 | **Fotos / Kyū, H6, GoPro** | Detecta y planea con fixtures | Ninguna física | Aceptación por dispositivo |
 | **Recetas y Flujos** | La receta `nu9ve-default` describe familias de tarjeta (Stalker, Sony, H6, GoPro, Insta360, DJI, Canon) con su recomendación, tags de modelo, dispositivos por EXIF, categorías y flujos de misión. RPC/CLI `recipe` de sólo lectura; Flujos muestra «Lo que reconoce» desde ahí | Lectura del catálogo real con el motor instalado | Modelo por serial en vez de un tag por familia; editar la receta desde la app; generar los bloques de cada flujo desde la receta |
 | **Distribución** | Sólo instalación local de desarrollo | — | Runtime empaquetado, Developer ID, notarización. [Gates](release.md) |
@@ -40,6 +40,10 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### M2 · carpeta viva · 2026-11-09
+
+Sólo checkout, sin reinstalar la app (sin cambios de interfaz). `media/living.py` + CLI/RPC y la tabla aditiva `living_files`. Hace un respaldo incremental y verificado de una carpeta que cambia, hacia una carpeta de un archivo registrado. No renombra, no limpia el origen ni propaga borrados, y la versión anterior de un archivo cambiado se aparta dentro del archivo (`_nuun/versions`). Un archivo editado mientras se revisa el plan se salta en lugar de abortar. Incluye un informe de muestras externas de los sets de Ableton. Detalle, colecciones recomendadas y runbook en [music-flows](features/music-flows.md#m2--carpeta-viva-implementado-2026-11-09).
 
 ### M1 · liberar una colección contra archivos registrados · 2026-11-09
 
