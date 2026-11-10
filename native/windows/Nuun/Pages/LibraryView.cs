@@ -21,7 +21,7 @@ public static class LibraryView
         foreach (var (id, label) in new[] { ("projects", "Proyectos"), ("disks", "Discos"), ("activity", "Actividad") })
             tabs.Children.Add(UI.Toggle(label, tab == id, () => { tab = id; shell.Navigate("library"); }));
         column.Children.Add(tabs);
-        column.Children.Add(tab switch { "disks" => Disks(state), "activity" => Activity(state), _ => Projects(state) });
+        column.Children.Add(tab switch { "disks" => Disks(state, shell), "activity" => Activity(state), _ => Projects(state) });
         return PageScaffold.Build(column);
     }
 
@@ -42,7 +42,7 @@ public static class LibraryView
     /// What the Rust engine read from this PC, apart from the maqueta. Read only: Windows cannot back up yet, so
     /// these cards never enter the maqueta's ingest (a simulated «backup» of a real card would mislead).
     /// </summary>
-    static UIElement? Live(AppState state)
+    static UIElement? Live(AppState state, MainWindow shell)
     {
         if (state.LiveVolumes is null && state.LiveCards is null) return null;
         var column = UI.Column(8,
@@ -50,7 +50,7 @@ public static class LibraryView
             UI.Text("Todavía no se puede respaldar desde Windows: estas tarjetas no entran al Ingreso de la maqueta.", TextRole.Muted, 12));
         var volumes = state.LiveVolumes ?? [];
         column.Children.Add(UI.Text(volumes.Count == 0
-            ? "Destinos registrados: ninguno. Registrar MEDIA o ESSD en Windows llega con el siguiente paso del motor."
+            ? "Destinos registrados: ninguno. Con un destino en línea, el motor lee la familia de cada tarjeta."
             : $"Destinos registrados: {string.Join(", ", volumes.Select(v => $"{v.Name} ({(v.Online ? "en línea" : "desconectado")})"))}", TextRole.Body, 13));
         var cards = state.LiveCards ?? [];
         if (cards.Count == 0)
@@ -63,13 +63,70 @@ public static class LibraryView
             column.Children.Add(UI.Surface(SurfaceKind.Well, UI.Row(10, UI.Icon("", 16, "accentText"),
                 UI.Column(0, UI.Text($"{card.Name} · {card.Path}"), UI.Text(detail, TextRole.Muted, 12))), 10));
         }
+        if (state.RustBinary is not null)
+            column.Children.Add(UI.Button("Registrar destino…", () => _ = RegisterAsync(state, shell), glyph: "\uE710"));
         return UI.Surface(SurfaceKind.Panel, column);
     }
 
-    static UIElement Disks(AppState state)
+    /// <summary>
+    /// Registers MEDIA, ESSD or SSD1 as a destination on this PC. Configuration only (the catalog): nothing on the disk
+    /// is read or written. External disks by default; an internal folder needs an explicit check, as in the CLI.
+    /// </summary>
+    static async Task RegisterAsync(AppState state, MainWindow shell)
+    {
+        var root = new TextBox { PlaceholderText = "E:\\", Width = 260 };
+        AutomationProperties.SetName(root, "Carpeta raíz del destino");
+        var pick = UI.Button("Elegir…", () => _ = PickFolderAsync(shell, root), glyph: "\uE8B7");
+        var name = new TextBox { PlaceholderText = "MEDIA502", Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
+        AutomationProperties.SetName(name, "Nombre del destino");
+        var role = new ComboBox { Width = 260, HorizontalAlignment = HorizontalAlignment.Left, Items = { "Archivo (respaldo)", "Trabajo (copia para editar)" } };
+        role.SelectedIndex = 0;
+        AutomationProperties.SetName(role, "Papel del destino");
+        var prefix = new TextBox { PlaceholderText = "001_raw · 001_proyectos", Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
+        AutomationProperties.SetName(prefix, "Carpeta dentro del disco");
+        var local = new CheckBox { Content = "Es una carpeta interna (no un disco externo)" };
+        var message = UI.Colored("", "danger", 12);
+        var form = UI.Column(10,
+            UI.Text("Sólo se guarda en el catálogo de este equipo: no se lee ni se escribe nada en el disco.", TextRole.Muted, 12),
+            UI.Row(8, root, pick), name, role, prefix, local, message);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = shell.Content.XamlRoot, Title = "Registrar destino", Content = form,
+            PrimaryButtonText = "Registrar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Primary,
+            RequestedTheme = ThemeService.Current.ElementTheme,
+            Background = ThemeService.Current.Brush("surface"), Foreground = ThemeService.Current.Brush("ink"),
+        };
+        dialog.PrimaryButtonClick += async (_, e) =>
+        {
+            var deferral = e.GetDeferral();
+            try
+            {
+                var problem = await state.RegisterDestinationAsync(name.Text.Trim(), role.SelectedIndex == 1 ? "work" : "archive",
+                    root.Text.Trim(), prefix.Text, local.IsChecked == true);
+                if (problem is not null) { message.Text = problem; e.Cancel = true; }
+            }
+            finally { deferral.Complete(); }
+        };
+        try
+        {
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary) shell.Navigate("library");
+        }
+        catch (InvalidOperationException) { }
+    }
+
+    static async Task PickFolderAsync(MainWindow shell, TextBox target)
+    {
+        var picker = new Windows.Storage.Pickers.FolderPicker { SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder };
+        picker.FileTypeFilter.Add("*");
+        // Unpackaged WinUI: the picker needs its owner window.
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(shell));
+        if (await picker.PickSingleFolderAsync() is { } folder) target.Text = folder.Path;
+    }
+
+    static UIElement Disks(AppState state, MainWindow shell)
     {
         var list = UI.Column(12);
-        if (Live(state) is { } live) list.Children.Add(live);
+        if (Live(state, shell) is { } live) list.Children.Add(live);
         foreach (var volume in state.Snapshot.Volumes)
         {
             list.Children.Add(HomeView.Disk(volume));

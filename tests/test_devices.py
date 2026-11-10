@@ -175,6 +175,17 @@ class DroneStillTests(DroneFixture):
         with self.assertRaisesRegex(MediaError, 'Classify DJI'):
             self.plan()
 
+    def test_discover_keeps_each_units_device_and_camera_time_apart(self):
+        # A device without DateTimeOriginal keeps its device; a dated still without Make inherits nothing.
+        self.pair('DJI_0001', when='sin fecha')
+        self.pair('DJI_0002', make='')
+        units = {u['id']: u for u in Service(self.catalog, self.backend).call('discover', {'source': str(self.source)})['units']}
+        undated, unmade = units['DCIM/101MEDIA/DJI_0001'], units['DCIM/101MEDIA/DJI_0002']
+        self.assertEqual((undated['device']['source'], undated['device']['rule']), ('MAVICAIR2', 'template'))
+        self.assertNotIn('created_at', undated)
+        self.assertNotIn('device', unmade)
+        self.assertEqual(unmade['created_at'], '2026-11-04T16:32:12')
+
     def test_template_is_data_for_other_setups(self):
         # The user's devices are only the initial template; nothing in the planner names a drone model.
         self.assertEqual(TEMPLATE['schema'], 'nu9ve-recipe/1')

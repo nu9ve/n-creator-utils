@@ -1,6 +1,6 @@
 [package]
 name = "nu9ve-json"
-description = "Canonical JSON (byte-compatible with nüün's Python `canonical`), digests and the suite's error envelope"
+description = "Canonical JSON (byte-compatible with nüün's Python `canonical`), digests, ids and the suite's error envelope"
 edition.workspace = true
 rust-version.workspace = true
 version.workspace = true
@@ -11,6 +11,10 @@ publish.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+
+# Random ids from the operating system (BCryptGenRandom); /dev/urandom elsewhere. No uuid/getrandom crate.
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
 
 [lints]
 workspace = true

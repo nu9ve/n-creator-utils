@@ -125,11 +125,38 @@ public sealed class IngestView
 
         if (state.Source is { } source)
         {
-            var summary = UI.Surface(SurfaceKind.Panel, UI.Column(6,
-                UI.Text("Contenido", TextRole.Heading, 15),
-                UI.Text(source.Family == "sony" ? "1 clip · datos de cámara (índices, miniaturas)" : "2 fotos · registro de vuelo", TextRole.Body),
-                UI.Text("Elegir una fuente no recorre los archivos; el plan lo hace al revisar.", TextRole.Muted, 12)));
-            column.Children.Add(summary);
+            UIElement content;
+            if (state.Engine.IsFixture)
+            {
+                content = UI.Column(6,
+                    UI.Text(source.Family == "sony" ? "1 clip · datos de cámara (índices, miniaturas)" : "2 fotos · registro de vuelo", TextRole.Body),
+                    UI.Text("Elegir una fuente no recorre los archivos; el plan lo hace al revisar.", TextRole.Muted, 12));
+            }
+            else if (state.Discovery is { } found)
+            {
+                // What the Rust engine read on this card (discover), not a maqueta.
+                var kinds = string.Join(" · ", found.Categories.Select(c => $"{c.Value} {CategoryName(c.Key)}"));
+                content = UI.Column(6,
+                    UI.Text($"{found.Units} unidades · {Presentation.Bytes(found.Bytes)}", TextRole.Body),
+                    UI.Text(kinds + (found.Camera.Length > 0 ? $" · cámara {found.Camera}" : ""), TextRole.Muted, 12),
+                    found.Devices.Count > 0
+                        ? UI.Text("Dispositivo (EXIF): " + string.Join(" · ", found.Devices), TextRole.Muted, 12)
+                        : null,
+                    found.ToConfirm > 0
+                        ? UI.Colored($"{found.ToConfirm} unidades piden confirmar su dispositivo antes de clasificarlas.", "warning", 12)
+                        : null,
+                    found.NotPorted.Contains("mission")
+                        ? UI.Text("Todavía sin cruzar las fotos con el registro de misiones del archivo.", TextRole.Muted, 12)
+                        : null,
+                    found.Skipped.Count > 0 ? UI.Colored($"{found.Skipped.Count} capturas activas se omiten.", "warning", 12) : null);
+            }
+            else
+            {
+                content = UI.Column(6,
+                    UI.Text("Elegir una fuente no recorre los archivos.", TextRole.Muted, 12),
+                    UI.Button("Leer contenido", () => _ = state.DiscoverAsync(), glyph: char.ConvertFromUtf32(0xE721)));
+            }
+            column.Children.Add(UI.Surface(SurfaceKind.Panel, UI.Column(6, UI.Text("Contenido", TextRole.Heading, 15), content)));
         }
         var footer = PageScaffold.Footer(
             state.Source is null ? "Elige una fuente para continuar." : $"{state.Source.Name} → {state.Project}. Revisar no copia nada.",
@@ -181,6 +208,12 @@ public sealed class IngestView
             UI.Button(primary, () => _ = state.ApplyAsync(), prominent: true, glyph: "", shortcut: "ingest.apply"));
         return (column, footer);
     }
+
+    static string CategoryName(string code) => code switch
+    {
+        "video" => "video", "image" => "foto", "raw_image" => "RAW", "audio" => "audio",
+        "stalker" => "sesión Stalker", "support" => "soporte de cámara", _ => code,
+    };
 
     static UIElement Destination(string name, string role, bool online) =>
         UI.Row(10, UI.Icon(online ? "" : "", 14, online ? "success" : "danger"), UI.Column(0, UI.Text(name), UI.Text(role, TextRole.Muted, 12)));

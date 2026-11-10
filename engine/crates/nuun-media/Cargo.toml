@@ -14,6 +14,7 @@ nuun-recipe = { path = "../nuun-recipe" }
 serde_json.workspace = true
 # The catalog is SQLite (media/catalog.py). `bundled`: the same version on every OS, as nove does.
 rusqlite.workspace = true
+quick-xml.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

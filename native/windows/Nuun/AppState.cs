@@ -23,6 +23,21 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
     /// <summary>What the Rust engine itself read from this PC (never fixture data); null when not ported here.</summary>
     public IReadOnlyList<Volume>? LiveVolumes { get; private set; }
     public IReadOnlyList<SourceCard>? LiveCards { get; private set; }
+    public string? RustBinary { get; private set; }
+    public string? StateDirectory { get; private set; }
+
+    /// <summary>Registers a destination through the Rust engine (configuration only), then reads again.</summary>
+    public async Task<string?> RegisterDestinationAsync(string name, string role, string root, string? prefix, bool allowLocal)
+    {
+        if (RustBinary is null) return "El motor de Rust no está disponible.";
+        try
+        {
+            await EngineWrites.RegisterVolumeAsync(RustBinary, StateDirectory, name, role, root, prefix, allowLocal);
+            await RefreshAsync();
+            return null;
+        }
+        catch (EngineFailure failure) { return EngineWrites.Explain(failure); }
+    }
     public string? Error { get; private set; }
 
     public WindowMode Mode { get; set; } = WindowMode.Full;
@@ -52,11 +67,14 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
             }
         }
         // The Rust engine answers what it has ported; the maqueta answers the rest (rust-engine.md §7).
-        else if (EngineProcess.FindRustEngine() is { } rust)
+        else if (!Program.RequestedMaqueta && EngineProcess.FindRustEngine() is { } rust)
         {
             try
             {
-                var (process, connection) = EngineProcess.StartRust(rust, Environment.GetEnvironmentVariable("NUUN_QA_ROOT"));
+                RustBinary = rust;
+                // QA keeps the catalog under its own root; otherwise the engine's default (%LOCALAPPDATA%/n-creator-utils/media).
+                StateDirectory = Environment.GetEnvironmentVariable("NUUN_QA_ROOT") is { Length: > 0 } qa ? Path.Combine(qa, "state") : null;
+                var (process, connection) = EngineProcess.StartRust(rust, StateDirectory);
                 Engine = new MethodByMethodEngine(new RpcEngine(connection, new ProcessOwner(process)), new FixtureEngine());
             }
             catch (Exception error) when (error is EngineFailure or System.ComponentModel.Win32Exception)
@@ -93,7 +111,26 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
         Source = card;
         // Changing what is planned invalidates a reviewed plan (nuun-window.md).
         Plan = null;
+        Discovery = null;
         Changed(nameof(Source));
+    }
+
+    /// <summary>What the Rust engine read on the chosen real card; null for the maqueta or before reading.</summary>
+    public Discovery? Discovery { get; private set; }
+
+    /// <summary>
+    /// Reads the chosen card's contents with `discover`. Only on request (choosing a source never deep-scans, as on
+    /// Mac) and only for real data: the maqueta keeps its fixture summary.
+    /// </summary>
+    public async Task DiscoverAsync()
+    {
+        if (Source is null || RustBinary is null || Engine.IsFixture || Busy) return;
+        try
+        {
+            Discovery = await EngineWrites.DiscoverAsync(RustBinary, StateDirectory, Source.Path);
+            Changed(nameof(Source));
+        }
+        catch (EngineFailure failure) { Report(EngineWrites.Explain(failure)); }
     }
 
     public void Go(IngestStep step)

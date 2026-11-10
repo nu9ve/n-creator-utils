@@ -5,7 +5,6 @@
 //! Divergences, all on purpose:
 //! - Windows identity is new (`mode: "windows"`, see nu9ve-volumes); Python has no Windows backend.
 //! - A card's `name` is the folder name as in Python, or, for a drive root (which has none), its label or letter.
-//! - `hint.device` (the first still's EXIF, `card_device`) is not there yet: `photo_meta` is not ported.
 
 use crate::catalog::Catalog;
 use nu9ve_json::{Error, Result, require};
@@ -280,6 +279,21 @@ pub fn card_hint(
     hint.insert("recommendation".into(), rule["recommendation"].clone());
     hint.insert("used_bytes".into(), json!(used));
     hint.insert("capacity_bytes".into(), json!(capacity));
+    let registry = catalog.get("device-registry")?;
+    if let Some(device) = crate::devices::card_device(root, registry.as_ref(), &recipe, 64)? {
+        if device["category"].as_str().is_some_and(|c| !c.is_empty())
+            && device["requires_confirmation"] != true
+        {
+            // A known device needs no category question; a mission flow separates its stills.
+            let next = if device.get("mission_flow").is_some() {
+                "drone_missions"
+            } else {
+                "archive_and_work"
+            };
+            hint.insert("recommendation".into(), json!(next));
+        }
+        hint.insert("device".into(), device);
+    }
     if let Some(uuid) = identity
         .and_then(|i| i["volume_uuid"].as_str())
         .filter(|u| !u.is_empty())
@@ -335,6 +349,49 @@ pub fn source_cards(
         cards.push(card);
     }
     Ok(Value::Array(cards))
+}
+
+fn expand_user(root: &str) -> PathBuf {
+    match root.strip_prefix('~') {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') || rest.starts_with('\\') => {
+            let home = std::env::var_os("HOME")
+                .or_else(|| std::env::var_os("USERPROFILE"))
+                .map(PathBuf::from)
+                .unwrap_or_default();
+            home.join(rest.trim_start_matches(['/', '\\']))
+        }
+        _ => PathBuf::from(root),
+    }
+}
+
+/// The `register_volume` method (media/service.py): describe the root (external unless `allow_local`), take the
+/// writer lock, then `Catalog.register`. Configuration only: no file on the volume is read or written.
+pub fn register_volume(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let text = |key: &str| -> Result<String> {
+        params[key]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+    };
+    let (name, role, root) = (text("name")?, text("role")?, text("root")?);
+    let allow_local = params["allow_local"].as_bool().unwrap_or(false);
+    let root = PathBuf::from(normalize(&expand_user(&root)));
+    let info = backend.describe(&root, !allow_local)?;
+    let prefix = params["prefix"]
+        .as_str()
+        .filter(|p| !p.is_empty())
+        .map(str::to_owned)
+        .unwrap_or_else(|| {
+            if role == "archive" {
+                "001_raw"
+            } else {
+                "001_proyectos"
+            }
+            .to_owned()
+        });
+    let _lock = crate::catalog::writer_lock(home)?;
+    let catalog = crate::catalog::WritableCatalog::open(home)?;
+    catalog.register(&name, &role, &root.display().to_string(), &info, &prefix)
 }
 
 /// Not a card, a destination or offline: why, in words (for tests and diagnosis).
@@ -500,6 +557,22 @@ mod tests {
     }
 
     #[test]
+    fn a_known_drone_still_changes_the_recommendation() {
+        let s = setup();
+        let folder = s.card.join("DCIM/100MEDIA");
+        std::fs::create_dir_all(&folder).unwrap();
+        let jpg = crate::photo_meta::sample::jpeg("DJI", "FC3170", "2026:05:14 10:20:30", None);
+        std::fs::write(folder.join("DJI_0001.JPG"), jpg).unwrap();
+        let hint = &source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"];
+        assert_eq!(
+            hint["family"], "generic",
+            "100MEDIA without MISC: the family stays generic, the EXIF decides"
+        );
+        assert_eq!(hint["device"]["label"], "DJI Mavic Air 2");
+        assert_eq!(hint["recommendation"], "drone_missions");
+    }
+
+    #[test]
     fn offline_destinations_keep_cards_without_content_hints() {
         let mut s = setup();
         std::fs::create_dir_all(s.card.join("DCIM/100GOPRO")).unwrap();
@@ -615,7 +688,148 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn register_creates_a_python_catalog_and_the_card_gets_hints() {
+        let s = setup();
+        let home = s._temp.path().join("fresh-state");
+        let media = s._temp.path().join("media2");
+        std::fs::create_dir_all(&media).unwrap();
+        let params =
+            json!({"name": "MEDIA2", "role": "archive", "root": media.display().to_string()});
+        let record = register_volume(&home, &s.backend, &params).unwrap();
+        assert_eq!(record["prefix"], "001_raw");
+        assert_eq!(record["identity"]["mode"], "fixture");
+        assert_eq!(record["id"].as_str().unwrap().len(), 36);
+        // The catalog has Python's schema: every table, version 1, WAL.
+        let db = rusqlite::Connection::open(home.join("catalog.sqlite3")).unwrap();
+        let tables: Vec<String> = db
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(
+            tables,
+            [
+                "asset_jobs",
+                "asset_projects",
+                "asset_revisions",
+                "assets",
+                "copies",
+                "events",
+                "jobs",
+                "members",
+                "metadata",
+                "project_aliases",
+                "projects",
+                "publications",
+                "sessions",
+                "volumes",
+                "work"
+            ]
+        );
+        let mode: String = db
+            .query_row("PRAGMA journal_mode", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(mode, "wal");
+        drop(db);
+        // A registered destination online: the card is now read for hints.
+        std::fs::create_dir_all(s.card.join("PRIVATE/M4ROOT/CLIP")).unwrap();
+        std::fs::write(s.card.join("PRIVATE/M4ROOT/CLIP/C0001.MP4"), b"1").unwrap();
+        let fixture = Fixture {
+            roots: vec![s.card.clone(), media.clone()],
+            ..Default::default()
+        };
+        let cards = source_cards(&Catalog::open(&home).unwrap(), &fixture, None).unwrap();
+        assert_eq!(paths(&cards), [s.card.display().to_string()]);
+        assert_eq!(cards[0]["hint"]["family"], "sony");
+    }
+
+    #[test]
+    fn register_refuses_like_python() {
+        let s = setup();
+        let reg = |params: Value| {
+            register_volume(&s.home, &s.backend, &params)
+                .unwrap_err()
+                .code
+        };
+        let root = s.card.display().to_string();
+        assert_eq!(
+            reg(json!({"name": "MEDIA", "role": "archive", "root": root})),
+            "volume_exists"
+        );
+        assert_eq!(
+            reg(json!({"name": "X", "role": "archive", "root": s.archive.display().to_string()})),
+            "volume_exists"
+        );
+        assert_eq!(
+            reg(json!({"name": "X", "role": "backup", "root": root})),
+            "invalid_role"
+        );
+        assert_eq!(
+            reg(json!({"name": "-_-", "role": "work", "root": root})),
+            "invalid_tag"
+        );
+        assert_eq!(
+            reg(json!({"name": "X", "role": "work", "root": root, "prefix": "../up"})),
+            "unsafe_path"
+        );
+        assert_eq!(
+            reg(json!({"role": "work", "root": root})),
+            "operation_failed"
+        );
+        let missing = s._temp.path().join("not-mounted").display().to_string();
+        assert_eq!(
+            reg(json!({"name": "X", "role": "work", "root": missing})),
+            "volume_offline"
+        );
+        // Nothing above reached the catalog.
+        assert_eq!(Catalog::open(&s.home).unwrap().volumes().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn the_writer_lock_excludes_a_second_writer() {
+        let s = setup();
+        let held = crate::catalog::writer_lock(&s.home).unwrap();
+        let params = json!({"name": "CARD", "role": "work", "root": s.card.display().to_string()});
+        assert_eq!(
+            register_volume(&s.home, &s.backend, &params)
+                .unwrap_err()
+                .code,
+            "job_busy"
+        );
+        drop(held);
+        assert!(register_volume(&s.home, &s.backend, &params).is_ok());
+    }
+
     // The real Windows backend, on the temporary folder's volume only: the system disk is never a card.
+    #[cfg(windows)]
+    #[test]
+    fn a_local_folder_registers_only_when_allowed() {
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("state");
+        let target = temp.path().join("destino");
+        std::fs::create_dir_all(&target).unwrap();
+        let root = target.display().to_string();
+        let refused = register_volume(
+            &home,
+            &WindowsBackend,
+            &json!({"name": "LOCAL", "role": "work", "root": root}),
+        )
+        .unwrap_err();
+        assert_eq!(refused.code, "external_required");
+        let record = register_volume(
+            &home,
+            &WindowsBackend,
+            &json!({"name": "LOCAL", "role": "work", "root": root, "allow_local": true}),
+        )
+        .unwrap();
+        assert_eq!(record["identity"]["mode"], "windows");
+        let listed = volumes(&Catalog::open(&home).unwrap(), &WindowsBackend).unwrap();
+        assert_eq!(listed[0]["online"], true);
+    }
+
     #[cfg(windows)]
     #[test]
     fn the_system_volume_has_a_windows_identity_and_is_not_a_card() {

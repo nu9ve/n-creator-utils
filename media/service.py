@@ -275,6 +275,8 @@ class Service:
             for key, members in groups.items():
                 evidence = [e for f in members for e in f['evidence']]
                 device = unit_device(members, self.catalog, rules) if key != 'camera-support' else None
+                # Per unit: a device without a camera time, or a dated still without Make, must not lose or inherit.
+                metadata_device = {}
                 if device and not device.get('conflict'):
                     # The planner decides the same way; the app only stops asking when no confirmation is needed.
                     metadata_device = {'device': {k: device.get(k) for k in ('make', 'model', 'source', 'label', 'category', 'rule', 'requires_confirmation')}}
@@ -284,8 +286,6 @@ class Service:
                 captured = next(((f.get('photo') or {}).get('captured_at') for f in members if (f.get('photo') or {}).get('captured_at')), None)
                 if captured:
                     metadata_device['created_at'] = captured  # camera time (EXIF), for date filters
-                else:
-                    metadata_device = {}
                 kinds = [kind_of(f['path']) for f in members]
                 bundle = members[0]['bundle']
                 metadata = {}
