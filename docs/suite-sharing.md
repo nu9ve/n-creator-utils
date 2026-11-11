@@ -129,7 +129,7 @@ Detalle en [sonido de tema v1 §4](contracts/nu9ve-sound-v1.md#4-cómo-llegan-lo
 
 ## 7. Migración por pasos
 
-Ningún paso deja una app sin compilar, y cada uno cabe en una sesión.
+Ningún paso deja una app sin compilar, y cada uno cabe en una sesión. El inventario archivo por archivo de `n-creator-utils`, con la condición de cada mudanza, está en [suite-split](suite-split.md). Ese inventario afina la tabla: el paso 3 espera a que el motor funcione en la Mac, `nu9ve-time` se queda en nüün mientras sólo nüün lo use, y el paso 4 espera a tener Windows.
 
 | Paso | Qué se mueve | Quién lo consume después |
 | --- | --- | --- |

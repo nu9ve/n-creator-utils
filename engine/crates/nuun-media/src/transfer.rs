@@ -111,7 +111,7 @@ impl Meter {
 }
 
 /// SHA-256 of a whole open file from its start (Python `hash_fd`), counting bytes for progress.
-fn hash_file(file: &mut std::fs::File, mut counted: impl FnMut(u64)) -> Result<String> {
+fn hash_file(file: &mut (impl Read + Seek), mut counted: impl FnMut(u64)) -> Result<String> {
     file.seek(SeekFrom::Start(0))
         .map_err(|e| Error::new("operation_failed", format!("[OSError] {e}")))?;
     let mut hasher = Sha256::new();
@@ -160,6 +160,8 @@ pub struct Transfer<'a> {
     meter: Meter,
     started: Instant,
     flushed: Instant,
+    /// The weakest way a verification read reached its bytes in this run (`fs::verify_read`).
+    verify_cache: fs::Cache,
 }
 
 impl<'a> Transfer<'a> {
@@ -180,6 +182,7 @@ impl<'a> Transfer<'a> {
             meter: Meter::default(),
             started: Instant::now(),
             flushed: Instant::now(),
+            verify_cache: fs::Cache::Bypassed,
         }
     }
 
@@ -196,6 +199,11 @@ impl<'a> Transfer<'a> {
             }
         }
         Ok(self.volume_tokens[&id].clone())
+    }
+
+    /// `Some("dropped" | "os")` when a verification read of this run may not have come from the device.
+    pub fn weak_verification(&self) -> Option<&'static str> {
+        (self.verify_cache != fs::Cache::Bypassed).then(|| self.verify_cache.as_str())
     }
 
     fn checkpoint(&self, stage: &str, payload: &Value) -> Result<()> {
@@ -437,7 +445,9 @@ impl<'a> Transfer<'a> {
                 wanted = Some(hash_file(&mut src, |_| {})?);
             }
             let mut verified = 0;
-            let found = hash_file(&mut fs::uncached(existing), |n| verified += n)?;
+            let mut existing = fs::verify_read(existing);
+            let found = hash_file(&mut existing, |n| verified += n)?;
+            self.verify_cache = self.verify_cache.max(existing.cache());
             self.add_progress("verified_bytes", verified);
             require(
                 Some(&found) == wanted.as_ref(),
@@ -547,21 +557,26 @@ impl<'a> Transfer<'a> {
             self.meter.current.insert("action".into(), json!("verify"));
             self.report(false, json!({"phase": "verifying"}))?;
         }
-        // Read every partial back in parallel and hash it.
-        let checks: Vec<Result<(String, u64)>> = std::thread::scope(|scope| {
+        // Read every partial back in parallel and hash it, from the device rather than the pages just written.
+        let checks: Vec<Result<(String, u64, fs::Cache)>> = std::thread::scope(|scope| {
             let jobs: Vec<_> = pending
                 .iter()
                 .map(|i| {
                     let (root, partial) = (targets[*i].root, &partials[i]);
-                    scope.spawn(move || -> Result<(String, u64)> {
-                        let mut file = fs::uncached(root.open_read(partial)?.ok_or_else(|| {
-                            Error::new("checksum_mismatch", format!("Partial vanished: {partial}"))
-                        })?);
+                    scope.spawn(move || -> Result<(String, u64, fs::Cache)> {
+                        let mut file =
+                            fs::verify_read(root.open_read(partial)?.ok_or_else(|| {
+                                Error::new(
+                                    "checksum_mismatch",
+                                    format!("Partial vanished: {partial}"),
+                                )
+                            })?);
                         let size = file
                             .metadata()
                             .map_err(|e| fs::io_error(e, &root.path))?
                             .len();
-                        Ok((hash_file(&mut file, |_| {})?, size))
+                        let hash = hash_file(&mut file, |_| {})?;
+                        Ok((hash, size, file.cache()))
                     })
                 })
                 .collect();
@@ -573,7 +588,8 @@ impl<'a> Transfer<'a> {
                 .collect()
         });
         for (k, i) in pending.iter().enumerate() {
-            let (hash, size) = checks[k].clone()?;
+            let (hash, size, cache) = checks[k].clone()?;
+            self.verify_cache = self.verify_cache.max(cache);
             self.add_progress("verified_bytes", size);
             require(
                 hash == sha && size == initial.size,
@@ -994,13 +1010,15 @@ impl<'a> Transfer<'a> {
             } else {
                 "nu9ve-transfer-receipt/1"
             };
-            roots[r].write_json(
-                &format!(".ncreator/receipts/{id}.json"),
-                &json!({"schema": schema, "receipt_id": uuid5(&NAMESPACE_URL, &format!("{id}:{}", text(record, "id"))),
-                        "job_id": id, "plan_digest": plan["digest"], "volume_id": record["id"],
-                        "verified_at": nu9ve_time::now_utc(), "files": receipts[r], "units": receipt_units, "plan": plan,
-                        "country": plan["country"], "city": plan["city"], "work_delivery_status": plan["work_delivery_status"]}),
-            )?;
+            let mut receipt = json!({"schema": schema, "receipt_id": uuid5(&NAMESPACE_URL, &format!("{id}:{}", text(record, "id"))),
+                    "job_id": id, "plan_digest": plan["digest"], "volume_id": record["id"],
+                    "verified_at": nu9ve_time::now_utc(), "files": receipts[r], "units": receipt_units, "plan": plan,
+                    "country": plan["country"], "city": plan["city"], "work_delivery_status": plan["work_delivery_status"]});
+            // Only a weaker verification is written, so a receipt stays byte-compatible with Python's otherwise.
+            if let Some(cache) = self.weak_verification() {
+                receipt["verify_cache"] = json!(cache);
+            }
+            roots[r].write_json(&format!(".ncreator/receipts/{id}.json"), &receipt)?;
         }
         self.checkpoint("after_receipts", plan)?;
         self.validate_source(plan)?;
@@ -1150,11 +1168,12 @@ impl<'a> Transfer<'a> {
                     )?;
                     // Replicas may all descend from one card read; a fresh read must agree before the only original goes.
                     let expected = self.member_sha(&id, path)?;
-                    let mut fd = fs::uncached(source.open_read(path)?.ok_or_else(|| {
+                    let mut fd = fs::verify_read(source.open_read(path)?.ok_or_else(|| {
                         Error::new("operation_failed", format!("[FileNotFoundError] {path}"))
                     })?);
                     let mut counted = 0;
                     let found = hash_file(&mut fd, |n| counted += n)?;
+                    self.verify_cache = self.verify_cache.max(fd.cache());
                     self.add_progress("cleanup_bytes", counted);
                     require(
                         expected.as_deref() == Some(found.as_str()),
@@ -1405,7 +1424,12 @@ pub fn apply(
     };
     let lock = crate::catalog::writer_lock(home)?;
     let catalog = WritableCatalog::open(home)?;
-    let mut result = Transfer::new(home, &catalog, backend, hook).apply(&plan, reviewed_digest)?;
+    let mut transfer = Transfer::new(home, &catalog, backend, hook);
+    let mut result = transfer.apply(&plan, reviewed_digest)?;
+    if let Some(cache) = transfer.weak_verification() {
+        result["verify_cache"] = json!(cache);
+    }
+    drop(transfer);
     drop(lock);
     let state = text(&result, "state").to_owned();
     let missions = plan["units"]
@@ -1481,7 +1505,13 @@ mod tests {
     fn run(s: &Setup, plan: &Value, hook: Hook<'_>) -> Result<Value> {
         let _lock = crate::catalog::writer_lock(&s.home)?;
         let catalog = WritableCatalog::open(&s.home)?;
-        Transfer::new(&s.home, &catalog, &s.backend, hook).apply(plan, text(plan, "digest"))
+        let mut transfer = Transfer::new(&s.home, &catalog, &s.backend, hook);
+        let mut result = transfer.apply(plan, text(plan, "digest"))?;
+        // As the `apply` RPC records it.
+        if let Some(cache) = transfer.weak_verification() {
+            result["verify_cache"] = json!(cache);
+        }
+        Ok(result)
     }
 
     fn ok() -> impl Fn(&str, &Value) -> Result<()> {
@@ -1515,11 +1545,18 @@ mod tests {
         let result = run(&s, &plan, &ok()).unwrap();
         assert_eq!(result["state"], "completed");
         assert_eq!(count(&s.card, ".JPG") + count(&s.card, ".DNG"), 0);
+        // A local NTFS/APFS volume verifies from the device: nothing weaker is recorded (Python's shape).
+        #[cfg(any(windows, target_os = "macos"))]
+        assert!(result.get("verify_cache").is_none());
         for root in [&s.archive, &s.work] {
             assert_eq!(count(root, ".JPG"), 1);
+            let receipt = root.join(format!(".ncreator/receipts/{}.json", text(&plan, "id")));
+            assert!(receipt.is_file());
+            #[cfg(any(windows, target_os = "macos"))]
             assert!(
-                root.join(format!(".ncreator/receipts/{}.json", text(&plan, "id")))
-                    .is_file()
+                !std::fs::read_to_string(&receipt)
+                    .unwrap()
+                    .contains("verify_cache")
             );
         }
         assert_eq!(
