@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-08, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-11, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -29,6 +29,31 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | 4 | Sobre común para intercambios con otras apps (productor, schema, digest, ACK) para handoff, `units.ndjson`, `cleanup-plan` y transcripciones | Diseño; [contratos](docs/contracts/README.md) |
 | 5 | Recetas editables desde la app (frase → bloques) | Después de 1–3. [Diseño](docs/features/product-flows.md#flujos) |
 
+## Motor en Rust · ruta
+
+Orden revisado el 2026-11-11 a partir de la [auditoría](docs/audits/fable-audit-2026-11-10.md) y del código. Hoy Rust tiene 20 de unos 85 métodos (el camino de una tarjeta), sólo Windows tiene backend de volúmenes, la ventana de Windows no planea ni aplica, la app de Mac no usa Rust y ningún diferencial se ha ejecutado ([STATUS](docs/STATUS.md#por-área)). Las fases y reglas de fondo siguen en [rust-engine §7](docs/platforms/rust-engine.md#7-ruta-recomendada).
+
+**Fase A · nüün usable en Windows.** Los pasos 1 y 3 se pueden hacer en el PC; el 2 necesita la Mac. El 4 espera al 1 y, de preferencia, al 2.
+
+| Paso | Trabajo | Criterio de cierre | Brief |
+| --- | --- | --- | --- |
+| 1 | Verificación sin caché en Windows (`FILE_FLAG_NO_BUFFERING`, lecturas alineadas); si el sistema de archivos lo rechaza, el recibo lo dice (`verify_cache: "os"`) | Prueba que distingue la lectura sin caché; fila en el gate de pérdida de datos de [release](docs/release.md) | [S1](docs/audits/session-briefs-2026-11-10.md#s1--verificación-sin-caché-en-windows-y-linux) |
+| 2 | Dorado en la Mac con `TZ` fijo y respuestas guardadas en git | Las 4 diferenciales corren en el PC sin Python; cada diferencia queda corregida o explicada | [S2](docs/audits/session-briefs-2026-11-10.md#s2--dorado-en-la-mac-y-fixtures-en-git) |
+| 3 | `plan_document` → revisión → `apply` → `resume` desde la ventana de Windows: proceso `rpc` por mutación, digest revisado, progreso, cancelación y reanudación. Quitar el `not_on_windows` de `RpcEngine` y su comentario viejo | Recorrido por UI Automation en raíz de QA con una carpeta local, incluida la reanudación tras cortar | Sin brief propio; [S9](docs/audits/session-briefs-2026-11-10.md#s9--integración-de-sistema-en-la-ventana-de-windows) lo da por hecho |
+| 4 | Corrida física pedida por el usuario: una SD y un disco USB reales | Job con plan revisado, verificado y reanudado tras desconectar; tiempos por fase en STATUS | — |
+| 5 | `eject_card`, confirmación de limpieza de cámara, `recover_catalog`, `capabilities`; aviso al terminar con «Expulsar» y «Ver resultado» | Pruebas portadas de Python; aviso según [avisos v1](docs/contracts/nu9ve-notifications-v1.md) | S9 |
+
+**Fase B · Rust sustituye a Python en la Mac.**
+
+| Paso | Trabajo | Criterio de cierre | Brief |
+| --- | --- | --- | --- |
+| 6 | Backend de volúmenes de macOS en Rust (DiskArbitration, `statfs`) detrás del mismo rasgo; el binario pregunta por `capabilities`, no por `cfg(windows)` | Pruebas de expulsión y snapshot sobre fixture y sobre el volumen del sistema en la Mac; dorado de `volumes`/`source_cards` | [S16](docs/audits/session-briefs-2026-11-10.md#s16--backend-de-volúmenes-de-macos-en-rust) |
+| 7 | La app de Mac elige motor por método (`rust`/`python`) y lleva el binario dentro del `.app` | Ingreso real de una tarjeta en Mac con Rust y Python como respaldo durante un ciclo | — |
+| 8 | Portar por familias, con diferencial y en orden de riesgo: lecturas de almacenamiento y `coverage` → liberación (`plan_release`, `apply_release`, `review_release`, `relink_release`; antes, [cuarentena o papelera](docs/audits/fable-audit-2026-11-10.md#a4--liberar-a-la-papelera-no-se-traduce-entre-sistemas)) → Stalker y capturas → cierre de proyecto y publicaciones → misiones y DNG → música (M1, M2) → resto. MCP en Rust cuando sus lecturas estén ([S11](docs/audits/session-briefs-2026-11-10.md#s11--mcp-de-nüün-en-rust)) | Diferencial verde por familia; corrida física por dispositivo donde haya limpieza | — |
+| 9 | Una semana de uso real en Mac sin diferencias; retirar Python de `media/` (salvo `legacy-save` y descargas si no se portan) | [rust-engine §7](docs/platforms/rust-engine.md#7-ruta-recomendada), fase 5 | — |
+
+**Por decidir (usuario): quién es dueño de lo nuevo.** La regla de la migración dice que cada método tiene un dueño, y mientras sea Python lo nuevo entra en Python y agranda lo que falta portar; M1 y M2 nacieron así el 9 nov. Recomendación de la revisión del 11 nov: desde ahora Python sólo recibe correcciones y las funciones nuevas entran en Rust (en Mac quedarían disponibles a partir de los pasos 6–7).
+
 ## P2 · siguientes flujos de producto
 
 | Área | Pendiente real | Referencia |
@@ -51,28 +76,22 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 - Distribución: runtime empaquetado, versiones alineadas, Developer ID, notarización. [Gates](docs/release.md).
 - MCP con mutaciones, Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
 - **Windows** (maqueta hecha 2026-11-09, [guía](docs/platforms/windows.md)). Siguiente, en orden:
-  1. Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI` y cómo se versionan antes de que nove los copie.
+  1. ~~Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`~~: decidido el 2026-11-11, repo `nu9ve/suite` con copia fijada ([S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite)); falta crearlo.
   2. Que `ThemeRolesTests.swift` lea los vectores compartidos.
-  3. Adaptador de volúmenes de Windows en `media/` (serial de volumen, letras, expulsión), con fixtures.
-  4. Python empaquetado y contrato contra el motor real.
-  5. Firma e instalación del MSIX y del Setup en una máquina limpia.
-- **Motor en Rust: adoptado por el usuario el 2026-11-09.** [Análisis y ruta](docs/platforms/rust-engine.md). Razones: distribución sin Python, un motor para Windows y Mac, piezas compartidas con nove y curado. **No** la velocidad de verificación (medido: SHA-256 a 1,67 GB/s en Rust y .NET; el disco manda). Python es el oráculo hasta la paridad de cada método; la app de Mac cambia de motor método por método. En curso:
-  - **Fase 0:** `scripts/engine_golden.py` genera las respuestas doradas. Falta correrlo en la Mac y medir cada fase en una corrida física pedida.
-  - **Fase 1:** [`engine/`](engine/README.md) tiene el JSON canónico compatible con Python, la receta (con lo guardado en el catálogo) y, en Windows, `volumes` y `source_cards` con una identidad de volumen propia (GUID, serial, discos físicos, bus). `register_volume` ya es la primera escritura (sólo configuración, por `rpc`) y `snapshot` está portado: la ventana de Windows muestra los datos reales del PC sin simular respaldos. El planner de tarjetas ya da el plan revisado completo (`discover` con EXIF y misión, `layout`, `plan`/`plan_document` en Windows, ids y digest como Python), más nueve lecturas sueltas. `apply` y `resume` de tarjetas ya están portados con las garantías de Python y probados con fixtures. Sigue: correr el dorado en la Mac, una corrida física explícita en Windows con SD y disco USB reales, y llevar `plan`/`apply` a la ventana de Windows.
+  3. ~~Adaptador de volúmenes de Windows en `media/` y Python empaquetado~~: ya no hace falta; el adaptador existe en Rust y Windows usa el motor de Rust. Lo que sigue es la [Fase A del motor](#motor-en-rust--ruta).
+  4. Firma e instalación del MSIX y del Setup en una máquina limpia.
+- **Motor en Rust: adoptado por el usuario el 2026-11-09.** [Análisis](docs/platforms/rust-engine.md). Razones: distribución sin Python, un motor para Windows y Mac, piezas compartidas con nove y curado. **No** la velocidad de verificación (medido: SHA-256 a 1,67 GB/s en Rust y .NET; el disco manda). Python es el oráculo hasta la paridad de cada método. Orden de trabajo en [Motor en Rust · ruta](#motor-en-rust--ruta).
 - **MCP** ([contrato v1](docs/contracts/nu9ve-mcp-v1.md)): que `media mcp` pida al lector persistente en vez de abrir el catálogo, `serverInfo` `nuun`, campos `_untrusted`, `show_in_app` para un proyecto o un plan revisado y `docs/mcp.md`. Nunca copiar, limpiar ni liberar por MCP.
 
 ## Auditoría del 2026-11-10 (propuestas, sin priorizar aquí)
 
-La [auditoría Fable](docs/audits/fable-audit-2026-11-10.md) revisó nüün, nove, curado y Fractos en el PC de Windows y propone hallazgos con [briefs por sesión](docs/audits/session-briefs-2026-11-10.md). **No cambia este plan**: un hallazgo entra a una tabla de arriba cuando el usuario lo elige. Los dos que tocan trabajo ya en curso:
-
-- Antes de la corrida física de `apply` en Windows (P3, fase 1): la relectura de verificación no evita la caché del sistema fuera de macOS ([A1](docs/audits/fable-audit-2026-11-10.md#a1--la-relectura-de-verificación-no-evita-la-caché-fuera-de-macos)).
-- Al correr el dorado en la Mac (P3, fase 0): guardar las respuestas doradas en git para que el diferencial corra sin Python ([B2](docs/audits/fable-audit-2026-11-10.md#b2--no-hay-ci-y-el-diferencial-nunca-ha-corrido)).
+La [auditoría Fable](docs/audits/fable-audit-2026-11-10.md) revisó nüün, nove, curado y Fractos en el PC de Windows y propone hallazgos con [briefs por sesión](docs/audits/session-briefs-2026-11-10.md). Un hallazgo entra a una tabla de arriba cuando el usuario lo elige. Ya entraron (2026-11-11) a la [ruta del motor](#motor-en-rust--ruta): verificación sin caché ([A1](docs/audits/fable-audit-2026-11-10.md#a1--la-relectura-de-verificación-no-evita-la-caché-fuera-de-macos), paso 1), dorado en git ([B2](docs/audits/fable-audit-2026-11-10.md#b2--no-hay-ci-y-el-diferencial-nunca-ha-corrido), paso 2) y backend de macOS ([B6](docs/audits/fable-audit-2026-11-10.md#b6--el-motor-decide-por-cfgwindows), paso 6). Sin diseño y conveniente antes de guardar fixtures que se comparan byte a byte: `.gitattributes` y versiones de herramientas fijadas ([S3](docs/audits/session-briefs-2026-11-10.md#s3--higiene-de-repos)), que también corrige el README (todavía dice «la app para macOS» y no menciona `engine/` ni `native/windows`).
 
 Decidido por el usuario el 2026-11-10: sonido de interfaz **encendido por defecto, con una opción clara para silenciar**, en toda la suite ([sonido v1 §7](docs/contracts/nu9ve-sound-v1.md#7-valor-por-defecto-ajustes-y-formato)).
 
 Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/suite` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`).
 
-Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](docs/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
+Decisiones que esperan: dueño de las funciones nuevas (Python o Rust, [arriba](#motor-en-rust--ruta)), canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](docs/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
 
 ## Prioridad baja · nombre interno
 
