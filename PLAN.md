@@ -33,7 +33,9 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 Orden revisado el 2026-11-11 a partir de la [auditoría](docs/audits/fable-audit-2026-11-10.md) y del código. Hoy Rust tiene 20 de unos 85 métodos (el camino de una tarjeta), sólo Windows tiene backend de volúmenes, la ventana de Windows no planea ni aplica, la app de Mac no usa Rust y ningún diferencial se ha ejecutado ([STATUS](docs/STATUS.md#por-área)). Las fases y reglas de fondo siguen en [rust-engine §7](docs/platforms/rust-engine.md#7-ruta-recomendada).
 
-**Fase A · nüün usable en Windows.** Los pasos 1 y 3 se pueden hacer en el PC; el 2 necesita la Mac. El 4 espera al 1 y, de preferencia, al 2.
+**Orden vigente desde el 2026-11-11: la Mac primero.** El usuario no tendrá un PC con Windows con este repo por un tiempo. Las siguientes sesiones van, en orden: higiene ([S3](docs/audits/session-briefs-2026-11-10.md#s3--higiene-de-repos)) → paso 0 → paso 2 → pasos 6–9, decidiendo antes el dueño de lo nuevo. La Fase A queda en pausa salvo su paso 2. En paralelo, sin tocar el motor, la suite empieza por documentos y datos ([qué se muda y qué se queda](docs/suite-split.md)).
+
+**Fase A · nüün usable en Windows (en pausa hasta tener Windows, salvo el paso 2).** Los pasos 1, 3, 4 y 5 necesitan Windows para probarse; el 2 necesita la Mac y sirve a las dos fases. El paso 1 sigue siendo condición antes de la primera copia real en Windows.
 
 | Paso | Trabajo | Criterio de cierre | Brief |
 | --- | --- | --- | --- |
@@ -47,6 +49,7 @@ Orden revisado el 2026-11-11 a partir de la [auditoría](docs/audits/fable-audit
 
 | Paso | Trabajo | Criterio de cierre | Brief |
 | --- | --- | --- | --- |
+| 0 | Compilar y probar el motor en macOS: no hay evidencia de que `engine/` se haya compilado ahí (todo se probó en Windows 11; en la Mac `cargo` baja `libc` una vez) | `cargo fmt --check`, `clippy -D warnings` y `cargo test --offline` verdes en la Mac, con lo que responde `not_ported` fuera de Windows anotado en STATUS | — |
 | 6 | Backend de volúmenes de macOS en Rust (DiskArbitration, `statfs`) detrás del mismo rasgo; el binario pregunta por `capabilities`, no por `cfg(windows)` | Pruebas de expulsión y snapshot sobre fixture y sobre el volumen del sistema en la Mac; dorado de `volumes`/`source_cards` | [S16](docs/audits/session-briefs-2026-11-10.md#s16--backend-de-volúmenes-de-macos-en-rust) |
 | 7 | La app de Mac elige motor por método (`rust`/`python`) y lleva el binario dentro del `.app` | Ingreso real de una tarjeta en Mac con Rust y Python como respaldo durante un ciclo | — |
 | 8 | Portar por familias, con diferencial y en orden de riesgo: lecturas de almacenamiento y `coverage` → liberación (`plan_release`, `apply_release`, `review_release`, `relink_release`; antes, [cuarentena o papelera](docs/audits/fable-audit-2026-11-10.md#a4--liberar-a-la-papelera-no-se-traduce-entre-sistemas)) → Stalker y capturas → cierre de proyecto y publicaciones → misiones y DNG → música (M1, M2) → resto. MCP en Rust cuando sus lecturas estén ([S11](docs/audits/session-briefs-2026-11-10.md#s11--mcp-de-nüün-en-rust)) | Diferencial verde por familia; corrida física por dispositivo donde haya limpieza | — |
@@ -89,7 +92,7 @@ La [auditoría Fable](docs/audits/fable-audit-2026-11-10.md) revisó nüün, nov
 
 Decidido por el usuario el 2026-11-10: sonido de interfaz **encendido por defecto, con una opción clara para silenciar**, en toda la suite ([sonido v1 §7](docs/contracts/nu9ve-sound-v1.md#7-valor-por-defecto-ajustes-y-formato)).
 
-Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/suite` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`).
+Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/suite` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`). Inventario por archivo de lo que se muda, cuándo y lo que se queda: [suite-split](docs/suite-split.md). En resumen: documentos y datos ya; el código de Rust después de que el motor funcione en la Mac; Swift tras decidir `NuMacShell`; C# cuando haya Windows.
 
 Decisiones que esperan: dueño de las funciones nuevas (Python o Rust, [arriba](#motor-en-rust--ruta)), canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](docs/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
 
