@@ -1,0 +1,34 @@
+# Keep LF in every checkout, including Windows with core.autocrlf=true (same rule as curado).
+# The index already stores LF. rustfmt, the shell scripts on macOS and the golden fixtures of engine/
+# (compared byte for byte) expect it; PowerShell, C# and XAML read LF fine.
+* text=auto eol=lf
+
+# Binary: never converted, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.webp binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.icns binary
+*.pdf binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.wav binary
+*.flac binary
+*.mp3 binary
+*.m4a binary
+*.mp4 binary
+*.mov binary
+*.dng binary
+*.arw binary
+*.sqlite binary
+*.db binary
+*.msix binary
+*.exe binary
+*.dll binary
+.DS_Store binary

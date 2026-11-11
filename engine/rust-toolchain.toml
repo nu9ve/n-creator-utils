@@ -1,0 +1,8 @@
+# The exact compiler that passes fmt, clippy -D warnings and the tests (Windows 11, 2026-11-11).
+# A newer clippy can add lints, so the version moves in a change of its own, never by routine.
+# On a machine without it, rustup installs this version once (a download), then it works offline.
+# `rust-version` in Cargo.toml stays the minimum the code needs; this file is what CI and sessions use.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
