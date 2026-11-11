@@ -50,7 +50,28 @@ pub fn normalize(root: &Path) -> String {
     }
 }
 
-/// The real backend on Windows.
+/// The real volume backend the Rust engine has for this platform, or `None` where volumes are still Python's.
+///
+/// This is the only place that asks which operating system it is (audit B6): the binary asks for the capability.
+/// Windows: `WindowsBackend`. macOS: none yet; `media/volumes.py` (diskutil/DiskArbitration) answers there until
+/// the macOS backend lands (brief S16) and is added here. Linux: none (UDisks2 later, docs/platforms/linux.md).
+pub fn platform_backend() -> Option<&'static dyn Backend> {
+    #[cfg(windows)]
+    {
+        Some(&WindowsBackend)
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
+/// The name `engine_info` gives the backend of `platform_backend` (its `mode` in a volume identity).
+pub fn platform_backend_name() -> Option<&'static str> {
+    if cfg!(windows) { Some("windows") } else { None }
+}
+
+/// The real backend on Windows. It compiles everywhere; only `platform_backend` decides where it is used.
 pub struct WindowsBackend;
 
 impl Backend for WindowsBackend {
