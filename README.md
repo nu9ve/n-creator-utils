@@ -2,7 +2,7 @@
 
 **Una multiherramienta para creadores:** organiza archivos, almacenamiento y pequeños flujos que conectan el trabajo creativo con sus herramientas y dispositivos.
 
-nüün es la app para macOS de este repositorio, `n-creator-utils`. Hoy su área más desarrollada es **media**: ingresar, respaldar y preparar video, audio, fotos y capturas para trabajar. También hay utilidades de línea de comandos para música y audio; a futuro, el proyecto puede crecer hacia dispositivos, iluminación y automatización.
+nüün es la app de este repositorio, `n-creator-utils`. En macOS está en uso diario, con la app nativa y el motor de media en Python. El motor se está pasando a **Rust** ([`engine/`](engine/README.md)) para que Mac, Windows y, después, Linux usen el mismo. En Windows hay un cliente nativo ([`native/windows`](native/windows/README.md)) que lee los discos con ese motor, pero todavía no respalda. Hoy su área más desarrollada es **media**: ingresar, respaldar y preparar video, audio, fotos y capturas para trabajar. También hay utilidades de línea de comandos para música y audio; a futuro, el proyecto puede crecer hacia dispositivos, iluminación y automatización.
 
 > **En desarrollo.** El motor de media y la app tienen pruebas y una instalación local de desarrollo, pero aún faltan validación física, endurecimiento y distribución. Consulta el [estado actual](docs/STATUS.md) y los [requisitos para una release](docs/release.md).
 
@@ -51,7 +51,18 @@ nu9ve --help
 nu9ve media --help
 ```
 
-Para compilar e instalar la app localmente se necesita macOS 14+ y Swift 6. Antes de operar con archivos, registra tus destinos y revisa el plan y sus opciones de limpieza. La [guía operativa](docs/operations.md) explica la instalación, los discos, el respaldo y la recuperación. Algunas utilidades de audio y video requieren herramientas adicionales.
+Para compilar e instalar la app localmente se necesita macOS 14+ y Swift 6.
+
+El motor en Rust se compila y prueba sin descargar nada más que el compilador fijado en `engine/rust-toolchain.toml`:
+
+```sh
+cd engine
+cargo test --offline
+```
+
+El cliente de Windows necesita Windows 11 y el SDK de .NET fijado en `native/windows/global.json`; los pasos están en su [README](native/windows/README.md).
+
+Antes de operar con archivos, registra tus destinos y revisa el plan y sus opciones de limpieza. La [guía operativa](docs/operations.md) explica la instalación, los discos, el respaldo y la recuperación. Algunas utilidades de audio y video requieren herramientas adicionales.
 
 El importador anterior sigue disponible como `legacy-save` y tiene garantías distintas; consulta la [referencia de comandos](docs/commands.md) antes de usarlo.
 

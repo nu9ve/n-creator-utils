@@ -36,6 +36,8 @@ Encargos listos para entregar a otro modelo, **uno por sesión**. Salen de la [a
 
 ## S1 · Verificación sin caché en Windows y Linux
 
+**Hecho el 2026-11-11** en Windows (commit `e039350`, [STATUS](../STATUS.md#entregas-recientes)). Queda: verlo en exFAT y con un lector SD real durante la corrida física, y compilar y probar la ruta de Linux (`posix_fadvise`), que no se ha compilado.
+
 ```text
 Repo: n-creator-utils (Windows). Lee AGENTS.md, docs/CONTEXT.md, docs/STATUS.md, y luego
 docs/audits/fable-audit-2026-11-10.md (hallazgo A1), engine/README.md y
@@ -108,6 +110,8 @@ una prueba; commits sin pedirlos.
 ```
 
 ## S3 · Higiene de repos
+
+**Hecho en parte el 2026-11-11, sólo en n-creator-utils:** puntos 1 y 2 (`.gitattributes`; el índice ya era LF y no cambió nada), `engine/rust-toolchain.toml` 1.99.1 y `native/windows/global.json` 10.0.403, y del punto 4 el README, `windows.md` §1 y el límite 5 de STATUS. Faltan en este repo los enlaces con rutas de una Mac (punto 3) y `suite.md`, y los otros repos.
 
 ```text
 Repos: n-creator-utils, nove, curado, ios-fractos (uno por vez; pregunta antes de cada commit).
@@ -513,6 +517,8 @@ No hacer: añadir un framework de localización; traducir identificadores establ
 ```
 
 ## S16 · Backend de volúmenes de macOS en Rust
+
+Nota del 2026-11-11: B6 ya está hecho. El backend se agrega en `nuun_media::volumes::platform_backend()` y en ningún otro lugar; el binario no tiene `cfg(windows)`. Con eso el binario ofrece **todos** los métodos de volúmenes en Mac, incluidos `plan` y `apply`. Que la app de Mac no envíe esas escrituras a Rust hasta tener el dorado (S2) y una corrida física es una decisión del cliente (`BackendConfiguration`), y hay que dejarla explícita.
 
 ```text
 Repo: n-creator-utils (Mac). Requiere S2. Lee engine/README.md, media/volumes.py, la auditoría
