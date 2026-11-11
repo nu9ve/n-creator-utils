@@ -125,12 +125,12 @@ Atajos de dominio que ya existen y conviene conservar entre apps del mismo tipo:
 
 ## Adopción
 
-Leído en el código el 2026-11-07, sin probar a mano. Revisar al actualizar.
+Leído en el código el 2026-11-07, sin probar a mano. Revisar al actualizar. La columna de Fractos se releyó el 2026-11-10 en la app de Mac de `ios-fractos` (`f1a7bcb`).
 
 | Regla | curado | SoundShop | Clipper TUI | nüün | kyu | Fractos | nove · neuf · Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 Catálogo | Sí (`keyboard.ts`) | Sí, con prueba | Sí (`SHORTCUT_SPECS`), con prueba | No: atajos solo en el menú | Sin revisar | Sin revisar | Sin revisar |
-| 2 Todo por teclado | Sí en la cabina | Parcial | Sí | Parcial: menús, ⌘1…⌘6, pasos de Ingreso | Parcial: cribado con 0–5, P/X/U, flechas | Parcial | Sin revisar |
+| 1 Catálogo | Sí (`keyboard.ts`) | Sí, con prueba | Sí (`SHORTCUT_SPECS`), con prueba | No: atajos solo en el menú | Sin revisar | No (Mac): atajos en `AppCommands.swift` y sueltos en pantallas | Sin revisar |
+| 2 Todo por teclado | Sí en la cabina | Parcial | Sí | Parcial: menús, ⌘1…⌘6, pasos de Ingreso | Parcial: cribado con 0–5, P/X/U, flechas | Parcial (Mac): menús, flechas en Trabajo y Calendario; las secciones van en ⌥⌘1… y ⌘1/⌘2 son filtros de Trabajo, no las vistas de la §8 | Sin revisar |
 | 3 Badges y capas | Sí, con capa de Option | Sí en el footer; en los controles sin revisar | Barra de contexto (terminal) | No | Sin revisar | No | Sin revisar |
 | 4 Ayuda contextual | Sí (footer) | Sí (barra de estado) | Barra de contexto | No | Sin revisar | No | Sin revisar |
 | 5 Panel de atajos | Pestaña teclado | Sí (⌘/) | Sin revisar | No | Sin revisar | No | Sin revisar |

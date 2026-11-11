@@ -6,6 +6,10 @@ Fuera de media, y para cualquier app nativa de nu9ve: [apps de macOS v1](macos-a
 
 Para que un agente use cualquier app de la suite: [servidores MCP v1](nu9ve-mcp-v1.md) (propuesta, 2026-11-09), con cuatro niveles (leer, mostrar, editar, actuar), permiso por sesión y estado por app. Parte del MCP de nove.
 
+Para avisar por el sistema operativo con las mismas reglas en todas las apps: [avisos del sistema v1](nu9ve-notifications-v1.md) (propuesta, 2026-11-10), con la cola de entregas de nove en Windows como base: el aviso de la app es la verdad, el clic lleva al objeto exacto, «todo salvo excepciones», límites, caducidad y sonido.
+
+Para que cada skin suene igual en todas las apps: [sonido de tema v1](nu9ve-sound-v1.md) (propuesta, 2026-11-10), con el motor de sonido v2 de Fractos como única fuente, correspondencia de señales, gestos y voces por skin, y reglas de silencio. Sin implementar fuera de Fractos.
+
 Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, finales vinculados, descarte confirmado de renders y límites de Clipper/Final Cut.
 
 [Transcripciones de Clipper en MEDIA](clipper-transcripts-v1.md), 2026-11-07, propuesta: Clipper exporta y nüün copia y verifica en `004_datos/clipper/transcripts/`, ligadas al video respaldado.

@@ -128,7 +128,7 @@ Un skin es un conjunto de medidas, no una paleta. Medidas en pt (Swift) y px (we
 | `gothic` · Gótico | 1 / 2 / 3 | 1–2, marco doble en paneles de marca | Suave, viñeta | UnifrakturMaguntia | Sistema | Negro profundo, carmesí, noche |
 | `y2k` · Cromo | 9 / 14 / 24 | 1 | Suave, brillo diagonal | Michroma / Audiowide | Sistema | Cromo líquido, botones píldora |
 
-Solo en Fractos: `neon`, `parchment` y `ledger`; `terminal` es uno de los comunes y le falta a las demás apps. `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
+Solo en Fractos: `neon`, `parchment` y `ledger`; `terminal` es uno de los comunes y le falta a las demás apps. El material que Fractos llama `chrome` es el `y2k` de esta tabla, y Fractos no tiene `pixel`, `dither` ni `minimal`: su tema Pixel usa `classicMac` (leído en `ios-fractos`: `docs/DESIGN_SYSTEM.md` el 2026-11-10; unificar los nombres es un pendiente). `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
 
 **Skins opcionales.** Una app puede ofrecer skins de época como extra para quien quiera personalizar su espacio. El skin por defecto sigue siendo el sobrio (Cristal), y elegir otro siempre es reversible desde Apariencia. Un skin de época **puede** fijar su modo (Macintosh y Windows 9x claros, Gótico oscuro). En ese caso Apariencia lo dice y conserva la preferencia de modo del usuario para cuando vuelva a otro skin.
 
@@ -262,7 +262,7 @@ Decisión (2026-11-06): **primero replicar, después extraer.** Todavía no hay 
 
 Cada skin puede sonar a su época, como Fractos (`FractosSoundV2`, voces sintetizadas sin archivos de audio y portadas de la web). Es un extra, igual que los skins de época.
 
-- **Debe:** apagado por defecto. Ajustes → Apariencia → **Sonidos de interfaz** (apagado), con volumen, y **Háptica** (solo trackpad Force Touch). Quien lo quiera lo enciende una vez, y la preferencia sobrevive a reinstalar. En los equipos del colectivo se enciende desde Ajustes como cualquier usuario; no hay un valor por defecto distinto escondido en el build.
+- **Debe:** encendido por defecto, con una opción clara para silenciar (decisión del usuario, 2026-11-10; antes esta regla decía «apagado por defecto»). Ajustes → Apariencia → **Sonidos de interfaz**, con volumen, y **Háptica** (solo trackpad Force Touch), más un control de **Silenciar** a un paso fuera de Ajustes. La preferencia sobrevive a reinstalar y no hay un valor por defecto distinto escondido en el build. El detalle está en [sonido de tema v1 §7](nu9ve-sound-v1.md#7-valor-por-defecto-ajustes-y-formato).
 - **Debe:** usar el vocabulario de señales de [interacción](nu9ve-interaction-v1.md#7-respuesta-al-usar-una-tecla): `hover`, `press`, `select`, `tab`, `toggleOn`/`toggleOff`, `expand`/`collapse`, `popupOpen`/`popupClose`, entrar/volver, éxito, aviso y error. Un gesto da un solo sonido. Repetir rápido suaviza (fatiga). El sonido nunca es la única señal.
 - **Debe:** cada skin elige su voz (Macintosh 1 bit, Windows 9x, Terminal, Gótico, la del original de cada app), con el mismo vocabulario.
 - **Debe:** nunca suena encima del trabajo. Se calla durante una grabación (Stalker y cualquier captura de audio del sistema, para no quedar grabado), mientras una app de audio reproduce o graba (curado, SoundShop), y en pantalla completa de video. Sale por la salida predeterminada del sistema, nunca por la salida de mezcla o de cue.
@@ -271,17 +271,17 @@ Cada skin puede sonar a su época, como Fractos (`FractosSoundV2`, voces sinteti
 
 ## Adopción
 
-Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
+Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar. La columna de Fractos se releyó el 2026-11-10 en `ios-fractos` (`f1a7bcb`, app de Mac y `FractosDesign`), también sin verla.
 
 | Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
-| 3 Contraste | Parcial: `mutedInk` | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
-| 4 Apariencia | Parcial: tema, paleta, material | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
-| 5 Skins | Sí, catálogo completo | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
+| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
+| 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
+| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
-| 8 Todas las ventanas | Sin revisar | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
-| 9 Idioma | Sin revisar | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
+| 8 Todas las ventanas | Sí en código (Mac): `ThemedWindowContent` da barra y atmósfera a Ajustes y Acerca de | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
+| 9 Idioma | No en Mac: sólo español, sin catálogo de textos; iOS con catálogo incompleto | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
