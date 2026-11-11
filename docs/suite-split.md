@@ -13,7 +13,7 @@ Contexto que cambia el orden: **las siguientes sesiones de este repo serán en l
 | Código de Swift | Cuando el usuario decida si `NuMacShell` sale de `ios-fractos` ([pregunta 3](suite-sharing.md#8-lo-que-decide-el-usuario)) y la app de Mac de nüün ya use Rust | nüün tiene su propio shell; converger con `NuMacShell` es trabajo de interfaz y no conviene mezclarlo con el cambio de motor |
 | Código de C# | Cuando haya otra vez una máquina con Windows | WinUI sólo compila y se prueba en Windows; moverlo sin poder compilarlo sería mover a ciegas |
 
-Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` importa algo `nuun-*`**. Hoy se cumple: `nu9ve-volumes` sólo depende de `nu9ve-json`, y `Nu9ve.Core`/`Nu9ve.WinUI` reciben el nombre de la app como parámetro (`Storage.Configure("nuun", "NUUN_QA_ROOT", …)`). Conviene volverlo un script, como `verify-packages.sh` de Fractos: que falle si un crate `nu9ve-*` o un proyecto `Nu9ve.*` nombra algo de nüün. Así el día de la mudanza es copiar carpetas, no desenredar.
+Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` importa algo `nuun-*`**. Hoy se cumple: `nu9ve-volumes` sólo depende de `nu9ve-json`, y `Nu9ve.Core`/`Nu9ve.WinUI` reciben el nombre de la app como parámetro (`Storage.Configure("nuun", "NUUN_QA_ROOT", …)`). Lo comprueba `scripts/check_suite_boundary.sh` (desde el 2026-11-11, como `verify-packages.sh` de Fractos): falla si un crate `nu9ve-*` o un proyecto `Nu9ve.*` nombra algo de nüün fuera de un comentario. Así el día de la mudanza es copiar carpetas, no desenredar.
 
 ## 2. Documentos y datos
 

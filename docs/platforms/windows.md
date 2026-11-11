@@ -8,9 +8,9 @@ Actualizado: 2026-11-09. Las **reglas** están en [apps de Windows v1](../contra
 | --- | --- | --- | --- | --- |
 | **nove** | C#/WinUI 3 nativo | Rust por named pipe | 0.12.0.x por MSIX de desarrollo; host de fondo, avisos, broker, MCP; QA por UI Automation | `nove/apps/windows`, [A14–A19](../../../nove/docs/decisions.md) |
 | **curado** | Tauri + WebView2 | Rust (`audio-engine`) | Compila y pasa pruebas en Windows 11; NSIS y MSI generados; no escuchado en Windows | `curado/docs/WINDOWS.md` |
-| **nüün** | C#/WinUI 3 nativo (**maqueta**) | Rust en migración ([`engine/`](../../engine/README.md)); Python en Mac | Shell, cinco skins, Ingreso/Flujos/Biblioteca/Ajustes/Acerca de con datos ficticios. El motor de Rust responde `recipe`, lee los destinos y las tarjetas montadas de este PC y registra destinos (Biblioteca → Discos). Setup con forma; MSIX empaquetado sin firmar | [`native/windows`](../../native/windows/README.md) |
+| **nüün** | C#/WinUI 3 nativo | Rust en migración ([`engine/`](../../engine/README.md)); Python en Mac | Shell, cinco skins, Ingreso/Flujos/Biblioteca/Ajustes/Acerca de. Con el motor de Rust muestra los datos reales del PC (`snapshot`, destinos, tarjetas montadas y su contenido) y registra destinos; `--maqueta` para demos. Setup con forma; MSIX empaquetado sin firmar | [`native/windows`](../../native/windows/README.md) |
 
-nüün en Windows **no** lee discos todavía: la capa de volúmenes (`media/volumes.py`) usa `diskutil`/DiskArbitration. La maqueta lo dice en la barra («Maqueta») y en Ajustes.
+Corregido el 2026-11-11 (antes decía que nüün no leía discos). nüün en Windows **lee** discos con el motor de Rust, que tiene su propio backend de volúmenes de Windows, y el motor ya planea, copia con verificación sin caché y reanuda tarjetas por línea de comandos. La **ventana** todavía no planea ni aplica: `RpcEngine` responde `not_on_windows` ([STATUS](../STATUS.md#por-área)). Nada se ha probado con una tarjeta real.
 
 ## 2. Stack y versiones
 
