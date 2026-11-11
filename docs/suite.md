@@ -17,7 +17,7 @@ Cada nombre es «nueve» en un idioma, y de ahí sale su identidad ([tema §7](c
 | **SoundShop** | Editor espectral: el sonido como lienzo | Sin país: el lienzo espectral | macOS | SwiftUI + Metal | Swift (`SoundCore`); stems con Python opcional | local, sin remoto | v0.29.0 |
 | **nove** | Recolectar datos, seguir números de páginas, condiciones y avisos | Portugal: exploradores, el puerto | macOS, **Windows (activa)** | SwiftUI/AppKit · C#/WinUI 3 · extensión de Chrome | Rust; socket Unix / named pipe con el mismo protocolo; MCP local | `nu9ve/nove` | Mac 0.11.0, Windows 0.12.0.x por MSIX de desarrollo |
 | **Atlas** | Análisis de fotos nadir de dron (daño en calles) | Datos | macOS (Python) | Visor web local | Python | `data/atlas`, local | Exploración; consume archivos de nüün |
-| **Fractos** | Comunidad: mapa, trabajo, grupos, perfiles; la referencia expresiva de la suite | Fractos | iOS, macOS, web | SwiftUI (`FractosKit`) · Next.js | API de Fractos (`/api/v1`) + Supabase solo para auth | `nu9ve/ios-fractos`, `nu9ve-machine/nu9ve.xyz` | iOS y Mac en desarrollo; web activa en nu9ve.xyz |
+| **Fractos** | Comunidad: mapa, trabajo, grupos, perfiles; la referencia expresiva de la suite | Fractos | iOS, macOS, web | SwiftUI (`FractosKit`) · Next.js | API de Fractos (`/api/v1`) + Supabase solo para auth | `nu9ve/ios-fractos`, `nu9ve-machine/nu9ve.xyz` | Leído el 2026-11-10 (`f1a7bcb`): iOS `implemented-local`; Mac 0.1.0 (`Apps/macOS`, macOS 26) con login, Trabajo, Calendario, Mapa, Textos, Grupos y Perfil, probada en QA y sin cuenta real; web activa en nu9ve.xyz. Detalle en su `docs/MONOREPO.md` y `docs/SUITE-DESKTOP.md` |
 
 Otros proyectos del colectivo, fuera de este mapa por ahora: docufin (documentos → conocimiento), arre.click (scout), forja (GUI para agentes) y video (Remotion).
 
@@ -41,7 +41,11 @@ Otros proyectos del colectivo, fuera de este mapa por ahora: docufin (documentos
 | [nu9ve-theme-v1](contracts/nu9ve-theme-v1.md) | Roles de color, contraste, Apariencia, skins (original, contraste, Macintosh, Windows 9x, Terminal), identidad | Propuesta; nüün completo, kyu en curso |
 | [nu9ve-interaction-v1](contracts/nu9ve-interaction-v1.md) | Todo por teclado, catálogo de atajos, badges con capas, ayuda contextual, panel ⌘/ | Propuesta |
 | [nu9ve-mcp-v1](contracts/nu9ve-mcp-v1.md) | Servidor MCP por app: stdio local, cliente del motor, niveles leer/mostrar/editar/actuar, permiso por sesión, datos `_untrusted` | Propuesta; nove completo en Windows, nüün sólo lectura |
+| [nu9ve-sound-v1](contracts/nu9ve-sound-v1.md) | Sonidos de interfaz por skin desde el motor v2 de Fractos: señales, gestos, voces, entrega, silencio | Propuesta (2026-11-10); sólo Fractos suena hoy |
+| [nu9ve-notifications-v1](contracts/nu9ve-notifications-v1.md) | Avisos del sistema: cola en el motor, clic al objeto exacto, valores por defecto, límites, urgencia, sonido | Propuesta (2026-11-10); nove completo en Windows, nüün y nove parciales en Mac |
 | [Contratos de media](contracts/README.md) | Ingreso, naming, biblioteca/handoff, cierre, Stalker, Atlas | Vigentes, con adopción por app en su índice |
+
+Guías por plataforma (propuestas del 2026-11-10): [integración con el sistema operativo](platforms/os-integration.md) y [Linux](platforms/linux.md). Hallazgos entre repos: [auditoría Fable](audits/fable-audit-2026-11-10.md). Dónde debería vivir todo esto y cómo lo consumiría cada app: [cómo se comparte entre repos](suite-sharing.md) (propuesta).
 
 Clipper mantiene además los suyos (`clipper/apps/APP_CONTRACT.md`, `APP_SERVICES_CONTRACT.md`, `CROSS_APP_EDITORIAL_GUIDE.md`), y nove los de su motor (`nove/docs/contracts`).
 
@@ -67,6 +71,9 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](contrac
 | Swift (Mac) | Ventana cuadrada y barra propia (`ShellWindow`, `TitleBarDragArea`, controles × − +) | Fractos `NuMacShell`, nüün, SoundShop, neuf (doble clic) | 3–4 |
 | Swift (Mac) | `AppIdentity` / Acerca de | Fractos `NuMacShell`, SoundShop, neuf, nove | 4 |
 | Swift (Mac) | Catálogo de atajos, badge del footer, ayuda contextual | SoundShop (`ShortcutCatalog`, `WorkspaceHelpStore`) | 1 |
+| Swift (Apple) | Motor de sonido v2, señales de componente, puente a sonido y tacto, háptica | Fractos `FractosSoundV2`, `FractosCue`, `SoundCues`, `NuMacShell` `HapticPlayer` ([sonido v1](contracts/nu9ve-sound-v1.md)) | 1 |
+| Todas | Contrato ajeno como copia fijada con commit de origen y hashes | Fractos `Contracts/`, `scripts/sync-contracts.sh` | 1 |
+| Todas | Sello de build `Nu9veBuildID` / `Nu9veBuildDate` en Acerca de | Fractos `NuMacShell` `AppIdentity`, nüün `AppIdentity` | 2 |
 | C# (Windows) | Cliente del pipe, host de fondo, diccionarios de tema, settings cards | nove `Nove.Core` | 1 |
 | C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | nüün `native/windows` (primera copia; nove la tomaría como segunda) | 1 |
 | Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`contracts/examples/theme-vectors-v1.json`](contracts/examples/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |

@@ -61,6 +61,19 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
   - **Fase 1:** [`engine/`](engine/README.md) tiene el JSON canónico compatible con Python, la receta (con lo guardado en el catálogo) y, en Windows, `volumes` y `source_cards` con una identidad de volumen propia (GUID, serial, discos físicos, bus). `register_volume` ya es la primera escritura (sólo configuración, por `rpc`) y `snapshot` está portado: la ventana de Windows muestra los datos reales del PC sin simular respaldos. El planner de tarjetas ya da el plan revisado completo (`discover` con EXIF y misión, `layout`, `plan`/`plan_document` en Windows, ids y digest como Python), más nueve lecturas sueltas. `apply` y `resume` de tarjetas ya están portados con las garantías de Python y probados con fixtures. Sigue: correr el dorado en la Mac, una corrida física explícita en Windows con SD y disco USB reales, y llevar `plan`/`apply` a la ventana de Windows.
 - **MCP** ([contrato v1](docs/contracts/nu9ve-mcp-v1.md)): que `media mcp` pida al lector persistente en vez de abrir el catálogo, `serverInfo` `nuun`, campos `_untrusted`, `show_in_app` para un proyecto o un plan revisado y `docs/mcp.md`. Nunca copiar, limpiar ni liberar por MCP.
 
+## Auditoría del 2026-11-10 (propuestas, sin priorizar aquí)
+
+La [auditoría Fable](docs/audits/fable-audit-2026-11-10.md) revisó nüün, nove, curado y Fractos en el PC de Windows y propone hallazgos con [briefs por sesión](docs/audits/session-briefs-2026-11-10.md). **No cambia este plan**: un hallazgo entra a una tabla de arriba cuando el usuario lo elige. Los dos que tocan trabajo ya en curso:
+
+- Antes de la corrida física de `apply` en Windows (P3, fase 1): la relectura de verificación no evita la caché del sistema fuera de macOS ([A1](docs/audits/fable-audit-2026-11-10.md#a1--la-relectura-de-verificación-no-evita-la-caché-fuera-de-macos)).
+- Al correr el dorado en la Mac (P3, fase 0): guardar las respuestas doradas en git para que el diferencial corra sin Python ([B2](docs/audits/fable-audit-2026-11-10.md#b2--no-hay-ci-y-el-diferencial-nunca-ha-corrido)).
+
+Decidido por el usuario el 2026-11-10: sonido de interfaz **encendido por defecto, con una opción clara para silenciar**, en toda la suite ([sonido v1 §7](docs/contracts/nu9ve-sound-v1.md#7-valor-por-defecto-ajustes-y-formato)).
+
+Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/suite` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`).
+
+Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](docs/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
+
 ## Prioridad baja · nombre interno
 
 Renombrar `MediaMenu` → `Nuun` (paquete, targets, ejecutable, prefijo `Nu9veMedia-local-*`, scripts y docs) en un cambio propio sin comportamiento nuevo. Se conservan `CFBundleIdentifier` `app.nu9ve.media`, `~/Applications/nuun.app` y el catálogo.

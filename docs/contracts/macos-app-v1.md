@@ -97,18 +97,20 @@ Solo para apps que editan archivos propios.
 
 Revisar el código al actualizar; esta tabla no sustituye el estado de cada app.
 
-| Regla | SoundShop 0.27 | nüün 0.2 |
-| --- | --- | --- |
-| 1 Barra de título | Sí | Sí |
-| 2 Ventana | Sí | Parcial: la pantalla completa recorre clases privadas |
-| 3 Temas | Sí | Sí |
-| 4 Menús | Sí | Parcial: menú manual sin Servicios, Ocultar otras, Mostrar todo ni Zoom |
-| 5 Acerca de | Sí | Sí (2026-11-07): ventana propia con tema y skin, versión copiable, enlaces y `NSHumanReadableCopyright` |
-| 6 Documentos | Sí | No aplica |
-| 7 Ajustes | Sí | Sí |
-| 8 Sistema | Sí, sin pasada completa de VoiceOver | Sí, sin pasada completa de VoiceOver |
-| 9 Bundle y distribución | Parcial: scripts listos, nunca notarizada, sin actualizador | Parcial: sin notarización ni actualizador |
-| 10 Validación | Sí | Sí |
+| Regla | SoundShop 0.27 | nüün 0.2 | Fractos Mac 0.1 |
+| --- | --- | --- | --- |
+| 1 Barra de título | Sí | Sí | Sí: cada material salvo cristal dibuja su barra y sus controles; arrastre con ratón real sin probar |
+| 2 Ventana | Sí | Parcial: la pantalla completa recorre clases privadas | Sí, con desvío declarado: `ShellWindow` en vez de `Window`, por las esquinas cuadradas |
+| 3 Temas | Sí | Sí | Sí; contraste probado sólo en los temas por defecto |
+| 4 Menús | Sí | Parcial: menú manual sin Servicios, Ocultar otras, Mostrar todo ni Zoom | Parcial: la Ayuda abre la web; interfaz sólo en español; ⇧⌘Q cierra la sesión de la app y es un atajo del sistema |
+| 5 Acerca de | Sí | Sí (2026-11-07): ventana propia con tema y skin, versión copiable, enlaces y `NSHumanReadableCopyright` | Sí, con sello de build (`Nu9veBuildID`) |
+| 6 Documentos | Sí | No aplica | No aplica |
+| 7 Ajustes | Sí | Sí | Sí: tema, paleta, material, logo, sonido y háptica; sin sincronizar con la cuenta |
+| 8 Sistema | Sí, sin pasada completa de VoiceOver | Sí, sin pasada completa de VoiceOver | Parcial: sonido y háptica sin escuchar ni probar con trackpad; sin pasada de VoiceOver |
+| 9 Bundle y distribución | Parcial: scripts listos, nunca notarizada, sin actualizador | Parcial: sin notarización ni actualizador | Parcial: firma ad hoc, sin Developer ID, notarización ni actualizador; icono de iOS |
+| 10 Validación | Sí | Sí | Sí: modo QA con capturas y prueba de ventana; falta registro de pruebas físicas |
+
+La columna de Fractos resume su propia tabla (`ios-fractos`: `docs/MONOREPO.md`, «Adopción del contrato de Mac»), leída el 2026-11-10 junto con su código; nadie vio la app corriendo desde esta sesión. Si las dos tablas difieren, manda la de su repo.
 
 Stalker, Clipper y otras apps: sin revisar. Una app adopta el contrato añadiéndose aquí con lo que le falta.
 

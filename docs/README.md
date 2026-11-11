@@ -23,6 +23,13 @@
 | Add or review an app's MCP server: tiers (read, show, edit, act), per-session permission, untrusted data, per-app status | [MCP contract](contracts/nu9ve-mcp-v1.md) (proposal) |
 | Decide whether to move the media engine to Rust: measurements, gains, risks, migration path, shared crates | [Rust engine analysis](platforms/rust-engine.md) |
 | See every nu9ve app, what it is for, its platforms, shared flows/contracts and package candidates | [Suite map](suite.md) |
+| Read the 2026-11-10 suite audit: prioritized findings on OS practices, standards, engine, cross-repo drift | [Fable audit](audits/fable-audit-2026-11-10.md) (read-only audit, proposes) |
+| Hand an audit finding to another session as a self-contained task | [Session briefs](audits/session-briefs-2026-11-10.md) |
+| Translate a system feature between macOS, Windows and Linux; OS features the suite does not use yet; naming/path convention; `nu9ve://` links | [OS integration](platforms/os-integration.md) (proposal) |
+| Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](platforms/linux.md) (proposal) |
+| Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](suite-sharing.md) (proposal) |
+| OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](contracts/nu9ve-notifications-v1.md) (proposal) |
+| Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](contracts/nu9ve-sound-v1.md) (proposal) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |
 | Configure older downloads/stems/importer | [Configuration](configuration.md), [commands](commands.md) |
