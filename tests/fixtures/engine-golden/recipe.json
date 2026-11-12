@@ -638,6 +638,304 @@
     }
   ],
   "generator": "scripts/engine_golden.py",
+  "missions": {
+    "files": {
+      "archive/004_datos/subaereo/coverage/history.json": "{\"captureLog\":[{\"captureID\":\"C1\",\"capturedAt\":\"2026-11-01T09:00:00Z\",\"mediaCreatedAt\":\"2026-11-01 02:00:00\"}],\"captures\":[],\"exportWindow\":{\"kind\":\"merged\",\"mergeKeys\":{\"captureLog\":\"captureID\",\"captures\":\"captureID\",\"fieldNotes\":\"id\",\"flightSessions\":\"id\",\"plans\":\"id\"},\"since\":null,\"until\":\"2026-11-01T10:00:00Z\"},\"exportedAt\":\"2026-11-01T10:00:00Z\",\"fieldNotes\":[],\"flightSessions\":[],\"mergedFrom\":[{\"exportedAt\":\"2026-11-01T10:00:00Z\",\"file\":\"coverage-1.json\",\"kind\":\"plan\",\"sha256\":\"f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21\"}],\"nuun\":{\"changes_count\":0,\"flow\":\"subaereo\",\"records\":{\"captureLog\":{\"C1\":\"f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21\"},\"captures\":{},\"fieldNotes\":{},\"flightSessions\":{},\"plans\":{\"P1\":\"f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21\"}},\"schema\":\"nu9ve-mission-history/1\",\"sources\":{\"f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21\":{\"changes\":{\"deleted\":0,\"new\":2,\"updated\":0},\"exportedAt\":\"2026-11-01T10:00:00Z\",\"file\":\"coverage-1.json\",\"first\":\"2026-11-01T09:00:00Z\",\"incorporated_at\":\"2026-11-02T00:00:00Z\",\"kind\":\"plan\",\"last\":\"2026-11-01T09:00:00Z\",\"photos\":1,\"plans\":1,\"raw\":null,\"schemaVersion\":2,\"sha256\":\"f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21\"}},\"tombstones\":{\"plans\":{}}},\"plans\":[{\"id\":\"P1\",\"name\":\"Calles\",\"updatedAt\":\"t1\"}],\"schemaVersion\":2}\n",
+      "elsewhere/coverage-x.json": "{\"captures\": [{\"captureID\": 7, \"capturedAt\": \"2026-11-07T07:00:00Z\"}], \"exportedAt\": \"2026-11-07T10:00:00+02:00\", \"plans\": [{\"id\": \"P3\", \"name\": \"Otro\", \"updatedAt\": \"t3\"}], \"schemaVersion\": 2}",
+      "inbox/JSON-old.json": "{\"exportedAt\": \"2026-10-01T10:00:00Z\", \"plans\": [{\"id\": \"P1\", \"name\": \"Viejo\", \"updatedAt\": \"t0\"}], \"schemaVersion\": 1}",
+      "inbox/coverage-1.json": "{\"captureLog\": [{\"captureID\": \"C1\", \"capturedAt\": \"2026-11-01T09:00:00Z\", \"mediaCreatedAt\": \"2026-11-01 02:00:00\"}], \"exportedAt\": \"2026-11-01T10:00:00Z\", \"plans\": [{\"id\": \"P1\", \"name\": \"Calles\", \"updatedAt\": \"t1\"}], \"schemaVersion\": 2}",
+      "inbox/coverage-2.json": "{\"captureLog\": [{\"captureID\": \"C1\", \"capturedAt\": \"2026-11-01T09:00:00Z\", \"mediaCreatedAt\": \"2026-11-01 02:00:00\"}, {\"captureID\": \"C2\", \"capturedAt\": \"2026-11-05T08:00:00+00:00\"}], \"exportWindow\": {\"kind\": \"since\"}, \"exportedAt\": \"2026-11-05T10:00:00Z\", \"plans\": [{\"id\": \"P1\", \"name\": \"Calles 2\", \"updatedAt\": \"t2\"}, {\"id\": \"P2\", \"name\": \"R\\u00edo\", \"updatedAt\": \"t2\"}], \"schemaVersion\": 3}",
+      "inbox/coverage-3.json": "{\"deletedPlanIDs\": [\"P2\", \"P9\"], \"exportedAt\": \"2026-11-06T10:00:00Z\", \"plans\": [], \"schemaVersion\": 3}",
+      "inbox/coverage-bad.json": "{\"exportedAt\": \"2026-11-06T10:00:00Z\", \"plans\": [], \"schemaVersion\": 99}",
+      "inbox/coverage-noplans.json": "{\"exportedAt\": \"2026-11-06T10:00:00Z\", \"schemaVersion\": 2}",
+      "inbox/notes.json": "{\"schemaVersion\": 2}"
+    },
+    "results": {
+      "bad-paths": {
+        "code": "invalid_request",
+        "ok": false
+      },
+      "inbox": {
+        "data": {
+          "archive": "MEDIA",
+          "coverage_after": {
+            "exported_until": "2026-11-06T10:00:00Z",
+            "last_capture_at": "2026-11-05T08:00:00+00:00",
+            "last_media_created_at": "2026-11-01 02:00:00",
+            "records": {
+              "captureLog": 2,
+              "captures": 0,
+              "fieldNotes": 0,
+              "flightSessions": 0,
+              "plans": 1
+            },
+            "sources": 4
+          },
+          "digest": "844a6fc45e1629b190d39167930f075c35b3ce63f6a385b00fa73329bf0d3298",
+          "files": [
+            {
+              "bytes": 119,
+              "changes": {
+                "deleted": 0,
+                "new": 0,
+                "updated": 0
+              },
+              "exportedAt": "2026-10-01T10:00:00Z",
+              "first": null,
+              "in_inbox": true,
+              "kind": "plan",
+              "last": null,
+              "name": "JSON-old.json",
+              "path": "<ROOT>/inbox/JSON-old.json",
+              "photos": 0,
+              "plans": 1,
+              "schemaVersion": 1,
+              "sha256": "837146ac330611ba83f1645a2e4db648de298ce84996844e4440935a9fc9264e",
+              "state": "nothing_new"
+            },
+            {
+              "bytes": 236,
+              "changes": {
+                "deleted": 0,
+                "new": 0,
+                "updated": 0
+              },
+              "exportedAt": "2026-11-01T10:00:00Z",
+              "first": "2026-11-01T09:00:00Z",
+              "in_inbox": true,
+              "kind": "plan",
+              "last": "2026-11-01T09:00:00Z",
+              "name": "coverage-1.json",
+              "path": "<ROOT>/inbox/coverage-1.json",
+              "photos": 1,
+              "plans": 1,
+              "schemaVersion": 2,
+              "sha256": "f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21",
+              "state": "incorporated"
+            },
+            {
+              "bytes": 390,
+              "changes": {
+                "deleted": 0,
+                "new": 2,
+                "updated": 1
+              },
+              "exportedAt": "2026-11-05T10:00:00Z",
+              "first": "2026-11-01T09:00:00Z",
+              "in_inbox": true,
+              "kind": "since",
+              "last": "2026-11-05T08:00:00+00:00",
+              "name": "coverage-2.json",
+              "path": "<ROOT>/inbox/coverage-2.json",
+              "photos": 2,
+              "plans": 2,
+              "schemaVersion": 3,
+              "sha256": "1e5db31c19e428f43616ee4c53a929425bdcd0aea12e00014bbfdc377b69d6ca",
+              "state": "new"
+            },
+            {
+              "bytes": 103,
+              "changes": {
+                "deleted": 1,
+                "new": 0,
+                "updated": 0
+              },
+              "exportedAt": "2026-11-06T10:00:00Z",
+              "first": null,
+              "in_inbox": true,
+              "kind": "all",
+              "last": null,
+              "name": "coverage-3.json",
+              "path": "<ROOT>/inbox/coverage-3.json",
+              "photos": 0,
+              "plans": 0,
+              "schemaVersion": 3,
+              "sha256": "91665c32e7cb650cb5176d77d4ff68fa6e2f87e670ffbe335afa503fc9a7ec22",
+              "state": "new"
+            },
+            {
+              "error": "Unsupported schemaVersion: 99",
+              "in_inbox": true,
+              "name": "coverage-bad.json",
+              "path": "<ROOT>/inbox/coverage-bad.json",
+              "state": "invalid"
+            },
+            {
+              "error": "plans list missing",
+              "in_inbox": true,
+              "name": "coverage-noplans.json",
+              "path": "<ROOT>/inbox/coverage-noplans.json",
+              "state": "invalid"
+            }
+          ],
+          "flow": "subaereo",
+          "inbox": "<ROOT>/inbox",
+          "label": "Misiones de subaereo",
+          "schema": "nu9ve-missions-review/1"
+        },
+        "ok": true
+      },
+      "no-archive": {
+        "data": {
+          "archive": null,
+          "coverage_after": null,
+          "digest": "b6a349f0710609fd5af4a22cd639f18ef473b9133f0b76f95cb8d6ddab3eeb75",
+          "files": [
+            {
+              "bytes": 119,
+              "exportedAt": "2026-10-01T10:00:00Z",
+              "first": null,
+              "in_inbox": true,
+              "kind": "plan",
+              "last": null,
+              "name": "JSON-old.json",
+              "path": "<ROOT>/inbox/JSON-old.json",
+              "photos": 0,
+              "plans": 1,
+              "schemaVersion": 1,
+              "sha256": "837146ac330611ba83f1645a2e4db648de298ce84996844e4440935a9fc9264e",
+              "state": "unknown_registry"
+            },
+            {
+              "bytes": 236,
+              "exportedAt": "2026-11-01T10:00:00Z",
+              "first": "2026-11-01T09:00:00Z",
+              "in_inbox": true,
+              "kind": "plan",
+              "last": "2026-11-01T09:00:00Z",
+              "name": "coverage-1.json",
+              "path": "<ROOT>/inbox/coverage-1.json",
+              "photos": 1,
+              "plans": 1,
+              "schemaVersion": 2,
+              "sha256": "f586b745af8acd0b2fed13b9ee71e4d98041ad261d3df103a6f0327495c9fe21",
+              "state": "unknown_registry"
+            },
+            {
+              "bytes": 390,
+              "exportedAt": "2026-11-05T10:00:00Z",
+              "first": "2026-11-01T09:00:00Z",
+              "in_inbox": true,
+              "kind": "since",
+              "last": "2026-11-05T08:00:00+00:00",
+              "name": "coverage-2.json",
+              "path": "<ROOT>/inbox/coverage-2.json",
+              "photos": 2,
+              "plans": 2,
+              "schemaVersion": 3,
+              "sha256": "1e5db31c19e428f43616ee4c53a929425bdcd0aea12e00014bbfdc377b69d6ca",
+              "state": "unknown_registry"
+            },
+            {
+              "bytes": 103,
+              "exportedAt": "2026-11-06T10:00:00Z",
+              "first": null,
+              "in_inbox": true,
+              "kind": "all",
+              "last": null,
+              "name": "coverage-3.json",
+              "path": "<ROOT>/inbox/coverage-3.json",
+              "photos": 0,
+              "plans": 0,
+              "schemaVersion": 3,
+              "sha256": "91665c32e7cb650cb5176d77d4ff68fa6e2f87e670ffbe335afa503fc9a7ec22",
+              "state": "unknown_registry"
+            },
+            {
+              "error": "Unsupported schemaVersion: 99",
+              "in_inbox": true,
+              "name": "coverage-bad.json",
+              "path": "<ROOT>/inbox/coverage-bad.json",
+              "state": "invalid"
+            },
+            {
+              "error": "plans list missing",
+              "in_inbox": true,
+              "name": "coverage-noplans.json",
+              "path": "<ROOT>/inbox/coverage-noplans.json",
+              "state": "invalid"
+            }
+          ],
+          "flow": "subaereo",
+          "inbox": "<ROOT>/inbox",
+          "label": "Misiones de subaereo",
+          "schema": "nu9ve-missions-review/1"
+        },
+        "ok": true
+      },
+      "paths": {
+        "data": {
+          "archive": "MEDIA",
+          "coverage_after": {
+            "exported_until": "2026-11-07T10:00:00+02:00",
+            "last_capture_at": "2026-11-07T07:00:00Z",
+            "last_media_created_at": "2026-11-01 02:00:00",
+            "records": {
+              "captureLog": 2,
+              "captures": 1,
+              "fieldNotes": 0,
+              "flightSessions": 0,
+              "plans": 3
+            },
+            "sources": 3
+          },
+          "digest": "4abdfdb041544adfe8b616ca48449fe579abd48a04d396386900a1b3f77d04d4",
+          "files": [
+            {
+              "bytes": 193,
+              "changes": {
+                "deleted": 0,
+                "new": 2,
+                "updated": 0
+              },
+              "exportedAt": "2026-11-07T10:00:00+02:00",
+              "first": "2026-11-07T07:00:00Z",
+              "in_inbox": false,
+              "kind": "plan",
+              "last": "2026-11-07T07:00:00Z",
+              "name": "coverage-x.json",
+              "path": "<ROOT>/elsewhere/coverage-x.json",
+              "photos": 1,
+              "plans": 1,
+              "schemaVersion": 2,
+              "sha256": "80d3a8e81507a2371f9e71c20f9e3b730292719d19ecf938503c51263ccdd5cd",
+              "state": "new"
+            },
+            {
+              "bytes": 390,
+              "changes": {
+                "deleted": 0,
+                "new": 2,
+                "updated": 1
+              },
+              "exportedAt": "2026-11-05T10:00:00Z",
+              "first": "2026-11-01T09:00:00Z",
+              "in_inbox": true,
+              "kind": "since",
+              "last": "2026-11-05T08:00:00+00:00",
+              "name": "coverage-2.json",
+              "path": "<ROOT>/inbox/coverage-2.json",
+              "photos": 2,
+              "plans": 2,
+              "schemaVersion": 3,
+              "sha256": "1e5db31c19e428f43616ee4c53a929425bdcd0aea12e00014bbfdc377b69d6ca",
+              "state": "new"
+            }
+          ],
+          "flow": "subaereo",
+          "inbox": "<ROOT>/inbox",
+          "label": "Misiones de subaereo",
+          "schema": "nu9ve-missions-review/1"
+        },
+        "ok": true
+      },
+      "unknown-flow": {
+        "code": "no_mission_flow",
+        "ok": false
+      }
+    },
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('recipe','{\"card_default\":{\"family\":\"generic\",\"recommendation\":\"archive_and_work\"},\"cards\":[{\"any\":[{\"top_suffix\":[\".stalker\"]}],\"family\":\"stalker\",\"label\":\"Stalker\",\"recommendation\":\"stalker_batch\"},{\"any\":[{\"in\":{\"private\":[\"m4root\"]}},{\"top\":[\"avf_info\"]}],\"cleanup\":\"sony_clips_then_format\",\"family\":\"sony\",\"label\":\"Sony\",\"recommendation\":\"sony_format_in_camera\"},{\"any\":[{\"top_prefix\":[\"zoom\",\"folder\"]},{\"top\":[\"h6_settings\"]}],\"family\":\"h6\",\"label\":\"Zoom H6\",\"recommendation\":\"audio_needs_work_disk\"},{\"any\":[{\"dcim_suffix\":[\"gopro\"]}],\"family\":\"gopro\",\"label\":\"GoPro\",\"recommendation\":\"archive_and_work\"},{\"any\":[{\"dcim_suffix\":[\"insta360\"],\"top\":[\"misc\"]},{\"dcim_prefix\":[\"camera\"],\"top\":[\"misc\"]}],\"family\":\"insta360\",\"label\":\"Insta360\",\"recommendation\":\"dji_choose_category\"},{\"any\":[{\"top_prefix\":[\"dji\"]},{\"dcim_prefix\":[\"dji\"]},{\"dcim_regex\":\"\\\\d{3}media\",\"top\":[\"misc\"]}],\"family\":\"dji\",\"label\":\"DJI\",\"recommendation\":\"dji_choose_category\"},{\"any\":[{\"dcim_suffix\":[\"canon\"]},{\"dcim_prefix\":[\"eos\"]}],\"family\":\"canon\",\"label\":\"Canon\",\"recommendation\":\"archive_and_work\"}],\"categories\":{\"dji-drone\":{\"archive\":{\"image\":\"dron/fotos\",\"raw_image\":\"dron/fotos\",\"video\":\"vdron\"},\"work_kinds\":[\"video\",\"image\"]}},\"devices\":[{\"aliases\":[\"MAVIC2\"],\"category\":\"dji-drone\",\"label\":\"DJI Mavic Air 2\",\"make\":\"DJI\",\"model\":\"FC3170\",\"source\":\"MAVICAIR2\"}],\"family_source\":{\"sony\":\"SONYA6400\"},\"flight_evidence\":{\"category\":\"dji-drone\",\"xmp\":[\"gimbal_pitch\",\"flight_yaw\",\"relative_altitude\"]},\"id\":\"nu9ve-default\",\"missions\":[{\"archive_area\":\"004_datos/subaereo/coverage\",\"archive_folder\":\"dron/misiones\",\"devices\":[\"dji-drone\"],\"dng\":{\"dominance\":0.6,\"labels\":\"atlas-derived/labels/cells/*/manifest.json\",\"labels_key\":\"photos\",\"light_classes\":[\"directSun\",\"lowSun\",\"diffuseDusk\",\"deepDusk\",\"night\"],\"older_sample\":12,\"older_than_days\":30,\"per_light\":24,\"poor_sample\":24},\"hint\":{\"max_gimbal_pitch\":-80,\"min_relative_altitude\":15},\"id\":\"subaereo\",\"inbox\":\"<ROOT>/inbox\",\"label\":\"Misiones de subaereo\",\"match\":{\"meters\":40,\"seconds\":2,\"seconds_command_time\":8},\"merge_keys\":{\"captureLog\":\"captureID\",\"captures\":\"captureID\",\"fieldNotes\":\"id\",\"flightSessions\":\"id\",\"plans\":\"id\"},\"patterns\":[\"coverage-*.json\",\"JSON-*.json\"],\"project\":\"subaereo\",\"record_dates\":{\"captureLog\":\"capturedAt\",\"captures\":\"capturedAt\",\"fieldNotes\":\"createdAt\",\"flightSessions\":\"updatedAt\",\"plans\":\"updatedAt\"},\"schema_versions\":[1,2,3],\"tombstones\":{\"plans\":\"deletedPlanIDs\"},\"units_map\":\"atlas-subaereo/_nuun/units.ndjson\",\"work_folder\":\"atlas-subaereo/misiones\",\"work_kinds\":[\"image\"],\"work_mirror\":\"atlas-subaereo/_missions\",\"work_root\":\"atlas-subaereo\"}],\"models\":{\"ILCE-6400\":\"SONYA6400\"},\"name\":\"nu9ve · plantilla inicial\",\"review_makes\":[\"DJI\"],\"schema\":\"nu9ve-recipe/1\"}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;"
+  },
   "plan_tz": "America/Hermosillo",
   "plans": [
     {
@@ -2215,6 +2513,663 @@
     }
   ],
   "projects": {
+    "candidates": {
+      "p1": {
+        "deliveries": [
+          {
+            "name": "final-h.mp4",
+            "path": "002_finales/e64/terra/final-h.mp4",
+            "published": false,
+            "role": "horizontal",
+            "state": "awaiting",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "final-v.mp4",
+            "path": "002_finales/e64/terra/final-v.mp4",
+            "published": true,
+            "role": "vertical",
+            "state": "published",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "thumb.jpg",
+            "path": "x/thumb.jpg",
+            "published": false,
+            "role": "thumbnail",
+            "state": "archived",
+            "volume_id": "00000000-0000-0000-0000-000000000001"
+          },
+          {
+            "name": "a.mp4",
+            "offline": true,
+            "path": "a.mp4",
+            "published": false,
+            "role": "auxiliary",
+            "state": "awaiting",
+            "volume_id": "00000000-0000-0000-0000-000000000003"
+          },
+          {
+            "name": "final-t.mp4",
+            "path": "002_finales/e64/terra/final-t.mp4",
+            "published": false,
+            "role": "horizontal",
+            "state": "missing",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "gone-r.mp4",
+            "path": "002_finales/e64/terra/gone-r.mp4",
+            "published": false,
+            "role": "vertical",
+            "state": "published_archived",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "files": [
+          {
+            "archived": false,
+            "bytes": 5,
+            "name": "01_subidos/26-11-04-terra.mp4",
+            "path": "002_finales/e64/01_subidos/26-11-04-terra.mp4",
+            "publication_changed": false,
+            "published": true,
+            "role": "horizontal",
+            "suggested": true,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "shorts/terra-old.mp4",
+            "path": "002_finales/e64/shorts/terra-old.mp4",
+            "publication_changed": false,
+            "published": false,
+            "role": "vertical",
+            "suggested": true,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 2,
+            "name": "terra/Terra_Short-2.MOV",
+            "path": "002_finales/e64/terra/Terra_Short-2.MOV",
+            "publication_changed": false,
+            "published": false,
+            "role": "vertical",
+            "suggested": true,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/terra.thumbnail.jpg",
+            "path": "002_finales/e64/terra/terra.thumbnail.jpg",
+            "publication_changed": false,
+            "published": false,
+            "role": "thumbnail",
+            "suggested": true,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": true,
+            "bytes": 1,
+            "name": "2026/terra.mp4",
+            "path": "002_finales/e64/2026/terra.mp4",
+            "publication_changed": false,
+            "published": false,
+            "role": "horizontal",
+            "suggested": true,
+            "volume": "MEDIA",
+            "volume_id": "00000000-0000-0000-0000-000000000001"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/final-h.mp4",
+            "path": "002_finales/e64/terra/final-h.mp4",
+            "publication_changed": true,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/final-v.mp4",
+            "path": "002_finales/e64/terra/final-v.mp4",
+            "publication_changed": true,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/notas.txt",
+            "path": "002_finales/e64/terra/notas.txt",
+            "publication_changed": false,
+            "published": false,
+            "role": "auxiliary",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "group": [
+          {
+            "finals": [
+              {
+                "name": "otro.mp4",
+                "path": "002_finales/e64/otro/otro.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              }
+            ],
+            "id": "p2",
+            "title": "terra-extra"
+          }
+        ],
+        "settings": {
+          "finals": [
+            {
+              "path": "002_finales/e64/terra/final-h.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "002_finales/e64/terra/final-v.mp4",
+              "published": true,
+              "role": "vertical",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "x/thumb.jpg",
+              "role": "thumbnail",
+              "volume_id": "00000000-0000-0000-0000-000000000001"
+            },
+            {
+              "path": "a.mp4",
+              "role": "auxiliary",
+              "volume_id": "00000000-0000-0000-0000-000000000003"
+            },
+            {
+              "path": "002_finales/e64/terra/final-t.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "inode": 1,
+                "mtime_ns": 1,
+                "size": 1
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "002_finales/e64/terra/gone-r.mp4",
+              "role": "vertical",
+              "stamp": {
+                "size": 5
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            }
+          ],
+          "no_more": true,
+          "published": false,
+          "related": [
+            "p2",
+            "gone"
+          ],
+          "required": [
+            "horizontal"
+          ]
+        },
+        "truncated": false
+      },
+      "p1-query": {
+        "deliveries": [
+          {
+            "name": "final-h.mp4",
+            "path": "002_finales/e64/terra/final-h.mp4",
+            "published": false,
+            "role": "horizontal",
+            "state": "awaiting",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "final-v.mp4",
+            "path": "002_finales/e64/terra/final-v.mp4",
+            "published": true,
+            "role": "vertical",
+            "state": "published",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "thumb.jpg",
+            "path": "x/thumb.jpg",
+            "published": false,
+            "role": "thumbnail",
+            "state": "archived",
+            "volume_id": "00000000-0000-0000-0000-000000000001"
+          },
+          {
+            "name": "a.mp4",
+            "offline": true,
+            "path": "a.mp4",
+            "published": false,
+            "role": "auxiliary",
+            "state": "awaiting",
+            "volume_id": "00000000-0000-0000-0000-000000000003"
+          },
+          {
+            "name": "final-t.mp4",
+            "path": "002_finales/e64/terra/final-t.mp4",
+            "published": false,
+            "role": "horizontal",
+            "state": "missing",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "name": "gone-r.mp4",
+            "path": "002_finales/e64/terra/gone-r.mp4",
+            "published": false,
+            "role": "vertical",
+            "state": "published_archived",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "files": [
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "01_subidos/final-t.mp4",
+            "path": "002_finales/e64/01_subidos/final-t.mp4",
+            "publication_changed": false,
+            "published": true,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/final-h.mp4",
+            "path": "002_finales/e64/terra/final-h.mp4",
+            "publication_changed": true,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/final-v.mp4",
+            "path": "002_finales/e64/terra/final-v.mp4",
+            "publication_changed": true,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "group": [
+          {
+            "finals": [
+              {
+                "name": "otro.mp4",
+                "path": "002_finales/e64/otro/otro.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              }
+            ],
+            "id": "p2",
+            "title": "terra-extra"
+          }
+        ],
+        "settings": {
+          "finals": [
+            {
+              "path": "002_finales/e64/terra/final-h.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "002_finales/e64/terra/final-v.mp4",
+              "published": true,
+              "role": "vertical",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "x/thumb.jpg",
+              "role": "thumbnail",
+              "volume_id": "00000000-0000-0000-0000-000000000001"
+            },
+            {
+              "path": "a.mp4",
+              "role": "auxiliary",
+              "volume_id": "00000000-0000-0000-0000-000000000003"
+            },
+            {
+              "path": "002_finales/e64/terra/final-t.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "inode": 1,
+                "mtime_ns": 1,
+                "size": 1
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            },
+            {
+              "path": "002_finales/e64/terra/gone-r.mp4",
+              "role": "vertical",
+              "stamp": {
+                "size": 5
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            }
+          ],
+          "no_more": true,
+          "published": false,
+          "related": [
+            "p2",
+            "gone"
+          ],
+          "required": [
+            "horizontal"
+          ]
+        },
+        "truncated": false
+      },
+      "p2": {
+        "deliveries": [
+          {
+            "name": "otro.mp4",
+            "path": "002_finales/e64/otro/otro.mp4",
+            "published": true,
+            "role": "horizontal",
+            "state": "published",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "files": [],
+        "group": [
+          {
+            "finals": [
+              {
+                "name": "final-h.mp4",
+                "path": "002_finales/e64/terra/final-h.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "final-v.mp4",
+                "path": "002_finales/e64/terra/final-v.mp4",
+                "published": true,
+                "role": "vertical",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "thumb.jpg",
+                "path": "x/thumb.jpg",
+                "published": false,
+                "role": "thumbnail",
+                "volume_id": "00000000-0000-0000-0000-000000000001"
+              },
+              {
+                "name": "a.mp4",
+                "path": "a.mp4",
+                "published": false,
+                "role": "auxiliary",
+                "volume_id": "00000000-0000-0000-0000-000000000003"
+              },
+              {
+                "name": "final-t.mp4",
+                "path": "002_finales/e64/terra/final-t.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "gone-r.mp4",
+                "path": "002_finales/e64/terra/gone-r.mp4",
+                "published": false,
+                "role": "vertical",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              }
+            ],
+            "id": "p1",
+            "title": "terra"
+          }
+        ],
+        "settings": {
+          "finals": [
+            {
+              "path": "002_finales/e64/otro/otro.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            }
+          ],
+          "no_more": false,
+          "published": true,
+          "related": [
+            "p1"
+          ],
+          "required": [
+            "horizontal"
+          ]
+        },
+        "truncated": false
+      },
+      "p2-all": {
+        "deliveries": [
+          {
+            "name": "otro.mp4",
+            "path": "002_finales/e64/otro/otro.mp4",
+            "published": true,
+            "role": "horizontal",
+            "state": "published",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "files": [
+          {
+            "archived": false,
+            "bytes": 5,
+            "name": "01_subidos/26-11-04-terra.mp4",
+            "path": "002_finales/e64/01_subidos/26-11-04-terra.mp4",
+            "publication_changed": false,
+            "published": true,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "01_subidos/final-t.mp4",
+            "path": "002_finales/e64/01_subidos/final-t.mp4",
+            "publication_changed": false,
+            "published": true,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "otro/otro.mp4",
+            "path": "002_finales/e64/otro/otro.mp4",
+            "publication_changed": true,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "shorts/terra-old.mp4",
+            "path": "002_finales/e64/shorts/terra-old.mp4",
+            "publication_changed": false,
+            "published": false,
+            "role": "vertical",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 2,
+            "name": "terra/Terra_Short-2.MOV",
+            "path": "002_finales/e64/terra/Terra_Short-2.MOV",
+            "publication_changed": false,
+            "published": false,
+            "role": "vertical",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/notas.txt",
+            "path": "002_finales/e64/terra/notas.txt",
+            "publication_changed": false,
+            "published": false,
+            "role": "auxiliary",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": false,
+            "bytes": 1,
+            "name": "terra/terra.thumbnail.jpg",
+            "path": "002_finales/e64/terra/terra.thumbnail.jpg",
+            "publication_changed": false,
+            "published": false,
+            "role": "thumbnail",
+            "suggested": false,
+            "volume": "ESSD",
+            "volume_id": "00000000-0000-0000-0000-000000000002"
+          },
+          {
+            "archived": true,
+            "bytes": 1,
+            "name": "2026/terra.mp4",
+            "path": "002_finales/e64/2026/terra.mp4",
+            "publication_changed": false,
+            "published": false,
+            "role": "horizontal",
+            "suggested": false,
+            "volume": "MEDIA",
+            "volume_id": "00000000-0000-0000-0000-000000000001"
+          }
+        ],
+        "group": [
+          {
+            "finals": [
+              {
+                "name": "final-h.mp4",
+                "path": "002_finales/e64/terra/final-h.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "final-v.mp4",
+                "path": "002_finales/e64/terra/final-v.mp4",
+                "published": true,
+                "role": "vertical",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "thumb.jpg",
+                "path": "x/thumb.jpg",
+                "published": false,
+                "role": "thumbnail",
+                "volume_id": "00000000-0000-0000-0000-000000000001"
+              },
+              {
+                "name": "a.mp4",
+                "path": "a.mp4",
+                "published": false,
+                "role": "auxiliary",
+                "volume_id": "00000000-0000-0000-0000-000000000003"
+              },
+              {
+                "name": "final-t.mp4",
+                "path": "002_finales/e64/terra/final-t.mp4",
+                "published": false,
+                "role": "horizontal",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              },
+              {
+                "name": "gone-r.mp4",
+                "path": "002_finales/e64/terra/gone-r.mp4",
+                "published": false,
+                "role": "vertical",
+                "volume_id": "00000000-0000-0000-0000-000000000002"
+              }
+            ],
+            "id": "p1",
+            "title": "terra"
+          }
+        ],
+        "settings": {
+          "finals": [
+            {
+              "path": "002_finales/e64/otro/otro.mp4",
+              "role": "horizontal",
+              "stamp": {
+                "size": 0
+              },
+              "volume_id": "00000000-0000-0000-0000-000000000002"
+            }
+          ],
+          "no_more": false,
+          "published": true,
+          "related": [
+            "p1"
+          ],
+          "required": [
+            "horizontal"
+          ]
+        },
+        "truncated": false
+      }
+    },
     "deliveries": [
       {
         "name": "final-h.mp4",
@@ -2267,10 +3222,19 @@
       }
     ],
     "files": {
+      "archive/002_finales/e64/2026/terra.mp4": "a",
       "archive/x/thumb.jpg": "j",
+      "work/002_finales/e64/.oculto/x.mp4": "h",
+      "work/002_finales/e64/01_subidos/26-11-04-terra.mp4": "dated",
       "work/002_finales/e64/01_subidos/final-t.mp4": "t",
+      "work/002_finales/e64/Proyecto.fcpbundle/x.mp4": "b",
+      "work/002_finales/e64/otro/otro.mp4": "o",
+      "work/002_finales/e64/shorts/terra-old.mp4": "s",
+      "work/002_finales/e64/terra/Terra_Short-2.MOV": "v2",
       "work/002_finales/e64/terra/final-h.mp4": "h",
-      "work/002_finales/e64/terra/final-v.mp4": "v"
+      "work/002_finales/e64/terra/final-v.mp4": "v",
+      "work/002_finales/e64/terra/notas.txt": "n",
+      "work/002_finales/e64/terra/terra.thumbnail.jpg": "j"
     },
     "projects": [
       {
@@ -2364,16 +3328,14 @@
           "awaiting_names": [],
           "missing": 0,
           "offline": false,
-          "published": 0
+          "published": 1
         },
         "jobs": 1,
         "key": "p2",
         "kinds": {
           "stalker_session": 1
         },
-        "link_suggestions": [
-          "p1"
-        ],
+        "link_suggestions": [],
         "open_jobs": 0,
         "pending_sessions": 0,
         "places": [],
@@ -2381,7 +3343,12 @@
         "profile": "e64",
         "project": "terra-extra",
         "project_id": "p2",
-        "related": [],
+        "related": [
+          {
+            "id": "p1",
+            "title": "terra"
+          }
+        ],
         "released": true,
         "stage": "finished",
         "state": "finished",
@@ -2495,7 +3462,7 @@
         }
       }
     ],
-    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nINSERT INTO \"asset_projects\" VALUES('a1','p1');\nINSERT INTO \"asset_projects\" VALUES('a2','p1');\nINSERT INTO \"asset_projects\" VALUES('a3','p2');\nINSERT INTO \"asset_projects\" VALUES('a5','p3');\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"assets\" VALUES('a1','j1','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"sony-a6400\", \"country\": \"mx\", \"city\": \"hermosillo\"}');\nINSERT INTO \"assets\" VALUES('a2','j2','{\"id\": \"a2\", \"job_id\": \"j2\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a2.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"generic\", \"country\": \"pe\"}');\nINSERT INTO \"assets\" VALUES('a3','j1','{\"id\": \"a3\", \"job_id\": \"j1\", \"kind\": \"stalker_session\", \"paths\": [\"CLIP/a3.MP4\"], \"project\": \"terra-extra\", \"project_id\": \"p2\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a4','j1','{\"id\": \"a4\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a4.MP4\"], \"project\": \"borrador\", \"project_id\": \"\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a5','j1','{\"id\": \"a5\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a5.MP4\"], \"project\": \"finales\", \"project_id\": \"p3\", \"profile\": \"e64\"}');\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('j3','00000000-0000-0000-0000-000000000001','01_subidos/gone-r.mp4','h','{\"path\": \"01_subidos/gone-r.mp4\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"destination\": \"002_finales/e64/2026/gone-r.mp4\", \"stamp\": {\"size\": 5}}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d','{\"source_kind\": \"card\"}','completed',NULL,'t','2026-11-08T11:00:00Z');\nINSERT INTO \"jobs\" VALUES('j2','d','{\"source_kind\": \"card\"}','failed',NULL,'t','2026-11-09T09:00:00Z');\nINSERT INTO \"jobs\" VALUES('j3','d','{\"source\": \"<ROOT>/work/002_finales/e64\", \"source_kind\": \"delivery\", \"units\": [{\"profile\": \"e64\"}], \"layout\": {}}','completed',NULL,'t','2026-11-07T09:00:00Z');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('project-closure:p1','{\"finals\":[{\"path\":\"002_finales/e64/terra/final-h.mp4\",\"role\":\"horizontal\",\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/final-v.mp4\",\"published\":true,\"role\":\"vertical\",\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"x/thumb.jpg\",\"role\":\"thumbnail\",\"volume_id\":\"00000000-0000-0000-0000-000000000001\"},{\"path\":\"a.mp4\",\"role\":\"auxiliary\",\"volume_id\":\"00000000-0000-0000-0000-000000000003\"},{\"path\":\"002_finales/e64/terra/final-t.mp4\",\"role\":\"horizontal\",\"stamp\":{\"inode\":1,\"mtime_ns\":1,\"size\":1},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/gone-r.mp4\",\"role\":\"vertical\",\"stamp\":{\"size\":5},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"}],\"no_more\":true,\"published\":false,\"related\":[\"p2\",\"gone\"],\"required\":[\"horizontal\"]}');\nINSERT INTO \"metadata\" VALUES('project-state:p2','{\"state\":\"finished\"}');\nINSERT INTO \"metadata\" VALUES('project-touch:p1','\"2026-11-10T00:00:00Z\"');\nINSERT INTO \"metadata\" VALUES('project-released:p2','{\"at\":\"t\"}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nINSERT INTO \"project_aliases\" VALUES('e64','terra','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-old','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-extra','p2');\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nINSERT INTO \"projects\" VALUES('p1','e64','terra');\nINSERT INTO \"projects\" VALUES('p2','e64','terra-extra');\nINSERT INTO \"projects\" VALUES('p3','e64','finales');\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1001,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000003','OLD','{\"id\":\"00000000-0000-0000-0000-000000000003\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/gone\",\"physical\":\"<ROOT>/gone\",\"removable\":true,\"root_inode\":1002,\"volume_uuid\":\"<ROOT>/gone\"},\"name\":\"OLD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/gone\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nINSERT INTO \"work\" VALUES('a1','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a2','pending',NULL,'t');\nINSERT INTO \"work\" VALUES('a3','skipped',NULL,'t');\nINSERT INTO \"work\" VALUES('a4','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a5','ready',NULL,'t');\nCOMMIT;"
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nINSERT INTO \"asset_projects\" VALUES('a1','p1');\nINSERT INTO \"asset_projects\" VALUES('a2','p1');\nINSERT INTO \"asset_projects\" VALUES('a3','p2');\nINSERT INTO \"asset_projects\" VALUES('a5','p3');\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"assets\" VALUES('a1','j1','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"sony-a6400\", \"country\": \"mx\", \"city\": \"hermosillo\"}');\nINSERT INTO \"assets\" VALUES('a2','j2','{\"id\": \"a2\", \"job_id\": \"j2\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a2.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"generic\", \"country\": \"pe\"}');\nINSERT INTO \"assets\" VALUES('a3','j1','{\"id\": \"a3\", \"job_id\": \"j1\", \"kind\": \"stalker_session\", \"paths\": [\"CLIP/a3.MP4\"], \"project\": \"terra-extra\", \"project_id\": \"p2\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a4','j1','{\"id\": \"a4\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a4.MP4\"], \"project\": \"borrador\", \"project_id\": \"\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a5','j1','{\"id\": \"a5\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a5.MP4\"], \"project\": \"finales\", \"project_id\": \"p3\", \"profile\": \"e64\"}');\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('j3','00000000-0000-0000-0000-000000000001','01_subidos/gone-r.mp4','h','{\"path\": \"01_subidos/gone-r.mp4\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"destination\": \"002_finales/e64/2026/gone-r.mp4\", \"stamp\": {\"size\": 5}}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d','{\"source_kind\": \"card\"}','completed',NULL,'t','2026-11-08T11:00:00Z');\nINSERT INTO \"jobs\" VALUES('j2','d','{\"source_kind\": \"card\"}','failed',NULL,'t','2026-11-09T09:00:00Z');\nINSERT INTO \"jobs\" VALUES('j3','d','{\"source\": \"<ROOT>/work/002_finales/e64\", \"source_kind\": \"delivery\", \"units\": [{\"profile\": \"e64\"}], \"layout\": {}}','completed',NULL,'t','2026-11-07T09:00:00Z');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('project-closure:p1','{\"finals\":[{\"path\":\"002_finales/e64/terra/final-h.mp4\",\"role\":\"horizontal\",\"stamp\":{\"size\":0},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/final-v.mp4\",\"published\":true,\"role\":\"vertical\",\"stamp\":{\"size\":0},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"x/thumb.jpg\",\"role\":\"thumbnail\",\"volume_id\":\"00000000-0000-0000-0000-000000000001\"},{\"path\":\"a.mp4\",\"role\":\"auxiliary\",\"volume_id\":\"00000000-0000-0000-0000-000000000003\"},{\"path\":\"002_finales/e64/terra/final-t.mp4\",\"role\":\"horizontal\",\"stamp\":{\"inode\":1,\"mtime_ns\":1,\"size\":1},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/gone-r.mp4\",\"role\":\"vertical\",\"stamp\":{\"size\":5},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"}],\"no_more\":true,\"published\":false,\"related\":[\"p2\",\"gone\"],\"required\":[\"horizontal\"]}');\nINSERT INTO \"metadata\" VALUES('project-state:p2','{\"state\":\"finished\"}');\nINSERT INTO \"metadata\" VALUES('project-touch:p1','\"2026-11-10T00:00:00Z\"');\nINSERT INTO \"metadata\" VALUES('project-released:p2','{\"at\":\"t\"}');\nINSERT INTO \"metadata\" VALUES('project-closure:p2','{\"finals\":[{\"path\":\"002_finales/e64/otro/otro.mp4\",\"role\":\"horizontal\",\"stamp\":{\"size\":0},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"}],\"no_more\":false,\"published\":true,\"related\":[\"p1\"],\"required\":[\"horizontal\"]}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nINSERT INTO \"project_aliases\" VALUES('e64','terra','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-old','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-extra','p2');\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nINSERT INTO \"projects\" VALUES('p1','e64','terra');\nINSERT INTO \"projects\" VALUES('p2','e64','terra-extra');\nINSERT INTO \"projects\" VALUES('p3','e64','finales');\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1001,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000003','OLD','{\"id\":\"00000000-0000-0000-0000-000000000003\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/gone\",\"physical\":\"<ROOT>/gone\",\"removable\":true,\"root_inode\":1002,\"volume_uuid\":\"<ROOT>/gone\"},\"name\":\"OLD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/gone\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nINSERT INTO \"work\" VALUES('a1','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a2','pending',NULL,'t');\nINSERT INTO \"work\" VALUES('a3','skipped',NULL,'t');\nINSERT INTO \"work\" VALUES('a4','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a5','ready',NULL,'t');\nCOMMIT;"
   },
   "python": "3.9.16",
   "reads": {
@@ -3257,5 +4224,438 @@
       "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
       "id": "nu9ve-default"
     }
+  },
+  "storage": {
+    "files": {
+      "archive/001_raw/raw/a.mov": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "archive/001_raw/raw/b.mov": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "archive/002_finales/e64/f.mp4": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      "work/.hidden/h.mov": "h",
+      "work/001_proyectos/e64/terra.fcpbundle/x.plist": "p",
+      "work/001_proyectos/e64_raw/terra/a.mov": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "work/001_proyectos/e64_raw/terra/c.mov": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "work/001_proyectos/e64_raw/terra/d.mov": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+      "work/node_modules/m.js": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+      "work/notes.txt": "n"
+    },
+    "index_sql": "BEGIN TRANSACTION;\nCREATE TABLE entries(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL,\n        size INTEGER NOT NULL, allocated INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, kind TEXT NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/a.mov','001_raw/raw',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/b.mov','001_raw/raw',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64/f.mp4','002_finales/e64',100,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden/h.mov','.hidden',1,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle/x.plist','001_proyectos/e64/terra.fcpbundle',1,4096,1778000000123456789,'editable');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/a.mov','001_proyectos/e64_raw/terra',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/c.mov','001_proyectos/e64_raw/terra',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/d.mov','001_proyectos/e64_raw/terra',7000,8192,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules/m.js','node_modules',300,4096,1778000000123456789,'derived');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'notes.txt','',1,4096,1778000000123456789,'other');\nCREATE TABLE folders(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL, files INTEGER NOT NULL,\n        bytes INTEGER NOT NULL, allocated INTEGER NOT NULL, kinds TEXT NOT NULL, kind TEXT NOT NULL, opaque INTEGER NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'','',3,13100,20480,'{\"video\": 20480}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw','',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw','001_raw',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales','',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64','002_finales',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'','',7,20303,40960,'{\"derived\": 4096, \"editable\": 4096, \"other\": 4096, \"video\": 28672}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden','',1,1,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos','',4,20001,28672,'{\"editable\": 4096, \"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64','001_proyectos',1,1,4096,'{\"editable\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle','001_proyectos/e64',1,1,4096,'{\"editable\": 4096}','editable',1);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw','001_proyectos',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra','001_proyectos/e64_raw',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules','',1,300,4096,'{\"derived\": 4096}','derived',1);\nCREATE TABLE hashes(target_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL,\n        origin TEXT NOT NULL, checked_at TEXT NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000001','001_raw/raw/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nCREATE TABLE indexes(target_id TEXT PRIMARY KEY, run_id INTEGER NOT NULL, indexed_at TEXT NOT NULL, seconds REAL NOT NULL,\n        fs_total INTEGER NOT NULL, fs_used INTEGER NOT NULL, fs_free INTEGER NOT NULL, unreadable INTEGER NOT NULL, samples TEXT NOT NULL);\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000001',1,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000002',2,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nCREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"meta\" VALUES('independent:00000000-0000-0000-0000-000000000002:00000000-0000-0000-0000-000000000001','true');\nINSERT INTO \"meta\" VALUES('independent:this-mac:00000000-0000-0000-0000-000000000001','true');\nCREATE TABLE runs(id INTEGER PRIMARY KEY AUTOINCREMENT, target_id TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL,\n        pid INTEGER NOT NULL, path TEXT NOT NULL DEFAULT '', started_at TEXT NOT NULL, finished_at TEXT, files INTEGER NOT NULL DEFAULT 0,\n        allocated INTEGER NOT NULL DEFAULT 0, total_files INTEGER NOT NULL DEFAULT 0, total_bytes INTEGER NOT NULL DEFAULT 0,\n        unreadable INTEGER NOT NULL DEFAULT 0, changed INTEGER NOT NULL DEFAULT 0, samples TEXT NOT NULL DEFAULT '[]', error TEXT);\nINSERT INTO \"runs\" VALUES(1,'00000000-0000-0000-0000-000000000001','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',3,20480,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(2,'00000000-0000-0000-0000-000000000002','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',7,40960,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(3,'ESSD-x','scan','running',999999999,'','t',NULL,0,0,0,0,0,0,'[]',NULL);\nCREATE TABLE safety(target_id TEXT NOT NULL, path TEXT NOT NULL, verified INTEGER NOT NULL, probable INTEGER NOT NULL, only_here INTEGER NOT NULL,\n        derived INTEGER NOT NULL, unknown INTEGER NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','',4096,12288,20480,4096,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','.hidden',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos',4096,12288,12288,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64/terra.fcpbundle',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','node_modules',0,0,0,4096,0);\nDELETE FROM \"sqlite_sequence\";\nINSERT INTO \"sqlite_sequence\" VALUES('runs',3);\nCREATE INDEX entries_parent ON entries(target_id,run_id,parent,allocated);\nCREATE INDEX folders_parent ON folders(target_id,run_id,parent,allocated);\nCOMMIT;",
+    "results": {
+      "[\"storage_overview\", {}]": {
+        "data": {
+          "running": null,
+          "targets": [
+            {
+              "allocated": 40960,
+              "builtin": false,
+              "bytes": 20303,
+              "files": 7,
+              "id": "00000000-0000-0000-0000-000000000002",
+              "indexed": true,
+              "indexed_at": "2026-11-02T00:01:00Z",
+              "kinds": {
+                "derived": 4096,
+                "editable": 4096,
+                "other": 4096,
+                "video": 28672
+              },
+              "last_run": {
+                "allocated": 40960,
+                "changed": 0,
+                "error": null,
+                "files": 7,
+                "finished_at": "2026-11-02T00:01:00Z",
+                "id": 2,
+                "kind": "scan",
+                "path": "",
+                "pid": 0,
+                "samples": [],
+                "started_at": "2026-11-02T00:00:00Z",
+                "state": "finished",
+                "target_id": "00000000-0000-0000-0000-000000000002",
+                "total_bytes": 0,
+                "total_files": 0,
+                "unreadable": 0
+              },
+              "name": "ESSD",
+              "observed": false,
+              "online": true,
+              "role": "work",
+              "root": "<ROOT>/work",
+              "safety": {
+                "derived": 4096,
+                "only_here": 20480,
+                "probable": 12288,
+                "unknown": 0,
+                "verified": 4096
+              },
+              "samples": [],
+              "seconds": 0.124,
+              "unreadable": 0
+            },
+            {
+              "allocated": 20480,
+              "builtin": false,
+              "bytes": 13100,
+              "files": 3,
+              "id": "00000000-0000-0000-0000-000000000001",
+              "indexed": true,
+              "indexed_at": "2026-11-02T00:01:00Z",
+              "kinds": {
+                "video": 20480
+              },
+              "last_run": {
+                "allocated": 20480,
+                "changed": 0,
+                "error": null,
+                "files": 3,
+                "finished_at": "2026-11-02T00:01:00Z",
+                "id": 1,
+                "kind": "scan",
+                "path": "",
+                "pid": 0,
+                "samples": [],
+                "started_at": "2026-11-02T00:00:00Z",
+                "state": "finished",
+                "target_id": "00000000-0000-0000-0000-000000000001",
+                "total_bytes": 0,
+                "total_files": 0,
+                "unreadable": 0
+              },
+              "name": "MEDIA",
+              "observed": false,
+              "online": true,
+              "role": "archive",
+              "root": "<ROOT>/archive",
+              "safety": {
+                "backup": 20480
+              },
+              "samples": [],
+              "seconds": 0.124,
+              "unreadable": 0
+            }
+          ]
+        },
+        "ok": true
+      },
+      "[\"storage_progress\", {}]": {
+        "data": {
+          "running": null
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"limit\": 1, \"path\": \"001_proyectos\", \"target\": \"ESSD\"}]": {
+        "data": {
+          "allocated": 28672,
+          "bytes": 20001,
+          "files": [],
+          "files_total": 4,
+          "folders": [
+            {
+              "allocated": 24576,
+              "bytes": 20000,
+              "files": 3,
+              "kind": "",
+              "kinds": {
+                "video": 24576
+              },
+              "name": "e64_raw",
+              "opaque": false,
+              "path": "001_proyectos/e64_raw",
+              "safety": {
+                "derived": 0,
+                "only_here": 8192,
+                "probable": 12288,
+                "unknown": 0,
+                "verified": 4096
+              }
+            }
+          ],
+          "indexed": true,
+          "indexed_at": "2026-11-02T00:01:00Z",
+          "kind": "",
+          "kinds": {
+            "editable": 4096,
+            "video": 24576
+          },
+          "name": "001_proyectos",
+          "opaque": false,
+          "parent": "",
+          "path": "001_proyectos",
+          "rest": 4096,
+          "role": "work",
+          "root": "<ROOT>/work",
+          "safety": {
+            "derived": 0,
+            "only_here": 12288,
+            "probable": 12288,
+            "unknown": 0,
+            "verified": 4096
+          },
+          "target": "00000000-0000-0000-0000-000000000002"
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"limit\": 5000, \"target\": \"ESSD\"}]": {
+        "code": "invalid_request",
+        "ok": false
+      },
+      "[\"storage_tree\", {\"path\": \"../x\", \"target\": \"ESSD\"}]": {
+        "code": "unsafe_path",
+        "ok": false
+      },
+      "[\"storage_tree\", {\"path\": \"001_proyectos/e64/terra.fcpbundle\", \"target\": \"ESSD\"}]": {
+        "data": {
+          "allocated": 4096,
+          "bytes": 1,
+          "files": [],
+          "files_total": 1,
+          "folders": [],
+          "indexed": true,
+          "indexed_at": "2026-11-02T00:01:00Z",
+          "kind": "editable",
+          "kinds": {
+            "editable": 4096
+          },
+          "name": "terra.fcpbundle",
+          "opaque": true,
+          "parent": "001_proyectos/e64",
+          "path": "001_proyectos/e64/terra.fcpbundle",
+          "rest": 4096,
+          "role": "work",
+          "root": "<ROOT>/work",
+          "safety": {
+            "derived": 0,
+            "only_here": 4096,
+            "probable": 0,
+            "unknown": 0,
+            "verified": 0
+          },
+          "target": "00000000-0000-0000-0000-000000000002"
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"path\": \"001_proyectos/e64_raw/terra\", \"target\": \"00000000-0000-0000-0000-000000000002\"}]": {
+        "data": {
+          "allocated": 24576,
+          "bytes": 20000,
+          "files": [
+            {
+              "allocated": 12288,
+              "bytes": 9000,
+              "checked_at": null,
+              "kind": "video",
+              "name": "c.mov",
+              "path": "001_proyectos/e64_raw/terra/c.mov",
+              "state": "probable"
+            },
+            {
+              "allocated": 8192,
+              "bytes": 7000,
+              "checked_at": null,
+              "kind": "video",
+              "name": "d.mov",
+              "path": "001_proyectos/e64_raw/terra/d.mov",
+              "state": "only_here"
+            },
+            {
+              "allocated": 4096,
+              "bytes": 4000,
+              "checked_at": "2026-11-01",
+              "copy": {
+                "origin": "receipt",
+                "path": "001_raw/raw/a.mov",
+                "volume": "MEDIA"
+              },
+              "kind": "video",
+              "name": "a.mov",
+              "path": "001_proyectos/e64_raw/terra/a.mov",
+              "state": "verified"
+            }
+          ],
+          "files_total": 3,
+          "folders": [],
+          "indexed": true,
+          "indexed_at": "2026-11-02T00:01:00Z",
+          "kind": "",
+          "kinds": {
+            "video": 24576
+          },
+          "name": "terra",
+          "opaque": false,
+          "parent": "001_proyectos/e64_raw",
+          "path": "001_proyectos/e64_raw/terra",
+          "rest": 0,
+          "role": "work",
+          "root": "<ROOT>/work",
+          "safety": {
+            "derived": 0,
+            "only_here": 8192,
+            "probable": 12288,
+            "unknown": 0,
+            "verified": 4096
+          },
+          "target": "00000000-0000-0000-0000-000000000002"
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"path\": \"001_raw/raw\", \"target\": \"MEDIA\"}]": {
+        "data": {
+          "allocated": 16384,
+          "bytes": 13000,
+          "files": [
+            {
+              "allocated": 12288,
+              "bytes": 9000,
+              "checked_at": null,
+              "kind": "video",
+              "name": "b.mov",
+              "path": "001_raw/raw/b.mov",
+              "state": "backup"
+            },
+            {
+              "allocated": 4096,
+              "bytes": 4000,
+              "checked_at": "2026-11-01",
+              "kind": "video",
+              "name": "a.mov",
+              "path": "001_raw/raw/a.mov",
+              "state": "backup"
+            }
+          ],
+          "files_total": 2,
+          "folders": [],
+          "indexed": true,
+          "indexed_at": "2026-11-02T00:01:00Z",
+          "kind": "",
+          "kinds": {
+            "video": 16384
+          },
+          "name": "raw",
+          "opaque": false,
+          "parent": "001_raw",
+          "path": "001_raw/raw",
+          "rest": 0,
+          "role": "archive",
+          "root": "<ROOT>/archive",
+          "safety": {
+            "backup": 16384
+          },
+          "target": "00000000-0000-0000-0000-000000000001"
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"path\": \"nope\", \"target\": \"ESSD\"}]": {
+        "code": "unknown_path",
+        "ok": false
+      },
+      "[\"storage_tree\", {\"target\": \"ESSD\"}]": {
+        "data": {
+          "allocated": 40960,
+          "bytes": 20303,
+          "files": [
+            {
+              "allocated": 4096,
+              "bytes": 1,
+              "checked_at": null,
+              "kind": "other",
+              "name": "notes.txt",
+              "path": "notes.txt",
+              "state": "only_here"
+            }
+          ],
+          "files_total": 7,
+          "folders": [
+            {
+              "allocated": 28672,
+              "bytes": 20001,
+              "files": 4,
+              "kind": "",
+              "kinds": {
+                "editable": 4096,
+                "video": 24576
+              },
+              "name": "001_proyectos",
+              "opaque": false,
+              "path": "001_proyectos",
+              "safety": {
+                "derived": 0,
+                "only_here": 12288,
+                "probable": 12288,
+                "unknown": 0,
+                "verified": 4096
+              }
+            },
+            {
+              "allocated": 4096,
+              "bytes": 300,
+              "files": 1,
+              "kind": "derived",
+              "kinds": {
+                "derived": 4096
+              },
+              "name": "node_modules",
+              "opaque": true,
+              "path": "node_modules",
+              "safety": {
+                "derived": 4096,
+                "only_here": 0,
+                "probable": 0,
+                "unknown": 0,
+                "verified": 0
+              }
+            },
+            {
+              "allocated": 4096,
+              "bytes": 1,
+              "files": 1,
+              "kind": "",
+              "kinds": {
+                "video": 4096
+              },
+              "name": ".hidden",
+              "opaque": false,
+              "path": ".hidden",
+              "safety": {
+                "derived": 0,
+                "only_here": 4096,
+                "probable": 0,
+                "unknown": 0,
+                "verified": 0
+              }
+            }
+          ],
+          "indexed": true,
+          "indexed_at": "2026-11-02T00:01:00Z",
+          "kind": "",
+          "kinds": {
+            "derived": 4096,
+            "editable": 4096,
+            "other": 4096,
+            "video": 28672
+          },
+          "name": "ESSD",
+          "opaque": false,
+          "parent": "",
+          "path": "",
+          "rest": 0,
+          "role": "work",
+          "root": "<ROOT>/work",
+          "safety": {
+            "derived": 4096,
+            "only_here": 20480,
+            "probable": 12288,
+            "unknown": 0,
+            "verified": 4096
+          },
+          "target": "00000000-0000-0000-0000-000000000002"
+        },
+        "ok": true
+      },
+      "[\"storage_tree\", {\"target\": \"X\"}]": {
+        "code": "unknown_volume",
+        "ok": false
+      }
+    },
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('j1','00000000-0000-0000-0000-000000000001','CLIP/a.mov','SHA-A','{\"destination\": \"001_raw/raw/a.mov\", \"path\": \"CLIP/a.mov\", \"bytes\": 4000, \"verified_at\": \"2026-11-01\"}');\nINSERT INTO \"copies\" VALUES('j1','00000000-0000-0000-0000-000000000002','CLIP/a.mov','SHA-A','{\"destination\": \"001_proyectos/e64_raw/terra/a.mov\", \"path\": \"CLIP/a.mov\", \"bytes\": 4000, \"verified_at\": \"2026-11-01\"}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d','{}','completed',NULL,'t','t');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1001,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;"
   }
 }

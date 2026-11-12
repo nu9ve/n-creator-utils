@@ -17,6 +17,12 @@ serde_json.workspace = true
 # The catalog is SQLite (media/catalog.py). `bundled`: the same version on every OS, as nove does.
 rusqlite.workspace = true
 quick-xml.workspace = true
+# closure.py names (`delivery_title`, vertical suffixes, dates in a name) are regular expressions in Python.
+regex.workspace = true
+
+# storage_index.py `_alive`: whether a scan's process still runs (`kill(pid, 0)`).
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

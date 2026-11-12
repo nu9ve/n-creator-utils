@@ -18,7 +18,9 @@ written under one fixed folder (`GOLDEN_ROOT`), and inode, ctime, device and cat
 the run. Plan and apply share the same patched `fingerprint`, so Python's own change checks still hold.
 """
 import contextlib
+import hashlib
 import json
+import sqlite3
 import shutil
 import sys
 import tempfile
@@ -28,7 +30,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from media.common import canonical, digest  # noqa: E402
+from media.common import MediaError, canonical, digest  # noqa: E402
 from media.recipes import TEMPLATE, recipe_ref, summary  # noqa: E402
 from media.volumes import card_hint  # noqa: E402
 
@@ -425,7 +427,12 @@ def project_cases():
 
     root = fresh_root('projects')
     files = {'work/002_finales/e64/terra/final-h.mp4': 'h', 'work/002_finales/e64/terra/final-v.mp4': 'v',
-             'work/002_finales/e64/01_subidos/final-t.mp4': 't', 'archive/x/thumb.jpg': 'j'}
+             'work/002_finales/e64/01_subidos/final-t.mp4': 't', 'archive/x/thumb.jpg': 'j',
+             'work/002_finales/e64/01_subidos/26-11-04-terra.mp4': 'dated', 'work/002_finales/e64/shorts/terra-old.mp4': 's',
+             'work/002_finales/e64/terra/Terra_Short-2.MOV': 'v2', 'work/002_finales/e64/terra/terra.thumbnail.jpg': 'j',
+             'work/002_finales/e64/terra/notas.txt': 'n', 'work/002_finales/e64/otro/otro.mp4': 'o',
+             'work/002_finales/e64/Proyecto.fcpbundle/x.mp4': 'b', 'work/002_finales/e64/.oculto/x.mp4': 'h',
+             'archive/002_finales/e64/2026/terra.mp4': 'a'}
     for rel, text in files.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -471,8 +478,9 @@ def project_cases():
                 db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j3', media['id'], copy['path'], 'h', json.dumps(copy)))
             catalog.set('project-closure:p1', {'required': ['horizontal'], 'no_more': True, 'published': False,
                                                'related': ['p2', 'gone'], 'finals': [
-                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-h.mp4'},
-                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/final-v.mp4', 'published': True},
+                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-h.mp4', 'stamp': {'size': 0}},
+                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/final-v.mp4', 'published': True,
+                 'stamp': {'size': 0}},
                 {'role': 'thumbnail', 'volume_id': media['id'], 'path': 'x/thumb.jpg'},
                 {'role': 'auxiliary', 'volume_id': old['id'], 'path': 'a.mp4'},
                 {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-t.mp4',
@@ -488,13 +496,178 @@ def project_cases():
                  'path': '/x/S2.stalker', 'preview_path': ''},
                 {'tag': {'name': 'terra'}, 'status': 'recording', 'archived': False, 'path': '/x/S3.stalker'},
                 {'tag': {'name': 'terra-old'}, 'status': 'completed', 'archived': True, 'path': '/x/S4.stalker'}]
+            catalog.set('project-closure:p2', {'required': ['horizontal'], 'no_more': False, 'published': True,
+                                               'related': ['p1'], 'finals': [
+                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'otro/otro.mp4', 'stamp': {'size': 0}}]})
+            from media.closure import candidates
+            found = {}
+            for name, args in (('p1', ('p1', None)), ('p1-query', ('p1', 'final')), ('p2', ('p2', None)),
+                               ('p2-all', ('p2', ''))):
+                found[name] = candidates(catalog, backend, *args)
             deliveries = delivery_states(catalog, backend, 'p1')
             projects = overview(catalog, sessions, backend)
             sql = '\n'.join(catalog.db.iterdump())
         finally:
             catalog.close()
-    text = json.dumps({'deliveries': deliveries, 'projects': projects}, sort_keys=True).replace(str(root), '<ROOT>')
+    text = json.dumps({'deliveries': deliveries, 'projects': projects, 'candidates': found},
+                      sort_keys=True).replace(str(root), '<ROOT>')
     return dict(json.loads(text), files=files, sessions=sessions, sql=sql.replace(str(root), '<ROOT>'))
+
+
+# Mission exports (`missions_review`): an inbox with new, older, deleting, invalid and already incorporated
+# exports, against a registry already on the archive; stamps are left out (they name this run's inodes).
+def mission_cases():
+    import copy as copy_module
+    import os
+    from media.catalog import Catalog
+    from media.missions import empty_state, merge, render, review
+    from media.recipes import TEMPLATE
+    from tests.test_media_engine import FixtureVolumes
+
+    class StableVolumes(FixtureVolumes):
+        def describe(self, root, external_required=False):
+            info = super().describe(root, external_required)
+            info.update(root_inode=stable_inode(Path(root).absolute().stat()), device=1)
+            return info
+
+    root = fresh_root('missions')
+    inbox, elsewhere, archive = root / 'inbox', root / 'elsewhere', root / 'archive'
+    for folder in (inbox, elsewhere, archive):
+        folder.mkdir()
+    plan = lambda pid, when, name: {'id': pid, 'name': name, 'updatedAt': when}  # noqa: E731
+    capture = lambda cid, at, **extra: dict({'captureID': cid, 'capturedAt': at}, **extra)  # noqa: E731
+    exports = {
+        'inbox/coverage-1.json': {'schemaVersion': 2, 'exportedAt': '2026-11-01T10:00:00Z', 'plans': [plan('P1', 't1', 'Calles')],
+                                  'captureLog': [capture('C1', '2026-11-01T09:00:00Z', mediaCreatedAt='2026-11-01 02:00:00')]},
+        'inbox/coverage-2.json': {'schemaVersion': 3, 'exportedAt': '2026-11-05T10:00:00Z', 'exportWindow': {'kind': 'since'},
+                                  'plans': [plan('P1', 't2', 'Calles 2'), plan('P2', 't2', 'Río')],
+                                  'captureLog': [capture('C1', '2026-11-01T09:00:00Z', mediaCreatedAt='2026-11-01 02:00:00'),
+                                                 capture('C2', '2026-11-05T08:00:00+00:00')]},
+        'inbox/JSON-old.json': {'schemaVersion': 1, 'exportedAt': '2026-10-01T10:00:00Z', 'plans': [plan('P1', 't0', 'Viejo')]},
+        'inbox/coverage-3.json': {'schemaVersion': 3, 'exportedAt': '2026-11-06T10:00:00Z', 'plans': [],
+                                  'deletedPlanIDs': ['P2', 'P9']},
+        'inbox/coverage-bad.json': {'schemaVersion': 99, 'exportedAt': '2026-11-06T10:00:00Z', 'plans': []},
+        'inbox/coverage-noplans.json': {'schemaVersion': 2, 'exportedAt': '2026-11-06T10:00:00Z'},
+        'inbox/notes.json': {'schemaVersion': 2},
+        'elsewhere/coverage-x.json': {'schemaVersion': 2, 'exportedAt': '2026-11-07T10:00:00+02:00',
+                                      'plans': [plan('P3', 't3', 'Otro')], 'captures': [capture(7, '2026-11-07T07:00:00Z')]},
+    }
+    files = {}
+    for rel, value in exports.items():
+        text = json.dumps(value, sort_keys=True)
+        files[rel] = text
+        (root / rel).write_text(text)
+    recipe = copy_module.deepcopy(TEMPLATE)
+    recipe['missions'][0]['inbox'] = str(inbox)
+    flow = recipe['missions'][0]
+    first = (root / 'inbox/coverage-1.json').read_bytes()
+    state = empty_state(flow)
+    merge(state, json.loads(first), hashlib.sha256(first).hexdigest(), 'coverage-1.json', flow)
+    for source in state['nuun']['sources'].values():
+        source['incorporated_at'] = '2026-11-02T00:00:00Z'
+    history = root / 'archive' / flow['archive_area'] / 'history.json'
+    history.parent.mkdir(parents=True)
+    history.write_bytes(render(state, flow))
+    files['archive/' + flow['archive_area'] + '/history.json'] = history.read_text()
+    backend = StableVolumes()
+    results = {}
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+            catalog.set('recipe', recipe)
+            for name, params in (('inbox', {'archive': 'MEDIA'}), ('no-archive', {}),
+                                 ('paths', {'archive': 'MEDIA', 'paths': [str(root / 'elsewhere/coverage-x.json'),
+                                                                          str(root / 'inbox/coverage-2.json')]}),
+                                 ('unknown-flow', {'flow_id': 'nope'}), ('bad-paths', {'paths': 'x'})):
+                try:
+                    results[name] = {'ok': True, 'data': review(catalog, backend, **params)}
+                except MediaError as error:
+                    results[name] = {'ok': False, 'code': error.code}
+            sql = '\n'.join(catalog.db.iterdump())
+        finally:
+            catalog.close()
+    for result in results.values():
+        for entry in (result.get('data') or {}).get('files', []):
+            entry.pop('stamp', None)
+    text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'results': json.loads(text)}
+
+
+# The disk index (`storage_overview`, `storage_tree`, `storage_progress`): Python scans an archive and a work
+# disk, then the run times, pids and this machine's free space are fixed so the answers do not depend on the run.
+def storage_cases():
+    import os
+    from media.catalog import Catalog
+    from media import storage_index
+    from tests.test_media_engine import FixtureVolumes
+
+    class StableVolumes(FixtureVolumes):
+        def describe(self, root, external_required=False):
+            info = super().describe(root, external_required)
+            info.update(root_inode=stable_inode(Path(root).absolute().stat()), device=1)
+            return info
+
+    root = fresh_root('storage')
+    files = {'archive/001_raw/raw/a.mov': 'A' * 4000, 'archive/001_raw/raw/b.mov': 'B' * 9000,
+             'archive/002_finales/e64/f.mp4': 'F' * 100,
+             'work/001_proyectos/e64_raw/terra/a.mov': 'A' * 4000, 'work/001_proyectos/e64_raw/terra/c.mov': 'C' * 9000,
+             'work/001_proyectos/e64_raw/terra/d.mov': 'D' * 7000, 'work/001_proyectos/e64/terra.fcpbundle/x.plist': 'p',
+             'work/node_modules/m.js': 'm' * 300, 'work/notes.txt': 'n', 'work/.hidden/h.mov': 'h'}
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        os.utime(path, ns=(PLAN_MTIME_NS, PLAN_MTIME_NS))
+    backend = StableVolumes()
+    results = {}
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            media = catalog.register('MEDIA', 'archive', root / 'archive', backend.describe(root / 'archive'), '001_raw')
+            essd = catalog.register('ESSD', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
+            with catalog.db:
+                catalog.db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)',
+                                   ('j1', 'd', '{}', 'completed', None, 't', 't'))
+                for volume, destination in ((media['id'], '001_raw/raw/a.mov'), (essd['id'], '001_proyectos/e64_raw/terra/a.mov')):
+                    payload = {'destination': destination, 'path': 'CLIP/a.mov', 'bytes': 4000, 'verified_at': '2026-11-01'}
+                    catalog.db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j1', volume, 'CLIP/a.mov', 'SHA-A', json.dumps(payload)))
+            for target in ('MEDIA', 'ESSD'):
+                storage_index.scan(catalog, backend, target)
+            index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
+            with index:
+                index.execute("UPDATE runs SET pid=0,started_at='2026-11-02T00:00:00Z',finished_at='2026-11-02T00:01:00Z'")
+                index.execute("UPDATE indexes SET indexed_at='2026-11-02T00:01:00Z',seconds=0.1236,fs_total=1000000,fs_used=600000,fs_free=400000")
+                index.execute("INSERT INTO runs(target_id,kind,state,pid,started_at) VALUES('ESSD-x','scan','running',999999999,'t')")
+            sql_index = '\n'.join(index.iterdump())
+            index.close()
+            call = lambda method, params: storage_index.call(catalog, backend, method, params)  # noqa: E731
+            requests = [('storage_progress', {}), ('storage_tree', {'target': 'ESSD'}),
+                        ('storage_tree', {'target': essd['id'], 'path': '001_proyectos/e64_raw/terra'}),
+                        ('storage_tree', {'target': 'ESSD', 'path': '001_proyectos', 'limit': 1}),
+                        ('storage_tree', {'target': 'ESSD', 'path': '001_proyectos/e64/terra.fcpbundle'}),
+                        ('storage_tree', {'target': 'MEDIA', 'path': '001_raw/raw'}),
+                        ('storage_tree', {'target': 'ESSD', 'path': 'nope'}), ('storage_tree', {'target': 'X'}),
+                        ('storage_tree', {'target': 'ESSD', 'path': '../x'}), ('storage_tree', {'target': 'ESSD', 'limit': 5000}),
+                        ('storage_overview', {})]
+            for method, params in requests:
+                try:
+                    value = {'ok': True, 'data': call(method, dict(params))}
+                except MediaError as error:
+                    value = {'ok': False, 'code': error.code}
+                results[json.dumps([method, params], sort_keys=True)] = value
+            sql = '\n'.join(catalog.db.iterdump())
+        finally:
+            catalog.close()
+    overview = results[json.dumps(['storage_overview', {}])]['data']
+    # This Mac is a real disk, and online disks report this machine's free space: both out of the comparison.
+    overview['targets'] = [t for t in overview['targets'] if t['id'] != 'this-mac']
+    for target in overview['targets']:
+        for key in ('fs_total', 'fs_used', 'fs_free', 'uncounted'):
+            target.pop(key, None)
+    text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'index_sql': sql_index.replace(str(root), '<ROOT>'),
+            'results': json.loads(text)}
 
 
 def main():
@@ -519,6 +692,10 @@ def main():
         'captures': capture_cases(),
         # Closeout deliveries and the projects overview, with registered (fixture) disks.
         'projects': project_cases(),
+        # Mission exports reviewed against a registry on the archive.
+        'missions': mission_cases(),
+        # The disk index: overview, folders and progress.
+        'storage': storage_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'

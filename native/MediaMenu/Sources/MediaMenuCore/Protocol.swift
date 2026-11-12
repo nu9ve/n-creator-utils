@@ -77,37 +77,38 @@ public struct BackendConfiguration: Codable, Sendable {
     public var python: String
     public var script: String
     public var stateDirectory: String?
-    public init(python: String, script: String, stateDirectory: String? = nil) { self.python = python; self.script = script; self.stateDirectory = stateDirectory }
+    /// The Rust engine (`nuun-engine`), when this build has one.
+    public var engine: String?
+    /// Who answers reads: `"rust"` (default when an engine exists; Python answers whatever Rust does not have)
+    /// or `"python"`. Mutations always go to Python on this Mac until the Rust engine's physical run.
+    public var reads: String?
+    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil) {
+        self.python = python; self.script = script; self.stateDirectory = stateDirectory; self.engine = engine; self.reads = reads
+    }
     public var usable: Bool {
         FileManager.default.isExecutableFile(atPath: python) && FileManager.default.fileExists(atPath: script)
     }
+    /// Reads go to the Rust engine first.
+    public var rustReads: Bool {
+        reads != "python" && engine.map { FileManager.default.isExecutableFile(atPath: $0) } == true
+    }
 }
 
-/// One long-lived `rpc-serve` child for reads (snapshot, progress, suggestions). Mutations stay
-/// one process per request so cancelling interrupts exactly that operation. Any transport failure
-/// falls back to a per-request process; the server refuses non-read methods itself.
-public final class PersistentReader: @unchecked Sendable {
-    public let configuration: BackendConfiguration
+/// One long-lived child that answers one JSON line per request (`rpc-serve` of either engine).
+final class LineServer: @unchecked Sendable {
+    let executable: String
+    let arguments: [String]
     private let lock = NSLock()
     private var process: Process?
     private var input: FileHandle?
     private var buffer = Data()
     private var nextID = 0
     private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
-    private let fallback: BackendClient
-    public init(configuration: BackendConfiguration) {
-        self.configuration = configuration
-        fallback = BackendClient(configuration: configuration)
-    }
+
+    init(executable: String, arguments: [String]) { self.executable = executable; self.arguments = arguments }
     deinit { stop() }
 
-    public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
-        do { return try await send(method, params) }
-        catch let failure as BackendFailure where failure.code != "reader_unavailable" { throw failure }
-        catch { return try await fallback.call(method, params) }
-    }
-
-    public func stop() { stop(only: nil) }
+    func stop() { stop(only: nil) }
 
     /// `only` keeps a late termination of an old child from stopping its replacement.
     private func stop(only child: Process?) {
@@ -123,7 +124,7 @@ public final class PersistentReader: @unchecked Sendable {
         }
     }
 
-    private func send(_ method: String, _ params: [String: JSONValue]) async throws -> JSONValue {
+    func send(_ method: String, _ params: [String: JSONValue]) async throws -> JSONValue {
         try await withCheckedThrowingContinuation { continuation in
             lock.lock()
             do {
@@ -145,10 +146,10 @@ public final class PersistentReader: @unchecked Sendable {
 
     private func startLocked() throws -> FileHandle {
         if let process, process.isRunning, let input { return input }
-        guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
+        guard FileManager.default.isExecutableFile(atPath: executable) else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
         let child = Process(), stdin = Pipe(), stdout = Pipe()
-        child.executableURL = URL(fileURLWithPath: configuration.python)
-        child.arguments = ["-S", configuration.script, "media"] + (configuration.stateDirectory.map { ["--state-dir", $0] } ?? []) + ["rpc-serve"]
+        child.executableURL = URL(fileURLWithPath: executable)
+        child.arguments = arguments
         child.standardInput = stdin; child.standardOutput = stdout; child.standardError = FileHandle.nullDevice
         child.qualityOfService = .userInitiated
         stdout.fileHandleForReading.readabilityHandler = { [weak self, weak child] handle in
@@ -176,6 +177,69 @@ public final class PersistentReader: @unchecked Sendable {
         }
         lock.unlock()
         for (continuation, result) in ready { continuation.resume(with: result) }
+    }
+}
+
+/// The long-lived readers (snapshot, progress, suggestions). With a Rust engine, each read it has
+/// (`engine_info.ported`) goes to `nuun-engine rpc-serve` first; whatever it does not have, or any
+/// transport failure, is asked of Python's `rpc-serve`, so a read never goes unanswered. A Rust answer
+/// that is an error of the method itself (unknown project, offline disk…) is the answer, as Python's would be:
+/// the two engines give the same answers (scripts/engine_shadow.py). Mutations stay one Python process per
+/// request so cancelling interrupts exactly that operation.
+public final class PersistentReader: @unchecked Sendable {
+    public let configuration: BackendConfiguration
+    /// Rust codes that mean «ask Python instead».
+    static let fallbackCodes: Set<String> = ["not_ported", "reader_unavailable", "runtime_missing"]
+    private let python: LineServer
+    private let rust: LineServer?
+    private let fallback: BackendClient
+    private let lock = NSLock()
+    private var rustMethods: Set<String>?
+    private var answered: [String: String] = [:]
+
+    public init(configuration: BackendConfiguration) {
+        self.configuration = configuration
+        let state = configuration.stateDirectory.map { ["--state-dir", $0] } ?? []
+        python = LineServer(executable: configuration.python, arguments: ["-S", configuration.script, "media"] + state + ["rpc-serve"])
+        rust = configuration.rustReads ? configuration.engine.map { LineServer(executable: $0, arguments: state + ["rpc-serve"]) } : nil
+        fallback = BackendClient(configuration: configuration)
+    }
+    deinit { stop() }
+
+    /// Which engine answered each method last (`rust` or `python`), for Ajustes → Diagnóstico.
+    public var answeredBy: [String: String] { lock.withLock { answered } }
+
+    public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
+        if let rust, await rustAnswers(method, rust) {
+            do {
+                let value = try await rust.send(method, params)
+                record(method, "rust")
+                return value
+            } catch let failure as BackendFailure where !Self.fallbackCodes.contains(failure.code) {
+                record(method, "rust")
+                throw failure
+            } catch {
+                // Python answers what Rust could not.
+            }
+        }
+        record(method, "python")
+        guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
+        do { return try await python.send(method, params) }
+        catch let failure as BackendFailure where failure.code != "reader_unavailable" { throw failure }
+        catch { return try await fallback.call(method, params) }
+    }
+
+    public func stop() { python.stop(); rust?.stop() }
+
+    private func record(_ method: String, _ engine: String) { lock.withLock { answered[method] = engine } }
+
+    /// The methods the engine answers here, asked once (`engine_info`); none if it cannot say.
+    private func rustAnswers(_ method: String, _ rust: LineServer) async -> Bool {
+        if let known = lock.withLock({ rustMethods }) { return known.contains(method) }
+        let info = try? await rust.send("engine_info", [:])
+        let methods = Set((info?["ported"].array ?? []).map(\.string))
+        lock.withLock { rustMethods = methods }
+        return methods.contains(method)
     }
 }
 

@@ -31,8 +31,8 @@ from media.shadow import LOG_DIR, ShadowLog, compare, summarize  # noqa: E402
 DEFAULT_ENGINE = REPO / 'engine' / 'target' / 'release' / 'nuun-engine'
 # Reads that need parameters the replay cannot invent; they are covered by the app's shadow when it asks them.
 NEEDS_PARAMS = {'project_preview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates',
-                'closure_progress', 'action_progress', 'job', 'asset_revisions', 'storage_progress',
-                'storage_tree', 'missions_review'}
+                'closure_progress', 'action_progress', 'job', 'asset_revisions', 'missions_review',
+                'storage_tree'}
 
 
 class Pipe:
@@ -89,10 +89,23 @@ def requests_for(python):
     for closure in (closures.get('data') or [])[:5]:
         if isinstance(closure, dict) and closure.get('id'):
             requests.append(('closure_deliveries', {'project_id': closure['id']}))
+            requests.append(('closure_candidates', {'project_id': closure['id']}))
     volumes, _ = python.ask('volumes', {})
     for source in ['/', str(Path.home())] + [v.get('root') for v in (volumes.get('data') or []) if isinstance(v, dict)]:
         if isinstance(source, str):
             requests.append(('suggest', {'source': source}))
+    overview, _ = python.ask('storage_overview', {})
+    for target in ((overview.get('data') or {}).get('targets') or []):
+        if not target.get('indexed'):
+            continue
+        requests.append(('storage_tree', {'target': target['id']}))
+        top, _ = python.ask('storage_tree', {'target': target['id'], 'limit': 3})
+        for folder in ((top.get('data') or {}).get('folders') or [])[:3]:
+            requests.append(('storage_tree', {'target': target['id'], 'path': folder['path'], 'limit': 50}))
+    requests.append(('missions_review', {}))
+    for volume in volumes.get('data') or []:
+        if isinstance(volume, dict) and volume.get('role') == 'archive':
+            requests.append(('missions_review', {'archive': volume['name']}))
     requests.append(('closure_progress', {'plan_id': 'shadow-absent'}))
     requests.append(('action_progress', {'id': 'shadow-absent'}))
     return requests

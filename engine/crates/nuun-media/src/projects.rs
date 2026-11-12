@@ -340,6 +340,247 @@ pub fn delivery_summary(states: &[Value]) -> Value {
     })
 }
 
+fn pattern(text: &str) -> &'static regex::Regex {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<std::sync::Mutex<HashMap<String, &'static regex::Regex>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let mut map = cache.lock().unwrap_or_else(|e| e.into_inner());
+    map.entry(text.to_owned())
+        .or_insert_with(|| Box::leak(Box::new(regex::Regex::new(text).expect("valid pattern"))))
+}
+
+/// closure.py `VERTICAL_SUFFIX` on text already lowercased (Python's flag is `IGNORECASE`).
+const VERTICAL_SUFFIX: &str = r"[._ -](?:short|vertical|reel)(?:[._ -]?\d+)?$";
+
+/// `PurePath.stem` of the last component.
+fn stem(path: &str) -> String {
+    let last = path.rsplit('/').next().unwrap_or(path);
+    match last.rfind('.') {
+        Some(i) if i > 0 && i < last.len() - 1 => last[..i].to_owned(),
+        _ => last.to_owned(),
+    }
+}
+
+/// finals.py `year_in_name`: `26-10-27-…`, `2026-10-27-…` or `261027_…` with a real month and day.
+fn year_in_name(name: &str) -> bool {
+    let groups = pattern(r"^(?:(\d{4})|(\d{2}))-(\d{2})-(\d{2})(?:\D|$)")
+        .captures(name)
+        .or_else(|| pattern(r"^()(\d{2})(\d{2})(\d{2})[_-]").captures(name));
+    let Some(g) = groups else { return false };
+    let number = |i: usize| g.get(i).and_then(|m| m.as_str().parse::<u32>().ok());
+    matches!((number(3), number(4)), (Some(m), Some(d)) if (1..=12).contains(&m) && (1..=31).contains(&d))
+}
+
+/// closure.py `delivery_title`: the project a delivery's file name points to.
+fn delivery_title(name: &str) -> String {
+    let mut s = stem(name).to_lowercase().replace('ß', "ss");
+    if year_in_name(&s) {
+        s = pattern(r"^(?:\d{2,4}-\d{2}-\d{2}|\d{6})[_-]+")
+            .replace(&s, "")
+            .into_owned();
+    }
+    s = pattern(VERTICAL_SUFFIX).replace(&s, "").into_owned();
+    s = pattern(r"\.thumbnail(?:[-_.].*)?$")
+        .replace(&s, "")
+        .into_owned();
+    reads::normalized_name(s.strip_prefix("titulos-").unwrap_or(&s))
+}
+
+/// closure.py `role_hint`.
+fn role_hint(path: &str) -> &'static str {
+    let text = path.to_lowercase();
+    let ext = suffix(text.rsplit('/').next().unwrap_or(&text));
+    if [".jpg", ".jpeg", ".png", ".webp", ".heic"].contains(&ext.as_str()) {
+        return "thumbnail";
+    }
+    if [".txt", ".srt", ".vtt"].contains(&ext.as_str()) {
+        return "auxiliary";
+    }
+    let parts: Vec<&str> = text.split('/').collect();
+    let vertical_folder = parts[..parts.len().saturating_sub(1)]
+        .iter()
+        .any(|f| pattern(r"^(?:\d+[_-])?(?:shorts|verticales|reels)$").is_match(f));
+    if kind_of(&text) == Some("video")
+        && (vertical_folder || pattern(VERTICAL_SUFFIX).is_match(&stem(&text)))
+    {
+        "vertical"
+    } else {
+        "horizontal"
+    }
+}
+
+/// closure.py `delivery_decisions`: every saved final, by (volume, path), with its project.
+fn delivery_decisions(catalog: &Catalog) -> Result<HashMap<(String, String), (String, Value)>> {
+    let mut result = HashMap::new();
+    let Some(db) = catalog.db() else {
+        return Ok(result);
+    };
+    let mut statement = db
+        .prepare("SELECT key,value FROM metadata WHERE key LIKE 'project-closure:%'")
+        .map_err(sql)?;
+    let rows = statement
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .map_err(sql)?;
+    for row in rows {
+        let (key, raw) = row.map_err(sql)?;
+        let config: Value = serde_json::from_str(&raw)
+            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        for final_ in config["finals"].as_array().into_iter().flatten() {
+            let mut value = final_.clone();
+            if value.get("published").is_none() {
+                value["published"] = config["published"].clone();
+            }
+            result.insert(
+                (
+                    final_["volume_id"].as_str().unwrap_or_default().to_owned(),
+                    final_["path"].as_str().unwrap_or_default().to_owned(),
+                ),
+                (key["project-closure:".len()..].to_owned(), value),
+            );
+        }
+    }
+    Ok(result)
+}
+
+/// The `closure_candidates` method (closure.py `candidates`): finals of the profile on every online disk that
+/// match the project, with what is already decided about each one.
+pub fn closure_candidates(
+    catalog: &Catalog,
+    backend: &dyn Backend,
+    params: &Value,
+) -> Result<Value> {
+    let project_id = params
+        .get("project_id")
+        .and_then(Value::as_str)
+        .ok_or_else(|| Error::new("operation_failed", "'project_id'"))?;
+    let (_, profile, title) = reads::project_record(catalog, project_id)?;
+    let default_query = params.get("query").is_none_or(Value::is_null);
+    let query = match params.get("query") {
+        None | Some(Value::Null) => title.clone(),
+        Some(Value::String(q)) => q.clone(),
+        Some(_) => return Err(Error::new("invalid_request", "Búsqueda inválida")),
+    };
+    let tokens: Vec<String> = reads::normalized_name(&query)
+        .split('-')
+        .filter(|s| s.chars().count() > 1)
+        .map(str::to_owned)
+        .collect();
+    let saved = reads::closure_settings(catalog, project_id)?;
+    let decisions = delivery_decisions(catalog)?;
+    let receipts = published_receipts(catalog)?;
+    let mut aliases: BTreeSet<String> = BTreeSet::from([reads::normalized_name(&title)]);
+    if let Some(db) = catalog.db() {
+        let mut statement = db
+            .prepare("SELECT alias FROM project_aliases WHERE project_id=?")
+            .map_err(sql)?;
+        let rows = statement
+            .query_map([project_id], |r| r.get::<_, String>(0))
+            .map_err(sql)?;
+        for alias in rows {
+            aliases.insert(reads::normalized_name(&alias.map_err(sql)?));
+        }
+    }
+    let cached = volumes::Cached::new(backend);
+    volumes::prefetch(&cached, catalog, false)?;
+    let mut values = Vec::new();
+    for volume in catalog.volumes()? {
+        if volumes::online(&cached, &volume).is_none() {
+            continue;
+        }
+        let prefix = format!(
+            "{}/{profile}",
+            volume["finals_prefix"].as_str().unwrap_or("002_finales")
+        );
+        let volume_root = PathBuf::from(volume["root"].as_str().unwrap_or_default());
+        let root = volume_root.join(&prefix);
+        let published = if root.is_dir() {
+            published_folder(catalog, &profile, &subfolders(&root)?)?
+        } else {
+            String::new()
+        };
+        let mut files = Vec::new();
+        delivery_files(&root, &mut files);
+        for path in files {
+            let name = path
+                .strip_prefix(&root)
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let suggested = aliases.contains(&delivery_title(&name));
+            let normalized = reads::normalized_name(&name);
+            if !(default_query && suggested)
+                && !tokens.is_empty()
+                && !tokens.iter().all(|t| normalized.contains(t.as_str()))
+            {
+                continue;
+            }
+            let rel = path
+                .strip_prefix(&volume_root)
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let volume_id = volume["id"].as_str().unwrap_or_default().to_owned();
+            let key = (volume_id.clone(), rel.clone());
+            let prior = decisions.get(&key);
+            if prior.is_some_and(|p| p.0 != project_id) {
+                continue;
+            }
+            // Python reads `saved[1]['stamp']`: a saved final always has one; without it Python stops here.
+            if prior.is_some_and(|p| p.1.get("stamp").is_none()) {
+                return Err(Error::new("operation_failed", "'stamp'"));
+            }
+            let Ok(info) = nu9ve_volumes::stamp(&path) else {
+                continue;
+            };
+            let stamp = crate::tree::stamp_json(&info);
+            let in_published =
+                !published.is_empty() && name.split('/').next() == Some(published.as_str());
+            // closure.py `publication_hint`.
+            let declared = match prior {
+                Some((_, final_)) if final_.get("stamp") == Some(&stamp) => {
+                    final_["published"].clone()
+                }
+                _ => json!(in_published || receipts.get(&key) == Some(&stamp)),
+            };
+            let changed = prior.is_some_and(|(_, f)| f.get("stamp") != Some(&stamp));
+            values.push(json!({
+                "volume_id": volume_id, "volume": volume["name"], "path": rel, "name": name, "bytes": info.size,
+                "role": role_hint(&name), "archived": volume["role"] == "archive", "published": declared,
+                "suggested": suggested, "publication_changed": changed,
+            }));
+        }
+    }
+    let key = |v: &Value| {
+        (
+            v["suggested"] != true,
+            v["archived"] == true,
+            v["name"].as_str().unwrap_or_default().to_owned(),
+        )
+    };
+    values.sort_by_key(key);
+    let truncated = values.len() > 1000;
+    values.truncate(1000);
+    let mut group = Vec::new();
+    for other in reads::related(catalog, project_id)? {
+        let (_, _, other_title) = reads::project_record(catalog, &other)?;
+        let finals: Vec<Value> = reads::closure_settings(catalog, &other)?["finals"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|f| {
+                let path = f["path"].as_str().unwrap_or_default();
+                json!({"volume_id": f["volume_id"], "path": f["path"], "name": file_name(path), "role": f["role"],
+                       "published": f.get("published").cloned().unwrap_or(json!(false))})
+            })
+            .collect();
+        group.push(json!({"id": other, "title": other_title, "finals": finals}));
+    }
+    let deliveries = delivery_states(catalog, Some(&cached), project_id, Some(&saved))?;
+    Ok(
+        json!({"files": values, "truncated": truncated, "settings": saved, "deliveries": deliveries,
+              "group": group}),
+    )
+}
+
 /// The `closure_deliveries` method.
 pub fn closure_deliveries(
     catalog: &Catalog,
@@ -738,6 +979,16 @@ mod tests {
         let back = |value: Value| -> Value {
             serde_json::from_str(&value.to_string().replace(&text_root, "<ROOT>")).unwrap()
         };
+        for (name, project, query) in [
+            ("p1", "p1", Value::Null),
+            ("p1-query", "p1", json!("final")),
+            ("p2", "p2", Value::Null),
+            ("p2-all", "p2", json!("")),
+        ] {
+            let params = json!({"project_id": project, "query": query});
+            let found = closure_candidates(&catalog, &backend, &params).unwrap();
+            assert_eq!(back(found), case["candidates"][name], "{name}");
+        }
         let deliveries = delivery_states(&catalog, Some(&backend), "p1", None).unwrap();
         assert_eq!(back(json!(deliveries)), case["deliveries"]);
         let sessions = case["sessions"].as_array().unwrap();

@@ -445,7 +445,7 @@ pub fn card_identity(info: &Value) -> Value {
     )
 }
 
-fn truthy(value: &Value) -> bool {
+pub(crate) fn truthy(value: &Value) -> bool {
     match value {
         Value::Null => false,
         Value::Bool(b) => *b,
