@@ -255,6 +255,159 @@ def plan_cases():
     return results
 
 
+# Catalog reads (rpc-serve) on one fixture catalog: Python writes the catalog as SQL next to its answers, and the
+# Rust engine loads the same SQL and must answer the same. Each method ported in phase L adds its requests here.
+READ_REQUESTS = [
+    ('project_preview', {'name': 'Terra 6 · ñandú!'}), ('project_preview', {'name': '  '}), ('project_preview', {}),
+    ('closure_overview', {}),
+    ('closure_link_candidates', {'project_id': 'p1'}), ('closure_link_candidates', {'project_id': 'p4'}),
+    ('closure_link_candidates', {'project_id': 'p5'}), ('closure_link_candidates', {'project_id': 'nope'}),
+    ('closure_progress', {'plan_id': 'x1'}), ('closure_progress', {'plan_id': 'absent'}),
+    ('action_progress', {'id': 'a-1'}), ('action_progress', {'id': 'absent'}),
+    ('asset_revisions', {'asset_id': 'a1'}), ('asset_revisions', {'asset_id': 'a2'}),
+    ('asset_revisions', {'asset_id': 'nope'}),
+    ('living_collections', {}),
+    ('missions_status', {}), ('missions_status', {'flow_id': 'subaereo'}), ('missions_status', {'flow_id': 'nope'}),
+    ('jobs', {}), ('library', {}), ('library', {'project': 'TERRA'}), ('projects', {}), ('profiles', {}),
+    ('release_plans', {}), ('recipe', {}), ('devices', {}), ('defaults', {}), ('integration_settings', {}),
+]
+
+
+def reads_cases():
+    from media.catalog import Catalog
+    from media.common import MediaError
+    from media.service import Service
+    root = fresh_root('reads')
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            db = catalog.db
+            with db:
+                db.executemany('INSERT INTO projects VALUES(?,?,?)', [
+                    ('p1', 'e64', 'terra-6-1'), ('p2', 'e64', 'Terra 6 1 extra'), ('p3', 'e64', 'otro_proyecto'),
+                    ('p4', '9logs', 'vlog'), ('p5', 'e64', 'finales'), ('p6', 'e64', 'terra__6')])
+                asset = lambda i, job, project, pid, rev: json.dumps(  # noqa: E731
+                    {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': project,
+                     'project_id': pid, 'profile': 'e64', 'revision': rev})
+                db.executemany('INSERT INTO assets VALUES(?,?,?)', [
+                    ('a1', 'j1', asset('a1', 'j1', 'terra-6-1', 'p1', 'r2')),
+                    ('a2', 'j1', asset('a2', 'j1', 'otro_proyecto', 'p3', 'r1')),
+                    ('a3', 'j2', asset('a3', 'j2', 'Terra 6 1 extra', 'p2', 'r1'))])
+                db.executemany('INSERT INTO asset_revisions VALUES(?,?,?)', [
+                    ('a1', 'r1', asset('a1', 'j1', 'terra-6-1', 'p1', 'r1')),
+                    ('a1', 'r2', asset('a1', 'j1', 'terra-6-1', 'p1', 'r2'))])
+                db.executemany('INSERT INTO work VALUES(?,?,?,?)', [
+                    ('a1', 'ready', None, '2026-11-08'), ('a2', 'pending', None, '2026-11-08'),
+                    ('a3', 'pending', None, '2026-11-09')])
+                db.executemany('INSERT INTO asset_projects VALUES(?,?)', [('a1', 'p1'), ('a2', 'p3'), ('a3', 'p2')])
+                db.executemany('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', [
+                    ('j1', 'd1', json.dumps({'source_kind': 'card'}), 'completed', None, '2026-11-08T10:00:00Z',
+                     '2026-11-08T11:00:00Z'),
+                    ('j2', 'd2', json.dumps({'source_kind': 'card'}), 'completed', None, '2026-11-09T10:00:00Z',
+                     '2026-11-09T11:00:00Z')])
+                db.executemany('INSERT INTO living_files VALUES(?,?,?,?,?,?,?)', [
+                    ('c1', 'a.wav', 10, 1, 'h', 'x/a.wav', 't'), ('c1', 'b.wav', 32, 1, 'h', 'x/b.wav', 't')])
+            for key, value in {
+                'project-closure:p1': {'required': ['horizontal'], 'no_more': True, 'published': False,
+                                       'finals': [{'role': 'horizontal', 'volume_id': 'v', 'path': 'f.mp4'}],
+                                       'related': ['p2', 'gone', 'p1']},
+                'project-closure:p4': {'required': ['horizontal'], 'no_more': False, 'published': False, 'finals': []},
+                'project-released:p4': {'at': '2026-11-01'},
+                'closure-progress:x1': {'stage': 'hashing', 'files_done': 3},
+                'action-progress:a-1': {'phase': 'copy', 'done': 1, 'total': 4},
+                'living-collection:c2': {'id': 'c2', 'name': 'zeta', 'source': '/x/zeta'},
+                'living-collection:c1': {'id': 'c1', 'name': 'alpha', 'source': '/x/alpha'},
+                'mission-registry:subaereo': {'flow': 'subaereo', 'coverage': {'until': '2026-11-05'}},
+                'release:r1': {'id': 'r1'},
+                'creative-profiles': {'e64': {'id': 'e64', 'name': 'E64', 'clipper_profile': 'clip-e64'}},
+            }.items():
+                catalog.set(key, value)
+            service = Service(catalog)
+            cases = []
+            for method, params in READ_REQUESTS:
+                try:
+                    answer = {'ok': True, 'data': service.call(method, dict(params))}
+                except MediaError as error:
+                    answer = {'ok': False, 'code': error.code}
+                except (KeyError, TypeError, ValueError) as error:
+                    answer = {'ok': False, 'code': 'operation_failed', 'error': type(error).__name__}
+                cases.append({'method': method, 'params': params, 'answer': answer})
+            sql = '\n'.join(catalog.db.iterdump())
+        finally:
+            catalog.close()
+    return {'sql': sql, 'cases': cases}
+
+
+# Stalker libraries (`capture_libraries`): bundles on disk under one root, a producer registry, the archived
+# sessions table and a tag. Rust rebuilds the same files and compares with `<ROOT>` in place of the folder.
+CAPTURE_SID = '123E4567E89B12D3A456426614174000'
+
+
+def capture_cases():
+    import os
+    import time
+    from media.captures import capture_libraries
+    from media.catalog import Catalog
+    os.environ['TZ'] = PLAN_TZ
+    time.tzset()
+
+    def manifest(**extra):
+        return dict({'producer': 'stalker', 'schemaVersion': 2, 'status': 'completed'}, **extra)
+
+    bundles = {
+        'lib/S1.stalker': {'manifest.json': manifest(
+            sessionID=CAPTURE_SID, createdAt='2026-11-04T23:32:12Z', duration={'value': 3000, 'timescale': 10},
+            project={'version': 1, 'name': 'terra', 'country': 'mx'},
+            tracks=[{'relativePath': 'cam.mov', 'kind': 'camera'}, {'relativePath': 'Screen/screen.mov'},
+                    {'relativePath': 'mic.wav'}]),
+            'cam.mov': 'c', 'Screen/screen.mov': 's', 'mic.wav': 'm'},
+        'lib/S2.stalker': {'manifest.json': manifest(sessionID='223e4567-e89b-12d3-a456-426614174000', status='recording',
+                                                     schemaVersion=3, createdAt='2026-11-05T08:00:00')},
+        'lib/S3.STALKER': {'manifest.json': '{broken'},
+        'lib/S4.stalker': {'manifest.json': dict(manifest(sessionID=CAPTURE_SID), producer='other')},
+        'lib/S5.stalker': {'manifest.json': manifest(sessionID='323E4567E89B12D3A456426614174000',
+                                                     createdAt='2026-11-01T10:00:00-07:00', tracks=[])},
+        'lib/S6.stalker': {'notes.txt': 'no manifest'},
+        'lib/S7.stalker': {'manifest.json': manifest(sessionID='423e4567e89b12d3a456426614174000', createdAt='ayer',
+                                                     duration={'value': 5, 'timescale': 0},
+                                                     tracks=[{'relativePath': 'gone.mp4', 'role': 'display'}])},
+        'lib/folder': {'x.txt': 'x'},
+        'lib2/S8.stalker': {'manifest.json': manifest(sessionID='523e4567e89b12d3a456426614174000',
+                                                      createdAt='2026-11-06T12:00:00Z')},
+    }
+    registry = {'schema': 'stalker-library/1', 'path': '<ROOT>/lib2',
+                'previous': [{'path': '<ROOT>/lib'}, 'relative/not-absolute', '<ROOT>/missing']}
+    root = fresh_root('captures')
+    files = {}
+    for folder, content in bundles.items():
+        for rel, value in content.items():
+            files[folder + '/' + rel] = value if isinstance(value, str) else json.dumps(value)
+    files['lib/x.stalker'] = 'a file, not a bundle'
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding='utf-8')
+        os.utime(path, ns=(PLAN_MTIME_NS, PLAN_MTIME_NS))
+    (root / 'registry.json').write_text(json.dumps(registry).replace('<ROOT>', str(root)))
+    archived_manifest = json.loads(files['lib/S5.stalker/manifest.json'])
+    # Python visits the bundles in set order, which changes per process: number every inode by path first.
+    for path in sorted(root.rglob('*')):
+        stable_inode(os.lstat(path))
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            with catalog.db:
+                catalog.db.execute('INSERT INTO sessions VALUES(?,?,?)',
+                                   ('323E4567-E89B-12D3-A456-426614174000', digest(archived_manifest), 'a1'))
+            catalog.set('capture-tag:123e4567-e89b-12d3-a456-426614174000', {'name': 'terra', 'country': 'mx'})
+            result = capture_libraries(catalog, '', registry=str(root / 'registry.json'), common=[])
+            sql = '\n'.join(catalog.db.iterdump())
+        finally:
+            catalog.close()
+    text = json.dumps(result, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    return {'files': files, 'registry': registry, 'sql': sql, 'mtime_ns': PLAN_MTIME_NS, 'result': json.loads(text)}
+
+
 def main():
     out = {
         'generator': 'scripts/engine_golden.py',
@@ -271,6 +424,10 @@ def main():
         # `plan` on temporary cards (devices, missions, Sony, mtime names, WAV, archive-only, assignments, errors).
         'plan_tz': PLAN_TZ,
         'plans': plan_cases(),
+        # Catalog reads through the engine's own dispatch, as rpc-serve answers them.
+        'reads': reads_cases(),
+        # Stalker libraries read from bundles on disk.
+        'captures': capture_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'

@@ -76,6 +76,17 @@ def requests_for(python):
     for name in names[:3]:
         requests.append(('library', {'project': name}))
     requests.append(('library', {'work_state': 'pending'}))
+    for project in (projects.get('data') or [])[:3]:
+        if isinstance(project, dict) and project.get('project_id'):
+            requests.append(('closure_link_candidates', {'project_id': project['project_id']}))
+    library, _ = python.ask('library', {})
+    for asset in (library.get('data') or [])[:5]:
+        if isinstance(asset, dict) and asset.get('id'):
+            requests.append(('asset_revisions', {'asset_id': asset['id']}))
+    for name in ('Terra 6 · ñandú', 'nuevo proyecto'):
+        requests.append(('project_preview', {'name': name}))
+    requests.append(('closure_progress', {'plan_id': 'shadow-absent'}))
+    requests.append(('action_progress', {'id': 'shadow-absent'}))
     return requests
 
 

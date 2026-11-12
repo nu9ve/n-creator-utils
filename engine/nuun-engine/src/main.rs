@@ -48,7 +48,7 @@ const READ_WHEN_EMPTY: [&str; 2] = ["defaults", "integration_settings"];
 const MAX_LINE: usize = 1024 * 1024;
 
 /// Methods this engine answers on every platform. Everything else in READ_METHODS is `not_ported`.
-const PORTABLE: [&str; 12] = [
+const PORTABLE: [&str; 22] = [
     "recipe",
     "snapshot",
     "engine_info",
@@ -61,6 +61,16 @@ const PORTABLE: [&str; 12] = [
     "release_plans",
     "defaults",
     "integration_settings",
+    "project_preview",
+    "closure_overview",
+    "closure_link_candidates",
+    "closure_progress",
+    "action_progress",
+    "asset_revisions",
+    "living_collections",
+    "missions_status",
+    "integration_capabilities",
+    "capture_libraries",
 ];
 /// Reads that need this platform's volume backend (`platform_backend`: Windows in Rust; macOS still Python).
 const VOLUME_READS: [&str; 2] = ["volumes", "source_cards"];
@@ -194,6 +204,29 @@ impl Engine {
             "profiles" => Ok(json!(nuun_media::snapshot::profiles(&self.catalog()?)?)),
             "devices" => nuun_media::reads::devices(&self.catalog()?),
             "release_plans" => Ok(json!(nuun_media::reads::release_plans(&self.catalog()?)?)),
+            "project_preview" => nuun_media::reads::project_preview(params),
+            "closure_overview" => Ok(json!(nuun_media::snapshot::project_closures(
+                &self.catalog()?
+            )?)),
+            "closure_link_candidates" => {
+                nuun_media::reads::closure_link_candidates(&self.catalog()?, params)
+            }
+            "closure_progress" => nuun_media::reads::progress(
+                &self.catalog()?,
+                "closure-progress:",
+                params,
+                "plan_id",
+            ),
+            "action_progress" => {
+                nuun_media::reads::progress(&self.catalog()?, "action-progress:", params, "id")
+            }
+            "asset_revisions" => nuun_media::reads::asset_revisions(&self.catalog()?, params),
+            "living_collections" => nuun_media::reads::living_collections(&self.catalog()?),
+            "missions_status" => nuun_media::reads::missions_status(&self.catalog()?, params),
+            "integration_capabilities" => nuun_media::integrations::capabilities(&self.catalog()?),
+            "capture_libraries" => {
+                nuun_media::captures::capture_libraries(&self.catalog()?, params)
+            }
             // Python answers these two without params only (`READ_WHEN_EMPTY`); with params they are writes.
             "defaults" if params.as_object().is_none_or(|p| p.is_empty()) => {
                 nuun_media::snapshot::defaults(&self.catalog()?)
@@ -351,6 +384,43 @@ mod tests {
                 std::env::temp_dir()
                     .join(format!("nuun-engine-unit-{}-missing", std::process::id())),
             ),
+        }
+    }
+
+    /// Phase L: every catalog read in the golden file, on Python's own fixture catalog, through `rpc-serve`.
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn catalog_reads_match_python() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/engine-golden/recipe.json");
+        let golden: Value = serde_json::from_str(
+            &std::fs::read_to_string(&path).expect("run scripts/engine_golden.py"),
+        )
+        .unwrap();
+        let reads = &golden["reads"];
+        let home = tempfile::tempdir().unwrap();
+        rusqlite::Connection::open(home.path().join("catalog.sqlite3"))
+            .unwrap()
+            .execute_batch(reads["sql"].as_str().unwrap())
+            .unwrap();
+        let e = Engine {
+            state_dir: Some(home.path().to_path_buf()),
+        };
+        let cases = reads["cases"].as_array().unwrap();
+        assert!(!cases.is_empty());
+        for (index, case) in cases.iter().enumerate() {
+            let line = json!({"id": index, "method": case["method"], "params": case["params"]})
+                .to_string();
+            let reply = e.answer(&line, Mode::Serve);
+            let expected = &case["answer"];
+            let label = format!("{} {}", case["method"], case["params"]);
+            if expected["ok"] == true {
+                assert_eq!(reply["ok"], true, "{label}: {reply}");
+                assert_eq!(reply["data"], expected["data"], "{label}");
+            } else {
+                assert_eq!(reply["ok"], false, "{label}: {reply}");
+                assert_eq!(reply["error"]["code"], expected["code"], "{label}");
+            }
         }
     }
 

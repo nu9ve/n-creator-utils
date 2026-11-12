@@ -2,8 +2,10 @@
 //! Reads open the catalog read only. The only write so far is `register_volume`, which changes configuration
 //! (the catalog), never media, and takes the same writer lock as Python.
 
+pub mod captures;
 pub mod catalog;
 pub mod devices;
+pub mod integrations;
 pub mod layout;
 pub mod missions;
 pub mod photo_meta;

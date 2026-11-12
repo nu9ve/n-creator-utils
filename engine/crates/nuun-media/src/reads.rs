@@ -4,6 +4,7 @@
 use crate::catalog::Catalog;
 use crate::snapshot;
 use nu9ve_json::{Error, Result, require};
+use rusqlite::OptionalExtension;
 use rusqlite::types::ValueRef;
 use serde_json::{Map, Value, json};
 
@@ -164,6 +165,271 @@ pub fn devices(catalog: &Catalog) -> Result<Value> {
 /// Python `release.release_plans(catalog)`.
 pub fn release_plans(catalog: &Catalog) -> Result<Vec<Value>> {
     catalog.json_rows("SELECT value FROM metadata WHERE key LIKE 'release:%'", [])
+}
+
+/// A required string parameter, failing as Python's `params['name']` does (`KeyError` → `operation_failed`).
+fn param<'a>(params: &'a Value, name: &str) -> Result<&'a str> {
+    match params.get(name) {
+        Some(Value::String(text)) => Ok(text),
+        Some(other) => Err(Error::new(
+            "operation_failed",
+            format!(
+                "can only concatenate str (not \"{}\") to str",
+                python_type(other)
+            ),
+        )),
+        None => Err(Error::new("operation_failed", format!("'{name}'"))),
+    }
+}
+
+fn python_type(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "NoneType",
+        Value::Bool(_) => "bool",
+        Value::Number(n) if n.is_f64() => "float",
+        Value::Number(_) => "int",
+        Value::String(_) => "str",
+        Value::Array(_) => "list",
+        Value::Object(_) => "dict",
+    }
+}
+
+/// Python `project_preview`: the name a project title becomes (`slug`). Python normalizes to NFC first; titles
+/// typed in the app already are, a decomposed one would differ here.
+pub fn project_preview(params: &Value) -> Result<Value> {
+    let name = params["name"]
+        .as_str()
+        .ok_or_else(|| Error::new("invalid_tag", "Invalid project/profile tag"))?;
+    Ok(json!({"name": crate::rules::slug(name)?}))
+}
+
+/// Python `closure_progress` / `action_progress`: a progress record by id, `{}` when there is none.
+pub fn progress(catalog: &Catalog, prefix: &str, params: &Value, name: &str) -> Result<Value> {
+    let id = param(params, name)?;
+    Ok(catalog
+        .get(&format!("{prefix}{id}"))?
+        .unwrap_or_else(|| json!({})))
+}
+
+/// Python `asset_revisions`: every saved revision of an asset, or the current record when it has none.
+pub fn asset_revisions(catalog: &Catalog, params: &Value) -> Result<Value> {
+    let id = param(params, "asset_id")?;
+    let current = catalog
+        .json_rows("SELECT payload FROM assets WHERE id=?", [id])?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::new("unknown_asset", "Asset not found"))?;
+    let key = current["id"].as_str().unwrap_or(id).to_owned();
+    let history = catalog.json_rows(
+        "SELECT payload FROM asset_revisions WHERE asset_id=?",
+        [&key],
+    )?;
+    Ok(if history.is_empty() {
+        json!([current])
+    } else {
+        json!(history)
+    })
+}
+
+/// Python `living.collections`: each registered living folder with its indexed files and bytes, by name.
+pub fn living_collections(catalog: &Catalog) -> Result<Value> {
+    let Some(db) = catalog.db() else {
+        return Ok(json!([]));
+    };
+    let mut result = Vec::new();
+    for mut value in catalog.json_rows(
+        "SELECT value FROM metadata WHERE key LIKE ?",
+        ["living-collection:%"],
+    )? {
+        let id = value["id"].as_str().unwrap_or_default().to_owned();
+        // Python creates `living_files` when it opens the catalog; one it never opened has no files yet.
+        let (count, size): (i64, i64) = db
+            .query_row(
+                "SELECT count(*), coalesce(sum(size),0) FROM living_files WHERE collection_id=?",
+                [&id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .or_else(|e| match e {
+                rusqlite::Error::SqliteFailure(_, Some(m)) if m.contains("no such table") => {
+                    Ok((0, 0))
+                }
+                other => Err(other),
+            })
+            .map_err(sql)?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert("files".into(), json!(count));
+            object.insert("bytes".into(), json!(size));
+        }
+        result.push(value);
+    }
+    result.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
+    Ok(json!(result))
+}
+
+/// Python `missions.status(catalog, flow_id=None)`: the archive's mission registry for a flow of the recipe.
+pub fn missions_status(catalog: &Catalog, params: &Value) -> Result<Value> {
+    if let Some(unexpected) = params
+        .as_object()
+        .and_then(|p| p.keys().find(|k| k.as_str() != "flow_id"))
+    {
+        return Err(Error::new(
+            "operation_failed",
+            format!("status() got an unexpected keyword argument '{unexpected}'"),
+        ));
+    }
+    let recipe = nuun_recipe::effective(catalog.get("recipe")?.as_ref());
+    let flows = recipe["missions"].as_array().cloned().unwrap_or_default();
+    require(
+        !flows.is_empty(),
+        "no_mission_flow",
+        "This recipe has no mission registry",
+    )?;
+    let flow = match &params["flow_id"] {
+        Value::Null => flows[0].clone(),
+        wanted => flows
+            .iter()
+            .find(|f| &f["id"] == wanted)
+            .cloned()
+            .ok_or_else(|| {
+                let shown = wanted
+                    .as_str()
+                    .map(str::to_owned)
+                    .unwrap_or(wanted.to_string());
+                Error::new(
+                    "no_mission_flow",
+                    format!("Unknown mission registry: {shown}"),
+                )
+            })?,
+    };
+    let id = flow["id"].as_str().unwrap_or_default();
+    let saved = catalog.get(&format!("mission-registry:{id}"))?;
+    // Python: `get(...) or {...}`, so an empty registry also answers the placeholder.
+    Ok(match saved {
+        Some(value) if !is_falsy(&value) => value,
+        _ => json!({"flow": id, "coverage": null}),
+    })
+}
+
+fn is_falsy(value: &Value) -> bool {
+    match value {
+        Value::Null => true,
+        Value::Bool(b) => !b,
+        Value::Number(n) => n.as_f64() == Some(0.0),
+        Value::String(s) => s.is_empty(),
+        Value::Array(a) => a.is_empty(),
+        Value::Object(o) => o.is_empty(),
+    }
+}
+
+/// Python `closure.project_record`: (id, profile, title) of a project that is not the `finales` collection.
+fn project_record(catalog: &Catalog, project_id: &str) -> Result<(String, String, String)> {
+    let row = match catalog.db() {
+        Some(db) => db
+            .query_row(
+                "SELECT id,profile,title FROM projects WHERE id=?",
+                [project_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .optional()
+            .map_err(sql)?,
+        None => None,
+    };
+    let row: (String, String, String) =
+        row.ok_or_else(|| Error::new("unknown_project", "Proyecto desconocido"))?;
+    require(
+        row.2 != "finales",
+        "invalid_project",
+        "Elige el proyecto original, no la colección finales",
+    )?;
+    Ok(row)
+}
+
+/// Python `closure.normalized_name`: casefolded, runs of non-word characters and `_` become `-`, trimmed.
+fn normalized_name(value: &str) -> String {
+    let mut out = String::new();
+    let mut gap = false;
+    // `[^\w]+|_`: a run of non-word characters is one `-`, and each `_` (a word character) is its own `-`.
+    for c in casefold(value).chars() {
+        if c.is_alphanumeric() || c == '_' {
+            if gap {
+                out.push('-');
+                gap = false;
+            }
+            out.push(if c == '_' { '-' } else { c });
+        } else {
+            gap = true;
+        }
+    }
+    if gap {
+        out.push('-');
+    }
+    out.trim_matches('-').to_owned()
+}
+
+/// Python `closure.link_candidates`: same-profile projects to link, linked first, then suggested, then by title.
+pub fn closure_link_candidates(catalog: &Catalog, params: &Value) -> Result<Value> {
+    let project_id = param(params, "project_id")?;
+    let (_, profile, title) = project_record(catalog, project_id)?;
+    let Some(db) = catalog.db() else {
+        return Ok(json!([]));
+    };
+    // closure.settings → related: the confirmed links that still name a known project.
+    let default_required = if profile == "9logs" {
+        json!(["horizontal"])
+    } else {
+        json!(["horizontal", "vertical", "thumbnail"])
+    };
+    let required = catalog
+        .get(&format!("closure-profile:{profile}"))?
+        .unwrap_or(default_required);
+    let settings = catalog
+        .get(&format!("project-closure:{project_id}"))?
+        .unwrap_or_else(
+            || json!({"required": required, "no_more": false, "published": false, "finals": []}),
+        );
+    let mut known = std::collections::BTreeSet::new();
+    {
+        let mut statement = db.prepare("SELECT id FROM projects").map_err(sql)?;
+        let ids = statement
+            .query_map([], |r| r.get::<_, String>(0))
+            .map_err(sql)?;
+        for id in ids {
+            known.insert(id.map_err(sql)?);
+        }
+    }
+    let linked: std::collections::BTreeSet<String> = settings["related"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|p| known.contains(*p) && *p != project_id)
+        .map(str::to_owned)
+        .collect();
+    let mine = normalized_name(&title);
+    let mut statement = db
+        .prepare("SELECT id,title FROM projects WHERE profile=? AND id!=? AND title!='finales'")
+        .map_err(sql)?;
+    let rows = statement
+        .query_map([&profile, project_id], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        })
+        .map_err(sql)?;
+    let mut values = Vec::new();
+    for row in rows {
+        let (id, other_title) = row.map_err(sql)?;
+        let other = normalized_name(&other_title);
+        let suggested =
+            other.starts_with(&format!("{mine}-")) || mine.starts_with(&format!("{other}-"));
+        values.push((linked.contains(&id), suggested, other_title, id));
+    }
+    // Python's key (not linked, not suggested, title); `sort` is stable, so equal keys keep the row order.
+    values.sort_by(|a, b| (!a.0, !a.1, &a.2).cmp(&(!b.0, !b.1, &b.2)));
+    Ok(json!(
+        values
+            .into_iter()
+            .map(|(linked, suggested, title, id)| json!({"id": id, "title": title, "linked": linked, "suggested": suggested}))
+            .collect::<Vec<_>>()
+    ))
 }
 
 #[cfg(test)]

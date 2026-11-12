@@ -2,8 +2,9 @@
 //! `media/service.py` `_snapshot` and the catalog reads it uses (`Catalog.jobs`, `Catalog.search`,
 //! `workspaces.profiles`, `library.projects`, `release.release_plans`, `closure.overview`, settings and defaults).
 //!
+//! `capabilities` (Clipper and Stalker) runs on its own threads while the catalog is read (crate::integrations).
+//!
 //! Not ported yet, reported the way Python reports a failing piece (`errors[piece]`, empty value):
-//! - `capabilities`: it starts Clipper and Stalker executables (`integrations.capabilities`).
 //! - `sony_removal_recorded` on a Sony job that failed with `FileNotFoundError`: it needs the plan's destination paths
 //!   (`transfer.sony_removal_recorded`); the job is still listed, `errors.jobs` says so.
 //! - `source_cards` outside Windows (the macOS volume backend is still Python).
@@ -356,6 +357,35 @@ pub fn defaults(catalog: &Catalog) -> Result<Value> {
 
 /// Python `_snapshot(params)`. `backend` is None where volume methods are not ported (macOS).
 pub fn snapshot(catalog: &Catalog, backend: Option<&dyn Backend>, params: &Value) -> Result<Value> {
+    snapshot_with(
+        catalog,
+        backend,
+        params,
+        &crate::integrations::Integrations::read(catalog)?,
+    )
+}
+
+/// `snapshot` with the integrations to ask: Clipper and Stalker run on their own threads while the catalog is
+/// read (Python asks them after everything else, one after the other).
+pub fn snapshot_with(
+    catalog: &Catalog,
+    backend: Option<&dyn Backend>,
+    params: &Value,
+    integrations: &crate::integrations::Integrations,
+) -> Result<Value> {
+    std::thread::scope(|scope| {
+        let capabilities = scope.spawn(|| integrations.capabilities());
+        let mut result = snapshot_reads(catalog, backend, params)?;
+        result["capabilities"] = capabilities.join().unwrap_or_else(|_| json!({}));
+        Ok(result)
+    })
+}
+
+fn snapshot_reads(
+    catalog: &Catalog,
+    backend: Option<&dyn Backend>,
+    params: &Value,
+) -> Result<Value> {
     let mut errors = Map::new();
     let cached = backend.map(volumes::Cached::new);
     let mut volume_list = Vec::new();
@@ -390,10 +420,6 @@ pub fn snapshot(catalog: &Catalog, backend: Option<&dyn Backend>, params: &Value
         "project_closures": project_closures(catalog)?,
         "capabilities": {},
     });
-    errors.insert(
-        "capabilities".into(),
-        json!("not_ported: Clipper/Stalker discovery is still in media/integrations.py"),
-    );
     if params["cards"].as_bool().unwrap_or(true) {
         match &cached {
             Some(b) => {
@@ -432,6 +458,12 @@ pub fn describe_kind(path: &Path) -> Option<&'static str> {
 mod tests {
     use super::*;
     use crate::catalog::fixture;
+
+    /// A snapshot that never starts this machine's Clipper or Stalker.
+    fn isolated(catalog: &Catalog, params: &Value) -> Value {
+        let none = crate::integrations::Integrations::isolated();
+        snapshot_with(catalog, None, params, &none).unwrap()
+    }
 
     #[test]
     fn kinds_follow_layout_py() {
@@ -528,7 +560,7 @@ mod tests {
     #[test]
     fn snapshot_has_python_shape_and_says_what_is_not_ported() {
         let (_temp, catalog) = catalog_with_data();
-        let data = snapshot(&catalog, None, &json!({})).unwrap();
+        let data = isolated(&catalog, &json!({}));
         for key in [
             "volumes",
             "library",
@@ -564,13 +596,9 @@ mod tests {
         // Closure: complete, no_more and not released → needs release.
         assert_eq!(data["project_closures"][0]["title"], "proyecto-demo");
         assert_eq!(data["project_closures"][0]["needs_release"], true);
-        // Unported pieces are named, the way Python names a failing piece.
-        assert!(
-            data["errors"]["capabilities"]
-                .as_str()
-                .unwrap()
-                .starts_with("not_ported")
-        );
+        // Unported pieces are named, the way Python names a failing piece; capabilities are asked now.
+        assert!(data["errors"].get("capabilities").is_none());
+        assert_eq!(data["capabilities"]["clipper"]["available"], false);
         assert!(
             data["errors"]["source_cards"]
                 .as_str()
@@ -578,13 +606,13 @@ mod tests {
                 .starts_with("not_ported")
         );
         // Without cards requested there is no source_cards key at all.
-        let lean = snapshot(&catalog, None, &json!({"cards": false})).unwrap();
+        let lean = isolated(&catalog, &json!({"cards": false}));
         assert!(lean.get("source_cards").is_none());
     }
 
     #[test]
     fn an_empty_catalog_gives_an_empty_snapshot() {
-        let data = snapshot(&Catalog::empty(), None, &json!({})).unwrap();
+        let data = isolated(&Catalog::empty(), &json!({}));
         assert_eq!(data["jobs"], json!([]));
         assert_eq!(data["library"], json!([]));
         assert_eq!(data["defaults"]["profile"], "e64");
