@@ -12,8 +12,8 @@ use serde_json::{Value, json};
 use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
-/// media/cli.py `READ_METHODS` (2026-11-09) and `READ_WHEN_EMPTY`.
-const READ_METHODS: [&str; 28] = [
+/// media/cli.py `READ_METHODS` and `READ_WHEN_EMPTY`; tests/test_engine_boundary.py keeps them equal.
+const READ_METHODS: [&str; 29] = [
     "project_preview",
     "closure_overview",
     "closure_candidates",
@@ -32,6 +32,7 @@ const READ_METHODS: [&str; 28] = [
     "profiles",
     "devices",
     "recipe",
+    "living_collections",
     "missions_review",
     "missions_status",
     "projects",

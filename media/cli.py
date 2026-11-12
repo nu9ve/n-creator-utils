@@ -3,6 +3,7 @@ import argparse
 import json
 import signal
 import sys
+import time
 
 from .catalog import Catalog
 from .common import MediaError, read_json, require
@@ -138,12 +139,15 @@ READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'cl
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
 
 
-def serve_reads(service, stdin=None, stdout=None):
+def serve_reads(service, stdin=None, stdout=None, shadow=None):
+    # `shadow` (media/shadow.py) repeats each answered read on the Rust engine after the answer is written.
     stdin, stdout = stdin or sys.stdin, stdout or sys.stdout
     for line in stdin:
         if not line.strip():
             continue
         identifier = None
+        method = params = None
+        started = time.perf_counter()
         try:
             require(len(line) <= 1024 * 1024, 'request_too_large', 'Request line exceeds 1 MiB')
             request = json.loads(line)
@@ -154,8 +158,11 @@ def serve_reads(service, stdin=None, stdout=None):
         except (MediaError, OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
             code = error.code if isinstance(error, MediaError) else 'operation_failed'
             envelope = {'id': identifier, 'ok': False, 'error': {'code': code, 'message': str(error)}}
+        elapsed = time.perf_counter() - started
         stdout.write(json.dumps(envelope, ensure_ascii=False) + '\n')
         stdout.flush()
+        if shadow is not None and method is not None and (envelope['ok'] or envelope['error']['code'] != 'read_only'):
+            shadow.submit(method, params, envelope, elapsed)
     return 0
 
 
@@ -173,7 +180,13 @@ def main(argv=None):
             from .mcp import serve
             return serve(service)
         if args.command == 'rpc-serve':
-            return serve_reads(service)
+            from .shadow import Shadow
+            shadow = Shadow.from_environment(catalog.home)
+            try:
+                return serve_reads(service, shadow=shadow)
+            finally:
+                if shadow is not None:
+                    shadow.close()
         if args.command == 'rpc':
             raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')

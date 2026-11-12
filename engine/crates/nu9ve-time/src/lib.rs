@@ -266,7 +266,7 @@ pub fn local_to_seconds(local: &dyn Fn(i64) -> i64, wall: NaiveDateTime) -> i64 
     u1.max(u2)
 }
 
-/// CPython `local(u)`: the local wall time of instant `u`, as seconds read like UTC.
+// CPython `local(u)`: the local wall time of instant `u`, as seconds read like UTC.
 #[cfg(unix)]
 unsafe extern "C" {
     fn tzset();

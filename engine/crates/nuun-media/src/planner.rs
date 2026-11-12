@@ -1823,13 +1823,33 @@ mod golden {
                         (text(&case["volume_ids"], "ESSD"), "ESSD"),
                     ];
                     let rust_ids = [("id-MEDIA", "MEDIA"), ("id-ESSD", "ESSD")];
+                    // Rust's plan also carries Python's root: the source identity above is Python's.
+                    let mine = normalized(&plan, &root, &rust_ids);
                     assert_eq!(
-                        normalized(&plan, &root, &rust_ids),
+                        normalized(&mine, text(case, "root"), &[]),
                         normalized(theirs, text(case, "root"), &python_ids),
                         "{name}"
                     );
                     // The same plan applied: final state and verified copies (destination, SHA-256) as Python's.
+                    // Applied from a plan with this run's own stamps: Python's (inode, ctime) are
+                    // there only so the ids hash the same, and apply rightly sees them as a changed source.
+                    // Unit ids hash the stamps and name support folders, so copies map them back to
+                    // the ids of the plan just compared with Python's.
                     let expected = &case["apply"];
+                    let stamped = plan;
+                    let plan = build_with_stamps(&catalog, &s.backend, &params, None).unwrap();
+                    let unit_ids = |p: &Value| -> Vec<String> {
+                        p["units"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .map(|u| text(u, "id").to_owned())
+                            .collect()
+                    };
+                    let id_map: Vec<(String, String)> = unit_ids(&plan)
+                        .into_iter()
+                        .zip(unit_ids(&stamped))
+                        .collect();
                     let digest_text = text(&plan, "digest").to_owned();
                     let applied = {
                         let _lock = crate::catalog::writer_lock(&s.home).unwrap();
@@ -1847,7 +1867,11 @@ mod golden {
                         .unwrap()
                         .into_iter()
                         .map(|c| {
-                            json!([names(text(&c, "volume_id")), c["destination"], c["sha256"]])
+                            let mut destination = text(&c, "destination").to_owned();
+                            for (own, python) in &id_map {
+                                destination = destination.replace(own.as_str(), python);
+                            }
+                            json!([names(text(&c, "volume_id")), destination, c["sha256"]])
                         })
                         .collect();
                     copies.sort_by_key(|c| c.to_string());

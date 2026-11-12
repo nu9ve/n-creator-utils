@@ -2,20 +2,27 @@
 """Phase 0 of the Rust engine (docs/platforms/rust-engine.md §7): answers of the Python oracle that the Rust
 engine must reproduce byte for byte.
 
-Pure: it reads no disk, card or catalog of the user; it only imports media/ and writes
-tests/fixtures/engine-golden/recipe.json. Run from the checkout:
+Pure: it reads no disk, card or catalog of the user; it only imports media/, builds cards under /tmp/nuun-engine-golden
+and writes tests/fixtures/engine-golden/recipe.json (`--check` only compares). Run from the checkout:
 
-    python3 scripts/engine_golden.py
+    python3 scripts/engine_golden.py [--check]
     cd engine && TZ=America/Hermosillo TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored
 
 (`TZ`: plan names use the host zone for files without a camera time; `TMPDIR` resolved because macOS puts
 temporary folders under /var, a symlink the scan refuses.)
 
 Regenerate only on purpose (a change in TEMPLATE or in canonical JSON) and review the diff.
+
+Deterministic on any Mac, so the file lives in git and `--check` can tell whether Python's answers moved: cards are
+written under one fixed folder (`GOLDEN_ROOT`), and inode, ctime, device and catalog ids come from counters, not from
+the run. Plan and apply share the same patched `fingerprint`, so Python's own change checks still hold.
 """
+import contextlib
 import json
+import shutil
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -24,6 +31,48 @@ sys.path.insert(0, str(REPO))
 from media.common import canonical, digest  # noqa: E402
 from media.recipes import TEMPLATE, recipe_ref, summary  # noqa: E402
 from media.volumes import card_hint  # noqa: E402
+
+# Resolved, so on macOS it is /private/tmp/... (the scan refuses the /tmp symlink). Only this script writes there.
+GOLDEN_ROOT = Path('/tmp/nuun-engine-golden')
+_INODES = {}
+
+
+def stable_inode(st):
+    return _INODES.setdefault((st.st_dev, st.st_ino), 1000 + len(_INODES))
+
+
+def fresh_root(name):
+    """An empty, resolved folder for one case: the same path on every run and every Mac."""
+    base = GOLDEN_ROOT.resolve()
+    base.mkdir(exist_ok=True)
+    root = base / name
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir()
+    _INODES.clear()
+    return root
+
+
+@contextlib.contextmanager
+def deterministic():
+    """Stamps and catalog ids that do not depend on the run (counters instead of inode, ctime, device, uuid4)."""
+    import media.catalog as catalog
+    import media.common as common
+    saved = common.fingerprint, catalog.uid
+    real = common.fingerprint
+    ids = iter(range(1, 1 << 30))
+
+    def fingerprint(st):
+        value = real(st)
+        value.update(inode=stable_inode(st), ctime_ns=st.st_mtime_ns, device=1)
+        return value
+
+    common.fingerprint = fingerprint
+    catalog.uid = lambda: str(uuid.UUID(int=next(ids)))
+    try:
+        yield
+    finally:
+        common.fingerprint, catalog.uid = saved
 
 # Shapes the plan digest depends on: key order, escapes, non-ASCII and Python's float repr.
 CANONICAL_CASES = [
@@ -78,15 +127,16 @@ def discover_cases():
     from media.catalog import Catalog
     from media.service import Service
     results = []
-    for tree in DISCOVER_CASES:
-        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as state:
-            # macOS temporary folders sit under /var, a symlink: the scan refuses it, as the tests resolve it.
-            root = str(Path(temp).resolve())
-            for rel, text in tree.items():
-                path = Path(root) / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding='utf-8')
-            catalog = Catalog(state)
+    for number, tree in enumerate(DISCOVER_CASES):
+        base = fresh_root('discover-%d' % number)
+        root = str(base / 'card')
+        Path(root).mkdir()
+        for rel, text in tree.items():
+            path = Path(root) / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding='utf-8')
+        with deterministic():
+            catalog = Catalog(base / 'state')
             try:
                 found = Service(catalog).call('discover', {'source': root})
             finally:
@@ -131,7 +181,9 @@ def plan_case_specs():
                        'PRIVATE/M4ROOT/THMBNL/C0001T01.JPG': b'thumb', 'PRIVATE/M4ROOT/MEDIAPRO.XML': b'<a/>'}, {}, base),
         ('gopro_by_mtime', {'DCIM/100GOPRO/GX010001.MP4': b'v', 'DCIM/100GOPRO/GX010001.LRV': b'l',
                             'DCIM/100GOPRO/GX010001.THM': b't'}, {}, base),
-        ('h6_wav', {'ZOOM0001/ZOOM0001_LR.WAV': pcm_wav(2), 'ZOOM0001/ZOOM0001_Tr1.WAV': pcm_wav(1)}, {}, base),
+        # 8 kHz mono keeps the durations (2 s, 1 s) at a few KB in the fixture: the plan reads the header, not the audio.
+        ('h6_wav', {'ZOOM0001/ZOOM0001_LR.WAV': pcm_wav(2, 8000, 1, 2),
+                    'ZOOM0001/ZOOM0001_Tr1.WAV': pcm_wav(1, 8000, 1, 2)}, {}, base),
         ('archive_only_with_assignments', {'DCIM/100CANON/IMG_0001.JPG': b'x', 'DCIM/100CANON/IMG_0002.JPG': b'y'}, {},
          {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro', 'archive_only': True, 'confirm_archive_only': True,
           'assignments': {'DCIM/100CANON/IMG_0002.JPG': {'discard': True},
@@ -149,10 +201,18 @@ def plan_cases():
     from media.common import MediaError
     from media.planner import build_plan, scan
     from tests.test_media_engine import FixtureVolumes
+
+    class StableVolumes(FixtureVolumes):
+        # The fixture backend reads the root's inode and device itself: the same counters as the stamps.
+        def describe(self, root, external_required=False):
+            info = super().describe(root, external_required)
+            info.update(root_inode=stable_inode(Path(root).absolute().stat()), device=1)
+            return info
+
     results = []
     for name, card_tree, archive_tree, params in plan_case_specs():
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp).resolve()
+        with deterministic():
+            root = fresh_root('plan-' + name)
             card, archive, work = (root / n for n in ('card', 'archive', 'work'))
             for folder in (card, archive, work):
                 folder.mkdir()
@@ -165,7 +225,7 @@ def plan_cases():
                 path = archive / rel
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
-            backend = FixtureVolumes()
+            backend = StableVolumes()
             catalog = Catalog(root / 'state')
             try:
                 a = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
@@ -213,8 +273,20 @@ def main():
         'plans': plan_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
+    text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'
+    if '--check' in sys.argv[1:]:
+        # CI: Python's answers must still be the ones the Rust tests compare against.
+        # Only the answers count: `python` records which interpreter wrote the file, and CI may run another.
+        saved = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+        saved.pop('python', None)
+        out.pop('python')
+        if saved == json.loads(json.dumps(out, ensure_ascii=False, sort_keys=True)):
+            print('engine golden: up to date')
+            return 0
+        print('engine golden: %s differs from Python; run scripts/engine_golden.py and review the diff' % target)
+        return 1
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    target.write_text(text, encoding='utf-8')
     print(target)
     return 0
 
