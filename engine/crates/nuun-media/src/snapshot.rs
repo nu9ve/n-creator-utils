@@ -202,7 +202,10 @@ pub fn projects(catalog: &Catalog, assets: &[Value]) -> Result<Vec<Value>> {
     let profiles = catalog
         .get("creative-profiles")?
         .unwrap_or_else(|| json!({}));
+    // Python fills a dict in library order and sorts it stably: projects of the same job (same `updated_at`)
+    // keep the order of their first asset, so `order` remembers it (the map only finds the entry).
     let mut found: BTreeMap<String, (Value, BTreeSet<String>)> = BTreeMap::new();
+    let mut order: Vec<String> = Vec::new();
     for asset in assets {
         let editable = asset["kind"] == "stalker_session"
             || asset["paths"]
@@ -215,6 +218,9 @@ pub fn projects(catalog: &Catalog, assets: &[Value]) -> Result<Vec<Value>> {
             continue; // Camera indexes/thumbnails are not sources.
         }
         let key = asset["project_id"].as_str().unwrap_or_default().to_owned();
+        if !found.contains_key(&key) {
+            order.push(key.clone());
+        }
         let profile = asset["profile"].clone();
         let entry = found.entry(key).or_insert_with(|| {
             let clipper = profile.as_str().map(|p| profiles[p]["clipper_profile"].clone()).unwrap_or(Value::Null);
@@ -231,7 +237,10 @@ pub fn projects(catalog: &Catalog, assets: &[Value]) -> Result<Vec<Value>> {
     }
     let db = catalog.db();
     let mut values = Vec::with_capacity(found.len());
-    for (_, (mut entry, jobs)) in found {
+    for key in order {
+        let Some((mut entry, jobs)) = found.remove(&key) else {
+            continue;
+        };
         // Plans can reach 12 MiB and this runs on every snapshot: read only the timestamp.
         let mut newest: Option<String> = None;
         for job in jobs {
@@ -490,6 +499,30 @@ mod tests {
         drop(db);
         let catalog = Catalog::open(&home).unwrap();
         (temp, catalog)
+    }
+
+    #[test]
+    fn projects_of_the_same_job_keep_library_order() {
+        // Found on a real catalog by scripts/engine_shadow.py: same `updated_at`, Python keeps the order of the
+        // first asset of each project, not the order of the project ids.
+        let (_temp, catalog) = catalog_with_data();
+        let asset = |id: &str, project: &str| {
+            json!({"id": id, "job_id": "j1", "kind": "camera_clip", "paths": ["CLIP/C0001.MP4"],
+                   "project": project, "project_id": project, "profile": "e64"})
+        };
+        let assets = [
+            asset("a1", "zz"),
+            asset("a2", "aa"),
+            asset("a3", "zz"),
+            asset("a4", "mm"),
+        ];
+        let found = projects(&catalog, &assets).unwrap();
+        let names: Vec<&str> = found
+            .iter()
+            .map(|p| p["project"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["zz", "aa", "mm"]);
+        assert_eq!(found[0]["assets"], 2);
     }
 
     #[test]

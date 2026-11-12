@@ -26,7 +26,7 @@ Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del aná
 | `discover` | **Portado para tarjetas**, sólo por `rpc` (como Python). Recorrido propio sin seguir enlaces ni puntos de reanálisis (el de Python usa `O_NOFOLLOW`/`O_DIRECTORY` y no corre en Windows), archivos ignorados, residuos de Finder, validación de bundles Stalker, evidencia de cámara (incluido el XML de Sony), agrupado en unidades. Lee EXIF/XMP de JPG y DNG (`photo_meta`, sin dependencias) y da `device` (registro confirmado, regla de la receta, evidencia de vuelo o «por confirmar») y `created_at` (hora de cámara). Con `archive`, `mission` contra el registro de misiones del archivo (mismo nombre, hora de cámara y posición; sin archivo en línea, nada, como Python); donde no hay backend de volúmenes (macOS hoy) lo dice en `not_ported`. Igual que Python tras corregir allí un error (ver abajo). Una fuente con sesiones Stalker responde `not_ported` (sus metadatos siguen en `captures.py`). Colisiones de nombre sin NFC (sin crate de normalización); un caso no detectado igual falla seguro al renombrar | Unitarias de escaneo, EXIF (JPEG y TIFF sintéticos, archivos dañados, redondeo de Python) y dispositivo; contrato desde C# con un JPEG con EXIF; diferencial sobre 6 árboles de tarjeta generados por Python, pendiente del dorado (sin EXIF) |
 | `jobs`, `job`, `library`, `projects`, `profiles`, `devices`, `release_plans`, `defaults`, `integration_settings` | **Portados**: las mismas lecturas que `snapshot` junta, como métodos propios. `library` filtra por proyecto (`casefold` para títulos: minúsculas, `ß`→`ss`) y estado de trabajo; `job` da la fila completa, el plan y el progreso. `jobs` responde `not_ported` entero si un job Sony fallido necesita `sony_removal_recorded`, antes que una respuesta incompleta; `defaults` e `integration_settings` sólo sin parámetros (con parámetros son escrituras) | Unitarias con el esquema completo de Python |
 | `engine_info` | Nuevo, sólo Rust: qué motor respondió, qué métodos tiene en esta plataforma (`ported`, `writes`) y qué backend de volúmenes (`volume_backend`: `"windows"` o `null`) | Unitaria + contrato |
-| Resto de `READ_METHODS` | `not_ported` (`capture_*`, `closure_*`, `storage_*`, `suggest`, `asset_revisions`, `project_preview`, `missions_review`, `missions_status`, `integration_capabilities`, `action_progress`) | Unitaria |
+| Resto de `READ_METHODS` | `not_ported` (`capture_*`, `closure_*`, `storage_*`, `suggest`, `asset_revisions`, `project_preview`, `missions_review`, `missions_status`, `living_collections`, `integration_capabilities`, `action_progress`) | Unitaria; la lista es la de `media/cli.py` ([test_engine_boundary](../tests/test_engine_boundary.py)) |
 | `register_volume` | **Portado en Windows**, sólo por `rpc` (un proceso por escritura, como la app de Mac con Python). Configuración, nunca media: describe el volumen (externo salvo `allow_local`), toma el lock, valida rol, nombre, prefijo y duplicados, y guarda el registro canónico con un UUID v4 | Pruebas portadas de los rechazos de Python; lock ocupado → `job_busy`; esquema y WAL del catálogo creado; contrato desde C#; registro desde la ventana por UI Automation |
 | `plan`, `plan_document` | **Portados para tarjetas en Windows**, sólo por `rpc`. `_build_plan` paso a paso y en el orden de Python (el primer chequeo que falla decide el código): política de sólo-archivo, identidad del origen, discos físicos distintos, solapes, escaneo, asignaciones (proyecto, perfil, país, cámara, trabajo, descarte), dispositivo por EXIF, misión contra el archivo, copias ya presentes en la raíz del consumidor (`WorkPresence`), fotos ya respaldadas, `layout` (nombres de Python: hora de cámara, XML de Sony, WAV, ffprobe si está, mtime en la zona del sistema), ids `uuid5` y `digest`, vista previa, conflictos de destino, `validate_plan` y `preflight` con espacio. Guarda `reviewed-plan:<id>` bajo el lock. `stalker` y `delivery` (y la ruta de finales) responden `not_ported` | Pruebas portadas de `test_devices` y `test_mission_match` (nombres de dron, misión emparejada, DJI que pregunta, par de dos dispositivos, códigos de política, descartes, solape, mismo disco, lock ocupado, plan cambiado); en el PC, `plan` real por el binario con una carpeta local; diferencial de 7 tarjetas contra Python **pendiente** del dorado |
 | `apply`, `resume` | **Portados para tarjetas en Windows**, sólo por `rpc`, bajo el lock de escritor. `Transfer.apply` de Python paso a paso: cada copia va a `.<nombre>.ncpartial` (una lectura del origen escrita en paralelo a cada destino), se sincroniza con su carpeta (`F_FULLFSYNC` en Mac), se relee y se compara por SHA-256 antes de renombrarla **sin reemplazar nunca** (`MoveFileExW` sin reemplazo; `renamex_np` exclusivo en Mac). Un destino con los mismos bytes se adopta; uno distinto es `destination_conflict`. Diario en `members`/`copies` por archivo: un job interrumpido se reanuda y toma una réplica verificada en vez de volver a leer la tarjeta. Las relecturas que verifican (cada parcial, un destino adoptado, el original antes de limpiar) van por `fs::verify_read`; si alguna no pudo evitar la caché, el recibo y el resultado llevan `verify_cache: "os"` o `"dropped"` (cuando la evitó, no llevan nada, como Python). Recibos en `.ncreator/receipts/`, índice (`assets`, `work`, proyectos), limpieza sólo tras verificar todo, reescanear y **releer cada original** con el mismo hash (los índices Sony nunca se borran), descartes al final, `source_has_new_material` si apareció algo. Después, `units.ndjson` de misiones y respaldo del catálogo en el archivo (`VACUUM INTO`, verificado). `stalker`, `delivery` y planes de esquema 1 responden `not_ported` sin tocar nada. Rutas de más de 260 caracteres en Windows (forma `\\?\`) | Pruebas portadas de `test_media_engine` (dos destinos y limpieza, reintento idempotente, corrupción del mismo tamaño, copia interrumpida, caída antes de renombrar, limpieza parcial reanudada, archivo nuevo antes y durante la limpieza, destino ajeno, destino idéntico adoptado, origen cambiado, desconexión antes y durante la limpieza, corrupción durante la limpieza, Sony conserva índices, descartes, plan cambiado o cancelado, lock ocupado, `resume` y respaldo del catálogo) y de `test_mission_match` (misión → carpetas y `units.ndjson`); en el PC, `plan` → `apply` → `resume` por el binario; el dorado aplica cada plan y compara estado y copias verificadas con Python |
@@ -34,7 +34,7 @@ Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del aná
 
 **Error de Python encontrado al portar y corregido** (`media/service.py`, `discover`, 2026-11-09): `metadata_device` sólo se asignaba si había dispositivo y se borraba si no había hora de cámara. Una foto con dispositivo y sin `DateTimeOriginal` perdía su `device`; una foto fechada sin `Make` heredaba el `device` de la unidad anterior, o lanzaba `UnboundLocalError` si era la primera. Ahora cada unidad empieza vacía, en Python y en Rust. Prueba nueva en `tests/test_devices.py` (`test_discover_keeps_each_units_device_and_camera_time_apart`), **sin ejecutar**: no hay Python en este PC.
 
-**Dorado en la Mac** (lo que valida todo lo de arriba contra Python): `python3 scripts/engine_golden.py`, luego `cd engine && TZ=America/Hermosillo TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored`. `TZ` porque los nombres sin hora de cámara usan la zona del sistema; `TMPDIR` resuelto porque las carpetas temporales de macOS cuelgan de `/var`, un enlace que el escaneo rechaza. En la Mac, `cargo` necesita descargar una vez `libc` si no está en su caché.
+**Dorado en la Mac** (lo que valida todo lo de arriba contra Python; verde desde el 2026-11-11): `python3 scripts/engine_golden.py --check`, luego `cd engine && TZ=America/Hermosillo TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored`. `TZ` porque los nombres sin hora de cámara usan la zona del sistema; `TMPDIR` resuelto porque las carpetas temporales de macOS cuelgan de `/var`, un enlace que el escaneo rechaza. En la Mac, `cargo` necesita descargar una vez `libc` si no está en su caché.
 
 **Cambio de identidad en Windows (2026-11-10):** `root_inode` es ahora el índice de la **carpeta registrada**, como Python usa el `stat` de la raíz que recibe (antes era el de la raíz de la unidad). Un destino registrado antes en Windows aparece fuera de línea (`volume_replaced`) y se registra de nuevo; sólo había registros de QA.
 
@@ -66,18 +66,54 @@ cargo fmt --check
 bash ../scripts/check_suite_boundary.sh
 ```
 
-El compilador está fijado en `rust-toolchain.toml` (1.99.1, con `rustfmt` y `clippy`); en una máquina sin esa versión, `rustup` la instala una vez. Estado del 2026-11-11 en Windows 11: 108 pruebas verdes y 5 ignoradas (las diferenciales que esperan el dorado), fmt y clippy limpios. **En macOS nunca se ha compilado**: es el paso 0 de la [ruta](../PLAN.md#motor-en-rust--ruta).
+El compilador está fijado en `rust-toolchain.toml` (1.99.1, con `rustfmt` y `clippy`); en una máquina sin esa versión, `rustup` la instala una vez. Estado del 2026-11-11: en Windows 11, 108 pruebas verdes y 5 ignoradas (las diferenciales), fmt y clippy limpios; en **macOS**, compilado sin descargas (el `cargo` de Homebrew ya es 1.99.1), 110 pruebas verdes con las 5 diferenciales, fmt y clippy limpios. En macOS las pruebas necesitan `TMPDIR` resuelto (las carpetas temporales cuelgan de `/var`, un enlace que el motor rechaza, como Python): `export TMPDIR="$(cd "$TMPDIR" && pwd -P)"`. La CI lo hace igual ([checks.yml](../.github/workflows/checks.yml)).
 
 Las dependencias son las mismas versiones que nove y curado y ya estaban en la caché local: `serde`, `serde_json`, `sha2`, `regex` (las condiciones `dcim_regex` son datos editables), `windows-sys` y `tempfile` para las pruebas. Ninguna se descargó. Una dependencia nueva se anota en `Cargo.toml` con su razón.
 
 **Diferencial con Python (fase 0).** En una máquina con Python (la Mac):
 
 ```bash
-python3 scripts/engine_golden.py
-cd engine && cargo test --offline -- --ignored
+python3 scripts/engine_golden.py            # regenera (sólo a propósito; revisar el diff)
+python3 scripts/engine_golden.py --check    # ¿siguen siendo las respuestas de Python las que están en git?
+cd engine && TZ=America/Hermosillo cargo test --offline -- --ignored
 ```
 
-El script escribe `tests/fixtures/engine-golden/recipe.json` con casos de JSON canónico, el `recipe_ref` de la plantilla y el resumen de `recipe`. Las pruebas ignoradas fallan si el archivo falta o si un solo byte difiere. **El script no se ha ejecutado todavía**: esta máquina Windows no tiene Python.
+El script escribe `tests/fixtures/engine-golden/recipe.json` (en git, ~165 KB): JSON canónico, `recipe_ref`, resumen de `recipe`, familias de tarjeta, `discover` sobre 6 árboles y 7 tarjetas planeadas **y aplicadas** (estado final y copias verificadas). Es determinista en cualquier Mac: arma las tarjetas en `/tmp/nuun-engine-golden` y toma inode, ctime, dispositivo e ids del catálogo de contadores, con el mismo parche para el plan y el `apply` de Python. Las pruebas ignoradas fallan si el archivo falta o si algo difiere. Ejecutado por primera vez el 2026-11-11 en la Mac: las 5 pasan.
+
+Una función nueva o portada agrega su caso aquí. Si cambia una respuesta de Python, `--check` lo detecta en CI antes de que Rust se quede atrás.
+
+## Sombra y tiempos
+
+El dorado prueba casos armados; la **sombra** prueba el catálogo real, sólo leyendo. Hay dos formas:
+
+```bash
+cd engine && cargo build --release --offline && cd ..
+python3 scripts/engine_shadow.py replay              # las mismas lecturas a los dos motores, sin la app
+python3 scripts/engine_shadow.py enable --engine engine/target/release/nuun-engine   # la app la usa al reabrir nüün
+python3 scripts/engine_shadow.py report              # resumen de los últimos 7 días
+python3 scripts/engine_shadow.py disable
+```
+
+- `replay` abre `python -S nu9ve.py media rpc-serve` y `nuun-engine rpc-serve` sobre el mismo catálogo y pregunta lo mismo por los dos tubos: cada lectura sin parámetros, más `job` para los últimos jobs y `library` por proyecto. Así los tiempos se comparan igual (de escribir la petición a leer la respuesta).
+- `enable` escribe `<catálogo>/shadow.json`. El `rpc-serve` de Python que lanza la app responde como siempre y **después**, en un hilo, repite la lectura en Rust ([media/shadow.py](../media/shadow.py)). La sombra no cambia, retrasa ni hace fallar la respuesta; si la cola se llena, descarta. `NUUN_SHADOW_ENGINE=off` la apaga aunque exista el archivo. Las escrituras nunca pasan por la sombra.
+- Los dos anotan en `<catálogo>/shadow/shadow-<fecha>.ndjson`: método, resultado (`same`, `diff` con las rutas JSON que difieren, `not_ported`, `same_error`, `error_mismatch`, `shadow_failed`) y los dos tiempos. Ese archivo es local y no guarda las respuestas completas.
+
+**Medido el 2026-11-11** con `replay --repeat 5` sobre el catálogo real de la Mac (Apple Silicon, binario release; mediana en ms, del pedido a la respuesta):
+
+| Método | Resultado | Python | Rust |
+| --- | --- | --- | --- |
+| `snapshot` | igual salvo lo `not_ported` en Mac | 1698 | 55 |
+| `projects` | igual (tras corregir el orden) | 45,0 | 17,6 |
+| `library` (10 consultas) | igual | 40,6 | 35,9 |
+| `jobs` | igual | 9,2 | 9,9 |
+| `release_plans` | igual | 5,0 | 4,5 |
+| `job` (25 consultas) | igual | 0,5 | 0,7 |
+| `recipe`, `devices`, `profiles`, `defaults`, `integration_settings` | igual | 0,05–0,34 | 0,2–0,5 |
+| Arranque por llamada (`rpc` de un solo uso) | — | ~80 | ~5 |
+
+Cómo leerlo: en lecturas pequeñas los dos responden en menos de 1 ms y no hay ganancia que mostrar. `projects` es 2,5× más rápido. El `snapshot` de Rust **todavía no es comparable**: no hace lo más caro de Python en la Mac, que es lanzar Clipper y Stalker para `capabilities` y consultar el estado en línea de cada disco. La comparación justa llega con la fila L y el paso 6 del [PLAN](../PLAN.md#motor-en-rust--ruta). El arranque importa en cada escritura, porque la app lanza un proceso `rpc` por mutación. La primera ejecución de un binario recién compilado tarda ~340 ms (macOS lo revisa una vez) y no cuenta.
+
+Errores que la sombra encontró en Rust, ya corregidos: `projects` ordenaba los empates de `updated_at` por id, y Python conserva el orden de la biblioteca; `living_collections` faltaba en la lista de lecturas y Rust la rechazaba como escritura en vez de decir `not_ported`. [tests/test_engine_boundary.py](../tests/test_engine_boundary.py) mantiene esa lista igual a la de `media/cli.py`.
 
 ## Desde la ventana de Windows
 

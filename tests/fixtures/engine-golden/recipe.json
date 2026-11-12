@@ -1,0 +1,2063 @@
+{
+  "canonical": [
+    {
+      "canonical": "{\"a\":{\"y\":true,\"z\":null},\"b\":[1,2.0,\"ñ\"],\"Á\":\"x\"}",
+      "digest": "8802ed0015208aa4c5a9825332c4c5e0c523f34d0e632c9ac0b6f14a63b3ea21",
+      "value": {
+        "a": {
+          "y": true,
+          "z": null
+        },
+        "b": [
+          1,
+          2.0,
+          "ñ"
+        ],
+        "Á": "x"
+      }
+    },
+    {
+      "canonical": "\"a\\\"b\\\\c\\n\\r\\t\\b\\f\\u0001\\u001f/ é\"",
+      "digest": "f3029a63cbe30ad57f20a9ad3a5db9634f680d92eee8f37bb4c417c078c45c59",
+      "value": "a\"b\\c\n\r\t\b\f\u0001\u001f/ é"
+    },
+    {
+      "canonical": "[1.0,0.1,0.6,-0.0,0.0,1e-07,0.0001,1e-05,1e+16,1.5e+16,1234567890123456.0,1.2345678901234568e+16,0.12345678901234568,1.5e+300,-2.5e-310,123.456,100.0,1e+22]",
+      "digest": "4f81ce9769f4e69d88a9e1a2fa530b3af143682dd89af1952fbd1011fbbb7113",
+      "value": [
+        1.0,
+        0.1,
+        0.6,
+        -0.0,
+        0.0,
+        1e-07,
+        0.0001,
+        1e-05,
+        1e+16,
+        1.5e+16,
+        1234567890123456.0,
+        1.2345678901234568e+16,
+        0.12345678901234568,
+        1.5e+300,
+        -2.5e-310,
+        123.456,
+        100.0,
+        1e+22
+      ]
+    },
+    {
+      "canonical": "{\"fraction\":0.12345678901234568,\"integral_float\":1.0,\"small\":1e-07,\"unsigned\":18446744073709551615}",
+      "digest": "25cb42c46f5305266ccfe3e26045601ac113e7c21ef8fe9c03e8ed6181045bd0",
+      "value": {
+        "fraction": 0.12345678901234568,
+        "integral_float": 1.0,
+        "small": 1e-07,
+        "unsigned": 18446744073709551615
+      }
+    }
+  ],
+  "cards": [
+    {
+      "family": "stalker",
+      "recommendation": "stalker_batch",
+      "tree": {
+        "S_1.stalker": true
+      }
+    },
+    {
+      "family": "sony",
+      "recommendation": "sony_format_in_camera",
+      "tree": {
+        "PRIVATE/M4ROOT/CLIP": true
+      }
+    },
+    {
+      "family": "sony",
+      "recommendation": "sony_format_in_camera",
+      "tree": {
+        "AVF_INFO": true
+      }
+    },
+    {
+      "family": "h6",
+      "recommendation": "audio_needs_work_disk",
+      "tree": {
+        "ZOOM0001": true
+      }
+    },
+    {
+      "family": "gopro",
+      "recommendation": "archive_and_work",
+      "tree": {
+        "DCIM/100GOPRO": true
+      }
+    },
+    {
+      "family": "insta360",
+      "recommendation": "dji_choose_category",
+      "tree": {
+        "DCIM/Camera01": true,
+        "MISC": true
+      }
+    },
+    {
+      "family": "dji",
+      "recommendation": "dji_choose_category",
+      "tree": {
+        "DCIM/101MEDIA": true,
+        "MISC": true
+      }
+    },
+    {
+      "family": "canon",
+      "recommendation": "archive_and_work",
+      "tree": {
+        "DCIM/100CANON": true
+      }
+    },
+    {
+      "family": "generic",
+      "recommendation": "archive_and_work",
+      "tree": {
+        "DCIM/100MEDIA": true
+      }
+    },
+    {
+      "family": "dji",
+      "recommendation": "dji_choose_category",
+      "tree": {
+        "DJI_001": true
+      }
+    },
+    {
+      "family": "dji",
+      "recommendation": "dji_choose_category",
+      "tree": {
+        "DCIM/DJI_001": false
+      }
+    },
+    {
+      "family": "insta360",
+      "recommendation": "dji_choose_category",
+      "tree": {
+        "DCIM/100GOPRO": false,
+        "DCIM/Camera01": true,
+        "MISC": true
+      }
+    },
+    {
+      "family": "canon",
+      "recommendation": "archive_and_work",
+      "tree": {
+        "DCIM/100CANON": false,
+        "DCIM/101MEDIA": true
+      }
+    },
+    {
+      "family": "canon",
+      "recommendation": "archive_and_work",
+      "tree": {
+        "DCIM/100CANON": false
+      }
+    },
+    {
+      "family": "generic",
+      "recommendation": "archive_and_work",
+      "tree": {}
+    }
+  ],
+  "discover": [
+    {
+      "discover": {
+        "bytes": 158,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 153,
+            "camera": "ILCE-6400",
+            "category": "video",
+            "evidence": [
+              {
+                "confidence": "medium",
+                "family": "sony",
+                "source": "file_path"
+              },
+              {
+                "confidence": "high",
+                "manufacturer": "Sony",
+                "model": "ILCE-6400",
+                "source": "sony_xml"
+              },
+              {
+                "confidence": "medium",
+                "family": "sony",
+                "source": "file_path"
+              }
+            ],
+            "id": "PRIVATE/M4ROOT/CLIP/C0001",
+            "paths": [
+              "PRIVATE/M4ROOT/CLIP/C0001.MP4",
+              "PRIVATE/M4ROOT/CLIP/C0001M01.XML"
+            ]
+          },
+          {
+            "bytes": 5,
+            "camera": "",
+            "category": "support",
+            "evidence": [],
+            "id": "camera-support",
+            "paths": [
+              "PRIVATE/M4ROOT/MEDIAPRO.XML",
+              "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        ".DS_Store": "x",
+        "PRIVATE/M4ROOT/CLIP/C0001.MP4": "video",
+        "PRIVATE/M4ROOT/CLIP/C0001M01.XML": "<NonRealTimeMeta xmlns=\"urn:schemas-professionalDisc:nonRealTimeMeta:ver.2.00\"><Device manufacturer=\"Sony\" modelName=\"ILCE-6400\"/></NonRealTimeMeta>",
+        "PRIVATE/M4ROOT/MEDIAPRO.XML": "<a/>",
+        "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG": "t"
+      }
+    },
+    {
+      "discover": {
+        "bytes": 3,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 3,
+            "camera": "",
+            "category": "video",
+            "evidence": [],
+            "id": "DCIM/100GOPRO/GX010001",
+            "paths": [
+              "DCIM/100GOPRO/GX010001.LRV",
+              "DCIM/100GOPRO/GX010001.MP4",
+              "DCIM/100GOPRO/GX010001.THM"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "DCIM/100GOPRO/GX010001.LRV": "l",
+        "DCIM/100GOPRO/GX010001.MP4": "v",
+        "DCIM/100GOPRO/GX010001.THM": "t"
+      }
+    },
+    {
+      "discover": {
+        "bytes": 3,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 2,
+            "camera": "dji",
+            "category": "raw_image",
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              },
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "id": "DCIM/100MEDIA/DJI_0001",
+            "paths": [
+              "DCIM/100MEDIA/DJI_0001.DNG",
+              "DCIM/100MEDIA/DJI_0001.JPG"
+            ]
+          },
+          {
+            "bytes": 1,
+            "camera": "",
+            "category": "support",
+            "evidence": [],
+            "id": "camera-support",
+            "paths": [
+              "MISC/x.db"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "DCIM/100MEDIA/DJI_0001.DNG": "d",
+        "DCIM/100MEDIA/DJI_0001.JPG": "j",
+        "MISC/x.db": "m"
+      }
+    },
+    {
+      "discover": {
+        "bytes": 1,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 1,
+            "camera": "insta360",
+            "category": "video",
+            "evidence": [
+              {
+                "confidence": "high",
+                "family": "insta360",
+                "source": "extension"
+              }
+            ],
+            "id": "DCIM/Camera01/VID_0001",
+            "paths": [
+              "DCIM/Camera01/VID_0001.insv"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "DCIM/Camera01/._VID_0001.insv": "x",
+        "DCIM/Camera01/VID_0001.insv": "v"
+      }
+    },
+    {
+      "discover": {
+        "bytes": 8,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 8,
+            "camera": "",
+            "category": "video",
+            "evidence": [
+              {
+                "error": "invalid_xml",
+                "source": "sony_xml"
+              }
+            ],
+            "id": "CLIP/C0002",
+            "paths": [
+              "CLIP/C0002.MP4",
+              "CLIP/C0002M01.XML"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "CLIP/C0002.MP4": "v",
+        "CLIP/C0002M01.XML": "<broken"
+      }
+    },
+    {
+      "discover": {
+        "bytes": 3,
+        "skipped": [],
+        "units": [
+          {
+            "bytes": 1,
+            "camera": "",
+            "category": "audio",
+            "evidence": [],
+            "id": "ZOOM0001/ZOOM0001_LR",
+            "paths": [
+              "ZOOM0001/ZOOM0001_LR.WAV"
+            ]
+          },
+          {
+            "bytes": 1,
+            "camera": "",
+            "category": "audio",
+            "evidence": [],
+            "id": "ZOOM0001/ZOOM0001_TR1",
+            "paths": [
+              "ZOOM0001/ZOOM0001_Tr1.WAV"
+            ]
+          },
+          {
+            "bytes": 1,
+            "camera": "",
+            "category": "support",
+            "evidence": [],
+            "id": "camera-support",
+            "paths": [
+              "H6_SETTINGS/x.txt"
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "H6_SETTINGS/x.txt": "s",
+        "ZOOM0001/ZOOM0001_LR.WAV": "a",
+        "ZOOM0001/ZOOM0001_Tr1.WAV": "b"
+      }
+    }
+  ],
+  "generator": "scripts/engine_golden.py",
+  "plan_tz": "America/Hermosillo",
+  "plans": [
+    {
+      "apply": {
+        "copies": [
+          [
+            "MEDIA",
+            "001_raw/dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].DNG",
+            "188fc2df73e854a9267c5499b986be68f30b03e25d4cc22d5fb505d835c95af4"
+          ],
+          [
+            "MEDIA",
+            "001_raw/dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG",
+            "57c70e4e79df0a9f5b0b48c7df8be58de5e0fb98503d4bc717004d6ba1f7d892"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/dji/support/2026/11/0411-163212_MX-ingest-8ba97002-fa4b-540e-a34b-f3e42d969397_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "d1092d511cd5abf5e7897447fae2fed6d7de884674c8b8036093abc960bf4d25"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {},
+      "card": {
+        "DCIM/101MEDIA/DJI_0001.DNG": "49492a000800000006000f01020004000000444a490010010200070000009e000000bc020100d8000000a50000006987040001000000560000002588040001000000680000002fc602000f0000007d01000000000000010003900200140000008c01000000000000040001000200020000004e0000000200050003000000a00100000300020002000000570000000400050003000000b801000000000000464333313730003c783a786d706d65746120786d6c6e733a783d2261646f62653a6e733a6d6574612f223e3c7264663a5244463e3c7264663a4465736372697074696f6e20746966663a4d6f64656c3d22546573745f50726f222064726f6e652d646a693a52656c6174697665416c7469747564653d222b34352e3130222064726f6e652d646a693a47696d62616c50697463684465677265653d222d38392e3930222064726f6e652d646a693a466c696768745961774465677265653d222d3130302e3430222f3e3c2f7264663a5244463e3c2f783a786d706d6574613e3154434c48394e3033424a354e3900323032363a31313a30342031363a33323a313200540b000064000000f4010000640000003515000064000000f82a000064000000441600006400000042110000640000007261772d706978656c73",
+        "DCIM/101MEDIA/DJI_0001.JPG": "ffd8ffe100f445786966000049492a000800000004000f01020004000000444a490010010200070000009200000069870400010000003e00000025880400010000005c00000000000000020003900200140000009900000031a402000f000000ad00000000000000040001000200020000004e0000000200050003000000bc0000000300020002000000570000000400050003000000d40000000000000046433331373000323032363a31313a30342031363a33323a3132003154434c48394e3033424a354e3900540b000064000000f4010000640000003515000064000000f82a00006400000044160000640000004211000064000000ffe100f7687474703a2f2f6e732e61646f62652e636f6d2f7861702f312e302f003c783a786d706d65746120786d6c6e733a783d2261646f62653a6e733a6d6574612f223e3c7264663a5244463e3c7264663a4465736372697074696f6e20746966663a4d6f64656c3d22546573745f50726f222064726f6e652d646a693a52656c6174697665416c7469747564653d222b34352e3130222064726f6e652d646a693a47696d62616c50697463684465677265653d222d38392e3930222064726f6e652d646a693a466c696768745961774465677265653d222d3130302e3430222f3e3c2f7264663a5244463e3c2f783a786d706d6574613effda000a0000000000000000706978656c73ffd9",
+        "MISC/THM/101/DJI_0001.THM": "74686d"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "drone_pending_export",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": false,
+        "bundles": {},
+        "category_folders": {
+          "dji-drone": {
+            "image": "dron/fotos",
+            "raw_image": "dron/fotos",
+            "video": "vdron"
+          }
+        },
+        "category_work": {
+          "dji-drone": [
+            "video",
+            "image"
+          ]
+        },
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "files",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/archive"
+          },
+          "00000000-0000-0000-0000-000000000002": {
+            "prefix": "001_proyectos",
+            "role": "work",
+            "root": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/work"
+          }
+        },
+        "digest": "a174d012a7182f4f7b8ecd15473217c6a64f306095319a433fe5f171decbd64d",
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "DCIM/101MEDIA/DJI_0001.DNG",
+            "photo": {
+              "captured_at": "2026-11-04T16:32:12",
+              "flight": {
+                "flight_yaw": -100.4,
+                "gimbal_pitch": -89.9,
+                "relative_altitude": 45.1
+              },
+              "gps": {
+                "lat": 29.0984139,
+                "lon": -110.9622722
+              },
+              "make": "DJI",
+              "model": "FC3170",
+              "serial": "1TCLH9N03BJ5N9"
+            },
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 474
+            },
+            "unit_id": "fbf75bfc-ca42-547b-90ee-b61387edb771"
+          },
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "DCIM/101MEDIA/DJI_0001.JPG",
+            "photo": {
+              "captured_at": "2026-11-04T16:32:12",
+              "flight": {
+                "flight_yaw": -100.4,
+                "gimbal_pitch": -89.9,
+                "relative_altitude": 45.1
+              },
+              "gps": {
+                "lat": 29.0984139,
+                "lon": -110.9622722
+              },
+              "make": "DJI",
+              "model": "FC3170",
+              "serial": "1TCLH9N03BJ5N9"
+            },
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1004,
+              "mtime_ns": 1778000000123456789,
+              "size": 517
+            },
+            "unit_id": "fbf75bfc-ca42-547b-90ee-b61387edb771"
+          },
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "MISC/THM/101/DJI_0001.THM",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1005,
+              "mtime_ns": 1778000000123456789,
+              "size": 3
+            },
+            "unit_id": "8ba97002-fa4b-540e-a34b-f3e42d969397"
+          }
+        ],
+        "id": "01913b6e-cd10-5495-89e6-7fa98df129bc",
+        "layout": {
+          "DCIM/101MEDIA/DJI_0001.DNG": {
+            "archive": "dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].DNG",
+            "work": null
+          },
+          "DCIM/101MEDIA/DJI_0001.JPG": {
+            "archive": "dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG",
+            "work": null
+          },
+          "MISC/THM/101/DJI_0001.THM": {
+            "archive": "metadata/dji/support/2026/11/0411-163212_MX-ingest-8ba97002-fa4b-540e-a34b-f3e42d969397_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "work": null
+          }
+        },
+        "media_date": "2026/05",
+        "missions": {
+          "subaereo": {
+            "covered_until": null,
+            "history_sha256": null,
+            "layout": {
+              "archive_folder": "dron/misiones",
+              "work_folder": "atlas-subaereo/misiones",
+              "work_kinds": [
+                "image"
+              ]
+            },
+            "likely": 1,
+            "project": "subaereo",
+            "units": {
+              "matched": 0,
+              "none": 0,
+              "pending_export": 1
+            },
+            "unregistered_likely": 0,
+            "work_existing": 0
+          }
+        },
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/archive/001_raw/dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].DNG",
+            "bytes": 474,
+            "camera": "dji-drone",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/101MEDIA/DJI_0001.DNG",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/archive/001_raw/dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG",
+            "bytes": 517,
+            "camera": "dji-drone",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/101MEDIA/DJI_0001.JPG",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/archive/001_raw/metadata/dji/support/2026/11/0411-163212_MX-ingest-8ba97002-fa4b-540e-a34b-f3e42d969397_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "bytes": 3,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "camera-support",
+            "source": "MISC/THM/101/DJI_0001.THM",
+            "source_action": "retain",
+            "work_path": null
+          }
+        ],
+        "recipe": {
+          "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+          "id": "nu9ve-default"
+        },
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "dji-drone",
+            "capture_manifest_digest": null,
+            "capture_time": {
+              "captured_at_absolute": null,
+              "offset_seconds": null,
+              "original": "2026-11-04T16:32:12",
+              "originals": {},
+              "provenance": "exif.DateTimeOriginal",
+              "time_zone": null
+            },
+            "device": {
+              "category": "dji-drone",
+              "label": "DJI Mavic Air 2",
+              "make": "DJI",
+              "model": "FC3170",
+              "rule": "template",
+              "serial": "1TCLH9N03BJ5N9",
+              "source": "MAVICAIR2"
+            },
+            "id": "fbf75bfc-ca42-547b-90ee-b61387edb771",
+            "kind": "camera_bundle",
+            "mission": {
+              "flow": "subaereo",
+              "likely_mission": true,
+              "state": "pending_export"
+            },
+            "paths": [
+              "DCIM/101MEDIA/DJI_0001.DNG",
+              "DCIM/101MEDIA/DJI_0001.JPG"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null
+          },
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "8ba97002-fa4b-540e-a34b-f3e42d969397",
+            "kind": "file",
+            "paths": [
+              "MISC/THM/101/DJI_0001.THM"
+            ],
+            "profile": "e64",
+            "project": "camera-support",
+            "session_id": null,
+            "support": true,
+            "work_selected": false
+          }
+        ],
+        "work_delivery_status": "ready",
+        "work_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-drone_pending_export",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-drone_pending_export/card"
+      },
+      "stamps": {
+        "DCIM/101MEDIA/DJI_0001.DNG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 474
+        },
+        "DCIM/101MEDIA/DJI_0001.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 517
+        },
+        "MISC/THM/101/DJI_0001.THM": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1005,
+          "mtime_ns": 1778000000123456789,
+          "size": 3
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": {
+        "copies": [
+          [
+            "ESSD",
+            "001_proyectos/atlas-subaereo/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG",
+            "57c70e4e79df0a9f5b0b48c7df8be58de5e0fb98503d4bc717004d6ba1f7d892"
+          ],
+          [
+            "MEDIA",
+            "001_raw/dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].DNG",
+            "188fc2df73e854a9267c5499b986be68f30b03e25d4cc22d5fb505d835c95af4"
+          ],
+          [
+            "MEDIA",
+            "001_raw/dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG",
+            "57c70e4e79df0a9f5b0b48c7df8be58de5e0fb98503d4bc717004d6ba1f7d892"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/dji/support/2026/11/0411-163212_MX-ingest-f347f6db-19ce-593e-9818-602983e1c812_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "d1092d511cd5abf5e7897447fae2fed6d7de884674c8b8036093abc960bf4d25"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {
+        "004_datos/subaereo/coverage/history.json": "7b22706c616e73223a205b7b226964223a20225031222c20226e616d65223a202243616c6c65732d34356d2d313130342d31363235227d5d2c2022636170747572654c6f67223a205b7b22636170747572654944223a20224331222c2022706c616e4944223a20225031222c202273657373696f6e4944223a20225331222c20226d65646961437265617465644174223a2022323032362d31312d30342031363a33323a3133222c202263617074757265644174223a2022323032362d31312d30345432333a33323a31335a222c2022696d6167654a5045475265666572656e6365223a2022444a495f303030312e4a5047222c20226c61746974756465223a2032392e303938343133392c20226c6f6e676974756465223a202d3131302e393632323732387d5d2c20226e75756e223a207b22736f7572636573223a207b2273223a207b226b696e64223a2022616c6c222c20226578706f727465644174223a2022323032362d31312d30355430353a30303a30305a227d7d7d7d"
+      },
+      "card": {
+        "DCIM/101MEDIA/DJI_0001.DNG": "49492a000800000006000f01020004000000444a490010010200070000009e000000bc020100d8000000a50000006987040001000000560000002588040001000000680000002fc602000f0000007d01000000000000010003900200140000008c01000000000000040001000200020000004e0000000200050003000000a00100000300020002000000570000000400050003000000b801000000000000464333313730003c783a786d706d65746120786d6c6e733a783d2261646f62653a6e733a6d6574612f223e3c7264663a5244463e3c7264663a4465736372697074696f6e20746966663a4d6f64656c3d22546573745f50726f222064726f6e652d646a693a52656c6174697665416c7469747564653d222b34352e3130222064726f6e652d646a693a47696d62616c50697463684465677265653d222d38392e3930222064726f6e652d646a693a466c696768745961774465677265653d222d3130302e3430222f3e3c2f7264663a5244463e3c2f783a786d706d6574613e3154434c48394e3033424a354e3900323032363a31313a30342031363a33323a313200540b000064000000f4010000640000003515000064000000f82a000064000000441600006400000042110000640000007261772d706978656c73",
+        "DCIM/101MEDIA/DJI_0001.JPG": "ffd8ffe100f445786966000049492a000800000004000f01020004000000444a490010010200070000009200000069870400010000003e00000025880400010000005c00000000000000020003900200140000009900000031a402000f000000ad00000000000000040001000200020000004e0000000200050003000000bc0000000300020002000000570000000400050003000000d40000000000000046433331373000323032363a31313a30342031363a33323a3132003154434c48394e3033424a354e3900540b000064000000f4010000640000003515000064000000f82a00006400000044160000640000004211000064000000ffe100f7687474703a2f2f6e732e61646f62652e636f6d2f7861702f312e302f003c783a786d706d65746120786d6c6e733a783d2261646f62653a6e733a6d6574612f223e3c7264663a5244463e3c7264663a4465736372697074696f6e20746966663a4d6f64656c3d22546573745f50726f222064726f6e652d646a693a52656c6174697665416c7469747564653d222b34352e3130222064726f6e652d646a693a47696d62616c50697463684465677265653d222d38392e3930222064726f6e652d646a693a466c696768745961774465677265653d222d3130302e3430222f3e3c2f7264663a5244463e3c2f783a786d706d6574613effda000a0000000000000000706978656c73ffd9",
+        "MISC/THM/101/DJI_0001.THM": "74686d"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "drone_matched_mission",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": false,
+        "bundles": {},
+        "category_folders": {
+          "dji-drone": {
+            "image": "dron/fotos",
+            "raw_image": "dron/fotos",
+            "video": "vdron"
+          }
+        },
+        "category_work": {
+          "dji-drone": [
+            "video",
+            "image"
+          ]
+        },
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "files",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/archive"
+          },
+          "00000000-0000-0000-0000-000000000002": {
+            "prefix": "001_proyectos",
+            "role": "work",
+            "root": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/work"
+          }
+        },
+        "digest": "59d2df0c6f188be545fdd05e72b3625be9a66167bff804839666fdc3f050fcc6",
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "DCIM/101MEDIA/DJI_0001.DNG",
+            "photo": {
+              "captured_at": "2026-11-04T16:32:12",
+              "flight": {
+                "flight_yaw": -100.4,
+                "gimbal_pitch": -89.9,
+                "relative_altitude": 45.1
+              },
+              "gps": {
+                "lat": 29.0984139,
+                "lon": -110.9622722
+              },
+              "make": "DJI",
+              "model": "FC3170",
+              "serial": "1TCLH9N03BJ5N9"
+            },
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 474
+            },
+            "unit_id": "25a31891-951a-5229-8f9f-db5c19b1ac0f"
+          },
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "DCIM/101MEDIA/DJI_0001.JPG",
+            "photo": {
+              "captured_at": "2026-11-04T16:32:12",
+              "flight": {
+                "flight_yaw": -100.4,
+                "gimbal_pitch": -89.9,
+                "relative_altitude": 45.1
+              },
+              "gps": {
+                "lat": 29.0984139,
+                "lon": -110.9622722
+              },
+              "make": "DJI",
+              "model": "FC3170",
+              "serial": "1TCLH9N03BJ5N9"
+            },
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1004,
+              "mtime_ns": 1778000000123456789,
+              "size": 517
+            },
+            "unit_id": "25a31891-951a-5229-8f9f-db5c19b1ac0f"
+          },
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "low",
+                "family": "dji",
+                "requires_review": true,
+                "source": "filename"
+              }
+            ],
+            "path": "MISC/THM/101/DJI_0001.THM",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1005,
+              "mtime_ns": 1778000000123456789,
+              "size": 3
+            },
+            "unit_id": "f347f6db-19ce-593e-9818-602983e1c812"
+          }
+        ],
+        "id": "916d9442-c28f-5725-95ff-4caf3a409bf8",
+        "layout": {
+          "DCIM/101MEDIA/DJI_0001.DNG": {
+            "archive": "dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].DNG",
+            "work": null
+          },
+          "DCIM/101MEDIA/DJI_0001.JPG": {
+            "archive": "dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG",
+            "work": "atlas-subaereo/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG"
+          },
+          "MISC/THM/101/DJI_0001.THM": {
+            "archive": "metadata/dji/support/2026/11/0411-163212_MX-ingest-f347f6db-19ce-593e-9818-602983e1c812_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "work": null
+          }
+        },
+        "media_date": "2026/05",
+        "missions": {
+          "subaereo": {
+            "covered_until": "2026-11-04T22:00:00",
+            "history_sha256": "d1d5c3c0ad85f756734aa6364077ce37946bf46bc011ecd05de4cab3beb915b7",
+            "layout": {
+              "archive_folder": "dron/misiones",
+              "work_folder": "atlas-subaereo/misiones",
+              "work_kinds": [
+                "image"
+              ]
+            },
+            "likely": 0,
+            "project": "subaereo",
+            "units": {
+              "matched": 1,
+              "none": 0,
+              "pending_export": 0
+            },
+            "unregistered_likely": 0,
+            "work_existing": 0
+          }
+        },
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/archive/001_raw/dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].DNG",
+            "bytes": 474,
+            "camera": "dji-drone",
+            "profile": "e64",
+            "project": "subaereo",
+            "source": "DCIM/101MEDIA/DJI_0001.DNG",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/archive/001_raw/dron/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG",
+            "bytes": 517,
+            "camera": "dji-drone",
+            "profile": "e64",
+            "project": "subaereo",
+            "source": "DCIM/101MEDIA/DJI_0001.JPG",
+            "source_action": "retain",
+            "work_path": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/work/001_proyectos/atlas-subaereo/misiones/2026/11/26NOV04-163213_CALLES-45M-1104-1625/26NOV04-163212_MAVICAIR2_MX-SUBAEREO[].JPG"
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/archive/001_raw/metadata/dji/support/2026/11/0411-163212_MX-ingest-f347f6db-19ce-593e-9818-602983e1c812_MAVICAIR2/MISC/THM/101/DJI_0001.THM",
+            "bytes": 3,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "camera-support",
+            "source": "MISC/THM/101/DJI_0001.THM",
+            "source_action": "retain",
+            "work_path": null
+          }
+        ],
+        "recipe": {
+          "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+          "id": "nu9ve-default"
+        },
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "dji-drone",
+            "capture_manifest_digest": null,
+            "capture_time": {
+              "captured_at_absolute": null,
+              "offset_seconds": null,
+              "original": "2026-11-04T16:32:12",
+              "originals": {},
+              "provenance": "exif.DateTimeOriginal",
+              "time_zone": null
+            },
+            "device": {
+              "category": "dji-drone",
+              "label": "DJI Mavic Air 2",
+              "make": "DJI",
+              "model": "FC3170",
+              "rule": "template",
+              "serial": "1TCLH9N03BJ5N9",
+              "source": "MAVICAIR2"
+            },
+            "id": "25a31891-951a-5229-8f9f-db5c19b1ac0f",
+            "kind": "camera_bundle",
+            "mission": {
+              "captureID": "C1",
+              "flow": "subaereo",
+              "planID": "P1",
+              "plan_name": "Calles-45m-1104-1625",
+              "sessionID": "S1",
+              "session_start": "2026-11-04T16:32:13",
+              "state": "matched"
+            },
+            "paths": [
+              "DCIM/101MEDIA/DJI_0001.DNG",
+              "DCIM/101MEDIA/DJI_0001.JPG"
+            ],
+            "profile": "e64",
+            "project": "subaereo",
+            "session_id": null
+          },
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "f347f6db-19ce-593e-9818-602983e1c812",
+            "kind": "file",
+            "paths": [
+              "MISC/THM/101/DJI_0001.THM"
+            ],
+            "profile": "e64",
+            "project": "camera-support",
+            "session_id": null,
+            "support": true,
+            "work_selected": false
+          }
+        ],
+        "work_delivery_status": "ready",
+        "work_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-drone_matched_mission/card"
+      },
+      "stamps": {
+        "DCIM/101MEDIA/DJI_0001.DNG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 474
+        },
+        "DCIM/101MEDIA/DJI_0001.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 517
+        },
+        "MISC/THM/101/DJI_0001.THM": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1005,
+          "mtime_ns": 1778000000123456789,
+          "size": 3
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": {
+        "copies": [
+          [
+            "ESSD",
+            "001_proyectos/e64_raw/intro/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4",
+            "0cab1c9617404faf2b24e221e189ca5945813e14d3f766345b09ca13bbe28ffc"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/sony/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].XML",
+            "c06ae1987533b44fd5b24c2c52e091b0b49fa21940204e10968553ba7fc4c52c"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/MEDIAPRO.XML",
+            "29114363f749a0226b6988dda3ca2492a954117ab6b5f382706c20300dabc079"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/THMBNL/C0001T01.JPG",
+            "05eeec2d70845694d3ba89ad9e1c34b6b4d806275c3c63b84241a40ae4591ca4"
+          ],
+          [
+            "MEDIA",
+            "001_raw/v4k/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4",
+            "0cab1c9617404faf2b24e221e189ca5945813e14d3f766345b09ca13bbe28ffc"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {},
+      "card": {
+        "PRIVATE/M4ROOT/CLIP/C0001.MP4": "766964656f",
+        "PRIVATE/M4ROOT/CLIP/C0001M01.XML": "3c4e6f6e5265616c54696d654d65746120786d6c6e733d2275726e3a736368656d61732d70726f66657373696f6e616c446973633a6e6f6e5265616c54696d654d6574613a7665722e322e3030223e3c4475726174696f6e2076616c75653d22333030222f3e3c4372656174696f6e446174652076616c75653d22323032362d31312d30345431363a33323a31322d30373a3030222f3e3c566964656f466f726d61743e3c566964656f4672616d6520636170747572654670733d2232392e3937702220666f726d61744670733d2232392e393770222f3e3c566964656f4c61796f757420706978656c3d223338343022206e756d4f66566572746963616c4c696e653d2232313630222f3e3c2f566964656f466f726d61743e3c446576696365206d616e7566616374757265723d22536f6e7922206d6f64656c4e616d653d22494c43452d36343030222f3e3c2f4e6f6e5265616c54696d654d6574613e",
+        "PRIVATE/M4ROOT/MEDIAPRO.XML": "3c612f3e",
+        "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG": "7468756d62"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "sony_clip",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": false,
+        "bundles": {},
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "sony_clips_then_format",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-sony_clip/archive"
+          },
+          "00000000-0000-0000-0000-000000000002": {
+            "prefix": "001_proyectos",
+            "role": "work",
+            "root": "/private/tmp/nuun-engine-golden/plan-sony_clip/work"
+          }
+        },
+        "digest": "5f4e54211852c48f41c58eb1ad1d517129072b7bcfeef354f8e682f2fa9e9b56",
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "medium",
+                "family": "sony",
+                "source": "file_path"
+              },
+              {
+                "confidence": "high",
+                "manufacturer": "Sony",
+                "model": "ILCE-6400",
+                "source": "sony_xml"
+              }
+            ],
+            "path": "PRIVATE/M4ROOT/CLIP/C0001.MP4",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 5
+            },
+            "unit_id": "ef040abb-c1ed-5780-b84c-da8c77081482"
+          },
+          {
+            "bundle": null,
+            "evidence": [
+              {
+                "confidence": "medium",
+                "family": "sony",
+                "source": "file_path"
+              }
+            ],
+            "path": "PRIVATE/M4ROOT/CLIP/C0001M01.XML",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1004,
+              "mtime_ns": 1778000000123456789,
+              "size": 351
+            },
+            "unit_id": "ef040abb-c1ed-5780-b84c-da8c77081482"
+          },
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "PRIVATE/M4ROOT/MEDIAPRO.XML",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1005,
+              "mtime_ns": 1778000000123456789,
+              "size": 4
+            },
+            "unit_id": "7e81b49a-3238-5767-8bec-e5233f8b55bc"
+          },
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1006,
+              "mtime_ns": 1778000000123456789,
+              "size": 5
+            },
+            "unit_id": "7e81b49a-3238-5767-8bec-e5233f8b55bc"
+          }
+        ],
+        "id": "2b3a8557-cef2-540f-a7df-bec82ad8604d",
+        "layout": {
+          "PRIVATE/M4ROOT/CLIP/C0001.MP4": {
+            "archive": "v4k/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4",
+            "work": "e64_raw/intro/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4"
+          },
+          "PRIVATE/M4ROOT/CLIP/C0001M01.XML": {
+            "archive": "metadata/sony/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].XML",
+            "work": null
+          },
+          "PRIVATE/M4ROOT/MEDIAPRO.XML": {
+            "archive": "metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/MEDIAPRO.XML",
+            "work": null
+          },
+          "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG": {
+            "archive": "metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/THMBNL/C0001T01.JPG",
+            "work": null
+          }
+        },
+        "media_date": "2026/05",
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-sony_clip/archive/001_raw/metadata/sony/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].XML",
+            "bytes": 351,
+            "camera": "sony",
+            "profile": "e64",
+            "project": "intro",
+            "source": "PRIVATE/M4ROOT/CLIP/C0001M01.XML",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-sony_clip/archive/001_raw/metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/MEDIAPRO.XML",
+            "bytes": 4,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "camera-support",
+            "source": "PRIVATE/M4ROOT/MEDIAPRO.XML",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-sony_clip/archive/001_raw/metadata/sony/support/2026/11/0411-163212_MX-ingest-7e81b49a-3238-5767-8bec-e5233f8b55bc_SONYA6400/PRIVATE/M4ROOT/THMBNL/C0001T01.JPG",
+            "bytes": 5,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "camera-support",
+            "source": "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-sony_clip/archive/001_raw/v4k/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4",
+            "bytes": 5,
+            "camera": "sony",
+            "profile": "e64",
+            "project": "intro",
+            "source": "PRIVATE/M4ROOT/CLIP/C0001.MP4",
+            "source_action": "retain",
+            "work_path": "/private/tmp/nuun-engine-golden/plan-sony_clip/work/001_proyectos/e64_raw/intro/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4"
+          }
+        ],
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-sony_clip/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-sony_clip/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "sony",
+            "capture_manifest_digest": null,
+            "capture_time": {
+              "captured_at_absolute": "2026-11-04T23:32:12Z",
+              "offset_seconds": -25200,
+              "original": "2026-11-04T16:32:12-07:00",
+              "originals": {},
+              "provenance": "sony.CreationDate",
+              "time_zone": null
+            },
+            "id": "ef040abb-c1ed-5780-b84c-da8c77081482",
+            "kind": "camera_bundle",
+            "paths": [
+              "PRIVATE/M4ROOT/CLIP/C0001.MP4",
+              "PRIVATE/M4ROOT/CLIP/C0001M01.XML"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null
+          },
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "7e81b49a-3238-5767-8bec-e5233f8b55bc",
+            "kind": "camera_bundle",
+            "paths": [
+              "PRIVATE/M4ROOT/MEDIAPRO.XML",
+              "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG"
+            ],
+            "profile": "e64",
+            "project": "camera-support",
+            "session_id": null,
+            "support": true,
+            "work_selected": false
+          }
+        ],
+        "work_delivery_status": "ready",
+        "work_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-sony_clip",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-sony_clip/card"
+      },
+      "stamps": {
+        "PRIVATE/M4ROOT/CLIP/C0001.MP4": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 5
+        },
+        "PRIVATE/M4ROOT/CLIP/C0001M01.XML": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 351
+        },
+        "PRIVATE/M4ROOT/MEDIAPRO.XML": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1005,
+          "mtime_ns": 1778000000123456789,
+          "size": 4
+        },
+        "PRIVATE/M4ROOT/THMBNL/C0001T01.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1006,
+          "mtime_ns": 1778000000123456789,
+          "size": 5
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": {
+        "copies": [
+          [
+            "ESSD",
+            "001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4",
+            "4c94485e0c21ae6c41ce1dfe7b6bfaceea5ab68e40a2476f50208e526f506080"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].LRV",
+            "acac86c0e609ca906f632b0e2dacccb2b77d22b0621f20ebece1a4835b93f6f0"
+          ],
+          [
+            "MEDIA",
+            "001_raw/metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].THM",
+            "e3b98a4da31a127d4bde6e43033f66ba274cab0eb7eb1c70ec41402bf6273dd8"
+          ],
+          [
+            "MEDIA",
+            "001_raw/videos/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4",
+            "4c94485e0c21ae6c41ce1dfe7b6bfaceea5ab68e40a2476f50208e526f506080"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {},
+      "card": {
+        "DCIM/100GOPRO/GX010001.LRV": "6c",
+        "DCIM/100GOPRO/GX010001.MP4": "76",
+        "DCIM/100GOPRO/GX010001.THM": "74"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "gopro_by_mtime",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": false,
+        "bundles": {},
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "files",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/archive"
+          },
+          "00000000-0000-0000-0000-000000000002": {
+            "prefix": "001_proyectos",
+            "role": "work",
+            "root": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/work"
+          }
+        },
+        "digest": "0e518ba1df5e4b91bd17909d0db8fdac6fd887f5331add8c5deafa89e422f3b6",
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "DCIM/100GOPRO/GX010001.LRV",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 1
+            },
+            "unit_id": "c4d245cd-db5d-52b7-ab5c-cfe1948ef86a"
+          },
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "DCIM/100GOPRO/GX010001.MP4",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1004,
+              "mtime_ns": 1778000000123456789,
+              "size": 1
+            },
+            "unit_id": "c4d245cd-db5d-52b7-ab5c-cfe1948ef86a"
+          },
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "DCIM/100GOPRO/GX010001.THM",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1005,
+              "mtime_ns": 1778000000123456789,
+              "size": 1
+            },
+            "unit_id": "c4d245cd-db5d-52b7-ab5c-cfe1948ef86a"
+          }
+        ],
+        "id": "f4bc1986-aeec-5c0a-8253-9f5c848e3806",
+        "layout": {
+          "DCIM/100GOPRO/GX010001.LRV": {
+            "archive": "metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].LRV",
+            "work": null
+          },
+          "DCIM/100GOPRO/GX010001.MP4": {
+            "archive": "videos/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4",
+            "work": "e64_raw/intro/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4"
+          },
+          "DCIM/100GOPRO/GX010001.THM": {
+            "archive": "metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].THM",
+            "work": null
+          }
+        },
+        "media_date": "2026/05",
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/archive/001_raw/metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].LRV",
+            "bytes": 1,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/100GOPRO/GX010001.LRV",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/archive/001_raw/metadata/generic/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].THM",
+            "bytes": 1,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/100GOPRO/GX010001.THM",
+            "source_action": "retain",
+            "work_path": null
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/archive/001_raw/videos/2026/05/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4",
+            "bytes": 1,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/100GOPRO/GX010001.MP4",
+            "source_action": "retain",
+            "work_path": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/work/001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-00_MX-INTRO[].MP4"
+          }
+        ],
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "c4d245cd-db5d-52b7-ab5c-cfe1948ef86a",
+            "kind": "camera_bundle",
+            "paths": [
+              "DCIM/100GOPRO/GX010001.LRV",
+              "DCIM/100GOPRO/GX010001.MP4",
+              "DCIM/100GOPRO/GX010001.THM"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null
+          }
+        ],
+        "work_delivery_status": "ready",
+        "work_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-gopro_by_mtime/card"
+      },
+      "stamps": {
+        "DCIM/100GOPRO/GX010001.LRV": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 1
+        },
+        "DCIM/100GOPRO/GX010001.MP4": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 1
+        },
+        "DCIM/100GOPRO/GX010001.THM": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1005,
+          "mtime_ns": 1778000000123456789,
+          "size": 1
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": {
+        "copies": [
+          [
+            "ESSD",
+            "001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV",
+            "56d4af65701c26df20bd4021eda95b6e830348ce3a746086079fe89285548dc9"
+          ],
+          [
+            "ESSD",
+            "001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV",
+            "78f82cd49af869013e8ec414a15d71f5f4f2ec8d006b6a0c50527c91eaa7a85f"
+          ],
+          [
+            "MEDIA",
+            "001_raw/recordings/2026/05/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV",
+            "56d4af65701c26df20bd4021eda95b6e830348ce3a746086079fe89285548dc9"
+          ],
+          [
+            "MEDIA",
+            "001_raw/recordings/2026/05/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV",
+            "78f82cd49af869013e8ec414a15d71f5f4f2ec8d006b6a0c50527c91eaa7a85f"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {},
+      "card": {
+        "ZOOM0001/ZOOM0001_LR.WAV": "52494646247d000057415645666d74201000000001000100401f0000803e00000200100064617461007d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "ZOOM0001/ZOOM0001_Tr1.WAV": "52494646a43e000057415645666d74201000000001000100401f0000803e00000200100064617461803e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "h6_wav",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": false,
+        "bundles": {},
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "files",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-h6_wav/archive"
+          },
+          "00000000-0000-0000-0000-000000000002": {
+            "prefix": "001_proyectos",
+            "role": "work",
+            "root": "/private/tmp/nuun-engine-golden/plan-h6_wav/work"
+          }
+        },
+        "digest": "56a43632f2fa40c391d250b24713cce0c36798169443a8039224e170855e3a6a",
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "ZOOM0001/ZOOM0001_LR.WAV",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 32044
+            },
+            "unit_id": "1e31f10d-6ecb-5934-af5d-681ee8e7a22f"
+          },
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "ZOOM0001/ZOOM0001_Tr1.WAV",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1004,
+              "mtime_ns": 1778000000123456789,
+              "size": 16044
+            },
+            "unit_id": "a30f976c-fb06-5498-80d5-3332e34f51f1"
+          }
+        ],
+        "id": "515a9a25-f136-52c3-99a6-3c5275ccaaf7",
+        "layout": {
+          "ZOOM0001/ZOOM0001_LR.WAV": {
+            "archive": "recordings/2026/05/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV",
+            "work": "e64_raw/intro/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV"
+          },
+          "ZOOM0001/ZOOM0001_Tr1.WAV": {
+            "archive": "recordings/2026/05/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV",
+            "work": "e64_raw/intro/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV"
+          }
+        },
+        "media_date": "2026/05",
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-h6_wav/archive/001_raw/recordings/2026/05/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV",
+            "bytes": 16044,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "ZOOM0001/ZOOM0001_Tr1.WAV",
+            "source_action": "retain",
+            "work_path": "/private/tmp/nuun-engine-golden/plan-h6_wav/work/001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-01_MX-INTRO[].WAV"
+          },
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-h6_wav/archive/001_raw/recordings/2026/05/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV",
+            "bytes": 32044,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "ZOOM0001/ZOOM0001_LR.WAV",
+            "source_action": "retain",
+            "work_path": "/private/tmp/nuun-engine-golden/plan-h6_wav/work/001_proyectos/e64_raw/intro/26MAY05-095320_GENERIC_00-02_MX-INTRO[].WAV"
+          }
+        ],
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-h6_wav/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-h6_wav/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "1e31f10d-6ecb-5934-af5d-681ee8e7a22f",
+            "kind": "file",
+            "paths": [
+              "ZOOM0001/ZOOM0001_LR.WAV"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null
+          },
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "id": "a30f976c-fb06-5498-80d5-3332e34f51f1",
+            "kind": "file",
+            "paths": [
+              "ZOOM0001/ZOOM0001_Tr1.WAV"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null
+          }
+        ],
+        "work_delivery_status": "ready",
+        "work_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-h6_wav",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-h6_wav/card"
+      },
+      "stamps": {
+        "ZOOM0001/ZOOM0001_LR.WAV": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 32044
+        },
+        "ZOOM0001/ZOOM0001_Tr1.WAV": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 16044
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": {
+        "copies": [
+          [
+            "MEDIA",
+            "001_raw/images/2026/05/26MAY05-095320_GENERIC_PE-INTRO[].JPG",
+            "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+          ]
+        ],
+        "state": "source_retained"
+      },
+      "archive": {},
+      "card": {
+        "DCIM/100CANON/IMG_0001.JPG": "78",
+        "DCIM/100CANON/IMG_0002.JPG": "79"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "archive_only_with_assignments",
+      "params": {
+        "archive": "MEDIA",
+        "archive_only": true,
+        "assignments": {
+          "DCIM/100CANON/IMG_0001.JPG": {
+            "country": "pe",
+            "work": false
+          },
+          "DCIM/100CANON/IMG_0002.JPG": {
+            "discard": true
+          }
+        },
+        "confirm_archive_only": true,
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "archive_id": "00000000-0000-0000-0000-000000000001",
+        "archive_only_confirmed": true,
+        "bundles": {},
+        "city": "hermosillo",
+        "cleanup": false,
+        "cleanup_profile": "files",
+        "country": "mx",
+        "destinations": {
+          "00000000-0000-0000-0000-000000000001": {
+            "prefix": "001_raw",
+            "role": "archive",
+            "root": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments/archive"
+          }
+        },
+        "digest": "64033a0537e7f37d53024a2a3622529ffd15f6bca81c5a9c2fa4a9af830d7a11",
+        "discarded": [
+          {
+            "bytes": 1,
+            "paths": [
+              "DCIM/100CANON/IMG_0002.JPG"
+            ],
+            "stamps": {
+              "DCIM/100CANON/IMG_0002.JPG": {
+                "ctime_ns": 1778000000123456789,
+                "inode": 1004,
+                "mtime_ns": 1778000000123456789,
+                "size": 1
+              }
+            }
+          }
+        ],
+        "expected_work_id": "00000000-0000-0000-0000-000000000002",
+        "files": [
+          {
+            "bundle": null,
+            "evidence": [],
+            "path": "DCIM/100CANON/IMG_0001.JPG",
+            "stamp": {
+              "ctime_ns": 1778000000123456789,
+              "inode": 1003,
+              "mtime_ns": 1778000000123456789,
+              "size": 1
+            },
+            "unit_id": "811fe0d5-7c50-5303-b724-62b2fdb81992"
+          }
+        ],
+        "id": "9a1a0248-faa1-5b01-b7b2-a27d95818e24",
+        "layout": {
+          "DCIM/100CANON/IMG_0001.JPG": {
+            "archive": "images/2026/05/26MAY05-095320_GENERIC_PE-INTRO[].JPG",
+            "work": "e64_raw/intro/26MAY05-095320_GENERIC_PE-INTRO[].JPG"
+          }
+        },
+        "media_date": "2026/05",
+        "planner_revision": "ingest-flow/1",
+        "preview": [
+          {
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments/archive/001_raw/images/2026/05/26MAY05-095320_GENERIC_PE-INTRO[].JPG",
+            "bytes": 1,
+            "camera": "generic",
+            "profile": "e64",
+            "project": "intro",
+            "source": "DCIM/100CANON/IMG_0001.JPG",
+            "source_action": "retain",
+            "work_path": null
+          }
+        ],
+        "release_stalker_source": false,
+        "schema": "nu9ve-ingest-plan/2",
+        "skipped": [],
+        "source": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments/card",
+        "source_identity": {
+          "disk_uuid": "fixture",
+          "mode": "fixture",
+          "root_inode": 1002,
+          "volume_uuid": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments/card"
+        },
+        "source_kind": "card",
+        "source_name": "card",
+        "units": [
+          {
+            "bundle": null,
+            "camera": "generic",
+            "capture_manifest_digest": null,
+            "country": "pe",
+            "id": "811fe0d5-7c50-5303-b724-62b2fdb81992",
+            "kind": "file",
+            "paths": [
+              "DCIM/100CANON/IMG_0001.JPG"
+            ],
+            "profile": "e64",
+            "project": "intro",
+            "session_id": null,
+            "work_selected": false
+          }
+        ],
+        "work_delivery_status": "pending",
+        "work_id": null
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-archive_only_with_assignments/card"
+      },
+      "stamps": {
+        "DCIM/100CANON/IMG_0001.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 1
+        },
+        "DCIM/100CANON/IMG_0002.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1004,
+          "mtime_ns": 1778000000123456789,
+          "size": 1
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    },
+    {
+      "apply": null,
+      "archive": {},
+      "card": {
+        "DCIM/101MEDIA/DJI_0009.JPG": "ffd8ffe100f445786966000049492a000800000004000f01020004000000444a490010010200070000009200000069870400010000003e00000025880400010000005c00000000000000020003900200140000009900000031a402000f000000ad00000000000000040001000200020000004e0000000200050003000000bc0000000300020002000000570000000400050003000000d40000000000000046433939393900323032363a31313a30342031363a33323a3132003154434c48394e3033424a354e3900540b000064000000f4010000640000003515000064000000f82a00006400000044160000640000004211000064000000ffda000a0000000000000000706978656c73ffd9"
+      },
+      "mtime_ns": 1778000000123456789,
+      "name": "dji_unknown_model_asks",
+      "params": {
+        "archive": "MEDIA",
+        "project": "intro",
+        "work": "ESSD"
+      },
+      "plan": {
+        "error": "camera_review_required"
+      },
+      "root": "/private/tmp/nuun-engine-golden/plan-dji_unknown_model_asks",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "root_inode": 1002,
+        "volume_uuid": "/private/tmp/nuun-engine-golden/plan-dji_unknown_model_asks/card"
+      },
+      "stamps": {
+        "DCIM/101MEDIA/DJI_0009.JPG": {
+          "ctime_ns": 1778000000123456789,
+          "inode": 1003,
+          "mtime_ns": 1778000000123456789,
+          "size": 268
+        }
+      },
+      "volume_ids": {
+        "ESSD": "00000000-0000-0000-0000-000000000002",
+        "MEDIA": "00000000-0000-0000-0000-000000000001"
+      },
+      "work": {}
+    }
+  ],
+  "python": "3.9.16",
+  "recipe_ref": {
+    "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+    "id": "nu9ve-default"
+  },
+  "recipe_summary": {
+    "cards": [
+      {
+        "cleanup": null,
+        "family": "stalker",
+        "label": "Stalker",
+        "recommendation": "stalker_batch"
+      },
+      {
+        "cleanup": "sony_clips_then_format",
+        "family": "sony",
+        "label": "Sony",
+        "recommendation": "sony_format_in_camera"
+      },
+      {
+        "cleanup": null,
+        "family": "h6",
+        "label": "Zoom H6",
+        "recommendation": "audio_needs_work_disk"
+      },
+      {
+        "cleanup": null,
+        "family": "gopro",
+        "label": "GoPro",
+        "recommendation": "archive_and_work"
+      },
+      {
+        "cleanup": null,
+        "family": "insta360",
+        "label": "Insta360",
+        "recommendation": "dji_choose_category"
+      },
+      {
+        "cleanup": null,
+        "family": "dji",
+        "label": "DJI",
+        "recommendation": "dji_choose_category"
+      },
+      {
+        "cleanup": null,
+        "family": "canon",
+        "label": "Canon",
+        "recommendation": "archive_and_work"
+      }
+    ],
+    "categories": [
+      "canon",
+      "dji-360",
+      "dji-action",
+      "dji-drone",
+      "generic",
+      "gopro",
+      "h6",
+      "insta360",
+      "nikon",
+      "sony"
+    ],
+    "confirmed_devices": 0,
+    "devices": [
+      {
+        "category": "dji-drone",
+        "label": "DJI Mavic Air 2",
+        "make": "DJI",
+        "model": "FC3170",
+        "source": "MAVICAIR2"
+      }
+    ],
+    "missions": [
+      {
+        "archive_folder": "dron/misiones",
+        "devices": [
+          "dji-drone"
+        ],
+        "id": "subaereo",
+        "label": "Misiones de subaereo",
+        "project": "subaereo",
+        "work_folder": "atlas-subaereo/misiones"
+      }
+    ],
+    "name": "nu9ve · plantilla inicial",
+    "recipe": {
+      "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+      "id": "nu9ve-default"
+    }
+  }
+}
