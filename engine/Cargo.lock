@@ -318,6 +318,8 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "nu9ve-json",
+ "quick-xml",
+ "serde_json",
  "tempfile",
  "windows-sys",
 ]

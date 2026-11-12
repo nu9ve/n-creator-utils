@@ -10,6 +10,7 @@ pub mod layout;
 pub mod missions;
 pub mod photo_meta;
 pub mod planner;
+pub mod projects;
 pub mod reads;
 pub mod rules;
 pub mod scan;

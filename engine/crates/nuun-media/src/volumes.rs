@@ -9,12 +9,12 @@
 use crate::catalog::Catalog;
 use nu9ve_json::{Error, Result, require};
 use serde_json::{Map, Value, json};
-use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 /// What the engine needs from the operating system. Tests use a fixture backend; they never list real mounts.
-pub trait Backend {
+pub trait Backend: Sync {
     /// Mounted roots that could be cards. Metadata only: never recurses into media.
     fn mounted_roots(&self) -> Vec<PathBuf>;
     /// The identity of the volume at `root` (the `info` dictionary of Python's `describe`).
@@ -33,6 +33,11 @@ pub trait Backend {
             )?;
         }
         Ok(token.clone())
+    }
+    /// Whether this backend may move media (plan, apply, resume) and register volumes. A new backend reads first
+    /// and opens its writes only after a physical run (docs/release.md).
+    fn writes(&self) -> bool {
+        true
     }
 }
 
@@ -60,7 +65,11 @@ pub fn platform_backend() -> Option<&'static dyn Backend> {
     {
         Some(&WindowsBackend)
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        Some(&MacBackend)
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         None
     }
@@ -68,7 +77,175 @@ pub fn platform_backend() -> Option<&'static dyn Backend> {
 
 /// The name `engine_info` gives the backend of `platform_backend` (its `mode` in a volume identity).
 pub fn platform_backend_name() -> Option<&'static str> {
-    if cfg!(windows) { Some("windows") } else { None }
+    if cfg!(windows) {
+        Some("windows")
+    } else if cfg!(target_os = "macos") {
+        Some("macos")
+    } else {
+        None
+    }
+}
+
+/// The real backend on macOS: Python's `VolumeBackend.describe` step by step, from the same sources (`statfs` for
+/// what `df -P` prints, `diskutil info -plist`, `statvfs`), so a volume Python registered is online here as is.
+/// Read only for now (`writes` is false): volumes, source_cards, snapshot and the reads that ask for a disk.
+#[cfg(target_os = "macos")]
+pub struct MacBackend;
+
+#[cfg(target_os = "macos")]
+fn identity_unavailable(message: impl Into<String>) -> Error {
+    Error::new("volume_identity_unavailable", message)
+}
+
+/// Python `re.sub(r's[0-9]+(?:s[0-9]+)?$', '', store)`: the whole disk of an APFS physical store (`disk0s2` → `disk0`).
+pub fn whole_disk(store: &str) -> String {
+    fn strip_slice(text: &str) -> Option<&str> {
+        let digits = text.trim_end_matches(|c: char| c.is_ascii_digit());
+        (digits.len() < text.len()).then_some(())?;
+        digits.strip_suffix('s')
+    }
+    match strip_slice(store) {
+        Some(once) => strip_slice(once).unwrap_or(once).to_owned(),
+        None => store.to_owned(),
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl Backend for MacBackend {
+    /// `diskutil list -plist external`: every mount point in the tree, sorted. Metadata only.
+    fn mounted_roots(&self) -> Vec<PathBuf> {
+        fn mounts(nodes: &Value, out: &mut BTreeSet<String>) {
+            for node in nodes.as_array().into_iter().flatten() {
+                if let Some(mount) = node["MountPoint"].as_str().filter(|m| !m.is_empty()) {
+                    out.insert(mount.to_owned());
+                }
+                for key in ["Partitions", "APFSVolumes"] {
+                    mounts(&node[key], out);
+                }
+            }
+        }
+        let Ok(list) = nu9ve_volumes::macos::diskutil(
+            &["list", "-plist", "external"],
+            std::time::Duration::from_secs(30),
+        ) else {
+            return Vec::new();
+        };
+        let mut found = BTreeSet::new();
+        mounts(&list["AllDisksAndPartitions"], &mut found);
+        found.into_iter().map(PathBuf::from).collect()
+    }
+
+    fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
+        use nu9ve_volumes::macos::{Failure, disk_usage, diskutil, mount_point};
+        use std::os::unix::fs::MetadataExt;
+        let root = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
+        let link =
+            |p: &Path| std::fs::symlink_metadata(p).is_ok_and(|m| m.file_type().is_symlink());
+        require(
+            root.is_dir() && !link(&root),
+            "volume_offline",
+            format!("Root unavailable: {}", root.display()),
+        )?;
+        for path in root.ancestors() {
+            require(!link(path), "unsafe_path", "Volume root contains a symlink")?;
+        }
+        let st =
+            std::fs::metadata(&root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        let mount_path = mount_point(&root)
+            .map_err(|_| identity_unavailable("Cannot determine source filesystem"))?;
+        let data = diskutil(
+            &["info", "-plist", &mount_path],
+            std::time::Duration::from_secs(30),
+        )
+        .map_err(|failure| match failure {
+            Failure::Timeout => identity_unavailable(format!(
+                "diskutil did not answer for {mount_path}; retry in a moment"
+            )),
+            _ => identity_unavailable("Cannot establish disk identity"),
+        })?;
+        let truthy = |v: &Value| match v {
+            Value::Null | Value::Bool(false) => false,
+            Value::String(s) => !s.is_empty(),
+            _ => true,
+        };
+        let mount = data["MountPoint"].clone();
+        require(
+            truthy(&mount) && truthy(&data["VolumeUUID"]),
+            "volume_identity_unavailable",
+            "Missing mounted volume identity",
+        )?;
+        let external = data["Internal"] == false;
+        let mut physical: Vec<String> = data["APFSPhysicalStores"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|item| item["APFSPhysicalStore"].as_str().filter(|s| !s.is_empty()))
+            .map(whole_disk)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        if physical.is_empty() {
+            let parent = [&data["ParentWholeDisk"], &data["DeviceIdentifier"]]
+                .into_iter()
+                .find(|v| truthy(v))
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            physical.push(parent.to_owned());
+        }
+        require(
+            physical.iter().all(|p| !p.is_empty()),
+            "volume_identity_unavailable",
+            "Physical disk identity missing",
+        )?;
+        require(
+            !external_required || external,
+            "external_required",
+            "Use a mounted external volume",
+        )?;
+        let (_, _, free) =
+            disk_usage(&root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        Ok(json!({
+            "mode": "macos",
+            "volume_uuid": data["VolumeUUID"],
+            "disk_uuid": data.get("DiskUUID").cloned().unwrap_or(Value::Null),
+            "mount": mount,
+            "external": external,
+            "physical": physical.join(","),
+            "physical_disks": physical,
+            "filesystem": data.get("FilesystemType").cloned().unwrap_or(json!("")),
+            "block_size": data.get("VolumeAllocationBlockSize").cloned().unwrap_or(json!(4096)),
+            "root_inode": st.ino(),
+            // dev_t is a signed 32-bit number on macOS, as Python reports it.
+            "device": st.dev() as i32,
+            "free": free,
+            "removable": truthy(&data["RemovableMedia"]) || truthy(&data["Removable"]),
+            "disk_image": data["BusProtocol"] == "Disk Image",
+        }))
+    }
+
+    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+        nu9ve_volumes::macos::disk_usage(root)
+            .ok()
+            .map(|(total, used, _)| (used, total))
+    }
+
+    /// Python `fast_check`: the root still has the device and inode of the token, without asking diskutil.
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        use std::os::unix::fs::MetadataExt;
+        let st = std::fs::symlink_metadata(root)
+            .map_err(|_| Error::new("volume_replaced", "Volume disconnected or root changed"))?;
+        require(
+            token["device"] == json!(st.dev() as i32) && token["root_inode"] == json!(st.ino()),
+            "volume_replaced",
+            "Volume disconnected or root changed",
+        )?;
+        Ok(token.clone())
+    }
+
+    /// Reads only until a physical run with a card and a USB disk on this Mac (docs/release.md).
+    fn writes(&self) -> bool {
+        false
+    }
 }
 
 /// The real backend on Windows. It compiles everywhere; only `platform_backend` decides where it is used.
@@ -152,30 +329,44 @@ impl Backend for WindowsBackend {
 /// One request's memo: each root is described once (Python `CachedBackend`).
 pub struct Cached<'a> {
     inner: &'a dyn Backend,
-    described: RefCell<HashMap<(String, bool), Result<Value>>>,
+    described: Mutex<HashMap<(String, bool), Result<Value>>>,
+    mounts: Mutex<Option<Vec<PathBuf>>>,
 }
 
 impl<'a> Cached<'a> {
     pub fn new(inner: &'a dyn Backend) -> Self {
         Self {
             inner,
-            described: RefCell::new(HashMap::new()),
+            described: Mutex::new(HashMap::new()),
+            mounts: Mutex::new(None),
         }
     }
 }
 
 impl Backend for Cached<'_> {
     fn mounted_roots(&self) -> Vec<PathBuf> {
-        self.inner.mounted_roots()
+        let mut mounts = self.mounts.lock().unwrap_or_else(|e| e.into_inner());
+        mounts
+            .get_or_insert_with(|| self.inner.mounted_roots())
+            .clone()
     }
 
     fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
         let key = (normalize(root), external_required);
-        if let Some(found) = self.described.borrow().get(&key) {
-            return found.clone();
+        if let Some(found) = self
+            .described
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&key)
+            .cloned()
+        {
+            return found;
         }
         let result = self.inner.describe(root, external_required);
-        self.described.borrow_mut().insert(key, result.clone());
+        self.described
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(key, result.clone());
         result
     }
 
@@ -185,6 +376,49 @@ impl Backend for Cached<'_> {
 
     fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
         self.inner.fast_check(root, token)
+    }
+
+    fn writes(&self) -> bool {
+        self.inner.writes()
+    }
+}
+
+impl Cached<'_> {
+    /// Describes these roots at the same time (each `diskutil` call takes ~0.1 s; Python asks one after another)
+    /// and keeps the answers for the rest of the request.
+    pub fn prefetch(&self, roots: &[(PathBuf, bool)]) {
+        let pending: Vec<&(PathBuf, bool)> = roots
+            .iter()
+            .filter(|(root, external)| {
+                !self
+                    .described
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .contains_key(&(normalize(root), *external))
+            })
+            .collect();
+        if pending.len() < 2 {
+            return;
+        }
+        let inner = self.inner;
+        let answers: Vec<((String, bool), Result<Value>)> = std::thread::scope(|scope| {
+            let handles: Vec<_> = pending
+                .iter()
+                .map(|(root, external)| {
+                    scope.spawn(move || {
+                        (
+                            (normalize(root), *external),
+                            inner.describe(root, *external),
+                        )
+                    })
+                })
+                .collect();
+            handles.into_iter().filter_map(|h| h.join().ok()).collect()
+        });
+        let mut described = self.described.lock().unwrap_or_else(|e| e.into_inner());
+        for (key, answer) in answers {
+            described.entry(key).or_insert(answer);
+        }
     }
 }
 
@@ -279,6 +513,83 @@ pub fn online(backend: &dyn Backend, record: &Value) -> Option<Value> {
     check(backend, record).ok()
 }
 
+/// Describes, at the same time, every root this request will ask about: each registered destination (as
+/// `check` asks for it) and, with `cards`, each mount. Later calls on `cached` answer from memory.
+pub fn prefetch(cached: &Cached, catalog: &Catalog, cards: bool) -> Result<()> {
+    let mut roots: Vec<(PathBuf, bool)> = catalog
+        .volumes()?
+        .iter()
+        .map(|record| {
+            (
+                PathBuf::from(record["root"].as_str().unwrap_or_default()),
+                truthy(&record["identity"]["external"]),
+            )
+        })
+        .collect();
+    if cards {
+        roots.extend(cached.mounted_roots().into_iter().map(|root| (root, false)));
+    }
+    cached.prefetch(&roots);
+    Ok(())
+}
+
+/// `str(Path(value).absolute())`: joined to the working folder, empty and `.` parts dropped, `..` kept.
+fn python_absolute(value: &str) -> PathBuf {
+    let path = std::path::absolute(value).unwrap_or_else(|_| PathBuf::from(value));
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            // The drive (`C:`) and the root stay as they are; `.` parts go, `..` stays (as Python).
+            std::path::Component::CurDir => {}
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+/// Python `Service.call('suggest')`: whether the app should offer an ingest for `source`. The cheap destination
+/// gate runs before anything looks at the source.
+pub fn suggest(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let cached = Cached::new(backend);
+    prefetch(&cached, catalog, false)?;
+    let records = catalog.volumes()?;
+    if !records
+        .iter()
+        .any(|record| online(&cached, record).is_some())
+    {
+        return Ok(
+            json!({"show": false, "reason": "no_registered_destinations", "pending_work": []}),
+        );
+    }
+    let pending = crate::reads::library(catalog, &json!({"work_state": "pending"}))?;
+    let source = match params.get("source") {
+        Some(Value::String(s)) if !s.is_empty() => s.clone(),
+        _ => return Ok(json!({"show": false, "reason": "no_source", "pending_work": pending})),
+    };
+    let root = python_absolute(&source);
+    let destination =
+        json!({"show": false, "reason": "destination_volume", "pending_work": pending});
+    if records.iter().any(|record| {
+        let registered = python_absolute(record["root"].as_str().unwrap_or_default());
+        root.starts_with(&registered)
+    }) {
+        return Ok(destination);
+    }
+    let info = cached.describe(&root, false)?;
+    if records
+        .iter()
+        .any(|record| record["identity"]["volume_uuid"] == info["volume_uuid"])
+    {
+        return Ok(destination);
+    }
+    let is_card = info["external"] == true
+        && info["mount"] == json!(root.display().to_string())
+        && info["removable"] == true;
+    Ok(
+        json!({"show": is_card, "reason": if is_card { "card" } else { "not_a_card" }, "pending_work": pending}),
+    )
+}
+
 /// Disk numbers change on remount: compare current physical stores when available.
 pub fn destination_identities(catalog: &Catalog, backend: &dyn Backend) -> Result<Vec<Value>> {
     Ok(catalog
@@ -301,6 +612,7 @@ pub fn reject_destination(info: &Value, identities: &[Value]) -> Result<()> {
 /// The `volumes` RPC: each registered record with `online`.
 pub fn volumes(catalog: &Catalog, backend: &dyn Backend) -> Result<Value> {
     let cached = Cached::new(backend);
+    prefetch(&cached, catalog, false)?;
     Ok(Value::Array(
         catalog
             .volumes()?
@@ -366,6 +678,7 @@ pub fn source_cards(
     hints: Option<bool>,
 ) -> Result<Value> {
     let cached = Cached::new(backend);
+    prefetch(&cached, catalog, true)?;
     let protected = destination_identities(catalog, &cached)?;
     let hints = match hints {
         Some(h) => h,

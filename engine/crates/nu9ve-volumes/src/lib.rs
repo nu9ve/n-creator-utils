@@ -15,6 +15,8 @@
 //! Read only: nothing here mounts, ejects or writes. Opening `\\.\E:` with no access rights needs no administrator.
 
 pub mod fs;
+#[cfg(target_os = "macos")]
+pub mod macos;
 
 use nu9ve_json::{Error, Result};
 use std::path::{Path, PathBuf};

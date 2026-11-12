@@ -16,6 +16,11 @@ windows-sys.workspace = true
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true
 
+# macOS identity comes from `diskutil … -plist`, parsed as Python's plistlib reads it (macos.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+serde_json.workspace = true
+quick-xml.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 

@@ -31,7 +31,7 @@ from media.shadow import LOG_DIR, ShadowLog, compare, summarize  # noqa: E402
 DEFAULT_ENGINE = REPO / 'engine' / 'target' / 'release' / 'nuun-engine'
 # Reads that need parameters the replay cannot invent; they are covered by the app's shadow when it asks them.
 NEEDS_PARAMS = {'project_preview', 'closure_candidates', 'closure_deliveries', 'closure_link_candidates',
-                'closure_progress', 'action_progress', 'job', 'suggest', 'asset_revisions', 'storage_progress',
+                'closure_progress', 'action_progress', 'job', 'asset_revisions', 'storage_progress',
                 'storage_tree', 'missions_review'}
 
 
@@ -85,6 +85,14 @@ def requests_for(python):
             requests.append(('asset_revisions', {'asset_id': asset['id']}))
     for name in ('Terra 6 · ñandú', 'nuevo proyecto'):
         requests.append(('project_preview', {'name': name}))
+    closures, _ = python.ask('closure_overview', {})
+    for closure in (closures.get('data') or [])[:5]:
+        if isinstance(closure, dict) and closure.get('id'):
+            requests.append(('closure_deliveries', {'project_id': closure['id']}))
+    volumes, _ = python.ask('volumes', {})
+    for source in ['/', str(Path.home())] + [v.get('root') for v in (volumes.get('data') or []) if isinstance(v, dict)]:
+        if isinstance(source, str):
+            requests.append(('suggest', {'source': source}))
     requests.append(('closure_progress', {'plan_id': 'shadow-absent'}))
     requests.append(('action_progress', {'id': 'shadow-absent'}))
     return requests

@@ -73,7 +73,13 @@ const PORTABLE: [&str; 22] = [
     "capture_libraries",
 ];
 /// Reads that need this platform's volume backend (`platform_backend`: Windows in Rust; macOS still Python).
-const VOLUME_READS: [&str; 2] = ["volumes", "source_cards"];
+const VOLUME_READS: [&str; 5] = [
+    "suggest",
+    "volumes",
+    "source_cards",
+    "capture_overview",
+    "closure_deliveries",
+];
 
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// All of them need the volume backend. `register_volume` changes configuration (the catalog), never media,
@@ -97,7 +103,7 @@ fn ported() -> Vec<&'static str> {
 
 /// The writes this engine performs on this platform (none without a volume backend).
 fn ported_writes() -> &'static [&'static str] {
-    if platform_backend().is_some() {
+    if platform_backend().is_some_and(|b| b.writes()) {
         &VOLUME_WRITES
     } else {
         &[]
@@ -112,6 +118,17 @@ fn backend() -> Result<&'static dyn Backend> {
             "No volume backend in the Rust engine for this platform yet",
         )
     })
+}
+
+/// The backend for a write: only one whose writes are open (a new backend reads until its physical run).
+fn write_backend() -> Result<&'static dyn Backend> {
+    let backend = backend()?;
+    require(
+        backend.writes(),
+        "not_ported",
+        "This platform's volume backend reads only until its physical run (docs/release.md); ask Python",
+    )?;
+    Ok(backend)
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
@@ -167,12 +184,12 @@ impl Engine {
                 nuun_media::scan::discover(Some(&self.catalog()?), platform_backend(), params)
             }
             "register_volume" => {
-                nuun_media::volumes::register_volume(&self.home(), backend()?, params)
+                nuun_media::volumes::register_volume(&self.home(), write_backend()?, params)
             }
             // A reviewed plan for a card (Python `build_plan`); `plan_document` is its canonical text, which the app
             // returns untouched to `apply`.
             "plan" | "plan_document" => {
-                let plan = nuun_media::planner::build_plan(&self.home(), backend()?, params)?;
+                let plan = nuun_media::planner::build_plan(&self.home(), write_backend()?, params)?;
                 if method == "plan" {
                     Ok(plan)
                 } else {
@@ -189,13 +206,19 @@ impl Engine {
                 let plan = params
                     .get("plan")
                     .ok_or_else(|| Error::new("operation_failed", "'plan'"))?;
-                nuun_media::transfer::apply(&self.home(), backend()?, plan, digest, &|_, _| Ok(()))
+                nuun_media::transfer::apply(
+                    &self.home(),
+                    write_backend()?,
+                    plan,
+                    digest,
+                    &|_, _| Ok(()),
+                )
             }
             "resume" => {
                 let job = params["job_id"]
                     .as_str()
                     .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
-                nuun_media::transfer::resume(&self.home(), backend()?, job)
+                nuun_media::transfer::resume(&self.home(), write_backend()?, job)
             }
             "jobs" => Ok(json!(nuun_media::reads::jobs(&self.catalog()?)?)),
             "job" => nuun_media::reads::job(&self.catalog()?, params),
@@ -224,6 +247,13 @@ impl Engine {
             "living_collections" => nuun_media::reads::living_collections(&self.catalog()?),
             "missions_status" => nuun_media::reads::missions_status(&self.catalog()?, params),
             "integration_capabilities" => nuun_media::integrations::capabilities(&self.catalog()?),
+            "suggest" => nuun_media::volumes::suggest(&self.catalog()?, backend()?, params),
+            "capture_overview" => {
+                nuun_media::projects::capture_overview(&self.catalog()?, backend()?, params)
+            }
+            "closure_deliveries" => {
+                nuun_media::projects::closure_deliveries(&self.catalog()?, backend()?, params)
+            }
             "capture_libraries" => {
                 nuun_media::captures::capture_libraries(&self.catalog()?, params)
             }
@@ -535,7 +565,8 @@ mod tests {
             "not_ported"
         );
         let reply = e.answer(&request, Mode::Once);
-        match platform_backend_name() {
+        let writes = platform_backend().is_some_and(|b| b.writes());
+        match platform_backend_name().filter(|_| writes) {
             Some(mode) => {
                 assert_eq!(reply["ok"], true, "{reply}");
                 assert_eq!(reply["data"]["identity"]["mode"], mode);
@@ -543,7 +574,7 @@ mod tests {
                 assert_eq!(listed["data"][0]["name"], "LOCAL");
                 assert_eq!(listed["data"][0]["online"], true);
             }
-            // Without a volume backend the write is refused before anything is created.
+            // Without a volume backend that writes, the write is refused before anything is created.
             None => {
                 assert_eq!(reply["error"]["code"], "not_ported");
                 assert!(!temp.path().join("state").exists());
@@ -565,14 +596,15 @@ mod tests {
                 "{method}"
             );
         }
+        let writes = platform_backend().is_some_and(|b| b.writes());
         for method in VOLUME_WRITES {
             assert_eq!(
                 info["writes"].as_array().unwrap().contains(&json!(method)),
-                has,
+                writes,
                 "{method}"
             );
-            // No backend: every volume write answers `not_ported`, never `unknown_method`.
-            if !has {
+            // No backend that writes: every volume write answers `not_ported`, never `unknown_method`.
+            if !writes {
                 let request = json!({"id": 2, "method": method, "params": {}}).to_string();
                 assert_eq!(
                     engine().answer(&request, Mode::Once)["error"]["code"],
@@ -580,11 +612,9 @@ mod tests {
                 );
             }
         }
-        assert_eq!(
-            cfg!(windows),
-            has,
-            "Windows is the only Rust volume backend today (S16 adds macOS)"
-        );
+        assert_eq!(cfg!(any(windows, target_os = "macos")), has);
+        // macOS reads first: its writes open after a physical run (docs/release.md).
+        assert_eq!(cfg!(windows), writes);
     }
 
     #[test]
