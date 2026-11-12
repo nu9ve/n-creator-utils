@@ -581,6 +581,341 @@ pub fn closure_candidates(
     )
 }
 
+/// finals.py `_walk`: media files only (no text or subtitles), with their stamps, in `os.walk` order; hidden
+/// entries and opaque bundles stay closed and links are not followed.
+fn finals_walk(root: &Path, out: &mut Vec<(PathBuf, nu9ve_volumes::Stamp)>) {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return;
+    };
+    let mut folders = Vec::new();
+    let mut files = Vec::new();
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if entry.path().is_dir() {
+            folders.push(name);
+        } else {
+            files.push(name);
+        }
+    }
+    files.sort();
+    folders.sort();
+    for name in files {
+        if name.starts_with('.') || !kind_of(&name).is_some_and(|k| MEDIA_KINDS.contains(&k)) {
+            continue;
+        }
+        let path = root.join(&name);
+        if let Ok(info) = nu9ve_volumes::stamp(&path)
+            && info.kind == nu9ve_volumes::EntryKind::File
+        {
+            out.push((path, info));
+        }
+    }
+    for name in folders {
+        let path = root.join(&name);
+        if name.starts_with('.') || OPAQUE.contains(&suffix(&name).as_str()) || is_link(&path) {
+            continue;
+        }
+        finals_walk(&path, out);
+    }
+}
+
+/// An insertion-ordered map, as Python's dict.
+#[derive(Default)]
+struct Ordered<V> {
+    keys: Vec<String>,
+    values: HashMap<String, V>,
+}
+
+impl<V: Default> Ordered<V> {
+    fn entry(&mut self, key: &str) -> &mut V {
+        if !self.values.contains_key(key) {
+            self.keys.push(key.to_owned());
+        }
+        self.values.entry(key.to_owned()).or_default()
+    }
+}
+
+/// closure.py `project_suggestions`: only an exact title or alias, or an explicit association, suggests a project.
+fn project_suggestions(
+    catalog: &Catalog,
+    verticals: &Ordered<Ordered<BTreeSet<String>>>,
+) -> Result<Vec<Value>> {
+    let Some(db) = catalog.db() else {
+        return Ok(Vec::new());
+    };
+    let mut projects: HashMap<String, Value> = HashMap::new();
+    {
+        let mut statement = db
+            .prepare("SELECT id,profile,title FROM projects WHERE title!='finales'")
+            .map_err(sql)?;
+        let rows = statement
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(sql)?;
+        for row in rows {
+            let (id, profile, title) = row.map_err(sql)?;
+            projects.insert(
+                id.clone(),
+                json!({"id": id, "profile": profile, "title": title}),
+            );
+        }
+    }
+    let mut names: HashMap<(String, String), BTreeSet<String>> = HashMap::new();
+    {
+        let mut statement = db
+            .prepare("SELECT profile,alias,project_id FROM project_aliases")
+            .map_err(sql)?;
+        let rows = statement
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(sql)?;
+        for row in rows {
+            let (profile, alias, project) = row.map_err(sql)?;
+            names
+                .entry((profile, reads::normalized_name(&alias)))
+                .or_default()
+                .insert(project);
+        }
+    }
+    let mut counts: Ordered<u64> = Ordered::default();
+    for profile in &verticals.keys {
+        let files = &verticals.values[profile];
+        for name in &files.keys {
+            let assigned = &files.values[name];
+            let matches = if assigned.is_empty() {
+                names
+                    .get(&(profile.clone(), delivery_title(name)))
+                    .cloned()
+                    .unwrap_or_default()
+            } else {
+                assigned.clone()
+            };
+            if matches.len() == 1 {
+                let project = matches.into_iter().next().unwrap_or_default();
+                if projects.contains_key(&project) {
+                    *counts.entry(&project) += 1;
+                }
+            }
+        }
+    }
+    let mut result = Vec::new();
+    for project in &counts.keys {
+        let released = catalog.get(&format!("project-released:{project}"))?;
+        if released.as_ref().is_some_and(truthy) {
+            continue;
+        }
+        let mut value = projects[project].clone();
+        value["published_verticals"] = json!(counts.values[project]);
+        result.push(value);
+    }
+    Ok(result)
+}
+
+/// finals.py `LISTED`: pending files named per group.
+const LISTED: usize = 200;
+
+/// The `finals_status` method (finals.py): per profile and editing disk, which finals are already on the archive,
+/// which wait for publication and which are pending, plus the projects their published verticals suggest closing.
+pub fn finals_status(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let wanted = params
+        .get("archive")
+        .and_then(Value::as_str)
+        .filter(|a| !a.is_empty());
+    let cached = volumes::Cached::new(backend);
+    volumes::prefetch(&cached, catalog, false)?;
+    let mut archives = Vec::new();
+    let mut works = Vec::new();
+    for volume in catalog.volumes()? {
+        if volumes::online(&cached, &volume).is_none() {
+            continue;
+        }
+        let named = wanted.is_none_or(|a| volume["id"] == a || volume["name"] == a);
+        if volume["role"] == "archive" && named {
+            archives.push(volume);
+        } else if volume["role"] == "work" {
+            works.push(volume);
+        }
+    }
+    let mut result = json!({"checked_at": nu9ve_time::now_utc(), "archive": "", "groups": [], "reason": "",
+                            "closure_suggestions": []});
+    if archives.is_empty() || works.is_empty() {
+        result["reason"] = json!(if archives.is_empty() {
+            "archive_offline"
+        } else {
+            "work_offline"
+        });
+        return Ok(result);
+    }
+    let target = &archives[0];
+    result["archive"] = target["name"].clone();
+    let prefix = target["finals_prefix"]
+        .as_str()
+        .unwrap_or("002_finales")
+        .to_owned();
+    let archive_root = PathBuf::from(target["root"].as_str().unwrap_or_default()).join(&prefix);
+    let receipts = published_receipts(catalog)?;
+    let decisions = delivery_decisions(catalog)?;
+    let mut verticals: Ordered<Ordered<BTreeSet<String>>> = Ordered::default();
+    let mut consider = |volume: &Value,
+                        profile_root: &Path,
+                        path: &Path,
+                        info: &nu9ve_volumes::Stamp,
+                        published: bool|
+     -> Result<()> {
+        let name = path
+            .strip_prefix(profile_root)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let volume_root = Path::new(volume["root"].as_str().unwrap_or_default());
+        let key = (
+            volume["id"].as_str().unwrap_or_default().to_owned(),
+            path.strip_prefix(volume_root)
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        );
+        let saved = decisions.get(&key);
+        let stamp = crate::tree::stamp_json(info);
+        if saved.is_some_and(|s| s.1.get("stamp").is_none()) {
+            return Err(Error::new("operation_failed", "'stamp'"));
+        }
+        let role = match saved {
+            Some((_, f)) if f.get("stamp") == Some(&stamp) => {
+                f["role"].as_str().unwrap_or_default().to_owned()
+            }
+            _ => role_hint(&name).to_owned(),
+        };
+        // closure.py `publication_hint`.
+        let declared = match saved {
+            Some((_, f)) if f.get("stamp") == Some(&stamp) => truthy(&f["published"]),
+            _ => published || receipts.get(&key) == Some(&stamp),
+        };
+        if role == "vertical" && declared {
+            // Copies on two disks do not make two deliveries.
+            let profile = file_name(&profile_root.to_string_lossy());
+            let file = file_name(&path.to_string_lossy())
+                .to_lowercase()
+                .replace('ß', "ss");
+            let assigned = verticals.entry(&profile).entry(&file);
+            if let Some((project, _)) = saved {
+                assigned.insert(project.clone());
+            }
+        }
+        Ok(())
+    };
+    let mut work_profiles: Vec<(Value, PathBuf)> = Vec::new();
+    for work in &works {
+        let root = PathBuf::from(work["root"].as_str().unwrap_or_default())
+            .join(work["finals_prefix"].as_str().unwrap_or("002_finales"));
+        if root.is_dir() && !is_link(&root) {
+            for name in subfolders(&root)? {
+                work_profiles.push((work.clone(), root.join(name)));
+            }
+        }
+    }
+    let mut profiles: BTreeSet<String> = work_profiles
+        .iter()
+        .map(|(_, p)| file_name(&p.to_string_lossy()))
+        .collect();
+    if let Some(db) = catalog.db() {
+        let mut statement = db
+            .prepare("SELECT DISTINCT profile FROM projects WHERE title!='finales'")
+            .map_err(sql)?;
+        let rows = statement
+            .query_map([], |r| r.get::<_, String>(0))
+            .map_err(sql)?;
+        for row in rows {
+            profiles.insert(row.map_err(sql)?);
+        }
+    }
+    let mut archived_by_profile: HashMap<String, BTreeSet<(String, u64)>> = HashMap::new();
+    for name in &profiles {
+        let profile = archive_root.join(name);
+        if !profile.is_dir() || is_link(&profile) {
+            continue;
+        }
+        let published = published_folder(catalog, name, &subfolders(&profile)?)?;
+        let mut archived = BTreeSet::new();
+        let mut files = Vec::new();
+        finals_walk(&profile, &mut files);
+        for (path, info) in files {
+            archived.insert((file_name(&path.to_string_lossy()), info.size));
+            let inside = !published.is_empty() && first_part(&path, &profile) == published;
+            consider(target, &profile, &path, &info, inside)?;
+        }
+        archived_by_profile.insert(name.clone(), archived);
+    }
+    let mut groups = Vec::new();
+    for (work, profile) in &work_profiles {
+        let profile_name = file_name(&profile.to_string_lossy());
+        let archived = archived_by_profile
+            .get(&profile_name)
+            .cloned()
+            .unwrap_or_default();
+        let names = subfolders(profile)?;
+        let published = published_folder(catalog, &profile_name, &names)?;
+        let (mut total, mut pending, mut pending_bytes, mut waiting, mut waiting_bytes) =
+            (0u64, 0u64, 0u64, 0u64, 0u64);
+        let (mut in_archive, mut in_archive_bytes, mut published_total) = (0u64, 0u64, 0u64);
+        let mut listed = Vec::new();
+        let mut files = Vec::new();
+        finals_walk(profile, &mut files);
+        for (path, info) in files {
+            total += 1;
+            let inside = !published.is_empty() && first_part(&path, profile) == published;
+            published_total += u64::from(inside);
+            consider(work, profile, &path, &info, inside)?;
+            let name = file_name(&path.to_string_lossy());
+            if archived.contains(&(name, info.size)) {
+                in_archive += 1;
+                in_archive_bytes += info.size;
+            } else if !published.is_empty() && !inside {
+                waiting += 1;
+                waiting_bytes += info.size;
+            } else {
+                pending += 1;
+                pending_bytes += info.size;
+                if listed.len() < LISTED {
+                    let relative = path
+                        .strip_prefix(profile)
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    listed.push(json!({"path": path.display().to_string(), "name": relative, "bytes": info.size}));
+                }
+            }
+        }
+        if total > 0 || !published.is_empty() {
+            groups.push(json!({"work": work["name"], "profile": profile_name, "folder": profile.display().to_string(),
+                "destination": format!("{}/{prefix}/{profile_name}", target["name"].as_str().unwrap_or_default()),
+                "published_folder": published, "subfolders": names, "published_total": published_total,
+                "total": total, "pending": pending, "pending_bytes": pending_bytes, "waiting": waiting,
+                "waiting_bytes": waiting_bytes, "in_archive": in_archive, "in_archive_bytes": in_archive_bytes,
+                "files": listed}));
+        }
+    }
+    result["groups"] = json!(groups);
+    result["closure_suggestions"] = json!(project_suggestions(catalog, &verticals)?);
+    Ok(result)
+}
+
+/// The first component of `path` below `root` (`path.relative_to(root).parts[0]`).
+fn first_part(path: &Path, root: &Path) -> String {
+    path.strip_prefix(root)
+        .ok()
+        .and_then(|p| p.components().next())
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
 /// The `closure_deliveries` method.
 pub fn closure_deliveries(
     catalog: &Catalog,
@@ -989,6 +1324,22 @@ mod tests {
             let found = closure_candidates(&catalog, &backend, &params).unwrap();
             assert_eq!(back(found), case["candidates"][name], "{name}");
         }
+        for (name, project, purpose) in [
+            ("edit", "terra", "edit"),
+            ("archive", "terra", "archive"),
+            ("nope", "nope", "edit"),
+            ("bad", "terra", "x"),
+        ] {
+            let params = json!({"project": project, "purpose": purpose});
+            let mine = match crate::sources::sources(&catalog, &backend, &params) {
+                Ok(data) => json!({"ok": true, "data": back(data)}),
+                Err(e) => json!({"ok": false, "code": e.code}),
+            };
+            assert_eq!(mine, case["sources"][name], "sources {name}");
+        }
+        let mut finals = finals_status(&catalog, &backend, &json!({})).unwrap();
+        finals.as_object_mut().unwrap().remove("checked_at");
+        assert_eq!(back(finals), case["finals"], "finals_status");
         let deliveries = delivery_states(&catalog, Some(&backend), "p1", None).unwrap();
         assert_eq!(back(json!(deliveries)), case["deliveries"]);
         let sessions = case["sessions"].as_array().unwrap();

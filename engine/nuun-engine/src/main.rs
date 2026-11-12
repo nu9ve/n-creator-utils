@@ -137,7 +137,17 @@ fn write_backend() -> Result<&'static dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 1] = ["discover"];
+const ONCE_READS: [&str; 9] = [
+    "discover",
+    "finals_status",
+    "captures",
+    "publications",
+    "retitle_operations",
+    "collection_release_plans",
+    "resolve",
+    "capture_discard_check",
+    "sources",
+];
 
 /// How a request arrived: a line of `rpc-serve` (reads only, 1 MiB) or the one-shot `rpc` (16 MiB, writes allowed).
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -188,6 +198,20 @@ impl Engine {
             "discover" => {
                 nuun_media::scan::discover(Some(&self.catalog()?), platform_backend(), params)
             }
+            "finals_status" => {
+                nuun_media::projects::finals_status(&self.catalog()?, backend()?, params)
+            }
+            "captures" => nuun_media::captures::captures_method(&self.catalog()?, params),
+            "capture_discard_check" => {
+                nuun_media::captures::discard_check(&self.catalog()?, params)
+            }
+            "publications" => nuun_media::reads::publications(&self.catalog()?),
+            "sources" => nuun_media::sources::sources(&self.catalog()?, backend()?, params),
+            "retitle_operations" => nuun_media::reads::retitle_operations(&self.catalog()?),
+            "collection_release_plans" => {
+                nuun_media::reads::collection_release_plans(&self.catalog()?)
+            }
+            "resolve" => nuun_media::reads::resolve(&self.catalog()?, backend()?, params),
             "register_volume" => {
                 nuun_media::volumes::register_volume(&self.home(), write_backend()?, params)
             }
@@ -465,7 +489,9 @@ mod tests {
         for (index, case) in cases.iter().enumerate() {
             let line = json!({"id": index, "method": case["method"], "params": case["params"]})
                 .to_string();
-            let reply = e.answer(&line, Mode::Serve);
+            // One-shot reads go through `rpc`, as Python answers them.
+            let once = ONCE_READS.contains(&case["method"].as_str().unwrap_or_default());
+            let reply = e.answer(&line, if once { Mode::Once } else { Mode::Serve });
             let expected = &case["answer"];
             let label = format!("{} {}", case["method"], case["params"]);
             if expected["ok"] == true {

@@ -183,14 +183,19 @@ for line in sys.stdin:
     request = json.loads(line)
     method = request['method']
     if method == 'engine_info':
-        out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs', 'recipe']}}
+        out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs', 'recipe'],
+                                    'once': ['publications', 'retitle_operations', 'discover']}}
+    elif method == 'publications':
+        out = {'ok': True, 'data': [{'asset_id': 'from-rust'}]}
+    elif method == 'retitle_operations':
+        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
     elif method == 'snapshot':
         out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
     elif method == 'jobs':
         out = {'ok': False, 'error': {'code': 'unknown_project', 'message': 'Proyecto desconocido'}}
     else:
         sys.exit(3)
-    out['id'] = request['id']
+    out['id'] = request.get('id')
     sys.stdout.write(json.dumps(out) + '\n'); sys.stdout.flush()
 """#
 
@@ -245,4 +250,27 @@ func theRealEngineAnswersReadsLikePython() async throws {
         #expect(rust.answeredBy[method] == "rust")
         #expect(python.answeredBy[method] == "python")
     }
+}
+
+@Test func oneShotReadsAskRustFirstAndNeverSendWrites() async throws {
+    let scratch = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-once-swift-" + UUID().uuidString)
+    try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let engine = scratch.appendingPathComponent("fake-engine")
+    try fakeEngine.write(to: engine, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: engine.path)
+    let client = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
+                                                    stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path))
+    // Declared one-shot read: Rust answers.
+    #expect(try await client.call("publications").array.first?["asset_id"].string == "from-rust")
+    // `not_ported` from Rust: Python answers (an empty catalog has no operations).
+    #expect(try await client.call("retitle_operations").array.isEmpty)
+    // Not declared: Python answers, and its error is the answer.
+    do {
+        _ = try await client.call("resolve", ["asset_id": .string("nope")])
+        Issue.record("resolve unexpectedly answered")
+    } catch let failure as BackendFailure { #expect(failure.code == "unknown_asset") }
+    // A write never reaches the engine, even with Rust reads on.
+    let saved = try await client.call("defaults", ["project": .string("x")])
+    #expect(saved["project"].string == "x")
 }

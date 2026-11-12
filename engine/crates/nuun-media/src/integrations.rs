@@ -37,7 +37,7 @@ pub struct Integrations {
     clipper_configured: String,
     clipper_known: bool,
     /// `CLIPPER_PROJECTS_ROOT` or `~/Downloads/clipper-projects`: its queue files also mean Clipper was used.
-    clipper_base: PathBuf,
+    pub(crate) clipper_base: PathBuf,
     stalker: Option<Value>,
 }
 
@@ -59,6 +59,17 @@ impl Integrations {
                 .unwrap_or_default(),
             stalker: catalog.get("stalker-executable")?,
         })
+    }
+
+    /// A configured Clipper and projects folder, without Stalker (fixture tests).
+    #[cfg(test)]
+    pub(crate) fn fixture(clipper: &str, base: PathBuf) -> Self {
+        Self {
+            clipper_configured: clipper.into(),
+            clipper_known: true,
+            clipper_base: base,
+            stalker: None,
+        }
     }
 
     /// Integrations that find nothing and start nothing, for tests of the reads that include them.
@@ -129,6 +140,12 @@ impl Integrations {
 
     /// Python `clipper.dependencies(timeout=3)`, and whether the executable was found (Python then records it).
     fn dependencies(&self) -> Result<(Value, bool)> {
+        self.dependencies_within(TIMEOUT)
+    }
+
+    /// Python `clipper.dependencies(catalog, timeout)`: Clipper's linked-library report, and whether its executable
+    /// was found. `inspect` waits up to 120 s, as Python.
+    pub(crate) fn dependencies_within(&self, timeout: Duration) -> Result<(Value, bool)> {
         let command = match self.clipper_executable() {
             Ok(command) => command,
             Err(error) => {
@@ -154,7 +171,7 @@ impl Integrations {
                 format!("No se pudo consultar Clipper: {m}"),
             )
         };
-        let output = run(&argv, None, &[], TIMEOUT).map_err(unavailable)?;
+        let output = run(&argv, None, &[], timeout).map_err(unavailable)?;
         require(
             output.success,
             "clipper_failed",

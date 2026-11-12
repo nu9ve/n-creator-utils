@@ -449,6 +449,120 @@ pub fn link_candidates(catalog: &Catalog, project_id: &str) -> Result<Value> {
     ))
 }
 
+/// The `publications` method: every publication row, newest first.
+pub fn publications(catalog: &Catalog) -> Result<Value> {
+    let Some(db) = catalog.db() else {
+        return Ok(json!([]));
+    };
+    let mut statement = db
+        .prepare("SELECT asset_id,variant,channel,state,url,updated_at FROM publications ORDER BY updated_at DESC")
+        .map_err(sql)?;
+    let rows = statement
+        .query_map([], |r| {
+            Ok(
+                json!({"asset_id": r.get::<_, String>(0)?, "variant": r.get::<_, String>(1)?,
+                      "channel": r.get::<_, String>(2)?, "state": r.get::<_, String>(3)?,
+                      "url": r.get::<_, Option<String>>(4)?, "updated_at": r.get::<_, String>(5)?}),
+            )
+        })
+        .map_err(sql)?;
+    Ok(json!(
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(sql)?
+    ))
+}
+
+/// The `retitle_operations` method (retitle.py `records(catalog, 'retitle:')`).
+pub fn retitle_operations(catalog: &Catalog) -> Result<Value> {
+    Ok(json!(catalog.json_rows(
+        "SELECT value FROM metadata WHERE key LIKE ?",
+        ["retitle:%"]
+    )?))
+}
+
+/// The `collection_release_plans` method: saved music release plans without their file lists.
+pub fn collection_release_plans(catalog: &Catalog) -> Result<Value> {
+    let hidden = ["entries", "kept", "uncovered", "preserved", "moved"];
+    Ok(json!(
+        catalog
+            .json_rows(
+                "SELECT value FROM metadata WHERE key LIKE ?",
+                ["collection-release:%"]
+            )?
+            .into_iter()
+            .map(|mut plan| {
+                if let Some(map) = plan.as_object_mut() {
+                    map.retain(|k, _| !hidden.contains(&k.as_str()));
+                }
+                plan
+            })
+            .collect::<Vec<_>>()
+    ))
+}
+
+/// The `resolve` method (library.py): an asset (or one of its revisions) and every disk holding all its files.
+pub fn resolve(
+    catalog: &Catalog,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    let id = param(params, "asset_id")?;
+    let mut asset = catalog
+        .json_rows("SELECT payload FROM assets WHERE id=?", [id])?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::new("unknown_asset", "Asset not found"))?;
+    if let Some(revision) = params.get("revision").filter(|r| !r.is_null())
+        && &asset["revision"] != revision
+    {
+        let wanted = revision
+            .as_str()
+            .map(str::to_owned)
+            .unwrap_or(revision.to_string());
+        asset = catalog
+            .json_rows(
+                "SELECT payload FROM asset_revisions WHERE asset_id=? AND revision=?",
+                [id, wanted.as_str()],
+            )?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::new("unknown_revision", "Asset revision not found"))?;
+    }
+    let paths: Vec<&Value> = asset["paths"].as_array().into_iter().flatten().collect();
+    let cached = crate::volumes::Cached::new(backend);
+    let mut locations = Vec::new();
+    for volume in catalog.volumes()? {
+        let rows = catalog.json_rows(
+            "SELECT payload FROM copies WHERE job_id=? AND volume_id=?",
+            [
+                asset["job_id"].as_str().unwrap_or_default(),
+                volume["id"].as_str().unwrap_or_default(),
+            ],
+        )?;
+        let selected: Vec<&Value> = rows
+            .iter()
+            .filter(|r| paths.contains(&&r["path"]))
+            .collect();
+        if selected.len() != paths.len() {
+            continue;
+        }
+        let online = crate::volumes::online(&cached, &volume).is_some();
+        let root = std::path::Path::new(volume["root"].as_str().unwrap_or_default());
+        let files: Vec<Value> = selected
+            .iter()
+            .map(|r| {
+                json!({"path": r["path"], "sha256": r["sha256"],
+                       "local_path": root.join(r["destination"].as_str().unwrap_or_default()).display().to_string()})
+            })
+            .collect();
+        locations.push(
+            json!({"volume_id": volume["id"], "volume": volume["name"], "role": volume["role"],
+                              "online": online, "files": files}),
+        );
+    }
+    locations.sort_by_key(|l| (l["online"] != true, l["role"] != "work"));
+    Ok(json!({"asset": asset, "locations": locations}))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

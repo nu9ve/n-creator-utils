@@ -272,6 +272,10 @@ READ_REQUESTS = [
     ('missions_status', {}), ('missions_status', {'flow_id': 'subaereo'}), ('missions_status', {'flow_id': 'nope'}),
     ('jobs', {}), ('library', {}), ('library', {'project': 'TERRA'}), ('projects', {}), ('profiles', {}),
     ('release_plans', {}), ('recipe', {}), ('devices', {}), ('defaults', {}), ('integration_settings', {}),
+    # One-shot reads (Python answers them through `rpc`, not `rpc-serve`).
+    ('publications', {}), ('retitle_operations', {}), ('collection_release_plans', {}),
+    ('resolve', {'asset_id': 'a1'}), ('resolve', {'asset_id': 'a1', 'revision': 'r1'}),
+    ('resolve', {'asset_id': 'a1', 'revision': 'r9'}), ('resolve', {'asset_id': 'nope'}),
 ]
 
 
@@ -307,6 +311,9 @@ def reads_cases():
                      '2026-11-08T11:00:00Z'),
                     ('j2', 'd2', json.dumps({'source_kind': 'card'}), 'completed', None, '2026-11-09T10:00:00Z',
                      '2026-11-09T11:00:00Z')])
+                db.executemany('INSERT INTO publications VALUES(?,?,?,?,?,?)', [
+                    ('a1', 'horizontal', 'youtube', 'published', 'https://x', '2026-11-08'),
+                    ('a2', 'vertical', 'tiktok', 'pending', None, '2026-11-09')])
                 db.executemany('INSERT INTO living_files VALUES(?,?,?,?,?,?,?)', [
                     ('c1', 'a.wav', 10, 1, 'h', 'x/a.wav', 't'), ('c1', 'b.wav', 32, 1, 'h', 'x/b.wav', 't')])
             for key, value in {
@@ -321,6 +328,8 @@ def reads_cases():
                 'living-collection:c1': {'id': 'c1', 'name': 'alpha', 'source': '/x/alpha'},
                 'mission-registry:subaereo': {'flow': 'subaereo', 'coverage': {'until': '2026-11-05'}},
                 'release:r1': {'id': 'r1'},
+                'retitle:op1': {'id': 'op1', 'state': 'applied', 'request': {'session_id': 's'}},
+                'collection-release:c1': {'id': 'c1', 'source': '/x', 'entries': [1], 'kept': [], 'moved': [], 'bytes': 5},
                 'creative-profiles': {'e64': {'id': 'e64', 'name': 'E64', 'clipper_profile': 'clip-e64'}},
             }.items():
                 catalog.set(key, value)
@@ -403,11 +412,20 @@ def capture_cases():
                                    ('323E4567-E89B-12D3-A456-426614174000', digest(archived_manifest), 'a1'))
             catalog.set('capture-tag:123e4567-e89b-12d3-a456-426614174000', {'name': 'terra', 'country': 'mx'})
             result = capture_libraries(catalog, '', registry=str(root / 'registry.json'), common=[])
+            from media.captures import captures
+            changed = captures(catalog, str(root / 'lib'), changed_paths=[str(root / 'lib/S1.stalker/manifest.json'),
+                                                                         str(root / 'elsewhere/x')])
             sql = '\n'.join(catalog.db.iterdump())
         finally:
             catalog.close()
+    for value in changed['sessions'] + changed['pending']:
+        value.pop('stamp', None)
+    changed = {k: sorted(v, key=lambda e: e['path']) for k, v in changed.items()}
     text = json.dumps(result, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
-    return {'files': files, 'registry': registry, 'sql': sql, 'mtime_ns': PLAN_MTIME_NS, 'result': json.loads(text)}
+    changed_text = json.dumps(changed, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    return {'files': files, 'registry': registry, 'sql': sql.replace(str(root), '<ROOT>'), 'mtime_ns': PLAN_MTIME_NS,
+            'result': json.loads(text),
+            'changed': json.loads(changed_text)}
 
 
 # Projects and closeout deliveries (`closure_deliveries`, the projects of `capture_overview`): a work disk with
@@ -432,7 +450,12 @@ def project_cases():
              'work/002_finales/e64/terra/Terra_Short-2.MOV': 'v2', 'work/002_finales/e64/terra/terra.thumbnail.jpg': 'j',
              'work/002_finales/e64/terra/notas.txt': 'n', 'work/002_finales/e64/otro/otro.mp4': 'o',
              'work/002_finales/e64/Proyecto.fcpbundle/x.mp4': 'b', 'work/002_finales/e64/.oculto/x.mp4': 'h',
-             'archive/002_finales/e64/2026/terra.mp4': 'a'}
+             'archive/002_finales/e64/2026/terra.mp4': 'a', 'work/002_finales/e64/01_subidos/terra-short.mp4': 'sv',
+             'work/002_finales/e64/otro/terra.mp4': 'a',
+             'work/001_proyectos/e64_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4': 'clip',
+             'archive/001_raw/2026/11/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4': 'clip',
+             'work/001_proyectos/e64_raw/terra/S1.stalker/manifest.json': 'm',
+             'archive/002_finales/e64/2026/entrega.mp4': 'ent'}
     for rel, text in files.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -459,7 +482,7 @@ def project_cases():
                 db.executemany('INSERT INTO assets VALUES(?,?,?)', [
                     ('a1', 'j1', asset('a1', 'j1', 'terra', 'p1', camera='sony-a6400', country='mx', city='hermosillo')),
                     ('a2', 'j2', asset('a2', 'j2', 'terra', 'p1', camera='generic', country='pe')),
-                    ('a3', 'j1', asset('a3', 'j1', 'terra-extra', 'p2', kind='stalker_session')),
+                    ('a3', 'j1', asset('a3', 'j1', 'terra-extra', 'p2', kind='stalker_session', bundle='S9.stalker')),
                     ('a4', 'j1', asset('a4', 'j1', 'borrador', '')),
                     ('a5', 'j1', asset('a5', 'j1', 'finales', 'p3'))])
                 db.executemany('INSERT INTO work VALUES(?,?,?,?)', [
@@ -476,6 +499,35 @@ def project_cases():
                 copy = {'path': '01_subidos/gone-r.mp4', 'volume_id': media['id'],
                         'destination': '002_finales/e64/2026/gone-r.mp4', 'stamp': {'size': 5}}
                 db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j3', media['id'], copy['path'], 'h', json.dumps(copy)))
+                # Editor sources (`sources`): a file on both disks, a Stalker session missing a file on the work
+                # disk, a bundle only on the disk that is gone, and a delivery.
+                stamp = lambda size: {'size': size, 'mtime_ns': 1, 'ctime_ns': 1, 'inode': 1}  # noqa: E731
+                files_plan = [{'path': 'CLIP/C1.MP4', 'stamp': stamp(4)}, {'path': 'S1.stalker/manifest.json', 'stamp': stamp(1)},
+                              {'path': 'S1.stalker/screen.mov', 'stamp': stamp(3)}, {'path': 'DCIM/B1.JPG', 'stamp': stamp(2)},
+                              {'path': 'entrega.mp4', 'stamp': stamp(3)}]
+                db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)',
+                           ('j4', 'd', json.dumps({'files': files_plan}), 'completed', None, 't', '2026-11-06T00:00:00Z'))
+                source = lambda i, kind, paths, **extra: json.dumps(dict(  # noqa: E731
+                    {'id': i, 'job_id': 'j4', 'kind': kind, 'paths': paths, 'project': 'terra', 'project_id': 'p1',
+                     'profile': 'e64', 'revision': 'r-' + i}, **extra))
+                db.executemany('INSERT INTO assets VALUES(?,?,?)', [
+                    ('s1', 'j4', source('s1', 'file', ['CLIP/C1.MP4'], camera='sony')),
+                    ('s2', 'j4', source('s2', 'stalker_session', ['S1.stalker/manifest.json', 'S1.stalker/screen.mov'],
+                                        bundle='S1.stalker', session_id='11111111-1111-1111-1111-111111111111')),
+                    ('s3', 'j4', source('s3', 'camera_bundle', ['DCIM/B1.JPG'])),
+                    ('s4', 'j4', source('s4', 'delivery', ['entrega.mp4']))])
+                db.executemany('INSERT INTO work VALUES(?,?,?,?)', [(i, 'ready', None, 't') for i in ('s1', 's2', 's3', 's4')])
+                db.executemany('INSERT INTO asset_projects VALUES(?,?)', [(i, 'p1') for i in ('s1', 's2', 's3', 's4')])
+                copy_rows = [
+                    (essd['id'], 'CLIP/C1.MP4', '001_proyectos/e64_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4', 4, 'h1'),
+                    (media['id'], 'CLIP/C1.MP4', '001_raw/2026/11/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4', 4, 'h1'),
+                    (essd['id'], 'S1.stalker/manifest.json', '001_proyectos/e64_raw/terra/S1.stalker/manifest.json', 1, 'hm'),
+                    (essd['id'], 'S1.stalker/screen.mov', '001_proyectos/e64_raw/terra/S1.stalker/screen.mov', 3, 'hs'),
+                    (old['id'], 'DCIM/B1.JPG', 'x/B1.JPG', 2, 'hb'),
+                    (media['id'], 'entrega.mp4', '002_finales/e64/2026/entrega.mp4', 3, 'he')]
+                for volume_id, path, destination, size, sha in copy_rows:
+                    payload = {'path': path, 'volume_id': volume_id, 'destination': destination, 'bytes': size, 'sha256': sha}
+                    db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j4', volume_id, path, sha, json.dumps(payload)))
             catalog.set('project-closure:p1', {'required': ['horizontal'], 'no_more': True, 'published': False,
                                                'related': ['p2', 'gone'], 'finals': [
                 {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-h.mp4', 'stamp': {'size': 0}},
@@ -504,12 +556,24 @@ def project_cases():
             for name, args in (('p1', ('p1', None)), ('p1-query', ('p1', 'final')), ('p2', ('p2', None)),
                                ('p2-all', ('p2', ''))):
                 found[name] = candidates(catalog, backend, *args)
+            from media.library import sources
+            editor = {}
+            for name, args in (('edit', ('terra', 'edit')), ('archive', ('terra', 'archive')), ('nope', ('nope', 'edit')),
+                               ('bad', ('terra', 'x'))):
+                try:
+                    editor[name] = {'ok': True, 'data': sources(catalog, backend, *args)}
+                except MediaError as error:
+                    editor[name] = {'ok': False, 'code': error.code}
+            from media.finals import finals_status
+            finals = finals_status(catalog, backend)
+            finals.pop('checked_at')
             deliveries = delivery_states(catalog, backend, 'p1')
             projects = overview(catalog, sessions, backend)
             sql = '\n'.join(catalog.db.iterdump())
         finally:
             catalog.close()
-    text = json.dumps({'deliveries': deliveries, 'projects': projects, 'candidates': found},
+    text = json.dumps({'deliveries': deliveries, 'projects': projects, 'candidates': found, 'finals': finals,
+                       'sources': editor},
                       sort_keys=True).replace(str(root), '<ROOT>')
     return dict(json.loads(text), files=files, sessions=sessions, sql=sql.replace(str(root), '<ROOT>'))
 
@@ -670,6 +734,85 @@ def storage_cases():
             'results': json.loads(text)}
 
 
+# Clipper guards (`clipper.inspect`) and `capture_discard_check`: a fake Clipper whose report uses one session, a
+# legacy project it does not report, a linked-projects registry with a missing root and an export queue, all under
+# a fixture HOME and CLIPPER_PROJECTS_ROOT.
+def clipper_cases():
+    import os
+    from media import clipper
+    from media.captures import discard_check
+    from media.catalog import Catalog
+    root = fresh_root('clipper')
+    stalker = lambda status, sid: json.dumps({'producer': 'stalker', 'schemaVersion': 2, 'status': status,  # noqa: E731
+                                               'sessionID': sid, 'createdAt': '2026-11-04T23:32:12Z'})
+    deps = {'schema': 'clipper-library-deps/1', 'capabilities': ['media-release-lock/1'], 'offline_projects': [],
+            'projects': [{'clipper_root': '<ROOT>/clipper-projects/current',
+                          'assets': [{'path': '<ROOT>/home/Movies/Stalker/S1.stalker', 'in_use': True, 'queued_exports': [],
+                                      'items': [], 'asset_id': 'A1', 'revision': 'r1', 'kind': 'stalker_session'}],
+                          'relinks': [{'from': '<ROOT>/home/Movies/Stalker/S1.stalker', 'still_pinned': ['q1']}]}]}
+    files = {
+        'home/Movies/Stalker/S1.stalker/manifest.json': stalker('completed', '11111111-1111-1111-1111-111111111111'),
+        'home/Movies/Stalker/S1.stalker/screen.mov': 'v',
+        'home/Movies/Stalker/S2.stalker/manifest.json': stalker('recording', '22222222-2222-2222-2222-222222222222'),
+        'home/Movies/Stalker/S4.stalker/manifest.json': stalker('completed', '44444444-4444-4444-4444-444444444444'),
+        'home/Movies/Stalker/S5.stalker/manifest.json': stalker('completed', '55555555-5555-5555-5555-555555555555'),
+        'home/Movies/Stalker/S5.stalker/pistas/mic.wav': 'aa',
+        'home/Downloads/old/clipper-project.json': json.dumps({'items': [{'source': '<ROOT>/home/Movies/Stalker/S4.stalker/screen.mov'}],
+                                                               'notes': '<ROOT>/home/Movies/Stalker/S5.stalker'}),
+        'clipper-projects/current/clipper-project.json': json.dumps({'items': []}),
+        'clipper-projects/linked/clipper-project.json': json.dumps({'items': ['/elsewhere/x.mov']}),
+        'clipper-projects/.linked-projects.json': json.dumps({'schema': 'clipper-linked-projects/1',
+                                                              'roots': ['<ROOT>/clipper-projects/linked', '<ROOT>/missing']}),
+        'clipper-projects/.export-queue/queue.json': json.dumps({'schema_version': 1, 'jobs': [
+            {'id': 'q1', 'status': 'queued', 'sources': {'<ROOT>/home/Movies/Stalker/S1.stalker/screen.mov': {}}},
+            {'id': 'q2', 'status': 'completed', 'sources': {'<ROOT>/home/Movies/Stalker/S5.stalker': {}}}]}),
+        'bin/clipper': '#!/bin/sh\ncat <<\'X\'\n' + json.dumps(deps) + '\nX\n',
+    }
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text.replace('<ROOT>', str(root)))
+    (root / 'bin/clipper').chmod(0o755)
+    # The capture index keeps stamps: fixed times, and inodes numbered by path, not by Python's set order.
+    for path in sorted(root.rglob('*')):
+        if path.is_file():
+            os.utime(path, ns=(PLAN_MTIME_NS, PLAN_MTIME_NS))
+    for path in sorted(root.rglob('*')):
+        stable_inode(os.lstat(path))
+    saved = {k: os.environ.get(k) for k in ('HOME', 'CLIPPER_PROJECTS_ROOT')}
+    os.environ['HOME'], os.environ['CLIPPER_PROJECTS_ROOT'] = str(root / 'home'), str(root / 'clipper-projects')
+    results = {}
+    stalker_root = str(root / 'home/Movies/Stalker')
+    try:
+        with deterministic():
+            catalog = Catalog(root / 'state')
+            try:
+                catalog.set('clipper-executable', str(root / 'bin/clipper'))
+                for name, paths in (('S1', {stalker_root + '/S1.stalker': None}),
+                                    ('S1-relink', {stalker_root + '/S1.stalker': str(root / 'new/S1.stalker')}),
+                                    ('S4', {stalker_root + '/S4.stalker': None}), ('S5', {stalker_root + '/S5.stalker': None})):
+                    try:
+                        results['inspect:' + name] = {'ok': True, 'data': clipper.inspect(catalog, paths)}
+                    except MediaError as error:
+                        results['inspect:' + name] = {'ok': False, 'code': error.code}
+                for name in ('S1', 'S2', 'S4', 'S5', 'nope'):
+                    try:
+                        results['discard:' + name] = {'ok': True, 'data': discard_check(catalog, stalker_root + '/' + name + '.stalker')}
+                    except MediaError as error:
+                        results['discard:' + name] = {'ok': False, 'code': error.code}
+                sql = '\n'.join(catalog.db.iterdump())
+            finally:
+                catalog.close()
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+    text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'results': json.loads(text)}
+
+
 def main():
     out = {
         'generator': 'scripts/engine_golden.py',
@@ -696,6 +839,8 @@ def main():
         'missions': mission_cases(),
         # The disk index: overview, folders and progress.
         'storage': storage_cases(),
+        # Clipper's guards and discarding a Stalker session, against a fixture Clipper and HOME.
+        'clipper': clipper_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'
