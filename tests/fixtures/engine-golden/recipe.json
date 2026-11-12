@@ -2214,6 +2214,289 @@
       "work": {}
     }
   ],
+  "projects": {
+    "deliveries": [
+      {
+        "name": "final-h.mp4",
+        "path": "002_finales/e64/terra/final-h.mp4",
+        "published": false,
+        "role": "horizontal",
+        "state": "awaiting",
+        "volume_id": "00000000-0000-0000-0000-000000000002"
+      },
+      {
+        "name": "final-v.mp4",
+        "path": "002_finales/e64/terra/final-v.mp4",
+        "published": true,
+        "role": "vertical",
+        "state": "published",
+        "volume_id": "00000000-0000-0000-0000-000000000002"
+      },
+      {
+        "name": "thumb.jpg",
+        "path": "x/thumb.jpg",
+        "published": false,
+        "role": "thumbnail",
+        "state": "archived",
+        "volume_id": "00000000-0000-0000-0000-000000000001"
+      },
+      {
+        "name": "a.mp4",
+        "offline": true,
+        "path": "a.mp4",
+        "published": false,
+        "role": "auxiliary",
+        "state": "awaiting",
+        "volume_id": "00000000-0000-0000-0000-000000000003"
+      },
+      {
+        "name": "final-t.mp4",
+        "path": "002_finales/e64/terra/final-t.mp4",
+        "published": false,
+        "role": "horizontal",
+        "state": "missing",
+        "volume_id": "00000000-0000-0000-0000-000000000002"
+      },
+      {
+        "name": "gone-r.mp4",
+        "path": "002_finales/e64/terra/gone-r.mp4",
+        "published": false,
+        "role": "vertical",
+        "state": "published_archived",
+        "volume_id": "00000000-0000-0000-0000-000000000002"
+      }
+    ],
+    "files": {
+      "archive/x/thumb.jpg": "j",
+      "work/002_finales/e64/01_subidos/final-t.mp4": "t",
+      "work/002_finales/e64/terra/final-h.mp4": "h",
+      "work/002_finales/e64/terra/final-v.mp4": "v"
+    },
+    "projects": [
+      {
+        "aliases": [],
+        "assets": 0,
+        "cameras": [],
+        "deliveries": {
+          "awaiting": 0,
+          "awaiting_names": [],
+          "missing": 0,
+          "offline": false,
+          "published": 0
+        },
+        "jobs": 0,
+        "key": "draft:nuevo",
+        "kinds": {},
+        "link_suggestions": [],
+        "open_jobs": 0,
+        "pending_sessions": 1,
+        "places": [],
+        "preview": {},
+        "profile": "",
+        "project": "nuevo",
+        "project_id": "",
+        "related": [],
+        "released": false,
+        "stage": "draft",
+        "state": "active",
+        "updated_at": "2026-11-11T10:00:00Z",
+        "work_pending": 0,
+        "work_ready": 0,
+        "work_skipped": 0
+      },
+      {
+        "aliases": [
+          "terra-old"
+        ],
+        "assets": 2,
+        "cameras": [
+          "sony-a6400"
+        ],
+        "deliveries": {
+          "awaiting": 2,
+          "awaiting_names": [
+            "final-h.mp4",
+            "a.mp4"
+          ],
+          "missing": 1,
+          "offline": true,
+          "published": 1
+        },
+        "jobs": 2,
+        "key": "p1",
+        "kinds": {
+          "camera_clip": 2
+        },
+        "link_suggestions": [],
+        "open_jobs": 1,
+        "pending_sessions": 1,
+        "places": [
+          "mx/hermosillo",
+          "pe"
+        ],
+        "preview": {
+          "path": "/x/S1.stalker",
+          "preview_path": "screen.mov"
+        },
+        "profile": "e64",
+        "project": "terra",
+        "project_id": "p1",
+        "related": [
+          {
+            "id": "p2",
+            "title": "terra-extra"
+          }
+        ],
+        "released": false,
+        "stage": "in_progress",
+        "state": "active",
+        "updated_at": "2026-11-10T00:00:00Z",
+        "work_pending": 1,
+        "work_ready": 1,
+        "work_skipped": 0
+      },
+      {
+        "aliases": [],
+        "assets": 1,
+        "cameras": [],
+        "deliveries": {
+          "awaiting": 0,
+          "awaiting_names": [],
+          "missing": 0,
+          "offline": false,
+          "published": 0
+        },
+        "jobs": 1,
+        "key": "p2",
+        "kinds": {
+          "stalker_session": 1
+        },
+        "link_suggestions": [
+          "p1"
+        ],
+        "open_jobs": 0,
+        "pending_sessions": 0,
+        "places": [],
+        "preview": {},
+        "profile": "e64",
+        "project": "terra-extra",
+        "project_id": "p2",
+        "related": [],
+        "released": true,
+        "stage": "finished",
+        "state": "finished",
+        "updated_at": "2026-11-08T11:00:00Z",
+        "work_pending": 0,
+        "work_ready": 0,
+        "work_skipped": 1
+      },
+      {
+        "aliases": [],
+        "assets": 1,
+        "cameras": [],
+        "deliveries": {
+          "awaiting": 0,
+          "awaiting_names": [],
+          "missing": 0,
+          "offline": false,
+          "published": 0
+        },
+        "jobs": 1,
+        "key": "p3",
+        "kinds": {
+          "camera_clip": 1
+        },
+        "link_suggestions": [],
+        "open_jobs": 0,
+        "pending_sessions": 0,
+        "places": [],
+        "preview": {},
+        "profile": "e64",
+        "project": "finales",
+        "project_id": "p3",
+        "related": [],
+        "released": false,
+        "stage": "backed_up",
+        "state": "active",
+        "updated_at": "2026-11-08T11:00:00Z",
+        "work_pending": 0,
+        "work_ready": 1,
+        "work_skipped": 0
+      },
+      {
+        "aliases": [],
+        "assets": 1,
+        "cameras": [],
+        "deliveries": {
+          "awaiting": 0,
+          "awaiting_names": [],
+          "missing": 0,
+          "offline": false,
+          "published": 0
+        },
+        "jobs": 1,
+        "key": "draft:borrador",
+        "kinds": {
+          "camera_clip": 1
+        },
+        "link_suggestions": [],
+        "open_jobs": 0,
+        "pending_sessions": 0,
+        "places": [],
+        "preview": {},
+        "profile": "e64",
+        "project": "borrador",
+        "project_id": "",
+        "related": [],
+        "released": false,
+        "stage": "backed_up",
+        "state": "active",
+        "updated_at": "2026-11-08T11:00:00Z",
+        "work_pending": 0,
+        "work_ready": 1,
+        "work_skipped": 0
+      }
+    ],
+    "sessions": [
+      {
+        "archived": false,
+        "created_at": "2026-11-09T10:00:00Z",
+        "path": "/x/S1.stalker",
+        "preview_path": "screen.mov",
+        "status": "completed",
+        "tag": {
+          "name": "terra"
+        }
+      },
+      {
+        "archived": false,
+        "created_at": "2026-11-11T10:00:00Z",
+        "path": "/x/S2.stalker",
+        "preview_path": "",
+        "status": "completed",
+        "tag": {
+          "name": "nuevo"
+        }
+      },
+      {
+        "archived": false,
+        "path": "/x/S3.stalker",
+        "status": "recording",
+        "tag": {
+          "name": "terra"
+        }
+      },
+      {
+        "archived": true,
+        "path": "/x/S4.stalker",
+        "status": "completed",
+        "tag": {
+          "name": "terra-old"
+        }
+      }
+    ],
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nINSERT INTO \"asset_projects\" VALUES('a1','p1');\nINSERT INTO \"asset_projects\" VALUES('a2','p1');\nINSERT INTO \"asset_projects\" VALUES('a3','p2');\nINSERT INTO \"asset_projects\" VALUES('a5','p3');\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"assets\" VALUES('a1','j1','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"sony-a6400\", \"country\": \"mx\", \"city\": \"hermosillo\"}');\nINSERT INTO \"assets\" VALUES('a2','j2','{\"id\": \"a2\", \"job_id\": \"j2\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a2.MP4\"], \"project\": \"terra\", \"project_id\": \"p1\", \"profile\": \"e64\", \"camera\": \"generic\", \"country\": \"pe\"}');\nINSERT INTO \"assets\" VALUES('a3','j1','{\"id\": \"a3\", \"job_id\": \"j1\", \"kind\": \"stalker_session\", \"paths\": [\"CLIP/a3.MP4\"], \"project\": \"terra-extra\", \"project_id\": \"p2\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a4','j1','{\"id\": \"a4\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a4.MP4\"], \"project\": \"borrador\", \"project_id\": \"\", \"profile\": \"e64\"}');\nINSERT INTO \"assets\" VALUES('a5','j1','{\"id\": \"a5\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a5.MP4\"], \"project\": \"finales\", \"project_id\": \"p3\", \"profile\": \"e64\"}');\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('j3','00000000-0000-0000-0000-000000000001','01_subidos/gone-r.mp4','h','{\"path\": \"01_subidos/gone-r.mp4\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"destination\": \"002_finales/e64/2026/gone-r.mp4\", \"stamp\": {\"size\": 5}}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d','{\"source_kind\": \"card\"}','completed',NULL,'t','2026-11-08T11:00:00Z');\nINSERT INTO \"jobs\" VALUES('j2','d','{\"source_kind\": \"card\"}','failed',NULL,'t','2026-11-09T09:00:00Z');\nINSERT INTO \"jobs\" VALUES('j3','d','{\"source\": \"<ROOT>/work/002_finales/e64\", \"source_kind\": \"delivery\", \"units\": [{\"profile\": \"e64\"}], \"layout\": {}}','completed',NULL,'t','2026-11-07T09:00:00Z');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('project-closure:p1','{\"finals\":[{\"path\":\"002_finales/e64/terra/final-h.mp4\",\"role\":\"horizontal\",\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/final-v.mp4\",\"published\":true,\"role\":\"vertical\",\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"x/thumb.jpg\",\"role\":\"thumbnail\",\"volume_id\":\"00000000-0000-0000-0000-000000000001\"},{\"path\":\"a.mp4\",\"role\":\"auxiliary\",\"volume_id\":\"00000000-0000-0000-0000-000000000003\"},{\"path\":\"002_finales/e64/terra/final-t.mp4\",\"role\":\"horizontal\",\"stamp\":{\"inode\":1,\"mtime_ns\":1,\"size\":1},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"},{\"path\":\"002_finales/e64/terra/gone-r.mp4\",\"role\":\"vertical\",\"stamp\":{\"size\":5},\"volume_id\":\"00000000-0000-0000-0000-000000000002\"}],\"no_more\":true,\"published\":false,\"related\":[\"p2\",\"gone\"],\"required\":[\"horizontal\"]}');\nINSERT INTO \"metadata\" VALUES('project-state:p2','{\"state\":\"finished\"}');\nINSERT INTO \"metadata\" VALUES('project-touch:p1','\"2026-11-10T00:00:00Z\"');\nINSERT INTO \"metadata\" VALUES('project-released:p2','{\"at\":\"t\"}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nINSERT INTO \"project_aliases\" VALUES('e64','terra','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-old','p1');\nINSERT INTO \"project_aliases\" VALUES('e64','terra-extra','p2');\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nINSERT INTO \"projects\" VALUES('p1','e64','terra');\nINSERT INTO \"projects\" VALUES('p2','e64','terra-extra');\nINSERT INTO \"projects\" VALUES('p3','e64','finales');\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1001,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000003','OLD','{\"id\":\"00000000-0000-0000-0000-000000000003\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/gone\",\"physical\":\"<ROOT>/gone\",\"removable\":true,\"root_inode\":1002,\"volume_uuid\":\"<ROOT>/gone\"},\"name\":\"OLD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/gone\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nINSERT INTO \"work\" VALUES('a1','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a2','pending',NULL,'t');\nINSERT INTO \"work\" VALUES('a3','skipped',NULL,'t');\nINSERT INTO \"work\" VALUES('a4','ready',NULL,'t');\nINSERT INTO \"work\" VALUES('a5','ready',NULL,'t');\nCOMMIT;"
+  },
   "python": "3.9.16",
   "reads": {
     "cases": [

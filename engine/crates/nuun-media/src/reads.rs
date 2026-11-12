@@ -322,7 +322,10 @@ fn is_falsy(value: &Value) -> bool {
 }
 
 /// Python `closure.project_record`: (id, profile, title) of a project that is not the `finales` collection.
-fn project_record(catalog: &Catalog, project_id: &str) -> Result<(String, String, String)> {
+pub(crate) fn project_record(
+    catalog: &Catalog,
+    project_id: &str,
+) -> Result<(String, String, String)> {
     let row = match catalog.db() {
         Some(db) => db
             .query_row(
@@ -366,14 +369,9 @@ fn normalized_name(value: &str) -> String {
     out.trim_matches('-').to_owned()
 }
 
-/// Python `closure.link_candidates`: same-profile projects to link, linked first, then suggested, then by title.
-pub fn closure_link_candidates(catalog: &Catalog, params: &Value) -> Result<Value> {
-    let project_id = param(params, "project_id")?;
-    let (_, profile, title) = project_record(catalog, project_id)?;
-    let Some(db) = catalog.db() else {
-        return Ok(json!([]));
-    };
-    // closure.settings → related: the confirmed links that still name a known project.
+/// Python `closure.settings(catalog, project_id)`: the saved closeout decisions, or the profile's defaults.
+pub fn closure_settings(catalog: &Catalog, project_id: &str) -> Result<Value> {
+    let (_, profile, _) = project_record(catalog, project_id)?;
     let default_required = if profile == "9logs" {
         json!(["horizontal"])
     } else {
@@ -382,13 +380,18 @@ pub fn closure_link_candidates(catalog: &Catalog, params: &Value) -> Result<Valu
     let required = catalog
         .get(&format!("closure-profile:{profile}"))?
         .unwrap_or(default_required);
-    let settings = catalog
+    Ok(catalog
         .get(&format!("project-closure:{project_id}"))?
         .unwrap_or_else(
             || json!({"required": required, "no_more": false, "published": false, "finals": []}),
-        );
+        ))
+}
+
+/// Python `closure.related`: projects confirmed as the same work that still exist, in their saved order.
+pub fn related(catalog: &Catalog, project_id: &str) -> Result<Vec<String>> {
+    let settings = closure_settings(catalog, project_id)?;
     let mut known = std::collections::BTreeSet::new();
-    {
+    if let Some(db) = catalog.db() {
         let mut statement = db.prepare("SELECT id FROM projects").map_err(sql)?;
         let ids = statement
             .query_map([], |r| r.get::<_, String>(0))
@@ -397,14 +400,28 @@ pub fn closure_link_candidates(catalog: &Catalog, params: &Value) -> Result<Valu
             known.insert(id.map_err(sql)?);
         }
     }
-    let linked: std::collections::BTreeSet<String> = settings["related"]
+    Ok(settings["related"]
         .as_array()
         .into_iter()
         .flatten()
         .filter_map(Value::as_str)
         .filter(|p| known.contains(*p) && *p != project_id)
         .map(str::to_owned)
-        .collect();
+        .collect())
+}
+
+/// Python `closure.link_candidates`: same-profile projects to link, linked first, then suggested, then by title.
+pub fn closure_link_candidates(catalog: &Catalog, params: &Value) -> Result<Value> {
+    link_candidates(catalog, param(params, "project_id")?)
+}
+
+pub fn link_candidates(catalog: &Catalog, project_id: &str) -> Result<Value> {
+    let (_, profile, title) = project_record(catalog, project_id)?;
+    let linked: std::collections::BTreeSet<String> =
+        related(catalog, project_id)?.into_iter().collect();
+    let Some(db) = catalog.db() else {
+        return Ok(json!([]));
+    };
     let mine = normalized_name(&title);
     let mut statement = db
         .prepare("SELECT id,title FROM projects WHERE profile=? AND id!=? AND title!='finales'")

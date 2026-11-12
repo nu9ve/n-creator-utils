@@ -388,6 +388,10 @@ fn snapshot_reads(
 ) -> Result<Value> {
     let mut errors = Map::new();
     let cached = backend.map(volumes::Cached::new);
+    if let Some(c) = &cached {
+        // Destinations and mounted cards are described at the same time, once for the whole snapshot.
+        volumes::prefetch(c, catalog, params["cards"].as_bool().unwrap_or(true))?;
+    }
     let mut volume_list = Vec::new();
     for record in catalog.volumes()? {
         let current = cached.as_ref().and_then(|b| volumes::online(b, &record));

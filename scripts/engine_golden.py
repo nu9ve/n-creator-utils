@@ -408,6 +408,95 @@ def capture_cases():
     return {'files': files, 'registry': registry, 'sql': sql, 'mtime_ns': PLAN_MTIME_NS, 'result': json.loads(text)}
 
 
+# Projects and closeout deliveries (`closure_deliveries`, the projects of `capture_overview`): a work disk with
+# finals, an archive, a registered disk that is gone, receipts, aliases, sessions and job states.
+def project_cases():
+    import shutil
+    from media.catalog import Catalog
+    from media.closure import delivery_states
+    from media.projects import overview
+    from tests.test_media_engine import FixtureVolumes
+
+    class StableVolumes(FixtureVolumes):
+        def describe(self, root, external_required=False):
+            info = super().describe(root, external_required)
+            info.update(root_inode=stable_inode(Path(root).absolute().stat()), device=1)
+            return info
+
+    root = fresh_root('projects')
+    files = {'work/002_finales/e64/terra/final-h.mp4': 'h', 'work/002_finales/e64/terra/final-v.mp4': 'v',
+             'work/002_finales/e64/01_subidos/final-t.mp4': 't', 'archive/x/thumb.jpg': 'j'}
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    (root / 'gone').mkdir()
+    backend = StableVolumes()
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            media = catalog.register('MEDIA', 'archive', root / 'archive', backend.describe(root / 'archive'), '001_raw')
+            essd = catalog.register('ESSD', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
+            old = catalog.register('OLD', 'work', root / 'gone', backend.describe(root / 'gone'), '001_proyectos')
+            shutil.rmtree(root / 'gone')
+            prefix = '002_finales/e64/'
+            asset = lambda i, job, title, pid, **extra: json.dumps(dict(  # noqa: E731
+                {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': title,
+                 'project_id': pid, 'profile': 'e64'}, **extra))
+            with catalog.db:
+                db = catalog.db
+                db.executemany('INSERT INTO projects VALUES(?,?,?)', [
+                    ('p1', 'e64', 'terra'), ('p2', 'e64', 'terra-extra'), ('p3', 'e64', 'finales')])
+                db.executemany('INSERT INTO project_aliases VALUES(?,?,?)', [
+                    ('e64', 'terra', 'p1'), ('e64', 'terra-old', 'p1'), ('e64', 'terra-extra', 'p2')])
+                db.executemany('INSERT INTO assets VALUES(?,?,?)', [
+                    ('a1', 'j1', asset('a1', 'j1', 'terra', 'p1', camera='sony-a6400', country='mx', city='hermosillo')),
+                    ('a2', 'j2', asset('a2', 'j2', 'terra', 'p1', camera='generic', country='pe')),
+                    ('a3', 'j1', asset('a3', 'j1', 'terra-extra', 'p2', kind='stalker_session')),
+                    ('a4', 'j1', asset('a4', 'j1', 'borrador', '')),
+                    ('a5', 'j1', asset('a5', 'j1', 'finales', 'p3'))])
+                db.executemany('INSERT INTO work VALUES(?,?,?,?)', [
+                    ('a1', 'ready', None, 't'), ('a2', 'pending', None, 't'), ('a3', 'skipped', None, 't'),
+                    ('a4', 'ready', None, 't'), ('a5', 'ready', None, 't')])
+                db.executemany('INSERT INTO asset_projects VALUES(?,?)', [
+                    ('a1', 'p1'), ('a2', 'p1'), ('a3', 'p2'), ('a5', 'p3')])
+                plan = {'source': str(root / 'work' / '002_finales' / 'e64'), 'source_kind': 'delivery',
+                        'units': [{'profile': 'e64'}], 'layout': {}}
+                db.executemany('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', [
+                    ('j1', 'd', json.dumps({'source_kind': 'card'}), 'completed', None, 't', '2026-11-08T11:00:00Z'),
+                    ('j2', 'd', json.dumps({'source_kind': 'card'}), 'failed', None, 't', '2026-11-09T09:00:00Z'),
+                    ('j3', 'd', json.dumps(plan), 'completed', None, 't', '2026-11-07T09:00:00Z')])
+                copy = {'path': '01_subidos/gone-r.mp4', 'volume_id': media['id'],
+                        'destination': '002_finales/e64/2026/gone-r.mp4', 'stamp': {'size': 5}}
+                db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j3', media['id'], copy['path'], 'h', json.dumps(copy)))
+            catalog.set('project-closure:p1', {'required': ['horizontal'], 'no_more': True, 'published': False,
+                                               'related': ['p2', 'gone'], 'finals': [
+                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-h.mp4'},
+                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/final-v.mp4', 'published': True},
+                {'role': 'thumbnail', 'volume_id': media['id'], 'path': 'x/thumb.jpg'},
+                {'role': 'auxiliary', 'volume_id': old['id'], 'path': 'a.mp4'},
+                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-t.mp4',
+                 'stamp': {'size': 1, 'mtime_ns': 1, 'inode': 1}},
+                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/gone-r.mp4', 'stamp': {'size': 5}}]})
+            catalog.set('project-state:p2', {'state': 'finished'})
+            catalog.set('project-touch:p1', '2026-11-10T00:00:00Z')
+            catalog.set('project-released:p2', {'at': 't'})
+            sessions = [
+                {'tag': {'name': 'terra'}, 'status': 'completed', 'archived': False, 'created_at': '2026-11-09T10:00:00Z',
+                 'path': '/x/S1.stalker', 'preview_path': 'screen.mov'},
+                {'tag': {'name': 'nuevo'}, 'status': 'completed', 'archived': False, 'created_at': '2026-11-11T10:00:00Z',
+                 'path': '/x/S2.stalker', 'preview_path': ''},
+                {'tag': {'name': 'terra'}, 'status': 'recording', 'archived': False, 'path': '/x/S3.stalker'},
+                {'tag': {'name': 'terra-old'}, 'status': 'completed', 'archived': True, 'path': '/x/S4.stalker'}]
+            deliveries = delivery_states(catalog, backend, 'p1')
+            projects = overview(catalog, sessions, backend)
+            sql = '\n'.join(catalog.db.iterdump())
+        finally:
+            catalog.close()
+    text = json.dumps({'deliveries': deliveries, 'projects': projects}, sort_keys=True).replace(str(root), '<ROOT>')
+    return dict(json.loads(text), files=files, sessions=sessions, sql=sql.replace(str(root), '<ROOT>'))
+
+
 def main():
     out = {
         'generator': 'scripts/engine_golden.py',
@@ -428,6 +517,8 @@ def main():
         'reads': reads_cases(),
         # Stalker libraries read from bundles on disk.
         'captures': capture_cases(),
+        # Closeout deliveries and the projects overview, with registered (fixture) disks.
+        'projects': project_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'
