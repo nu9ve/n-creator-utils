@@ -89,35 +89,57 @@ const VOLUME_READS: [&str; 7] = [
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// All of them need the volume backend. `register_volume` changes configuration (the catalog), never media,
 /// under the writer lock.
-const VOLUME_WRITES: [&str; 5] = [
+const VOLUME_WRITES: [&str; 6] = [
     "register_volume",
     "plan",
     "plan_document",
     "apply",
     "resume",
+    "backup_metadata",
 ];
 
 /// The methods this engine answers on this platform: the portable ones, plus the volume reads with a backend.
 fn ported() -> Vec<&'static str> {
     let mut methods = PORTABLE.to_vec();
-    if platform_backend().is_some() {
+    if platform_backend_name().is_some() {
         methods.extend(VOLUME_READS);
     }
     methods
 }
 
 /// The writes this engine performs on this platform (none without a volume backend).
-fn ported_writes() -> &'static [&'static str] {
-    if platform_backend().is_some_and(|b| b.writes()) {
-        &VOLUME_WRITES
-    } else {
-        &[]
+/// Writes that change only the catalog, never media (E1): every platform, through `rpc` only, as Python.
+const CATALOG_WRITES: [&str; 17] = [
+    "defaults",
+    "integration_settings",
+    "dismiss_job",
+    "touch_project",
+    "set_project_state",
+    "rename_project",
+    "set_work_state",
+    "set_publication",
+    "save_capture_tag",
+    "save_capture_tags",
+    "set_finals_folder",
+    "cancel_plan",
+    "capture_discarded",
+    "closure_link",
+    "closure_save",
+    "save_profile",
+    "confirm_device",
+];
+
+fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
+    let mut writes = CATALOG_WRITES.to_vec();
+    if backend.is_some_and(|b| b.writes()) {
+        writes.extend(VOLUME_WRITES);
     }
+    writes
 }
 
 /// This platform's volume backend, or `not_ported` so the client can ask the Python engine instead.
-fn backend() -> Result<&'static dyn Backend> {
-    platform_backend().ok_or_else(|| {
+fn backend(backend: Option<&dyn Backend>) -> Result<&dyn Backend> {
+    backend.ok_or_else(|| {
         Error::new(
             "not_ported",
             "No volume backend in the Rust engine for this platform yet",
@@ -126,8 +148,8 @@ fn backend() -> Result<&'static dyn Backend> {
 }
 
 /// The backend for a write: only one whose writes are open (a new backend reads until its physical run).
-fn write_backend() -> Result<&'static dyn Backend> {
-    let backend = backend()?;
+fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
+    let backend = backend(platform)?;
     require(
         backend.writes(),
         "not_ported",
@@ -173,6 +195,8 @@ impl Engine {
     }
 
     fn call(&self, method: &str, params: &Value) -> Result<Value> {
+        let platform = platform_backend(&self.home());
+        let platform = platform.as_deref();
         match method {
             // Python: summary(catalog): the recipe saved in the catalog (or the template) and the confirmed devices.
             "recipe" => {
@@ -188,37 +212,39 @@ impl Engine {
                     confirmed,
                 ))
             }
-            "volumes" => nuun_media::volumes::volumes(&self.catalog()?, backend()?),
+            "volumes" => nuun_media::volumes::volumes(&self.catalog()?, backend(platform)?),
             // Pieces this platform cannot read yet are named in `errors`, as Python reports a failing piece.
-            "snapshot" => {
-                nuun_media::snapshot::snapshot(&self.catalog()?, platform_backend(), params)
+            "snapshot" => nuun_media::snapshot::snapshot(&self.catalog()?, platform, params),
+            "source_cards" => {
+                nuun_media::volumes::source_cards(&self.catalog()?, backend(platform)?, None)
             }
-            "source_cards" => nuun_media::volumes::source_cards(&self.catalog()?, backend()?, None),
             // Cards only: units, bytes, evidence, category, camera, device and camera time (`mission` in `not_ported`).
-            "discover" => {
-                nuun_media::scan::discover(Some(&self.catalog()?), platform_backend(), params)
-            }
+            "discover" => nuun_media::scan::discover(Some(&self.catalog()?), platform, params),
             "finals_status" => {
-                nuun_media::projects::finals_status(&self.catalog()?, backend()?, params)
+                nuun_media::projects::finals_status(&self.catalog()?, backend(platform)?, params)
             }
             "captures" => nuun_media::captures::captures_method(&self.catalog()?, params),
             "capture_discard_check" => {
                 nuun_media::captures::discard_check(&self.catalog()?, params)
             }
             "publications" => nuun_media::reads::publications(&self.catalog()?),
-            "sources" => nuun_media::sources::sources(&self.catalog()?, backend()?, params),
+            "sources" => nuun_media::sources::sources(&self.catalog()?, backend(platform)?, params),
             "retitle_operations" => nuun_media::reads::retitle_operations(&self.catalog()?),
             "collection_release_plans" => {
                 nuun_media::reads::collection_release_plans(&self.catalog()?)
             }
-            "resolve" => nuun_media::reads::resolve(&self.catalog()?, backend()?, params),
+            "resolve" => nuun_media::reads::resolve(&self.catalog()?, backend(platform)?, params),
             "register_volume" => {
-                nuun_media::volumes::register_volume(&self.home(), write_backend()?, params)
+                nuun_media::volumes::register_volume(&self.home(), write_backend(platform)?, params)
             }
             // A reviewed plan for a card (Python `build_plan`); `plan_document` is its canonical text, which the app
             // returns untouched to `apply`.
             "plan" | "plan_document" => {
-                let plan = nuun_media::planner::build_plan(&self.home(), write_backend()?, params)?;
+                let plan = nuun_media::planner::build_plan(
+                    &self.home(),
+                    write_backend(platform)?,
+                    params,
+                )?;
                 if method == "plan" {
                     Ok(plan)
                 } else {
@@ -237,7 +263,7 @@ impl Engine {
                     .ok_or_else(|| Error::new("operation_failed", "'plan'"))?;
                 nuun_media::transfer::apply(
                     &self.home(),
-                    write_backend()?,
+                    write_backend(platform)?,
                     plan,
                     digest,
                     &|_, _| Ok(()),
@@ -247,7 +273,17 @@ impl Engine {
                 let job = params["job_id"]
                     .as_str()
                     .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
-                nuun_media::transfer::resume(&self.home(), write_backend()?, job)
+                nuun_media::transfer::resume(&self.home(), write_backend(platform)?, job)
+            }
+            "backup_metadata" => {
+                let archive = params["archive"]
+                    .as_str()
+                    .ok_or_else(|| Error::new("operation_failed", "'archive'"))?;
+                nuun_media::units_map::backup_metadata(
+                    &self.home(),
+                    write_backend(platform)?,
+                    archive,
+                )
             }
             "jobs" => Ok(json!(nuun_media::reads::jobs(&self.catalog()?)?)),
             "job" => nuun_media::reads::job(&self.catalog()?, params),
@@ -276,18 +312,18 @@ impl Engine {
             "living_collections" => nuun_media::reads::living_collections(&self.catalog()?),
             "missions_status" => nuun_media::reads::missions_status(&self.catalog()?, params),
             "integration_capabilities" => nuun_media::integrations::capabilities(&self.catalog()?),
-            "suggest" => nuun_media::volumes::suggest(&self.catalog()?, backend()?, params),
+            "suggest" => nuun_media::volumes::suggest(&self.catalog()?, backend(platform)?, params),
             "capture_overview" => {
-                nuun_media::projects::capture_overview(&self.catalog()?, backend()?, params)
+                nuun_media::projects::capture_overview(&self.catalog()?, backend(platform)?, params)
             }
             "storage_overview" => nuun_media::storage::overview(
                 &self.catalog()?,
                 &self.home(),
-                backend()?,
+                backend(platform)?,
                 Some(nuun_media::storage::THIS_MAC_ROOT),
             ),
             "missions_review" => {
-                nuun_media::mission_review::review(&self.catalog()?, platform_backend(), params)
+                nuun_media::mission_review::review(&self.catalog()?, platform, params)
             }
             "storage_progress" => nuun_media::storage::progress_method(&self.home()),
             "storage_tree" => nuun_media::storage::tree(
@@ -296,12 +332,16 @@ impl Engine {
                 params,
                 Some(nuun_media::storage::THIS_MAC_ROOT),
             ),
-            "closure_candidates" => {
-                nuun_media::projects::closure_candidates(&self.catalog()?, backend()?, params)
-            }
-            "closure_deliveries" => {
-                nuun_media::projects::closure_deliveries(&self.catalog()?, backend()?, params)
-            }
+            "closure_candidates" => nuun_media::projects::closure_candidates(
+                &self.catalog()?,
+                backend(platform)?,
+                params,
+            ),
+            "closure_deliveries" => nuun_media::projects::closure_deliveries(
+                &self.catalog()?,
+                backend(platform)?,
+                params,
+            ),
             "capture_libraries" => {
                 nuun_media::captures::capture_libraries(&self.catalog()?, params)
             }
@@ -312,12 +352,36 @@ impl Engine {
             "integration_settings" if params.as_object().is_none_or(|p| p.is_empty()) => {
                 nuun_media::snapshot::integration_settings(&self.catalog()?)
             }
+            // With parameters these two are writes (`rpc` only), as in Python.
+            "defaults" => nuun_media::settings::defaults(&self.home(), params),
+            "integration_settings" => {
+                nuun_media::settings::integration_settings(&self.home(), params)
+            }
+            "dismiss_job" => nuun_media::settings::dismiss_job(&self.home(), params),
+            "touch_project" => nuun_media::settings::touch_project(&self.home(), params),
+            "set_project_state" => nuun_media::settings::set_project_state(&self.home(), params),
+            "rename_project" => nuun_media::settings::rename_project(&self.home(), params),
+            "set_work_state" => nuun_media::settings::set_work_state(&self.home(), params),
+            "set_publication" => nuun_media::settings::set_publication(&self.home(), params),
+            "save_capture_tag" => {
+                nuun_media::settings::save_capture_tags(&self.home(), params, true)
+            }
+            "save_capture_tags" => {
+                nuun_media::settings::save_capture_tags(&self.home(), params, false)
+            }
+            "set_finals_folder" => nuun_media::settings::set_finals_folder(&self.home(), params),
+            "cancel_plan" => nuun_media::settings::cancel_plan(&self.home(), params),
+            "capture_discarded" => nuun_media::settings::capture_discarded(&self.home(), params),
+            "closure_link" => nuun_media::settings::closure_link(&self.home(), params),
+            "closure_save" => nuun_media::settings::closure_save(&self.home(), platform, params),
+            "save_profile" => nuun_media::settings::save_profile(&self.home(), params),
+            "confirm_device" => nuun_media::settings::confirm_device(&self.home(), params),
             // Not in Python: lets a client know which engine answered and what it can do.
             "engine_info" => Ok(json!({
                 "engine": "rust",
                 "version": env!("CARGO_PKG_VERSION"),
                 "ported": ported(),
-                "writes": ported_writes(),
+                "writes": ported_writes(platform),
                 // Which real volume backend answers volume methods here (`null`: none yet, ask Python).
                 "volume_backend": platform_backend_name(),
                 "once": ONCE_READS,
@@ -370,7 +434,7 @@ impl Engine {
                     format!("rpc-serve only answers reads: {method}"),
                 )?;
             } else if !readable
-                && !ported_writes().contains(&method)
+                && !ported_writes(platform_backend(&self.home()).as_deref()).contains(&method)
                 && !ONCE_READS.contains(&method)
             {
                 return Err(Error::new(
@@ -504,13 +568,88 @@ mod tests {
         }
     }
 
+    /// E1: the same base catalog and the same 43 writes as Python's, the same answers and the same catalog after.
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn catalog_writes_match_python() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/engine-golden/recipe.json");
+        let golden: Value = serde_json::from_str(
+            &std::fs::read_to_string(&path).expect("run scripts/engine_golden.py"),
+        )
+        .unwrap();
+        let case = &golden["writes"];
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().canonicalize().unwrap().join("state");
+        std::fs::create_dir_all(&home).unwrap();
+        let root = home.parent().unwrap().display().to_string();
+        let db = rusqlite::Connection::open(home.join("catalog.sqlite3")).unwrap();
+        db.execute_batch(&case["sql"].as_str().unwrap().replace("<ROOT>", &root))
+            .unwrap();
+        drop(db);
+        let e = Engine {
+            state_dir: Some(home.clone()),
+        };
+        let mut answers = Vec::new();
+        for request in case["requests"].as_array().unwrap() {
+            let line = json!({"method": request[0], "params": request[1]}).to_string();
+            let reply = e.answer(&line, Mode::Once);
+            answers.push(if reply["ok"] == true {
+                json!({"ok": true, "data": reply["data"]})
+            } else {
+                json!({"ok": false, "code": reply["error"]["code"]})
+            });
+        }
+        let db = rusqlite::Connection::open(home.join("catalog.sqlite3")).unwrap();
+        let mut tables = serde_json::Map::new();
+        for (name, order) in case["tables_order"].as_object().unwrap() {
+            let sql = format!("SELECT * FROM {name} ORDER BY {}", order.as_str().unwrap());
+            let mut statement = db.prepare(&sql).unwrap();
+            let columns = statement.column_count();
+            let rows: Vec<Value> = statement
+                .query_map([], |row| {
+                    let mut values = Vec::new();
+                    for i in 0..columns {
+                        values.push(match row.get_ref(i)? {
+                            rusqlite::types::ValueRef::Null => Value::Null,
+                            rusqlite::types::ValueRef::Integer(n) => json!(n),
+                            rusqlite::types::ValueRef::Real(x) => json!(x),
+                            rusqlite::types::ValueRef::Text(t) => json!(String::from_utf8_lossy(t)),
+                            rusqlite::types::ValueRef::Blob(b) => json!(String::from_utf8_lossy(b)),
+                        });
+                    }
+                    Ok(Value::Array(values))
+                })
+                .unwrap()
+                .collect::<rusqlite::Result<_>>()
+                .unwrap();
+            tables.insert(name.clone(), Value::Array(rows));
+        }
+        let now = regex::Regex::new(case["now"].as_str().unwrap()).unwrap();
+        let text = json!({"answers": answers, "tables": tables}).to_string();
+        let text = now.replace_all(&text, "<NOW>").replace(&root, "<ROOT>");
+        let mine: Value = serde_json::from_str(&text).unwrap();
+        for (i, (a, b)) in mine["answers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(case["answers"].as_array().unwrap())
+            .enumerate()
+        {
+            assert_eq!(a, b, "write {i}: {}", case["requests"][i]);
+        }
+        for name in case["tables_order"].as_object().unwrap().keys() {
+            assert_eq!(mine["tables"][name], case["tables"][name], "table {name}");
+        }
+    }
+
     #[test]
     fn empty_catalog_reads_answer_without_creating_anything() {
         let e = engine();
         let reply = e.answer(r#"{"id": 5, "method": "recipe"}"#, Mode::Serve);
         assert_eq!(reply["data"]["confirmed_devices"], 0);
         let volumes = e.answer(r#"{"id": 6, "method": "volumes"}"#, Mode::Serve);
-        if platform_backend().is_some() {
+        if platform_backend_name().is_some() {
             assert_eq!(volumes["data"], json!([]));
         } else {
             assert_eq!(volumes["error"]["code"], "not_ported");
@@ -576,7 +715,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(temp.path().join("DCIM/100GOPRO")).unwrap();
         std::fs::write(temp.path().join("DCIM/100GOPRO/GX010001.MP4"), b"video").unwrap();
-        let request = json!({"id": 3, "method": "discover", "params": {"source": temp.path().display().to_string()}}).to_string();
+        let request = json!({"id": 3, "method": "discover", "params": {"source": temp.path().canonicalize().unwrap().display().to_string()}}).to_string();
         let e = engine();
         assert_eq!(
             e.answer(&request, Mode::Serve)["error"]["code"],
@@ -610,13 +749,13 @@ mod tests {
         );
         assert_eq!(
             e.answer(
-                r#"{"id": 10, "method": "confirm_device", "params": {}}"#,
+                r#"{"id": 10, "method": "apply_release", "params": {}}"#,
                 Mode::Once
             )["error"]["code"],
             "not_ported"
         );
         let reply = e.answer(&request, Mode::Once);
-        let writes = platform_backend().is_some_and(|b| b.writes());
+        let writes = platform_backend(&e.home()).is_some_and(|b| b.writes());
         match platform_backend_name().filter(|_| writes) {
             Some(mode) => {
                 assert_eq!(reply["ok"], true, "{reply}");
@@ -637,7 +776,7 @@ mod tests {
     fn the_volume_backend_decides_what_is_ported() {
         let info =
             engine().answer(r#"{"id": 1, "method": "engine_info"}"#, Mode::Serve)["data"].clone();
-        let has = platform_backend().is_some();
+        let has = platform_backend_name().is_some();
         assert_eq!(info["volume_backend"].is_string(), has);
         assert_eq!(platform_backend_name().is_some(), has);
         for method in VOLUME_READS {
@@ -647,7 +786,7 @@ mod tests {
                 "{method}"
             );
         }
-        let writes = platform_backend().is_some_and(|b| b.writes());
+        let writes = platform_backend(&engine().home()).is_some_and(|b| b.writes());
         for method in VOLUME_WRITES {
             assert_eq!(
                 info["writes"].as_array().unwrap().contains(&json!(method)),

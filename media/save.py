@@ -41,7 +41,7 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
-    catalog = Catalog(args.state_dir); backend = VolumeBackend()
+    catalog = Catalog(args.state_dir); backend = VolumeBackend(catalog.home)
     try:
         defaults = catalog.get('defaults', {})
         archive = args.archive or defaults.get('archive')

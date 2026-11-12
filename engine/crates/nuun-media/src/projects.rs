@@ -13,7 +13,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-const OPAQUE: [&str; 4] = [".fcpbundle", ".stalker", ".app", ".photoslibrary"];
+pub(crate) const OPAQUE: [&str; 4] = [".fcpbundle", ".stalker", ".app", ".photoslibrary"];
 const MEDIA_KINDS: [&str; 4] = ["video", "audio", "image", "raw_image"];
 /// projects.py `OPEN_JOBS`: backup is not settled while one of these can still resume.
 const OPEN_JOBS: [&str; 5] = [
@@ -90,7 +90,7 @@ fn is_link(path: &Path) -> bool {
 }
 
 /// finals.py `subfolders`: visible, real folders directly inside, not opaque bundles, sorted.
-fn subfolders(root: &Path) -> Result<Vec<String>> {
+pub(crate) fn subfolders(root: &Path) -> Result<Vec<String>> {
     let mut names: Vec<String> = std::fs::read_dir(root)
         .map_err(io)?
         .flatten()
@@ -142,7 +142,7 @@ fn delivery_files(root: &Path, out: &mut Vec<PathBuf>) {
 }
 
 /// finals.py `published_receipts`: verified transfers out of a profile's published folder, by destination.
-fn published_receipts(catalog: &Catalog) -> Result<HashMap<(String, String), Value>> {
+pub(crate) fn published_receipts(catalog: &Catalog) -> Result<HashMap<(String, String), Value>> {
     let Some(db) = catalog.db() else {
         return Ok(HashMap::new());
     };

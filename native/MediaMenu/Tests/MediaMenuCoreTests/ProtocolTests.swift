@@ -184,7 +184,12 @@ for line in sys.stdin:
     method = request['method']
     if method == 'engine_info':
         out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs', 'recipe'],
-                                    'once': ['publications', 'retitle_operations', 'discover']}}
+                                    'once': ['publications', 'retitle_operations', 'discover'],
+                                    'writes': ['defaults', 'plan_document', 'apply']}}
+    elif method == 'defaults':
+        out = {'ok': True, 'data': {'project': 'from-rust'}}
+    elif method == 'plan_document':
+        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
     elif method == 'publications':
         out = {'ok': True, 'data': [{'asset_id': 'from-rust'}]}
     elif method == 'retitle_operations':
@@ -273,4 +278,16 @@ func theRealEngineAnswersReadsLikePython() async throws {
     // A write never reaches the engine, even with Rust reads on.
     let saved = try await client.call("defaults", ["project": .string("x")])
     #expect(saved["project"].string == "x")
+
+    let sandbox = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
+                                                     stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path, testWrites: true))
+    #expect(try await sandbox.call("defaults", ["project": .string("x")])["project"].string == "from-rust")
+    do {
+        _ = try await sandbox.call("plan_document")
+        Issue.record("Python should reject a request without a source")
+    } catch let failure as BackendFailure { #expect(failure.code != "not_ported") }
+    do {
+        _ = try await sandbox.call("apply")
+        Issue.record("The fake engine terminates without an apply response")
+    } catch let failure as BackendFailure { #expect(failure.code == "backend_failed") }
 }

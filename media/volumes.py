@@ -10,7 +10,45 @@ import sys
 from .common import MediaError, require
 
 
+SANDBOX_ENV = 'NU9VE_SANDBOX'
+SANDBOX_MARKER = '.nuun-sandbox'
+
+
+def sandbox_root(state_dir=None):
+    """The test environment (scripts/sandbox.py), or None. All three must hold: NU9VE_SANDBOX names a folder with the
+    marker, and the catalog in use (NU9VE_MEDIA_HOME) lives inside it, so a real catalog can never enable it."""
+    value, home = os.environ.get(SANDBOX_ENV), state_dir or os.environ.get('NU9VE_MEDIA_HOME')
+    if not value or not home:
+        return None
+    root = Path(value).expanduser().resolve()
+    marker = root / SANDBOX_MARKER
+    if marker.is_symlink() or not marker.is_file() or root not in Path(home).expanduser().resolve().parents:
+        return None
+    return root
+
+
+def sandbox_image(mount, info=None, *, state_dir=None):
+    """The image file behind `mount` when it lives inside the test environment, else None. Only such an image counts as
+    a real disk (`SD*` images as cards, the rest as USB disks); any other disk image is still never a card or a replica."""
+    root = sandbox_root(state_dir)
+    if root is None:
+        return None
+    if info is None:
+        try:
+            info = plistlib.loads(subprocess.run(['/usr/bin/hdiutil', 'info', '-plist'], capture_output=True, timeout=30).stdout)
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return None
+    for image in info.get('images', []):
+        path = Path(image.get('image-path', '/')).resolve()
+        if root in path.parents and any(e.get('mount-point') == mount for e in image.get('system-entities', [])):
+            return path
+    return None
+
+
 class VolumeBackend:
+    def __init__(self, state_dir=None):
+        self.state_dir = state_dir
+
     def describe(self, root, external_required=False):
         root = Path(root).absolute()
         require(root.is_dir() and not root.is_symlink(), 'volume_offline', 'Root unavailable: ' + str(root))
@@ -36,6 +74,13 @@ class VolumeBackend:
             mount = data.get('MountPoint')
             require(mount and data.get('VolumeUUID'), 'volume_identity_unavailable', 'Missing mounted volume identity')
             external = data.get('Internal') is False
+            disk_image = data.get('BusProtocol') == 'Disk Image'
+            image = sandbox_image(mount, state_dir=self.state_dir) if disk_image else None
+            sandbox = sandbox_root(self.state_dir)
+            if sandbox is not None:
+                resolved = root.resolve()
+                require(image is not None or (not disk_image and (resolved == sandbox or sandbox in resolved.parents)),
+                        'outside_sandbox', 'Choose a source or destination inside the test environment')
             stores = data.get('APFSPhysicalStores') or []
             physical_disks = sorted({re.sub(r's[0-9]+(?:s[0-9]+)?$', '', item['APFSPhysicalStore']) for item in stores if item.get('APFSPhysicalStore')})
             if not physical_disks:
@@ -46,8 +91,8 @@ class VolumeBackend:
                     'mount': mount, 'external': external, 'physical': ','.join(physical_disks), 'physical_disks': physical_disks,
                     'filesystem': data.get('FilesystemType', ''), 'block_size': data.get('VolumeAllocationBlockSize', 4096),
                     'root_inode': st.st_ino, 'device': st.st_dev, 'free': shutil.disk_usage(root).free,
-                    'removable': bool(data.get('RemovableMedia') or data.get('Removable')),
-                    'disk_image': data.get('BusProtocol') == 'Disk Image'}
+                    'removable': image.name.upper().startswith('SD') if image else bool(data.get('RemovableMedia') or data.get('Removable')),
+                    'disk_image': data.get('BusProtocol') == 'Disk Image' and image is None, **({'sandbox': True} if image else {})}
         require(not external_required, 'unsupported_platform', 'External identity backend is currently macOS only')
         return {'mode': 'local', 'volume_uuid': str(st.st_dev), 'disk_uuid': None, 'mount': str(root),
                 'external': False, 'physical': str(st.st_dev), 'filesystem': 'local', 'block_size': 4096,

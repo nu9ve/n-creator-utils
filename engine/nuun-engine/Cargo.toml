@@ -20,3 +20,5 @@ workspace = true
 tempfile.workspace = true
 # The reads golden loads Python's fixture catalog from SQL (already a dependency of nuun-media).
 rusqlite.workspace = true
+# The writes golden normalizes times (`now`) with Python's own pattern.
+regex.workspace = true

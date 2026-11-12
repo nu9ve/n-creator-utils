@@ -53,7 +53,12 @@ pub enum Failure {
 
 /// `/usr/sbin/diskutil <args> -plist` with a time limit, as JSON.
 pub fn diskutil(args: &[&str], timeout: Duration) -> Result<Value, Failure> {
-    let mut child = Command::new("/usr/sbin/diskutil")
+    plist_command("/usr/sbin/diskutil", args, timeout)
+}
+
+/// A system tool that answers a property list (`diskutil`, `hdiutil info -plist`), with a time limit, as JSON.
+pub fn plist_command(executable: &str, args: &[&str], timeout: Duration) -> Result<Value, Failure> {
+    let mut child = Command::new(executable)
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

@@ -55,6 +55,18 @@ def fresh_root(name):
     return root
 
 
+def sql_dump(db):
+    # Python's sqlite3 moved sqlite_sequence to the end of iterdump in 3.12.
+    # Keep its statements in alphabetical table order in both versions.
+    statements = list(db.iterdump())
+    sequence = [line for line in statements if line.startswith(('DELETE FROM "sqlite_sequence"', 'INSERT INTO "sqlite_sequence"'))]
+    statements = [line for line in statements if line not in sequence]
+    after = next((i for i, line in enumerate(statements)
+                  if line.startswith('CREATE TABLE ') and line.split()[2].split('(')[0].strip('"') > 'sqlite_sequence'),
+                 len(statements) - 1)
+    return '\n'.join(statements[:after] + sequence + statements[after:])
+
+
 @contextlib.contextmanager
 def deterministic():
     """Stamps and catalog ids that do not depend on the run (counters instead of inode, ctime, device, uuid4)."""
@@ -343,7 +355,7 @@ def reads_cases():
                 except (KeyError, TypeError, ValueError) as error:
                     answer = {'ok': False, 'code': 'operation_failed', 'error': type(error).__name__}
                 cases.append({'method': method, 'params': params, 'answer': answer})
-            sql = '\n'.join(catalog.db.iterdump())
+            sql = sql_dump(catalog.db)
         finally:
             catalog.close()
     return {'sql': sql, 'cases': cases}
@@ -415,7 +427,7 @@ def capture_cases():
             from media.captures import captures
             changed = captures(catalog, str(root / 'lib'), changed_paths=[str(root / 'lib/S1.stalker/manifest.json'),
                                                                          str(root / 'elsewhere/x')])
-            sql = '\n'.join(catalog.db.iterdump())
+            sql = sql_dump(catalog.db)
         finally:
             catalog.close()
     for value in changed['sessions'] + changed['pending']:
@@ -569,7 +581,7 @@ def project_cases():
             finals.pop('checked_at')
             deliveries = delivery_states(catalog, backend, 'p1')
             projects = overview(catalog, sessions, backend)
-            sql = '\n'.join(catalog.db.iterdump())
+            sql = sql_dump(catalog.db)
         finally:
             catalog.close()
     text = json.dumps({'deliveries': deliveries, 'projects': projects, 'candidates': found, 'finals': finals,
@@ -648,7 +660,7 @@ def mission_cases():
                     results[name] = {'ok': True, 'data': review(catalog, backend, **params)}
                 except MediaError as error:
                     results[name] = {'ok': False, 'code': error.code}
-            sql = '\n'.join(catalog.db.iterdump())
+            sql = sql_dump(catalog.db)
         finally:
             catalog.close()
     for result in results.values():
@@ -703,7 +715,7 @@ def storage_cases():
                 index.execute("UPDATE runs SET pid=0,started_at='2026-11-02T00:00:00Z',finished_at='2026-11-02T00:01:00Z'")
                 index.execute("UPDATE indexes SET indexed_at='2026-11-02T00:01:00Z',seconds=0.1236,fs_total=1000000,fs_used=600000,fs_free=400000")
                 index.execute("INSERT INTO runs(target_id,kind,state,pid,started_at) VALUES('ESSD-x','scan','running',999999999,'t')")
-            sql_index = '\n'.join(index.iterdump())
+            sql_index = sql_dump(index)
             index.close()
             call = lambda method, params: storage_index.call(catalog, backend, method, params)  # noqa: E731
             requests = [('storage_progress', {}), ('storage_tree', {'target': 'ESSD'}),
@@ -720,7 +732,7 @@ def storage_cases():
                 except MediaError as error:
                     value = {'ok': False, 'code': error.code}
                 results[json.dumps([method, params], sort_keys=True)] = value
-            sql = '\n'.join(catalog.db.iterdump())
+            sql = sql_dump(catalog.db)
         finally:
             catalog.close()
     overview = results[json.dumps(['storage_overview', {}])]['data']
@@ -800,7 +812,7 @@ def clipper_cases():
                         results['discard:' + name] = {'ok': True, 'data': discard_check(catalog, stalker_root + '/' + name + '.stalker')}
                     except MediaError as error:
                         results['discard:' + name] = {'ok': False, 'code': error.code}
-                sql = '\n'.join(catalog.db.iterdump())
+                sql = sql_dump(catalog.db)
             finally:
                 catalog.close()
     finally:
@@ -811,6 +823,96 @@ def clipper_cases():
                 os.environ[key] = value
     text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
     return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'results': json.loads(text)}
+
+
+# E1 · catalog writes: the same base catalog, the same sequence of writes (valid and refused), the same answers and
+# the same final catalog, table by table. Times are `<NOW>`.
+U1, U2 = '123E4567E89B12D3A456426614174000', '223e4567-e89b-12d3-a456-426614174000'
+WRITE_REQUESTS = [
+    ('defaults', {'project': 'terra-6-1', 'city': 'cdmx'}), ('defaults', {'bad': 1}),
+    ('integration_settings', {'capture_override': '/x', 'retain_stalker_source': True}),
+    ('integration_settings', {'retain_stalker_source': 'yes'}),
+    ('dismiss_job', {'job_id': 'j1', 'dismissed': True}), ('dismiss_job', {'job_id': 'nope', 'dismissed': True}),
+    ('dismiss_job', {'job_id': 'j1', 'dismissed': 'x'}),
+    ('touch_project', {'key': 'p1'}), ('touch_project', {'key': ''}),
+    ('set_project_state', {'project_id': 'p1', 'state': 'paused'}), ('set_project_state', {'project_id': 'p1', 'state': 'x'}),
+    ('set_project_state', {'project_id': 'nope', 'state': 'active'}),
+    ('save_capture_tags', {'session_ids': [U1, U2], 'project': 'Terra Nueva', 'country': 'mx'}),
+    ('save_capture_tag', {'session_id': 'bad', 'project': 'x'}), ('save_capture_tags', {'session_ids': [], 'project': 'x'}),
+    ('rename_project', {'key': 'p1', 'title': 'Terra Final'}), ('rename_project', {'project_id': 'p2', 'title': 'terra-6-1'}),
+    ('rename_project', {'key': 'draft:Terra-Nueva', 'title': 'nueva2'}), ('rename_project', {'key': 'nope', 'title': 'x'}),
+    ('set_work_state', {'asset_ids': ['a1', 'a2'], 'state': 'skipped'}),
+    ('set_work_state', {'asset_ids': ['nope'], 'state': 'pending'}), ('set_work_state', {'asset_ids': ['a1'], 'state': 'x'}),
+    ('set_publication', {'asset_id': 'd1', 'variant': 'v.mp4', 'channel': 'youtube', 'state': 'published', 'url': 'https://y'}),
+    ('set_publication', {'asset_id': 'd1', 'variant': 'v.mp4', 'channel': 'youtube', 'state': 'published', 'url': 'ftp://x'}),
+    ('set_publication', {'asset_id': 'd1', 'variant': 'z.mp4', 'channel': 'youtube', 'state': 'candidate'}),
+    ('set_publication', {'asset_id': 'a1', 'variant': 'CLIP/a1.MP4', 'channel': 'youtube', 'state': 'candidate'}),
+    ('set_finals_folder', {'profile': 'e64', 'folder': '01_subidos'}), ('set_finals_folder', {'profile': '9logs', 'folder': None}),
+    ('set_finals_folder', {'profile': '../x', 'folder': ''}),
+    ('cancel_plan', {'plan_id': 'rp1'}), ('cancel_plan', {'plan_id': 'j1'}), ('cancel_plan', {'plan_id': 'nope'}),
+    ('capture_discarded', {'session_id': U1, 'name': 'S.stalker', 'trash_path': '/T/S', 'bytes': 5}),
+    ('closure_save', {'project_id': 'p1', 'required': ['vertical', 'horizontal', 'vertical'], 'no_more': True,
+                      'published': True, 'finals': [], 'profile_default': True}),
+    ('closure_save', {'project_id': 'p1', 'required': ['auxiliary'], 'no_more': False, 'published': False, 'finals': []}),
+    ('closure_link', {'project_id': 'p1', 'other_id': 'p3'}), ('closure_link', {'project_id': 'p1', 'other_id': 'p3', 'linked': False}),
+    ('closure_link', {'project_id': 'p1', 'other_id': 'p4'}), ('closure_link', {'project_id': 'p1', 'other_id': 'p1'}),
+    ('save_profile', {'id': 'e64', 'name': ' E64 nuevo ', 'raw_dir': 'e64_raw', 'work': 'ESSD', 'archive': 'MEDIA'}),
+    ('save_profile', {'id': 'E 64', 'name': 'x', 'raw_dir': 'r'}), ('save_profile', {'id': 'x', 'name': 'x', 'raw_dir': 'r', 'work': 'MEDIA'}),
+    ('confirm_device', {'make': 'DJI', 'model': 'FC3170', 'serial': 'X1', 'category': 'dji-drone', 'label': 'Mavic'}),
+    ('confirm_device', {'make': 'DJI', 'model': 'FC3170', 'serial': 'X1', 'category': 'x'}),
+    ('confirm_device', {'make': 'DJI', 'model': 'FC3170', 'serial': ' ', 'category': 'dji-drone'}),
+]
+WRITE_TABLES = {'metadata': 'key', 'projects': 'id', 'project_aliases': 'profile,alias', 'assets': 'id', 'work': 'asset_id',
+                'publications': 'asset_id,variant,channel', 'events': 'seq'}
+NOW_PATTERN = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)'
+
+
+def write_cases():
+    import re
+    from media.catalog import Catalog
+    from media.service import Service
+    root = fresh_root('writes')
+    with deterministic():
+        catalog = Catalog(root / 'state')
+        try:
+            db = catalog.db
+            identity = {'mode': 'fixture', 'volume_uuid': 'v', 'disk_uuid': 'd', 'root_inode': 1, 'external': True}
+            catalog.register('MEDIA', 'archive', root / 'archive', identity, '001_raw')
+            catalog.register('ESSD', 'work', root / 'work', dict(identity, volume_uuid='w'), '001_proyectos')
+            asset = lambda i, job, title, pid, **extra: json.dumps(dict(  # noqa: E731
+                {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': title,
+                 'project_id': pid, 'profile': 'e64', 'revision': 'r1'}, **extra))
+            with db:
+                db.executemany('INSERT INTO projects VALUES(?,?,?)', [
+                    ('p1', 'e64', 'terra-6-1'), ('p2', 'e64', 'Terra 6 1 extra'), ('p3', 'e64', 'otro'), ('p4', '9logs', 'vlog')])
+                db.executemany('INSERT INTO project_aliases VALUES(?,?,?)', [
+                    ('e64', 'terra-6-1', 'p1'), ('e64', 'Terra 6 1 extra', 'p2'), ('e64', 'otro', 'p3'), ('9logs', 'vlog', 'p4')])
+                db.executemany('INSERT INTO assets VALUES(?,?,?)', [
+                    ('a1', 'j1', asset('a1', 'j1', 'terra-6-1', 'p1')), ('a2', 'j1', asset('a2', 'j1', 'Terra 6 1 extra', 'p2')),
+                    ('d1', 'j2', asset('d1', 'j2', 'terra-6-1', 'p1', kind='delivery', paths=['v.mp4', 'h.mp4']))])
+                db.executemany('INSERT INTO work VALUES(?,?,?,?)', [(i, 'ready', None, 't') for i in ('a1', 'a2', 'd1')])
+                db.executemany('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', [
+                    ('j1', 'd', '{"files":[]}', 'completed', None, 't', 't'), ('j2', 'd', '{"files":[]}', 'completed', None, 't', 't')])
+            for key, value in {'reviewed-plan:rp1': {'id': 'rp1'}, 'reviewed-plan:j1': {'id': 'j1'},
+                               'capture-tag:' + U2: {'name': 'terra-6-1', 'country': 'mx'},
+                               'creative-profiles': {'e64': {'id': 'e64', 'name': 'E64', 'clipper_profile': 'clip-e64'}}}.items():
+                catalog.set(key, value)
+            base = sql_dump(db)
+            service, answers = Service(catalog), []
+            for method, params in WRITE_REQUESTS:
+                try:
+                    answers.append({'ok': True, 'data': service.call(method, dict(params))})
+                except MediaError as error:
+                    answers.append({'ok': False, 'code': error.code})
+                except (KeyError, TypeError, ValueError):
+                    answers.append({'ok': False, 'code': 'operation_failed'})
+            tables = {name: [list(row) for row in db.execute('SELECT * FROM %s ORDER BY %s' % (name, order))]
+                      for name, order in WRITE_TABLES.items()}
+        finally:
+            catalog.close()
+    text = re.sub(NOW_PATTERN, '<NOW>', json.dumps({'answers': answers, 'tables': tables}, ensure_ascii=False, sort_keys=True))
+    return dict(json.loads(text.replace(str(root), '<ROOT>')), sql=base.replace(str(root), '<ROOT>'),
+                requests=[[m, p] for m, p in WRITE_REQUESTS], now=NOW_PATTERN, tables_order=WRITE_TABLES)
 
 
 def main():
@@ -841,6 +943,8 @@ def main():
         'storage': storage_cases(),
         # Clipper's guards and discarding a Stalker session, against a fixture Clipper and HOME.
         'clipper': clipper_cases(),
+        # E1 · catalog writes: answers and the catalog they leave, table by table.
+        'writes': write_cases(),
     }
     target = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) + '\n'

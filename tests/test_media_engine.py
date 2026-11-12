@@ -17,7 +17,8 @@ from media.volumes import VolumeBackend
 
 
 class FixtureVolumes(VolumeBackend):
-    def __init__(self):
+    def __init__(self, state_dir=None):
+        super().__init__(state_dir)
         self.offline = set()
         self.low_space = set()
         self.physical = {}

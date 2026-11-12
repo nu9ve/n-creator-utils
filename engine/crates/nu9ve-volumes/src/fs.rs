@@ -6,7 +6,8 @@
 //!   backup semantics is flushed (NTFS honours it; exFAT/FAT answer an error, ignored as Python ignores an
 //!   unsupported `F_FULLFSYNC` and falls back).
 //! - `rename_new`: a rename that never replaces: `MoveFileExW` without `MOVEFILE_REPLACE_EXISTING` on Windows,
-//!   `renamex_np(RENAME_EXCL)` on macOS; other Unix check first (under the writer lock, as Python).
+//!   `renamex_np(RENAME_EXCL)` on macOS (exFAT/FAT refuse it with ENOTSUP: then check first, as Python); other
+//!   Unix check first (under the writer lock, as Python).
 //! - `open_read`/`create_new`: never through a link (`O_NOFOLLOW`; `FILE_FLAG_OPEN_REPARSE_POINT`), regular files
 //!   only. `uncached` (macOS `F_NOCACHE`) keeps a copy's reads and writes out of the OS cache.
 //! - `verify_read`: the read that proves a copy (a partial before its rename, an adopted destination, the original
@@ -435,6 +436,17 @@ pub fn rename_new(from: &Path, to: &Path) -> Result<()> {
         // SAFETY: two NUL-terminated paths; RENAME_EXCL fails when the target exists.
         if unsafe { libc::renamex_np(a.as_ptr(), b.as_ptr(), libc::RENAME_EXCL) } != 0 {
             let error = std::io::Error::last_os_error();
+            // exFAT and FAT do not implement RENAME_EXCL (ENOTSUP, found with a test exFAT disk): check, then
+            // rename, as Python does on every filesystem, under the same writer lock.
+            if error.raw_os_error() == Some(libc::ENOTSUP) {
+                if stamp_opt(to)?.is_some() {
+                    return Err(Error::new(
+                        "destination_conflict",
+                        format!("A file appeared at {}", to.display()),
+                    ));
+                }
+                return std::fs::rename(from, to).map_err(|e| io_error(e, to));
+            }
             if error.kind() == std::io::ErrorKind::AlreadyExists {
                 return Err(Error::new(
                     "destination_conflict",
