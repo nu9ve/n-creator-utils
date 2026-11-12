@@ -79,11 +79,13 @@ public struct BackendConfiguration: Codable, Sendable {
     public var stateDirectory: String?
     /// The Rust engine (`nuun-engine`), when this build has one.
     public var engine: String?
-    /// Who answers reads: `"rust"` (default when an engine exists; Python answers whatever Rust does not have)
-    /// or `"python"`. Mutations always go to Python on this Mac until the Rust engine's physical run.
+    /// Who answers reads: `"rust"` with Python fallback, or `"python"`.
     public var reads: String?
-    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil) {
+    /// Exercise supported Rust mutations in the test environment.
+    public var testWrites: Bool?
+    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil, testWrites: Bool? = nil) {
         self.python = python; self.script = script; self.stateDirectory = stateDirectory; self.engine = engine; self.reads = reads
+        self.testWrites = testWrites
     }
     public var usable: Bool {
         FileManager.default.isExecutableFile(atPath: python) && FileManager.default.fileExists(atPath: script)
@@ -92,6 +94,20 @@ public struct BackendConfiguration: Codable, Sendable {
     public var rustReads: Bool {
         reads != "python" && engine.map { FileManager.default.isExecutableFile(atPath: $0) } == true
     }
+}
+
+/// The environment of every engine process. In the test environment of scripts/sandbox.py (NU9VE_SANDBOX, with the
+/// catalog inside it), HOME points inside it too: Stalker libraries, the missions inbox (~/Downloads) and Clipper's
+/// projects are the environment's, never the person's. The app itself keeps its own HOME and settings.
+public enum EngineEnvironment {
+    public static let values: [String: String] = {
+        var env = ProcessInfo.processInfo.environment
+        if let root = env["NU9VE_SANDBOX"], let home = env["NU9VE_MEDIA_HOME"], home.hasPrefix(root + "/") {
+            env["HOME"] = root + "/home"
+            env["CLIPPER_PROJECTS_ROOT"] = root + "/home/Downloads/clipper-projects"
+        }
+        return env
+    }()
 }
 
 /// One long-lived child that answers one JSON line per request (`rpc-serve` of either engine).
@@ -150,6 +166,7 @@ final class LineServer: @unchecked Sendable {
         let child = Process(), stdin = Pipe(), stdout = Pipe()
         child.executableURL = URL(fileURLWithPath: executable)
         child.arguments = arguments
+        child.environment = EngineEnvironment.values
         child.standardInput = stdin; child.standardOutput = stdout; child.standardError = FileHandle.nullDevice
         child.qualityOfService = .userInitiated
         stdout.fileHandleForReading.readabilityHandler = { [weak self, weak child] handle in
@@ -184,8 +201,7 @@ final class LineServer: @unchecked Sendable {
 /// (`engine_info.ported`) goes to `nuun-engine rpc-serve` first; whatever it does not have, or any
 /// transport failure, is asked of Python's `rpc-serve`, so a read never goes unanswered. A Rust answer
 /// that is an error of the method itself (unknown project, offline disk…) is the answer, as Python's would be:
-/// the two engines give the same answers (scripts/engine_shadow.py). Mutations stay one Python process per
-/// request so cancelling interrupts exactly that operation.
+/// the two engines give the same answers (scripts/engine_shadow.py). Mutations run in one-shot processes.
 public final class PersistentReader: @unchecked Sendable {
     public let configuration: BackendConfiguration
     /// Rust codes that mean «ask Python instead».
@@ -283,7 +299,7 @@ public final class BackendClient: @unchecked Sendable {
         }
     }
     private func currentEpoch() -> UInt { lock.lock(); defer { lock.unlock() }; return cancelEpoch }
-    /// One-shot reads the Rust engine answers here (`engine_info.once`), asked once per engine binary.
+    /// One-shot capabilities depend on the engine and the effective catalog.
     private static let onceCache = OnceMethods()
     /// Stay with Python until compared on real data: `discover` reads real cards, and `capture_discard_check` is the
     /// guard before a session goes to the Trash.
@@ -291,11 +307,20 @@ public final class BackendClient: @unchecked Sendable {
 
     private func run(_ request: Data, epoch: UInt) throws -> JSONValue {
         let method = (try? JSONDecoder().decode(JSONValue.self, from: request))?["method"].string ?? ""
-        if configuration.rustReads, let engine = configuration.engine, !Self.pythonOnly.contains(method),
-           Self.onceCache.methods(engine: engine, ask: { try? self.engineInfo(engine) }).contains(method) {
-            do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
-            catch let failure as BackendFailure where !PersistentReader.fallbackCodes.contains(failure.code) && failure.code != "backend_failed" { throw failure }
-            catch { /* Python answers what Rust could not. */ }
+        if configuration.rustReads, let engine = configuration.engine {
+            let testWrites = configuration.testWrites == true
+            let key = [engine, configuration.stateDirectory ?? "", String(testWrites)].joined(separator: "\0")
+            let methods = Self.onceCache.methods(engine: key, ask: { try? self.engineInfo(engine, testWrites: testWrites) })
+            if methods.contains("write:" + method) {
+                do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
+                catch let failure as BackendFailure where failure.code == "not_ported" {
+                    // The Rust method refused the request before mutating media.
+                }
+            } else if methods.contains(method), !Self.pythonOnly.contains(method) || (testWrites && method == "discover") {
+                do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
+                catch let failure as BackendFailure where !PersistentReader.fallbackCodes.contains(failure.code) && failure.code != "backend_failed" { throw failure }
+                catch { /* Python answers what Rust could not. */ }
+            }
         }
         guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Configura el runtime Python y nu9ve.py antes de operar.") }
         return try execute(configuration.python, ["-S", configuration.script, "media"] + state + ["rpc"], request, epoch: epoch)
@@ -303,10 +328,12 @@ public final class BackendClient: @unchecked Sendable {
 
     private var state: [String] { configuration.stateDirectory.map { ["--state-dir", $0] } ?? [] }
 
-    private func engineInfo(_ engine: String) throws -> Set<String> {
+    private func engineInfo(_ engine: String, testWrites: Bool) throws -> Set<String> {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string("engine_info"), "params": .object([:])]))
         let info = try execute(engine, state + ["rpc"], request, epoch: currentEpoch())
-        return Set(info["once"].array.map(\.string))
+        var methods = Set(info["once"].array.map(\.string))
+        if testWrites { methods.formUnion(info["writes"].array.map { "write:" + $0.string }) }
+        return methods
     }
 
     private func execute(_ executable: String, _ arguments: [String], _ request: Data, epoch: UInt) throws -> JSONValue {
@@ -314,6 +341,7 @@ public final class BackendClient: @unchecked Sendable {
         let process = Process(), input = Pipe(), output = Pipe(), errors = Pipe()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
+        process.environment = EngineEnvironment.values
         process.standardInput = input; process.standardOutput = output; process.standardError = errors
         process.qualityOfService = .utility
         let id = UUID()

@@ -15,7 +15,7 @@ from .volumes import VolumeBackend
 
 class Service:
     def __init__(self, catalog, backend=None, cancel=None):
-        self.catalog, self.backend, self.cancel = catalog, backend or VolumeBackend(), cancel
+        self.catalog, self.backend, self.cancel = catalog, backend or VolumeBackend(catalog.home), cancel
 
     def call(self, method, params=None):
         params = params or {}

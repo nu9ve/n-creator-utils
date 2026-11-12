@@ -57,17 +57,18 @@ pub fn normalize(root: &Path) -> String {
 
 /// The real volume backend the Rust engine has for this platform, or `None` where volumes are still Python's.
 ///
-/// This is the only place that asks which operating system it is (audit B6): the binary asks for the capability.
-/// Windows: `WindowsBackend`. macOS: none yet; `media/volumes.py` (diskutil/DiskArbitration) answers there until
-/// the macOS backend lands (brief S16) and is added here. Linux: none (UDisks2 later, docs/platforms/linux.md).
-pub fn platform_backend() -> Option<&'static dyn Backend> {
+/// The effective catalog determines whether macOS may recognize the sandbox's disk images.
+pub fn platform_backend(_home: &Path) -> Option<Box<dyn Backend>> {
     #[cfg(windows)]
     {
-        Some(&WindowsBackend)
+        Some(Box::new(WindowsBackend))
     }
     #[cfg(target_os = "macos")]
     {
-        Some(&MacBackend)
+        Some(Box::new(MacBackend {
+            sandbox: std::env::var_os("NU9VE_SANDBOX")
+                .and_then(|root| sandbox_root_of(Path::new(&root), _home)),
+        }))
     }
     #[cfg(not(any(windows, target_os = "macos")))]
     {
@@ -88,9 +89,60 @@ pub fn platform_backend_name() -> Option<&'static str> {
 
 /// The real backend on macOS: Python's `VolumeBackend.describe` step by step, from the same sources (`statfs` for
 /// what `df -P` prints, `diskutil info -plist`, `statvfs`), so a volume Python registered is online here as is.
-/// Read only for now (`writes` is false): volumes, source_cards, snapshot and the reads that ask for a disk.
 #[cfg(target_os = "macos")]
-pub struct MacBackend;
+pub struct MacBackend {
+    sandbox: Option<PathBuf>,
+}
+
+/// volumes.py `SANDBOX_MARKER`: the file that makes a folder the test environment of scripts/sandbox.py.
+pub const SANDBOX_MARKER: &str = ".nuun-sandbox";
+
+/// `sandbox_root` for given values of `NU9VE_SANDBOX` and `NU9VE_MEDIA_HOME`.
+pub fn sandbox_root_of(sandbox: &Path, home: &Path) -> Option<PathBuf> {
+    let root = std::fs::canonicalize(sandbox).ok()?;
+    if !std::fs::symlink_metadata(root.join(SANDBOX_MARKER)).is_ok_and(|m| m.is_file()) {
+        return None;
+    }
+    // Resolve the nearest existing ancestor as a new catalog may not exist yet.
+    let absolute_home = std::path::absolute(home).ok()?;
+    if absolute_home
+        .components()
+        .any(|part| part == std::path::Component::ParentDir)
+    {
+        return None;
+    }
+    let mut home = absolute_home.clone();
+    loop {
+        match std::fs::canonicalize(&home) {
+            Ok(resolved) => {
+                return (resolved.starts_with(&root) && resolved != root
+                    || resolved == root && home != absolute_home)
+                    .then_some(root);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                if std::fs::symlink_metadata(&home).is_ok() || !home.pop() {
+                    return None;
+                }
+            }
+            Err(_) => return None,
+        }
+    }
+}
+
+/// volumes.py `sandbox_image`: the image file behind `mount` when it lives inside the test environment. `info` is
+/// `hdiutil info -plist` as JSON. Only such an image counts as a real disk (`SD*` as a card, the rest as USB disks).
+pub fn sandbox_image(root: &Path, mount: &str, info: &Value) -> Option<PathBuf> {
+    info["images"].as_array()?.iter().find_map(|image| {
+        let path = PathBuf::from(image["image-path"].as_str().unwrap_or("/"));
+        let path = std::fs::canonicalize(&path).unwrap_or(path);
+        let mounted = image["system-entities"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|e| e["mount-point"] == mount);
+        (path != root && path.starts_with(root) && mounted).then_some(path)
+    })
+}
 
 #[cfg(target_os = "macos")]
 fn identity_unavailable(message: impl Into<String>) -> Error {
@@ -175,6 +227,30 @@ impl Backend for MacBackend {
             "Missing mounted volume identity",
         )?;
         let external = data["Internal"] == false;
+        // The test environment's own images count as real disks (volumes.py `sandbox_image`).
+        let image = (data["BusProtocol"] == "Disk Image")
+            .then_some(self.sandbox.as_deref())
+            .flatten()
+            .and_then(|root| {
+                let info = nu9ve_volumes::macos::plist_command(
+                    "/usr/bin/hdiutil",
+                    &["info", "-plist"],
+                    std::time::Duration::from_secs(30),
+                )
+                .ok()?;
+                sandbox_image(root, mount.as_str().unwrap_or_default(), &info)
+            });
+        if let Some(sandbox) = &self.sandbox {
+            require(
+                image.is_some()
+                    || (data["BusProtocol"] != "Disk Image"
+                        && root
+                            .canonicalize()
+                            .is_ok_and(|path| path.starts_with(sandbox))),
+                "outside_sandbox",
+                "Choose a source or destination inside the test environment",
+            )?;
+        }
         let mut physical: Vec<String> = data["APFSPhysicalStores"]
             .as_array()
             .into_iter()
@@ -218,9 +294,20 @@ impl Backend for MacBackend {
             // dev_t is a signed 32-bit number on macOS, as Python reports it.
             "device": st.dev() as i32,
             "free": free,
-            "removable": truthy(&data["RemovableMedia"]) || truthy(&data["Removable"]),
-            "disk_image": data["BusProtocol"] == "Disk Image",
+            "removable": match &image {
+                Some(path) => path
+                    .file_name()
+                    .is_some_and(|n| n.to_string_lossy().to_uppercase().starts_with("SD")),
+                None => truthy(&data["RemovableMedia"]) || truthy(&data["Removable"]),
+            },
+            "disk_image": data["BusProtocol"] == "Disk Image" && image.is_none(),
         }))
+        .map(|mut info: Value| {
+            if image.is_some() {
+                info["sandbox"] = json!(true);
+            }
+            info
+        })
     }
 
     fn usage(&self, root: &Path) -> Option<(u64, u64)> {
@@ -242,9 +329,10 @@ impl Backend for MacBackend {
         Ok(token.clone())
     }
 
-    /// Reads only until a physical run with a card and a USB disk on this Mac (docs/release.md).
+    /// Reads only until a physical run with a card and a USB disk on this Mac (docs/release.md), except inside the
+    /// test environment of scripts/sandbox.py, whose disks are test images: there Rust plans and copies too.
     fn writes(&self) -> bool {
-        false
+        self.sandbox.is_some()
     }
 }
 
@@ -867,6 +955,38 @@ mod tests {
     use super::test_backend::{Fixture, Setup, setup};
     use super::*;
     use crate::catalog::fixture;
+
+    /// volumes.py `sandbox_root`/`sandbox_image` (tests/test_media_sandbox.py): all three conditions are needed.
+    #[test]
+    fn only_the_test_environment_turns_its_images_into_disks() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap().join("sandbox");
+        std::fs::create_dir_all(root.join("images")).unwrap();
+        std::fs::write(root.join(SANDBOX_MARKER), "x").unwrap();
+        let state = root.join("state");
+        assert_eq!(sandbox_root_of(&root, &state), Some(root.clone()));
+        assert_eq!(
+            sandbox_root_of(&root, &temp.path().join("real-catalog")),
+            None
+        );
+        assert_eq!(sandbox_root_of(&root, &root), None);
+        let inside = root.join("images/SD-SONY.sparseimage");
+        let info = |image: &Path| {
+            json!({"images": [{"image-path": image.display().to_string(),
+            "system-entities": [{"content-hint": "x"}, {"mount-point": "/Volumes/SD-SONY"}]}]})
+        };
+        assert_eq!(
+            sandbox_image(&root, "/Volumes/SD-SONY", &info(&inside)),
+            Some(inside.clone())
+        );
+        assert_eq!(sandbox_image(&root, "/Volumes/OTHER", &info(&inside)), None);
+        assert_eq!(
+            sandbox_image(&root, "/Volumes/SD-SONY", &info(&temp.path().join("x.dmg"))),
+            None
+        );
+        std::fs::remove_file(root.join(SANDBOX_MARKER)).unwrap();
+        assert_eq!(sandbox_root_of(&root, &state), None);
+    }
 
     fn catalog(s: &Setup) -> Catalog {
         Catalog::open(&s.home).unwrap()

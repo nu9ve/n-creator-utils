@@ -7,9 +7,18 @@ struct WindowRoot: View {
     var body: some View {
         // Skins with their own window draw nüün's bar in the content instead of the toolbar row.
         SkinnedWindow(title: "nüün", bar: { WindowTopBar(model: model) }) {
-            Group {
-                if model.presentation == .full { MainView(model: model) }
-                else { IngestFlow(model: model) }
+            VStack(spacing: 0) {
+                if let sandbox = model.sandbox {
+                    // scripts/sandbox.py: test disks and catalog; never confused with the real ones.
+                    Label(String(localized: "Entorno de prueba · discos y catálogo de prueba"), systemImage: "testtube.2")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.black)
+                        .frame(maxWidth: .infinity).padding(.vertical, 3).background(Color.yellow)
+                        .help(sandbox)
+                }
+                Group {
+                    if model.presentation == .full { MainView(model: model) }
+                    else { IngestFlow(model: model) }
+                }
             }
             .skinSheet(isPresented: $model.showRelease) { ReleaseSheet(model: model) }
             .skinSheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model) }

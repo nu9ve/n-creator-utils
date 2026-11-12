@@ -260,6 +260,13 @@ enum OperationScope { case ingest, library, space, settings, source }
     var error = ""
     var python = ""
     var script = ""
+    /// The test environment folder when scripts/sandbox.py opened this app (NU9VE_SANDBOX and a catalog inside it).
+    /// Its catalog is the environment's; the capture folder saved for the real catalog is never used here.
+    let sandbox: String? = {
+        let env = ProcessInfo.processInfo.environment
+        guard let root = env["NU9VE_SANDBOX"], let home = env["NU9VE_MEDIA_HOME"], home.hasPrefix(root + "/") else { return nil }
+        return root
+    }()
     /// The Rust engine, inside the app or, from source, `engine/target/release` next to `nu9ve.py`.
     var enginePath = ""
     /// Who answers reads: "rust" (Python answers what Rust does not have) or "python".
@@ -302,7 +309,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             script = prefs.string(forKey: "script") ?? script
         }
         enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script)
-        captureRoot = prefs.string(forKey: "captureRoot") ?? ""
+        captureRoot = sandbox == nil ? prefs.string(forKey: "captureRoot") ?? "" : ""
         configure()
     }
 
@@ -321,8 +328,8 @@ enum OperationScope { case ingest, library, space, settings, source }
         UserDefaults.standard.set(script, forKey: "script")
         UserDefaults.standard.set(readEngine, forKey: "readEngine")
         if enginePath.isEmpty { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
-        // Mutations keep Python's client: Rust only answers reads on this Mac until its physical run.
-        let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath, reads: readEngine)
+        let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath,
+                                                 reads: readEngine, testWrites: sandbox != nil)
         reader?.stop()
         client = BackendClient(configuration: configuration)
         reader = PersistentReader(configuration: configuration)
@@ -396,7 +403,7 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     func watchCaptures() {
         guard !busy else { return }
-        UserDefaults.standard.set(captureRoot, forKey: "captureRoot")
+        if sandbox == nil { UserDefaults.standard.set(captureRoot, forKey: "captureRoot") }
         operation(String(localized: "Actualizando bibliotecas de Stalker"), scope: .settings) {
             _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot),
                 "clipper_executable": .string(self.clipperExecutable), "retain_stalker_source": .bool(self.retainStalkerSource)])

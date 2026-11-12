@@ -86,7 +86,7 @@ fn suffix(name: &str) -> String {
 }
 
 /// Python `str(uuid.UUID(value))`: hex with optional `urn:`, `uuid:`, braces and dashes; lowercase 8-4-4-4-12.
-fn python_uuid(value: &str) -> Option<String> {
+pub(crate) fn python_uuid(value: &str) -> Option<String> {
     let hex: String = value
         .replace("urn:", "")
         .replace("uuid:", "")

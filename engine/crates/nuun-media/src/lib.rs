@@ -16,6 +16,7 @@ pub mod projects;
 pub mod reads;
 pub mod rules;
 pub mod scan;
+pub mod settings;
 pub mod snapshot;
 pub mod sources;
 pub mod storage;
