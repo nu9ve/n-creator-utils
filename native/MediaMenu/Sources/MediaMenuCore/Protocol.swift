@@ -243,6 +243,18 @@ public final class PersistentReader: @unchecked Sendable {
     }
 }
 
+/// The one-shot methods of each engine binary, asked once.
+final class OnceMethods: @unchecked Sendable {
+    private let lock = NSLock()
+    private var known: [String: Set<String>] = [:]
+    func methods(engine: String, ask: () -> Set<String>?) -> Set<String> {
+        if let found = lock.withLock({ known[engine] }) { return found }
+        let found = ask() ?? []
+        lock.withLock { known[engine] = found }
+        return found
+    }
+}
+
 private final class CollectedData: @unchecked Sendable {
     private let lock = NSLock()
     private var value = Data()
@@ -271,11 +283,37 @@ public final class BackendClient: @unchecked Sendable {
         }
     }
     private func currentEpoch() -> UInt { lock.lock(); defer { lock.unlock() }; return cancelEpoch }
+    /// One-shot reads the Rust engine answers here (`engine_info.once`), asked once per engine binary.
+    private static let onceCache = OnceMethods()
+    /// Stay with Python until compared on real data: `discover` reads real cards, and `capture_discard_check` is the
+    /// guard before a session goes to the Trash.
+    static let pythonOnly: Set<String> = ["discover", "capture_discard_check"]
+
     private func run(_ request: Data, epoch: UInt) throws -> JSONValue {
+        let method = (try? JSONDecoder().decode(JSONValue.self, from: request))?["method"].string ?? ""
+        if configuration.rustReads, let engine = configuration.engine, !Self.pythonOnly.contains(method),
+           Self.onceCache.methods(engine: engine, ask: { try? self.engineInfo(engine) }).contains(method) {
+            do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
+            catch let failure as BackendFailure where !PersistentReader.fallbackCodes.contains(failure.code) && failure.code != "backend_failed" { throw failure }
+            catch { /* Python answers what Rust could not. */ }
+        }
         guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Configura el runtime Python y nu9ve.py antes de operar.") }
+        return try execute(configuration.python, ["-S", configuration.script, "media"] + state + ["rpc"], request, epoch: epoch)
+    }
+
+    private var state: [String] { configuration.stateDirectory.map { ["--state-dir", $0] } ?? [] }
+
+    private func engineInfo(_ engine: String) throws -> Set<String> {
+        let request = try JSONEncoder().encode(JSONValue.object(["method": .string("engine_info"), "params": .object([:])]))
+        let info = try execute(engine, state + ["rpc"], request, epoch: currentEpoch())
+        return Set(info["once"].array.map(\.string))
+    }
+
+    private func execute(_ executable: String, _ arguments: [String], _ request: Data, epoch: UInt) throws -> JSONValue {
+        guard FileManager.default.isExecutableFile(atPath: executable) else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
         let process = Process(), input = Pipe(), output = Pipe(), errors = Pipe()
-        process.executableURL = URL(fileURLWithPath: configuration.python)
-        process.arguments = ["-S", configuration.script, "media"] + (configuration.stateDirectory.map { ["--state-dir", $0] } ?? []) + ["rpc"]
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
         process.standardInput = input; process.standardOutput = output; process.standardError = errors
         process.qualityOfService = .utility
         let id = UUID()

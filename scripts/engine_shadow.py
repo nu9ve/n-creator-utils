@@ -64,6 +64,43 @@ class Pipe:
             self.process.kill()
 
 
+def once(argv, method, params, env=None):
+    """One request through a one-shot `rpc` process, as the app sends one-shot reads; timed with its startup."""
+    started = time.perf_counter()
+    done = subprocess.run(argv, input=json.dumps({'method': method, 'params': params}), capture_output=True, text=True,
+                          env=env, cwd=str(REPO), timeout=600)
+    elapsed = time.perf_counter() - started
+    try:
+        return json.loads(done.stdout), elapsed
+    except ValueError:
+        return {'ok': False, 'error': {'code': 'no_answer', 'message': done.stderr[-300:]}}, elapsed
+
+
+# Values that change between two runs of the same read (the time it was asked).
+VOLATILE = {'finals_status': ('checked_at',)}
+
+
+def once_requests(python):
+    """One-shot reads (`rpc`): ids, projects and libraries taken from this catalog."""
+    requests = [('finals_status', {}), ('publications', {}), ('retitle_operations', {}), ('collection_release_plans', {})]
+    library, _ = python.ask('library', {})
+    for asset in (library.get('data') or [])[:5]:
+        if isinstance(asset, dict) and asset.get('id'):
+            requests.append(('resolve', {'asset_id': asset['id']}))
+    libraries, _ = python.ask('capture_libraries', {})
+    for root in ((libraries.get('data') or {}).get('roots') or [])[:2]:
+        requests.append(('captures', {'root': root}))
+    # Only a check: it never moves or deletes the session.
+    for session in ((libraries.get('data') or {}).get('pending') or [])[:2]:
+        requests.append(('capture_discard_check', {'path': session['path']}))
+    projects, _ = python.ask('projects', {})
+    for project in (projects.get('data') or [])[:3]:
+        if isinstance(project, dict) and project.get('project'):
+            for purpose in ('edit', 'archive'):
+                requests.append(('sources', {'project': project['project'], 'purpose': purpose}))
+    return requests
+
+
 def requests_for(python):
     """The reads to replay: parameterless ones, then ids and projects found in this catalog."""
     requests = [(m, {}) for m in sorted(READ_METHODS - NEEDS_PARAMS)] + [(m, {}) for m in sorted(READ_WHEN_EMPTY)]
@@ -132,6 +169,21 @@ def replay(args):
                 entry.update(compare(method, theirs, mine))
                 if params:
                     entry['params'] = sorted(params)
+                entries.append(entry)
+                log.write(entry)
+        python_once = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(home), 'rpc']
+        rust_once = [str(engine), '--state-dir', str(home), 'rpc']
+        for method, params in once_requests(python):
+            for _ in range(args.repeat):
+                theirs, python_seconds = once(python_once, method, params, env)
+                mine, rust_seconds = once(rust_once, method, params)
+                for envelope in (theirs, mine):
+                    for key in VOLATILE.get(method, ()):
+                        if isinstance(envelope.get('data'), dict):
+                            envelope['data'].pop(key, None)
+                entry = {'at': time.strftime('%Y-%m-%dT%H:%M:%S'), 'source': 'replay-once',
+                         'python_ms': round(python_seconds * 1000, 2), 'rust_ms': round(rust_seconds * 1000, 2)}
+                entry.update(compare(method, theirs, mine))
                 entries.append(entry)
                 log.write(entry)
     finally:

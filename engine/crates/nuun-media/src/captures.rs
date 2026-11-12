@@ -34,7 +34,11 @@ pub struct Places {
 
 impl Places {
     pub fn user() -> Self {
-        let home = home();
+        Self::under(&home())
+    }
+
+    /// The usual places below `home`.
+    pub fn under(home: &Path) -> Self {
         Self {
             registry: home.join("Library/Application Support/Stalker/library.json"),
             common: vec![home.join("Movies/Stalker"), home.join("Downloads")],
@@ -243,6 +247,16 @@ fn index_entry(raw: &str, folder: &Path, stamp_value: &Value, mtime_ns: i64) -> 
 
 /// Python `captures(catalog, root)` without `changed_paths`: every session of one library.
 pub fn captures(catalog: &Catalog, root: &str) -> Result<Vec<Value>> {
+    captures_changed(catalog, root, None)
+}
+
+/// Python `captures(catalog, root, changed_paths)`: with `changed`, only the sessions holding those paths are read
+/// again and every other indexed session is kept as it is.
+pub fn captures_changed(
+    catalog: &Catalog,
+    root: &str,
+    changed: Option<&[String]>,
+) -> Result<Vec<Value>> {
     let root = absolute(root);
     let root_path = Path::new(&root);
     let is_link = stamp(root_path).is_ok_and(|s| s.kind == EntryKind::Link);
@@ -252,27 +266,50 @@ pub fn captures(catalog: &Catalog, root: &str) -> Result<Vec<Value>> {
         "Capture library is unavailable",
     )?;
     let mut candidates = BTreeSet::new();
-    let entries =
-        std::fs::read_dir(root_path).map_err(|e| Error::new("operation_failed", e.to_string()))?;
-    for entry in entries.flatten() {
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if name.to_lowercase().ends_with(".stalker") && entry.file_type().is_ok_and(|t| t.is_dir())
-        {
-            candidates.insert(format!("{root}/{name}"));
-        }
-    }
-    if suffix(&root).to_lowercase() == ".stalker" {
-        candidates.insert(root.clone());
-    }
     let saved = catalog
         .get(&format!("capture-index:{root}"))?
         .and_then(|v| v.as_object().cloned())
         .unwrap_or_default();
     let mut index: BTreeMap<String, Value> = BTreeMap::new();
+    if let Some(changed) = changed.filter(|c| !c.is_empty()) {
+        // Every indexed session stays; only the bundles holding a changed path are looked at again.
+        index.extend(saved.iter().map(|(k, v)| (k.clone(), v.clone())));
+        for raw in changed.iter().take(10_000) {
+            let mut path = PathBuf::from(absolute(raw));
+            if path != root_path && !path.starts_with(root_path) {
+                continue;
+            }
+            while path != root_path && suffix(&path.to_string_lossy()).to_lowercase() != ".stalker"
+            {
+                match path.parent() {
+                    Some(parent) => path = parent.to_path_buf(),
+                    None => break,
+                }
+            }
+            if suffix(&path.to_string_lossy()).to_lowercase() == ".stalker" {
+                candidates.insert(path.display().to_string());
+            }
+        }
+    } else {
+        let entries = std::fs::read_dir(root_path)
+            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.to_lowercase().ends_with(".stalker")
+                && entry.file_type().is_ok_and(|t| t.is_dir())
+            {
+                candidates.insert(format!("{root}/{name}"));
+            }
+        }
+        if suffix(&root).to_lowercase() == ".stalker" {
+            candidates.insert(root.clone());
+        }
+    }
     for raw in &candidates {
         let folder = Path::new(raw);
         let link = stamp(folder).is_ok_and(|s| s.kind == EntryKind::Link);
         if !folder.is_dir() || link {
+            index.remove(raw);
             continue;
         }
         let review = json!({"path": raw, "status": "needs_review"});
@@ -323,6 +360,173 @@ pub fn captures(catalog: &Catalog, root: &str) -> Result<Vec<Value>> {
         sessions.push(value);
     }
     Ok(sessions)
+}
+
+/// The `captures` method: one library's sessions and the finished ones not backed up yet.
+pub fn captures_method(catalog: &Catalog, params: &Value) -> Result<Value> {
+    if let Some(unexpected) = params.as_object().and_then(|p| {
+        p.keys()
+            .find(|k| !["root", "changed_paths"].contains(&k.as_str()))
+    }) {
+        return Err(Error::new(
+            "operation_failed",
+            format!("captures() got an unexpected keyword argument '{unexpected}'"),
+        ));
+    }
+    let root = params["root"].as_str().ok_or_else(|| {
+        Error::new(
+            "operation_failed",
+            "captures() missing 1 required positional argument: 'root'",
+        )
+    })?;
+    let changed: Option<Vec<String>> = params["changed_paths"].as_array().map(|a| {
+        a.iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect()
+    });
+    let sessions = captures_changed(catalog, root, changed.as_deref())?;
+    let pending: Vec<Value> = sessions
+        .iter()
+        .filter(|s| s["status"] == "completed" && s["archived"] == false)
+        .cloned()
+        .collect();
+    Ok(json!({"sessions": sessions, "pending": pending}))
+}
+
+/// The `capture_discard_check` method (captures.py `discard_check`): what throwing away a never-backed-up session
+/// means. The app moves it to the Trash; nothing here deletes.
+pub fn discard_check(catalog: &Catalog, params: &Value) -> Result<Value> {
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    let integrations = crate::integrations::Integrations::read(catalog)?;
+    discard_check_with(catalog, params, &Places::under(&home), &integrations, &home)
+}
+
+/// `discard_check` with the places, consumer settings and home given (tests use fixtures for all three).
+pub(crate) fn discard_check_with(
+    catalog: &Catalog,
+    params: &Value,
+    places: &Places,
+    integrations: &crate::integrations::Integrations,
+    home: &Path,
+) -> Result<Value> {
+    let raw = params["path"]
+        .as_str()
+        .ok_or_else(|| Error::new("operation_failed", "'path'"))?;
+    let chosen = match params.get("override") {
+        Some(Value::String(text)) if !text.is_empty() => text.clone(),
+        _ => catalog
+            .get("capture-override")?
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default(),
+    };
+    let folder = PathBuf::from(raw);
+    let is_link = stamp(&folder).is_ok_and(|s| s.kind == EntryKind::Link);
+    require(
+        folder.is_absolute()
+            && suffix(raw).to_lowercase() == ".stalker"
+            && folder.is_dir()
+            && !is_link,
+        "capture_not_found",
+        "Stalker session not found",
+    )?;
+    let libraries = libraries(catalog, &chosen, places)?;
+    let shown = folder.display().to_string();
+    let session = libraries["sessions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|s| s["path"] == shown.as_str())
+        .cloned()
+        .ok_or_else(|| {
+            Error::new(
+                "capture_not_found",
+                "That folder is not a session of a known Stalker library",
+            )
+        })?;
+    require(
+        session["status"] == "completed",
+        "capture_not_completed",
+        "Only finished sessions can be discarded",
+    )?;
+    // A backed-up original has its own path: the release plan checks the copies and relinks first.
+    require(
+        session["archived"] != true,
+        "capture_archived",
+        "This session is backed up; review its local release instead",
+    )?;
+    if let Some(db) = catalog.db() {
+        let mut statement = db
+            .prepare("SELECT state,plan FROM jobs WHERE state IN ('planned','copying','verifying','cleaning','paused','failed')")
+            .map_err(|e| Error::new("catalog_unavailable", e.to_string()))?;
+        let rows = statement
+            .query_map([], |r| r.get::<_, String>(1))
+            .map_err(|e| Error::new("catalog_unavailable", e.to_string()))?;
+        for plan in rows.flatten() {
+            let plan: Value = serde_json::from_str(&plan).unwrap_or(Value::Null);
+            let source = PathBuf::from(plan["source"].as_str().unwrap_or("/"));
+            let used = plan["files"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|f| source.join(f["path"].as_str().unwrap_or_default()))
+                .any(|member| member == folder || member.starts_with(&folder));
+            require(
+                !used,
+                "capture_in_use",
+                "An unfinished operation includes this session",
+            )?;
+        }
+    }
+    let (mut files, mut size) = (0u64, 0u64);
+    let mut stack = vec![folder.clone()];
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&current) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            // `os.walk` lists a link to a folder with the folders and never walks into it.
+            if path.is_dir() {
+                if !stamp(&path).is_ok_and(|s| s.kind == EntryKind::Link) {
+                    stack.push(path);
+                }
+                continue;
+            }
+            if let Ok(info) = std::fs::symlink_metadata(&path) {
+                size += info.len();
+                files += 1;
+            }
+        }
+    }
+    let (mut blockers, mut warnings): (Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new());
+    match crate::clipper::inspect_with(integrations, &[(shown.clone(), None)], home) {
+        Ok(report) => {
+            let all: Vec<Value> = report["blockers"].as_array().cloned().unwrap_or_default();
+            blockers = all
+                .iter()
+                .filter(|b| *b != crate::clipper::OFFLINE_PROJECTS)
+                .cloned()
+                .collect();
+            if blockers.len() != all.len() {
+                warnings.push(json!("offline_projects"));
+            }
+        }
+        Err(_) => warnings.push(json!("clipper_unknown")),
+    }
+    let name = folder
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    Ok(
+        json!({"path": shown, "session_id": session["session_id"], "manifest_digest": session["manifest_digest"],
+              "name": name, "bytes": size, "files": files,
+              "tracks": session.get("track_count").cloned().unwrap_or(json!(0)),
+              "project": session["tag"].get("name").cloned().unwrap_or(json!("")),
+              "blockers": blockers, "warnings": warnings}),
+    )
 }
 
 /// Python `has_sessions(root)`: a usual folder counts only with a `.stalker` folder directly inside.
@@ -489,7 +693,7 @@ mod tests {
         std::fs::create_dir_all(&state).unwrap();
         rusqlite::Connection::open(state.join("catalog.sqlite3"))
             .unwrap()
-            .execute_batch(case["sql"].as_str().unwrap())
+            .execute_batch(&case["sql"].as_str().unwrap().replace("<ROOT>", &text_root))
             .unwrap();
         let catalog = Catalog::open(&state).unwrap();
         let places = Places {
@@ -511,6 +715,20 @@ mod tests {
             assert_eq!(a, b, "{}", b["path"]);
         }
         assert_eq!(mine["pending"], theirs["pending"]);
+        // `changed_paths`: only S1 is read again; the index Python saved keeps the rest.
+        let params = json!({"root": format!("{text_root}/lib"),
+            "changed_paths": [format!("{text_root}/lib/S1.stalker/manifest.json"), format!("{text_root}/elsewhere/x")]});
+        let found = captures_method(&catalog, &params).unwrap();
+        let mut changed: Value =
+            serde_json::from_str(&found.to_string().replace(&text_root, "<ROOT>")).unwrap();
+        without_stamps(&mut changed);
+        for key in ["sessions", "pending"] {
+            changed[key]
+                .as_array_mut()
+                .unwrap()
+                .sort_by_key(|s| s["path"].as_str().unwrap_or_default().to_owned());
+        }
+        assert_eq!(changed, case["changed"], "captures with changed_paths");
     }
 
     #[test]

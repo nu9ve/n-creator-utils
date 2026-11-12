@@ -4,6 +4,7 @@
 
 pub mod captures;
 pub mod catalog;
+pub mod clipper;
 pub mod devices;
 pub mod integrations;
 pub mod layout;
@@ -16,6 +17,7 @@ pub mod reads;
 pub mod rules;
 pub mod scan;
 pub mod snapshot;
+pub mod sources;
 pub mod storage;
 pub mod transfer;
 pub mod tree;
