@@ -338,6 +338,7 @@ dependencies = [
  "nu9ve-json",
  "nuun-media",
  "nuun-recipe",
+ "rusqlite",
  "serde_json",
  "tempfile",
 ]

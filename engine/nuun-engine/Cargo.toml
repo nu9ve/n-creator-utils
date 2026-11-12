@@ -18,3 +18,5 @@ workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+# The reads golden loads Python's fixture catalog from SQL (already a dependency of nuun-media).
+rusqlite.workspace = true

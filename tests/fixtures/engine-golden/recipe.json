@@ -56,6 +56,250 @@
       }
     }
   ],
+  "captures": {
+    "files": {
+      "lib/S1.stalker/Screen/screen.mov": "s",
+      "lib/S1.stalker/cam.mov": "c",
+      "lib/S1.stalker/manifest.json": "{\"producer\": \"stalker\", \"schemaVersion\": 2, \"status\": \"completed\", \"sessionID\": \"123E4567E89B12D3A456426614174000\", \"createdAt\": \"2026-11-04T23:32:12Z\", \"duration\": {\"value\": 3000, \"timescale\": 10}, \"project\": {\"version\": 1, \"name\": \"terra\", \"country\": \"mx\"}, \"tracks\": [{\"relativePath\": \"cam.mov\", \"kind\": \"camera\"}, {\"relativePath\": \"Screen/screen.mov\"}, {\"relativePath\": \"mic.wav\"}]}",
+      "lib/S1.stalker/mic.wav": "m",
+      "lib/S2.stalker/manifest.json": "{\"producer\": \"stalker\", \"schemaVersion\": 3, \"status\": \"recording\", \"sessionID\": \"223e4567-e89b-12d3-a456-426614174000\", \"createdAt\": \"2026-11-05T08:00:00\"}",
+      "lib/S3.STALKER/manifest.json": "{broken",
+      "lib/S4.stalker/manifest.json": "{\"producer\": \"other\", \"schemaVersion\": 2, \"status\": \"completed\", \"sessionID\": \"123E4567E89B12D3A456426614174000\"}",
+      "lib/S5.stalker/manifest.json": "{\"producer\": \"stalker\", \"schemaVersion\": 2, \"status\": \"completed\", \"sessionID\": \"323E4567E89B12D3A456426614174000\", \"createdAt\": \"2026-11-01T10:00:00-07:00\", \"tracks\": []}",
+      "lib/S6.stalker/notes.txt": "no manifest",
+      "lib/S7.stalker/manifest.json": "{\"producer\": \"stalker\", \"schemaVersion\": 2, \"status\": \"completed\", \"sessionID\": \"423e4567e89b12d3a456426614174000\", \"createdAt\": \"ayer\", \"duration\": {\"value\": 5, \"timescale\": 0}, \"tracks\": [{\"relativePath\": \"gone.mp4\", \"role\": \"display\"}]}",
+      "lib/folder/x.txt": "x",
+      "lib/x.stalker": "a file, not a bundle",
+      "lib2/S8.stalker/manifest.json": "{\"producer\": \"stalker\", \"schemaVersion\": 2, \"status\": \"completed\", \"sessionID\": \"523e4567e89b12d3a456426614174000\", \"createdAt\": \"2026-11-06T12:00:00Z\"}"
+    },
+    "mtime_ns": 1778000000123456789,
+    "registry": {
+      "path": "<ROOT>/lib2",
+      "previous": [
+        {
+          "path": "<ROOT>/lib"
+        },
+        "relative/not-absolute",
+        "<ROOT>/missing"
+      ],
+      "schema": "stalker-library/1"
+    },
+    "result": {
+      "errors": [
+        "<ROOT>/missing: Capture library is unavailable"
+      ],
+      "pending": [
+        {
+          "archived": false,
+          "created_at": "ayer",
+          "created_at_local": "2026-05-05T09:53-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "322465a149d83641d78035b955f0275836e72a98c75edc7ed07ba5ca8a2c70ab",
+          "path": "<ROOT>/lib/S7.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib",
+          "session_id": "423e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1018,
+            "mtime_ns": 1778000000123456789,
+            "size": 239
+          },
+          "status": "completed",
+          "tag": {},
+          "track_count": 1
+        },
+        {
+          "archived": false,
+          "created_at": "2026-11-06T12:00:00Z",
+          "created_at_local": "2026-11-06T05:00-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "e3104cf49a41ddf931d18eac42f478e910d54629c7425d28d9ed4e933d121e3c",
+          "path": "<ROOT>/lib2/S8.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib2",
+          "session_id": "523e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1024,
+            "mtime_ns": 1778000000123456789,
+            "size": 152
+          },
+          "status": "completed",
+          "tag": {},
+          "track_count": 0
+        },
+        {
+          "archived": false,
+          "created_at": "2026-11-04T23:32:12Z",
+          "created_at_local": "2026-11-04T16:32-07:00",
+          "duration_seconds": 300.0,
+          "manifest_digest": "a84670c133e3b0a3ea250b166e3e624de51fb0eb1623dafa63cf89aad75c062e",
+          "path": "<ROOT>/lib/S1.stalker",
+          "preview_path": "Screen/screen.mov",
+          "project_hint": {
+            "country": "mx",
+            "name": "terra"
+          },
+          "root": "<ROOT>/lib",
+          "session_id": "123e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1005,
+            "mtime_ns": 1778000000123456789,
+            "size": 386
+          },
+          "status": "completed",
+          "tag": {
+            "country": "mx",
+            "name": "terra"
+          },
+          "track_count": 3
+        }
+      ],
+      "roots": [
+        "<ROOT>/lib2",
+        "<ROOT>/lib"
+      ],
+      "sessions": [
+        {
+          "archived": false,
+          "created_at": "ayer",
+          "created_at_local": "2026-05-05T09:53-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "322465a149d83641d78035b955f0275836e72a98c75edc7ed07ba5ca8a2c70ab",
+          "path": "<ROOT>/lib/S7.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib",
+          "session_id": "423e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1018,
+            "mtime_ns": 1778000000123456789,
+            "size": 239
+          },
+          "status": "completed",
+          "tag": {},
+          "track_count": 1
+        },
+        {
+          "archived": false,
+          "created_at": "2026-11-06T12:00:00Z",
+          "created_at_local": "2026-11-06T05:00-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "e3104cf49a41ddf931d18eac42f478e910d54629c7425d28d9ed4e933d121e3c",
+          "path": "<ROOT>/lib2/S8.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib2",
+          "session_id": "523e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1024,
+            "mtime_ns": 1778000000123456789,
+            "size": 152
+          },
+          "status": "completed",
+          "tag": {},
+          "track_count": 0
+        },
+        {
+          "archived": false,
+          "created_at": "2026-11-05T08:00:00",
+          "created_at_local": "2026-11-05T08:00-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "8e565ddbc9c876c358796eb6e35571d3b1ea4c23e3b9dbfd457dec7b2c4f5b6a",
+          "path": "<ROOT>/lib/S2.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib",
+          "session_id": "223e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1008,
+            "mtime_ns": 1778000000123456789,
+            "size": 155
+          },
+          "status": "recording",
+          "tag": {},
+          "track_count": 0
+        },
+        {
+          "archived": false,
+          "created_at": "2026-11-04T23:32:12Z",
+          "created_at_local": "2026-11-04T16:32-07:00",
+          "duration_seconds": 300.0,
+          "manifest_digest": "a84670c133e3b0a3ea250b166e3e624de51fb0eb1623dafa63cf89aad75c062e",
+          "path": "<ROOT>/lib/S1.stalker",
+          "preview_path": "Screen/screen.mov",
+          "project_hint": {
+            "country": "mx",
+            "name": "terra"
+          },
+          "root": "<ROOT>/lib",
+          "session_id": "123e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1005,
+            "mtime_ns": 1778000000123456789,
+            "size": 386
+          },
+          "status": "completed",
+          "tag": {
+            "country": "mx",
+            "name": "terra"
+          },
+          "track_count": 3
+        },
+        {
+          "archived": true,
+          "created_at": "2026-11-01T10:00:00-07:00",
+          "created_at_local": "2026-11-01T10:00-07:00",
+          "duration_seconds": null,
+          "manifest_digest": "e71972837b5a8576d4131880c676078b5d9af6433cc1dfceea7afe06cadaa815",
+          "path": "<ROOT>/lib/S5.stalker",
+          "preview_path": "",
+          "project_hint": {},
+          "root": "<ROOT>/lib",
+          "session_id": "323e4567-e89b-12d3-a456-426614174000",
+          "stamp": {
+            "ctime_ns": 1778000000123456789,
+            "inode": 1014,
+            "mtime_ns": 1778000000123456789,
+            "size": 171
+          },
+          "status": "completed",
+          "tag": {},
+          "track_count": 0
+        },
+        {
+          "archived": false,
+          "path": "<ROOT>/lib/S6.stalker",
+          "root": "<ROOT>/lib",
+          "status": "needs_review",
+          "tag": {}
+        },
+        {
+          "archived": false,
+          "path": "<ROOT>/lib/S4.stalker",
+          "root": "<ROOT>/lib",
+          "status": "needs_review",
+          "tag": {}
+        },
+        {
+          "archived": false,
+          "path": "<ROOT>/lib/S3.STALKER",
+          "root": "<ROOT>/lib",
+          "status": "needs_review",
+          "tag": {}
+        }
+      ]
+    },
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('capture-tag:123e4567-e89b-12d3-a456-426614174000','{\"country\":\"mx\",\"name\":\"terra\"}');\nINSERT INTO \"metadata\" VALUES('capture-index:/private/tmp/nuun-engine-golden/captures/lib2','{\"/private/tmp/nuun-engine-golden/captures/lib2/S8.stalker\":{\"created_at\":\"2026-11-06T12:00:00Z\",\"created_at_local\":\"2026-11-06T05:00-07:00\",\"duration_seconds\":null,\"manifest_digest\":\"e3104cf49a41ddf931d18eac42f478e910d54629c7425d28d9ed4e933d121e3c\",\"path\":\"/private/tmp/nuun-engine-golden/captures/lib2/S8.stalker\",\"preview_path\":\"\",\"project_hint\":{},\"session_id\":\"523e4567-e89b-12d3-a456-426614174000\",\"stamp\":{\"ctime_ns\":1778000000123456789,\"inode\":1024,\"mtime_ns\":1778000000123456789,\"size\":152},\"status\":\"completed\",\"track_count\":0}}');\nINSERT INTO \"metadata\" VALUES('capture-index:/private/tmp/nuun-engine-golden/captures/lib','{\"/private/tmp/nuun-engine-golden/captures/lib/S1.stalker\":{\"created_at\":\"2026-11-04T23:32:12Z\",\"created_at_local\":\"2026-11-04T16:32-07:00\",\"duration_seconds\":300.0,\"manifest_digest\":\"a84670c133e3b0a3ea250b166e3e624de51fb0eb1623dafa63cf89aad75c062e\",\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S1.stalker\",\"preview_path\":\"Screen/screen.mov\",\"project_hint\":{\"country\":\"mx\",\"name\":\"terra\"},\"session_id\":\"123e4567-e89b-12d3-a456-426614174000\",\"stamp\":{\"ctime_ns\":1778000000123456789,\"inode\":1005,\"mtime_ns\":1778000000123456789,\"size\":386},\"status\":\"completed\",\"track_count\":3},\"/private/tmp/nuun-engine-golden/captures/lib/S2.stalker\":{\"created_at\":\"2026-11-05T08:00:00\",\"created_at_local\":\"2026-11-05T08:00-07:00\",\"duration_seconds\":null,\"manifest_digest\":\"8e565ddbc9c876c358796eb6e35571d3b1ea4c23e3b9dbfd457dec7b2c4f5b6a\",\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S2.stalker\",\"preview_path\":\"\",\"project_hint\":{},\"session_id\":\"223e4567-e89b-12d3-a456-426614174000\",\"stamp\":{\"ctime_ns\":1778000000123456789,\"inode\":1008,\"mtime_ns\":1778000000123456789,\"size\":155},\"status\":\"recording\",\"track_count\":0},\"/private/tmp/nuun-engine-golden/captures/lib/S3.STALKER\":{\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S3.STALKER\",\"status\":\"needs_review\"},\"/private/tmp/nuun-engine-golden/captures/lib/S4.stalker\":{\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S4.stalker\",\"status\":\"needs_review\"},\"/private/tmp/nuun-engine-golden/captures/lib/S5.stalker\":{\"created_at\":\"2026-11-01T10:00:00-07:00\",\"created_at_local\":\"2026-11-01T10:00-07:00\",\"duration_seconds\":null,\"manifest_digest\":\"e71972837b5a8576d4131880c676078b5d9af6433cc1dfceea7afe06cadaa815\",\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S5.stalker\",\"preview_path\":\"\",\"project_hint\":{},\"session_id\":\"323e4567-e89b-12d3-a456-426614174000\",\"stamp\":{\"ctime_ns\":1778000000123456789,\"inode\":1014,\"mtime_ns\":1778000000123456789,\"size\":171},\"status\":\"completed\",\"track_count\":0},\"/private/tmp/nuun-engine-golden/captures/lib/S6.stalker\":{\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S6.stalker\",\"status\":\"needs_review\"},\"/private/tmp/nuun-engine-golden/captures/lib/S7.stalker\":{\"created_at\":\"ayer\",\"created_at_local\":\"2026-05-05T09:53-07:00\",\"duration_seconds\":null,\"manifest_digest\":\"322465a149d83641d78035b955f0275836e72a98c75edc7ed07ba5ca8a2c70ab\",\"path\":\"/private/tmp/nuun-engine-golden/captures/lib/S7.stalker\",\"preview_path\":\"\",\"project_hint\":{},\"session_id\":\"423e4567-e89b-12d3-a456-426614174000\",\"stamp\":{\"ctime_ns\":1778000000123456789,\"inode\":1018,\"mtime_ns\":1778000000123456789,\"size\":239},\"status\":\"completed\",\"track_count\":1}}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nINSERT INTO \"sessions\" VALUES('323E4567-E89B-12D3-A456-426614174000','e71972837b5a8576d4131880c676078b5d9af6433cc1dfceea7afe06cadaa815','a1');\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;"
+  },
   "cards": [
     {
       "family": "stalker",
@@ -1971,6 +2215,677 @@
     }
   ],
   "python": "3.9.16",
+  "reads": {
+    "cases": [
+      {
+        "answer": {
+          "data": {
+            "name": "Terra-6-ñandú"
+          },
+          "ok": true
+        },
+        "method": "project_preview",
+        "params": {
+          "name": "Terra 6 · ñandú!"
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_tag",
+          "ok": false
+        },
+        "method": "project_preview",
+        "params": {
+          "name": "  "
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_tag",
+          "ok": false
+        },
+        "method": "project_preview",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "finals": [
+                {
+                  "path": "f.mp4",
+                  "role": "horizontal",
+                  "volume_id": "v"
+                }
+              ],
+              "id": "p1",
+              "needs_release": true,
+              "no_more": true,
+              "profile": "e64",
+              "published": false,
+              "related": [
+                "p2",
+                "gone",
+                "p1"
+              ],
+              "released": null,
+              "required": [
+                "horizontal"
+              ],
+              "title": "terra-6-1"
+            },
+            {
+              "finals": [],
+              "id": "p4",
+              "needs_release": false,
+              "no_more": false,
+              "profile": "9logs",
+              "published": false,
+              "released": {
+                "at": "2026-11-01"
+              },
+              "required": [
+                "horizontal"
+              ],
+              "title": "vlog"
+            }
+          ],
+          "ok": true
+        },
+        "method": "closure_overview",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "p2",
+              "linked": true,
+              "suggested": true,
+              "title": "Terra 6 1 extra"
+            },
+            {
+              "id": "p3",
+              "linked": false,
+              "suggested": false,
+              "title": "otro_proyecto"
+            },
+            {
+              "id": "p6",
+              "linked": false,
+              "suggested": false,
+              "title": "terra__6"
+            }
+          ],
+          "ok": true
+        },
+        "method": "closure_link_candidates",
+        "params": {
+          "project_id": "p1"
+        }
+      },
+      {
+        "answer": {
+          "data": [],
+          "ok": true
+        },
+        "method": "closure_link_candidates",
+        "params": {
+          "project_id": "p4"
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_project",
+          "ok": false
+        },
+        "method": "closure_link_candidates",
+        "params": {
+          "project_id": "p5"
+        }
+      },
+      {
+        "answer": {
+          "code": "unknown_project",
+          "ok": false
+        },
+        "method": "closure_link_candidates",
+        "params": {
+          "project_id": "nope"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "files_done": 3,
+            "stage": "hashing"
+          },
+          "ok": true
+        },
+        "method": "closure_progress",
+        "params": {
+          "plan_id": "x1"
+        }
+      },
+      {
+        "answer": {
+          "data": {},
+          "ok": true
+        },
+        "method": "closure_progress",
+        "params": {
+          "plan_id": "absent"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "done": 1,
+            "phase": "copy",
+            "total": 4
+          },
+          "ok": true
+        },
+        "method": "action_progress",
+        "params": {
+          "id": "a-1"
+        }
+      },
+      {
+        "answer": {
+          "data": {},
+          "ok": true
+        },
+        "method": "action_progress",
+        "params": {
+          "id": "absent"
+        }
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "a1",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a1.MP4"
+              ],
+              "profile": "e64",
+              "project": "terra-6-1",
+              "project_id": "p1",
+              "revision": "r1"
+            },
+            {
+              "id": "a1",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a1.MP4"
+              ],
+              "profile": "e64",
+              "project": "terra-6-1",
+              "project_id": "p1",
+              "revision": "r2"
+            }
+          ],
+          "ok": true
+        },
+        "method": "asset_revisions",
+        "params": {
+          "asset_id": "a1"
+        }
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "a2",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a2.MP4"
+              ],
+              "profile": "e64",
+              "project": "otro_proyecto",
+              "project_id": "p3",
+              "revision": "r1"
+            }
+          ],
+          "ok": true
+        },
+        "method": "asset_revisions",
+        "params": {
+          "asset_id": "a2"
+        }
+      },
+      {
+        "answer": {
+          "code": "unknown_asset",
+          "ok": false
+        },
+        "method": "asset_revisions",
+        "params": {
+          "asset_id": "nope"
+        }
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "bytes": 42,
+              "files": 2,
+              "id": "c1",
+              "name": "alpha",
+              "source": "/x/alpha"
+            },
+            {
+              "bytes": 0,
+              "files": 0,
+              "id": "c2",
+              "name": "zeta",
+              "source": "/x/zeta"
+            }
+          ],
+          "ok": true
+        },
+        "method": "living_collections",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "coverage": {
+              "until": "2026-11-05"
+            },
+            "flow": "subaereo"
+          },
+          "ok": true
+        },
+        "method": "missions_status",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "coverage": {
+              "until": "2026-11-05"
+            },
+            "flow": "subaereo"
+          },
+          "ok": true
+        },
+        "method": "missions_status",
+        "params": {
+          "flow_id": "subaereo"
+        }
+      },
+      {
+        "answer": {
+          "code": "no_mission_flow",
+          "ok": false
+        },
+        "method": "missions_status",
+        "params": {
+          "flow_id": "nope"
+        }
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "cleanup_profile": null,
+              "dismissed": false,
+              "error": null,
+              "id": "j2",
+              "release_stalker_source": false,
+              "source_kind": "card",
+              "source_volume_uuid": null,
+              "state": "completed",
+              "updated_at": "2026-11-09T11:00:00Z"
+            },
+            {
+              "cleanup_profile": null,
+              "dismissed": false,
+              "error": null,
+              "id": "j1",
+              "release_stalker_source": false,
+              "source_kind": "card",
+              "source_volume_uuid": null,
+              "state": "completed",
+              "updated_at": "2026-11-08T11:00:00Z"
+            }
+          ],
+          "ok": true
+        },
+        "method": "jobs",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "a1",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a1.MP4"
+              ],
+              "profile": "e64",
+              "project": "terra-6-1",
+              "project_id": "p1",
+              "projects": [
+                {
+                  "id": "p1",
+                  "profile": "e64",
+                  "title": "terra-6-1"
+                }
+              ],
+              "revision": "r2",
+              "work_delivery_status": "ready"
+            },
+            {
+              "id": "a2",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a2.MP4"
+              ],
+              "profile": "e64",
+              "project": "otro_proyecto",
+              "project_id": "p3",
+              "projects": [
+                {
+                  "id": "p3",
+                  "profile": "e64",
+                  "title": "otro_proyecto"
+                }
+              ],
+              "revision": "r1",
+              "work_delivery_status": "pending"
+            },
+            {
+              "id": "a3",
+              "job_id": "j2",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a3.MP4"
+              ],
+              "profile": "e64",
+              "project": "Terra 6 1 extra",
+              "project_id": "p2",
+              "projects": [
+                {
+                  "id": "p2",
+                  "profile": "e64",
+                  "title": "Terra 6 1 extra"
+                }
+              ],
+              "revision": "r1",
+              "work_delivery_status": "pending"
+            }
+          ],
+          "ok": true
+        },
+        "method": "library",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "a1",
+              "job_id": "j1",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a1.MP4"
+              ],
+              "profile": "e64",
+              "project": "terra-6-1",
+              "project_id": "p1",
+              "projects": [
+                {
+                  "id": "p1",
+                  "profile": "e64",
+                  "title": "terra-6-1"
+                }
+              ],
+              "revision": "r2",
+              "work_delivery_status": "ready"
+            },
+            {
+              "id": "a3",
+              "job_id": "j2",
+              "kind": "camera_clip",
+              "paths": [
+                "CLIP/a3.MP4"
+              ],
+              "profile": "e64",
+              "project": "Terra 6 1 extra",
+              "project_id": "p2",
+              "projects": [
+                {
+                  "id": "p2",
+                  "profile": "e64",
+                  "title": "Terra 6 1 extra"
+                }
+              ],
+              "revision": "r1",
+              "work_delivery_status": "pending"
+            }
+          ],
+          "ok": true
+        },
+        "method": "library",
+        "params": {
+          "project": "TERRA"
+        }
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "assets": 1,
+              "clipper_profile": "clip-e64",
+              "profile": "e64",
+              "project": "Terra 6 1 extra",
+              "project_id": "p2",
+              "updated_at": "2026-11-09T11:00:00Z"
+            },
+            {
+              "assets": 1,
+              "clipper_profile": "clip-e64",
+              "profile": "e64",
+              "project": "terra-6-1",
+              "project_id": "p1",
+              "updated_at": "2026-11-08T11:00:00Z"
+            },
+            {
+              "assets": 1,
+              "clipper_profile": "clip-e64",
+              "profile": "e64",
+              "project": "otro_proyecto",
+              "project_id": "p3",
+              "updated_at": "2026-11-08T11:00:00Z"
+            }
+          ],
+          "ok": true
+        },
+        "method": "projects",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "clipper_profile": "clip-e64",
+              "id": "e64",
+              "name": "E64"
+            }
+          ],
+          "ok": true
+        },
+        "method": "profiles",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": [
+            {
+              "id": "r1"
+            }
+          ],
+          "ok": true
+        },
+        "method": "release_plans",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "cards": [
+              {
+                "cleanup": null,
+                "family": "stalker",
+                "label": "Stalker",
+                "recommendation": "stalker_batch"
+              },
+              {
+                "cleanup": "sony_clips_then_format",
+                "family": "sony",
+                "label": "Sony",
+                "recommendation": "sony_format_in_camera"
+              },
+              {
+                "cleanup": null,
+                "family": "h6",
+                "label": "Zoom H6",
+                "recommendation": "audio_needs_work_disk"
+              },
+              {
+                "cleanup": null,
+                "family": "gopro",
+                "label": "GoPro",
+                "recommendation": "archive_and_work"
+              },
+              {
+                "cleanup": null,
+                "family": "insta360",
+                "label": "Insta360",
+                "recommendation": "dji_choose_category"
+              },
+              {
+                "cleanup": null,
+                "family": "dji",
+                "label": "DJI",
+                "recommendation": "dji_choose_category"
+              },
+              {
+                "cleanup": null,
+                "family": "canon",
+                "label": "Canon",
+                "recommendation": "archive_and_work"
+              }
+            ],
+            "categories": [
+              "canon",
+              "dji-360",
+              "dji-action",
+              "dji-drone",
+              "generic",
+              "gopro",
+              "h6",
+              "insta360",
+              "nikon",
+              "sony"
+            ],
+            "confirmed_devices": 0,
+            "devices": [
+              {
+                "category": "dji-drone",
+                "label": "DJI Mavic Air 2",
+                "make": "DJI",
+                "model": "FC3170",
+                "source": "MAVICAIR2"
+              }
+            ],
+            "missions": [
+              {
+                "archive_folder": "dron/misiones",
+                "devices": [
+                  "dji-drone"
+                ],
+                "id": "subaereo",
+                "label": "Misiones de subaereo",
+                "project": "subaereo",
+                "work_folder": "atlas-subaereo/misiones"
+              }
+            ],
+            "name": "nu9ve · plantilla inicial",
+            "recipe": {
+              "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+              "id": "nu9ve-default"
+            }
+          },
+          "ok": true
+        },
+        "method": "recipe",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "recipe": {
+              "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
+              "id": "nu9ve-default"
+            },
+            "registry": [],
+            "rules": [
+              {
+                "aliases": [
+                  "MAVIC2"
+                ],
+                "category": "dji-drone",
+                "label": "DJI Mavic Air 2",
+                "make": "DJI",
+                "model": "FC3170",
+                "source": "MAVICAIR2"
+              }
+            ]
+          },
+          "ok": true
+        },
+        "method": "devices",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "city": "hermosillo",
+            "country": "mx",
+            "profile": "e64"
+          },
+          "ok": true
+        },
+        "method": "defaults",
+        "params": {}
+      },
+      {
+        "answer": {
+          "data": {
+            "capture_override": "",
+            "clipper_executable": "",
+            "retain_stalker_source": false,
+            "stalker_executable": ""
+          },
+          "ok": true
+        },
+        "method": "integration_settings",
+        "params": {}
+      }
+    ],
+    "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nINSERT INTO \"asset_projects\" VALUES('a1','p1');\nINSERT INTO \"asset_projects\" VALUES('a2','p3');\nINSERT INTO \"asset_projects\" VALUES('a3','p2');\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nINSERT INTO \"asset_revisions\" VALUES('a1','r1','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra-6-1\", \"project_id\": \"p1\", \"profile\": \"e64\", \"revision\": \"r1\"}');\nINSERT INTO \"asset_revisions\" VALUES('a1','r2','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra-6-1\", \"project_id\": \"p1\", \"profile\": \"e64\", \"revision\": \"r2\"}');\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"assets\" VALUES('a1','j1','{\"id\": \"a1\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a1.MP4\"], \"project\": \"terra-6-1\", \"project_id\": \"p1\", \"profile\": \"e64\", \"revision\": \"r2\"}');\nINSERT INTO \"assets\" VALUES('a2','j1','{\"id\": \"a2\", \"job_id\": \"j1\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a2.MP4\"], \"project\": \"otro_proyecto\", \"project_id\": \"p3\", \"profile\": \"e64\", \"revision\": \"r1\"}');\nINSERT INTO \"assets\" VALUES('a3','j2','{\"id\": \"a3\", \"job_id\": \"j2\", \"kind\": \"camera_clip\", \"paths\": [\"CLIP/a3.MP4\"], \"project\": \"Terra 6 1 extra\", \"project_id\": \"p2\", \"profile\": \"e64\", \"revision\": \"r1\"}');\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d1','{\"source_kind\": \"card\"}','completed',NULL,'2026-11-08T10:00:00Z','2026-11-08T11:00:00Z');\nINSERT INTO \"jobs\" VALUES('j2','d2','{\"source_kind\": \"card\"}','completed',NULL,'2026-11-09T10:00:00Z','2026-11-09T11:00:00Z');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nINSERT INTO \"living_files\" VALUES('c1','a.wav',10,1,'h','x/a.wav','t');\nINSERT INTO \"living_files\" VALUES('c1','b.wav',32,1,'h','x/b.wav','t');\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('project-closure:p1','{\"finals\":[{\"path\":\"f.mp4\",\"role\":\"horizontal\",\"volume_id\":\"v\"}],\"no_more\":true,\"published\":false,\"related\":[\"p2\",\"gone\",\"p1\"],\"required\":[\"horizontal\"]}');\nINSERT INTO \"metadata\" VALUES('project-closure:p4','{\"finals\":[],\"no_more\":false,\"published\":false,\"required\":[\"horizontal\"]}');\nINSERT INTO \"metadata\" VALUES('project-released:p4','{\"at\":\"2026-11-01\"}');\nINSERT INTO \"metadata\" VALUES('closure-progress:x1','{\"files_done\":3,\"stage\":\"hashing\"}');\nINSERT INTO \"metadata\" VALUES('action-progress:a-1','{\"done\":1,\"phase\":\"copy\",\"total\":4}');\nINSERT INTO \"metadata\" VALUES('living-collection:c2','{\"id\":\"c2\",\"name\":\"zeta\",\"source\":\"/x/zeta\"}');\nINSERT INTO \"metadata\" VALUES('living-collection:c1','{\"id\":\"c1\",\"name\":\"alpha\",\"source\":\"/x/alpha\"}');\nINSERT INTO \"metadata\" VALUES('mission-registry:subaereo','{\"coverage\":{\"until\":\"2026-11-05\"},\"flow\":\"subaereo\"}');\nINSERT INTO \"metadata\" VALUES('release:r1','{\"id\":\"r1\"}');\nINSERT INTO \"metadata\" VALUES('creative-profiles','{\"e64\":{\"clipper_profile\":\"clip-e64\",\"id\":\"e64\",\"name\":\"E64\"}}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nINSERT INTO \"projects\" VALUES('p1','e64','terra-6-1');\nINSERT INTO \"projects\" VALUES('p2','e64','Terra 6 1 extra');\nINSERT INTO \"projects\" VALUES('p3','e64','otro_proyecto');\nINSERT INTO \"projects\" VALUES('p4','9logs','vlog');\nINSERT INTO \"projects\" VALUES('p5','e64','finales');\nINSERT INTO \"projects\" VALUES('p6','e64','terra__6');\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nINSERT INTO \"work\" VALUES('a1','ready',NULL,'2026-11-08');\nINSERT INTO \"work\" VALUES('a2','pending',NULL,'2026-11-08');\nINSERT INTO \"work\" VALUES('a3','pending',NULL,'2026-11-09');\nCOMMIT;"
+  },
   "recipe_ref": {
     "digest": "36f803f0fb08fe78b7310960b28b549c7edc83441288fe74d6cb8f70ca3de6d7",
     "id": "nu9ve-default"
