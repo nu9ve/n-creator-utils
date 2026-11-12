@@ -348,7 +348,7 @@ pub(crate) fn project_record(
 }
 
 /// Python `closure.normalized_name`: casefolded, runs of non-word characters and `_` become `-`, trimmed.
-fn normalized_name(value: &str) -> String {
+pub(crate) fn normalized_name(value: &str) -> String {
     let mut out = String::new();
     let mut gap = false;
     // `[^\w]+|_`: a run of non-word characters is one `-`, and each `_` (a word character) is its own `-`.

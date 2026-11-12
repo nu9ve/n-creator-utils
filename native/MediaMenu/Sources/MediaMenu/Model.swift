@@ -260,6 +260,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     var error = ""
     var python = ""
     var script = ""
+    /// The Rust engine, inside the app or, from source, `engine/target/release` next to `nu9ve.py`.
+    var enginePath = ""
+    /// Who answers reads: "rust" (Python answers what Rust does not have) or "python".
+    var readEngine = UserDefaults.standard.string(forKey: "readEngine") ?? "rust"
     var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
     var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
     var copyChoice = "all" { didSet { if copyChoice != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
@@ -297,17 +301,28 @@ enum OperationScope { case ingest, library, space, settings, source }
             python = prefs.string(forKey: "python") ?? python
             script = prefs.string(forKey: "script") ?? script
         }
+        enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script)
         captureRoot = prefs.string(forKey: "captureRoot") ?? ""
         configure()
     }
 
     // MARK: Backend
 
+    /// The bundled `nuun-engine`, else the one built next to the source checkout; "" when there is none.
+    static func engine(resources: URL?, script: String) -> String {
+        let candidates: [String?] = [resources?.appendingPathComponent("backend/nuun-engine").path,
+                          URL(fileURLWithPath: script).deletingLastPathComponent().appendingPathComponent("engine/target/release/nuun-engine").path]
+        return candidates.compactMap { $0 }.first { FileManager.default.isExecutableFile(atPath: $0) } ?? ""
+    }
+
     func configure() {
         guard !busy else { return }
         UserDefaults.standard.set(python, forKey: "python")
         UserDefaults.standard.set(script, forKey: "script")
-        let configuration = BackendConfiguration(python: python, script: script)
+        UserDefaults.standard.set(readEngine, forKey: "readEngine")
+        if enginePath.isEmpty { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
+        // Mutations keep Python's client: Rust only answers reads on this Mac until its physical run.
+        let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath, reads: readEngine)
         reader?.stop()
         client = BackendClient(configuration: configuration)
         reader = PersistentReader(configuration: configuration)
@@ -349,6 +364,9 @@ enum OperationScope { case ingest, library, space, settings, source }
             if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
             captureChanged([])
             missionsChanged()
+            // Inicio asks for finals when it appears, often before the first snapshot knows which disks are online;
+            // asking again here keeps «finales por respaldar» from waiting for a tab change (15-minute throttle kept).
+            checkFinals()
             statusChanged?()
         } catch { self.error = error.localizedDescription }
     }

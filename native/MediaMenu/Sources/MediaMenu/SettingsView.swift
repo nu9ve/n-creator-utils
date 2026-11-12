@@ -117,10 +117,27 @@ struct SettingsView: View {
             Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).textSelection(.enabled)
             TextField("Python", text: $model.python).disabled(model.packagedBackend || model.bundledRuntime)
             TextField("Motor", text: $model.script).disabled(model.packagedBackend || model.bundledRuntime)
+            Picker("Lecturas", selection: $model.readEngine) {
+                Text("Motor en Rust, con Python de respaldo").tag("rust")
+                Text("Python").tag("python")
+            }
+            .disabled(model.enginePath.isEmpty || model.busy)
+            .onChange(of: model.readEngine) { _, _ in model.configure() }
+            Text(model.enginePath.isEmpty ? String(localized: "Sin motor en Rust en esta instalación: todo lo responde Python.")
+                 : String(localized: "Motor en Rust: ") + model.enginePath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+            Text("Las escrituras (copiar, limpiar, liberar) siguen en Python hasta la prueba física del motor en Rust.").font(.caption).foregroundStyle(.secondary)
+            Text(engineSummary).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
             Text("Una ventana · tres modos · miniaturas bajo demanda · sin sondeo periódico en reposo.").font(.caption)
             if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }
             Text("Instalación local de desarrollo; el runtime externo y la firma de distribución siguen siendo gates de release.").font(.caption).foregroundStyle(.secondary)
         }
+    }
+    /// Which engine answered each read so far («snapshot: rust»), most recent state of each method.
+    var engineSummary: String {
+        let answered = model.reader?.answeredBy ?? [:]
+        guard !answered.isEmpty else { return "" }
+        let rust = answered.filter { $0.value == "rust" }.keys.sorted(), python = answered.filter { $0.value == "python" }.keys.sorted()
+        return "Rust: " + (rust.isEmpty ? "—" : rust.joined(separator: ", ")) + "\nPython: " + (python.isEmpty ? "—" : python.joined(separator: ", "))
     }
     func volume(_ title: String, role: String, value: Binding<String>) -> some View {
         Picker(title, selection: value) { Text("Sin sugerencia").tag(""); ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { item in Text(item["name"].string).tag(item["id"].string) } }

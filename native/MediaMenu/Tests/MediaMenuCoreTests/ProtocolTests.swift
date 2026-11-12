@@ -169,3 +169,80 @@ import Testing
     #expect(FlowGeometry.blockWidth(available: 300, stages: 5, connector: 30, range: 120...210) == 120)
     #expect(FlowGeometry.blockWidth(available: 3000, stages: 3, connector: 30, range: 120...210) == 210)
 }
+
+// MARK: Rust engine first, Python as fallback (PLAN «Motor en Rust · ruta», paso 7)
+
+private let repoRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
+/// A stand-in engine: it has `snapshot`, `jobs` and `recipe`; `snapshot` is not ported here, `jobs` fails as a method
+/// would, `recipe` stops the process mid-request.
+private let fakeEngine = #"""
+#!/usr/bin/python3
+import json, sys
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    if method == 'engine_info':
+        out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs', 'recipe']}}
+    elif method == 'snapshot':
+        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
+    elif method == 'jobs':
+        out = {'ok': False, 'error': {'code': 'unknown_project', 'message': 'Proyecto desconocido'}}
+    else:
+        sys.exit(3)
+    out['id'] = request['id']
+    sys.stdout.write(json.dumps(out) + '\n'); sys.stdout.flush()
+"""#
+
+@Test func readsAskRustFirstAndPythonAnswersWhatRustCannot() async throws {
+    let scratch = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-engine-swift-" + UUID().uuidString)
+    try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let engine = scratch.appendingPathComponent("fake-engine")
+    try fakeEngine.write(to: engine, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: engine.path)
+    let reader = PersistentReader(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
+                                                        stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path))
+    defer { reader.stop() }
+    // `not_ported` from Rust: Python answers.
+    let snapshot = try await reader.call("snapshot", ["cards": .bool(false)])
+    #expect(snapshot["defaults"]["profile"].string == "e64")
+    #expect(reader.answeredBy["snapshot"] == "python")
+    // An error of the method itself is Rust's answer, as Python's would be.
+    do {
+        _ = try await reader.call("jobs")
+        Issue.record("Rust's method error was not returned")
+    } catch let failure as BackendFailure { #expect(failure.code == "unknown_project") }
+    #expect(reader.answeredBy["jobs"] == "rust")
+    // Not among the engine's methods: straight to Python.
+    let suggestion = try await reader.call("suggest", ["source": .string("/does/not/exist")])
+    #expect(suggestion["reason"].string == "no_registered_destinations")
+    #expect(reader.answeredBy["suggest"] == "python")
+    // The engine stops mid-request: Python answers.
+    let recipe = try await reader.call("recipe")
+    #expect(recipe["cards"].array.first?["family"].string == "stalker")
+    #expect(reader.answeredBy["recipe"] == "python")
+}
+
+@Test(.enabled(if: FileManager.default.isExecutableFile(atPath: repoRoot.appendingPathComponent("engine/target/release/nuun-engine").path)))
+func theRealEngineAnswersReadsLikePython() async throws {
+    let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-rust-swift-" + UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: state) }
+    let base = BackendConfiguration(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path,
+                                    engine: repoRoot.appendingPathComponent("engine/target/release/nuun-engine").path)
+    var pythonOnly = base
+    pythonOnly.reads = "python"
+    let rust = PersistentReader(configuration: base), python = PersistentReader(configuration: pythonOnly)
+    defer { rust.stop(); python.stop() }
+    for (method, params) in [("snapshot", ["cards": JSONValue.bool(false)]), ("recipe", [:]), ("jobs", [:]), ("library", [:])] {
+        var mine = try await rust.call(method, params), theirs = try await python.call(method, params)
+        if method == "snapshot" {
+            // Clipper and Stalker are this machine's, asked at different moments.
+            if case .object(var a) = mine { a["capabilities"] = nil; mine = .object(a) }
+            if case .object(var b) = theirs { b["capabilities"] = nil; theirs = .object(b) }
+        }
+        #expect(mine == theirs, "\(method)")
+        #expect(rust.answeredBy[method] == "rust")
+        #expect(python.answeredBy[method] == "python")
+    }
+}

@@ -48,7 +48,7 @@ const READ_WHEN_EMPTY: [&str; 2] = ["defaults", "integration_settings"];
 const MAX_LINE: usize = 1024 * 1024;
 
 /// Methods this engine answers on every platform. Everything else in READ_METHODS is `not_ported`.
-const PORTABLE: [&str; 22] = [
+const PORTABLE: [&str; 25] = [
     "recipe",
     "snapshot",
     "engine_info",
@@ -71,9 +71,14 @@ const PORTABLE: [&str; 22] = [
     "missions_status",
     "integration_capabilities",
     "capture_libraries",
+    "storage_progress",
+    "storage_tree",
+    "missions_review",
 ];
 /// Reads that need this platform's volume backend (`platform_backend`: Windows in Rust; macOS still Python).
-const VOLUME_READS: [&str; 5] = [
+const VOLUME_READS: [&str; 7] = [
+    "storage_overview",
+    "closure_candidates",
     "suggest",
     "volumes",
     "source_cards",
@@ -250,6 +255,25 @@ impl Engine {
             "suggest" => nuun_media::volumes::suggest(&self.catalog()?, backend()?, params),
             "capture_overview" => {
                 nuun_media::projects::capture_overview(&self.catalog()?, backend()?, params)
+            }
+            "storage_overview" => nuun_media::storage::overview(
+                &self.catalog()?,
+                &self.home(),
+                backend()?,
+                Some(nuun_media::storage::THIS_MAC_ROOT),
+            ),
+            "missions_review" => {
+                nuun_media::mission_review::review(&self.catalog()?, platform_backend(), params)
+            }
+            "storage_progress" => nuun_media::storage::progress_method(&self.home()),
+            "storage_tree" => nuun_media::storage::tree(
+                &self.catalog()?,
+                &self.home(),
+                params,
+                Some(nuun_media::storage::THIS_MAC_ROOT),
+            ),
+            "closure_candidates" => {
+                nuun_media::projects::closure_candidates(&self.catalog()?, backend()?, params)
             }
             "closure_deliveries" => {
                 nuun_media::projects::closure_deliveries(&self.catalog()?, backend()?, params)
@@ -484,7 +508,8 @@ mod tests {
         let e = engine();
         assert_eq!(
             e.answer(r#"{"id": 1, "method": "storage_tree"}"#, Mode::Serve)["error"]["code"],
-            "not_ported"
+            "operation_failed",
+            "Python: KeyError on a missing target"
         );
         assert_eq!(
             e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],

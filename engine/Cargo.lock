@@ -349,11 +349,13 @@ dependencies = [
 name = "nuun-media"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nu9ve-json",
  "nu9ve-time",
  "nu9ve-volumes",
  "nuun-recipe",
  "quick-xml",
+ "regex",
  "rusqlite",
  "serde_json",
  "sha2",

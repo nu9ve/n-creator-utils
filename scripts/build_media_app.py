@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--python', help='Explicit Python executable for development only')
     parser.add_argument('--runtime', help='Relocatable Python runtime root containing bin/python3 and its license')
     parser.add_argument('--identity', help='Developer ID identity; optional ad-hoc signing for development')
+    parser.add_argument('--no-engine', action='store_true', help='Leave the Rust engine out: Python answers every read')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     output = Path(args.output).absolute()
@@ -47,6 +48,14 @@ def main():
         shutil.copy2(repo / name, source / name)
     for name in ['media', 'manager']:
         shutil.copytree(repo / name, source / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    engine = None
+    if not args.no_engine:
+        # The Rust engine answers reads first; Python answers what it does not have and every write (PLAN, paso 7).
+        subprocess.run(['cargo', 'build', '--release', '--offline', '--manifest-path', str(repo / 'engine/Cargo.toml')], check=True)
+        engine = backend / 'nuun-engine'
+        shutil.copy2(repo / 'engine/target/release/nuun-engine', engine)
+        engine.chmod(0o755)
+        subprocess.run([str(engine), '--version'], check=True, capture_output=True)
     if args.runtime:
         runtime = Path(args.runtime).resolve()
         if not (runtime / 'bin/python3').exists(): parser.error('Runtime must contain bin/python3')
@@ -67,6 +76,9 @@ def main():
     inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift']]
     for folder in ['media', 'manager', 'native/MediaMenu/Sources', 'native/MediaMenu/Localization']:
         inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift', '.strings', '.stringsdict'})
+    if engine is not None:
+        inputs.extend(p for p in (repo / 'engine').rglob('*') if 'target' not in p.relative_to(repo / 'engine').parts
+                      and (p.suffix in {'.rs', '.json'} or p.name in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}))
     for path in sorted(inputs):
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
@@ -88,9 +100,13 @@ def main():
                 with path.open('rb') as stream: header = stream.read(4)
                 if header in magic:
                     subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(path)], check=True)
+    if engine is not None:
+        # A nested executable is signed on its own: the bundle is signed without --deep.
+        subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(engine)], check=True)
     subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(output)], check=True)
     subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(output)], check=True)
-    print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'developer_id_signed': bool(args.identity),
+    print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'rust_engine': engine is not None,
+                      'developer_id_signed': bool(args.identity),
                       'notarized': False, 'release_ready': False, 'remaining_gates': ['camera/device validation', 'GUI acceptance', 'notarization and Gatekeeper acceptance']}, indent=2))
 
 
