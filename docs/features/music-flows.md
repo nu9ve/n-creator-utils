@@ -110,6 +110,8 @@ Cada fase cierra con pruebas en fixtures, docs al día (esta página, [STATUS](.
 | M3 · Triage de audio | Contrato `audio-triage-v1` con Clipper (niveles 0–1 primero); filtros en la revisión | Fixture de silencio, ruido, voz y música clasificado; nunca borra | Pendiente |
 | M4 · Biblioteca | Deduplicar por hash y huella; reorganizar con curado mediante `music-library-v1` (mapa de rutas + ACK, `rekordbox.xml`) | Un lote movido sin perder cues ni playlists en curado/rekordbox | Pendiente |
 
+En el sandbox de macOS, los cuatro RPC de M1 y M2 se ejecutan en Rust. M1 vuelve a revisar los sets y archivos de análisis antes del traslado. Si un set indicado no se puede leer, se detiene para una nueva revisión. M2 conserva en el diario el destino de la versión anterior para reanudar un respaldo interrumpido. Los sets se leen con gzip de macOS.
+
 ## M1 · Liberar una colección (implementado 2026-11-09)
 
 Código: [collection_release.py](../../media/collection_release.py), pruebas en [test_collection_release.py](../../tests/test_collection_release.py) (12, sólo fixtures). Servicio: `collection_release_plan`, `collection_release_apply`, `collection_release_plans`.

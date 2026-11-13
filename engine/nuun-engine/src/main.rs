@@ -154,6 +154,10 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
                 "missions_incorporate",
                 "dng_plan",
                 "dng_apply",
+                "living_plan",
+                "living_apply",
+                "collection_release_plan",
+                "collection_release_apply",
             ]);
         }
         if cfg!(unix) {
@@ -428,6 +432,24 @@ impl Engine {
                 backend(platform)?,
                 Some(nuun_media::storage::THIS_MAC_ROOT),
             ),
+            #[cfg(target_os = "macos")]
+            "collection_release_plan" => {
+                nuun_media::collection_release::plan(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(target_os = "macos")]
+            "collection_release_apply" => nuun_media::collection_release::apply(
+                &self.home(),
+                write_backend(platform)?,
+                params,
+            ),
+            #[cfg(target_os = "macos")]
+            "living_plan" => {
+                nuun_media::living::plan(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(target_os = "macos")]
+            "living_apply" => {
+                nuun_media::living::apply(&self.home(), write_backend(platform)?, params)
+            }
             #[cfg(target_os = "macos")]
             "dng_plan" => nuun_media::dng::plan(&self.home(), write_backend(platform)?, params),
             #[cfg(target_os = "macos")]
@@ -903,7 +925,7 @@ mod tests {
         );
         assert_eq!(
             e.answer(
-                r#"{"id": 10, "method": "living_apply", "params": {}}"#,
+                r#"{"id": 10, "method": "storage_scan", "params": {}}"#,
                 Mode::Once
             )["error"]["code"],
             "not_ported"

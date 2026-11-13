@@ -994,6 +994,45 @@ def dng_case():
     return {'plan': reviewed, 'result': result, 'units': [json.loads(line) for line in unit_map.read_bytes().splitlines()]}
 
 
+def music_cases():
+    from media import collection_release, living
+    from media.catalog import Catalog
+    from tests.test_media_engine import FixtureVolumes
+    from unittest.mock import patch
+
+    root = fresh_root('music')
+    source, archive = root / 'card', root / 'archive'
+    source.mkdir()
+    archive.mkdir()
+    files = {'a.wav': 'backed up', 'b.wav': 'only at source', 'notes.txt': 'notes'}
+    for name, body in files.items():
+        (source / name).write_text(body)
+    (archive / 'renamed.wav').write_text(files['a.wav'])
+    backend = FixtureVolumes()
+    with contextlib.closing(Catalog(root / 'state')) as catalog:
+        record = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+        with patch('media.clipper.inspect', return_value={'blockers': [], 'relinks': []}):
+            release = collection_release.plan(catalog, backend, str(source), ['MEDIA'])
+        backup = living.plan(catalog, backend, str(source), 'MEDIA', 'Music/backup')
+        applied = living.apply(catalog, backend, backup['id'], backup['digest'])
+        next_plan = living.plan(catalog, backend, str(source), 'MEDIA', 'Music/backup')
+
+    def normalize(doc):
+        def visit(item):
+            if isinstance(item, dict):
+                return {k: visit(v) for k, v in item.items()
+                        if k not in ('id', 'digest', 'created_at', 'completed_at', 'collection_id',
+                                     'ctime_ns', 'mtime_ns', 'inode', 'root_inode')}
+            if isinstance(item, list):
+                return [visit(v) for v in item]
+            if isinstance(item, str):
+                return item.replace(str(root), '<ROOT>').replace(record['id'], 'MEDIA')
+            return item
+        return visit(doc)
+    return {'files': files, 'release': normalize(release), 'backup': normalize(backup),
+            'applied': normalize(applied), 'next': normalize(next_plan)}
+
+
 # The disk index (`storage_overview`, `storage_tree`, `storage_progress`): Python scans an archive and a work
 # disk, then the run times, pids and this machine's free space are fixed so the answers do not depend on the run.
 def storage_cases():
@@ -1299,6 +1338,7 @@ def main():
         'missions': mission_cases(),
         'mission_incorporation': mission_incorporation_case(),
         'dng': dng_case(),
+        'music': music_cases(),
         # The disk index: overview, folders and progress.
         'storage': storage_cases(),
         # Clipper's guards and discarding a Stalker session, against a fixture Clipper and HOME.
