@@ -56,6 +56,18 @@ pub fn diskutil(args: &[&str], timeout: Duration) -> Result<Value, Failure> {
     plist_command("/usr/sbin/diskutil", args, timeout)
 }
 
+/// Ask macOS to eject the currently identified mount, without forcing it.
+pub fn eject(mount: &str) -> Result<(), Failure> {
+    let mut child = Command::new("/usr/sbin/diskutil")
+        .args(["eject", mount])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| Failure::Other(e.to_string()))?;
+    wait(&mut child, Duration::from_secs(30))
+}
+
 /// A system tool that answers a property list (`diskutil`, `hdiutil info -plist`), with a time limit, as JSON.
 pub fn plist_command(executable: &str, args: &[&str], timeout: Duration) -> Result<Value, Failure> {
     let mut child = Command::new(executable)
@@ -73,26 +85,28 @@ pub fn plist_command(executable: &str, args: &[&str], timeout: Duration) -> Resu
         }
         buffer
     });
+    wait(&mut child, timeout)?;
+    let output = reader.join().unwrap_or_default();
+    plist(&output).ok_or_else(|| Failure::Other("Invalid property list".into()))
+}
+
+fn wait(child: &mut std::process::Child, timeout: Duration) -> Result<(), Failure> {
     let started = Instant::now();
-    let status = loop {
-        match child
-            .try_wait()
-            .map_err(|e| Failure::Other(e.to_string()))?
-        {
-            Some(status) => break status,
-            None if started.elapsed() >= timeout => {
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => return Ok(()),
+            Ok(Some(_)) => return Err(Failure::Status),
+            Ok(None) if started.elapsed() < timeout => std::thread::sleep(Duration::from_millis(2)),
+            outcome => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err(Failure::Timeout);
+                return Err(match outcome {
+                    Err(error) => Failure::Other(error.to_string()),
+                    _ => Failure::Timeout,
+                });
             }
-            None => std::thread::sleep(Duration::from_millis(2)),
         }
-    };
-    let output = reader.join().unwrap_or_default();
-    if !status.success() {
-        return Err(Failure::Status);
     }
-    plist(&output).ok_or_else(|| Failure::Other("Invalid property list".into()))
 }
 
 enum Token {

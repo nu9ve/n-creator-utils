@@ -11,7 +11,8 @@
 //!   rescanned unchanged; each original is re-read and must hash like its copies before it is removed; Sony
 //!   camera indexes are never removed (the job waits for the camera's format).
 //!
-//! Stalker release after ingest and cleanup of published finals use Python. Cancellation from the client is
+//! Stalker release after ingest and published finals cleanup require Clipper exclusion on Unix.
+//! Cancellation from the client is
 //! a process kill: the journal
 //! makes it resumable (the job stays in its last state; Python would record `paused`).
 
@@ -164,6 +165,7 @@ pub struct Transfer<'a> {
     flushed: Instant,
     /// The weakest way a verification read reached its bytes in this run (`fs::verify_read`).
     verify_cache: fs::Cache,
+    clipper_guard: Option<&'a crate::clipper_release::Guard>,
 }
 
 impl<'a> Transfer<'a> {
@@ -185,6 +187,7 @@ impl<'a> Transfer<'a> {
             started: Instant::now(),
             flushed: Instant::now(),
             verify_cache: fs::Cache::Bypassed,
+            clipper_guard: None,
         }
     }
 
@@ -663,19 +666,16 @@ impl<'a> Transfer<'a> {
             "plan_changed",
             "Apply requires the reviewed plan digest",
         )?;
-        // Release with Clipper relink/ACK continues through Python before any mutation.
         require(
-            plan["release_stalker_source"] != true,
+            plan["release_stalker_source"] != true || cfg!(unix),
             "not_ported",
-            "Stalker release after ingest still uses Python",
+            "Stalker release after ingest requires Clipper exclusion on Unix",
         )?;
         let reader = Catalog::open(&self.home)?;
         crate::planner::check_retitle(&reader, plan)?;
-        require(
-            plan["source_kind"] != "delivery" || plan["cleanup"] != true,
-            "not_ported",
-            "Releasing published finals still uses Python",
-        )?;
+        if plan["source_kind"] == "delivery" && plan["cleanup"] == true {
+            self.check_finals_consumers(plan)?;
+        }
         let id = text(plan, "id").to_owned();
         let reviewed = self.catalog.get(&format!("reviewed-plan:{id}"))?;
         require(
@@ -744,6 +744,28 @@ impl<'a> Transfer<'a> {
         }
     }
 
+    fn check_finals_consumers(&self, plan: &Value) -> Result<()> {
+        let guard = self.clipper_guard.ok_or_else(|| {
+            Error::new(
+                "not_ported",
+                "Published finals cleanup requires Clipper exclusion",
+            )
+        })?;
+        let report = guard.inspect(&[(text(plan, "source").to_owned(), None)])?;
+        let blockers = report["blockers"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .take(3)
+            .collect::<Vec<_>>();
+        require(
+            blockers.is_empty(),
+            "source_in_use",
+            format!("Clipper uses these finals: {}", blockers.join("; ")),
+        )
+    }
+
     fn member_sha(&self, job: &str, path: &str) -> Result<Option<String>> {
         self.catalog
             .db()
@@ -809,6 +831,15 @@ impl<'a> Transfer<'a> {
             0
         };
         let backup_budget = total + verify_total + cleanup_total;
+        let release_budget: u64 = if plan["release_stalker_source"] == true {
+            files
+                .iter()
+                .filter(|file| unit_of(file)["kind"] == "stalker_session")
+                .map(size)
+                .sum()
+        } else {
+            0
+        };
         let previous = self
             .catalog
             .get(&format!("progress:{id}"))?
@@ -817,7 +848,7 @@ impl<'a> Transfer<'a> {
         self.progress = Some(
             json!({"job_id": id, "phase": "copying", "files_total": files.len(), "files_done": 0, "bytes_total": total,
                    "copied_bytes": 0, "verified_bytes": 0, "verify_total": verify_total, "destinations": destinations,
-                   "global_total": backup_budget, "backup_budget": backup_budget, "release_budget": 0,
+                   "global_total": backup_budget + release_budget, "backup_budget": backup_budget, "release_budget": release_budget,
                    "cleanup_bytes": 0, "global_done": previous_done})
             .as_object()
             .cloned()
@@ -1085,7 +1116,14 @@ impl<'a> Transfer<'a> {
         self.meter.current = Map::new();
         if let Some(p) = self.progress.as_mut() {
             p.insert("global_done".into(), json!(total));
-            p.insert("global_fraction".into(), json!(1.0));
+            p.insert(
+                "global_fraction".into(),
+                json!(if release_budget == 0 {
+                    1.0
+                } else {
+                    total as f64 / (backup_budget + release_budget).max(1) as f64
+                }),
+            );
             p.insert("eta_seconds".into(), Value::Null);
             for (k, v) in self.meter.fields() {
                 p.insert(k, v);
@@ -1155,6 +1193,9 @@ impl<'a> Transfer<'a> {
         for file in &removable {
             let path = text(file, "path");
             self.checkpoint("cleanup_file", file)?;
+            if plan["source_kind"] == "delivery" {
+                self.check_finals_consumers(plan)?;
+            }
             self.meter.holding(path, source_name, "", "release");
             self.source_check(plan, false)?;
             for record in records {
@@ -1468,15 +1509,28 @@ pub fn apply(
         }
         other => other.clone(),
     };
+    validate_plan(&plan)?;
+    require(
+        reviewed_digest == text(&plan, "digest"),
+        "plan_changed",
+        "Apply requires the reviewed plan digest",
+    )?;
+    let guard = if plan["source_kind"] == "delivery" && plan["cleanup"] == true && cfg!(unix) {
+        Some(crate::clipper_release::Guard::acquire(home)?)
+    } else {
+        None
+    };
     let lock = crate::catalog::writer_lock(home)?;
     let catalog = WritableCatalog::open(home)?;
     let mut transfer = Transfer::new(home, &catalog, backend, hook);
+    transfer.clipper_guard = guard.as_ref();
     let mut result = transfer.apply(&plan, reviewed_digest)?;
     if let Some(cache) = transfer.weak_verification() {
         result["verify_cache"] = json!(cache);
     }
     drop(transfer);
     drop(lock);
+    drop(guard);
     let state = text(&result, "state").to_owned();
     let missions = plan["units"]
         .as_array()
@@ -1496,6 +1550,20 @@ pub fn apply(
                 result["units_map"] = json!("failed");
                 result["units_map_error"] = json!(e.message);
             }
+        }
+    }
+    if plan["release_stalker_source"] == true
+        && matches!(state.as_str(), "source_retained" | "completed")
+    {
+        let summary = crate::release::release_stalker_sources(home, backend, &plan)?;
+        let cache = result.get("verify_cache").cloned();
+        result = crate::reads::job(&Catalog::open(home)?, &json!({"job_id": plan["id"]}))?;
+        if let Some(cache) = cache {
+            result["verify_cache"] = cache;
+        }
+        result["stalker_release"] = summary;
+        if truthy(&result["stalker_release"]["released"]) {
+            return Ok(result);
         }
     }
     // A metadata-backup failure must not hide a successfully completed ingest.
@@ -1582,6 +1650,55 @@ mod tests {
         let mut n = 0;
         walk(root, suffix, &mut n);
         n
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn finals_cleanup_holds_clipper_exclusion_and_keeps_new_deliveries() {
+        use std::os::unix::fs::PermissionsExt;
+        let s = crate::volumes::test_backend::setup();
+        let folder = s.work.join("002_finales/e64/subidos");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("26-11-12-final.mov"), b"final").unwrap();
+        let clipper = s.home.join("clipper-fixture");
+        std::fs::write(&clipper, r#"#!/bin/sh
+echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"],"projects":[],"offline_projects":[]}'
+"#).unwrap();
+        std::fs::set_permissions(&clipper, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let catalog = WritableCatalog::open(&s.home).unwrap();
+        catalog.set("clipper-executable", &json!(clipper)).unwrap();
+        let plan = crate::planner::build_plan(&s.home, &s.backend, &json!({
+            "source": folder, "archive": "MEDIA", "project": "finales", "profile": "e64",
+            "archive_only": true, "confirm_archive_only": true, "work_decision": "skipped",
+            "cleanup": true, "source_kind": "delivery", "finals_route": true, "camera": "generic",
+        })).unwrap();
+        let guard = crate::clipper_release::Guard::acquire_at(
+            &s.home,
+            s.home.with_file_name("clipper-home"),
+        )
+        .unwrap();
+        let _lock = crate::catalog::writer_lock(&s.home).unwrap();
+        let hook = |stage: &str, _: &Value| {
+            if stage == "before_cleanup" {
+                std::fs::write(folder.join("26-11-12-new.mov"), b"new").unwrap();
+            }
+            Ok(())
+        };
+        let mut transfer = Transfer::new(&s.home, &catalog, &s.backend, &hook);
+        transfer.clipper_guard = Some(&guard);
+        assert_eq!(
+            transfer.apply(&plan, text(&plan, "digest")).unwrap()["state"],
+            "source_has_new_material"
+        );
+        assert!(!folder.join("26-11-12-final.mov").exists());
+        assert_eq!(
+            std::fs::read(folder.join("26-11-12-new.mov")).unwrap(),
+            b"new"
+        );
+        assert_eq!(
+            std::fs::read(s.archive.join("002_finales/e64/2026/26-11-12-final.mov")).unwrap(),
+            b"final"
+        );
     }
 
     #[test]
@@ -1902,6 +2019,76 @@ mod tests {
             b"<index/>"
         );
         assert!(s.card.join("AVF_INFO/AVIN0001.BNP").exists());
+    }
+
+    #[test]
+    fn confirm_sony_cleanup_requires_a_changed_index_and_preserves_new_clips() {
+        let s = fixture();
+        let clip = s.card.join("PRIVATE/M4ROOT/CLIP/C0001.MP4");
+        let index = s.card.join("PRIVATE/M4ROOT/MEDIAPRO.XML");
+        std::fs::create_dir_all(clip.parent().unwrap()).unwrap();
+        std::fs::write(&clip, b"sony").unwrap();
+        std::fs::write(&index, b"<index/>").unwrap();
+        let plan = plan(&s, json!({}));
+        assert_eq!(
+            run(&s, &plan, &ok()).unwrap()["state"],
+            "camera_action_required"
+        );
+        let params = json!({"source": s.card, "job_id": plan["id"]});
+        let confirm = || crate::sony::confirm(&s.home, &s.backend, &params);
+        assert_eq!(confirm().unwrap_err().code, "card_not_formatted");
+        std::fs::write(&index, b"<new-index/>").unwrap();
+        std::fs::write(&clip, b"sony").unwrap();
+        assert_eq!(confirm().unwrap_err().code, "source_not_clean");
+        std::fs::write(&clip, b"new!").unwrap();
+        assert_eq!(confirm().unwrap()["state"], "completed");
+        assert_eq!(std::fs::read(&clip).unwrap(), b"new!");
+    }
+
+    #[test]
+    fn sony_reconcile_distinguishes_removal_reappearance_and_format_after_failed_check() {
+        let s = fixture();
+        let rel = "PRIVATE/M4ROOT/CLIP/C0001.MP4";
+        let clip = s.card.join(rel);
+        let index = s.card.join("PRIVATE/M4ROOT/MEDIAPRO.XML");
+        std::fs::create_dir_all(clip.parent().unwrap()).unwrap();
+        std::fs::write(&clip, b"sony").unwrap();
+        std::fs::write(&index, b"<index/>").unwrap();
+        let plan = plan(&s, json!({}));
+        assert_eq!(
+            run(&s, &plan, &ok()).unwrap()["state"],
+            "camera_action_required"
+        );
+        let id = text(&plan, "id");
+        let writer = WritableCatalog::open(&s.home).unwrap();
+        writer
+            .state(id, "failed", Some("FileNotFoundError"))
+            .unwrap();
+        writer
+            .set(
+                &format!("progress:{id}"),
+                &json!({"phase": "checking_card"}),
+            )
+            .unwrap();
+        let catalog = Catalog::open(&s.home).unwrap();
+        let job = crate::reads::jobs(&catalog).unwrap().remove(0);
+        assert_eq!(job["sony_removal_recorded"], true);
+        assert_eq!(job["sony_stage"], "removal_recorded");
+        let params = json!({"source": s.card, "identity": crate::volumes::card_identity(&s.backend.describe(&s.card, true).unwrap())});
+        let check = || crate::sony::reconcile(&s.home, &s.backend, &params).unwrap();
+        assert_eq!(check()["checked"][id], "waiting_camera");
+        assert_eq!(check()["updated"], json!([]));
+        std::fs::write(&clip, b"sony").unwrap();
+        std::fs::write(&index, b"<new-index/>").unwrap();
+        let present = check();
+        assert_eq!(present["checked"][id], "originals_present");
+        assert_eq!(present["reappeared"][id], json!([rel]));
+        std::fs::write(&clip, b"new!").unwrap();
+        assert_eq!(check()["checked"][id], "ready");
+        let completed = crate::reads::job(&catalog, &json!({"job_id": id})).unwrap();
+        assert_eq!(completed["state"], "completed");
+        assert_eq!(completed["progress"]["phase"], "completed");
+        assert_eq!(std::fs::read(&clip).unwrap(), b"new!");
     }
 
     #[test]

@@ -128,7 +128,7 @@ fn target(all_targets: &[Value], params: &Value) -> Result<Value> {
         })
 }
 
-fn storage_lock(home: &Path) -> Result<std::fs::File> {
+fn storage_lock(home: &Path) -> Result<crate::catalog::OperationLock> {
     operation_lock(
         home,
         "storage.lock",

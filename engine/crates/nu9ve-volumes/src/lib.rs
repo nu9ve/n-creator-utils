@@ -2,7 +2,7 @@
 //!
 //! rust-engine.md §6 · origin of the Windows half: curado `src-tauri/src/identity.rs` and `relink.rs`
 //! (volume serial through `GetVolumeInformationW`, space available to the user through `GetDiskFreeSpaceExW`,
-//! drive letters). The macOS half is still Python (`media/volumes.py`, diskutil/DiskArbitration).
+//! drive letters). The macOS half uses statfs, statvfs and diskutil.
 //!
 //! Windows identity (new: Python has no Windows backend; outside macOS it falls back to a `local` mode with no
 //! physical identity). The same guarantees as the Mac one:
@@ -12,7 +12,7 @@
 //!   disk extents (`IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS`), like `APFSPhysicalStores` on Mac;
 //! - external, removable and disk image come from the device (`IOCTL_STORAGE_QUERY_PROPERTY`), not from a name.
 //!
-//! Read only: nothing here mounts, ejects or writes. Opening `\\.\E:` with no access rights needs no administrator.
+//! Device policy and writer exclusion are handled by the caller. Windows volume metadata needs no administrator.
 
 pub mod fs;
 #[cfg(target_os = "macos")]

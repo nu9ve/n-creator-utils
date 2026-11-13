@@ -104,7 +104,7 @@ pub(crate) fn subfolders(root: &Path) -> Result<Vec<String>> {
 
 /// closure.py `delivery_files`: regular media, text and subtitle files, in `os.walk` order (a folder's files,
 /// then its subfolders, both sorted); hidden entries and opaque bundles stay closed, links are not followed.
-fn delivery_files(root: &Path, out: &mut Vec<PathBuf>) {
+pub(crate) fn delivery_files(root: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(root) else {
         return;
     };

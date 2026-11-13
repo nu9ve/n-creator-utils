@@ -89,7 +89,7 @@ const VOLUME_READS: [&str; 7] = [
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// All of them need the volume backend. `register_volume` changes configuration (the catalog), never media,
 /// under the writer lock.
-const VOLUME_WRITES: [&str; 15] = [
+const VOLUME_WRITES: [&str; 17] = [
     "register_volume",
     "plan",
     "plan_document",
@@ -105,6 +105,8 @@ const VOLUME_WRITES: [&str; 15] = [
     "recover_catalog",
     "restore",
     "deliver_work",
+    "confirm_camera_cleanup",
+    "reconcile_sony_cleanup",
 ];
 
 /// The methods this engine answers on this platform: the portable ones, plus the volume reads with a backend.
@@ -145,6 +147,17 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     }
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
+        if cfg!(target_os = "macos") {
+            writes.push("eject_card");
+        }
+        if cfg!(unix) {
+            writes.extend([
+                "apply_release",
+                "relink_release",
+                "closure_plan",
+                "closure_apply",
+            ]);
+        }
     }
     writes
 }
@@ -171,7 +184,7 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 9] = [
+const ONCE_READS: [&str; 10] = [
     "discover",
     "finals_status",
     "captures",
@@ -181,6 +194,7 @@ const ONCE_READS: [&str; 9] = [
     "resolve",
     "capture_discard_check",
     "sources",
+    "handoff",
 ];
 
 /// How a request arrived: a line of `rpc-serve` (reads only, 1 MiB) or the one-shot `rpc` (16 MiB, writes allowed).
@@ -240,6 +254,7 @@ impl Engine {
                 nuun_media::captures::discard_check(&self.catalog()?, params)
             }
             "publications" => nuun_media::reads::publications(&self.catalog()?),
+            "handoff" => nuun_media::handoff::handoff(&self.catalog()?, params),
             "sources" => nuun_media::sources::sources(&self.catalog()?, backend(platform)?, params),
             "retitle_operations" => nuun_media::reads::retitle_operations(&self.catalog()?),
             "collection_release_plans" => {
@@ -342,6 +357,18 @@ impl Engine {
                     Ok(plan)
                 }
             }
+            "closure_plan" => {
+                nuun_media::closeout::plan(&self.home(), write_backend(platform)?, params)
+            }
+            "closure_apply" => {
+                nuun_media::closeout::apply(&self.home(), write_backend(platform)?, params)
+            }
+            "apply_release" => {
+                nuun_media::release::apply_release(&self.home(), write_backend(platform)?, params)
+            }
+            "relink_release" => {
+                nuun_media::release::relink_release(&self.home(), write_backend(platform)?, params)
+            }
             "plan_release" => {
                 nuun_media::release::plan_release(&self.home(), write_backend(platform)?, params)
             }
@@ -356,6 +383,15 @@ impl Engine {
             }
             "recover_catalog" => {
                 nuun_media::recovery::recover(&self.home(), write_backend(platform)?, params)
+            }
+            "confirm_camera_cleanup" => {
+                nuun_media::sony::confirm(&self.home(), write_backend(platform)?, params)
+            }
+            "reconcile_sony_cleanup" => {
+                nuun_media::sony::reconcile(&self.home(), write_backend(platform)?, params)
+            }
+            "eject_card" => {
+                nuun_media::volumes::eject_card(&self.home(), write_backend(platform)?, params)
             }
             "coverage" => nuun_media::coverage::report(&self.home(), backend(platform)?, params),
             "storage_add_folder" => {
@@ -614,6 +650,44 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn handoff_matches_python() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/engine-golden/recipe.json");
+        let golden: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let case = &golden["handoff"];
+        let home = tempfile::tempdir().unwrap();
+        rusqlite::Connection::open(home.path().join("catalog.sqlite3"))
+            .unwrap()
+            .execute_batch(case["sql"].as_str().unwrap())
+            .unwrap();
+        let engine = Engine {
+            state_dir: Some(home.path().to_path_buf()),
+        };
+        for (params, expected) in case["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(case["answers"].as_array().unwrap())
+        {
+            let mut reply = engine.answer(
+                &json!({"id": 1, "method": "handoff", "params": params}).to_string(),
+                Mode::Once,
+            );
+            if let Some(data) = reply["data"].as_object_mut() {
+                data.remove("handoff_id");
+                data.remove("created_at");
+                assert_eq!(reply["data"], expected["data"], "{params}");
+            } else {
+                assert_eq!(
+                    reply["error"]["code"], expected["error"],
+                    "{params}: {reply}"
+                );
+            }
+        }
+    }
+
     /// E1: the same base catalog and the same 43 writes as Python's, the same answers and the same catalog after.
     #[test]
     #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
@@ -795,7 +869,7 @@ mod tests {
         );
         assert_eq!(
             e.answer(
-                r#"{"id": 10, "method": "apply_release", "params": {}}"#,
+                r#"{"id": 10, "method": "dng_apply", "params": {}}"#,
                 Mode::Once
             )["error"]["code"],
             "not_ported"

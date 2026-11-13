@@ -284,7 +284,7 @@ def plan_cases():
 
 def release_cases():
     from media.catalog import Catalog
-    from media.release import plan_release, review_release
+    from media.release import apply_release, plan_release, review_release
     from tests.test_media_engine import FixtureVolumes
     from unittest.mock import patch
     root = fresh_root('release-plan')
@@ -310,17 +310,124 @@ def release_cases():
         with patch('media.clipper.inspect', return_value=refreshed):
             updated = review_release(catalog, backend, plan['id'], plan['digest'])
         assert catalog.get('release:' + plan['id']) == updated
+        from contextlib import nullcontext
+        with patch('media.clipper.release_guard', return_value=nullcontext()), patch('media.clipper.inspect', return_value=initial):
+            applied = apply_release(catalog, backend, plan['id'], plan['digest'])
+        remaining = sorted(str(path.relative_to(work)) for path in work.rglob('*') if path.is_file())
     def normalize(value):
         value = dict(value)
-        for key in ('id', 'created_at', 'digest'):
-            del value[key]
+        for key in ('id', 'created_at', 'digest', 'metadata_backup'):
+            value.pop(key, None)
         value['source_identity'].update(root_inode='<INODE>', device='<DEVICE>')
         for entry in value['entries']:
             entry['stamp'].update(inode='<INODE>', ctime_ns='<CTIME>', mtime_ns='<MTIME>')
         value['archive_id'] = 'MEDIA'
         value['work_id'] = 'ESSD'
         return json.loads(json.dumps(value).replace(str(root), '<ROOT>'))
-    return {'files': files, 'plan': normalize(plan), 'review': normalize(updated)}
+    return {'files': files, 'plan': normalize(plan), 'review': normalize(updated),
+            'applied': normalize(applied), 'remaining': remaining}
+
+
+def closeout_cases():
+    from media.catalog import Catalog
+    from media.closure import apply_close, plan_close, save
+    from tests.test_media_engine import FixtureVolumes
+    from unittest.mock import patch
+    root = fresh_root('closeout')
+    archive, work = (root / name for name in ('archive', 'work'))
+    published = '002_finales/general/intro/main.mov'
+    unpublished = '002_finales/general/intro/preview.mov'
+    files = {'work/' + published: 'published', 'work/' + unpublished: 'preview',
+             'archive/' + published: 'published'}
+    for name, content in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    backend = FixtureVolumes()
+    consumers = {'blockers': [], 'relinks': [], 'dependencies': None}
+    with contextlib.closing(Catalog(root / 'state')) as catalog:
+        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'ESSD', 'work', '001_proyectos')):
+            catalog.register(name, role, folder, backend.describe(folder), prefix)
+        with catalog.db:
+            catalog.db.execute("INSERT INTO projects VALUES('p1','general','intro')")
+        save(catalog, backend, 'p1', ['horizontal'], True, False, [
+            {'volume_id': catalog.volume('ESSD')['id'], 'path': published, 'role': 'horizontal', 'published': True},
+            {'volume_id': catalog.volume('ESSD')['id'], 'path': unpublished, 'role': 'auxiliary', 'published': False}])
+        with patch('media.clipper.inspect', return_value=consumers), patch('media.clipper.release_guard', return_value=contextlib.nullcontext()):
+            plan = plan_close(catalog, backend, 'p1', 'MEDIA', 'ESSD', release_work=False)
+            applied = apply_close(catalog, backend, plan['id'], plan['digest'], confirm_discard=True)
+        ids = {catalog.volume(name)['id']: name for name in ('MEDIA', 'ESSD')}
+    def normalize(value):
+        def visit(item):
+            if isinstance(item, dict):
+                return {k.replace(str(root), '<ROOT>'): ('<' + k.upper() + '>' if k in ('inode', 'ctime_ns', 'mtime_ns', 'root_inode', 'device')
+                            else visit(v)) for k, v in item.items()
+                        if k not in ('created_at', 'updated_at', 'closure_settings_digest', 'digest', 'metadata_backup')}
+            if isinstance(item, list):
+                return [visit(v) for v in item]
+            if isinstance(item, str):
+                return ids.get(item, item.replace(str(root), '<ROOT>'))
+            return item
+        return visit({k: v for k, v in value.items() if k != 'id'})
+    return {'plan': normalize(plan), 'applied': normalize(applied)}
+
+
+def handoff_cases():
+    from media.catalog import Catalog
+    from media.library import handoff
+    from tests.test_media_engine import FixtureVolumes
+    root = fresh_root('handoff')
+    backend = FixtureVolumes()
+    with deterministic(), contextlib.closing(Catalog(root / 'state')) as catalog:
+        volumes = []
+        for folder, name, role, prefix in (('archive', 'MEDIA', 'archive', '001_raw'), ('work', 'ESSD', 'work', '001_proyectos')):
+            path = root / folder
+            path.mkdir()
+            identity = dict(backend.describe(path), root_inode=1, device=1)
+            volumes.append(catalog.register(name, role, path, identity, prefix))
+        catalog.set('creative-profiles', {'general': {'clipper_profile': 'editor'}})
+        sets = [
+            ('a1', 'p1', 'stalker_session', 'S1.stalker', ['S1.stalker/manifest.json', 'S1.stalker/screen.mov']),
+            ('a2', 'p1', 'delivery', '.', ['extra.txt', 'main.mov']),
+            ('a3', 'p2', 'file', '.', ['photo.jpg']),
+            ('a4', 'p1', 'file', '.', ['conflict.mov']),
+        ]
+        for aid, pid, kind, bundle, paths in sets:
+            job_id = 'job-' + aid
+            plan = {'id': job_id, 'source_kind': 'delivery' if kind == 'delivery' else 'stalker',
+                    'files': [{'path': path, 'stamp': {'size': index + 5}} for index, path in enumerate(paths)],
+                    'layout': {path: {'archive': 'A/' + path, 'work': 'W/' + path} for path in paths}}
+            asset = {'id': aid, 'project_id': pid, 'profile': 'general', 'kind': kind, 'bundle': bundle,
+                     'paths': paths, 'job_id': job_id, 'revision': 'revision-' + aid}
+            if kind == 'stalker_session':
+                asset['session_id'] = '11111111-1111-4111-8111-111111111111'
+            with catalog.db:
+                catalog.db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)',
+                                   (job_id, 'digest', json.dumps(plan), 'completed', None, 't', 't'))
+                catalog.db.execute('INSERT INTO assets VALUES(?,?,?)', (aid, job_id, json.dumps(asset)))
+                for v in volumes:
+                    for i, path in enumerate(paths):
+                        if aid == 'a2' and v['role'] == 'work' and i == 0:
+                            continue
+                        prefix = v.get('finals_prefix', '002_finales') if kind == 'delivery' else v['prefix']
+                        sha = 'conflict' if aid == 'a4' and v['role'] == 'work' else 'sha-' + str(i)
+                        row = {'path': path, 'destination': prefix + '/' + plan['layout'][path][v['role']],
+                               'volume_id': v['id'], 'sha256': sha, 'bytes': i + 5}
+                        catalog.db.execute('INSERT INTO copies VALUES(?,?,?,?,?)',
+                                           (job_id, v['id'], path, sha, json.dumps(row)))
+        requests = [{'asset_ids': ['a2', 'a1']}, {'asset_ids': ['a1'], 'volume_id': volumes[0]['id']},
+                    {'asset_ids': ['a2'], 'volume_id': volumes[1]['id']}, {'asset_ids': ['a1', 'a3']},
+                    {'asset_ids': ['a4']}, {'asset_ids': ['a1', 'a1']}, {'asset_ids': ['missing']}]
+        answers = []
+        for params in requests:
+            try:
+                value = handoff(catalog, backend, **params)
+                for key in ('handoff_id', 'created_at'):
+                    value.pop(key)
+                answers.append({'data': value})
+            except MediaError as error:
+                answers.append({'error': error.code})
+        return {'sql': sql_dump(catalog.db).replace(str(root), '<ROOT>'), 'requests': requests, 'answers': answers}
 
 
 # Catalog reads (rpc-serve) on one fixture catalog: Python writes the catalog as SQL next to its answers, and the
@@ -1015,6 +1122,8 @@ def main():
         'plan_tz': PLAN_TZ,
         'plans': plan_cases(),
         'release': release_cases(),
+        'closeout': closeout_cases(),
+        'handoff': handoff_cases(),
         # Catalog reads through the engine's own dispatch, as rpc-serve answers them.
         'reads': reads_cases(),
         # Stalker libraries read from bundles on disk.

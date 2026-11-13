@@ -194,6 +194,10 @@ de liberación mismo, no un helper con vida independiente. EOF de un proceso
 no es un ACK; el kernel libera el flock al cerrar/morir el propietario. La
 metadata residual del archivo nunca bloquea por sí sola ni actúa como TTL.
 
+Antes de invocar un reenlace, nüün guarda la solicitud bajo su ID de operación en `release-relink-intent:<plan_id>`. Python y Rust leen el mismo diario. Si Clipper ya movió la referencia y la respuesta se perdió, el reintento pide el ACK con el mismo ID, incluso si las dependencias ya muestran la nueva ruta. El retiro exige que el diario quede vacío y que las dependencias frescas estén libres.
+
+En el cierre de finales publicados (`release_work=false`), el plan congela las decisiones del proyecto y su grupo. El consentimiento guarda el digest revisado. Antes de retirar el original, nüün comprueba todos los finales archivados y las dependencias de Clipper. El estado terminal y las ubicaciones actualizadas de los finales se guardan en una transacción del catálogo. Los finales sin publicar conservan su ubicación.
+
 El lock no reemplaza verificación de hashes/revisión, ACK, deps frescos, pins
 de cola, offline ni referencias antiguas. Versiones previas de nüün no lo
 usan: actualizar ambos lados y reiniciar procesos existentes es obligatorio.
