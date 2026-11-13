@@ -5,9 +5,7 @@
 //! `capabilities` (Clipper and Stalker) runs on its own threads while the catalog is read (crate::integrations).
 //!
 //! Not ported yet, reported the way Python reports a failing piece (`errors[piece]`, empty value):
-//! - `sony_removal_recorded` on a Sony job that failed with `FileNotFoundError`: it needs the plan's destination paths
-//!   (`transfer.sony_removal_recorded`); the job is still listed, `errors.jobs` says so.
-//! - `source_cards` outside Windows (the macOS volume backend is still Python).
+//! - Volume state and source cards on platforms without a volume backend.
 
 use crate::catalog::Catalog;
 use crate::volumes::{self, Backend};
@@ -58,11 +56,10 @@ type JobRow = (
     Option<i64>,
 );
 
-/// Python `Catalog.jobs()`: the newest 200 jobs with what Actividad needs. Returns the rows and whether one of them
-/// needed the unported `sony_removal_recorded` check.
-pub fn jobs(catalog: &Catalog) -> Result<(Vec<Value>, bool)> {
+/// Python `Catalog.jobs()`: the newest 200 jobs, including journaled Sony removals after a failed card check.
+pub fn jobs(catalog: &Catalog) -> Result<Vec<Value>> {
     let Some(db) = catalog.db() else {
-        return Ok((Vec::new(), false));
+        return Ok(Vec::new());
     };
     let mut statement = db
         .prepare(
@@ -88,7 +85,6 @@ pub fn jobs(catalog: &Catalog) -> Result<(Vec<Value>, bool)> {
         .map_err(sql)?
         .collect::<std::result::Result<_, _>>()
         .map_err(sql)?;
-    let mut unported = false;
     let mut values = Vec::with_capacity(rows.len());
     for (id, state, error, updated_at, cleanup_profile, source_kind, source_volume_uuid, release) in
         rows
@@ -106,13 +102,16 @@ pub fn jobs(catalog: &Catalog) -> Result<(Vec<Value>, bool)> {
         }
         if cleanup_profile.as_deref() == Some("sony_clips_then_format") {
             let check = catalog.get(&format!("sony-card-check:{id}"))?;
+            let mut recorded = false;
             if state == "failed" && error.as_deref() == Some("FileNotFoundError") {
-                unported = true;
+                let job = crate::reads::job(catalog, &json!({"job_id": id}))?;
+                recorded = crate::sony::removal_recorded(catalog, &job)?;
+                value["sony_removal_recorded"] = json!(recorded);
             }
             value["sony_stage"] = json!(sony_stage(
                 &state,
                 check.as_ref().and_then(Value::as_str),
-                false
+                recorded
             ));
             value["sony_card_check"] = check.unwrap_or(Value::Null);
             value["sony_reappeared"] = catalog
@@ -121,7 +120,7 @@ pub fn jobs(catalog: &Catalog) -> Result<(Vec<Value>, bool)> {
         }
         values.push(value);
     }
-    Ok((values, unported))
+    Ok(values)
 }
 
 /// Python `Catalog.search(None, None)`: every asset with its work state and projects.
@@ -407,13 +406,7 @@ fn snapshot_reads(
         );
     }
     let library = library(catalog)?;
-    let (jobs, unported_sony) = jobs(catalog)?;
-    if unported_sony {
-        errors.insert(
-            "jobs".into(),
-            json!("not_ported: sony_removal_recorded for a Sony job that failed reading the card"),
-        );
-    }
+    let jobs = jobs(catalog)?;
     let projects = projects(catalog, &library)?;
     let release_plans =
         catalog.json_rows("SELECT value FROM metadata WHERE key LIKE 'release:%'", [])?;

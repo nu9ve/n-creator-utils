@@ -161,7 +161,7 @@ impl Catalog {
     }
 }
 
-fn sql(error: rusqlite::Error) -> Error {
+pub(crate) fn sql(error: rusqlite::Error) -> Error {
     Error::new("catalog_unavailable", error.to_string())
 }
 
@@ -410,7 +410,23 @@ impl WritableCatalog {
 /// The global mutation lock (Python `Catalog.writer`): `writer.lock` in the state folder, exclusive and
 /// non-blocking. On macOS `File::try_lock` is `flock`, the lock Python takes, so the two engines exclude each other.
 /// Dropping the file releases it.
-pub fn writer_lock(home: &Path) -> Result<std::fs::File> {
+pub struct OperationLock(std::fs::File);
+
+impl OperationLock {
+    pub(crate) fn file(&mut self) -> &mut std::fs::File {
+        &mut self.0
+    }
+}
+
+impl Drop for OperationLock {
+    fn drop(&mut self) {
+        // A child between fork and exec can briefly share the descriptor. Explicitly
+        // unlock so a caller can take the same flock immediately after this guard drops.
+        let _ = self.0.unlock();
+    }
+}
+
+pub fn writer_lock(home: &Path) -> Result<OperationLock> {
     operation_lock(
         home,
         "writer.lock",
@@ -424,7 +440,7 @@ pub(crate) fn operation_lock(
     name: &str,
     busy_code: &str,
     busy_message: &str,
-) -> Result<std::fs::File> {
+) -> Result<OperationLock> {
     let home = std::path::absolute(home).map_err(io)?;
     for path in home.ancestors() {
         require(
@@ -449,7 +465,7 @@ pub(crate) fn operation_lock(
     }
     let file = options.open(&path).map_err(io)?;
     match file.try_lock() {
-        Ok(()) => Ok(file),
+        Ok(()) => Ok(OperationLock(file)),
         Err(std::fs::TryLockError::WouldBlock) => Err(Error::new(busy_code, busy_message)),
         Err(std::fs::TryLockError::Error(e)) => Err(io(e)),
     }

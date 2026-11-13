@@ -37,16 +37,9 @@ pub fn library(catalog: &Catalog, params: &Value) -> Result<Vec<Value>> {
         .collect())
 }
 
-/// Python `Catalog.jobs()`. A failed Sony job whose card read failed needs `transfer.sony_removal_recorded`, which
-/// reads the plan's destinations: not ported, so the whole answer is `not_ported` rather than incomplete.
+/// Python `Catalog.jobs()`.
 pub fn jobs(catalog: &Catalog) -> Result<Vec<Value>> {
-    let (values, unported) = snapshot::jobs(catalog)?;
-    require(
-        !unported,
-        "not_ported",
-        "sony_removal_recorded for a Sony job that failed reading the card is still in media/transfer.py",
-    )?;
-    Ok(values)
+    snapshot::jobs(catalog)
 }
 
 fn cell(value: ValueRef<'_>) -> Value {

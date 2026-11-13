@@ -562,7 +562,7 @@ class Service:
                     if consumers.get('blockers'):
                         summary['retained'].append({'session_id': unit.get('session_id'), 'path': str(source),
                                                     'reason': '; '.join(consumers['blockers'])})
-                    elif consumers.get('relinks'):
+                    elif consumers.get('relinks') or self.catalog.get('release-relink-intent:' + release_plan['id']):
                         try:
                             relink_release(self.catalog, self.backend, release_plan['id'], release_plan['digest'],
                                            self.cancel, progress=update_progress)

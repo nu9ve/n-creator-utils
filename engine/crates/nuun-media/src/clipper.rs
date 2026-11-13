@@ -256,6 +256,15 @@ pub(crate) fn inspect_with(
     home: &Path,
 ) -> Result<Value> {
     let (data, _) = integrations.dependencies_within(Duration::from_secs(120))?;
+    inspect_dependencies(integrations, paths, home, data)
+}
+
+pub(crate) fn inspect_dependencies(
+    integrations: &Integrations,
+    paths: &[(String, Option<String>)],
+    home: &Path,
+    data: Value,
+) -> Result<Value> {
     let base = integrations.clipper_base.clone();
     let mut blockers: Vec<String> = Vec::new();
     let mut relinks: Vec<Value> = Vec::new();

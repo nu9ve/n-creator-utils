@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 
 /// retitle.py `CAPABILITY`.
 pub const STALKER_CAPABILITY: &str = "stalker-coordinated-retitle/1";
-const CLIPPER_CAPABILITY: &str = "media-release-lock/1";
+pub(crate) const CLIPPER_CAPABILITY: &str = "media-release-lock/1";
 /// integrations.py: both consumers are asked with `timeout=3`.
 const TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -146,6 +146,14 @@ impl Integrations {
     /// Python `clipper.dependencies(catalog, timeout)`: Clipper's linked-library report, and whether its executable
     /// was found. `inspect` waits up to 120 s, as Python.
     pub(crate) fn dependencies_within(&self, timeout: Duration) -> Result<(Value, bool)> {
+        self.clipper_dependencies(timeout, None)
+    }
+
+    pub(crate) fn clipper_dependencies(
+        &self,
+        timeout: Duration,
+        token: Option<&str>,
+    ) -> Result<(Value, bool)> {
         let command = match self.clipper_executable() {
             Ok(command) => command,
             Err(error) => {
@@ -164,26 +172,7 @@ impl Integrations {
                 return Err(error);
             }
         };
-        let argv = [command.as_str(), "library", "deps", "--json"];
-        let unavailable = |m: String| {
-            Error::new(
-                "clipper_unavailable",
-                format!("No se pudo consultar Clipper: {m}"),
-            )
-        };
-        let output = run(&argv, None, &[], timeout).map_err(unavailable)?;
-        require(
-            output.success,
-            "clipper_failed",
-            "Clipper no pudo comprobar/actualizar sus dependencias; no se libera el origen",
-        )?;
-        require(
-            output.stdout.len() <= 16 * 1024 * 1024,
-            "clipper_invalid",
-            "Clipper response too large",
-        )?;
-        let data: Value =
-            serde_json::from_slice(&output.stdout).map_err(|e| unavailable(e.to_string()))?;
+        let data = invoke_clipper(&command, &["deps"], timeout, token)?;
         validate_dependencies(&data)?;
         Ok((data, true))
     }
@@ -335,6 +324,39 @@ struct Output {
     success: bool,
     stdout: Vec<u8>,
     stderr: Vec<u8>,
+}
+
+pub(crate) fn invoke_clipper(
+    command: &str,
+    args: &[&str],
+    timeout: Duration,
+    token: Option<&str>,
+) -> Result<Value> {
+    let mut argv = vec![command, "library"];
+    argv.extend_from_slice(args);
+    argv.push("--json");
+    let unavailable = |message| {
+        Error::new(
+            "clipper_unavailable",
+            format!("No se pudo consultar Clipper: {message}"),
+        )
+    };
+    let env: Vec<_> = token
+        .into_iter()
+        .map(|value| ("CLIPPER_MEDIA_RELEASE_TOKEN", value))
+        .collect();
+    let output = run(&argv, None, &env, timeout).map_err(unavailable)?;
+    require(
+        output.success,
+        "clipper_failed",
+        "Clipper no pudo comprobar/actualizar sus dependencias; no se libera el origen",
+    )?;
+    require(
+        output.stdout.len() <= 16 * 1024 * 1024,
+        "clipper_invalid",
+        "Clipper response too large",
+    )?;
+    serde_json::from_slice(&output.stdout).map_err(|error| unavailable(error.to_string()))
 }
 
 /// `subprocess.run(argv, input=…, capture_output=True, timeout=…)`; on timeout the child is killed, and the error

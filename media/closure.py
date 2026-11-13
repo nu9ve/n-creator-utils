@@ -729,7 +729,7 @@ def apply_close(catalog, backend, plan_id, reviewed_digest, cancel=None, progres
             tracker.copy_finished(transfer)
         report('verifying_finals')
         guards = validate(catalog, backend, plan, cancel, quick=quick, progress=tracker.verify_event)
-        if relinks:
+        if relinks or catalog.get('release-relink-intent:' + plan_id):
             relink_release(catalog, backend, plan_id, reviewed_digest, cancel, progress=tracker.passthrough)
         copied_transcripts = None
         if plan.get('transcripts') and plan['transcripts']['files']:

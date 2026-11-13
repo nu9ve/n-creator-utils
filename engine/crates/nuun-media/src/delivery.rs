@@ -33,15 +33,9 @@ pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
     )?;
     let catalog = WritableCatalog::open(home)?;
     let mut transfer = Transfer::new(home, &catalog, backend, &|_, _| Ok(()));
-    let mut progress = DeliveryProgress {
-        catalog: &catalog,
-        key: params["progress_id"]
-            .as_str()
-            .filter(|id| !id.is_empty())
-            .map(|id| format!("action-progress:{id}")),
-        meter: Meter::default(),
-        done: 0,
-    };
+    let mut progress =
+        ActionProgress::new(&catalog, params["progress_id"].as_str(), "delivering_work");
+    let mut done = 0;
     let mut delivered = Vec::new();
     let mut assets = Vec::new();
     for id in ids {
@@ -179,8 +173,8 @@ pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
                     ),
                 )
                 .map_err(|e| Error::new("catalog_unavailable", e.to_string()))?;
-            progress.done += 2 * file["stamp"]["size"].as_u64().unwrap_or_default();
-            progress.meter.reach(progress.done);
+            done += 2 * file["stamp"]["size"].as_u64().unwrap_or_default();
+            progress.meter.reach(done);
             progress
                 .meter
                 .finished("copied", text(&copy, "destination"), text(&work, "name"));
@@ -211,27 +205,75 @@ pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
     Ok(json!({"delivered": delivered, "volume_id": work["id"]}))
 }
 
-struct DeliveryProgress<'a> {
+pub(crate) struct ActionProgress<'a> {
     catalog: &'a WritableCatalog,
     key: Option<String>,
-    meter: Meter,
-    done: u64,
+    pub(crate) meter: Meter,
+    pub(crate) stage: &'static str,
+    closure: bool,
 }
 
-impl DeliveryProgress<'_> {
-    fn report(&self) -> Result<()> {
+impl<'a> ActionProgress<'a> {
+    pub(crate) fn new(catalog: &'a WritableCatalog, id: Option<&str>, stage: &'static str) -> Self {
+        Self::with_prefix(catalog, id, stage, false)
+    }
+
+    pub(crate) fn closure(
+        catalog: &'a WritableCatalog,
+        id: Option<&str>,
+        stage: &'static str,
+    ) -> Self {
+        Self::with_prefix(catalog, id, stage, true)
+    }
+
+    fn with_prefix(
+        catalog: &'a WritableCatalog,
+        id: Option<&str>,
+        stage: &'static str,
+        closure: bool,
+    ) -> Self {
+        let prefix = if closure {
+            "closure-progress"
+        } else {
+            "action-progress"
+        };
+        Self {
+            catalog,
+            key: id
+                .filter(|id| !id.is_empty())
+                .map(|id| format!("{prefix}:{id}")),
+            meter: Meter::default(),
+            stage,
+            closure,
+        }
+    }
+
+    pub(crate) fn report(&self) -> Result<()> {
         if let Some(key) = &self.key {
             let mut fields = self.meter.fields();
-            fields.insert("stage".into(), json!("delivering_work"));
+            fields.insert("stage".into(), json!(self.stage));
             fields.insert("files_total".into(), json!(self.meter.files_total));
             fields.insert("files_done".into(), json!(self.meter.files_done));
+            if self.closure {
+                fields.insert(
+                    "released_files".into(),
+                    json!(if matches!(
+                        self.stage,
+                        "releasing_originals" | "metadata_backup_after" | "release_complete"
+                    ) {
+                        self.meter.files_done
+                    } else {
+                        0
+                    }),
+                );
+            }
             self.catalog.set(key, &Value::Object(fields))?;
         }
         Ok(())
     }
 }
 
-impl Drop for DeliveryProgress<'_> {
+impl Drop for ActionProgress<'_> {
     fn drop(&mut self) {
         if let Some(key) = &self.key {
             let _ = self

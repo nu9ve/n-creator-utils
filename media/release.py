@@ -295,11 +295,22 @@ def relink_release(catalog, backend, plan_id, digest, cancel=None, progress=None
         verify_replacements(catalog, backend, plan, cancel, progress)
         report(progress, 'metadata_backup_before')
         backup_metadata(catalog, backend, archive['id'], cancel, locked=True)
-        acks = []
+        key = 'release-relink-intent:' + plan_id
+        pending = catalog.get(key, {})
+        ack_key = 'release-acks:' + plan_id
+        acks = catalog.get(ack_key, [])
         for request in consumers['relinks']:
-            report(progress, 'relinking', project=request['project'])
             operation_id = str(uuid.uuid5(uuid.UUID(plan_id), request['project'] + ':' + request['asset_id'] + ':' + request['to']))
-            acks.append(clipper.relink(catalog, request, operation_id))
+            require(operation_id not in pending or pending[operation_id] == request,
+                    'operation_conflict', 'Relink operation reused with another payload')
+            pending[operation_id] = request
+        catalog.set(key, pending)
+        for operation_id, request in list(pending.items()):
+            report(progress, 'relinking', project=request['project'])
+            ack = clipper.relink(catalog, request, operation_id)
+            acks = [prior for prior in acks if prior['operation_id'] != operation_id] + [ack]
+            del pending[operation_id]
+            catalog.set_many({ack_key: acks, key: pending})
         report(progress, 'revalidating_clipper')
         consumers = clipper.inspect(catalog, plan['replacements'])
         require(not consumers['blockers'] and not consumers['relinks'], 'dependencies_blocked', 'Clipper still references released paths')
@@ -362,6 +373,8 @@ def apply_release(catalog, backend, plan_id, digest, cancel=None, hook=None, pro
         if plan.get('closure_project_id'):
             require(catalog.get('closure-consent:' + plan_id, {}).get('digest') == digest,
                     'confirmation_required', 'Confirma el cierre completo desde su revisión antes de liberar')
+        require(not catalog.get('release-relink-intent:' + plan_id, {}),
+                'dependencies_blocked', 'Complete the pending Clipper relink and ACK before releasing')
         report(progress, 'revalidating_source')
         check_source(backend, plan)
         archive = catalog.volume(plan['archive_id'])

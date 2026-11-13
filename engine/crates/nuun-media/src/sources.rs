@@ -77,7 +77,7 @@ fn row<'a>(rows: &'a Rows, path: &str) -> Option<&'a Value> {
 }
 
 /// library.py `receipt_metadata`: stored receipts only.
-fn receipt_metadata(
+pub(crate) fn receipt_metadata(
     catalog: &Catalog,
     asset: &Value,
     copies: &[(String, Rows)],

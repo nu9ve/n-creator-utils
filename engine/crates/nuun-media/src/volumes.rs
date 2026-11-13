@@ -34,6 +34,12 @@ pub trait Backend: Sync {
         }
         Ok(token.clone())
     }
+    fn eject(&self, _root: &Path, _expected: &Value) -> Result<()> {
+        Err(Error::new(
+            "unsupported_platform",
+            "Safe eject requires macOS",
+        ))
+    }
     /// Whether this backend may move media (plan, apply, resume) and register volumes. A new backend reads first
     /// and opens its writes only after a physical run (docs/release.md).
     fn writes(&self) -> bool {
@@ -327,6 +333,28 @@ impl Backend for MacBackend {
             "Volume disconnected or root changed",
         )?;
         Ok(token.clone())
+    }
+
+    fn eject(&self, root: &Path, expected: &Value) -> Result<()> {
+        use nu9ve_volumes::macos::{Failure, eject};
+        let current = self.describe(root, true)?;
+        validate_card(root, &current)?;
+        require(
+            &card_identity(&current) == expected,
+            "volume_replaced",
+            "Card identity changed; select it again",
+        )?;
+        eject(current["mount"].as_str().unwrap_or_default()).map_err(|error| match error {
+            Failure::Timeout => Error::new(
+                "eject_uncertain",
+                "Eject did not answer; refresh mounts before removing the card",
+            ),
+            Failure::Status => Error::new(
+                "eject_failed",
+                "Could not eject card; close files and retry",
+            ),
+            Failure::Other(message) => Error::new("operation_failed", message),
+        })
     }
 
     /// Reads only until a physical run with a card and a USB disk on this Mac (docs/release.md), except inside the
@@ -678,6 +706,31 @@ pub fn suggest(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Resu
     )
 }
 
+/// Validate a selected card under the same writer exclusion as ingest before requesting eject.
+pub fn eject_card(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let source = params["source"]
+        .as_str()
+        .filter(|_| params["identity"].is_object())
+        .ok_or_else(|| Error::new("invalid_request", "Source and identity required"))?;
+    let _lock = crate::catalog::writer_lock(home)?;
+    let catalog = Catalog::open(home)?;
+    let root = match (source.strip_prefix("~/"), std::env::var_os("HOME")) {
+        (Some(path), Some(home)) => PathBuf::from(home).join(path),
+        (None, Some(home)) if source == "~" => PathBuf::from(home),
+        _ => python_absolute(source),
+    };
+    let info = backend.describe(&root, true)?;
+    validate_card(&root, &info)?;
+    reject_destination(&info, &destination_identities(&catalog, backend)?)?;
+    require(
+        card_identity(&info) == params["identity"],
+        "volume_replaced",
+        "Card identity changed; select it again",
+    )?;
+    backend.eject(&root, &params["identity"])?;
+    Ok(json!({"ejected": true, "source": root}))
+}
+
 /// Disk numbers change on remount: compare current physical stores when available.
 pub fn destination_identities(catalog: &Catalog, backend: &dyn Backend) -> Result<Vec<Value>> {
     Ok(catalog
@@ -1008,6 +1061,64 @@ mod tests {
         assert_eq!(paths(&cards), [s.card.display().to_string()]);
         assert_eq!(cards[0]["name"], "card");
         assert_eq!(cards[0]["identity"]["mode"], "fixture");
+    }
+
+    #[test]
+    fn eject_validates_identity_and_excludes_active_jobs_and_destinations() {
+        struct EjectFixture<'a> {
+            inner: &'a Fixture,
+            calls: std::sync::Mutex<Vec<PathBuf>>,
+        }
+        impl Backend for EjectFixture<'_> {
+            fn mounted_roots(&self) -> Vec<PathBuf> {
+                self.inner.mounted_roots()
+            }
+            fn describe(&self, root: &Path, external: bool) -> Result<Value> {
+                self.inner.describe(root, external)
+            }
+            fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+                self.inner.usage(root)
+            }
+            fn eject(&self, root: &Path, _expected: &Value) -> Result<()> {
+                self.calls.lock().unwrap().push(root.to_owned());
+                Ok(())
+            }
+        }
+        let s = setup();
+        let backend = EjectFixture {
+            inner: &s.backend,
+            calls: Default::default(),
+        };
+        let args = |path: &Path| {
+            json!({
+                "source": path, "identity": card_identity(&backend.describe(path, true).unwrap()),
+            })
+        };
+        let card = args(&s.card);
+        let lock = crate::catalog::writer_lock(&s.home).unwrap();
+        assert_eq!(
+            eject_card(&s.home, &backend, &card).unwrap_err().code,
+            "job_busy"
+        );
+        drop(lock);
+        let mut replaced = card.clone();
+        replaced["identity"]["volume_uuid"] = json!("another-card");
+        assert_eq!(
+            eject_card(&s.home, &backend, &replaced).unwrap_err().code,
+            "volume_replaced"
+        );
+        assert_eq!(
+            eject_card(&s.home, &backend, &args(&s.work))
+                .unwrap_err()
+                .code,
+            "destination_volume"
+        );
+        assert!(backend.calls.lock().unwrap().is_empty());
+        assert_eq!(
+            eject_card(&s.home, &backend, &card).unwrap(),
+            json!({"ejected": true, "source": s.card})
+        );
+        assert_eq!(*backend.calls.lock().unwrap(), [s.card]);
     }
 
     #[test]

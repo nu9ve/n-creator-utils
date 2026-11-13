@@ -277,6 +277,15 @@ pub fn write_units_map(home: &Path, backend: &dyn Backend, plan: &Value) -> Resu
 pub fn backup_metadata(home: &Path, backend: &dyn Backend, archive: &str) -> Result<Value> {
     let _lock = crate::catalog::writer_lock(home)?;
     let catalog = WritableCatalog::open(home)?;
+    backup_metadata_locked(home, backend, archive, &catalog)
+}
+
+pub(crate) fn backup_metadata_locked(
+    home: &Path,
+    backend: &dyn Backend,
+    archive: &str,
+    catalog: &WritableCatalog,
+) -> Result<Value> {
     let record = catalog.volume(archive)?;
     require(
         record["role"] == "archive",
@@ -328,7 +337,7 @@ pub fn backup_metadata(home: &Path, backend: &dyn Backend, archive: &str) -> Res
         drop(file);
         let rel = format!(".ncreator/catalog-backups/{name}");
         let no_hook = |_: &str, _: &Value| Ok(());
-        let mut transfer = Transfer::new(home, &catalog, backend, &no_hook);
+        let mut transfer = Transfer::new(home, catalog, backend, &no_hook);
         transfer.copy_many(
             &source,
             "catalog.sqlite3",
