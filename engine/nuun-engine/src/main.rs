@@ -151,6 +151,8 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
         if cfg!(target_os = "macos") {
             writes.extend([
                 "eject_card",
+                "storage_scan",
+                "storage_compare",
                 "missions_incorporate",
                 "dng_plan",
                 "dng_apply",
@@ -426,6 +428,14 @@ impl Engine {
                 nuun_media::storage::add_folder(&self.home(), write_backend(platform)?, params)
             }
             "storage_remove_folder" => nuun_media::storage::remove_folder(&self.home(), params),
+            #[cfg(target_os = "macos")]
+            "storage_scan" => {
+                nuun_media::storage::scan(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(target_os = "macos")]
+            "storage_compare" => {
+                nuun_media::storage::compare(&self.home(), write_backend(platform)?, params)
+            }
             "storage_overview" => nuun_media::storage::overview(
                 &self.catalog()?,
                 &self.home(),

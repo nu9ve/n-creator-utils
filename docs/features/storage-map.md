@@ -29,7 +29,7 @@ En GiB, como `df -h`; la app muestra GB decimales (449 GiB son 482 GB).
 
 ## Índice
 
-Módulo [`media/storage_index.py`](../../media/storage_index.py), expuesto por `media/service.py`. Ni Swift ni la CLI recorren discos por su cuenta.
+Swift y la CLI piden el recorrido al servicio JSON. [Python](../../media/storage_index.py) y [Rust en el sandbox de macOS](../../engine/crates/nuun-media/src/storage/write.rs) comparten el esquema del índice y el bloqueo `storage.lock`.
 
 Base **separada** del catálogo (`storage-index.sqlite3`): es derivada y reconstruible, no bloquea al escritor del catálogo y no infla sus instantáneas. Las decisiones humanas, como reglas de carpeta o adopciones, sí viven en el catálogo.
 

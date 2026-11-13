@@ -7296,7 +7296,8 @@
       "work/node_modules/m.js": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
       "work/notes.txt": "n"
     },
-    "index_sql": "BEGIN TRANSACTION;\nCREATE TABLE entries(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL,\n        size INTEGER NOT NULL, allocated INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, kind TEXT NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/a.mov','001_raw/raw',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/b.mov','001_raw/raw',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64/f.mp4','002_finales/e64',100,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden/h.mov','.hidden',1,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle/x.plist','001_proyectos/e64/terra.fcpbundle',1,4096,1778000000123456789,'editable');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/a.mov','001_proyectos/e64_raw/terra',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/c.mov','001_proyectos/e64_raw/terra',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/d.mov','001_proyectos/e64_raw/terra',7000,8192,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules/m.js','node_modules',300,4096,1778000000123456789,'derived');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'notes.txt','',1,4096,1778000000123456789,'other');\nCREATE TABLE folders(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL, files INTEGER NOT NULL,\n        bytes INTEGER NOT NULL, allocated INTEGER NOT NULL, kinds TEXT NOT NULL, kind TEXT NOT NULL, opaque INTEGER NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'','',3,13100,20480,'{\"video\": 20480}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw','',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw','001_raw',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales','',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64','002_finales',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'','',7,20303,40960,'{\"derived\": 4096, \"editable\": 4096, \"other\": 4096, \"video\": 28672}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden','',1,1,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos','',4,20001,28672,'{\"editable\": 4096, \"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64','001_proyectos',1,1,4096,'{\"editable\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle','001_proyectos/e64',1,1,4096,'{\"editable\": 4096}','editable',1);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw','001_proyectos',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra','001_proyectos/e64_raw',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules','',1,300,4096,'{\"derived\": 4096}','derived',1);\nCREATE TABLE hashes(target_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL,\n        origin TEXT NOT NULL, checked_at TEXT NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000001','001_raw/raw/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nCREATE TABLE indexes(target_id TEXT PRIMARY KEY, run_id INTEGER NOT NULL, indexed_at TEXT NOT NULL, seconds REAL NOT NULL,\n        fs_total INTEGER NOT NULL, fs_used INTEGER NOT NULL, fs_free INTEGER NOT NULL, unreadable INTEGER NOT NULL, samples TEXT NOT NULL);\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000001',1,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000002',2,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nCREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"meta\" VALUES('independent:00000000-0000-0000-0000-000000000002:00000000-0000-0000-0000-000000000001','true');\nINSERT INTO \"meta\" VALUES('independent:this-mac:00000000-0000-0000-0000-000000000001','true');\nCREATE TABLE runs(id INTEGER PRIMARY KEY AUTOINCREMENT, target_id TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL,\n        pid INTEGER NOT NULL, path TEXT NOT NULL DEFAULT '', started_at TEXT NOT NULL, finished_at TEXT, files INTEGER NOT NULL DEFAULT 0,\n        allocated INTEGER NOT NULL DEFAULT 0, total_files INTEGER NOT NULL DEFAULT 0, total_bytes INTEGER NOT NULL DEFAULT 0,\n        unreadable INTEGER NOT NULL DEFAULT 0, changed INTEGER NOT NULL DEFAULT 0, samples TEXT NOT NULL DEFAULT '[]', error TEXT);\nINSERT INTO \"runs\" VALUES(1,'00000000-0000-0000-0000-000000000001','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',3,20480,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(2,'00000000-0000-0000-0000-000000000002','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',7,40960,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(3,'ESSD-x','scan','running',999999999,'','t',NULL,0,0,0,0,0,0,'[]',NULL);\nCREATE TABLE safety(target_id TEXT NOT NULL, path TEXT NOT NULL, verified INTEGER NOT NULL, probable INTEGER NOT NULL, only_here INTEGER NOT NULL,\n        derived INTEGER NOT NULL, unknown INTEGER NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','',4096,12288,20480,4096,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','.hidden',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos',4096,12288,12288,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64/terra.fcpbundle',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','node_modules',0,0,0,4096,0);\nCREATE INDEX entries_parent ON entries(target_id,run_id,parent,allocated);\nCREATE INDEX folders_parent ON folders(target_id,run_id,parent,allocated);\nDELETE FROM \"sqlite_sequence\";\nINSERT INTO \"sqlite_sequence\" VALUES('runs',3);\nCOMMIT;",
+    "index_sql": "BEGIN TRANSACTION;\nCREATE TABLE entries(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL,\n        size INTEGER NOT NULL, allocated INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, kind TEXT NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/a.mov','001_raw/raw',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw/b.mov','001_raw/raw',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64/f.mp4','002_finales/e64',100,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden/h.mov','.hidden',1,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle/x.plist','001_proyectos/e64/terra.fcpbundle',1,4096,1778000000123456789,'editable');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/a.mov','001_proyectos/e64_raw/terra',4000,4096,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/c.mov','001_proyectos/e64_raw/terra',9000,12288,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra/d.mov','001_proyectos/e64_raw/terra',7000,8192,1778000000123456789,'video');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules/m.js','node_modules',300,4096,1778000000123456789,'derived');\nINSERT INTO \"entries\" VALUES('00000000-0000-0000-0000-000000000002',2,'notes.txt','',1,4096,1778000000123456789,'other');\nCREATE TABLE folders(target_id TEXT NOT NULL, run_id INTEGER NOT NULL, path TEXT NOT NULL, parent TEXT NOT NULL, files INTEGER NOT NULL,\n        bytes INTEGER NOT NULL, allocated INTEGER NOT NULL, kinds TEXT NOT NULL, kind TEXT NOT NULL, opaque INTEGER NOT NULL, PRIMARY KEY(target_id,run_id,path)) WITHOUT ROWID;\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'','',3,13100,20480,'{\"video\": 20480}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw','',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'001_raw/raw','001_raw',2,13000,16384,'{\"video\": 16384}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales','',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000001',1,'002_finales/e64','002_finales',1,100,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'','',7,20303,40960,'{\"derived\": 4096, \"editable\": 4096, \"other\": 4096, \"video\": 28672}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'.hidden','',1,1,4096,'{\"video\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos','',4,20001,28672,'{\"editable\": 4096, \"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64','001_proyectos',1,1,4096,'{\"editable\": 4096}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64/terra.fcpbundle','001_proyectos/e64',1,1,4096,'{\"editable\": 4096}','editable',1);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw','001_proyectos',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'001_proyectos/e64_raw/terra','001_proyectos/e64_raw',3,20000,24576,'{\"video\": 24576}','',0);\nINSERT INTO \"folders\" VALUES('00000000-0000-0000-0000-000000000002',2,'node_modules','',1,300,4096,'{\"derived\": 4096}','derived',1);\nCREATE TABLE hashes(target_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL,\n        origin TEXT NOT NULL, checked_at TEXT NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000001','001_raw/raw/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nINSERT INTO \"hashes\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra/a.mov',4000,1778000000123456789,'SHA-A','receipt','2026-11-01');\nCREATE TABLE indexes(target_id TEXT PRIMARY KEY, run_id INTEGER NOT NULL, indexed_at TEXT NOT NULL, seconds REAL NOT NULL,\n        fs_total INTEGER NOT NULL, fs_used INTEGER NOT NULL, fs_free INTEGER NOT NULL, unreadable INTEGER NOT NULL, samples TEXT NOT NULL);\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000001',1,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nINSERT INTO \"indexes\" VALUES('00000000-0000-0000-0000-000000000002',2,'2026-11-02T00:01:00Z',0.1236,1000000,600000,400000,0,'[]');\nCREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"meta\" VALUES('independent:00000000-0000-0000-0000-000000000002:00000000-0000-0000-0000-000000000001','true');\nCREATE TABLE runs(id INTEGER PRIMARY KEY AUTOINCREMENT, target_id TEXT NOT NULL, kind TEXT NOT NULL, state TEXT NOT NULL,\n        pid INTEGER NOT NULL, path TEXT NOT NULL DEFAULT '', started_at TEXT NOT NULL, finished_at TEXT, files INTEGER NOT NULL DEFAULT 0,\n        allocated INTEGER NOT NULL DEFAULT 0, total_files INTEGER NOT NULL DEFAULT 0, total_bytes INTEGER NOT NULL DEFAULT 0,\n        unreadable INTEGER NOT NULL DEFAULT 0, changed INTEGER NOT NULL DEFAULT 0, samples TEXT NOT NULL DEFAULT '[]', error TEXT);\nINSERT INTO \"runs\" VALUES(1,'00000000-0000-0000-0000-000000000001','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',3,20480,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(2,'00000000-0000-0000-0000-000000000002','scan','finished',0,'','2026-11-02T00:00:00Z','2026-11-02T00:01:00Z',7,40960,0,0,0,0,'[]',NULL);\nINSERT INTO \"runs\" VALUES(3,'ESSD-x','scan','running',999999999,'','t',NULL,0,0,0,0,0,0,'[]',NULL);\nCREATE TABLE safety(target_id TEXT NOT NULL, path TEXT NOT NULL, verified INTEGER NOT NULL, probable INTEGER NOT NULL, only_here INTEGER NOT NULL,\n        derived INTEGER NOT NULL, unknown INTEGER NOT NULL, PRIMARY KEY(target_id,path)) WITHOUT ROWID;\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','',4096,12288,20480,4096,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','.hidden',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos',4096,12288,12288,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64/terra.fcpbundle',0,0,4096,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','001_proyectos/e64_raw/terra',4096,12288,8192,0,0);\nINSERT INTO \"safety\" VALUES('00000000-0000-0000-0000-000000000002','node_modules',0,0,0,4096,0);\nCREATE INDEX entries_parent ON entries(target_id,run_id,parent,allocated);\nCREATE INDEX folders_parent ON folders(target_id,run_id,parent,allocated);\nDELETE FROM \"sqlite_sequence\";\nINSERT INTO \"sqlite_sequence\" VALUES('runs',3);\nCOMMIT;",
+    "mtime_ns": 1778000000123456789,
     "results": {
       "[\"storage_overview\", {}]": {
         "data": {
@@ -7713,6 +7714,425 @@
         "code": "unknown_volume",
         "ok": false
       }
+    },
+    "scan_compare": [
+      [
+        "storage_scan",
+        {
+          "target": "MEDIA"
+        },
+        {
+          "allocated": 20480,
+          "bytes": 13100,
+          "files": 3,
+          "state": "finished",
+          "target": "00000000-0000-0000-0000-000000000001",
+          "unreadable": 0
+        }
+      ],
+      [
+        "storage_scan",
+        {
+          "target": "ESSD"
+        },
+        {
+          "allocated": 40960,
+          "bytes": 20303,
+          "files": 7,
+          "state": "finished",
+          "target": "00000000-0000-0000-0000-000000000002",
+          "unreadable": 0
+        }
+      ],
+      [
+        "storage_compare",
+        {
+          "path": "001_proyectos/e64_raw/terra",
+          "target": "ESSD"
+        },
+        {
+          "bytes": 9000,
+          "files": 1,
+          "hashed": 2,
+          "matched": 0,
+          "path": "001_proyectos/e64_raw/terra",
+          "skipped": 0,
+          "state": "finished",
+          "target": "00000000-0000-0000-0000-000000000002",
+          "total_files": 1
+        }
+      ],
+      [
+        "storage_compare",
+        {
+          "path": "",
+          "target": "ESSD"
+        },
+        {
+          "bytes": 0,
+          "files": 1,
+          "hashed": 0,
+          "matched": 0,
+          "path": "",
+          "skipped": 0,
+          "state": "finished",
+          "target": "00000000-0000-0000-0000-000000000002",
+          "total_files": 1
+        }
+      ]
+    ],
+    "scanned_rows": {
+      "SELECT * FROM meta ORDER BY key": [
+        [
+          "independent:00000000-0000-0000-0000-000000000002:00000000-0000-0000-0000-000000000001",
+          "true"
+        ]
+      ],
+      "SELECT * FROM safety ORDER BY target_id,path": [
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "",
+          4096,
+          0,
+          32768,
+          4096,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          ".hidden",
+          0,
+          0,
+          4096,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos",
+          4096,
+          0,
+          24576,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64",
+          0,
+          0,
+          4096,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64/terra.fcpbundle",
+          0,
+          0,
+          4096,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw",
+          4096,
+          0,
+          20480,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra",
+          4096,
+          0,
+          20480,
+          0,
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "node_modules",
+          0,
+          0,
+          0,
+          4096,
+          0
+        ]
+      ],
+      "SELECT target_id,path,parent,files,bytes,allocated,json(kinds),kind,opaque FROM folders ORDER BY target_id,path": [
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "",
+          "",
+          3,
+          13100,
+          20480,
+          "{\"video\":20480}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw",
+          "",
+          2,
+          13000,
+          16384,
+          "{\"video\":16384}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw/raw",
+          "001_raw",
+          2,
+          13000,
+          16384,
+          "{\"video\":16384}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "002_finales",
+          "",
+          1,
+          100,
+          4096,
+          "{\"video\":4096}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "002_finales/e64",
+          "002_finales",
+          1,
+          100,
+          4096,
+          "{\"video\":4096}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "",
+          "",
+          7,
+          20303,
+          40960,
+          "{\"derived\":4096,\"editable\":4096,\"other\":4096,\"video\":28672}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          ".hidden",
+          "",
+          1,
+          1,
+          4096,
+          "{\"video\":4096}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos",
+          "",
+          4,
+          20001,
+          28672,
+          "{\"editable\":4096,\"video\":24576}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64",
+          "001_proyectos",
+          1,
+          1,
+          4096,
+          "{\"editable\":4096}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64/terra.fcpbundle",
+          "001_proyectos/e64",
+          1,
+          1,
+          4096,
+          "{\"editable\":4096}",
+          "editable",
+          1
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw",
+          "001_proyectos",
+          3,
+          20000,
+          24576,
+          "{\"video\":24576}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra",
+          "001_proyectos/e64_raw",
+          3,
+          20000,
+          24576,
+          "{\"video\":24576}",
+          "",
+          0
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "node_modules",
+          "",
+          1,
+          300,
+          4096,
+          "{\"derived\":4096}",
+          "derived",
+          1
+        ]
+      ],
+      "SELECT target_id,path,parent,size,allocated,mtime_ns,kind FROM entries ORDER BY target_id,path": [
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw/raw/a.mov",
+          "001_raw/raw",
+          4000,
+          4096,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw/raw/b.mov",
+          "001_raw/raw",
+          9000,
+          12288,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "002_finales/e64/f.mp4",
+          "002_finales/e64",
+          100,
+          4096,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          ".hidden/h.mov",
+          ".hidden",
+          1,
+          4096,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64/terra.fcpbundle/x.plist",
+          "001_proyectos/e64/terra.fcpbundle",
+          1,
+          4096,
+          1778000000123456789,
+          "editable"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra/a.mov",
+          "001_proyectos/e64_raw/terra",
+          4000,
+          4096,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra/c.mov",
+          "001_proyectos/e64_raw/terra",
+          9000,
+          12288,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra/d.mov",
+          "001_proyectos/e64_raw/terra",
+          7000,
+          8192,
+          1778000000123456789,
+          "video"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "node_modules/m.js",
+          "node_modules",
+          300,
+          4096,
+          1778000000123456789,
+          "derived"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "notes.txt",
+          "",
+          1,
+          4096,
+          1778000000123456789,
+          "other"
+        ]
+      ],
+      "SELECT target_id,path,size,mtime_ns,sha256,origin FROM hashes ORDER BY target_id,path": [
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw/raw/a.mov",
+          4000,
+          1778000000123456789,
+          "SHA-A",
+          "receipt"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000001",
+          "001_raw/raw/b.mov",
+          9000,
+          1778000000123456789,
+          "147d6bd2bbb60258ff94651b144b395378371de378d395bcfbe4748b9a613491",
+          "computed"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra/a.mov",
+          4000,
+          1778000000123456789,
+          "SHA-A",
+          "receipt"
+        ],
+        [
+          "00000000-0000-0000-0000-000000000002",
+          "001_proyectos/e64_raw/terra/c.mov",
+          9000,
+          1778000000123456789,
+          "9a29b95d0bc0bee02c95c25b89f5ac508e4b9588acaa38a05037e1e6c679e015",
+          "computed"
+        ]
+      ]
     },
     "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('j1','00000000-0000-0000-0000-000000000001','CLIP/a.mov','SHA-A','{\"destination\": \"001_raw/raw/a.mov\", \"path\": \"CLIP/a.mov\", \"bytes\": 4000, \"verified_at\": \"2026-11-01\"}');\nINSERT INTO \"copies\" VALUES('j1','00000000-0000-0000-0000-000000000002','CLIP/a.mov','SHA-A','{\"destination\": \"001_proyectos/e64_raw/terra/a.mov\", \"path\": \"CLIP/a.mov\", \"bytes\": 4000, \"verified_at\": \"2026-11-01\"}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('j1','d','{}','completed',NULL,'t','t');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1001,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;",
     "writes": {

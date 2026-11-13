@@ -2,8 +2,8 @@
 //! disk and whether it already has a copy on the archive, from the disk index (`storage-index.sqlite3`).
 //!
 //! The index is opened read only. Python creates an empty index when the file is missing and rebuilds one of
-//! another version; here a missing or foreign index reads as an empty one, which answers the same. Scans and
-//! comparisons (the writes) stay in Python.
+//! another version; here a missing or foreign index reads as an empty one. macOS scan and compare publish
+//! through the same index schema and exclusive lock.
 
 use crate::catalog::{Catalog, WritableCatalog, operation_lock};
 use crate::volumes::{self, Backend, Cached};
@@ -13,6 +13,11 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, Row};
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::path::Path;
+
+#[cfg(target_os = "macos")]
+mod write;
+#[cfg(target_os = "macos")]
+pub use write::{compare, scan};
 
 const SCHEMA: i64 = 1;
 const SAFETY: [&str; 5] = ["verified", "probable", "only_here", "derived", "unknown"];
@@ -413,24 +418,32 @@ pub fn progress_method(home: &Path) -> Result<Value> {
 }
 
 /// storage_index.py `_Evidence`: what the archives are known to hold, to classify the files of one target.
-struct Evidence {
-    located: HashMap<String, (Value, Value, Value)>,
-    sizes: HashMap<i64, (i64, i64)>,
-    indexed: bool,
+fn independence_key(target: &Value, archive: &Value) -> String {
+    format!(
+        "independent:{}:{}",
+        target["id"].as_str().unwrap_or_default(),
+        archive["id"].as_str().unwrap_or_default()
+    )
 }
 
-impl Evidence {
+struct Evidence<'a> {
+    located: HashMap<String, (Value, Value, Value)>,
+    sizes: HashMap<i64, (i64, i64)>,
+    archives: Vec<(&'a Value, i64)>,
+}
+
+impl<'a> Evidence<'a> {
     fn new(
         catalog: &Catalog,
         db: &Connection,
         target: &Value,
-        all_targets: &[Value],
+        all_targets: &'a [Value],
     ) -> Result<Self> {
         let id = target["id"].as_str().unwrap_or_default();
         let mut evidence = Self {
             located: HashMap::new(),
             sizes: HashMap::new(),
-            indexed: false,
+            archives: Vec::new(),
         };
         for archive in all_targets {
             let archive_id = archive["id"].as_str().unwrap_or_default();
@@ -440,7 +453,7 @@ impl Evidence {
             let independent = one(
                 db,
                 "SELECT value FROM meta WHERE key=?",
-                [format!("independent:{id}:{archive_id}")],
+                [independence_key(target, archive)],
             )?
             .map(|row| parse(&row["value"]))
             .unwrap_or(json!(true));
@@ -480,7 +493,9 @@ impl Evidence {
             else {
                 continue;
             };
-            evidence.indexed = true;
+            evidence
+                .archives
+                .push((archive, index["run_id"].as_i64().unwrap_or_default()));
             for row in all(
                 db,
                 "SELECT path,sha256,origin FROM hashes WHERE target_id=?",
@@ -517,7 +532,7 @@ impl Evidence {
         if kind == "derived" {
             return "derived";
         }
-        if !self.indexed {
+        if self.archives.is_empty() {
             return "unknown";
         }
         match self.sizes.get(&size) {
@@ -779,6 +794,159 @@ mod tests {
             }
             assert_eq!(&mine, expected, "{key}");
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn scans_and_comparisons_match_python() {
+        let (_temp, state, root, case) = golden("storage");
+        std::fs::remove_file(state.join("storage-index.sqlite3")).unwrap();
+        let backend = backend_for(&Catalog::open(&state).unwrap());
+        let mtime = case["mtime_ns"].as_u64().unwrap();
+        let times = std::fs::FileTimes::new()
+            .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_nanos(mtime));
+        for rel in case["files"].as_object().unwrap().keys() {
+            std::fs::File::options()
+                .write(true)
+                .open(Path::new(&root).join(rel))
+                .unwrap()
+                .set_times(times)
+                .unwrap();
+        }
+        for request in case["scan_compare"].as_array().unwrap() {
+            let mut reply = match request[0].as_str().unwrap() {
+                "storage_scan" => write::scan_with(&state, &backend, &request[1], None, &|| false),
+                _ => write::compare_with(&state, &backend, &request[1], None, &|| false),
+            }
+            .unwrap();
+            reply.as_object_mut().unwrap().remove("seconds");
+            assert_eq!(reply, request[2], "{request}");
+        }
+        let db = open_index(&state).unwrap().unwrap();
+        for (sql, expected) in case["scanned_rows"].as_object().unwrap() {
+            let mut stmt = db.prepare(sql).unwrap();
+            let width = stmt.column_count();
+            let rows = stmt
+                .query_map([], |row| {
+                    (0..width)
+                        .map(|i| {
+                            Ok(match row.get_ref(i)? {
+                                ValueRef::Text(t) => json!(std::str::from_utf8(t).unwrap()),
+                                ValueRef::Integer(n) => json!(n),
+                                other => panic!("unexpected value {other:?}"),
+                            })
+                        })
+                        .collect::<rusqlite::Result<Vec<_>>>()
+                })
+                .unwrap()
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .unwrap();
+            assert_eq!(&json!(rows), expected, "{sql}");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn interrupted_index_work_preserves_published_scan_and_completed_hashes() {
+        let (_temp, state, root, _) = golden("storage");
+        std::fs::remove_file(state.join("storage-index.sqlite3")).unwrap();
+        let backend = backend_for(&Catalog::open(&state).unwrap());
+        let archive = Path::new(&root).join("archive");
+        let work = Path::new(&root).join("work");
+        // Two unique sizes, both above any other candidate. The larger pair finishes before cancellation.
+        for path in [&archive, &work] {
+            std::fs::write(path.join("one.mov"), vec![11; 11_000]).unwrap();
+            std::fs::write(path.join("two.mov"), vec![12; 12_000]).unwrap();
+        }
+        std::os::unix::fs::symlink(&archive, work.join("outside")).unwrap();
+        let source = json!({"target":"ESSD"});
+        let scan = |params: &Value, cancel: &dyn Fn() -> bool| {
+            write::scan_with(&state, &backend, params, None, cancel).unwrap()
+        };
+        scan(&json!({"target":"MEDIA"}), &|| false);
+        let published = scan(&source, &|| false);
+        let id = published["target"].as_str().unwrap();
+        let db = open_index(&state).unwrap().unwrap();
+        let current_index =
+            || one(&db, "SELECT run_id FROM indexes WHERE target_id=?", [id]).unwrap();
+        let before = current_index();
+        assert_eq!(published["files"], 9);
+        assert_eq!(scan(&source, &|| true)["state"], "cancelled");
+        assert_eq!(current_index(), before);
+        let offline_work = work.with_extension("offline");
+        let calls = std::cell::Cell::new(0);
+        let disconnected = write::scan_with(&state, &backend, &source, None, &|| {
+            calls.set(calls.get() + 1);
+            if calls.get() == 2 {
+                std::fs::rename(&work, &offline_work).unwrap();
+            }
+            false
+        });
+        assert!(disconnected.is_err());
+        assert_eq!(current_index(), before);
+        std::fs::rename(offline_work, &work).unwrap();
+
+        let lock = storage_lock(&state).unwrap();
+        assert_eq!(
+            super::scan(&state, &backend, &source).unwrap_err().code,
+            "storage_busy"
+        );
+        drop(lock);
+
+        let done = std::cell::Cell::new(false);
+        let reply = write::compare_with(&state, &backend, &source, None, &|| {
+            if done.get() {
+                return true;
+            }
+            done.set(
+                one(
+                    &db,
+                    "SELECT sha256 FROM hashes WHERE target_id=? AND path='two.mov'",
+                    [id],
+                )
+                .unwrap()
+                .is_some()
+                    && one(
+                        &db,
+                        "SELECT sha256 FROM hashes WHERE target_id<>? AND path='two.mov'",
+                        [id],
+                    )
+                    .unwrap()
+                    .is_some(),
+            );
+            done.get()
+        })
+        .unwrap();
+        assert_eq!(reply["state"], "cancelled");
+        assert_eq!(reply["files"], 1);
+        assert_eq!(reply["hashed"], 2);
+
+        // A source file that changed waits for a rescan and does not poison the cache.
+        std::fs::write(work.join("one.mov"), b"changed").unwrap();
+        let reply = write::compare_with(&state, &backend, &source, None, &|| false).unwrap();
+        assert_eq!(reply["state"], "finished");
+        assert_eq!(reply["skipped"], 1);
+        assert_eq!(reply["total_files"], 2);
+        assert!(
+            one(
+                &db,
+                "SELECT sha256 FROM hashes WHERE target_id=? AND path='one.mov'",
+                [id]
+            )
+            .unwrap()
+            .is_none()
+        );
+
+        std::fs::rename(&archive, archive.with_extension("offline")).unwrap();
+        assert_eq!(
+            write::compare_with(&state, &backend, &source, None, &|| false)
+                .unwrap_err()
+                .code,
+            "archive_not_available"
+        );
+        assert_eq!(current_index(), before);
     }
 
     #[test]
