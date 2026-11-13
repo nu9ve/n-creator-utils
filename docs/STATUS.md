@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `e70e525ae792`** (13 nov). Diagnóstico muestra Rust con Python de respaldo. Rust declara 53 escrituras, incluido el ingreso. `capture_discard_check` usa Python. Catálogo diario con `quick_check=ok`, ESSD y MEDIA502 en línea y 44 trabajos / 2014 assets en `snapshot`. Build anterior `c62308941673` en `app-backups/b74f51a0.app`, firma verificada |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `75b68bf24568`** (13 nov). Firma verificada y proceso del motor Rust empaquetado observado tras arrancar. Catálogo diario: `quick_check=ok`. Python sigue disponible como respaldo; `capture_discard_check` usa Python. Build anterior `e70e525ae792` en `app-backups/9eafbc30.app` |
 | Suites en macOS | Python **396**, Rust **174** (151 + 23 diferenciales), Swift **28**. Dorado actualizado con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. CI escrita, pendiente de ejecutar en GitHub. |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -41,6 +41,12 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Misiones DJI al incorporar un export · 2026-11-13
+
+En `MAVIC200`, al reproducir el registro desde los exports comprimidos y comprobar sus SHA-256, el export de 24 h dejaba **966 fotos con misión y 209 en espera**, todas del 9 nov. `coverage-7d-20261113-135240.json` resolvió las 209. `discover` dio la misma respuesta en Rust y Python: **1.175 pares JPG+DNG con 1.175 capturas distintas**, más dos archivos auxiliares de cámara. `plan_document` de Rust, con una copia local del catálogo, MEDIA502 y ESSD, mostró **1.175 de misión, 0 sin misión y 0 en espera**. No se aplicó ese plan ni se modificó la tarjeta.
+
+La ventana ahora vuelve a leer la entrada tras incorporar el export, invalida los planes anteriores de ese archivo y conserva las asignaciones manuales. Pasaron las 28 pruebas Swift y el caso `--qa-mission-import` con dos pares sintéticos: de espera a misión, plan anterior invalidado y plan nuevo con dos coincidencias. Esto actúa sobre la revisión de la fuente; reclasificar fotos que ya se archivaron sigue pendiente.
 
 ### Reanudación física Sony con Rust · 2026-11-13
 

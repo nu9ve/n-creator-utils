@@ -3,10 +3,11 @@ import MediaMenuCore
 
 struct IngestDraft {
     let source: String, kind: String, project: String, profile: String, country: String, city: String
-    let archive: String, work: String, copy: String, loadedKey: String
+    let archive: String, work: String, copy: String
+    var loadedKey: String
     let cleanup: Bool, deferWork: Bool, archiveException: Bool
     let units: [DraftUnit]
-    let reviewed: ReviewedPlan?
+    var reviewed: ReviewedPlan?
 }
 
 extension Model {
@@ -26,5 +27,6 @@ extension Model {
         units = saved.units; loadedSourceKey = saved.loadedKey; lastResult = nil
         plan = saved.reviewed?.display; reviewedPlan = saved.reviewed
         route = .ingest; ingestStep = .content
+        if !contentLoaded { discover() }
     }
 }

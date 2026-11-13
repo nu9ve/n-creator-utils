@@ -8,6 +8,10 @@ import MediaMenuCore
 @MainActor enum QASnapshots {
     static func run(_ delegate: AppDelegate) -> Bool {
         let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--qa-mission-import"), index + 1 < arguments.count {
+            Task { await missionImport(delegate, URL(fileURLWithPath: arguments[index + 1])) }
+            return true
+        }
         if let index = arguments.firstIndex(of: "--qa-ingest-choices"), index + 1 < arguments.count {
             Task { await ingestChoices(delegate, URL(fileURLWithPath: arguments[index + 1])) }
             return true
@@ -534,6 +538,43 @@ import MediaMenuCore
                 await render(MainView(model: model), size: size, to: folder.appendingPathComponent("disks-\(slug)-folder.png"))
             }
         }
+        NSApp.terminate(nil)
+    }
+
+    /// Real engine, isolated state, local fixture folders: source → review → run → result.
+    static func missionImport(_ delegate: AppDelegate, _ folder: URL) async {
+        let model = delegate.model
+        func wait(_ condition: @MainActor () -> Bool) async -> Bool {
+            for _ in 0..<150 { if condition() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+            return false
+        }
+        func check(_ value: Bool, _ label: String) {
+            precondition(value, "QA mission import: \(label) · \(model.error) · \(model.discoveryError)")
+        }
+        await model.refresh()
+        model.archive = model.volumes.first { $0["name"].string == "QA-MEDIA" }?["id"].string ?? ""
+        model.prepareSource(folder.appendingPathComponent("card").path, kind: "card")
+        model.cleanup = false; model.copyChoice = "none"; model.archiveExceptionConfirmed = true
+        model.goToStep(.content)
+        check(await wait { model.contentLoaded && model.pendingMissionExports.count == 1 }, "initial read")
+        check(model.units.count == 2 && model.units.allSatisfy { $0.missionState == "pending_export" }, "awaiting export")
+        model.gridSelection = [model.units[0].id]
+        model.updateTargets { $0.project = "qa-manual" }
+        model.project = "qa-batch"
+        model.reviewPlan()
+        check(await wait { !model.busy && model.plan != nil }, "initial plan")
+        check(model.plan?["missions"]["subaereo"]["units"]["pending_export"].double == 2, "initial plan counts")
+        model.parkIngestDraft()
+        let path = model.source
+        model.incorporateMissions()
+        check(await wait { !model.busy && model.contentLoaded && model.units.allSatisfy { $0.missionState == "matched" } }, "refresh after import")
+        check(model.plan == nil && model.reviewedPlan == nil, "old plan invalidated")
+        check(model.ingestDrafts[path]?.loadedKey == "" && model.ingestDrafts[path]?.reviewed == nil, "parked plan invalidated")
+        check(Set(model.units.map(\.project)) == ["qa-manual", "subaereo"], "manual assignment kept and new match suggested")
+        model.reviewPlan()
+        check(await wait { !model.busy && model.plan != nil }, "new plan")
+        check(model.plan?["missions"]["subaereo"]["units"]["matched"].double == 2, "new plan counts")
+        print("QA mission import OK")
         NSApp.terminate(nil)
     }
 
