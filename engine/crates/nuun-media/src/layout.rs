@@ -5,7 +5,7 @@
 //! copies are flat per project. Times are Python's: a camera's own clock keeps its offset, a still's EXIF time is
 //! local wall time, and a file without one falls back to its modification time in the host zone.
 //!
-//! Stalker plans with a named capture timezone still use Python. WAV durations read PCM and
+//! WAV durations read PCM and
 //! WAVE_FORMAT_EXTENSIBLE with a PCM subformat, as Python 3.12+; an older
 //! Python reads only PCM and asks ffprobe for the rest.
 
@@ -62,6 +62,40 @@ pub fn capture_time(value: Option<&str>, provenance: &str) -> Value {
         result["offset_seconds"] = json!(offset);
     }
     result
+}
+
+/// Manifest time evidence uses the first absolute clock and preserves all original fields.
+fn stalker_time(manifest: &Value) -> Value {
+    let mut evidence = capture_time(
+        manifest["epochWallClock"].as_str(),
+        "manifest.epochWallClock",
+    );
+    if evidence["captured_at_absolute"].is_null() {
+        evidence = capture_time(manifest["createdAt"].as_str(), "manifest.createdAt");
+    }
+    let original = evidence["provenance"]
+        .as_str()
+        .and_then(|key| manifest.get(key.trim_start_matches("manifest.")))
+        .cloned()
+        .unwrap_or(Value::Null);
+    if let Some(zone) = manifest["captureTimeZone"].as_str()
+        && let Some(timestamp) = original
+            .as_str()
+            .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
+            .and_then(|date| date.timestamp())
+        && let Some(offset) = nu9ve_time::named_zone_offset(zone, timestamp)
+    {
+        evidence["time_zone"] = json!(zone);
+        evidence["offset_seconds"] = json!(offset);
+    }
+    evidence["original"] = original;
+    evidence["originals"] = Value::Object(
+        ["epochWallClock", "createdAt", "captureTimeZone"]
+            .into_iter()
+            .filter_map(|key| Some((key.to_owned(), manifest.get(key)?.clone())))
+            .collect(),
+    );
+    evidence
 }
 
 /// What `facts` learned about one media file (Python's `found` dict).
@@ -537,6 +571,25 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
     value[key].as_str().unwrap_or_default()
 }
 
+/// Python `layout.stalker_facts`: host-local display time and optional duration.
+pub(crate) fn stalker_facts(manifest: &Value, fallback: i64) -> (DateTime, Option<f64>) {
+    let created = manifest["createdAt"]
+        .as_str()
+        .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
+        .unwrap_or_else(|| DateTime::fromtimestamp(fallback as f64 / 1e9))
+        .astimezone();
+    let number = |value: &Value| {
+        value
+            .as_f64()
+            .or_else(|| value.as_bool().map(|b| f64::from(u8::from(b))))
+    };
+    let seconds = number(&manifest["duration"]["value"])
+        .zip(number(&manifest["duration"]["timescale"]))
+        .filter(|(_, scale)| *scale != 0.0)
+        .map(|(value, scale)| value / scale);
+    (created, seconds)
+}
+
 /// Python `layout.stalker_bundle_name` for ingest and relayout.
 pub(crate) fn stalker_bundle_name(
     manifest: &Value,
@@ -544,16 +597,7 @@ pub(crate) fn stalker_bundle_name(
     country: &str,
     project: &str,
 ) -> Result<(String, DateTime)> {
-    let created = manifest["createdAt"]
-        .as_str()
-        .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
-        .unwrap_or_else(|| DateTime::fromtimestamp(fallback as f64 / 1e9))
-        .astimezone();
-    let seconds = manifest["duration"]["value"]
-        .as_f64()
-        .zip(manifest["duration"]["timescale"].as_f64())
-        .filter(|(_, scale)| *scale != 0.0)
-        .map(|(value, scale)| value / scale);
+    let (created, seconds) = stalker_facts(manifest, fallback);
     let label = format!("{}-{}", tag(country)?, tag(project)?);
     Ok((
         format!(
@@ -605,32 +649,9 @@ pub fn build_layout(
                 bundle => format!("{bundle}/"),
             };
             let manifest_path = format!("{prefix}manifest.json");
-            let raw = crate::tree::read_bytes(source, &manifest_path, 1024 * 1024)?
-                .ok_or_else(|| Error::new("operation_failed", "Stalker manifest disappeared"))?;
-            let manifest: Value = serde_json::from_slice(&raw)
-                .map_err(|_| Error::new("invalid_json", "Invalid JSON document"))?;
-            let mut evidence = capture_time(
-                manifest["epochWallClock"].as_str(),
-                "manifest.epochWallClock",
-            );
-            if evidence["captured_at_absolute"].is_null() {
-                evidence = capture_time(manifest["createdAt"].as_str(), "manifest.createdAt");
-            }
-            nu9ve_json::require(
-                evidence["captured_at_absolute"].is_null() || !truthy(&manifest["captureTimeZone"]),
-                "not_ported",
-                "Stalker plans with a named capture timezone still use Python",
-            )?;
-            let originals: Map<String, Value> = ["epochWallClock", "createdAt", "captureTimeZone"]
-                .into_iter()
-                .filter_map(|key| {
-                    manifest
-                        .get(key)
-                        .map(|value| (key.to_owned(), value.clone()))
-                })
-                .collect();
-            evidence["originals"] = Value::Object(originals);
-            units[index]["capture_time"] = evidence;
+            let manifest =
+                crate::scan::read_manifest(&crate::tree::Root::open(source)?, &manifest_path)?;
+            units[index]["capture_time"] = stalker_time(&manifest);
             let fallback = members
                 .iter()
                 .filter_map(|f| f["stamp"]["mtime_ns"].as_i64())

@@ -29,6 +29,8 @@ quick-xml = "0.42"
 # Calendario civil (`nu9ve-time`). La hora local sale de `localtime_r` (libc) en Mac, la misma que usa Python, y
 # de la zona del sistema (`chrono` con `clock`) en Windows. Ambas en la caché local.
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# IANA offsets for Stalker evidence, with bundled rules on Windows.
+jiff = { version = "=0.2.39", default-features = false, features = ["std", "tzdb-zoneinfo", "tzdb-concatenated", "tzdb-bundle-platform"] }
 libc = "0.2.191"
 
 [workspace.lints.rust]

@@ -126,7 +126,7 @@ fn equals_int(value: &Value, n: i64) -> bool {
 }
 
 /// Python `project_hint(manifest)`.
-fn project_hint(manifest: &Value) -> Value {
+pub(crate) fn project_hint(manifest: &Value) -> Value {
     let project = &manifest["project"];
     if !project.is_object() || !equals_int(&project["version"], 1) {
         return json!({});
@@ -141,7 +141,7 @@ fn project_hint(manifest: &Value) -> Value {
 }
 
 /// Python `preview_track_path(manifest)`: a safe, bundle-relative video track, screen recordings first.
-fn preview_track_path(manifest: &Value) -> String {
+pub(crate) fn preview_track_path(manifest: &Value) -> String {
     let Some(tracks) = manifest["tracks"].as_array() else {
         return String::new();
     };
@@ -187,13 +187,7 @@ fn track_count(tracks: &Value) -> Option<usize> {
 
 /// `layout.stalker_facts`: the session start in the host zone, as `isoformat(timespec='minutes')`, and seconds.
 fn stalker_facts(manifest: &Value, fallback_ns: i64) -> (String, Value) {
-    let created = manifest["createdAt"]
-        .as_str()
-        .and_then(|text| nu9ve_time::DateTime::fromisoformat(&text.replace('Z', "+00:00")))
-        .map(|dt| dt.astimezone())
-        .unwrap_or_else(|| {
-            nu9ve_time::DateTime::fromtimestamp(fallback_ns as f64 / 1e9).astimezone()
-        });
+    let (created, seconds) = crate::layout::stalker_facts(manifest, fallback_ns);
     let iso = created.isoformat();
     // `YYYY-MM-DDTHH:MM` then the offset, without seconds or microseconds.
     let offset = iso[19..]
@@ -201,14 +195,7 @@ fn stalker_facts(manifest: &Value, fallback_ns: i64) -> (String, Value) {
         .map(|i| iso[19 + i..].to_owned())
         .unwrap_or_default();
     let minutes = format!("{}{offset}", &iso[..16]);
-    let duration = &manifest["duration"];
-    let seconds = match (duration["value"].as_f64(), duration["timescale"].as_f64()) {
-        (Some(value), Some(scale)) if scale != 0.0 && !duration["value"].is_boolean() => {
-            json!(value / scale)
-        }
-        _ => Value::Null,
-    };
-    (minutes, seconds)
+    (minutes, json!(seconds))
 }
 
 /// One bundle read again: the index entry Python would save.

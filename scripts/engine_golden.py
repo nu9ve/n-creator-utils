@@ -204,8 +204,10 @@ def plan_case_specs():
                           'DCIM/100CANON/IMG_0001.JPG': {'country': 'pe', 'work': False}}}),
         ('stalker_bundle', {
             'S.stalker/manifest.json': json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'status': 'completed',
-                'sessionID': 'd9391e8f-0ddd-4f03-b745-b8bbd15832d9', 'createdAt': '2026-11-04T23:32:12Z',
-                'duration': {'value': 123, 'timescale': 1}, 'tracks': [{'relativePath': 'screen.mov'}]}).encode(),
+                'sessionID': 'D9391E8F-0DDD-4F03-B745-B8BBD15832D9', 'createdAt': '2026-11-04T23:32:12Z',
+                'epochWallClock': '2026-11-01T01:30:00.123456-04:00', 'captureTimeZone': 'America/New_York',
+                'project': {'version': 1, 'name': 'Terra', 'country': 'MX'},
+                'duration': {'value': 123, 'timescale': 2}, 'tracks': [{'relativePath': 'screen.mov', 'role': 'display'}]}).encode(),
             'S.stalker/screen.mov': b'screen',
             'S.stalker/events.json': b'[]',
         }, {}, dict(base, source_kind='stalker')),
@@ -257,8 +259,15 @@ def plan_cases():
                 w = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
                 info = backend.describe(card)
                 files, _, _ = scan(card)
+                discovery = None
                 if params.get('source_kind') == 'stalker':
+                    from media.service import Service
                     catalog.set('retain-stalker-source', True)
+                    catalog.set('capture-tag:d9391e8f-0ddd-4f03-b745-b8bbd15832d9', {'project': 'intro', 'country': 'mx'})
+                    discover_params = {'source': str(card), 'source_kind': 'stalker', 'archive': 'MEDIA'}
+                    service = Service(catalog, backend)
+                    discovery = {'pending': service.call('discover', discover_params),
+                                 'bundle': service.call('discover', {'source': str(card / 'S.stalker')})}
                 applied = None
                 try:
                     plan = build_plan(catalog, backend, source=str(card), **params)
@@ -269,6 +278,8 @@ def plan_cases():
                     copies = sorted([names[row[0]], json.loads(row[1])['destination'], json.loads(row[1])['sha256']]
                                     for row in catalog.db.execute('SELECT volume_id,payload FROM copies'))
                     applied = {'state': result['state'], 'copies': copies}
+                    if discovery is not None:
+                        discovery['archived'] = service.call('discover', discover_params)
                 except MediaError as error:
                     plan = {'error': error.code}
             finally:
@@ -278,7 +289,7 @@ def plan_cases():
                 'card': {k: v.hex() for k, v in card_tree.items()}, 'archive': {k: v.hex() for k, v in archive_tree.items()},
                 'work': {}, 'volume_ids': {'MEDIA': a['id'], 'ESSD': w['id']},
                 'source_identity': {k: info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')},
-                'stamps': {f['path']: f['stamp'] for f in files}, 'plan': plan, 'apply': applied})
+                'stamps': {f['path']: f['stamp'] for f in files}, 'plan': plan, 'apply': applied, **({'discovery': discovery} if discovery is not None else {})})
     return results
 
 

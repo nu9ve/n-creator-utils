@@ -4306,32 +4306,32 @@
         "copies": [
           [
             "ESSD",
-            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json",
+            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json",
             "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           ],
           [
             "ESSD",
-            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json",
-            "e86f8439bf5fd6c5998e501b0fddb867e5ff5f31a1d3ae19dc24f2153d1b58a7"
+            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json",
+            "06dc6cfc4393b10dc1f375671de99e79f7e5fc696fa48e5e314c1c4980c4bafc"
           ],
           [
             "ESSD",
-            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov",
+            "001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov",
             "4cd6c2914887dd4a68e4c9ffbed8b077f048cf795d6cfa0b801d43e0ea5a1560"
           ],
           [
             "MEDIA",
-            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json",
+            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json",
             "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           ],
           [
             "MEDIA",
-            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json",
-            "e86f8439bf5fd6c5998e501b0fddb867e5ff5f31a1d3ae19dc24f2153d1b58a7"
+            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json",
+            "06dc6cfc4393b10dc1f375671de99e79f7e5fc696fa48e5e314c1c4980c4bafc"
           ],
           [
             "MEDIA",
-            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov",
+            "001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov",
             "4cd6c2914887dd4a68e4c9ffbed8b077f048cf795d6cfa0b801d43e0ea5a1560"
           ]
         ],
@@ -4340,8 +4340,77 @@
       "archive": {},
       "card": {
         "S.stalker/events.json": "5b5d",
-        "S.stalker/manifest.json": "7b2270726f6475636572223a20227374616c6b6572222c2022736368656d6156657273696f6e223a20332c2022737461747573223a2022636f6d706c65746564222c202273657373696f6e4944223a202264393339316538662d306464642d346630332d623734352d623862626431353833326439222c2022637265617465644174223a2022323032362d31312d30345432333a33323a31325a222c20226475726174696f6e223a207b2276616c7565223a203132332c202274696d657363616c65223a20317d2c2022747261636b73223a205b7b2272656c617469766550617468223a202273637265656e2e6d6f76227d5d7d",
+        "S.stalker/manifest.json": "7b2270726f6475636572223a20227374616c6b6572222c2022736368656d6156657273696f6e223a20332c2022737461747573223a2022636f6d706c65746564222c202273657373696f6e4944223a202244393339314538462d304444442d344630332d423734352d423842424431353833324439222c2022637265617465644174223a2022323032362d31312d30345432333a33323a31325a222c202265706f636857616c6c436c6f636b223a2022323032362d31312d30315430313a33303a30302e3132333435362d30343a3030222c20226361707475726554696d655a6f6e65223a2022416d65726963612f4e65775f596f726b222c202270726f6a656374223a207b2276657273696f6e223a20312c20226e616d65223a20225465727261222c2022636f756e747279223a20224d58227d2c20226475726174696f6e223a207b2276616c7565223a203132332c202274696d657363616c65223a20327d2c2022747261636b73223a205b7b2272656c617469766550617468223a202273637265656e2e6d6f76222c2022726f6c65223a2022646973706c6179227d5d7d",
         "S.stalker/screen.mov": "73637265656e"
+      },
+      "discovery": {
+        "archived": {
+          "bytes": 0,
+          "skipped": [],
+          "units": []
+        },
+        "bundle": {
+          "bytes": 425,
+          "skipped": [],
+          "units": [
+            {
+              "bytes": 425,
+              "camera": "",
+              "category": "stalker",
+              "created_at": "2026-11-04T16:32:12-07:00",
+              "duration_seconds": 61.5,
+              "evidence": [],
+              "id": "stalker:.",
+              "paths": [
+                "events.json",
+                "manifest.json",
+                "screen.mov"
+              ],
+              "preview_path": "screen.mov",
+              "project_hint": {
+                "country": "MX",
+                "name": "Terra"
+              },
+              "session_id": "D9391E8F-0DDD-4F03-B745-B8BBD15832D9",
+              "tag": {
+                "country": "mx",
+                "project": "intro"
+              },
+              "track_count": 1
+            }
+          ]
+        },
+        "pending": {
+          "bytes": 425,
+          "skipped": [],
+          "units": [
+            {
+              "bytes": 425,
+              "camera": "",
+              "category": "stalker",
+              "created_at": "2026-11-04T16:32:12-07:00",
+              "duration_seconds": 61.5,
+              "evidence": [],
+              "id": "stalker:S.stalker",
+              "paths": [
+                "S.stalker/events.json",
+                "S.stalker/manifest.json",
+                "S.stalker/screen.mov"
+              ],
+              "preview_path": "S.stalker/screen.mov",
+              "project_hint": {
+                "country": "MX",
+                "name": "Terra"
+              },
+              "session_id": "D9391E8F-0DDD-4F03-B745-B8BBD15832D9",
+              "tag": {
+                "country": "mx",
+                "project": "intro"
+              },
+              "track_count": 1
+            }
+          ]
+        }
       },
       "mtime_ns": 1778000000123456789,
       "name": "stalker_bundle",
@@ -4356,8 +4425,8 @@
         "archive_only_confirmed": false,
         "bundles": {
           "S.stalker": {
-            "manifest_digest": "8a860f5404110ff7c6a5387e02e210a0e875ff02a8f80710cc1dc7371ce2c33f",
-            "session_id": "d9391e8f-0ddd-4f03-b745-b8bbd15832d9"
+            "manifest_digest": "56622c91380d4ccda81a7b3a2708ead7ac79e448b3170093d7d83ddaaa47c5e9",
+            "session_id": "D9391E8F-0DDD-4F03-B745-B8BBD15832D9"
           }
         },
         "city": "hermosillo",
@@ -4376,7 +4445,7 @@
             "root": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work"
           }
         },
-        "digest": "031642bb18f224955ccd5db1d57905d5637f65b952fa75b08aada61b278efa56",
+        "digest": "2cf13dcc16fec2ffd8f6813b456b7855e704e04527fe58cf270124eade5ef385",
         "expected_work_id": "00000000-0000-0000-0000-000000000002",
         "files": [
           {
@@ -4389,7 +4458,7 @@
               "mtime_ns": 1778000000123456789,
               "size": 2
             },
-            "unit_id": "4ee0b339-5c81-51ee-9bc3-d004df145158"
+            "unit_id": "1181506a-084f-5b1a-9a10-c38b447190e6"
           },
           {
             "bundle": "S.stalker",
@@ -4399,9 +4468,9 @@
               "ctime_ns": 1778000000123456789,
               "inode": 1004,
               "mtime_ns": 1778000000123456789,
-              "size": 244
+              "size": 417
             },
-            "unit_id": "4ee0b339-5c81-51ee-9bc3-d004df145158"
+            "unit_id": "1181506a-084f-5b1a-9a10-c38b447190e6"
           },
           {
             "bundle": "S.stalker",
@@ -4413,56 +4482,56 @@
               "mtime_ns": 1778000000123456789,
               "size": 6
             },
-            "unit_id": "4ee0b339-5c81-51ee-9bc3-d004df145158"
+            "unit_id": "1181506a-084f-5b1a-9a10-c38b447190e6"
           }
         ],
-        "id": "f7f0670e-f8b5-5479-9e71-9907d7412ecf",
+        "id": "0a642aa5-0a63-5828-a689-5fd2da2f71ee",
         "layout": {
           "S.stalker/events.json": {
-            "archive": "stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json",
-            "work": "e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json"
+            "archive": "stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json",
+            "work": "e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json"
           },
           "S.stalker/manifest.json": {
-            "archive": "stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json",
-            "work": "e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json"
+            "archive": "stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json",
+            "work": "e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json"
           },
           "S.stalker/screen.mov": {
-            "archive": "stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov",
-            "work": "e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov"
+            "archive": "stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov",
+            "work": "e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov"
           }
         },
         "media_date": "2026/05",
         "planner_revision": "ingest-flow/1",
         "preview": [
           {
-            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json",
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json",
             "bytes": 2,
             "camera": "generic",
             "profile": "e64",
             "project": "intro",
             "source": "S.stalker/events.json",
             "source_action": "retain",
-            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/events.json"
+            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/events.json"
           },
           {
-            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json",
-            "bytes": 244,
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json",
+            "bytes": 417,
             "camera": "generic",
             "profile": "e64",
             "project": "intro",
             "source": "S.stalker/manifest.json",
             "source_action": "retain",
-            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/manifest.json"
+            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/manifest.json"
           },
           {
-            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov",
+            "archive_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/archive/001_raw/stalker/2026/11/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov",
             "bytes": 6,
             "camera": "generic",
             "profile": "e64",
             "project": "intro",
             "source": "S.stalker/screen.mov",
             "source_action": "retain",
-            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_02-03_MX-INTRO[].stalker/screen.mov"
+            "work_path": "/private/tmp/nuun-engine-golden/plan-stalker_bundle/work/001_proyectos/e64_raw/intro/26NOV04-163212_STALKER_01-02_MX-INTRO[].stalker/screen.mov"
           }
         ],
         "release_stalker_source": false,
@@ -4481,18 +4550,20 @@
           {
             "bundle": "S.stalker",
             "camera": "generic",
-            "capture_manifest_digest": "8a860f5404110ff7c6a5387e02e210a0e875ff02a8f80710cc1dc7371ce2c33f",
+            "capture_manifest_digest": "56622c91380d4ccda81a7b3a2708ead7ac79e448b3170093d7d83ddaaa47c5e9",
             "capture_time": {
-              "captured_at_absolute": "2026-11-04T23:32:12Z",
-              "offset_seconds": 0,
-              "original": "2026-11-04T23:32:12Z",
+              "captured_at_absolute": "2026-11-01T05:30:00.123456Z",
+              "offset_seconds": -14400,
+              "original": "2026-11-01T01:30:00.123456-04:00",
               "originals": {
-                "createdAt": "2026-11-04T23:32:12Z"
+                "captureTimeZone": "America/New_York",
+                "createdAt": "2026-11-04T23:32:12Z",
+                "epochWallClock": "2026-11-01T01:30:00.123456-04:00"
               },
-              "provenance": "manifest.createdAt",
-              "time_zone": null
+              "provenance": "manifest.epochWallClock",
+              "time_zone": "America/New_York"
             },
-            "id": "4ee0b339-5c81-51ee-9bc3-d004df145158",
+            "id": "1181506a-084f-5b1a-9a10-c38b447190e6",
             "kind": "stalker_session",
             "paths": [
               "S.stalker/events.json",
@@ -4501,7 +4572,7 @@
             ],
             "profile": "e64",
             "project": "intro",
-            "session_id": "d9391e8f-0ddd-4f03-b745-b8bbd15832d9"
+            "session_id": "D9391E8F-0DDD-4F03-B745-B8BBD15832D9"
           }
         ],
         "work_delivery_status": "ready",
@@ -4525,7 +4596,7 @@
           "ctime_ns": 1778000000123456789,
           "inode": 1004,
           "mtime_ns": 1778000000123456789,
-          "size": 244
+          "size": 417
         },
         "S.stalker/screen.mov": {
           "ctime_ns": 1778000000123456789,

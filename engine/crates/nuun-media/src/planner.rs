@@ -5,8 +5,7 @@
 //! (`uuid5` of canonical JSON) must come out of the same inputs exactly as in Python, so every rule below follows
 //! Python step by step, in Python's order of checks (the first failing check decides the error code).
 //!
-//! Cards, Stalker sources and deliveries share this planner. A Stalker manifest with an explicit named capture
-//! timezone still uses Python for planning.
+//! Cards, Stalker sources and deliveries share this planner. Stalker times retain the original clock evidence.
 
 //! Divergence: the plan size guard uses the canonical length (Python measures `json.dumps` with spaces and ASCII
 //! escapes, slightly longer); both stop far below the 12 MiB the apply side accepts.
@@ -1465,7 +1464,7 @@ fn mission_counts(summary: &mut Value, units: &[Value], flow_id: &str) {
     summary["work_existing"] = json!(mine.iter().filter(|u| truthy(&u["work_existing"])).count());
 }
 
-fn pending_stalker_files(
+pub(crate) fn pending_stalker_files(
     catalog: &Catalog,
     archive: &Value,
     files: &mut Vec<Value>,
@@ -1946,6 +1945,29 @@ mod golden {
                     .set("retain-stalker-source", &json!(true))
                     .unwrap();
             }
+            let discover = |source: &Path, archived_filter: bool| {
+                let catalog = Catalog::open(&s.home).unwrap();
+                let mut request = json!({"source":source});
+                if archived_filter {
+                    request["source_kind"] = json!("stalker");
+                    request["archive"] = json!("MEDIA");
+                }
+                crate::scan::discover(Some(&catalog), Some(&s.backend), &request).unwrap()
+            };
+            if let Some(discovery) = case.get("discovery") {
+                crate::catalog::WritableCatalog::open(&s.home)
+                    .unwrap()
+                    .set(
+                        "capture-tag:d9391e8f-0ddd-4f03-b745-b8bbd15832d9",
+                        &json!({"project":"intro","country":"mx"}),
+                    )
+                    .unwrap();
+                assert_eq!(discover(&s.card, true), discovery["pending"]);
+                assert_eq!(
+                    discover(&s.card.join("S.stalker"), false),
+                    discovery["bundle"]
+                );
+            }
             let catalog = Catalog::open(&s.home).unwrap();
             let mine = build_with_stamps(&catalog, &s.backend, &params, case["stamps"].as_object());
             let name = text(case, "name");
@@ -2006,6 +2028,9 @@ mod golden {
                             .unwrap()
                     };
                     assert_eq!(applied["state"], expected["state"], "{name}");
+                    if let Some(discovery) = case.get("discovery") {
+                        assert_eq!(discover(&s.card, true), discovery["archived"]);
+                    }
                     let names = |id: &str| if id == "id-MEDIA" { "MEDIA" } else { "ESSD" };
                     let mut copies: Vec<Value> = Catalog::open(&s.home)
                         .unwrap()

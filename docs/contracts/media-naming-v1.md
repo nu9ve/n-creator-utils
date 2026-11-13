@@ -14,6 +14,11 @@ por separado en [capture_time](media-library-v1.md#reloj-y-procedencia), sin
 atribuir la zona del Mac a cámaras desconocidas. Este cambio no renombra media
 existente ni habilita una operación sobre sesiones archivadas.
 
+Los planes Rust y Python publican el instante y el desfase IANA de la
+captura cuando el manifiesto trae un reloj con offset y una zona reconocida.
+Con una zona desconocida se conserva el offset del reloj original. El nombre
+del bundle sigue usando `createdAt` en la hora local del sistema.
+
 ## Por qué
 
 Una carpeta de proyecto debe poder recorrerse con flecha abajo y ver todo lo grabado en orden: clips de cámara y sesiones de pantalla intercalados por hora de inicio. Los nombres son para humanos y orden; **la identidad nunca es el nombre** (ver abajo).
