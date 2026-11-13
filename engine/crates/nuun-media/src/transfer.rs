@@ -40,6 +40,19 @@ const FINAL_STATES: [&str; 4] = [
     "source_has_new_material",
 ];
 
+// macOS exFAT can assign a new synthetic inode to the empty Sony card marker after a remount.
+// It is retained, and the other stamp fields still have to agree.
+fn source_stamp_matches(plan: &Value, path: &str, expected: &Value, actual: &Value) -> bool {
+    expected == actual
+        || (plan["source_identity"]["mode"] == "macos"
+            && plan["cleanup_profile"] == "sony_clips_then_format"
+            && path.eq_ignore_ascii_case("PRIVATE/SONY/SONYCARD.IND")
+            && expected["size"] == 0
+            && actual["size"] == 0
+            && expected["mtime_ns"] == actual["mtime_ns"]
+            && expected["ctime_ns"] == actual["ctime_ns"])
+}
+
 fn sql(error: rusqlite::Error) -> Error {
     Error::new("catalog_unavailable", error.to_string())
 }
@@ -355,7 +368,7 @@ impl<'a> Transfer<'a> {
         for (path, file) in &expected {
             if let Some(found) = actual.get(path) {
                 require(
-                    found["stamp"] == file["stamp"],
+                    source_stamp_matches(plan, path, &file["stamp"], &found["stamp"]),
                     "source_changed",
                     format!("Source changed: {path}"),
                 )?;
@@ -788,7 +801,7 @@ impl<'a> Transfer<'a> {
     }
 
     fn run(&mut self, plan: &Value) -> Result<Value> {
-        self.validate_source(plan)?;
+        let source_files = self.validate_source(plan)?;
         let id = text(plan, "id").to_owned();
         let units: BTreeMap<String, Value> = plan["units"]
             .as_array()
@@ -936,9 +949,11 @@ impl<'a> Transfer<'a> {
                 if let Some(prior) = prior {
                     let data: Value = serde_json::from_str(&prior)
                         .map_err(|e| Error::new("catalog_corrupt", e.to_string()))?;
-                    let mut fd = roots[r].open_read(&target)?.ok_or_else(|| {
-                        Error::new("operation_failed", format!("[FileNotFoundError] {target}"))
-                    })?;
+                    let mut fd =
+                        fs::verify_read(roots[r].open_read(&target)?.ok_or_else(|| {
+                            Error::new("operation_failed", format!("[FileNotFoundError] {target}"))
+                        })?);
+                    self.verify_cache = self.verify_cache.max(fd.cache());
                     let mut counted = 0;
                     let found = hash_file(&mut fd, |n| counted += n)?;
                     self.add_progress("verified_bytes", counted);
@@ -996,7 +1011,11 @@ impl<'a> Transfer<'a> {
                         &path,
                         &targets,
                         expected.as_deref(),
-                        Some(&file["stamp"]),
+                        Some(
+                            source_files
+                                .get(&path)
+                                .map_or(&file["stamp"], |f| &f["stamp"]),
+                        ),
                     )?,
                 };
                 for ((r, rel), (sha, stamp)) in pending.iter().zip(outcomes) {
@@ -1384,7 +1403,11 @@ impl<'a> Transfer<'a> {
             );
         }
         let unexpected = remaining.files.iter().any(|f| {
-            kept.get(text(f, "path")) != Some(&&f["stamp"]) && !left.contains(text(f, "path"))
+            let path = text(f, "path");
+            !left.contains(path)
+                && kept
+                    .get(path)
+                    .is_none_or(|stamp| !source_stamp_matches(plan, path, stamp, &f["stamp"]))
         });
         Ok(if unexpected {
             "source_has_new_material"
@@ -2077,6 +2100,25 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
             b"<index/>"
         );
         assert!(s.card.join("AVF_INFO/AVIN0001.BNP").exists());
+    }
+
+    #[test]
+    fn empty_sony_marker_can_change_inode_when_the_card_remounts() {
+        let s = fixture();
+        let marker = s.card.join("PRIVATE/SONY/SONYCARD.IND");
+        std::fs::create_dir_all(marker.parent().unwrap()).unwrap();
+        std::fs::write(&marker, b"").unwrap();
+        let mut plan = plan(&s, json!({}));
+        plan["source_identity"]["mode"] = json!("macos");
+        plan["cleanup_profile"] = json!("sony_clips_then_format");
+        let expected = stamp_json(&nu9ve_volumes::stamp(&marker).unwrap());
+        let mut remounted = expected.clone();
+        remounted["inode"] = json!(expected["inode"].as_u64().unwrap() ^ 1);
+        let matches = |path, stamp: &Value| source_stamp_matches(&plan, path, &expected, stamp);
+        assert!(matches("PRIVATE/SONY/SONYCARD.IND", &remounted));
+        assert!(!matches("DCIM/photo.JPG", &remounted));
+        remounted["ctime_ns"] = json!(0);
+        assert!(!matches("PRIVATE/SONY/SONYCARD.IND", &remounted));
     }
 
     #[test]

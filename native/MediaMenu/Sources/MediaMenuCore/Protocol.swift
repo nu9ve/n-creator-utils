@@ -81,11 +81,11 @@ public struct BackendConfiguration: Codable, Sendable {
     public var engine: String?
     /// Who answers reads: `"rust"` with Python fallback, or `"python"`.
     public var reads: String?
-    /// Exercise supported Rust mutations in the test environment.
-    public var testWrites: Bool?
-    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil, testWrites: Bool? = nil) {
+    /// Use Rust for mutations advertised by the engine.
+    public var rustWrites: Bool?
+    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil, rustWrites: Bool? = nil) {
         self.python = python; self.script = script; self.stateDirectory = stateDirectory; self.engine = engine; self.reads = reads
-        self.testWrites = testWrites
+        self.rustWrites = rustWrites
     }
     public var usable: Bool {
         FileManager.default.isExecutableFile(atPath: python) && FileManager.default.fileExists(atPath: script)
@@ -301,22 +301,21 @@ public final class BackendClient: @unchecked Sendable {
     private func currentEpoch() -> UInt { lock.lock(); defer { lock.unlock() }; return cancelEpoch }
     /// One-shot capabilities depend on the engine and the effective catalog.
     private static let onceCache = OnceMethods()
-    /// Stay with Python until compared on real data: `discover` reads real cards, and `capture_discard_check` is the
-    /// guard before a session goes to the Trash.
+    /// Keep the discard guard in Python. Rust discovery is enabled with Rust writes to use the same planner.
     static let pythonOnly: Set<String> = ["discover", "capture_discard_check"]
 
     private func run(_ request: Data, epoch: UInt) throws -> JSONValue {
         let method = (try? JSONDecoder().decode(JSONValue.self, from: request))?["method"].string ?? ""
         if configuration.rustReads, let engine = configuration.engine {
-            let testWrites = configuration.testWrites == true
-            let key = [engine, configuration.stateDirectory ?? "", String(testWrites)].joined(separator: "\0")
-            let methods = Self.onceCache.methods(engine: key, ask: { try? self.engineInfo(engine, testWrites: testWrites) })
+            let rustWrites = configuration.rustWrites == true
+            let key = [engine, configuration.stateDirectory ?? "", String(rustWrites)].joined(separator: "\0")
+            let methods = Self.onceCache.methods(engine: key, ask: { try? self.engineInfo(engine, rustWrites: rustWrites) })
             if methods.contains("write:" + method) {
                 do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
                 catch let failure as BackendFailure where failure.code == "not_ported" {
                     // The Rust method refused the request before mutating media.
                 }
-            } else if methods.contains(method), !Self.pythonOnly.contains(method) || (testWrites && method == "discover") {
+            } else if methods.contains(method), !Self.pythonOnly.contains(method) || (rustWrites && method == "discover") {
                 do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
                 catch let failure as BackendFailure where !PersistentReader.fallbackCodes.contains(failure.code) && failure.code != "backend_failed" { throw failure }
                 catch { /* Python answers what Rust could not. */ }
@@ -328,11 +327,11 @@ public final class BackendClient: @unchecked Sendable {
 
     private var state: [String] { configuration.stateDirectory.map { ["--state-dir", $0] } ?? [] }
 
-    private func engineInfo(_ engine: String, testWrites: Bool) throws -> Set<String> {
+    private func engineInfo(_ engine: String, rustWrites: Bool) throws -> Set<String> {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string("engine_info"), "params": .object([:])]))
         let info = try execute(engine, state + ["rpc"], request, epoch: currentEpoch())
         var methods = Set(info["once"].array.map(\.string))
-        if testWrites { methods.formUnion(info["writes"].array.map { "write:" + $0.string }) }
+        if rustWrites { methods.formUnion(info["writes"].array.map { "write:" + $0.string }) }
         return methods
     }
 

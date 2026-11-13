@@ -187,13 +187,13 @@ fn backend(backend: Option<&dyn Backend>) -> Result<&dyn Backend> {
     })
 }
 
-/// The backend for a write: only one whose writes are open (a new backend reads until its physical run).
+/// The backend for a write must support the operation.
 fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
     let backend = backend(platform)?;
     require(
         backend.writes(),
         "not_ported",
-        "This platform's volume backend reads only until its physical run (docs/release.md); ask Python",
+        "This platform's volume backend does not support writes; ask Python",
     )?;
     Ok(backend)
 }
@@ -937,7 +937,11 @@ mod tests {
                 r#"{"id": 10, "method": "storage_scan", "params": {}}"#,
                 Mode::Once
             )["error"]["code"],
-            "not_ported"
+            if cfg!(target_os = "macos") {
+                "operation_failed"
+            } else {
+                "not_ported"
+            }
         );
         let reply = e.answer(&request, Mode::Once);
         let writes = platform_backend(&e.home()).is_some_and(|b| b.writes());
@@ -988,8 +992,7 @@ mod tests {
             }
         }
         assert_eq!(cfg!(any(windows, target_os = "macos")), has);
-        // macOS reads first: its writes open after a physical run (docs/release.md).
-        assert_eq!(cfg!(windows), writes);
+        assert_eq!(cfg!(any(windows, target_os = "macos")), writes);
     }
 
     #[test]
