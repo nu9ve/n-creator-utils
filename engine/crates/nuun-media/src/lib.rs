@@ -9,6 +9,7 @@ pub mod closeout;
 pub mod coverage;
 pub mod delivery;
 pub mod devices;
+mod editorial;
 pub mod handoff;
 pub mod integrations;
 pub mod layout;

@@ -328,17 +328,21 @@ def release_cases():
             'applied': normalize(applied), 'remaining': remaining}
 
 
-def closeout_cases():
+def closeout_cases(full=False):
     from media.catalog import Catalog
     from media.closure import apply_close, plan_close, save
     from tests.test_media_engine import FixtureVolumes
     from unittest.mock import patch
-    root = fresh_root('closeout')
+    root = fresh_root('editorial-closeout' if full else 'closeout')
     archive, work = (root / name for name in ('archive', 'work'))
     published = '002_finales/general/intro/main.mov'
     unpublished = '002_finales/general/intro/preview.mov'
     files = {'work/' + published: 'published', 'work/' + unpublished: 'preview',
              'archive/' + published: 'published'}
+    if full:
+        files.update({'archive/' + unpublished: 'preview', 'archive/001_raw/2026/11/clip.mov': 'raw',
+                      'work/001_proyectos/general_raw/intro/clip.mov': 'raw',
+                      'work/001_proyectos/general/intro/renders/cache.mov': 'render'})
     for name, content in files.items():
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -353,10 +357,31 @@ def closeout_cases():
         save(catalog, backend, 'p1', ['horizontal'], True, False, [
             {'volume_id': catalog.volume('ESSD')['id'], 'path': published, 'role': 'horizontal', 'published': True},
             {'volume_id': catalog.volume('ESSD')['id'], 'path': unpublished, 'role': 'auxiliary', 'published': False}])
+        if full:
+            import hashlib
+            sha = hashlib.sha256(b'raw').hexdigest()
+            member = 'clip.mov'
+            with catalog.db:
+                catalog.db.execute("INSERT INTO project_aliases VALUES('general','intro','p1')")
+                catalog.db.execute("INSERT INTO jobs VALUES('j1','digest',?, 'completed',NULL,'t','t')",
+                                   (json.dumps({'files': []}),))
+                asset = {'id': 'a1', 'kind': 'file', 'job_id': 'j1', 'project_id': 'p1',
+                         'profile': 'general', 'paths': [member]}
+                catalog.db.execute("INSERT INTO assets VALUES('a1','j1',?)", (json.dumps(asset),))
+                catalog.db.execute("INSERT INTO work VALUES('a1','ready',?,'t')", (catalog.volume('ESSD')['id'],))
+                for volume, dest in (('MEDIA', '001_raw/2026/11/clip.mov'),
+                                     ('ESSD', '001_proyectos/general_raw/intro/clip.mov')):
+                    row = {'path': member, 'destination': dest, 'sha256': sha}
+                    catalog.db.execute("INSERT INTO copies VALUES('j1',?,?,?,?)",
+                                       (catalog.volume(volume)['id'], member, sha, json.dumps(row)))
         with patch('media.clipper.inspect', return_value=consumers), patch('media.clipper.release_guard', return_value=contextlib.nullcontext()):
-            plan = plan_close(catalog, backend, 'p1', 'MEDIA', 'ESSD', release_work=False)
+            plan = plan_close(catalog, backend, 'p1', 'MEDIA', 'ESSD', release_work=full)
             applied = apply_close(catalog, backend, plan['id'], plan['digest'], confirm_discard=True)
         ids = {catalog.volume(name)['id']: name for name in ('MEDIA', 'ESSD')}
+        terminal = {'state': catalog.get('project-state:p1'), 'release': catalog.get('project-released:p1'),
+                    'work': catalog.db.execute("SELECT state FROM work WHERE asset_id='a1'").fetchone()[0]} if full else None
+        if terminal:
+            terminal['release']['plan_id'] = '<ID>'
     def normalize(value):
         def visit(item):
             if isinstance(item, dict):
@@ -369,7 +394,10 @@ def closeout_cases():
                 return ids.get(item, item.replace(str(root), '<ROOT>'))
             return item
         return visit({k: v for k, v in value.items() if k != 'id'})
-    return {'plan': normalize(plan), 'applied': normalize(applied)}
+    value = {'plan': normalize(plan), 'applied': normalize(applied)}
+    if full:
+        value['terminal'] = normalize(terminal)
+    return value
 
 
 def transcript_cases():
@@ -1177,6 +1205,7 @@ def main():
         'plans': plan_cases(),
         'release': release_cases(),
         'closeout': closeout_cases(),
+        'editorial_closeout': closeout_cases(full=True),
         'handoff': handoff_cases(),
         'transcripts': transcript_cases(),
         # Catalog reads through the engine's own dispatch, as rpc-serve answers them.

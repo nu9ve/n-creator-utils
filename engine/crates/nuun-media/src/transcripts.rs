@@ -374,6 +374,33 @@ pub(crate) fn copy(
     )?;
     volumes::check(backend, &archive)?;
     let target = Root::open(Path::new(text(&archive, "root")))?;
+    if let Some(receipt) = catalog.get(&format!("data-receipt:{receipt_id}"))? {
+        let mut copied = 0;
+        let mut bytes = 0u64;
+        let files = receipt["files"]
+            .as_array()
+            .ok_or_else(|| Error::new("invalid_plan", "Invalid transcript receipt"))?;
+        require(
+            receipt["volume_id"] == archive["id"] && receipt["exports"] == plan["exports"],
+            "operation_conflict",
+            "Transcript receipt belongs to another review",
+        )?;
+        for file in files {
+            require(
+                hash_matches(&target, text(file, "target"), text(file, "sha256"))?,
+                "checksum_mismatch",
+                "Cambió una transcripción archivada; revisa de nuevo",
+            )?;
+            if file["action"] == "copied" {
+                copied += 1;
+                bytes += file["bytes"].as_u64().unwrap_or_default();
+            }
+        }
+        return Ok(
+            json!({"receipt_id": receipt_id, "copied": copied, "adopted": files.len() - copied,
+            "bytes": bytes, "notes": plan["notes"]}),
+        );
+    }
     let mut progress = ActionProgress::new(&catalog, progress_id, "copying_transcripts");
     progress.meter.total = plan["bytes"].as_u64().unwrap_or_default().saturating_mul(2);
     progress.meter.files_total = plan["files"].as_u64().unwrap_or_default() as usize;

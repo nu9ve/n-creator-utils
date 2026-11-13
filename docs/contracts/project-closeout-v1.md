@@ -31,6 +31,8 @@ El estado terminal, esas asociaciones y el evento de cierre se publican en una
 sola transacción SQLite, para poder reanudar tras una interrupción sin confundir
 un cambio propio con una nueva decisión humana. Los recibos previos se conservan. Guardar decisiones registra `project_delivery_decision` con el digest previo y la selección nueva en la misma transacción. El movimiento independiente de finales mantiene la exclusión de Clipper durante la consulta de dependencias y todo el retiro.
 
+En el sandbox de macOS, Rust ejecuta ambas variantes. El cierre editorial vuelve a verificar el inventario de raws y renders, confirma los respaldos antes del retiro y conserva la copia de trabajo de los finales pendientes de publicar. La limpieza de regenerables se delega a Clipper después del cierre y se reintenta con el digest original si falla.
+
 La ruta por rol de una entrega seleccionada se resuelve antes del digest y
 preflight, también cuando un vertical y un horizontal comparten nombre. Un
 contenido distinto en el destino bloquea; nunca se reemplaza silenciosamente.
