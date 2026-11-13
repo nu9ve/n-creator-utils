@@ -12,9 +12,8 @@
 //!   camera indexes are never removed (the job waits for the camera's format).
 //!
 //! Stalker release after ingest and published finals cleanup require Clipper exclusion on Unix.
-//! Cancellation from the client is
-//! a process kill: the journal
-//! makes it resumable (the job stays in its last state; Python would record `paused`).
+//! On macOS, SIGINT stops a one-shot worker at a checkpoint and records `paused`. After an abrupt
+//! process exit, the journal still lets the client resume from the last recorded state.
 
 use crate::catalog::{Catalog, WritableCatalog};
 use crate::layout::sony_index_member;
@@ -1343,14 +1342,26 @@ impl<'a> Transfer<'a> {
                 self.meter.finished("cleaned", path, source_name);
             }
         }
-        if sony {
-            self.report(true, json!({"phase": "checking_card"}))?;
-            self.source_check(plan, true)?;
-        }
-        let remaining = scan(Path::new(text(plan, "source")), false, false, false)?;
-        if sony {
-            self.source_check(plan, true)?;
-        }
+        let source_path = Path::new(text(plan, "source"));
+        let remaining =
+            if sony {
+                self.report(true, json!({"phase": "checking_card"}))?;
+                self.source_check(plan, true)?;
+                let mut removed: BTreeSet<_> = removable.iter().map(|f| text(f, "path")).collect();
+                removed.extend(plan["discarded"].as_array().into_iter().flatten().flat_map(
+                    |item| {
+                        item["stamps"]
+                            .as_object()
+                            .into_iter()
+                            .flat_map(|stamps| stamps.keys().map(String::as_str))
+                    },
+                ));
+                let remaining = crate::scan::scan_after_sony_cleanup(source_path, &removed)?;
+                self.source_check(plan, true)?;
+                remaining
+            } else {
+                scan(source_path, false, false, false)?
+            };
         // Planned members are verified and cleaned; material that appeared meanwhile is not backed up.
         let kept: BTreeMap<&str, &Value> = files
             .iter()
@@ -1584,6 +1595,26 @@ pub fn apply(
     Ok(result)
 }
 
+/// Apply a reviewed plan from the dedicated one-shot RPC worker.
+pub fn apply_reviewed(
+    home: &Path,
+    backend: &dyn Backend,
+    plan: &Value,
+    reviewed_digest: &str,
+) -> Result<Value> {
+    #[cfg(target_os = "macos")]
+    let _cancel = crate::interrupt::Cancel::install()?;
+    apply(home, backend, plan, reviewed_digest, &|_, _| {
+        #[cfg(target_os = "macos")]
+        require(
+            !crate::interrupt::cancelled(),
+            "cancelled",
+            "Operation paused at a recoverable point",
+        )?;
+        Ok(())
+    })
+}
+
 /// The `resume` RPC: apply a job's own plan again; a recovered archive job is read-only.
 pub fn resume(home: &Path, backend: &dyn Backend, job_id: &str) -> Result<Value> {
     let job = crate::reads::job(&Catalog::open(home)?, &json!({"job_id": job_id}))?;
@@ -1592,13 +1623,7 @@ pub fn resume(home: &Path, backend: &dyn Backend, job_id: &str) -> Result<Value>
         "source_not_resumable",
         "Recovered archive jobs are read-only; use restore or deliver-work",
     )?;
-    apply(
-        home,
-        backend,
-        &job["plan"],
-        text(&job, "digest"),
-        &|_, _| Ok(()),
-    )
+    apply_reviewed(home, backend, &job["plan"], text(&job, "digest"))
 }
 
 /// Ports of tests/test_media_engine.py (MediaFixture): temporary card, archive and work with fixture identities.
@@ -1779,6 +1804,29 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
             (job["state"].as_str(), job["error"].as_str()),
             (Some("failed"), Some("checksum_mismatch"))
         );
+    }
+
+    #[test]
+    fn cancelled_copy_pauses_without_cleaning_and_resumes_the_same_job() {
+        let s = fixture();
+        let plan = plan(&s, json!({}));
+        let pause = |stage: &str, _: &Value| {
+            require(stage != "copy_block", "cancelled", "fixture cancellation")
+        };
+        assert_eq!(run(&s, &plan, &pause).unwrap_err().code, "cancelled");
+        let id = text(&plan, "id");
+        let job =
+            crate::reads::job(&Catalog::open(&s.home).unwrap(), &json!({"job_id": id})).unwrap();
+        assert_eq!(job["state"], "paused");
+        assert_eq!(job["error"], "cancelled");
+        assert!(s.card.join("DCIM/photo.JPG").exists());
+        assert_eq!(
+            super::resume(&s.home, &s.backend, id).unwrap()["state"],
+            "completed"
+        );
+        assert!(!s.card.join("DCIM/photo.JPG").exists());
+        assert_eq!(count(&s.archive, ".ncpartial"), 0);
+        assert_eq!(count(&s.work, ".ncpartial"), 0);
     }
 
     #[test]

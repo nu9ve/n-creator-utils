@@ -47,6 +47,7 @@
 "Motor en Rust, con Python de respaldo" = "Rust engine, with Python as fallback";
 "Motor en Rust: " = "Rust engine: ";
 "Sin motor en Rust en esta instalación: todo lo responde Python." = "No Rust engine in this installation: Python answers everything.";
+"El motor en Rust atiende las escrituras que declara para el entorno de prueba." = "Rust handles its declared writes in the test environment.";
 "Las escrituras (copiar, limpiar, liberar) siguen en Python hasta la prueba física del motor en Rust." = "Writes (copy, clean up, release) stay in Python until the Rust engine's physical run.";
 "Archivo" = "File";
 "Archivo verificado" = "Archive verified";

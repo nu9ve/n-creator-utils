@@ -18,6 +18,8 @@ pub mod dng;
 mod editorial;
 pub mod handoff;
 pub mod integrations;
+#[cfg(target_os = "macos")]
+mod interrupt;
 pub mod layout;
 #[cfg(target_os = "macos")]
 pub mod living;

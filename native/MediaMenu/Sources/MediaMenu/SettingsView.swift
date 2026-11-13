@@ -125,7 +125,13 @@ struct SettingsView: View {
             .onChange(of: model.readEngine) { _, _ in model.configure() }
             Text(model.enginePath.isEmpty ? String(localized: "Sin motor en Rust en esta instalación: todo lo responde Python.")
                  : String(localized: "Motor en Rust: ") + model.enginePath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-            Text("Las escrituras (copiar, limpiar, liberar) siguen en Python hasta la prueba física del motor en Rust.").font(.caption).foregroundStyle(.secondary)
+            if model.sandbox != nil && model.readEngine != "python" && !model.enginePath.isEmpty {
+                Text("El motor en Rust atiende las escrituras que declara para el entorno de prueba.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Las escrituras (copiar, limpiar, liberar) siguen en Python hasta la prueba física del motor en Rust.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Text(engineSummary).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
             Text("Una ventana · tres modos · miniaturas bajo demanda · sin sondeo periódico en reposo.").font(.caption)
             if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }

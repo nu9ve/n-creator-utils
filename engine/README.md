@@ -160,7 +160,7 @@ Desde el 2026-11-12 la app usa Rust para lecturas y, dentro del sandbox, tambié
 - `PersistentReader` (`native/MediaMenu/Sources/MediaMenuCore/Protocol.swift`) arranca `nuun-engine rpc-serve` y le pregunta una vez `engine_info`. Cada lectura que está en `ported` va primero a Rust. Si Rust responde `not_ported`, `reader_unavailable` o `runtime_missing`, o el proceso se cae, la misma lectura va al `rpc-serve` de Python. Cualquier otro error es la respuesta del método.
 - El motor se busca en `Contents/Resources/backend/nuun-engine` (lo pone `scripts/build_media_app.py`, firmado aparte porque la app no se firma con `--deep`) o, desde el código, en `engine/target/release/nuun-engine` junto a `nu9ve.py`.
 - Ajustes → Diagnóstico → «Lecturas» elige `rust` (predeterminado si hay motor) o `python` (`UserDefaults` `readEngine`), y lista qué motor respondió cada método.
-- En el sandbox, `BackendClient` consulta `engine_info.writes`. Para una escritura ya enviada a Rust, sólo cambia a Python ante `not_ported`; si el proceso se corta, el error queda a la vista y el diario permite reanudar un ingreso empezado. En el catálogo de uso diario, las escrituras siguen en Python.
+- En el sandbox, `BackendClient` consulta `engine_info.writes`. Para una escritura ya enviada a Rust, sólo cambia a Python ante `not_ported`; SIGINT durante una transferencia de ingreso se atiende en un punto recuperable y registra `paused`. Tras una salida abrupta, el diario permite reanudar desde el último estado registrado. En el catálogo de uso diario, las escrituras siguen en Python.
 - La sombra de Python sólo ve lo que Python responde. Para seguir comparando con la app en Rust, `scripts/engine_shadow.py replay` sigue sirviendo igual.
 
 ## Sandbox de macOS

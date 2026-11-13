@@ -216,7 +216,7 @@ public final class PersistentReader: @unchecked Sendable {
     public init(configuration: BackendConfiguration) {
         self.configuration = configuration
         let state = configuration.stateDirectory.map { ["--state-dir", $0] } ?? []
-        python = LineServer(executable: configuration.python, arguments: ["-S", configuration.script, "media"] + state + ["rpc-serve"])
+        python = LineServer(executable: configuration.python, arguments: ["-B", "-S", configuration.script, "media"] + state + ["rpc-serve"])
         rust = configuration.rustReads ? configuration.engine.map { LineServer(executable: $0, arguments: state + ["rpc-serve"]) } : nil
         fallback = BackendClient(configuration: configuration)
     }
@@ -323,7 +323,7 @@ public final class BackendClient: @unchecked Sendable {
             }
         }
         guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Configura el runtime Python y nu9ve.py antes de operar.") }
-        return try execute(configuration.python, ["-S", configuration.script, "media"] + state + ["rpc"], request, epoch: epoch)
+        return try execute(configuration.python, ["-B", "-S", configuration.script, "media"] + state + ["rpc"], request, epoch: epoch)
     }
 
     private var state: [String] { configuration.stateDirectory.map { ["--state-dir", $0] } ?? [] }

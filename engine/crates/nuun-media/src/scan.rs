@@ -237,6 +237,7 @@ struct Walker<'a> {
     photos: bool,
     root: &'a crate::tree::Root,
     keep_manifests: bool,
+    removed: Option<&'a BTreeSet<&'a str>>,
     scan: &'a mut Scan,
 }
 
@@ -345,7 +346,18 @@ impl Walker<'_> {
             }
             let rel = join(prefix, &name);
             relative(&rel)?;
-            let s = stamp(&path)?;
+            let s = if self
+                .removed
+                .is_some_and(|paths| paths.contains(rel.as_str()))
+            {
+                // exFAT can still list a just-unlinked entry. A fresh lookup decides whether it exists.
+                let Some(stamp) = nu9ve_volumes::fs::stamp_opt(&path)? else {
+                    continue;
+                };
+                stamp
+            } else {
+                stamp(&path)?
+            };
             require(
                 s.kind != EntryKind::Link,
                 "unsafe_file",
@@ -388,7 +400,12 @@ impl Walker<'_> {
 
 /// `photos: false` skips the EXIF read (validation before copy and cleanup only needs membership and stamps).
 pub fn scan(root: &Path, skip_active: bool, stalker_only: bool, photos: bool) -> Result<Scan> {
-    scan_source(root, skip_active, stalker_only, photos, false)
+    scan_source(root, skip_active, stalker_only, photos, false, None)
+}
+
+/// Post-cleanup Sony scan. Only paths already removed by this job may be listed but absent.
+pub(crate) fn scan_after_sony_cleanup(root: &Path, removed: &BTreeSet<&str>) -> Result<Scan> {
+    scan_source(root, false, false, false, false, Some(removed))
 }
 
 fn scan_source(
@@ -397,6 +414,7 @@ fn scan_source(
     stalker_only: bool,
     photos: bool,
     keep_manifests: bool,
+    removed: Option<&BTreeSet<&str>>,
 ) -> Result<Scan> {
     let root = crate::tree::Root::open(root)?;
     let mut result = Scan {
@@ -411,6 +429,7 @@ fn scan_source(
         photos,
         root: &root,
         keep_manifests,
+        removed,
         scan: &mut result,
     }
     .visit(&root.path, "", None)?;
@@ -492,7 +511,7 @@ pub fn discover(
         .as_str()
         .ok_or_else(|| Error::new("operation_failed", "'source'"))?;
     let stalker = params["source_kind"] == "stalker";
-    let mut found = scan_source(Path::new(source), true, stalker, true, true)?;
+    let mut found = scan_source(Path::new(source), true, stalker, true, true, None)?;
     if stalker && let Some(name) = archive {
         let empty = crate::catalog::Catalog::empty();
         let catalog = catalog.unwrap_or(&empty);
