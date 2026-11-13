@@ -13,7 +13,6 @@
 //!   with `archive` names it in `not_ported` instead of answering without it.
 //! - Name collisions compare a lowercase form without Unicode NFC (no normalization crate). A collision this misses
 //!   still cannot overwrite anything: copies land as `.ncpartial` and are renamed without replacing.
-//! - Stalker sources answer `not_ported` in `discover` (session metadata lives in `captures.py`).
 
 use crate::missions::MissionIndex;
 use crate::rules::relative;
@@ -103,29 +102,36 @@ pub fn finder_only_residue(folder: &Path) -> bool {
     true
 }
 
-/// Python `read_json(path, limit)`.
-fn read_json(path: &Path, limit: u64) -> Result<Value> {
-    let s = stamp(path)?;
+pub(crate) fn read_manifest(root: &crate::tree::Root, rel: &str) -> Result<Value> {
+    const LIMIT: u64 = 1024 * 1024;
+    let stamp = root.stat(rel)?.ok_or_else(|| {
+        Error::new(
+            "operation_failed",
+            format!("Stalker manifest missing: {rel}"),
+        )
+    })?;
     require(
-        s.kind == EntryKind::File,
-        "unsafe_file",
-        format!("Not a regular file: {}", path.display()),
-    )?;
-    require(
-        s.size <= limit,
+        stamp.size <= LIMIT,
         "document_too_large",
         "JSON input exceeds size limit",
     )?;
-    let raw = std::fs::read(path).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+    let file = root.open_read(rel)?.ok_or_else(|| {
+        Error::new(
+            "operation_failed",
+            format!("Stalker manifest missing: {rel}"),
+        )
+    })?;
+    use std::io::Read;
+    let mut raw = Vec::new();
+    file.take(LIMIT + 1)
+        .read_to_end(&mut raw)
+        .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+    require(
+        raw.len() as u64 <= LIMIT,
+        "document_too_large",
+        "JSON input exceeds size limit",
+    )?;
     serde_json::from_slice(&raw).map_err(|_| Error::new("invalid_json", "Invalid JSON document"))
-}
-
-/// Python `uuid.UUID(text)`: 32 hex digits, optionally with dashes, braces or a `urn:uuid:` prefix.
-fn valid_uuid(text: &str) -> bool {
-    let trimmed = text.trim_start_matches("urn:").trim_start_matches("uuid:");
-    let trimmed = trimmed.trim_start_matches('{').trim_end_matches('}');
-    let hex: String = trimmed.chars().filter(|c| *c != '-').collect();
-    hex.len() == 32 && hex.chars().all(|c| c.is_ascii_hexdigit())
 }
 
 /// Manufacturer and modelName of a Sony `Device` element (either may be absent).
@@ -222,24 +228,25 @@ pub struct Scan {
     pub files: Vec<Value>,
     pub bundles: Map<String, Value>,
     pub skipped: Vec<String>,
+    manifests: Map<String, Value>,
 }
 
 struct Walker<'a> {
     skip_active: bool,
     stalker_only: bool,
     photos: bool,
+    root: &'a crate::tree::Root,
+    keep_manifests: bool,
     scan: &'a mut Scan,
 }
 
 impl Walker<'_> {
-    fn stat_file(&self, path: &Path, rel: &str) -> Result<nu9ve_volumes::Stamp> {
-        let s = stamp(path)?;
+    fn require_file(&self, rel: &str) -> Result<()> {
         require(
-            s.kind == EntryKind::File,
-            "unsafe_file",
-            format!("Not a regular file: {rel}"),
-        )?;
-        Ok(s)
+            self.root.stat(rel)?.is_some(),
+            "operation_failed",
+            format!("Stalker bundle member missing: {rel}"),
+        )
     }
 
     fn visit(&mut self, folder: &Path, prefix: &str, mut bundle: Option<String>) -> Result<()> {
@@ -260,7 +267,7 @@ impl Walker<'_> {
             if self.skip_active && !manifest_path.exists() && finder_only_residue(folder) {
                 return Ok(()); // Finder metadata left by a release is not a capture.
             }
-            let manifest = read_json(&manifest_path, 1024 * 1024)?;
+            let manifest = read_manifest(self.root, &join(prefix, "manifest.json"))?;
             require(
                 manifest.is_object(),
                 "invalid_bundle",
@@ -289,7 +296,10 @@ impl Walker<'_> {
                 "Unsupported Stalker producer/version",
             )?;
             require(
-                manifest["sessionID"].as_str().is_some_and(valid_uuid),
+                manifest["sessionID"]
+                    .as_str()
+                    .and_then(crate::captures::python_uuid)
+                    .is_some(),
                 "invalid_bundle",
                 "Invalid Stalker session ID",
             )?;
@@ -303,12 +313,15 @@ impl Walker<'_> {
                     "Invalid track",
                 )?;
                 let rel = relative(rel.unwrap_or_default())?;
-                self.stat_file(&folder.join(rel), &join(prefix, rel))?;
+                self.require_file(&join(prefix, rel))?;
             }
             for key in ["voice", "events", "highlights"] {
-                if let Some(name) = manifest["outputs"][key].as_str().filter(|n| !n.is_empty()) {
-                    let name = relative(name)?;
-                    self.stat_file(&folder.join(name), &join(prefix, name))?;
+                let output = &manifest["outputs"][key];
+                if crate::volumes::truthy(output) {
+                    let name = output
+                        .as_str()
+                        .ok_or_else(|| Error::new("unsafe_path", "Invalid Stalker output path"))?;
+                    self.require_file(&join(prefix, relative(name)?))?;
                 }
             }
             let id = if prefix.is_empty() {
@@ -320,6 +333,9 @@ impl Walker<'_> {
                 id.clone(),
                 json!({"session_id": manifest["sessionID"], "manifest_digest": digest(&manifest)}),
             );
+            if self.keep_manifests {
+                self.scan.manifests.insert(id.clone(), manifest);
+            }
             bundle = Some(id);
         }
         for (name, path) in entries(folder)? {
@@ -372,36 +388,32 @@ impl Walker<'_> {
 
 /// `photos: false` skips the EXIF read (validation before copy and cleanup only needs membership and stamps).
 pub fn scan(root: &Path, skip_active: bool, stalker_only: bool, photos: bool) -> Result<Scan> {
-    let root =
-        std::path::absolute(root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
-    for parent in root.ancestors() {
-        if let Ok(s) = stamp(parent) {
-            require(
-                s.kind != EntryKind::Link,
-                "unsafe_path",
-                format!("Symlink in root path: {}", parent.display()),
-            )?;
-        }
-    }
-    require(
-        stamp(&root)
-            .map(|s| s.kind == EntryKind::Dir)
-            .unwrap_or(false),
-        "operation_failed",
-        format!("Not a folder: {}", root.display()),
-    )?;
+    scan_source(root, skip_active, stalker_only, photos, false)
+}
+
+fn scan_source(
+    root: &Path,
+    skip_active: bool,
+    stalker_only: bool,
+    photos: bool,
+    keep_manifests: bool,
+) -> Result<Scan> {
+    let root = crate::tree::Root::open(root)?;
     let mut result = Scan {
         files: Vec::new(),
         bundles: Map::new(),
         skipped: Vec::new(),
+        manifests: Map::new(),
     };
     Walker {
         skip_active,
         stalker_only,
         photos,
+        root: &root,
+        keep_manifests,
         scan: &mut result,
     }
-    .visit(&root, "", None)?;
+    .visit(&root.path, "", None)?;
     let mut seen = BTreeSet::new();
     let unique = result
         .files
@@ -479,19 +491,19 @@ pub fn discover(
     let source = params["source"]
         .as_str()
         .ok_or_else(|| Error::new("operation_failed", "'source'"))?;
-    if params["source_kind"] == "stalker" {
-        return Err(Error::new(
-            "not_ported",
-            "Discovering a Stalker library is still in media/service.py (session metadata)",
-        ));
+    let stalker = params["source_kind"] == "stalker";
+    let mut found = scan_source(Path::new(source), true, stalker, true, true)?;
+    if stalker && let Some(name) = archive {
+        let empty = crate::catalog::Catalog::empty();
+        let catalog = catalog.unwrap_or(&empty);
+        let record = catalog.volume(name)?;
+        crate::planner::pending_stalker_files(
+            catalog,
+            &record,
+            &mut found.files,
+            &mut found.bundles,
+        )?;
     }
-    let found = scan(Path::new(source), true, false, true)?;
-    // Python adds session metadata to bundle units (captures.py); an answer without it would be incomplete.
-    require(
-        found.bundles.is_empty(),
-        "not_ported",
-        "This source holds Stalker sessions; their metadata is still read by media/service.py",
-    )?;
     let mut units = Vec::new();
     let mut missions = false;
     for (key, members) in grouped_files(&found.files) {
@@ -554,6 +566,44 @@ pub fn discover(
         }
         if let Some(captured) = captured {
             extra.insert("created_at".into(), json!(captured)); // camera time (EXIF), for date filters
+        }
+        if let Some(bundle) = bundle.as_str() {
+            let manifest = &found.manifests[bundle];
+            let fallback = members
+                .iter()
+                .filter_map(|f| f["stamp"]["mtime_ns"].as_i64())
+                .min()
+                .unwrap_or_default();
+            let (created, duration) = crate::layout::stalker_facts(manifest, fallback);
+            let preview = crate::captures::preview_track_path(manifest);
+            let preview = if bundle == "." || preview.is_empty() {
+                preview
+            } else {
+                join(bundle, &preview)
+            };
+            let id = manifest["sessionID"]
+                .as_str()
+                .and_then(crate::captures::python_uuid)
+                .ok_or_else(|| Error::new("invalid_bundle", "Invalid Stalker session ID"))?;
+            let tag = match catalog {
+                Some(catalog) => catalog.get(&format!("capture-tag:{id}"))?,
+                None => None,
+            };
+            extra.extend([
+                ("session_id".into(), manifest["sessionID"].clone()),
+                ("created_at".into(), json!(created.isoformat())),
+                ("duration_seconds".into(), json!(duration)),
+                (
+                    "track_count".into(),
+                    json!(manifest["tracks"].as_array().map_or(0, Vec::len)),
+                ),
+                ("preview_path".into(), json!(preview)),
+                (
+                    "project_hint".into(),
+                    crate::captures::project_hint(manifest),
+                ),
+                ("tag".into(), tag.unwrap_or_else(|| json!({}))),
+            ]);
         }
         let category = if !bundle.is_null() {
             "stalker"
@@ -914,15 +964,16 @@ mod tests {
             scan(root.path(), false, true, true).err().unwrap().code,
             "active_capture"
         );
+        let discovered = discover(
+            None,
+            None,
+            &json!({"source": root.path().display().to_string(), "source_kind": "stalker"}),
+        )
+        .unwrap();
+        assert_eq!(discovered["skipped"], json!(["B.stalker"]));
         assert_eq!(
-            discover(
-                None,
-                None,
-                &json!({"source": root.path().display().to_string(), "source_kind": "stalker"})
-            )
-            .unwrap_err()
-            .code,
-            "not_ported"
+            discovered["units"][0]["preview_path"],
+            "A.stalker/screen.mov"
         );
     }
 
@@ -964,7 +1015,7 @@ mod tests {
             group_key(&f("DCIM/IMG_1.CR3"))
         );
         assert_eq!(group_key(&json!({"path": "x", "bundle": "."})), "stalker:.");
-        assert!(valid_uuid("{123E4567-E89B-12D3-A456-426614174000}"));
-        assert!(!valid_uuid("not-a-uuid"));
+        assert!(crate::captures::python_uuid("{123E4567-E89B-12D3-A456-426614174000}").is_some());
+        assert!(crate::captures::python_uuid("not-a-uuid").is_none());
     }
 }

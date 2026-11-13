@@ -307,6 +307,17 @@ pub fn host_local(u: i64) -> i64 {
     }
 }
 
+/// IANA offset at an absolute instant, without changing the process timezone.
+pub fn named_zone_offset(zone: &str, timestamp: i64) -> Option<i32> {
+    let tz = jiff::tz::TimeZone::get(zone).ok()?;
+    // The database accepts case-insensitive lookups; Python's IANA keys use exact spelling.
+    if tz.iana_name()? != zone {
+        return None;
+    }
+    let instant = jiff::Timestamp::new(timestamp, 0).ok()?;
+    Some(tz.to_offset(instant).seconds())
+}
+
 /// Python `datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')` (`common.now`).
 pub fn now_utc() -> String {
     let now = std::time::SystemTime::now()
@@ -350,6 +361,41 @@ mod tests {
 
     fn at(text: &str) -> DateTime {
         DateTime::fromisoformat(text).unwrap()
+    }
+
+    #[test]
+    fn named_zones_resolve_at_the_instant_and_preserve_key_spelling() {
+        let offset = |zone, iso| {
+            named_zone_offset(
+                zone,
+                DateTime::fromisoformat(iso).unwrap().timestamp().unwrap(),
+            )
+        };
+        assert_eq!(
+            offset("America/New_York", "2026-11-01T05:59:59+00:00"),
+            Some(-14_400)
+        );
+        assert_eq!(
+            offset("America/New_York", "2026-11-01T06:00:00+00:00"),
+            Some(-18_000)
+        );
+        assert_eq!(
+            offset("America/Hermosillo", "2026-07-01T12:00:00+00:00"),
+            Some(-25_200)
+        );
+        assert_eq!(
+            offset("US/Eastern", "2026-07-01T12:00:00+00:00"),
+            Some(-14_400)
+        );
+        assert_eq!(offset("Etc/UTC", "2026-07-01T12:00:00+00:00"), Some(0));
+        assert_eq!(
+            offset("america/new_york", "2026-07-01T12:00:00+00:00"),
+            None
+        );
+        assert_eq!(
+            offset("../America/New_York", "2026-07-01T12:00:00+00:00"),
+            None
+        );
     }
 
     #[test]
