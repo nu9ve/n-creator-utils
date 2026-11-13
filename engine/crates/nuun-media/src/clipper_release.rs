@@ -82,6 +82,11 @@ impl Guard {
         })
     }
 
+    #[cfg(unix)]
+    pub(crate) fn inherited(&self) -> (std::os::fd::BorrowedFd<'_>, &str) {
+        (self._lock.fd(), &self.token)
+    }
+
     pub(crate) fn inspect(&self, paths: &[(String, Option<String>)]) -> Result<Value> {
         let (deps, _) = self
             .integrations

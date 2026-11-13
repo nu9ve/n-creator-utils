@@ -5,8 +5,8 @@
 //! copies are flat per project. Times are Python's: a camera's own clock keeps its offset, a still's EXIF time is
 //! local wall time, and a file without one falls back to its modification time in the host zone.
 //!
-//! Not ported: Stalker sessions (their names need `captures.py`/`zoneinfo`); `build_layout` refuses them with
-//! `not_ported`. WAV durations read PCM and WAVE_FORMAT_EXTENSIBLE with a PCM subformat, as Python 3.12+; an older
+//! Stalker plans with a named capture timezone still use Python. WAV durations read PCM and
+//! WAVE_FORMAT_EXTENSIBLE with a PCM subformat, as Python 3.12+; an older
 //! Python reads only PCM and asks ffprobe for the rest.
 
 use crate::rules::slug;
@@ -537,8 +537,35 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
     value[key].as_str().unwrap_or_default()
 }
 
-/// Python `layout.build_layout`: every source path → `{archive, work}` below each volume prefix. Units gain their
-/// `capture_time`, as in Python, before the plan is hashed.
+/// Python `layout.stalker_bundle_name` for ingest and relayout.
+pub(crate) fn stalker_bundle_name(
+    manifest: &Value,
+    fallback: i64,
+    country: &str,
+    project: &str,
+) -> Result<(String, DateTime)> {
+    let created = manifest["createdAt"]
+        .as_str()
+        .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
+        .unwrap_or_else(|| DateTime::fromtimestamp(fallback as f64 / 1e9))
+        .astimezone();
+    let seconds = manifest["duration"]["value"]
+        .as_f64()
+        .zip(manifest["duration"]["timescale"].as_f64())
+        .filter(|(_, scale)| *scale != 0.0)
+        .map(|(value, scale)| value / scale);
+    let label = format!("{}-{}", tag(country)?, tag(project)?);
+    Ok((
+        format!(
+            "{}_STALKER_{}_{label}[].stalker",
+            stamp(&created),
+            duration(seconds)
+        ),
+        created,
+    ))
+}
+
+/// Python `layout.build_layout`: destination paths and capture evidence before the plan is hashed.
 pub fn build_layout(
     source: &Path,
     plan: &Value,
@@ -609,25 +636,9 @@ pub fn build_layout(
                 .filter_map(|f| f["stamp"]["mtime_ns"].as_i64())
                 .min()
                 .unwrap_or_default();
-            let created = manifest["createdAt"]
-                .as_str()
-                .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
-                .unwrap_or_else(|| DateTime::fromtimestamp(fallback as f64 / 1e9))
-                .astimezone();
-            let seconds = manifest["duration"]["value"]
-                .as_f64()
-                .zip(manifest["duration"]["timescale"].as_f64())
-                .filter(|(_, scale)| *scale != 0.0)
-                .map(|(value, scale)| value / scale);
+            let (name, created) = stalker_bundle_name(&manifest, fallback, &country, &project)?;
             let month = created.strftime("%Y/%m");
-            let name = after_month(&claim(
-                &mut taken,
-                &format!(
-                    "{month}/{}_STALKER_{}_{label}[].stalker",
-                    stamp(&created),
-                    duration(seconds)
-                ),
-            ));
+            let name = after_month(&claim(&mut taken, &format!("{month}/{name}")));
             if first_capture
                 .as_ref()
                 .is_none_or(|first| earlier(&created, first))

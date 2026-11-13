@@ -20,8 +20,14 @@ pub mod planner;
 pub mod projects;
 pub mod reads;
 pub mod recovery;
+#[cfg(unix)]
+pub mod relayout;
 pub mod release;
 pub mod restore;
+#[cfg(unix)]
+pub mod retitle;
+#[cfg(unix)]
+pub mod revisions;
 pub mod rules;
 pub mod scan;
 pub mod settings;
