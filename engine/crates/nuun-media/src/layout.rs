@@ -573,10 +573,79 @@ pub fn build_layout(
         let country = unit["country"].as_str().unwrap_or(&plan_country).to_owned();
         let label = format!("{}-{}", tag(&country)?, tag(&project)?);
         if unit["kind"] == "stalker_session" {
-            return Err(Error::new(
+            let prefix = match text(&unit, "bundle") {
+                "." => String::new(),
+                bundle => format!("{bundle}/"),
+            };
+            let manifest_path = format!("{prefix}manifest.json");
+            let raw = crate::tree::read_bytes(source, &manifest_path, 1024 * 1024)?
+                .ok_or_else(|| Error::new("operation_failed", "Stalker manifest disappeared"))?;
+            let manifest: Value = serde_json::from_slice(&raw)
+                .map_err(|_| Error::new("invalid_json", "Invalid JSON document"))?;
+            let mut evidence = capture_time(
+                manifest["epochWallClock"].as_str(),
+                "manifest.epochWallClock",
+            );
+            if evidence["captured_at_absolute"].is_null() {
+                evidence = capture_time(manifest["createdAt"].as_str(), "manifest.createdAt");
+            }
+            nu9ve_json::require(
+                evidence["captured_at_absolute"].is_null() || !truthy(&manifest["captureTimeZone"]),
                 "not_ported",
-                "Stalker session names are still decided by media/layout.py",
+                "Stalker plans with a named capture timezone still use Python",
+            )?;
+            let originals: Map<String, Value> = ["epochWallClock", "createdAt", "captureTimeZone"]
+                .into_iter()
+                .filter_map(|key| {
+                    manifest
+                        .get(key)
+                        .map(|value| (key.to_owned(), value.clone()))
+                })
+                .collect();
+            evidence["originals"] = Value::Object(originals);
+            units[index]["capture_time"] = evidence;
+            let fallback = members
+                .iter()
+                .filter_map(|f| f["stamp"]["mtime_ns"].as_i64())
+                .min()
+                .unwrap_or_default();
+            let created = manifest["createdAt"]
+                .as_str()
+                .and_then(|value| DateTime::fromisoformat(&value.replace('Z', "+00:00")))
+                .unwrap_or_else(|| DateTime::fromtimestamp(fallback as f64 / 1e9))
+                .astimezone();
+            let seconds = manifest["duration"]["value"]
+                .as_f64()
+                .zip(manifest["duration"]["timescale"].as_f64())
+                .filter(|(_, scale)| *scale != 0.0)
+                .map(|(value, scale)| value / scale);
+            let month = created.strftime("%Y/%m");
+            let name = after_month(&claim(
+                &mut taken,
+                &format!(
+                    "{month}/{}_STALKER_{}_{label}[].stalker",
+                    stamp(&created),
+                    duration(seconds)
+                ),
             ));
+            if first_capture
+                .as_ref()
+                .is_none_or(|first| earlier(&created, first))
+            {
+                first_capture = Some(created);
+            }
+            for file in members {
+                let path = text(file, "path");
+                let inner = path
+                    .strip_prefix(&prefix)
+                    .ok_or_else(|| Error::new("invalid_bundle", "Member outside Stalker bundle"))?;
+                layout.insert(
+                    path.to_owned(),
+                    json!({"archive": format!("stalker/{month}/{name}/{inner}"),
+                    "work": format!("{work_root}/{name}/{inner}")}),
+                );
+            }
+            continue;
         }
         let media: Vec<&Value> = members
             .iter()

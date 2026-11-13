@@ -5,7 +5,7 @@
 //! another version; here a missing or foreign index reads as an empty one, which answers the same. Scans and
 //! comparisons (the writes) stay in Python.
 
-use crate::catalog::Catalog;
+use crate::catalog::{Catalog, WritableCatalog, operation_lock};
 use crate::volumes::{self, Backend, Cached};
 use nu9ve_json::{Error, Result, require};
 use rusqlite::types::ValueRef;
@@ -29,6 +29,10 @@ fn index_error(error: rusqlite::Error) -> Error {
 
 /// The disk index, read only; `None` reads as an empty index.
 pub fn open_index(home: &Path) -> Result<Option<Connection>> {
+    index_connection(home, OpenFlags::SQLITE_OPEN_READ_ONLY)
+}
+
+fn index_connection(home: &Path, access: OpenFlags) -> Result<Option<Connection>> {
     let path = home.join("storage-index.sqlite3");
     require(
         !std::fs::symlink_metadata(&path).is_ok_and(|m| m.file_type().is_symlink()),
@@ -38,11 +42,8 @@ pub fn open_index(home: &Path) -> Result<Option<Connection>> {
     if !path.exists() {
         return Ok(None);
     }
-    let db = Connection::open_with_flags(
-        &path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )
-    .map_err(index_error)?;
+    let db = Connection::open_with_flags(&path, access | OpenFlags::SQLITE_OPEN_NO_MUTEX)
+        .map_err(index_error)?;
     db.busy_timeout(std::time::Duration::from_secs(15))
         .map_err(index_error)?;
     let version: i64 = db
@@ -97,11 +98,7 @@ pub fn targets(catalog: &Catalog, this_mac: Option<&str>) -> Result<Vec<Value>> 
             v
         })
         .collect();
-    for mut folder in catalog
-        .get("storage-observed")?
-        .and_then(|v| v.as_array().cloned())
-        .unwrap_or_default()
-    {
+    for mut folder in observed_folders(catalog)? {
         folder["observed"] = json!(true);
         found.push(folder);
     }
@@ -112,6 +109,131 @@ pub fn targets(catalog: &Catalog, this_mac: Option<&str>) -> Result<Vec<Value>> 
         );
     }
     Ok(found)
+}
+
+fn target(all_targets: &[Value], params: &Value) -> Result<Value> {
+    let wanted = params
+        .get("target")
+        .ok_or_else(|| Error::new("operation_failed", "'target'"))?;
+    all_targets
+        .iter()
+        .find(|t| &t["id"] == wanted || &t["name"] == wanted)
+        .cloned()
+        .ok_or_else(|| {
+            let shown = wanted
+                .as_str()
+                .map(str::to_owned)
+                .unwrap_or(wanted.to_string());
+            Error::new("unknown_volume", format!("Unknown disk or folder: {shown}"))
+        })
+}
+
+fn storage_lock(home: &Path) -> Result<std::fs::File> {
+    operation_lock(
+        home,
+        "storage.lock",
+        "storage_busy",
+        "Another disk scan or comparison is running",
+    )
+}
+
+/// Register an observed folder without adding an ingest destination.
+pub fn add_folder(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    const SYSTEM_ROOTS: &[&str] = &[
+        "/System", "/Library", "/private", "/usr", "/bin", "/sbin", "/etc", "/var", "/dev",
+        "/cores", "/opt",
+    ];
+    add_observed(home, backend, params, SYSTEM_ROOTS)
+}
+
+fn add_observed(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+    system_roots: &[&str],
+) -> Result<Value> {
+    let source = params
+        .get("root")
+        .and_then(Value::as_str)
+        .ok_or_else(|| Error::new("operation_failed", "'root'"))?;
+    let root = crate::planner::absolute_source(source)?;
+    require(
+        root.parent().is_some() && !system_roots.iter().any(|base| root.starts_with(base)),
+        "unsafe_path",
+        "Choose a folder of yours or a disk, not the system",
+    )?;
+    let info = backend.describe(&root, false)?;
+    require(
+        info["removable"] != true
+            || info["mount"]
+                .as_str()
+                .is_none_or(|mount| Path::new(mount) != root),
+        "card_not_indexable",
+        "Memory cards are read through Ingreso, not indexed",
+    )?;
+    let _lock = storage_lock(home)?;
+    let reader = Catalog::open(home)?;
+    let found = targets(&reader, Some(THIS_MAC_ROOT))?;
+    for existing in &found {
+        let other = Path::new(existing["root"].as_str().unwrap_or_default());
+        require(
+            !root.starts_with(other) && !other.starts_with(&root),
+            "volume_exists",
+            format!(
+                "That folder overlaps {}",
+                existing["name"].as_str().unwrap_or_default()
+            ),
+        )?;
+    }
+    let label = params
+        .get("name")
+        .filter(|v| crate::volumes::truthy(v))
+        .cloned()
+        .unwrap_or_else(|| json!(root.file_name().unwrap_or_default().to_string_lossy()));
+    require(
+        !found.iter().any(|v| v["name"] == label),
+        "volume_exists",
+        "Name already in use",
+    )?;
+    let value = json!({"id": nu9ve_json::uid()?, "name": label, "role": "observed", "root": root,
+                       "prefix": "", "identity": info});
+    let mut observed = observed_folders(&reader)?;
+    observed.push(value.clone());
+    WritableCatalog::open(home)?.set("storage-observed", &json!(observed))?;
+    Ok(value)
+}
+
+fn observed_folders(catalog: &Catalog) -> Result<Vec<Value>> {
+    Ok(catalog
+        .get("storage-observed")?
+        .and_then(|v| v.as_array().cloned())
+        .unwrap_or_default())
+}
+
+/// Forget the chosen target and its derived rows. Keep the target registered if index deletion fails.
+pub fn remove_folder(home: &Path, params: &Value) -> Result<Value> {
+    let _lock = storage_lock(home)?;
+    let reader = Catalog::open(home)?;
+    let found = target(&targets(&reader, Some(THIS_MAC_ROOT))?, params)?;
+    require(
+        found["observed"] == true && found["builtin"] != true,
+        "invalid_role",
+        "Only chosen folders can be removed from the index",
+    )?;
+    let id = found["id"].as_str().unwrap_or_default();
+    let catalog = WritableCatalog::open(home)?;
+    if let Some(mut index) = index_connection(home, OpenFlags::SQLITE_OPEN_READ_WRITE)? {
+        let tx = index.transaction().map_err(index_error)?;
+        for table in ["entries", "folders", "safety", "hashes", "indexes", "runs"] {
+            tx.execute(&format!("DELETE FROM {table} WHERE target_id=?"), [id])
+                .map_err(index_error)?;
+        }
+        tx.commit().map_err(index_error)?;
+    }
+    let mut observed = observed_folders(&reader)?;
+    observed.retain(|folder| folder["id"] != id);
+    catalog.set("storage-observed", &json!(observed))?;
+    Ok(json!({"removed": id}))
 }
 
 /// storage_index.py `_online`: a registered disk as `check`; a folder only seen, by the inode of its root.
@@ -439,21 +561,8 @@ pub fn tree(
     params: &Value,
     this_mac: Option<&str>,
 ) -> Result<Value> {
-    let wanted = params
-        .get("target")
-        .ok_or_else(|| Error::new("operation_failed", "'target'"))?;
     let all_targets = targets(catalog, this_mac)?;
-    let found = all_targets
-        .iter()
-        .find(|t| &t["id"] == wanted || &t["name"] == wanted)
-        .cloned()
-        .ok_or_else(|| {
-            let shown = wanted
-                .as_str()
-                .map(str::to_owned)
-                .unwrap_or(wanted.to_string());
-            Error::new("unknown_volume", format!("Unknown disk or folder: {shown}"))
-        })?;
+    let found = target(&all_targets, params)?;
     let path = relative(params.get("path").unwrap_or(&Value::Null))?;
     let limit = match params.get("limit") {
         None | Some(Value::Null) | Some(Value::Bool(false)) => 200,
@@ -669,6 +778,100 @@ mod tests {
                 }
             }
             assert_eq!(&mine, expected, "{key}");
+        }
+    }
+
+    #[test]
+    #[ignore = "needs tests/fixtures/engine-golden from scripts/engine_golden.py (Python)"]
+    fn observed_folder_and_coverage_match_python() {
+        let (_temp, state, root, case) = golden("storage");
+        let observed_root = Path::new(&root).join("observed");
+        let reader = Catalog::open(&state).unwrap();
+        let mut backend = backend_for(&reader);
+        let expected = &case["writes"];
+        let identity: Value = serde_json::from_str(
+            &expected["added"]["identity"]
+                .to_string()
+                .replace("<ROOT>", &root),
+        )
+        .unwrap();
+        backend
+            .0
+            .insert(observed_root.display().to_string(), identity);
+        let params = json!({"root": observed_root, "name": "Observada"});
+        let mut added = add_observed(&state, &backend, &params, &[]).unwrap();
+        let id = added["id"].as_str().unwrap().to_owned();
+        added["id"] = json!("<ID>");
+        assert_eq!(answer(Ok(added), &root)["data"], expected["added"]);
+        assert_eq!(
+            add_observed(&state, &backend, &params, &[])
+                .unwrap_err()
+                .code,
+            "volume_exists"
+        );
+        assert_eq!(
+            remove_folder(&state, &json!({"target": "ESSD"}))
+                .unwrap_err()
+                .code,
+            "invalid_role"
+        );
+        let lock = storage_lock(&state).unwrap();
+        assert_eq!(
+            remove_folder(&state, &json!({"target": id}))
+                .unwrap_err()
+                .code,
+            "storage_busy"
+        );
+        drop(lock);
+        let index = Connection::open(state.join("storage-index.sqlite3")).unwrap();
+        index.execute(
+            "INSERT INTO runs(target_id,kind,state,pid,started_at) VALUES(?,'scan','finished',0,'t')",
+            [&id],
+        ).unwrap();
+        index
+            .execute(
+                "INSERT INTO hashes VALUES(?,'keep.wav',4,0,'hash','fixture','t')",
+                [&id],
+            )
+            .unwrap();
+        let removed = remove_folder(&state, &json!({"target": "Observada"})).unwrap();
+        assert_eq!(removed["removed"], id);
+        assert_eq!(expected["removed"], json!({"removed": "<ID>"}));
+        for table in ["runs", "hashes"] {
+            assert!(
+                one(
+                    &index,
+                    &format!("SELECT * FROM {table} WHERE target_id=?"),
+                    [&id]
+                )
+                .unwrap()
+                .is_none()
+            );
+        }
+        assert!(
+            one(&index, "SELECT * FROM runs LIMIT 1", [])
+                .unwrap()
+                .is_some()
+        );
+        assert_eq!(
+            std::fs::read(observed_root.join("keep.wav")).unwrap(),
+            b"keep"
+        );
+        assert!(
+            observed_folders(&Catalog::open(&state).unwrap())
+                .unwrap()
+                .is_empty()
+        );
+        for case in expected["coverage"].as_array().unwrap() {
+            let mut reply = crate::coverage::report(&state, &backend,
+                &json!({"work": "ESSD", "archive": "MEDIA", "path": case["path"], "no_hash": case["no_hash"]})
+            ).unwrap();
+            let data = std::fs::read(reply["report"].as_str().unwrap()).unwrap();
+            reply.as_object_mut().unwrap().remove("report");
+            let mut report: Value = serde_json::from_slice(&data).unwrap();
+            report.as_object_mut().unwrap().remove("created_at");
+            assert_eq!(reply, case["reply"]);
+            assert_eq!(report, case["report"]);
         }
     }
 

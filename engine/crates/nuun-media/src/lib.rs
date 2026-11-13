@@ -1,10 +1,11 @@
 //! nüün's media domain in Rust, ported method by method from `media/` (rust-engine.md §7).
-//! Reads open the catalog read only. The only write so far is `register_volume`, which changes configuration
-//! (the catalog), never media, and takes the same writer lock as Python.
+//! Read and write operations share the catalog and on-disk protocol with Python.
 
 pub mod captures;
 pub mod catalog;
 pub mod clipper;
+pub mod coverage;
+pub mod delivery;
 pub mod devices;
 pub mod integrations;
 pub mod layout;
@@ -14,6 +15,9 @@ pub mod photo_meta;
 pub mod planner;
 pub mod projects;
 pub mod reads;
+pub mod recovery;
+pub mod release;
+pub mod restore;
 pub mod rules;
 pub mod scan;
 pub mod settings;

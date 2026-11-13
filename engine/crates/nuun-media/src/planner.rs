@@ -5,11 +5,9 @@
 //! (`uuid5` of canonical JSON) must come out of the same inputs exactly as in Python, so every rule below follows
 //! Python step by step, in Python's order of checks (the first failing check decides the error code).
 //!
-//! Ported for `source_kind: "card"` (cards and plain folders, with devices, missions and the work copies already in
-//! the consumer's root). `stalker` and `delivery` sources (and the finals route) answer `not_ported`: they need
-//! `captures.py`, `finals.py` and `retitle.py`. Because no Stalker unit is ever planned here, `retitle.check_plan`
-//! has nothing to check.
-//!
+//! Cards, Stalker sources and deliveries share this planner. A Stalker manifest with an explicit named capture
+//! timezone still uses Python for planning.
+
 //! Divergence: the plan size guard uses the canonical length (Python measures `json.dumps` with spaces and ASCII
 //! escapes, slightly longer); both stop far below the 12 MiB the apply side accepts.
 
@@ -70,7 +68,7 @@ fn slug_value(value: &Value) -> Result<String> {
 }
 
 /// Python `Path(source).expanduser().absolute()`.
-fn absolute_source(source: &str) -> Result<PathBuf> {
+pub(crate) fn absolute_source(source: &str) -> Result<PathBuf> {
     let expanded = match source.strip_prefix('~') {
         Some(rest) if rest.is_empty() || rest.starts_with('/') || rest.starts_with('\\') => {
             let home = std::env::var_os("HOME")
@@ -612,13 +610,8 @@ fn build_with_stamps(
         "invalid_policy",
         "Invalid Stalker source retention setting",
     )?;
-    if source_kind != "card" {
-        return Err(Error::new(
-            "not_ported",
-            "Planning Stalker libraries and deliveries is still in media/planner.py (captures.py, finals.py)",
-        ));
-    }
-    let release_stalker_source = false; // only for Stalker sources
+    let stalker = source_kind == "stalker";
+    let release_stalker_source = stalker && retain == false;
     let project = match p.get("project") {
         None => String::new(),
         Some(Value::String(s)) if s.trim().is_empty() => String::new(),
@@ -637,7 +630,7 @@ fn build_with_stamps(
         "Unknown camera category",
     )?;
     let source = absolute_source(source)?;
-    let card_cleanup = cleanup;
+    let card_cleanup = cleanup && source_kind == "card";
     let source_info = backend.describe(&source, card_cleanup)?;
     require(
         !card_cleanup
@@ -727,13 +720,12 @@ fn build_with_stamps(
             "Source and destination roots must not overlap",
         )?;
     }
-    let found = scan(&source, false, false, true)?;
-    require(
-        found.bundles.is_empty(),
-        "not_ported",
-        "This source holds Stalker sessions; planning them is still in media/planner.py",
-    )?;
+    let found = scan(&source, stalker, stalker, true)?;
     let mut files = found.files;
+    let mut bundles = found.bundles;
+    if stalker {
+        pending_stalker_files(catalog, &archive_record, &mut files, &mut bundles)?;
+    }
     if let Some(stamps) = stamps {
         for file in files.iter_mut() {
             if let Some(stamp) = stamps.get(text(file, "path")) {
@@ -741,6 +733,40 @@ fn build_with_stamps(
             }
         }
     }
+    if !delivery_paths.is_null() {
+        let paths = delivery_paths
+            .as_array()
+            .filter(|items| !items.is_empty() && items.iter().all(Value::is_string));
+        require(
+            source_kind == "delivery" && !cleanup && paths.is_some(),
+            "invalid_selection",
+            "Select delivery files for copy-only",
+        )?;
+        let selected = paths
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(relative)
+            .collect::<Result<BTreeSet<_>>>()?;
+        let known: BTreeSet<_> = files.iter().map(|file| text(file, "path")).collect();
+        require(
+            selected.is_subset(&known) && bundles.is_empty(),
+            "invalid_selection",
+            "Delivery selection changed or contains bundles",
+        )?;
+        files.retain(|file| selected.contains(text(file, "path")));
+    }
+    let finals = if truthy(&finals_route) {
+        Some(crate::projects::route_finals(
+            &archive_record,
+            &profile,
+            &source,
+            &mut files,
+            finals_role.as_str(),
+        )?)
+    } else {
+        None
+    };
     let skipped = found.skipped;
     require(
         !files.is_empty(),
@@ -771,7 +797,11 @@ fn build_with_stamps(
         "invalid_assignment",
         "Assignment references an unknown file",
     )?;
-    let mut groups = grouped_files(&files);
+    let mut groups = if source_kind == "delivery" {
+        vec![("delivery".to_owned(), files.clone())]
+    } else {
+        grouped_files(&files)
+    };
     groups.sort_by(|a, b| a.0.cmp(&b.0));
     let source_key = {
         let mut keyed = Map::new();
@@ -958,14 +988,22 @@ fn build_with_stamps(
             &NAMESPACE_URL,
             &digest(&json!({"source": source_key, "members": members})),
         );
-        let kind = if members.len() > 1 {
+        let session = members[0]["bundle"]
+            .as_str()
+            .and_then(|bundle| bundles.get(bundle));
+        let kind = if source_kind == "delivery" {
+            "delivery"
+        } else if session.is_some() {
+            "stalker_session"
+        } else if members.len() > 1 {
             "camera_bundle"
         } else {
             "file"
         };
         let mut unit = json!({"id": unit_id, "project": unit_project, "profile": unit_profile, "camera": selected_camera,
             "kind": kind, "paths": members.iter().map(|f| f["path"].clone()).collect::<Vec<_>>(), "bundle": members[0]["bundle"],
-            "session_id": null, "capture_manifest_digest": null});
+            "session_id": session.map(|value| &value["session_id"]),
+            "capture_manifest_digest": session.map(|value| &value["manifest_digest"])});
         if support {
             unit["support"] = json!(true);
             unit["work_selected"] = json!(false);
@@ -1038,12 +1076,12 @@ fn build_with_stamps(
         .unwrap_or_default();
     relative(&source_name)?;
     let mut plan = json!({"schema": "nu9ve-ingest-plan/2", "planner_revision": "ingest-flow/1",
-        "source": source.display().to_string(), "source_identity": source_key, "source_kind": "card",
+        "source": source.display().to_string(), "source_identity": source_key, "source_kind": source_kind,
         "archive_id": archive_record["id"], "work_id": active_work.as_ref().map(|w| w["id"].clone()).unwrap_or(Value::Null),
         "expected_work_id": expected_work, "archive_only_confirmed": archive_only == true && confirm == true,
         "work_delivery_status": work_decision, "cleanup": cleanup, "country": country, "city": city,
         "release_stalker_source": release_stalker_source, "media_date": media_date, "source_name": source_name,
-        "files": [], "units": [], "bundles": {}, "skipped": skipped});
+        "files": [], "units": [], "bundles": bundles, "skipped": skipped});
     if !discarded.is_empty() {
         discarded.sort_by(|a, b| a["paths"][0].as_str().cmp(&b["paths"][0].as_str()));
         plan["discarded"] = json!(discarded);
@@ -1218,10 +1256,14 @@ fn build_with_stamps(
     plan["files"] = json!(files);
     plan["units"] = json!(units);
     let mut plan_units: Vec<Value> = units;
-    let layout = build_layout(&source, &plan, &mut plan_units, &files)?;
+    if source_kind != "delivery" {
+        plan["layout"] = Value::Object(build_layout(&source, &plan, &mut plan_units, &files)?);
+    } else if let Some((layout, archived)) = finals {
+        plan["layout"] = Value::Object(layout);
+        plan["already_archived"] = json!(archived);
+    }
     plan["units"] = json!(plan_units);
-    plan["layout"] = Value::Object(layout);
-    if !mission_indexes.is_empty() && !cleanup {
+    if source_kind != "delivery" && !mission_indexes.is_empty() && !cleanup {
         // A still already backed up by an earlier verified job at the same archive name and size stays out.
         let archived: BTreeMap<String, Value> = catalog
             .json_rows(
@@ -1423,15 +1465,113 @@ fn mission_counts(summary: &mut Value, units: &[Value], flow_id: &str) {
     summary["work_existing"] = json!(mine.iter().filter(|u| truthy(&u["work_existing"])).count());
 }
 
+fn pending_stalker_files(
+    catalog: &Catalog,
+    archive: &Value,
+    files: &mut Vec<Value>,
+    bundles: &mut Map<String, Value>,
+) -> Result<()> {
+    let mut present = BTreeSet::new();
+    for (bundle, session) in bundles.iter() {
+        let assets = catalog.json_rows(
+            "SELECT assets.payload FROM assets JOIN sessions ON sessions.asset_id=assets.id WHERE sessions.session_id=? AND sessions.manifest_digest=?",
+            [text(session, "session_id"), text(session, "manifest_digest")],
+        )?;
+        for asset in assets {
+            let paths: BTreeSet<_> = asset["paths"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect();
+            let copies = catalog.json_rows(
+                "SELECT payload FROM copies WHERE job_id=? AND volume_id=?",
+                [text(&asset, "job_id"), text(archive, "id")],
+            )?;
+            let copies: BTreeMap<_, _> = copies
+                .iter()
+                .filter(|copy| paths.contains(text(copy, "path")))
+                .map(|copy| (text(copy, "path"), copy))
+                .collect();
+            if paths.len() != copies.len() {
+                continue;
+            }
+            let verified = (|| -> Result<bool> {
+                let target = crate::tree::Root::open(Path::new(text(archive, "root")))?;
+                for copy in copies.values() {
+                    if target
+                        .stat(text(copy, "destination"))?
+                        .is_none_or(|stamp| crate::tree::stamp_json(&stamp) != copy["stamp"])
+                    {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            })();
+            if matches!(verified, Ok(true)) {
+                present.insert(bundle.clone());
+                break;
+            }
+        }
+    }
+    files.retain(|file| {
+        file["bundle"]
+            .as_str()
+            .is_some_and(|bundle| !present.contains(bundle))
+    });
+    let retained: BTreeSet<_> = files
+        .iter()
+        .filter_map(|file| file["bundle"].as_str())
+        .collect();
+    bundles.retain(|bundle, _| retained.contains(bundle.as_str()));
+    Ok(())
+}
+
+pub(crate) fn check_retitle(catalog: &Catalog, plan: &Value) -> Result<Vec<String>> {
+    let mut sessions = Vec::new();
+    let mut operations = None;
+    for unit in plan["units"].as_array().into_iter().flatten() {
+        let Some(session) = unit["session_id"].as_str().filter(|id| !id.is_empty()) else {
+            continue;
+        };
+        let id = crate::captures::python_uuid(session)
+            .ok_or_else(|| Error::new("operation_failed", "Invalid session UUID"))?;
+        if operations.is_none() {
+            operations = Some(
+                catalog.json_rows("SELECT value FROM metadata WHERE key LIKE 'retitle:%'", [])?,
+            );
+        }
+        require(
+            !operations
+                .as_ref()
+                .into_iter()
+                .flatten()
+                .any(|op| op["request"]["session_id"] == id && op["state"] != "applied"),
+            "retitle_pending",
+            "Recover the pending Stalker retitle before planning/applying",
+        )?;
+        let latest = catalog.get(&format!("retitle-result:{id}"))?;
+        require(
+            latest
+                .is_none_or(|latest| latest["manifest_digest"] == unit["capture_manifest_digest"]),
+            "plan_changed",
+            "Stalker metadata changed; discard the old plan and review again",
+        )?;
+        sessions.push(id);
+    }
+    Ok(sessions)
+}
+
 /// Python `build_plan`: under the writer lock, build the plan and remember it as reviewed (`reviewed-plan:<id>`).
 pub fn build_plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     let _lock = crate::catalog::writer_lock(home)?;
     let writable = crate::catalog::WritableCatalog::open(home)?;
     let catalog = Catalog::open(home)?;
     let plan = build(&catalog, backend, params)?;
+    let sessions = check_retitle(&catalog, &plan)?;
     writable.set(
         &format!("reviewed-plan:{}", text(&plan, "id")),
-        &json!({"id": plan["id"], "digest": plan["digest"], "sessions": [], "cancelled": false}),
+        &json!({"id": plan["id"], "digest": plan["digest"], "sessions": sessions, "cancelled": false}),
     )?;
     Ok(plan)
 }
@@ -1627,7 +1767,7 @@ mod tests {
         assert_eq!(code(json!({"work": "MEDIA"})), "invalid_role");
         assert_eq!(code(json!({"cleanup": "yes"})), "invalid_policy");
         assert_eq!(code(json!({"camera": "drone"})), "invalid_camera");
-        assert_eq!(code(json!({"source_kind": "stalker"})), "not_ported");
+        assert_eq!(code(json!({"source_kind": "stalker"})), "empty_source");
         assert_eq!(code(json!({"frobnicate": 1})), "operation_failed");
         assert_eq!(
             code(json!({"assignments": {"nope.JPG": {}}})),
@@ -1800,6 +1940,12 @@ mod golden {
             );
             let mut params = case["params"].clone();
             params["source"] = json!(s.card.display().to_string());
+            if params["source_kind"] == "stalker" {
+                crate::catalog::WritableCatalog::open(&s.home)
+                    .unwrap()
+                    .set("retain-stalker-source", &json!(true))
+                    .unwrap();
+            }
             let catalog = Catalog::open(&s.home).unwrap();
             let mine = build_with_stamps(&catalog, &s.backend, &params, case["stamps"].as_object());
             let name = text(case, "name");

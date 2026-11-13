@@ -363,19 +363,25 @@ fn stem(path: &str) -> String {
 }
 
 /// finals.py `year_in_name`: `26-10-27-…`, `2026-10-27-…` or `261027_…` with a real month and day.
-fn year_in_name(name: &str) -> bool {
+fn year_in_name(name: &str) -> Option<String> {
     let groups = pattern(r"^(?:(\d{4})|(\d{2}))-(\d{2})-(\d{2})(?:\D|$)")
         .captures(name)
         .or_else(|| pattern(r"^()(\d{2})(\d{2})(\d{2})[_-]").captures(name));
-    let Some(g) = groups else { return false };
+    let g = groups?;
     let number = |i: usize| g.get(i).and_then(|m| m.as_str().parse::<u32>().ok());
-    matches!((number(3), number(4)), (Some(m), Some(d)) if (1..=12).contains(&m) && (1..=31).contains(&d))
+    if !(1..=12).contains(&number(3)?) || !(1..=31).contains(&number(4)?) {
+        return None;
+    }
+    Some(match g.get(1).filter(|m| m.as_str().len() == 4) {
+        Some(year) => year.as_str().to_owned(),
+        None => format!("20{}", g.get(2)?.as_str()),
+    })
 }
 
 /// closure.py `delivery_title`: the project a delivery's file name points to.
 fn delivery_title(name: &str) -> String {
     let mut s = stem(name).to_lowercase().replace('ß', "ss");
-    if year_in_name(&s) {
+    if year_in_name(&s).is_some() {
         s = pattern(r"^(?:\d{2,4}-\d{2}-\d{2}|\d{6})[_-]+")
             .replace(&s, "")
             .into_owned();
@@ -617,6 +623,177 @@ fn finals_walk(root: &Path, out: &mut Vec<(PathBuf, nu9ve_volumes::Stamp)>) {
         }
         finals_walk(&path, out);
     }
+}
+
+/// Route published deliveries below the archive's finals prefix.
+pub(crate) fn route_finals(
+    archive: &Value,
+    profile: &str,
+    source: &Path,
+    files: &mut Vec<Value>,
+    role: Option<&str>,
+) -> Result<(Map<String, Value>, Vec<String>)> {
+    use nu9ve_json::require;
+
+    let root = Path::new(archive["root"].as_str().unwrap_or_default())
+        .join(archive["finals_prefix"].as_str().unwrap_or("002_finales"));
+    let mut entries = Vec::new();
+    finals_walk(&root.join(profile), &mut entries);
+    let existing: HashMap<_, _> = entries
+        .into_iter()
+        .map(|(path, info)| ((file_name(&path.to_string_lossy()), info.size), path))
+        .collect();
+    let mut layout = Map::new();
+    let mut kept = Vec::new();
+    let mut skipped = Vec::new();
+    let mut taken = BTreeSet::new();
+    for file in std::mem::take(files) {
+        let rel = file["path"].as_str().unwrap_or_default();
+        let name = file_name(rel);
+        let target = match role {
+            Some("vertical") => format!("{profile}/shorts/{name}"),
+            Some("thumbnail") => format!("{profile}/thumbnails/{name}"),
+            _ if rel.contains('/') => format!("{profile}/{rel}"),
+            _ => {
+                let year = match year_in_name(&name) {
+                    Some(year) => year,
+                    None => {
+                        let meta = std::fs::symlink_metadata(source.join(rel)).map_err(io)?;
+                        #[cfg(target_os = "macos")]
+                        let time = meta.created().or_else(|_| meta.modified()).map_err(io)?;
+                        #[cfg(not(target_os = "macos"))]
+                        let time = meta.modified().map_err(io)?;
+                        let seconds = match time.duration_since(std::time::UNIX_EPOCH) {
+                            Ok(value) => value.as_secs_f64(),
+                            Err(error) => -error.duration().as_secs_f64(),
+                        };
+                        nu9ve_time::DateTime::fromtimestamp(seconds).strftime("%Y")
+                    }
+                };
+                format!("{profile}/{year}/{name}")
+            }
+        };
+        let size = file["stamp"]["size"].as_u64().unwrap_or_default();
+        if role.is_none()
+            && existing
+                .get(&(name, size))
+                .is_some_and(|path| *path != root.join(&target))
+        {
+            skipped.push(rel.to_owned());
+            continue;
+        }
+        require(
+            taken.insert(target.to_lowercase()),
+            "destination_conflict",
+            format!("Two finals would land on {target}"),
+        )?;
+        layout.insert(rel.to_owned(), json!({"archive": target, "work": null}));
+        kept.push(file);
+    }
+    *files = kept;
+    Ok((layout, skipped))
+}
+
+/// Build the published-finals request using the shared ingest planner.
+pub fn plan_finals(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    use nu9ve_json::require;
+    if let Some(unexpected) = params.as_object().and_then(|p| {
+        p.keys()
+            .find(|key| !["profile", "archive", "work", "release"].contains(&key.as_str()))
+    }) {
+        return Err(Error::new(
+            "operation_failed",
+            format!("plan_params() got an unexpected keyword argument '{unexpected}'"),
+        ));
+    }
+    let release = params
+        .get("release")
+        .map_or(Some(true), Value::as_bool)
+        .ok_or_else(|| Error::new("invalid_policy", "release must be boolean"))?;
+    let profile = params
+        .get("profile")
+        .ok_or_else(|| Error::new("operation_failed", "'profile'"))?;
+    let profile = profile
+        .as_str()
+        .filter(|name| !name.is_empty() && !name.starts_with('.') && !name.contains('/'))
+        .ok_or_else(|| Error::new("invalid_folder", "Invalid profile"))?;
+    let catalog = Catalog::open(home)?;
+    let online: Vec<_> = catalog
+        .volumes()?
+        .into_iter()
+        .filter(|v| volumes::online(backend, v).is_some())
+        .collect();
+    let matches = |volume: &Value, key| {
+        !truthy(&params[key]) || params[key] == volume["id"] || params[key] == volume["name"]
+    };
+    let archive = online
+        .iter()
+        .find(|v| v["role"] == "archive" && matches(v, "archive"))
+        .ok_or_else(|| Error::new("archive_offline", "Connect the backup disk"))?;
+    for work in online
+        .iter()
+        .filter(|v| v["role"] == "work" && matches(v, "work"))
+    {
+        let folder = Path::new(work["root"].as_str().unwrap_or_default())
+            .join(work["finals_prefix"].as_str().unwrap_or("002_finales"))
+            .join(profile);
+        if !folder.is_dir() || is_link(&folder) {
+            continue;
+        }
+        let published = published_folder(&catalog, profile, &subfolders(&folder)?)?;
+        require(
+            !published.is_empty(),
+            "no_published_folder",
+            "Choose this profile's published folder in Flows first",
+        )?;
+        let source = folder.join(published);
+        if release {
+            require(
+                volumes::independent(
+                    &volumes::check(backend, archive)?,
+                    &volumes::check(backend, work)?,
+                ),
+                "same_physical_disk",
+                "Backup and editing disk are the same physical disk; keep the source instead",
+            )?;
+            if crate::integrations::Integrations::read(&catalog)?
+                .clipper_executable()
+                .is_ok()
+            {
+                crate::catalog::WritableCatalog::open(home)?.set("clipper-known", &json!(true))?;
+            }
+            let result = crate::clipper::inspect(
+                &catalog,
+                &[(source.to_string_lossy().into_owned(), None)],
+            )?;
+            let blockers = result["blockers"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .take(3)
+                .collect::<Vec<_>>();
+            require(
+                blockers.is_empty(),
+                "source_in_use",
+                format!("Clipper uses these finals: {}", blockers.join("; ")),
+            )?;
+        }
+        return crate::planner::build_plan(
+            home,
+            backend,
+            &json!({
+                "source": source, "archive": archive["id"], "work": null, "project": "finales",
+                "profile": profile, "archive_only": true, "confirm_archive_only": true,
+                "work_decision": "skipped", "cleanup": release, "camera": "generic",
+                "source_kind": "delivery", "finals_route": true,
+            }),
+        );
+    }
+    Err(Error::new(
+        "work_offline",
+        "This profile has no finals on a connected editing disk",
+    ))
 }
 
 /// An insertion-ordered map, as Python's dict.
@@ -1352,6 +1529,49 @@ mod tests {
     }
 
     /// A final moved by hand into the published folder is found by name, size, mtime and inode.
+    #[test]
+    fn published_finals_plan_uses_the_shared_review_and_retains_the_source() {
+        let s = crate::volumes::test_backend::setup();
+        let published = s.work.join("002_finales/e64/01_subidos");
+        std::fs::create_dir_all(&published).unwrap();
+        std::fs::write(published.join("26-10-31-toma.MP4"), b"final").unwrap();
+        let plan = plan_finals(
+            &s.home,
+            &s.backend,
+            &json!({"profile": "e64", "release": false}),
+        )
+        .unwrap();
+        assert_eq!(plan["source_kind"], "delivery");
+        assert_eq!(
+            plan["layout"]["26-10-31-toma.MP4"]["archive"],
+            "e64/2026/26-10-31-toma.MP4"
+        );
+        let id = plan["id"].as_str().unwrap();
+        let reviewed = Catalog::open(&s.home)
+            .unwrap()
+            .get(&format!("reviewed-plan:{id}"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(reviewed["digest"], plan["digest"]);
+        let result = crate::transfer::apply(
+            &s.home,
+            &s.backend,
+            &plan,
+            plan["digest"].as_str().unwrap(),
+            &|_, _| Ok(()),
+        )
+        .unwrap();
+        assert_eq!(result["state"], "source_retained");
+        assert_eq!(
+            std::fs::read(published.join("26-10-31-toma.MP4")).unwrap(),
+            b"final"
+        );
+        assert_eq!(
+            std::fs::read(s.archive.join("002_finales/e64/2026/26-10-31-toma.MP4")).unwrap(),
+            b"final"
+        );
+    }
+
     #[test]
     fn a_final_moved_to_the_published_folder_is_found() {
         let temp = tempfile::tempdir().unwrap();

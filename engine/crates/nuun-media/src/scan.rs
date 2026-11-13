@@ -24,7 +24,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 /// manager/inventory.py `IGNORED_DIRS` and `IGNORED_FILES`.
-const IGNORED_DIRS: [&str; 6] = [
+pub(crate) const IGNORED_DIRS: [&str; 6] = [
     ".fseventsd",
     ".Spotlight-V100",
     ".Trashes",
@@ -32,7 +32,7 @@ const IGNORED_DIRS: [&str; 6] = [
     ".DocumentRevisions-V100",
     "System Volume Information",
 ];
-const IGNORED_FILES: [&str; 2] = [".DS_Store", ".localized"];
+pub(crate) const IGNORED_FILES: [&str; 2] = [".DS_Store", ".localized"];
 use crate::photo_meta::PHOTO_SUFFIXES;
 const MEDIA_KINDS: [&str; 4] = ["video", "audio", "image", "raw_image"];
 
