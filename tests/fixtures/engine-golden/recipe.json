@@ -7150,6 +7150,116 @@
       }
     }
   },
+  "transcripts": [
+    {
+      "receipt": {
+        "created_at": "2026-11-12T02:03:04Z",
+        "exports": [
+          {
+            "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "project_root": "<ROOT>/work/001_proyectos/general/intro/clipper"
+          }
+        ],
+        "files": [
+          {
+            "action": "copied",
+            "asset_id": "asset",
+            "bytes": 19,
+            "format": "srt",
+            "member": "DCIM/clip.mov",
+            "member_destination": "001_raw/video/2026/11/clip.mov",
+            "sha256": "17b8095b976b2986aeb3aaea15cd6187741a0a31a43e327f7e5050b6936dbd80",
+            "target": "004_datos/clipper/transcripts/2026/11/clip/clip.srt"
+          }
+        ],
+        "kind": "clipper_transcripts",
+        "receipt_id": "<ID>",
+        "schema": "nu9ve-data-receipt/1",
+        "volume_id": "MEDIA"
+      },
+      "result": {
+        "adopted": 0,
+        "bytes": 19,
+        "copied": 1,
+        "notes": [],
+        "planned": 1,
+        "projects": 1,
+        "receipt_id": "<ID>"
+      }
+    },
+    {
+      "receipt": {
+        "created_at": "2026-11-12T02:03:04Z",
+        "exports": [
+          {
+            "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "project_root": "<ROOT>/work/001_proyectos/general/intro/clipper"
+          }
+        ],
+        "files": [
+          {
+            "action": "copied",
+            "asset_id": "asset",
+            "bytes": 15,
+            "format": "srt",
+            "member": "DCIM/clip.mov",
+            "member_destination": "001_raw/video/2026/11/clip.mov",
+            "sha256": "bdc29e70cdfaa5df77c2f2d63ddda21ffa90ca603803edb9d73c82edb622f7b5",
+            "target": "004_datos/clipper/transcripts/2026/11/clip/clip.v20261112T020304.srt"
+          }
+        ],
+        "kind": "clipper_transcripts",
+        "receipt_id": "<ID>",
+        "schema": "nu9ve-data-receipt/1",
+        "volume_id": "MEDIA"
+      },
+      "result": {
+        "adopted": 0,
+        "bytes": 15,
+        "copied": 1,
+        "notes": [],
+        "planned": 1,
+        "projects": 1,
+        "receipt_id": "<ID>"
+      }
+    },
+    {
+      "receipt": {
+        "created_at": "2026-11-12T02:03:04Z",
+        "exports": [
+          {
+            "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "project_root": "<ROOT>/work/001_proyectos/general/intro/clipper"
+          }
+        ],
+        "files": [
+          {
+            "action": "archived",
+            "asset_id": "asset",
+            "bytes": 15,
+            "format": "srt",
+            "member": "DCIM/clip.mov",
+            "member_destination": "001_raw/video/2026/11/clip.mov",
+            "sha256": "bdc29e70cdfaa5df77c2f2d63ddda21ffa90ca603803edb9d73c82edb622f7b5",
+            "target": "004_datos/clipper/transcripts/2026/11/clip/clip.v20261112T020304.srt"
+          }
+        ],
+        "kind": "clipper_transcripts",
+        "receipt_id": "<ID>",
+        "schema": "nu9ve-data-receipt/1",
+        "volume_id": "MEDIA"
+      },
+      "result": {
+        "adopted": 1,
+        "bytes": 0,
+        "copied": 0,
+        "notes": [],
+        "planned": 0,
+        "projects": 1,
+        "receipt_id": "<ID>"
+      }
+    }
+  ],
   "writes": {
     "answers": [
       {

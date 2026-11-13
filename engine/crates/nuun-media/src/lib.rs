@@ -28,6 +28,7 @@ pub mod snapshot;
 pub mod sony;
 pub mod sources;
 pub mod storage;
+pub mod transcripts;
 pub mod transfer;
 pub mod tree;
 pub mod units_map;

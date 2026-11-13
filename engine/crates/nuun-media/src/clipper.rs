@@ -13,7 +13,7 @@ use std::time::Duration;
 pub const OFFLINE_PROJECTS: &str = "Hay proyectos Clipper desconectados; dependencias desconocidas";
 
 /// `os.path.realpath`: links resolved as far as the path exists, the rest joined as written.
-fn realpath(value: &str) -> PathBuf {
+pub(crate) fn realpath(value: &str) -> PathBuf {
     let path = std::path::absolute(value).unwrap_or_else(|_| PathBuf::from(value));
     let mut missing = Vec::new();
     let mut current = path.as_path();
