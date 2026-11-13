@@ -1238,6 +1238,390 @@
       }
     }
   ],
+  "editorial_closeout": {
+    "applied": {
+      "already_complete": false,
+      "archive_id": "MEDIA",
+      "bytes": 18,
+      "cleaned": {
+        "001_proyectos/general/intro/renders/cache.mov": "done",
+        "001_proyectos/general_raw/intro/clip.mov": "done",
+        "002_finales/general/intro/main.mov": "done"
+      },
+      "clipper_bytes": 0,
+      "clipper_cleaned": {},
+      "clipper_files": 0,
+      "clipper_regenerable": [],
+      "closure_copies": [],
+      "closure_finals": [
+        {
+          "archive_path": "001_raw/2026/11/clip.mov",
+          "role": "source",
+          "sha256": "d7439bee24773bcbfa2d0a97947ee36227b10d1022b1a55847e928965bb6bfde"
+        },
+        {
+          "archive_path": "002_finales/general/intro/main.mov",
+          "archive_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          },
+          "copy_required": false,
+          "keep_work": false,
+          "original": {
+            "path": "002_finales/general/intro/main.mov",
+            "volume_id": "ESSD"
+          },
+          "original_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          },
+          "owner": "p1",
+          "role": "horizontal",
+          "sha256": "b04e5ea201bb040cae53f693f6a38a3e00b62da6039ca248fecd59b7fc842894"
+        },
+        {
+          "archive_path": "002_finales/general/intro/preview.mov",
+          "archive_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 7
+          },
+          "copy_required": false,
+          "keep_work": true,
+          "original": {
+            "path": "002_finales/general/intro/preview.mov",
+            "volume_id": "ESSD"
+          },
+          "original_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 7
+          },
+          "owner": "p1",
+          "role": "auxiliary",
+          "sha256": "5975cf1bba432391c94667f5886225f69377c0aa8b9fa21fddfb21c89bcf9092"
+        }
+      ],
+      "closure_finish": true,
+      "closure_group": [
+        "p1"
+      ],
+      "closure_group_titles": {
+        "p1": "intro"
+      },
+      "closure_inventory_checked": true,
+      "closure_project_id": "p1",
+      "closure_scopes": [
+        {
+          "kind": "raw",
+          "path": "001_proyectos/general_raw/intro"
+        },
+        {
+          "kind": "discard",
+          "path": "001_proyectos/general/intro/renders"
+        }
+      ],
+      "closure_settings": {
+        "finals": [
+          {
+            "path": "002_finales/general/intro/main.mov",
+            "published": true,
+            "role": "horizontal",
+            "stamp": {
+              "ctime_ns": "<CTIME_NS>",
+              "inode": "<INODE>",
+              "mtime_ns": "<MTIME_NS>",
+              "size": 9
+            },
+            "volume_id": "MEDIA"
+          },
+          {
+            "path": "002_finales/general/intro/preview.mov",
+            "published": false,
+            "role": "auxiliary",
+            "stamp": {
+              "ctime_ns": "<CTIME_NS>",
+              "inode": "<INODE>",
+              "mtime_ns": "<MTIME_NS>",
+              "size": 7
+            },
+            "volume_id": "ESSD"
+          }
+        ],
+        "no_more": true,
+        "published": false,
+        "related": [],
+        "required": [
+          "horizontal"
+        ]
+      },
+      "consumers": {
+        "blockers": [],
+        "dependencies": null,
+        "relinks": []
+      },
+      "entries": [
+        {
+          "archive_path": "001_raw/2026/11/clip.mov",
+          "category": "raw",
+          "path": "001_proyectos/general_raw/intro/clip.mov",
+          "sha256": "d7439bee24773bcbfa2d0a97947ee36227b10d1022b1a55847e928965bb6bfde",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 3
+          }
+        },
+        {
+          "archive_path": null,
+          "category": "intermediate",
+          "path": "001_proyectos/general/intro/renders/cache.mov",
+          "sha256": "887270d0cbc560af35f1326d55e9dbdc35ea2301c2cd26633fb6d4932deee268",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 6
+          }
+        },
+        {
+          "archive_path": "002_finales/general/intro/main.mov",
+          "category": "final",
+          "path": "002_finales/general/intro/main.mov",
+          "sha256": "b04e5ea201bb040cae53f693f6a38a3e00b62da6039ca248fecd59b7fc842894",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          }
+        }
+      ],
+      "preserved": [],
+      "project": "intro",
+      "replacement_checks": [],
+      "replacements": {
+        "<ROOT>/work/001_proyectos/general/intro/renders/cache.mov": null,
+        "<ROOT>/work/001_proyectos/general_raw/intro/clip.mov": "<ROOT>/archive/001_raw/2026/11/clip.mov",
+        "<ROOT>/work/002_finales/general/intro/main.mov": "<ROOT>/archive/002_finales/general/intro/main.mov"
+      },
+      "retained_editors": [
+        "001_proyectos/general/intro (editable, Final Cut y contenido fuera de renders se conservan)"
+      ],
+      "schema": "nu9ve-release/1",
+      "scope": "001_proyectos",
+      "source_identity": {
+        "block_size": 4096,
+        "device": "<DEVICE>",
+        "disk_uuid": "fixture",
+        "external": true,
+        "filesystem": "fixture",
+        "free": 1000000000000,
+        "mode": "fixture",
+        "mount": "<ROOT>/work",
+        "physical": "<ROOT>/work",
+        "removable": true,
+        "root_inode": "<ROOT_INODE>",
+        "volume_uuid": "<ROOT>/work"
+      },
+      "source_root": "<ROOT>/work",
+      "state": "completed",
+      "transcripts": {
+        "archive_id": "MEDIA",
+        "bytes": 0,
+        "entries": [],
+        "exports": [],
+        "files": 0,
+        "notes": [],
+        "schema": "nu9ve-transcripts-plan/1"
+      },
+      "work_id": "ESSD"
+    },
+    "plan": {
+      "already_complete": false,
+      "archive_id": "MEDIA",
+      "bytes": 18,
+      "cleaned": {},
+      "clipper_bytes": 0,
+      "clipper_cleaned": {},
+      "clipper_files": 0,
+      "clipper_regenerable": [],
+      "closure_copies": [],
+      "closure_finals": [
+        {
+          "archive_path": "001_raw/2026/11/clip.mov",
+          "role": "source",
+          "sha256": "d7439bee24773bcbfa2d0a97947ee36227b10d1022b1a55847e928965bb6bfde"
+        },
+        {
+          "archive_path": "002_finales/general/intro/main.mov",
+          "archive_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          },
+          "copy_required": false,
+          "keep_work": false,
+          "original": {
+            "path": "002_finales/general/intro/main.mov",
+            "volume_id": "ESSD"
+          },
+          "original_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          },
+          "owner": "p1",
+          "role": "horizontal",
+          "sha256": "b04e5ea201bb040cae53f693f6a38a3e00b62da6039ca248fecd59b7fc842894"
+        },
+        {
+          "archive_path": "002_finales/general/intro/preview.mov",
+          "archive_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 7
+          },
+          "copy_required": false,
+          "keep_work": true,
+          "original": {
+            "path": "002_finales/general/intro/preview.mov",
+            "volume_id": "ESSD"
+          },
+          "original_stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 7
+          },
+          "owner": "p1",
+          "role": "auxiliary",
+          "sha256": "5975cf1bba432391c94667f5886225f69377c0aa8b9fa21fddfb21c89bcf9092"
+        }
+      ],
+      "closure_finish": true,
+      "closure_group": [
+        "p1"
+      ],
+      "closure_group_titles": {
+        "p1": "intro"
+      },
+      "closure_inventory_checked": true,
+      "closure_project_id": "p1",
+      "closure_scopes": [
+        {
+          "kind": "raw",
+          "path": "001_proyectos/general_raw/intro"
+        },
+        {
+          "kind": "discard",
+          "path": "001_proyectos/general/intro/renders"
+        }
+      ],
+      "consumers": {
+        "blockers": [],
+        "dependencies": null,
+        "relinks": []
+      },
+      "entries": [
+        {
+          "archive_path": "001_raw/2026/11/clip.mov",
+          "category": "raw",
+          "path": "001_proyectos/general_raw/intro/clip.mov",
+          "sha256": "d7439bee24773bcbfa2d0a97947ee36227b10d1022b1a55847e928965bb6bfde",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 3
+          }
+        },
+        {
+          "archive_path": null,
+          "category": "intermediate",
+          "path": "001_proyectos/general/intro/renders/cache.mov",
+          "sha256": "887270d0cbc560af35f1326d55e9dbdc35ea2301c2cd26633fb6d4932deee268",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 6
+          }
+        },
+        {
+          "archive_path": "002_finales/general/intro/main.mov",
+          "category": "final",
+          "path": "002_finales/general/intro/main.mov",
+          "sha256": "b04e5ea201bb040cae53f693f6a38a3e00b62da6039ca248fecd59b7fc842894",
+          "stamp": {
+            "ctime_ns": "<CTIME_NS>",
+            "inode": "<INODE>",
+            "mtime_ns": "<MTIME_NS>",
+            "size": 9
+          }
+        }
+      ],
+      "preserved": [],
+      "project": "intro",
+      "replacement_checks": [],
+      "replacements": {
+        "<ROOT>/work/001_proyectos/general/intro/renders/cache.mov": null,
+        "<ROOT>/work/001_proyectos/general_raw/intro/clip.mov": "<ROOT>/archive/001_raw/2026/11/clip.mov",
+        "<ROOT>/work/002_finales/general/intro/main.mov": "<ROOT>/archive/002_finales/general/intro/main.mov"
+      },
+      "retained_editors": [
+        "001_proyectos/general/intro (editable, Final Cut y contenido fuera de renders se conservan)"
+      ],
+      "schema": "nu9ve-release/1",
+      "scope": "001_proyectos",
+      "source_identity": {
+        "block_size": 4096,
+        "device": "<DEVICE>",
+        "disk_uuid": "fixture",
+        "external": true,
+        "filesystem": "fixture",
+        "free": 1000000000000,
+        "mode": "fixture",
+        "mount": "<ROOT>/work",
+        "physical": "<ROOT>/work",
+        "removable": true,
+        "root_inode": "<ROOT_INODE>",
+        "volume_uuid": "<ROOT>/work"
+      },
+      "source_root": "<ROOT>/work",
+      "state": "review",
+      "transcripts": {
+        "archive_id": "MEDIA",
+        "bytes": 0,
+        "entries": [],
+        "exports": [],
+        "files": 0,
+        "notes": [],
+        "schema": "nu9ve-transcripts-plan/1"
+      },
+      "work_id": "ESSD"
+    },
+    "terminal": {
+      "release": {
+        "bytes": 18,
+        "plan_id": "<ID>"
+      },
+      "state": {
+        "state": "finished"
+      },
+      "work": "skipped"
+    }
+  },
   "generator": "scripts/engine_golden.py",
   "handoff": {
     "answers": [

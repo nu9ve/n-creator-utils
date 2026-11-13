@@ -79,7 +79,7 @@ El ingreso de la SD no espera transcripciones.
 | nüün revisión de cierre y acción por proyecto | Implementado sin commit (7 nov): grupo «Transcripciones de Clipper» en la revisión, copia verificada antes del primer retiro, y «Respaldar transcripciones» en Proyectos (`transcripts_backup`) |
 | Nombre del área en [media-naming-v1](media-naming-v1.md) | Registrado (7 nov) |
 
-En el sandbox de macOS, Rust también implementa el respaldo a pedido `transcripts_backup`. Ambos motores exigen un volumen de respaldo registrado, aceptan su nombre o ID y usan el ID para buscar recibos. Una copia que se iba a adoptar vuelve a verificarse antes de incluirla en el recibo. La integración del cierre editorial completo sigue en Python.
+En el sandbox de macOS, Rust también implementa el respaldo a pedido `transcripts_backup`. Ambos motores exigen un volumen de respaldo registrado, aceptan su nombre o ID y usan el ID para buscar recibos. Una copia que se iba a adoptar vuelve a verificarse antes de incluirla en el recibo. En el cierre editorial de Rust, las transcripciones se verifican antes y durante el retiro de originales. Si la operación se interrumpe después del respaldo, el mismo plan reutiliza su recibo.
 
 Las pruebas de las dos partes usan fixtures y carpetas temporales; nunca ESSD ni MEDIA502. La aceptación física es una prueba aparte con un proyecto pequeño.
 

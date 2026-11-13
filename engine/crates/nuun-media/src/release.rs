@@ -57,6 +57,37 @@ fn preserve(path: &str, local: bool) -> bool {
     protected(path) || (!local && !in_bundle && !media)
 }
 
+pub(crate) fn selected_files(
+    tree: &Root,
+    scope: &str,
+    local: bool,
+) -> Result<(Vec<String>, Vec<String>)> {
+    let mut paths = Vec::new();
+    let mut preserved = Vec::new();
+    walk(tree, scope, |path, size| {
+        require(
+            size.is_some(),
+            "unsafe_file",
+            format!("Links/special files prevent release: {path}"),
+        )?;
+        if preserve(&path, local) {
+            preserved.push(path);
+        } else {
+            paths.push(path);
+        }
+        Ok(())
+    })?;
+    Ok((paths, preserved))
+}
+
+pub(crate) fn raw_closeout_plan(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+) -> Result<Value> {
+    build_review(home, backend, params, |_, _| Ok(Value::Null))
+}
+
 fn bundle_root(path: &str) -> Option<&str> {
     path.split('/')
         .scan(0, |end, part| {
@@ -242,6 +273,18 @@ fn plan_with(
     params: &Value,
     inspect: impl FnOnce(&Catalog, &[(String, Option<String>)]) -> Result<Value>,
 ) -> Result<Value> {
+    let plan = build_review(home, backend, params, inspect)?;
+    let _lock = writer_lock(home)?;
+    WritableCatalog::open(home)?.set(&format!("release:{}", text(&plan, "id")), &plan)?;
+    Ok(plan)
+}
+
+fn build_review(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+    inspect: impl FnOnce(&Catalog, &[(String, Option<String>)]) -> Result<Value>,
+) -> Result<Value> {
     if let Some(key) = params.as_object().and_then(|map| {
         map.keys().find(|key| {
             ![
@@ -358,21 +401,7 @@ fn plan_with(
     )?;
     let origin = Root::open(&source_root)?;
     let target = Root::open(archive_root)?;
-    let mut paths = Vec::new();
-    let mut preserved = Vec::new();
-    walk(&origin, &scope, |path, size| {
-        require(
-            size.is_some(),
-            "unsafe_file",
-            format!("Links/special files prevent release: {path}"),
-        )?;
-        if preserve(&path, local) {
-            preserved.push(path);
-        } else {
-            paths.push(path);
-        }
-        Ok(())
-    })?;
+    let (paths, preserved) = selected_files(&origin, &scope, local)?;
     require(
         !paths.is_empty(),
         "empty_selection",
@@ -521,8 +550,6 @@ fn plan_with(
         "auto_ingest_job_id": params["auto_ingest_job_id"], "bytes": bytes, "consumers": consumers, "state": "review", "cleaned": {},
     });
     plan["digest"] = json!(digest(&plan));
-    let _lock = writer_lock(home)?;
-    WritableCatalog::open(home)?.set(&format!("release:{id}"), &plan)?;
     Ok(plan)
 }
 
@@ -632,13 +659,15 @@ pub(crate) fn validate_remaining(tree: &Root, plan: &Value) -> Result<()> {
         .filter_map(Value::as_str)
         .collect();
     let (preserved, present, observed, scanned) = if !plan["closure_project_id"].is_null() {
-        let mut present = BTreeSet::new();
-        for path in entries.keys() {
-            if tree.stat(path)?.is_some() {
-                present.insert((*path).to_owned());
-            }
-        }
-        (preserved, present, BTreeSet::new(), Ok(()))
+        let (present, observed) = crate::closeout::inventory(tree, plan)?;
+        require(
+            present
+                .iter()
+                .all(|path| entries.contains_key(path.as_str())),
+            "source_changed",
+            "New material appeared; review a fresh release plan",
+        )?;
+        (preserved, present, observed, Ok(()))
     } else {
         let scope = relative(text(plan, "scope"))?;
         let local = !truthy(&plan["work_id"]);
@@ -724,6 +753,9 @@ fn verify_replacements(
 }
 
 fn check_archive(target: &Root, entry: &Value, message: &str) -> Result<()> {
+    if entry["category"] == "intermediate" {
+        return Ok(());
+    }
     require(
         checked_hash(target, text(entry, "archive_path"))?
             .is_some_and(|(sha, _)| entry["sha256"] == sha),
@@ -783,12 +815,11 @@ pub(crate) fn relink_with(
     let origin = Root::open(Path::new(text(&plan, "source_root")))?;
     let target = Root::open(Path::new(text(&archive, "root")))?;
     validate_remaining(&origin, &plan)?;
-    if plan["closure_project_id"].is_null() {
-        for entry in plan["entries"].as_array().into_iter().flatten() {
-            check_archive(&target, entry, "Archive changed before relink")?;
-        }
-    } else {
-        crate::closeout::verify_finals(&target, &origin, &plan)?;
+    if !plan["closure_project_id"].is_null() {
+        crate::closeout::verify_finals(&target, &origin, &plan, false)?;
+    }
+    for entry in plan["entries"].as_array().into_iter().flatten() {
+        check_archive(&target, entry, "Archive changed before relink")?;
     }
     let paths = replacements(&plan);
     let consumers = guard.inspect(&paths)?;
@@ -941,16 +972,18 @@ pub(crate) fn apply_reviewed(
     }
     progress.stage = "revalidating_clipper";
     progress.report()?;
-    clear_to_release(
-        &inspect(&paths)?,
-        "Resolve Clipper references/queues/offline projects before releasing",
-    )?;
+    if !entries.is_empty() {
+        clear_to_release(
+            &inspect(&paths)?,
+            "Resolve Clipper references/queues/offline projects before releasing",
+        )?;
+    }
     verify_replacements(&catalog, backend, &plan)?;
     let origin = Root::open(Path::new(text(&plan, "source_root")))?;
     let target = Root::open(Path::new(text(&archive, "root")))?;
     validate_remaining(&origin, &plan)?;
     let mut guards = if closeout {
-        crate::closeout::verify_finals(&target, &origin, &plan)?
+        crate::closeout::verify_finals(&target, &origin, &plan, true)?
     } else {
         Vec::new()
     };
@@ -1030,9 +1063,7 @@ pub(crate) fn apply_reviewed(
         progress.report()?;
     }
     validate_remaining(&origin, &plan)?;
-    if !closeout {
-        remove_empty_parents(&origin, &plan, &entries);
-    }
+    remove_empty_parents(&origin, &plan, &entries);
     hook("before_complete", &Value::Null)?;
     if closeout {
         crate::closeout::watch_finals(&target, &mut guards)?;
@@ -1227,6 +1258,15 @@ fn remove_empty_parents(tree: &Root, plan: &Value, entries: &[Value]) {
     for entry in entries {
         let mut path = Path::new(text(entry, "path"));
         while let Some(parent) = path.parent().filter(|parent| parent.starts_with(scope)) {
+            if !plan["closure_project_id"].is_null()
+                && !plan["closure_scopes"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|scope| parent.starts_with(text(scope, "path")))
+            {
+                break;
+            }
             let Some(rel) = parent.to_str() else { break };
             let Ok((directory, name)) = tree.parent(rel, false) else {
                 break;
