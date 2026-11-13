@@ -9,6 +9,8 @@ pub mod closeout;
 pub mod coverage;
 pub mod delivery;
 pub mod devices;
+#[cfg(target_os = "macos")]
+pub mod dng;
 mod editorial;
 pub mod handoff;
 pub mod integrations;

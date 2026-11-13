@@ -913,6 +913,87 @@ def mission_cases():
     return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'results': json.loads(text)}
 
 
+def mission_incorporation_case():
+    import gzip
+    from media.catalog import Catalog
+    from media.missions import incorporate, review
+    from media.recipes import TEMPLATE
+    from tests.test_media_engine import FixtureVolumes
+    from unittest.mock import patch
+
+    root = fresh_root('mission-incorporation')
+    archive, work, inbox = (root / name for name in ('archive', 'work', 'inbox'))
+    for folder in (archive, work, inbox):
+        folder.mkdir()
+    files = {
+        'JSON-a.json': {'schemaVersion': 3, 'exportedAt': '2026-11-07T01:00:00Z',
+                        'plans': [{'id': 'old'}], 'captureLog': [{'captureID': 'c1', 'capturedAt': '2026-11-07T00:00:00Z'}]},
+        'JSON-b.json': {'schemaVersion': 3, 'exportedAt': '2026-11-08T01:00:00Z',
+                        'plans': [{'id': 'new'}], 'deletedPlanIDs': ['old']},
+    }
+    for name, export in files.items():
+        (inbox / name).write_bytes(canonical(export))
+    backend = FixtureVolumes()
+    with contextlib.closing(Catalog(root / 'state')) as catalog:
+        catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+        catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        recipe = json.loads(json.dumps(TEMPLATE))
+        recipe['missions'][0]['inbox'] = str(inbox)
+        catalog.set('recipe', recipe)
+        reviewed = review(catalog, backend, 'MEDIA')
+        with patch('media.missions.now', return_value='2026-11-13T00:00:00Z'):
+            result = incorporate(catalog, backend, 'MEDIA', reviewed['digest'], work='ESSD')
+    area = archive / recipe['missions'][0]['archive_area']
+    return {'files': files, 'result': result, 'history': json.loads((area / 'history.json').read_bytes()),
+            'changes': [json.loads(line) for line in (area / 'changes.ndjson').read_bytes().splitlines()],
+            'raw': {p.name: gzip.decompress(p.read_bytes()).decode() for p in sorted(area.rglob('*.gz'))}}
+
+
+def dng_case():
+    from media.catalog import Catalog
+    from media.dng import apply, plan
+    from media.common import content_stamp
+    from tests.test_media_engine import FixtureVolumes
+
+    root = fresh_root('dng')
+    archive, work = root / 'archive', root / 'work'
+    archive.mkdir()
+    work.mkdir()
+    base = work / '001_proyectos/atlas-subaereo'
+    unit_map = base / '_nuun/units.ndjson'
+    unit_map.parent.mkdir(parents=True)
+    backend = FixtureVolumes()
+    with contextlib.closing(Catalog(root / 'state')) as catalog:
+        media = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+        essd = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        units = []
+        for name, body in (('a', b'first'), ('b', b'second')):
+            rel = '001_raw/dron/' + name + '.DNG'
+            path = archive / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(body)
+            sha = hashlib.sha256(body).hexdigest()
+            copy = {'destination': rel, 'sha256': sha, 'stamp': content_stamp(path.stat()), 'bytes': len(body)}
+            with catalog.db:
+                catalog.db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('fixture', media['id'], name, sha, json.dumps(copy)))
+            units.append({'asset_id': name, 'work': {'jpg': 'photos/' + name + '.jpg'},
+                          'archive': {'dng': rel}, 'sha256': {'dng': sha}})
+        unit_map.write_bytes(b''.join(canonical(unit) + b'\n' for unit in units))
+        (base / 'photos').mkdir()
+        (base / 'photos/a.DNG').write_bytes(b'first')
+        (base / 'photos/orphan.DNG').write_bytes(b'orphan')
+        reviewed = plan(catalog, backend, 'MEDIA', 'ESSD', keep=['b'],
+                        trash_unbacked=['001_proyectos/atlas-subaereo/photos/orphan.DNG'])
+        result = apply(catalog, backend, reviewed, reviewed['digest'])
+    reviewed.pop('digest')
+    result.pop('operation')
+    reviewed.update(archive_id='MEDIA', work_id='ESSD')
+    for group, key in (('release', 'archive_stamp'), ('trash_unbacked', 'stamp')):
+        for row in reviewed[group]:
+            row[key] = {'size': row[key]['size']}
+    return {'plan': reviewed, 'result': result, 'units': [json.loads(line) for line in unit_map.read_bytes().splitlines()]}
+
+
 # The disk index (`storage_overview`, `storage_tree`, `storage_progress`): Python scans an archive and a work
 # disk, then the run times, pids and this machine's free space are fixed so the answers do not depend on the run.
 def storage_cases():
@@ -1216,6 +1297,8 @@ def main():
         'projects': project_cases(),
         # Mission exports reviewed against a registry on the archive.
         'missions': mission_cases(),
+        'mission_incorporation': mission_incorporation_case(),
+        'dng': dng_case(),
         # The disk index: overview, folders and progress.
         'storage': storage_cases(),
         # Clipper's guards and discarding a Stalker session, against a fixture Clipper and HOME.

@@ -128,6 +128,9 @@ mismo nombre de la SD y posición a ≤ 40 m (la regla de
 
 ### Registro de misiones en nüün (A13)
 
+En el sandbox de macOS, Rust ejecuta A13 y A16. A13 verifica el export descomprimido y la fuente antes de limpiar el buzón. A16 confirma SHA-256 y el stamp del respaldo antes de mover el DNG a la Papelera. El diario permite reanudar entre el renombre y el registro del evento, verificando el archivo en la Papelera. Los resultados de ambos flujos se comparan con Python en fixtures temporales.
+
+
 Implementado el 2026-11-08. Desde entonces `atlas/coverage_exports/` ya no existe (se movió a la Papelera a pedido del usuario): Atlas debe leer `_missions/history.json` ([pedido](next-sessions.md#pedido-para-atlas--2026-11-08--leer-misiones-del-registro-de-nüün)). Primera importación real el mismo día: los 20 exports de `atlas/coverage_exports` (no se borraron) y 4 de Descargas, 22 fuentes y 65 planes; registro y espejo verificados ([evidencia](../releases/status-log-2026-10-25_2026-11-08.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08)). Rutas, patrones y reglas salen
 del flujo `missions` de la receta (`media/recipes.py`).
 
