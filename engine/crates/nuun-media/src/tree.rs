@@ -229,12 +229,16 @@ impl Root {
         fs::sync_dir(&dir)
     }
 
-    /// Rename `from` to `to` (same folder) without ever replacing a file; the folder is synced.
+    /// Rename within this root without replacing a file, syncing both parent folders.
     pub fn rename_new(&self, from: &str, to: &str) -> Result<()> {
         let (dir, from_name) = self.parent(from, false)?;
-        let (_, to_name) = self.parent(to, false)?;
-        fs::rename_new(&dir.join(from_name), &dir.join(to_name))?;
-        fs::sync_dir(&dir)
+        let (destination, to_name) = self.parent(to, false)?;
+        fs::rename_new(&dir.join(from_name), &destination.join(to_name))?;
+        fs::sync_dir(&dir)?;
+        if destination != dir {
+            fs::sync_dir(&destination)?;
+        }
+        Ok(())
     }
 
     /// Sync the folder that holds `rel`.

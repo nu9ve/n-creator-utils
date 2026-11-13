@@ -1,11 +1,15 @@
 //! nüün's media domain in Rust, ported method by method from `media/` (rust-engine.md §7).
 //! Read and write operations share the catalog and on-disk protocol with Python.
 
+#[cfg(target_os = "macos")]
+mod ableton;
 pub mod captures;
 pub mod catalog;
 pub mod clipper;
 mod clipper_release;
 pub mod closeout;
+#[cfg(target_os = "macos")]
+pub mod collection_release;
 pub mod coverage;
 pub mod delivery;
 pub mod devices;
@@ -15,6 +19,8 @@ mod editorial;
 pub mod handoff;
 pub mod integrations;
 pub mod layout;
+#[cfg(target_os = "macos")]
+pub mod living;
 pub mod mission_review;
 pub mod missions;
 pub mod photo_meta;

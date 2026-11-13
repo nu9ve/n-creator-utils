@@ -2535,6 +2535,234 @@
     },
     "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('recipe','{\"card_default\":{\"family\":\"generic\",\"recommendation\":\"archive_and_work\"},\"cards\":[{\"any\":[{\"top_suffix\":[\".stalker\"]}],\"family\":\"stalker\",\"label\":\"Stalker\",\"recommendation\":\"stalker_batch\"},{\"any\":[{\"in\":{\"private\":[\"m4root\"]}},{\"top\":[\"avf_info\"]}],\"cleanup\":\"sony_clips_then_format\",\"family\":\"sony\",\"label\":\"Sony\",\"recommendation\":\"sony_format_in_camera\"},{\"any\":[{\"top_prefix\":[\"zoom\",\"folder\"]},{\"top\":[\"h6_settings\"]}],\"family\":\"h6\",\"label\":\"Zoom H6\",\"recommendation\":\"audio_needs_work_disk\"},{\"any\":[{\"dcim_suffix\":[\"gopro\"]}],\"family\":\"gopro\",\"label\":\"GoPro\",\"recommendation\":\"archive_and_work\"},{\"any\":[{\"dcim_suffix\":[\"insta360\"],\"top\":[\"misc\"]},{\"dcim_prefix\":[\"camera\"],\"top\":[\"misc\"]}],\"family\":\"insta360\",\"label\":\"Insta360\",\"recommendation\":\"dji_choose_category\"},{\"any\":[{\"top_prefix\":[\"dji\"]},{\"dcim_prefix\":[\"dji\"]},{\"dcim_regex\":\"\\\\d{3}media\",\"top\":[\"misc\"]}],\"family\":\"dji\",\"label\":\"DJI\",\"recommendation\":\"dji_choose_category\"},{\"any\":[{\"dcim_suffix\":[\"canon\"]},{\"dcim_prefix\":[\"eos\"]}],\"family\":\"canon\",\"label\":\"Canon\",\"recommendation\":\"archive_and_work\"}],\"categories\":{\"dji-drone\":{\"archive\":{\"image\":\"dron/fotos\",\"raw_image\":\"dron/fotos\",\"video\":\"vdron\"},\"work_kinds\":[\"video\",\"image\"]}},\"devices\":[{\"aliases\":[\"MAVIC2\"],\"category\":\"dji-drone\",\"label\":\"DJI Mavic Air 2\",\"make\":\"DJI\",\"model\":\"FC3170\",\"source\":\"MAVICAIR2\"}],\"family_source\":{\"sony\":\"SONYA6400\"},\"flight_evidence\":{\"category\":\"dji-drone\",\"xmp\":[\"gimbal_pitch\",\"flight_yaw\",\"relative_altitude\"]},\"id\":\"nu9ve-default\",\"missions\":[{\"archive_area\":\"004_datos/subaereo/coverage\",\"archive_folder\":\"dron/misiones\",\"devices\":[\"dji-drone\"],\"dng\":{\"dominance\":0.6,\"labels\":\"atlas-derived/labels/cells/*/manifest.json\",\"labels_key\":\"photos\",\"light_classes\":[\"directSun\",\"lowSun\",\"diffuseDusk\",\"deepDusk\",\"night\"],\"older_sample\":12,\"older_than_days\":30,\"per_light\":24,\"poor_sample\":24},\"hint\":{\"max_gimbal_pitch\":-80,\"min_relative_altitude\":15},\"id\":\"subaereo\",\"inbox\":\"<ROOT>/inbox\",\"label\":\"Misiones de subaereo\",\"match\":{\"meters\":40,\"seconds\":2,\"seconds_command_time\":8},\"merge_keys\":{\"captureLog\":\"captureID\",\"captures\":\"captureID\",\"fieldNotes\":\"id\",\"flightSessions\":\"id\",\"plans\":\"id\"},\"patterns\":[\"coverage-*.json\",\"JSON-*.json\"],\"project\":\"subaereo\",\"record_dates\":{\"captureLog\":\"capturedAt\",\"captures\":\"capturedAt\",\"fieldNotes\":\"createdAt\",\"flightSessions\":\"updatedAt\",\"plans\":\"updatedAt\"},\"schema_versions\":[1,2,3],\"tombstones\":{\"plans\":\"deletedPlanIDs\"},\"units_map\":\"atlas-subaereo/_nuun/units.ndjson\",\"work_folder\":\"atlas-subaereo/misiones\",\"work_kinds\":[\"image\"],\"work_mirror\":\"atlas-subaereo/_missions\",\"work_root\":\"atlas-subaereo\"}],\"models\":{\"ILCE-6400\":\"SONYA6400\"},\"name\":\"nu9ve · plantilla inicial\",\"review_makes\":[\"DJI\"],\"schema\":\"nu9ve-recipe/1\"}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1000,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;"
   },
+  "music": {
+    "applied": {
+      "ableton": {
+        "missing": 0,
+        "not_covered": [],
+        "not_covered_bytes": 0,
+        "references": 0,
+        "sets": 0,
+        "unreadable": []
+      },
+      "archive_id": "MEDIA",
+      "bytes": 28,
+      "changed": [],
+      "done": {
+        "a.wav": "copied",
+        "b.wav": "copied",
+        "notes.txt": "copied"
+      },
+      "folder": "Music/backup",
+      "free": 1000000000000,
+      "gone_count": 0,
+      "gone_from_source": [],
+      "name": "card",
+      "new": [
+        {
+          "archive_path": "Music/backup/a.wav",
+          "path": "a.wav",
+          "stamp": {
+            "size": 9
+          }
+        },
+        {
+          "archive_path": "Music/backup/b.wav",
+          "path": "b.wav",
+          "stamp": {
+            "size": 14
+          }
+        },
+        {
+          "archive_path": "Music/backup/notes.txt",
+          "path": "notes.txt",
+          "stamp": {
+            "size": 5
+          }
+        }
+      ],
+      "result": {
+        "adopted": 0,
+        "changed_since_review": 0,
+        "copied": 3,
+        "versioned": 0,
+        "versions": []
+      },
+      "schema": "nu9ve-living-plan/1",
+      "source": "<ROOT>/card",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "volume_uuid": "<ROOT>/card"
+      },
+      "state": "completed",
+      "unchanged": {
+        "bytes": 0,
+        "files": 0
+      }
+    },
+    "backup": {
+      "ableton": {
+        "missing": 0,
+        "not_covered": [],
+        "not_covered_bytes": 0,
+        "references": 0,
+        "sets": 0,
+        "unreadable": []
+      },
+      "archive_id": "MEDIA",
+      "bytes": 28,
+      "changed": [],
+      "done": {},
+      "folder": "Music/backup",
+      "free": 1000000000000,
+      "gone_count": 0,
+      "gone_from_source": [],
+      "name": "card",
+      "new": [
+        {
+          "archive_path": "Music/backup/a.wav",
+          "path": "a.wav",
+          "stamp": {
+            "size": 9
+          }
+        },
+        {
+          "archive_path": "Music/backup/b.wav",
+          "path": "b.wav",
+          "stamp": {
+            "size": 14
+          }
+        },
+        {
+          "archive_path": "Music/backup/notes.txt",
+          "path": "notes.txt",
+          "stamp": {
+            "size": 5
+          }
+        }
+      ],
+      "schema": "nu9ve-living-plan/1",
+      "source": "<ROOT>/card",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "volume_uuid": "<ROOT>/card"
+      },
+      "state": "review",
+      "unchanged": {
+        "bytes": 0,
+        "files": 0
+      }
+    },
+    "files": {
+      "a.wav": "backed up",
+      "b.wav": "only at source",
+      "notes.txt": "notes"
+    },
+    "next": {
+      "ableton": {
+        "missing": 0,
+        "not_covered": [],
+        "not_covered_bytes": 0,
+        "references": 0,
+        "sets": 0,
+        "unreadable": []
+      },
+      "archive_id": "MEDIA",
+      "bytes": 0,
+      "changed": [],
+      "done": {},
+      "folder": "Music/backup",
+      "free": 1000000000000,
+      "gone_count": 0,
+      "gone_from_source": [],
+      "name": "card",
+      "new": [],
+      "schema": "nu9ve-living-plan/1",
+      "source": "<ROOT>/card",
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "volume_uuid": "<ROOT>/card"
+      },
+      "state": "review",
+      "unchanged": {
+        "bytes": 28,
+        "files": 3
+      }
+    },
+    "release": {
+      "archives": [
+        "MEDIA"
+      ],
+      "bytes": 9,
+      "consumers": {
+        "blockers": [],
+        "relinks": []
+      },
+      "entries": [
+        {
+          "archive_id": "MEDIA",
+          "archive_path": "renamed.wav",
+          "archive_stamp": {
+            "size": 9
+          },
+          "path": "a.wav",
+          "sha256": "e0d814201d3beae9e1cae473854d7a5a342f9760a7f3301f9cf130888f498928",
+          "stamp": {
+            "size": 9
+          }
+        }
+      ],
+      "keep_rules": {
+        "ableton_sets": 0,
+        "als_roots": [],
+        "asd": true,
+        "paths": [],
+        "unreadable_sets": []
+      },
+      "kept": [],
+      "moved": {},
+      "preserved": [
+        "notes.txt"
+      ],
+      "schema": "nu9ve-collection-release/1",
+      "search": [],
+      "source_identity": {
+        "disk_uuid": "fixture",
+        "mode": "fixture",
+        "volume_uuid": "<ROOT>/card"
+      },
+      "source_root": "<ROOT>/card",
+      "state": "review",
+      "summary": [
+        {
+          "folder": ".",
+          "keep": [
+            0,
+            0
+          ],
+          "release": [
+            1,
+            9
+          ],
+          "uncovered": [
+            1,
+            14
+          ]
+        }
+      ],
+      "uncovered": [
+        {
+          "bytes": 14,
+          "path": "b.wav",
+          "reason": "no_same_size"
+        }
+      ],
+      "volume_root": "<ROOT>/card"
+    }
+  },
   "plan_tz": "America/Hermosillo",
   "plans": [
     {
