@@ -103,6 +103,20 @@ class TranscriptTests(WorkflowFixture):
         with self.assertRaisesRegex(MediaError, 'cambió'):
             transcripts.copy(self.catalog, self.backend, value)
 
+    def test_project_backup_by_volume_name_and_changed_archived_copy(self):
+        with self.assertRaises(MediaError) as failure:
+            transcripts.project_backup(self.catalog, self.backend, self.project_id, self.w['name'])
+        self.assertEqual(failure.exception.code, 'invalid_role')
+        result = transcripts.project_backup(self.catalog, self.backend, self.project_id, self.a['name'])
+        self.assertEqual((result['projects'], result['copied']), (1, 2))
+        reviewed = self.transcript_plan()
+        self.assertEqual(reviewed['files'], 0)
+        archived = self.archive / reviewed['entries'][0]['target']
+        archived.write_bytes(b'x' * archived.stat().st_size)
+        with self.assertRaises(MediaError) as failure:
+            transcripts.copy(self.catalog, self.backend, reviewed)
+        self.assertEqual(failure.exception.code, 'checksum_mismatch')
+
     def test_closeout_backs_up_transcripts_before_release_and_notes_clipper_offline(self):
         final = self.archive / '002_finales/e64/2026/intro.mov'
         final.parent.mkdir(parents=True); final.write_bytes(b'final')

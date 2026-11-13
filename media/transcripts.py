@@ -32,6 +32,7 @@ def export(catalog, root, timeout=600):
                 and entry.get('format') in FORMATS and isinstance(entry.get('bytes'), int)
                 and isinstance(entry.get('sha256'), str) and re.fullmatch('[0-9a-f]{64}', entry['sha256'])
                 and isinstance(entry.get('stamp'), dict) and all(isinstance(entry['stamp'].get(k), int) for k in STAMP_KEYS)
+                and entry['bytes'] >= 0 and entry['bytes'] == entry['stamp']['size']
                 and isinstance(source, dict) and isinstance(source.get('path'), str),
                 'clipper_invalid', 'Entrada de transcripción incompleta')
     return data
@@ -85,6 +86,7 @@ def target_folder(destination):
 def plan(catalog, backend, archive_id, roots, cancel=None):
     """What to copy for these Clipper project folders. Returns entries (copy / version / archived), notes and digests."""
     archive = catalog.volume(archive_id)
+    require(archive['role'] == 'archive', 'invalid_role', 'Elige un volumen de respaldo')
     backend.check(archive)
     entries, notes, exports = [], [], []
     with Tree(archive['root']) as tree:
@@ -97,7 +99,7 @@ def plan(catalog, backend, archive_id, roots, cancel=None):
                 continue
             exports.append({'project_root': data['project_root'], 'digest': data['digest']})
             for entry in data['entries']:
-                found = _archived_member(catalog, archive_id, entry)
+                found = _archived_member(catalog, archive['id'], entry)
                 if not found:
                     notes.append(Path(entry['path']).name + ': su fuente no está respaldada; no se copia')
                     continue
@@ -153,11 +155,17 @@ def copy(catalog, backend, value, receipt_id=None, cancel=None, progress=None):
     from .progress import ActionMeter
     from .transfer import Transfer
     archive = catalog.volume(value['archive_id'])
+    require(archive['role'] == 'archive', 'invalid_role', 'Elige un volumen de respaldo')
+    backend.check(archive)
     engine = Transfer(catalog, backend, cancel)
     pending = [e for e in value['entries'] if e['action'] != 'archived']
     meter = ActionMeter(2 * sum(e['bytes'] for e in pending), len(pending))
     done = []
     with Tree(archive['root']) as target:
+        for entry in value['entries']:
+            if entry['action'] == 'archived':
+                require(_sha(target, entry['target']) == entry['sha256'], 'checksum_mismatch',
+                        'Cambió una transcripción archivada; revisa de nuevo')
         for entry in pending:
             require(not (cancel and cancel()), 'cancelled', 'Copia de transcripciones pausada')
             meter.holding(entry['target'], 'clipper', archive['name'], 'copy')

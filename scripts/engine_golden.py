@@ -372,6 +372,60 @@ def closeout_cases():
     return {'plan': normalize(plan), 'applied': normalize(applied)}
 
 
+def transcript_cases():
+    import hashlib
+    from media import transcripts
+    from media.catalog import Catalog
+    from media.common import fingerprint
+    from tests.test_media_engine import FixtureVolumes
+    from unittest.mock import patch
+
+    root = fresh_root('transcripts')
+    archive, work = (root / name for name in ('archive', 'work'))
+    archive.mkdir()
+    editor = work / '001_proyectos/general/intro/clipper'
+    path = editor / 'transcripts/clip.srt'
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b'original transcript')
+    (editor / 'clipper-retired-project.json').write_text('{}')
+    backend = FixtureVolumes()
+    member = 'DCIM/clip.mov'
+    archived = '001_raw/video/2026/11/clip.mov'
+    editable = '001_proyectos/general_raw/intro/clip.mov'
+    with contextlib.closing(Catalog(root / 'state')) as catalog:
+        media = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
+        essd = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        with catalog.db:
+            catalog.db.execute("INSERT INTO projects VALUES('p1','general','intro')")
+            catalog.db.execute("INSERT INTO jobs VALUES('job','digest','{}','completed',NULL,'t','t')")
+            catalog.db.execute("INSERT INTO assets VALUES('asset','job',?)",
+                               (json.dumps({'id': 'asset', 'job_id': 'job', 'paths': [member]}),))
+            catalog.db.execute("INSERT INTO work VALUES('asset','ready',NULL,'t')")
+            catalog.db.execute("INSERT INTO members(job_id,relative_path,sha256) VALUES('job',?,'member-sha')", (member,))
+            for volume, destination in ((media, archived), (essd, editable)):
+                row = json.dumps({'path': member, 'destination': destination})
+                catalog.db.execute("INSERT INTO copies VALUES('job',?,?,'member-sha',?)", (volume['id'], member, row))
+        def invoke(_, args, timeout):
+            assert args == ['transcripts-export', str(editor)] and timeout == 600
+            body = path.read_bytes()
+            return {'schema': 'clipper-transcript-export/1', 'project_root': str(editor), 'digest': 'e' * 64,
+                    'entries': [{'path': str(path), 'format': 'srt', 'bytes': len(body), 'stamp': fingerprint(path.stat()),
+                                 'sha256': hashlib.sha256(body).hexdigest(), 'source': {'path': str(work / editable)}}]}
+        def normalize(value, id_):
+            return json.loads(json.dumps(value).replace(str(root), '<ROOT>').replace(media['id'], 'MEDIA').replace(id_, '<ID>'))
+        cases = []
+        with patch('media.clipper.invoke', side_effect=invoke):
+            for body in (b'original transcript', b'another version', b'another version'):
+                path.write_bytes(body)
+                with patch('media.transcripts.now', return_value='2026-11-12T02:03:04Z'):
+                    result = transcripts.project_backup(catalog, backend, 'p1', 'MEDIA')
+                receipt = catalog.get('data-receipt:' + result['receipt_id'])
+                result.pop('digest')
+                cases.append({'result': normalize(result, result['receipt_id']),
+                              'receipt': normalize(receipt, result['receipt_id'])})
+        return cases
+
+
 def handoff_cases():
     from media.catalog import Catalog
     from media.library import handoff
@@ -1124,6 +1178,7 @@ def main():
         'release': release_cases(),
         'closeout': closeout_cases(),
         'handoff': handoff_cases(),
+        'transcripts': transcript_cases(),
         # Catalog reads through the engine's own dispatch, as rpc-serve answers them.
         'reads': reads_cases(),
         # Stalker libraries read from bundles on disk.

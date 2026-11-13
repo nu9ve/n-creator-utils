@@ -89,13 +89,14 @@ const VOLUME_READS: [&str; 7] = [
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// All of them need the volume backend. `register_volume` changes configuration (the catalog), never media,
 /// under the writer lock.
-const VOLUME_WRITES: [&str; 17] = [
+const VOLUME_WRITES: [&str; 18] = [
     "register_volume",
     "plan",
     "plan_document",
     "apply",
     "resume",
     "backup_metadata",
+    "transcripts_backup",
     "storage_add_folder",
     "storage_remove_folder",
     "plan_release",
@@ -301,6 +302,9 @@ impl Engine {
                     .as_str()
                     .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
                 nuun_media::transfer::resume(&self.home(), write_backend(platform)?, job)
+            }
+            "transcripts_backup" => {
+                nuun_media::transcripts::backup(&self.home(), write_backend(platform)?, params)
             }
             "backup_metadata" => {
                 let archive = params["archive"]
