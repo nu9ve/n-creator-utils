@@ -119,11 +119,14 @@ pendiente. Una identidad distinta, índices iguales o lectura inconclusa
 conservan el estado. El botón de confirmación se retira de la app. El CLI
 `confirm-cleanup` sigue disponible con las mismas comprobaciones para Sony.
 
-La lectura final de Sony registra la fase `checking_card`. Si un archivo
-desaparece durante la lectura, se valida la identidad de la tarjeta y se
-reintenta una vez la lectura. Una segunda falla se registra y no se repite
-ningún borrado dentro de ese reintento. El incidente físico de noviembre
-sigue pendiente de reproducir con una grabación descartable.
+La lectura final de Sony registra la fase `checking_card`. Si el directorio
+todavía enumera una ruta retirada por el trabajo, se consulta esa ruta.
+Se omite la entrada sólo si la consulta confirma su ausencia. Si sigue
+presente, se incluye en el inventario. La identidad de la tarjeta se
+comprueba antes y después. Las desapariciones inesperadas conservan el
+tratamiento de error y Python reintenta la lectura una vez. Si la
+comprobación queda pendiente tras un retiro registrado, Actividad espera
+la observación de la tarjeta al reconectarla.
 
 ### Etapas observadas del retiro Sony · 2026-11-07
 
@@ -163,6 +166,15 @@ comprobación al reconectar observa también los trabajos `failed` con
 reescrito) los cierra como `completed` con `sony_card_checked`, sin
 reanudarlos ni tocar la tarjeta. Un fallo sin todos los retiros journalizados
 queda fuera.
+
+## Pausa y reanudación en macOS
+
+En el sandbox, «Cancelar» envía SIGINT al motor Rust. `apply` y `resume`
+atienden la señal en puntos del diario de transferencia y registran
+`paused` con código `cancelled`. La ventana indica que se puede reanudar
+el mismo trabajo desde Actividad. Si el proceso termina abruptamente, se
+retoma desde el último estado registrado. Los destinos requeridos deben
+estar verificados antes de iniciar el retiro del origen.
 
 ## Pruebas y límites
 

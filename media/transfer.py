@@ -661,17 +661,19 @@ class Transfer:
                         self.catalog.event(plan['id'], 'discard_removing', {'path': path, 'stamp': stamp})
                         source_tree.unlink(path, stamp)
                         self.catalog.event(plan['id'], 'discard_removed', {'path': path, 'bytes': stamp['size']})
+                        removing.add(path)
                         self.meter.finished('cleaned', path, source_name)
                 if sony:
                     self.report(force=True, phase='checking_card')
                     self.source_check(plan, full=True)
+                    removed = {f['path'] for f in removable} | removing
                     try:
-                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False, removed=removed)
                     except FileNotFoundError:
                         # A directory entry can disappear during enumeration. Retry only the
                         # read, on the same card, after all removals have been journaled.
                         self.source_check(plan, full=True)
-                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)
+                        remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False, removed=removed)
                     self.source_check(plan, full=True)
                 else:
                     remaining, _, _ = scan(plan['source'], cancel=self.cancel, photos=False)

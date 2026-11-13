@@ -364,8 +364,9 @@ enum OperationScope { case ingest, library, space, settings, source }
                 profile = values["profile"].string.isEmpty ? "e64" : values["profile"].string
                 country = values["country"].string.isEmpty ? "mx" : values["country"].string
                 city = values["city"].string.isEmpty ? "hermosillo" : values["city"].string
-                archive = values["archive"].string
-                work = values["work"].string
+                let savedArchive = values["archive"].string, savedWork = values["work"].string
+                archive = volume(savedArchive)?["id"].string ?? savedArchive
+                work = volume(savedWork)?["id"].string ?? savedWork
             }
             if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
             if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
@@ -384,14 +385,18 @@ enum OperationScope { case ingest, library, space, settings, source }
         Task {
             do { try await body() }
             catch {
+                if let failure = error as? BackendFailure, failure.code == "cancelled" {
+                    message = self.stateLabel("paused")
+                } else {
+                    message = String(localized: "Operación detenida; revisa el estado")
+                }
                 if let failure = error as? BackendFailure, failure.code == "plan_changed" {
                     self.plan = nil
                     self.error = String(localized: "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. ") + failure.message
                 } else if let failure = error as? BackendFailure, failure.code == "camera_review_required" {
                     self.error = String(localized: "Hay archivos DJI sin clasificar. Elige dron, 360 o action para cada uno y revisa de nuevo.")
                     self.typeFilter = "dji"; self.goToStep(.content)
-                } else { self.error = error.localizedDescription }
-                message = String(localized: "Operación detenida; revisa el estado")
+                } else if (error as? BackendFailure)?.code != "cancelled" { self.error = error.localizedDescription }
             }
             activeScope = nil; monitorTask?.cancel(); monitorTask = nil
             await refresh(); statusChanged?()
@@ -555,9 +560,6 @@ enum OperationScope { case ingest, library, space, settings, source }
     func jobLabel(_ job: JSONValue) -> String {
         let listed = job["source_kind"].string
         let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
-        if job["sony_removal_recorded"].bool {
-            return String(localized: "Retiro de clips registrado · falta comprobar la SD")
-        }
         // Observed stages (transfer.sony_stage): nothing here asks the person to confirm.
         switch job["sony_stage"].string {
         case "formatted": return String(localized: "Formato observado · SD lista para grabar")
@@ -565,6 +567,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             return String(localized: "Reaparecieron \(max(1, job["sony_reappeared"].array.count)) archivos respaldados en la SD · vuelve a revisarla")
         case "removal_durable": return String(localized: "Retiro comprobado al reconectar · falta formatear en la cámara")
         case "removal_observed": return String(localized: "Retiro observado · formatea en la cámara y vuelve a conectar la SD")
+        case "removal_recorded": return String(localized: "Retiro de clips registrado · falta comprobar la SD")
         default: break
         }
         // Cards holding Stalker bundles end camera_action_required without any camera step.
@@ -582,7 +585,8 @@ enum OperationScope { case ingest, library, space, settings, source }
         return job["error"].string
     }
     func resumable(_ job: JSONValue) -> Bool {
-        ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string)
+        guard !job["sony_removal_recorded"].bool else { return false }
+        return ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string)
             || job["state"].string == "source_retained" && job["release_stalker_source"].bool
     }
     func needsAttention(_ job: JSONValue) -> Bool {
@@ -662,7 +666,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
         }
     }
-    func volume(_ id: String) -> JSONValue? { volumes.first { $0["id"].string == id } }
+    func volume(_ key: String) -> JSONValue? { volumes.first { $0["id"].string == key || $0["name"].string == key } }
     var sourceKey: String { source + "|" + sourceKind + "|" + archive }
     var contentLoaded: Bool { !source.isEmpty && loadedSourceKey == sourceKey }
     func discover() {

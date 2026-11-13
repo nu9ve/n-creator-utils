@@ -42,7 +42,7 @@ def finder_only_residue(folder, max_entries=256, max_depth=12):
     return True
 
 
-def scan(root, skip_active=False, cancel=None, stalker_only=False, photos=True):
+def scan(root, skip_active=False, cancel=None, stalker_only=False, photos=True, removed=()):
     """Files, Stalker bundles and skipped active captures. `photos=False` skips the EXIF read: membership and
     stamp checks (e.g. Transfer's validation) need only paths and stamps."""
     files, bundles, skipped = [], {}, []
@@ -94,6 +94,12 @@ def scan(root, skip_active=False, cancel=None, stalker_only=False, photos=True):
                     continue
                 rel = '/'.join(p for p in [prefix, entry.name] if p)
                 relative(rel)
+                if rel in removed:
+                    # A just-unlinked file can still be listed on exFAT. Confirm absence by lookup.
+                    try:
+                        os.stat(entry.path, follow_symlinks=False)
+                    except FileNotFoundError:
+                        continue
                 require(not entry.is_symlink(), 'unsafe_file', 'Symlink in source: ' + rel)
                 if entry.is_dir(follow_symlinks=False):
                     if entry.name not in IGNORED_DIRS:

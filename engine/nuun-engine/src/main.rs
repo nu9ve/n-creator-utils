@@ -303,12 +303,11 @@ impl Engine {
                 let plan = params
                     .get("plan")
                     .ok_or_else(|| Error::new("operation_failed", "'plan'"))?;
-                nuun_media::transfer::apply(
+                nuun_media::transfer::apply_reviewed(
                     &self.home(),
                     write_backend(platform)?,
                     plan,
                     digest,
-                    &|_, _| Ok(()),
                 )
             }
             "resume" => {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::interrupt::{Cancel, cancelled};
 use crate::tree::Root;
 use nu9ve_volumes::fs;
 use std::collections::{BTreeMap, HashSet};
@@ -1253,49 +1254,6 @@ fn candidate(row: &Row) -> rusqlite::Result<Candidate> {
         mtime: row.get(2)?,
         sha: row.get(3)?,
     })
-}
-
-use std::sync::atomic::{AtomicBool, Ordering};
-
-static CANCELLED: AtomicBool = AtomicBool::new(false);
-
-extern "C" fn interrupt(_: libc::c_int) {
-    CANCELLED.store(true, Ordering::Relaxed);
-}
-
-struct Cancel(libc::sigaction);
-
-impl Cancel {
-    // Storage mutations run in a dedicated one-shot worker.
-    fn install() -> Result<Self> {
-        CANCELLED.store(false, Ordering::Relaxed);
-        unsafe {
-            let mut action: libc::sigaction = std::mem::zeroed();
-            action.sa_sigaction = interrupt as *const () as usize;
-            action.sa_flags = libc::SA_RESTART;
-            libc::sigemptyset(&mut action.sa_mask);
-            let mut old = std::mem::MaybeUninit::uninit();
-            if libc::sigaction(libc::SIGINT, &action, old.as_mut_ptr()) != 0 {
-                return Err(Error::new(
-                    "operation_failed",
-                    io::Error::last_os_error().to_string(),
-                ));
-            }
-            Ok(Self(old.assume_init()))
-        }
-    }
-}
-
-impl Drop for Cancel {
-    fn drop(&mut self) {
-        unsafe {
-            libc::sigaction(libc::SIGINT, &self.0, std::ptr::null_mut());
-        }
-    }
-}
-
-fn cancelled() -> bool {
-    CANCELLED.load(Ordering::Relaxed)
 }
 
 fn check_cancel(cancelled: &dyn Fn() -> bool, message: &str) -> Result<()> {

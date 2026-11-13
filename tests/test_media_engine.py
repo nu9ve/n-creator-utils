@@ -470,6 +470,30 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(len(attempts), 2)
         self.assertEqual(index.read_bytes(), b'<index/>')
 
+    def test_sony_final_scan_ignores_only_journaled_entries_that_are_absent(self):
+        import contextlib
+        from unittest import mock
+
+        clip = self.source / 'PRIVATE/M4ROOT/CLIP/C0001.MP4'
+        clip.parent.mkdir(parents=True)
+        clip.write_bytes(b'sony')
+        index = self.source / 'PRIVATE/M4ROOT/MEDIAPRO.XML'
+        index.write_bytes(b'<index/>')
+        plan = self.plan()
+        scandir = os.scandir
+        with scandir(clip.parent) as entries:
+            stale_entry = next(e for e in entries if e.name == clip.name)
+
+        def with_stale_entry(folder):
+            if Path(folder) == clip.parent and not clip.exists():
+                return contextlib.nullcontext(iter([stale_entry]))
+            return scandir(folder)
+
+        with mock.patch('media.planner.os.scandir', side_effect=with_stale_entry):
+            self.assertEqual(self.run_plan(plan)['state'], 'camera_action_required')
+        self.assertFalse(clip.exists())
+        self.assertEqual(index.read_bytes(), b'<index/>')
+
     def test_sony_failure_with_recorded_removal_is_distinct_from_missing_receipts(self):
         from unittest import mock
         from media.planner import scan
