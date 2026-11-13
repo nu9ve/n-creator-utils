@@ -1049,6 +1049,8 @@ def storage_cases():
                 info["removable"] = False
             return info
 
+    from unittest.mock import patch
+
     root = fresh_root('storage')
     files = {'archive/001_raw/raw/a.mov': 'A' * 4000, 'archive/001_raw/raw/b.mov': 'B' * 9000,
              'archive/002_finales/e64/f.mp4': 'F' * 100,
@@ -1061,8 +1063,8 @@ def storage_cases():
         path.write_text(text)
         os.utime(path, ns=(PLAN_MTIME_NS, PLAN_MTIME_NS))
     backend = StableVolumes()
-    results = {}
-    with deterministic():
+    results, scan_compare = {}, []
+    with deterministic(), patch.object(storage_index, 'THIS_MAC_ROOT', str(root / 'no-builtin')):
         catalog = Catalog(root / 'state')
         try:
             media = catalog.register('MEDIA', 'archive', root / 'archive', backend.describe(root / 'archive'), '001_raw')
@@ -1073,8 +1075,13 @@ def storage_cases():
                 for volume, destination in ((media['id'], '001_raw/raw/a.mov'), (essd['id'], '001_proyectos/e64_raw/terra/a.mov')):
                     payload = {'destination': destination, 'path': 'CLIP/a.mov', 'bytes': 4000, 'verified_at': '2026-11-01'}
                     catalog.db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j1', volume, 'CLIP/a.mov', 'SHA-A', json.dumps(payload)))
+            def record(method, params):
+                reply = storage_index.call(catalog, backend, method, params)
+                reply.pop('seconds', None)
+                scan_compare.append((method, params, reply))
+
             for target in ('MEDIA', 'ESSD'):
-                storage_index.scan(catalog, backend, target)
+                record('storage_scan', {'target': target})
             index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
             with index:
                 index.execute("UPDATE runs SET pid=0,started_at='2026-11-02T00:00:00Z',finished_at='2026-11-02T00:01:00Z'")
@@ -1097,6 +1104,18 @@ def storage_cases():
                 except MediaError as error:
                     value = {'ok': False, 'code': error.code}
                 results[json.dumps([method, params], sort_keys=True)] = value
+            for scope in ('001_proyectos/e64_raw/terra', ''):
+                record('storage_compare', {'target': 'ESSD', 'path': scope})
+            index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
+            queries = [
+                'SELECT target_id,path,parent,size,allocated,mtime_ns,kind FROM entries ORDER BY target_id,path',
+                'SELECT target_id,path,parent,files,bytes,allocated,json(kinds),kind,opaque FROM folders ORDER BY target_id,path',
+                'SELECT * FROM safety ORDER BY target_id,path',
+                'SELECT target_id,path,size,mtime_ns,sha256,origin FROM hashes ORDER BY target_id,path',
+                'SELECT * FROM meta ORDER BY key',
+            ]
+            with contextlib.closing(index):
+                scanned_rows = {query: index.execute(query).fetchall() for query in queries}
             sql = sql_dump(catalog.db)
         finally:
             catalog.close()
@@ -1108,7 +1127,6 @@ def storage_cases():
             target.pop(key, None)
     text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
     from media.coverage import coverage
-    from unittest.mock import patch
 
     reports = []
     with contextlib.closing(Catalog(root / 'state')) as catalog, patch('media.storage_index.SYSTEM_ROOTS', ('/System', '/Library')):
@@ -1134,7 +1152,8 @@ def storage_cases():
     removed['removed'] = '<ID>'
     writes = json.loads(json.dumps({'added': selected, 'removed': removed, 'coverage': reports}).replace(str(root), '<ROOT>'))
     return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'index_sql': sql_index.replace(str(root), '<ROOT>'),
-            'results': json.loads(text), 'writes': writes}
+            'results': json.loads(text), 'writes': writes, 'scan_compare': scan_compare,
+            'scanned_rows': scanned_rows, 'mtime_ns': PLAN_MTIME_NS}
 
 
 

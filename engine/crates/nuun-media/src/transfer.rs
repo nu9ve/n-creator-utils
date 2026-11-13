@@ -115,6 +115,16 @@ pub(crate) fn hash_file(
     file: &mut (impl Read + Seek),
     mut counted: impl FnMut(u64),
 ) -> Result<String> {
+    hash_file_counted(file, |bytes| {
+        counted(bytes);
+        Ok(())
+    })
+}
+
+pub(crate) fn hash_file_counted(
+    file: &mut (impl Read + Seek),
+    mut counted: impl FnMut(u64) -> Result<()>,
+) -> Result<String> {
     file.seek(SeekFrom::Start(0))
         .map_err(|e| Error::new("operation_failed", format!("[OSError] {e}")))?;
     let mut hasher = Sha256::new();
@@ -127,7 +137,7 @@ pub(crate) fn hash_file(
             return Ok(nu9ve_json::hex(&hasher.finalize()));
         }
         hasher.update(&buffer[..n]);
-        counted(n as u64);
+        counted(n as u64)?;
     }
 }
 
