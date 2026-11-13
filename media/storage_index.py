@@ -178,26 +178,30 @@ def add_folder(catalog, backend, root, name=None):
             'unsafe_path', 'Choose a folder of yours or a disk, not the system')
     info = backend.describe(root)
     require(not (info.get('removable') and info.get('mount') == str(root)), 'card_not_indexable', 'Memory cards are read through Ingreso, not indexed')
-    for existing in targets(catalog):
-        other = Path(existing['root'])
-        require(other != root and other not in root.parents and root not in other.parents,
-                'volume_exists', 'That folder overlaps ' + existing['name'])
-    label = name or root.name
-    value = {'id': uid(), 'name': label, 'role': 'observed', 'root': str(root), 'prefix': '', 'identity': info}
-    require(not any(t['name'] == label for t in targets(catalog)), 'volume_exists', 'Name already in use')
-    catalog.set(OBSERVED_KEY, catalog.get(OBSERVED_KEY, []) + [value])
-    return value
+    with _exclusive(catalog):
+        existing_targets = targets(catalog)
+        for existing in existing_targets:
+            other = Path(existing['root'])
+            require(other != root and other not in root.parents and root not in other.parents,
+                    'volume_exists', 'That folder overlaps ' + existing['name'])
+        label = name or root.name
+        value = {'id': uid(), 'name': label, 'role': 'observed', 'root': str(root), 'prefix': '', 'identity': info}
+        require(not any(t['name'] == label for t in existing_targets), 'volume_exists', 'Name already in use')
+        catalog.set(OBSERVED_KEY, catalog.get(OBSERVED_KEY, []) + [value])
+        return value
 
 
-def remove_folder(catalog, db, target):
+def remove_folder(catalog, target):
     """Forgets a chosen folder and its index; the folder itself is not touched."""
-    found = _target(catalog, target)
-    require(found['observed'] and not found.get('builtin'), 'invalid_role', 'Only chosen folders can be removed from the index')
-    catalog.set(OBSERVED_KEY, [v for v in catalog.get(OBSERVED_KEY, []) if v['id'] != found['id']])
-    with db:
-        for table in ('entries', 'folders', 'safety', 'hashes', 'indexes', 'runs'):
-            db.execute('DELETE FROM {} WHERE target_id=?'.format(table), (found['id'],))
-    return {'removed': found['id']}
+    with _exclusive(catalog):
+        found = _target(catalog, target)
+        require(found['observed'] and not found.get('builtin'), 'invalid_role', 'Only chosen folders can be removed from the index')
+        if (catalog.home / 'storage-index.sqlite3').exists() or (catalog.home / 'storage-index.sqlite3').is_symlink():
+            with contextlib.closing(open_index(catalog)) as db, db:
+                for table in ('entries', 'folders', 'safety', 'hashes', 'indexes', 'runs'):
+                    db.execute('DELETE FROM {} WHERE target_id=?'.format(table), (found['id'],))
+        catalog.set(OBSERVED_KEY, [v for v in catalog.get(OBSERVED_KEY, []) if v['id'] != found['id']])
+        return {'removed': found['id']}
 
 
 # Scan
@@ -297,8 +301,8 @@ def _walk(root, device, keep_small, cancel, add_entry, add_folder_row, on_unread
 
 
 def scan(catalog, backend, target, cancel=None):
-    found = _target(catalog, target)
     with _exclusive(catalog), contextlib.closing(open_index(catalog)) as db:
+        found = _target(catalog, target)
         info = _online(backend, found)
         require(info is not None, 'volume_offline', found['name'] + ' is disconnected')
         root = found['root']
@@ -516,9 +520,9 @@ def _recompute(catalog, db, target):
 
 def compare(catalog, backend, target, path='', cancel=None):
     """Hash only what could match the archive, largest first. Finished hashes survive an interruption."""
-    found = _target(catalog, target)
-    path = _rel(path)
     with _exclusive(catalog), contextlib.closing(open_index(catalog)) as db:
+        found = _target(catalog, target)
+        path = _rel(path)
         require(found['role'] != 'archive', 'invalid_role', 'The archive is what gets compared against')
         index = db.execute('SELECT run_id FROM indexes WHERE target_id=?', (found['id'],)).fetchone()
         require(index is not None, 'not_indexed', 'Scan ' + found['name'] + ' first')
@@ -718,6 +722,8 @@ def call(catalog, backend, method, params, cancel=None):
             return compare(catalog, backend, params['target'], params.get('path') or '', cancel)
         if method == 'storage_add_folder':
             return add_folder(catalog, backend, params['root'], params.get('name'))
+        if method == 'storage_remove_folder':
+            return remove_folder(catalog, params['target'])
         with contextlib.closing(open_index(catalog)) as db:
             if method == 'storage_overview':
                 return overview(catalog, backend, db)
@@ -725,8 +731,6 @@ def call(catalog, backend, method, params, cancel=None):
                 return {'running': progress(db)}
             if method == 'storage_tree':
                 return tree(catalog, db, params['target'], params.get('path') or '', params.get('limit') or 200)
-            if method == 'storage_remove_folder':
-                return remove_folder(catalog, db, params['target'])
     except sqlite3.Error as error:
         raise MediaError('storage_index_error', 'Disk index unavailable: ' + str(error)) from error
     require(False, 'unknown_method', 'Unknown storage method: ' + str(method))

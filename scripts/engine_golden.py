@@ -202,6 +202,17 @@ def plan_case_specs():
          {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro', 'archive_only': True, 'confirm_archive_only': True,
           'assignments': {'DCIM/100CANON/IMG_0002.JPG': {'discard': True},
                           'DCIM/100CANON/IMG_0001.JPG': {'country': 'pe', 'work': False}}}),
+        ('stalker_bundle', {
+            'S.stalker/manifest.json': json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'status': 'completed',
+                'sessionID': 'd9391e8f-0ddd-4f03-b745-b8bbd15832d9', 'createdAt': '2026-11-04T23:32:12Z',
+                'duration': {'value': 123, 'timescale': 1}, 'tracks': [{'relativePath': 'screen.mov'}]}).encode(),
+            'S.stalker/screen.mov': b'screen',
+            'S.stalker/events.json': b'[]',
+        }, {}, dict(base, source_kind='stalker')),
+        ('finals_delivery', {'26-10-31-toma.MP4': b'final', 'shorts/vertical.MP4': b'v',
+                            '26-10-31-existente.MP4': b'already'}, {'002_finales/e64/old/26-10-31-existente.MP4': b'already'},
+         dict(base, source_kind='delivery', finals_route=True, work=None, archive_only=True,
+              confirm_archive_only=True, work_decision='skipped')),
         ('dji_unknown_model_asks', {'DCIM/101MEDIA/DJI_0009.JPG': jpeg(model='FC9999', flight=False)}, {}, base),
     ]
 
@@ -246,6 +257,8 @@ def plan_cases():
                 w = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
                 info = backend.describe(card)
                 files, _, _ = scan(card)
+                if params.get('source_kind') == 'stalker':
+                    catalog.set('retain-stalker-source', True)
                 applied = None
                 try:
                     plan = build_plan(catalog, backend, source=str(card), **params)
@@ -267,6 +280,47 @@ def plan_cases():
                 'source_identity': {k: info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')},
                 'stamps': {f['path']: f['stamp'] for f in files}, 'plan': plan, 'apply': applied})
     return results
+
+
+def release_cases():
+    from media.catalog import Catalog
+    from media.release import plan_release, review_release
+    from tests.test_media_engine import FixtureVolumes
+    from unittest.mock import patch
+    root = fresh_root('release-plan')
+    archive, work = (root / name for name in ('archive', 'work'))
+    scope = '001_proyectos/intro'
+    files = {'work/' + scope + '/intro.mov': 'identical',
+             'work/' + scope + '/renders/cache.mov': 'protected',
+             'work/' + scope + '/notes.txt': 'notes',
+             'archive/old/renamed.mov': 'identical',
+             'archive/old/impostor.mov': 'different'}
+    for name, content in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    backend = FixtureVolumes()
+    initial = {'blockers': [], 'relinks': [], 'dependencies': None}
+    refreshed = dict(initial, blockers=['fixture blocker'])
+    with deterministic(), contextlib.closing(Catalog(root / 'state')) as catalog:
+        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'ESSD', 'work', '001_proyectos')):
+            catalog.register(name, role, folder, backend.describe(folder), prefix)
+        with patch('media.clipper.inspect', return_value=initial):
+            plan = plan_release(catalog, backend, archive='MEDIA', work='ESSD', path=scope, project='intro')
+        with patch('media.clipper.inspect', return_value=refreshed):
+            updated = review_release(catalog, backend, plan['id'], plan['digest'])
+        assert catalog.get('release:' + plan['id']) == updated
+    def normalize(value):
+        value = dict(value)
+        for key in ('id', 'created_at', 'digest'):
+            del value[key]
+        value['source_identity'].update(root_inode='<INODE>', device='<DEVICE>')
+        for entry in value['entries']:
+            entry['stamp'].update(inode='<INODE>', ctime_ns='<CTIME>', mtime_ns='<MTIME>')
+        value['archive_id'] = 'MEDIA'
+        value['work_id'] = 'ESSD'
+        return json.loads(json.dumps(value).replace(str(root), '<ROOT>'))
+    return {'files': files, 'plan': normalize(plan), 'review': normalize(updated)}
 
 
 # Catalog reads (rpc-serve) on one fixture catalog: Python writes the catalog as SQL next to its answers, and the
@@ -682,6 +736,8 @@ def storage_cases():
         def describe(self, root, external_required=False):
             info = super().describe(root, external_required)
             info.update(root_inode=stable_inode(Path(root).absolute().stat()), device=1)
+            if Path(root).name == "observed":
+                info["removable"] = False
             return info
 
     root = fresh_root('storage')
@@ -742,8 +798,35 @@ def storage_cases():
         for key in ('fs_total', 'fs_used', 'fs_free', 'uncounted'):
             target.pop(key, None)
     text = json.dumps(results, ensure_ascii=False, sort_keys=True).replace(str(root), '<ROOT>')
+    from media.coverage import coverage
+    from unittest.mock import patch
+
+    reports = []
+    with contextlib.closing(Catalog(root / 'state')) as catalog, patch('media.storage_index.SYSTEM_ROOTS', ('/System', '/Library')):
+        observed_root = root / 'observed'
+        observed_root.mkdir()
+        files['observed/keep.wav'] = 'keep'
+        (observed_root / 'keep.wav').write_text(files['observed/keep.wav'])
+        selected = storage_index.add_folder(catalog, backend, observed_root, 'Observada')
+        storage_index.scan(catalog, backend, selected['id'])
+        index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
+        indexed_target = index.execute('SELECT target_id FROM indexes WHERE target_id=?', (selected['id'],)).fetchone()[0]
+        index.close()
+        assert indexed_target == selected['id']
+        removed = storage_index.remove_folder(catalog, 'Observada')
+        for scoped, hashed in (('', True), ('001_proyectos/e64_raw/terra', False)):
+            reply = coverage(catalog, backend, 'ESSD', 'MEDIA', scoped, hashed)
+            report = json.loads(Path(reply.pop('report')).read_text())
+            report.pop('created_at')
+            reports.append({'path': scoped, 'no_hash': not hashed, 'reply': reply, 'report': report})
+        assert (observed_root / 'keep.wav').read_text() == 'keep'
+    selected['identity']['root_inode'] = '<INODE>'
+    selected['id'] = '<ID>'
+    removed['removed'] = '<ID>'
+    writes = json.loads(json.dumps({'added': selected, 'removed': removed, 'coverage': reports}).replace(str(root), '<ROOT>'))
     return {'files': files, 'sql': sql.replace(str(root), '<ROOT>'), 'index_sql': sql_index.replace(str(root), '<ROOT>'),
-            'results': json.loads(text)}
+            'results': json.loads(text), 'writes': writes}
+
 
 
 # Clipper guards (`clipper.inspect`) and `capture_discard_check`: a fake Clipper whose report uses one session, a
@@ -931,6 +1014,7 @@ def main():
         # `plan` on temporary cards (devices, missions, Sony, mtime names, WAV, archive-only, assignments, errors).
         'plan_tz': PLAN_TZ,
         'plans': plan_cases(),
+        'release': release_cases(),
         # Catalog reads through the engine's own dispatch, as rpc-serve answers them.
         'reads': reads_cases(),
         # Stalker libraries read from bundles on disk.

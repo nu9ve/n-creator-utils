@@ -45,6 +45,8 @@ Preferir copia de trabajo online verificada; después ubicación local durable o
 
 El motor produce `nu9ve-transfer-receipt/1` y `nu9ve-work-receipt/1`; la autoridad de su formato actual es [transfer.py](../../media/transfer.py), [library.py](../../media/library.py) y [recovery.py](../../media/recovery.py). Falta formalizar schema de recibos para adopción externa. Debe incluir `receipt_id`, `job_id`, digest/version del plan y política, asset/revisión, lista completa de miembros y hashes, volumen/ruta relativa por destino, identidad física conocida, fases y timestamps de lectura/verificación, resultado y errores. Distintos destinos tienen recibos independientes; falta de uno requerido mantiene la operación parcial.
 
+En la recuperación, el motor verifica bytes y membresía antes de incorporar un recibo. El trabajo recuperado conserva las referencias editoriales, deja la limpieza deshabilitada y marca pendiente u omitida la entrega de trabajo según la política original. Las revisiones publicadas se incorporan cuando ya está verificado su predecesor.
+
 Un plan aprobado queda inmutable. Cambiar proyecto, destinos, clasificación, política o conjunto de miembros produce otra revisión/digest del plan. El apply revalida precondiciones; no interpreta «dry-run exitoso» como permiso para usar un origen o montaje que cambió después.
 
 ### Excepción de destino de trabajo ausente

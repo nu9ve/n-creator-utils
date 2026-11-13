@@ -89,13 +89,22 @@ const VOLUME_READS: [&str; 7] = [
 /// Writes this engine performs, only through the one-shot `rpc` command (as Python: `rpc-serve` is read only).
 /// All of them need the volume backend. `register_volume` changes configuration (the catalog), never media,
 /// under the writer lock.
-const VOLUME_WRITES: [&str; 6] = [
+const VOLUME_WRITES: [&str; 15] = [
     "register_volume",
     "plan",
     "plan_document",
     "apply",
     "resume",
     "backup_metadata",
+    "storage_add_folder",
+    "storage_remove_folder",
+    "plan_release",
+    "review_release",
+    "plan_finals",
+    "plan_finals_document",
+    "recover_catalog",
+    "restore",
+    "deliver_work",
 ];
 
 /// The methods this engine answers on this platform: the portable ones, plus the volume reads with a backend.
@@ -131,6 +140,9 @@ const CATALOG_WRITES: [&str; 17] = [
 
 fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
+    if backend.is_some() {
+        writes.push("coverage");
+    }
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
     }
@@ -316,6 +328,40 @@ impl Engine {
             "capture_overview" => {
                 nuun_media::projects::capture_overview(&self.catalog()?, backend(platform)?, params)
             }
+            "plan_finals" | "plan_finals_document" => {
+                let plan = nuun_media::projects::plan_finals(
+                    &self.home(),
+                    write_backend(platform)?,
+                    params,
+                )?;
+                if method == "plan_finals_document" {
+                    Ok(json!(
+                        String::from_utf8(nu9ve_json::canonical(&plan)).unwrap_or_default()
+                    ))
+                } else {
+                    Ok(plan)
+                }
+            }
+            "plan_release" => {
+                nuun_media::release::plan_release(&self.home(), write_backend(platform)?, params)
+            }
+            "review_release" => {
+                nuun_media::release::review_release(&self.home(), write_backend(platform)?, params)
+            }
+            "deliver_work" => {
+                nuun_media::delivery::deliver(&self.home(), write_backend(platform)?, params)
+            }
+            "restore" => {
+                nuun_media::restore::restore(&self.home(), write_backend(platform)?, params)
+            }
+            "recover_catalog" => {
+                nuun_media::recovery::recover(&self.home(), write_backend(platform)?, params)
+            }
+            "coverage" => nuun_media::coverage::report(&self.home(), backend(platform)?, params),
+            "storage_add_folder" => {
+                nuun_media::storage::add_folder(&self.home(), write_backend(platform)?, params)
+            }
+            "storage_remove_folder" => nuun_media::storage::remove_folder(&self.home(), params),
             "storage_overview" => nuun_media::storage::overview(
                 &self.catalog()?,
                 &self.home(),

@@ -1,6 +1,5 @@
 //! Verified, resumable transfers; source cleanup is gated by durable receipts. Port of `media/transfer.py`
-//! (`Transfer.apply`, `_run`, `copy_many`, `validate_source`, `_index`, progress) for card plans with a named
-//! layout, and of `progress.ActionMeter`.
+//! (`Transfer.apply`, `_run`, `copy_many`, `validate_source`, `_index`, progress) and `progress.ActionMeter`.
 //!
 //! Guarantees, as Python:
 //! - a copy lands as `.<name>.ncpartial`, is flushed (`F_FULLFSYNC` on macOS) with its folder, read back and
@@ -12,8 +11,8 @@
 //!   rescanned unchanged; each original is re-read and must hash like its copies before it is removed; Sony
 //!   camera indexes are never removed (the job waits for the camera's format).
 //!
-//! Not ported: Stalker sessions and their release, deliveries/finals, schema-1 plans (per-job containers): `apply`
-//! answers `not_ported` before touching anything. Cancellation from the client is a process kill: the journal
+//! Stalker release after ingest and cleanup of published finals use Python. Cancellation from the client is
+//! a process kill: the journal
 //! makes it resumable (the job stays in its last state; Python would record `paused`).
 
 use crate::catalog::{Catalog, WritableCatalog};
@@ -65,21 +64,21 @@ pub type Hook<'a> = &'a dyn Fn(&str, &Value) -> Result<()>;
 
 /// Python `progress.ActionMeter`: one overall measure that never goes back, the file in hand and a short log.
 #[derive(Default)]
-struct Meter {
-    total: u64,
+pub(crate) struct Meter {
+    pub(crate) total: u64,
     done: u64,
-    files_total: usize,
-    files_done: usize,
-    current: Map<String, Value>,
+    pub(crate) files_total: usize,
+    pub(crate) files_done: usize,
+    pub(crate) current: Map<String, Value>,
     log: Vec<Value>,
 }
 
 impl Meter {
-    fn reach(&mut self, value: u64) {
+    pub(crate) fn reach(&mut self, value: u64) {
         self.done = self.done.max(value.min(self.total));
     }
 
-    fn holding(&mut self, path: &str, origin: &str, target: &str, action: &str) {
+    pub(crate) fn holding(&mut self, path: &str, origin: &str, target: &str, action: &str) {
         let name = path.rsplit('/').next().unwrap_or(path);
         self.current = json!({"name": name, "from": origin, "to": target, "action": action})
             .as_object()
@@ -87,7 +86,7 @@ impl Meter {
             .unwrap_or_default();
     }
 
-    fn finished(&mut self, kind: &str, path: &str, target: &str) {
+    pub(crate) fn finished(&mut self, kind: &str, path: &str, target: &str) {
         self.files_done = if self.files_total > 0 {
             self.files_total.min(self.files_done + 1)
         } else {
@@ -102,7 +101,7 @@ impl Meter {
         }
     }
 
-    fn fields(&self) -> Map<String, Value> {
+    pub(crate) fn fields(&self) -> Map<String, Value> {
         json!({"overall_done": self.done, "overall_total": self.total, "current": self.current, "log": self.log})
             .as_object()
             .cloned()
@@ -111,7 +110,10 @@ impl Meter {
 }
 
 /// SHA-256 of a whole open file from its start (Python `hash_fd`), counting bytes for progress.
-fn hash_file(file: &mut (impl Read + Seek), mut counted: impl FnMut(u64)) -> Result<String> {
+pub(crate) fn hash_file(
+    file: &mut (impl Read + Seek),
+    mut counted: impl FnMut(u64),
+) -> Result<String> {
     file.seek(SeekFrom::Start(0))
         .map_err(|e| Error::new("operation_failed", format!("[OSError] {e}")))?;
     let mut hasher = Sha256::new();
@@ -269,7 +271,10 @@ impl<'a> Transfer<'a> {
     /// files may stay; only files this job removed may be missing.
     fn validate_source(&mut self, plan: &Value) -> Result<BTreeMap<String, Value>> {
         self.source_check(plan, true)?;
-        let actual = scan(Path::new(text(plan, "source")), false, false, false)?;
+        let stalker = plan["source_kind"] == "stalker";
+        let delivery = plan["source_kind"] == "delivery" && plan.get("layout").is_some();
+        let actual = scan(Path::new(text(plan, "source")), stalker, stalker, false)?;
+        let bundles = actual.bundles;
         let actual: BTreeMap<String, Value> = actual
             .files
             .into_iter()
@@ -281,36 +286,59 @@ impl<'a> Transfer<'a> {
             .flatten()
             .map(|f| (text(f, "path").to_owned(), f))
             .collect();
-        let removed = self.removed_members(text(plan, "id"))?;
-        let mut discarded = BTreeMap::new();
-        for item in plan["discarded"].as_array().into_iter().flatten() {
-            for (path, stamp) in item["stamps"].as_object().into_iter().flatten() {
-                discarded.insert(path.clone(), stamp.clone());
+        if stalker {
+            for (key, bundle) in plan["bundles"].as_object().into_iter().flatten() {
+                require(
+                    bundles.get(key) == Some(bundle),
+                    "source_changed",
+                    "Stalker manifest changed since planning",
+                )?;
+                let prefix = if key == "." {
+                    String::new()
+                } else {
+                    format!("{key}/")
+                };
+                require(
+                    actual
+                        .keys()
+                        .filter(|path| path.starts_with(&prefix))
+                        .eq(expected.keys().filter(|path| path.starts_with(&prefix))),
+                    "source_changed",
+                    "Stalker bundle membership changed",
+                )?;
             }
-        }
-        let archived: BTreeSet<String> = plan["already_archived"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|p| p.as_str().map(str::to_owned))
-            .collect();
-        let known = |p: &String| {
-            expected.contains_key(p) || discarded.contains_key(p) || archived.contains(p)
-        };
-        require(
-            actual.keys().all(known)
-                && expected
-                    .keys()
-                    .all(|p| actual.contains_key(p) || removed.contains(p)),
-            "source_changed",
-            "Source membership changed; new/missing files require review",
-        )?;
-        for (path, stamp) in &discarded {
+        } else {
+            let removed = self.removed_members(text(plan, "id"))?;
+            let mut discarded = BTreeMap::new();
+            for item in plan["discarded"].as_array().into_iter().flatten() {
+                for (path, stamp) in item["stamps"].as_object().into_iter().flatten() {
+                    discarded.insert(path.clone(), stamp.clone());
+                }
+            }
+            let archived: BTreeSet<String> = plan["already_archived"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|p| p.as_str().map(str::to_owned))
+                .collect();
+            let known = |p: &String| {
+                expected.contains_key(p) || discarded.contains_key(p) || archived.contains(p)
+            };
             require(
-                actual.get(path).is_none_or(|f| &f["stamp"] == stamp),
+                (delivery || actual.keys().all(known))
+                    && expected
+                        .keys()
+                        .all(|p| actual.contains_key(p) || removed.contains(p)),
                 "source_changed",
-                format!("Discarded file changed: {path}"),
+                "Source membership changed; new/missing files require review",
             )?;
+            for (path, stamp) in &discarded {
+                require(
+                    actual.get(path).is_none_or(|f| &f["stamp"] == stamp),
+                    "source_changed",
+                    format!("Discarded file changed: {path}"),
+                )?;
+            }
         }
         for (path, file) in &expected {
             if let Some(found) = actual.get(path) {
@@ -635,26 +663,18 @@ impl<'a> Transfer<'a> {
             "plan_changed",
             "Apply requires the reviewed plan digest",
         )?;
-        // What this engine cannot finish is refused before anything is written.
+        // Release with Clipper relink/ACK continues through Python before any mutation.
         require(
-            plan["source_kind"] == "card",
+            plan["release_stalker_source"] != true,
             "not_ported",
-            "Applying Stalker libraries and deliveries is still in media/transfer.py",
+            "Stalker release after ingest still uses Python",
         )?;
+        let reader = Catalog::open(&self.home)?;
+        crate::planner::check_retitle(&reader, plan)?;
         require(
-            plan.get("layout").is_some(),
+            plan["source_kind"] != "delivery" || plan["cleanup"] != true,
             "not_ported",
-            "Schema-1 plans (per-job containers) are still applied by media/transfer.py",
-        )?;
-        require(
-            !plan["units"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .any(|u| u["kind"] == "stalker_session")
-                && plan["release_stalker_source"] != true,
-            "not_ported",
-            "Plans with Stalker sessions are still applied by media/transfer.py",
+            "Releasing published finals still uses Python",
         )?;
         let id = text(plan, "id").to_owned();
         let reviewed = self.catalog.get(&format!("reviewed-plan:{id}"))?;
@@ -833,6 +853,7 @@ impl<'a> Transfer<'a> {
             .iter()
             .map(|r| Root::open(Path::new(text(r, "root"))))
             .collect::<Result<_>>()?;
+        let mut claimed = std::collections::BTreeSet::new();
         let mut receipts: Vec<Vec<Value>> = vec![Vec::new(); records.len()];
         let mut verified_in_run: Vec<(usize, String, Value, String)> = Vec::new();
         for file in &files {
@@ -847,6 +868,21 @@ impl<'a> Transfer<'a> {
                 let Some(target) = dest(record, file)? else {
                     continue;
                 };
+                if plan.get("layout").is_none() {
+                    let (prefix, _) = target.split_once(&format!("/{id}/")).ok_or_else(|| {
+                        Error::new("invalid_plan", "Missing destination job folder")
+                    })?;
+                    let base = format!("{prefix}/{id}");
+                    if claimed.insert((r, base.clone())) {
+                        crate::restore::claim_directory(
+                            &roots[r],
+                            &base,
+                            &json!({
+                                "job_id": id, "digest": plan["digest"], "volume_id": record["id"],
+                            }),
+                        )?;
+                    }
+                }
                 let prior: Option<String> = self
                     .catalog
                     .db()
@@ -1299,7 +1335,7 @@ impl<'a> Transfer<'a> {
     }
 
     /// Python `_index`: assets, revisions, projects and work state of the verified units.
-    fn index(&mut self, plan: &Value) -> Result<()> {
+    pub(crate) fn index(&mut self, plan: &Value) -> Result<()> {
         let id = text(plan, "id");
         for unit in plan["units"].as_array().into_iter().flatten() {
             if truthy(&unit["support"]) {
@@ -1355,6 +1391,16 @@ impl<'a> Transfer<'a> {
                 [unit_id, id],
             )
             .map_err(sql)?;
+            if let (Some(session), Some(manifest)) = (
+                unit["session_id"].as_str(),
+                unit["capture_manifest_digest"].as_str(),
+            ) {
+                tx.execute(
+                    "INSERT OR IGNORE INTO sessions VALUES(?,?,?)",
+                    [session, manifest, unit_id],
+                )
+                .map_err(sql)?;
+            }
             let current: String = tx
                 .query_row("SELECT payload FROM assets WHERE id=?", [unit_id], |r| {
                     r.get(0)

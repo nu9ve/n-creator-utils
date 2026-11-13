@@ -159,7 +159,7 @@ Con la misma envoltura JSON para CLI y app. Las lecturas van por el lector persi
 | `storage_progress` | Lectura | Análisis en curso |
 | `storage_scan` | Índice | Escaneo cancelable; sólo metadatos |
 | `storage_compare` | Índice | Hash incremental contra el respaldo; no modifica nada |
-| `storage_add_folder`, `storage_remove_folder` | Catálogo | Carpetas elegidas; olvidar una no toca sus archivos |
+| `storage_add_folder`, `storage_remove_folder` | Catálogo e índice | Comparten `storage.lock` con escaneo y comparación. Olvidar una carpeta retira sus filas derivadas y su registro; conserva sus archivos. |
 
 MCP expone `media_storage_overview` y `media_storage_tree`, de sólo lectura.
 

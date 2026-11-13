@@ -411,25 +411,46 @@ impl WritableCatalog {
 /// non-blocking. On macOS `File::try_lock` is `flock`, the lock Python takes, so the two engines exclude each other.
 /// Dropping the file releases it.
 pub fn writer_lock(home: &Path) -> Result<std::fs::File> {
-    std::fs::create_dir_all(home).map_err(io)?;
-    let path = home.join("writer.lock");
+    operation_lock(
+        home,
+        "writer.lock",
+        "job_busy",
+        "Another media operation is running",
+    )
+}
+
+pub(crate) fn operation_lock(
+    home: &Path,
+    name: &str,
+    busy_code: &str,
+    busy_message: &str,
+) -> Result<std::fs::File> {
+    let home = std::path::absolute(home).map_err(io)?;
+    for path in home.ancestors() {
+        require(
+            !path.is_symlink(),
+            "unsafe_state",
+            format!("State path must not contain symlinks: {}", path.display()),
+        )?;
+    }
+    std::fs::create_dir_all(&home).map_err(io)?;
+    let path = home.join(name);
     require(
         !path.is_symlink(),
         "unsafe_state",
-        "writer.lock must not be a symlink",
+        format!("{name} must not be a symlink"),
     )?;
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .open(&path)
-        .map_err(io)?;
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true).write(true).create(true).truncate(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+    }
+    let file = options.open(&path).map_err(io)?;
     match file.try_lock() {
         Ok(()) => Ok(file),
-        Err(std::fs::TryLockError::WouldBlock) => {
-            Err(Error::new("job_busy", "Another media operation is running"))
-        }
+        Err(std::fs::TryLockError::WouldBlock) => Err(Error::new(busy_code, busy_message)),
         Err(std::fs::TryLockError::Error(e)) => Err(io(e)),
     }
 }

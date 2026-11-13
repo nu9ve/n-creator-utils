@@ -113,7 +113,7 @@ impl Integrations {
     }
 
     /// Python `clipper.executable`: the configured path, else the usual places; absolute, an executable file.
-    fn clipper_executable(&self) -> Result<String> {
+    pub(crate) fn clipper_executable(&self) -> Result<String> {
         let candidates: Vec<Option<String>> = if self.clipper_configured.is_empty() {
             vec![
                 which("clipper"),
