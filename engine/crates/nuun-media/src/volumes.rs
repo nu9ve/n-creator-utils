@@ -100,6 +100,23 @@ pub struct MacBackend {
     sandbox: Option<PathBuf>,
 }
 
+/// Physical acceptance permits only the exact external roots and volume UUIDs listed in the isolated sandbox.
+#[cfg(target_os = "macos")]
+fn sandbox_physical_root(sandbox: &Path, root: &Path, volume_uuid: &Value) -> bool {
+    let manifest = sandbox.join("physical-volumes.json");
+    let Some(entries) = std::fs::symlink_metadata(&manifest)
+        .ok()
+        .filter(|meta| meta.is_file() && meta.len() <= 16 * 1024)
+        .and_then(|_| std::fs::read(manifest).ok())
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+    else {
+        return false;
+    };
+    volume_uuid.as_str().is_some_and(|uuid| {
+        !uuid.is_empty() && entries.get(root.to_string_lossy().as_ref()) == Some(volume_uuid)
+    })
+}
+
 /// volumes.py `SANDBOX_MARKER`: the file that makes a folder the test environment of scripts/sandbox.py.
 pub const SANDBOX_MARKER: &str = ".nuun-sandbox";
 
@@ -250,9 +267,11 @@ impl Backend for MacBackend {
             require(
                 image.is_some()
                     || (data["BusProtocol"] != "Disk Image"
-                        && root
+                        && (root
                             .canonicalize()
-                            .is_ok_and(|path| path.starts_with(sandbox))),
+                            .is_ok_and(|path| path.starts_with(sandbox))
+                            || (external
+                                && sandbox_physical_root(sandbox, &root, &data["VolumeUUID"])))),
                 "outside_sandbox",
                 "Choose a source or destination inside the test environment",
             )?;
@@ -355,12 +374,6 @@ impl Backend for MacBackend {
             ),
             Failure::Other(message) => Error::new("operation_failed", message),
         })
-    }
-
-    /// Reads only until a physical run with a card and a USB disk on this Mac (docs/release.md), except inside the
-    /// test environment of scripts/sandbox.py, whose disks are test images: there Rust plans and copies too.
-    fn writes(&self) -> bool {
-        self.sandbox.is_some()
     }
 }
 
@@ -1039,6 +1052,33 @@ mod tests {
         );
         std::fs::remove_file(root.join(SANDBOX_MARKER)).unwrap();
         assert_eq!(sandbox_root_of(&root, &state), None);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn physical_acceptance_requires_the_exact_path_and_volume() {
+        let temp = tempfile::tempdir().unwrap();
+        let archive = Path::new("/Volumes/MEDIA/qa");
+        let uuid = json!("archive-uuid");
+        assert!(!sandbox_physical_root(temp.path(), archive, &uuid));
+        let manifest = temp.path().join("physical-volumes.json");
+        std::fs::write(&manifest, br#"{"/Volumes/MEDIA/qa":"archive-uuid"}"#).unwrap();
+        assert!(sandbox_physical_root(temp.path(), archive, &uuid));
+        assert!(!sandbox_physical_root(
+            temp.path(),
+            archive,
+            &json!("wrong-uuid")
+        ));
+        assert!(!sandbox_physical_root(
+            temp.path(),
+            archive.parent().unwrap(),
+            &uuid
+        ));
+        assert!(!sandbox_physical_root(
+            temp.path(),
+            &archive.join("other"),
+            &uuid
+        ));
     }
 
     fn catalog(s: &Setup) -> Catalog {

@@ -329,7 +329,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         UserDefaults.standard.set(readEngine, forKey: "readEngine")
         if enginePath.isEmpty { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
         let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath,
-                                                 reads: readEngine, testWrites: sandbox != nil)
+                                                 reads: readEngine, rustWrites: true)
         reader?.stop()
         client = BackendClient(configuration: configuration)
         reader = PersistentReader(configuration: configuration)

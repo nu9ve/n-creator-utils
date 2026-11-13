@@ -155,15 +155,21 @@ Errores que la sombra encontró en Rust, ya corregidos: `projects` ordenaba los 
 
 ## Desde la app de Mac
 
-Desde el 2026-11-12 la app usa Rust para lecturas y, dentro del sandbox, también para las escrituras que declara el motor.
+La app selecciona las operaciones en Rust a partir de las capacidades del motor.
 
 - `PersistentReader` (`native/MediaMenu/Sources/MediaMenuCore/Protocol.swift`) arranca `nuun-engine rpc-serve` y le pregunta una vez `engine_info`. Cada lectura que está en `ported` va primero a Rust. Si Rust responde `not_ported`, `reader_unavailable` o `runtime_missing`, o el proceso se cae, la misma lectura va al `rpc-serve` de Python. Cualquier otro error es la respuesta del método.
 - El motor se busca en `Contents/Resources/backend/nuun-engine` (lo pone `scripts/build_media_app.py`, firmado aparte porque la app no se firma con `--deep`) o, desde el código, en `engine/target/release/nuun-engine` junto a `nu9ve.py`.
-- Ajustes → Diagnóstico → «Lecturas» elige `rust` (predeterminado si hay motor) o `python` (`UserDefaults` `readEngine`), y lista qué motor respondió cada método.
-- En el sandbox, `BackendClient` consulta `engine_info.writes`. Para una escritura ya enviada a Rust, sólo cambia a Python ante `not_ported`; SIGINT durante una transferencia de ingreso se atiende en un punto recuperable y registra `paused`. Tras una salida abrupta, el diario permite reanudar desde el último estado registrado. En el catálogo de uso diario, las escrituras siguen en Python.
+- Ajustes → Diagnóstico → «Motor de media» elige `rust` (predeterminado si hay motor) o `python` (`UserDefaults` `readEngine`), y lista qué motor respondió cada método.
+- `BackendClient` consulta `engine_info.writes`. Para una escritura ya enviada a Rust, sólo cambia a Python ante `not_ported`; SIGINT durante una transferencia de ingreso se atiende en un punto recuperable y registra `paused`. Tras una salida abrupta, el diario permite reanudar desde el último estado registrado.
 - La sombra de Python sólo ve lo que Python responde. Para seguir comparando con la app en Rust, `scripts/engine_shadow.py replay` sigue sirviendo igual.
 
 ## Sandbox de macOS
+
+Para una corrida física autorizada se puede guardar `physical-volumes.json`
+dentro del sandbox. Es un objeto JSON que asocia cada ruta absoluta
+aprobada con el UUID del volumen. El motor exige la coincidencia exacta de
+ambos y que el volumen sea externo. Registra como destino sólo la carpeta
+de la corrida, con su propio catálogo dentro del sandbox.
 
 El script monta imágenes ExFAT, HFS+ y FAT32, crea un catálogo aislado y carga contenido sintético. En ambos motores, una imagen cuenta como tarjeta o destino del sandbox cuando su archivo pertenece al entorno marcado con `.nuun-sandbox` y el catálogo efectivo está dentro de ese entorno. La app indica «Entorno de prueba» y apunta las integraciones a un `HOME` de prueba.
 

@@ -280,7 +280,7 @@ func theRealEngineAnswersReadsLikePython() async throws {
     #expect(saved["project"].string == "x")
 
     let sandbox = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
-                                                     stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path, testWrites: true))
+                                                     stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path, rustWrites: true))
     #expect(try await sandbox.call("defaults", ["project": .string("x")])["project"].string == "from-rust")
     do {
         _ = try await sandbox.call("plan_document")

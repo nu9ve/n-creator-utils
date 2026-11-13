@@ -117,7 +117,7 @@ struct SettingsView: View {
             Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).textSelection(.enabled)
             TextField("Python", text: $model.python).disabled(model.packagedBackend || model.bundledRuntime)
             TextField("Motor", text: $model.script).disabled(model.packagedBackend || model.bundledRuntime)
-            Picker("Lecturas", selection: $model.readEngine) {
+            Picker("Motor de media", selection: $model.readEngine) {
                 Text("Motor en Rust, con Python de respaldo").tag("rust")
                 Text("Python").tag("python")
             }
@@ -125,11 +125,8 @@ struct SettingsView: View {
             .onChange(of: model.readEngine) { _, _ in model.configure() }
             Text(model.enginePath.isEmpty ? String(localized: "Sin motor en Rust en esta instalación: todo lo responde Python.")
                  : String(localized: "Motor en Rust: ") + model.enginePath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-            if model.sandbox != nil && model.readEngine != "python" && !model.enginePath.isEmpty {
-                Text("El motor en Rust atiende las escrituras que declara para el entorno de prueba.")
-                    .font(.caption).foregroundStyle(.secondary)
-            } else {
-                Text("Las escrituras (copiar, limpiar, liberar) siguen en Python hasta la prueba física del motor en Rust.")
+            if model.readEngine != "python" && !model.enginePath.isEmpty {
+                Text("Rust ejecuta las escrituras compatibles. Puedes elegir Python para todo el flujo.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Text(engineSummary).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
