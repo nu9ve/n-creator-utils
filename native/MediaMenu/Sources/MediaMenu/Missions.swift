@@ -47,13 +47,23 @@ extension Model {
             let added = Int(result["changes"]["new"].double + result["changes"]["updated"].double)
             self.message = String(localized: "Registro de misiones actualizado: \(added) registros; Descargas quedó limpia")
             self.missionInbox = nil
-            // A plan matched against the previous registry must be reviewed again.
-            if self.plan?["missions"] != nil && self.plan?["missions"] != .null {
-                self.invalidatePlan()
-                if self.ingestStep == .review { self.requestPlan() }
-            }
+            self.reloadAfterMissionImport(archive: review["archive"].string)
             self.missionsChanged()
         }
+    }
+
+    func reloadAfterMissionImport(archive: String) {
+        for path in Array(ingestDrafts.keys) {
+            guard var draft = ingestDrafts[path], draft.archive == archive,
+                  draft.kind != "stalker", draft.kind != "delivery" else { continue }
+            draft.loadedKey = ""
+            draft.reviewed = nil
+            ingestDrafts[path] = draft
+        }
+        guard self.archive == archive, sourceKind != "stalker", sourceKind != "delivery",
+              ingestStep != .run, contentLoaded || discoveryLoading || plan != nil else { return }
+        invalidatePlan()
+        discover()
     }
 }
 

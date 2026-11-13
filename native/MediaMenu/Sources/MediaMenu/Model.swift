@@ -704,10 +704,11 @@ enum OperationScope { case ingest, library, space, settings, source }
                 unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
                 if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
                 let mission = value["mission"]
+                let previousMission = unit.missionState
                 unit.missionState = mission["state"].string; unit.missionPlan = mission["plan_name"].string
                 unit.missionLikely = mission["likely_mission"].bool; unit.missionFlowProject = mission["flow_project"].string
-                // A mission photo arrives with the flow's project (e.g. subaereo); the person can still change it.
-                if existing[value["id"].string] == nil && unit.project.isEmpty && !mission["project"].string.isEmpty {
+                // Suggest the flow's project when a mission is first found, keeping any project the person selected.
+                if previousMission != "matched" && unit.missionState == "matched" && unit.project.isEmpty {
                     unit.project = mission["project"].string
                 }
                 unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
@@ -724,7 +725,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func discoverAndWait() async {
         if contentLoaded { return }
-        discover()
+        if !discoveryLoading { discover() }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
