@@ -191,6 +191,17 @@ impl Integrations {
     }
 
     fn stalker_capabilities(&self) -> Result<Value> {
+        self.stalker_command("capabilities", &json!({}), TIMEOUT, "", &[])
+    }
+
+    pub(crate) fn stalker_command(
+        &self,
+        action: &str,
+        request: &Value,
+        timeout: Duration,
+        token: &str,
+        descriptors: &[i32],
+    ) -> Result<Value> {
         let path = self
             .stalker
             .as_ref()
@@ -204,13 +215,24 @@ impl Integrations {
                     ),
                 )
             })?;
-        let argv = [path, "nuun-retitle", "capabilities", "--json"];
-        // Python passes the coordinator descriptors and the release token, both empty outside an operation.
+        let argv = [path, "nuun-retitle", action, "--json"];
+        let descriptors_env = descriptors
+            .iter()
+            .map(i32::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
         let env = [
-            ("NUUN_RETITLE_LOCK_FDS", ""),
-            ("CLIPPER_MEDIA_RELEASE_TOKEN", ""),
+            ("NUUN_RETITLE_LOCK_FDS", descriptors_env.as_str()),
+            ("CLIPPER_MEDIA_RELEASE_TOKEN", token),
         ];
-        let output = run(&argv, Some(b"{}"), &env, TIMEOUT).map_err(|m| {
+        let output = run_inheriting(
+            &argv,
+            Some(&nu9ve_json::canonical(request)),
+            &env,
+            timeout,
+            descriptors,
+        )
+        .map_err(|m| {
             Error::new(
                 "stalker_failed",
                 format!("Stalker unavailable; recover with the same operation_id: {m}"),
@@ -222,7 +244,11 @@ impl Integrations {
                 .take(2000)
                 .collect();
             return Err(Error::new(
-                "stalker_upgrade_required",
+                if action == "capabilities" {
+                    "stalker_upgrade_required"
+                } else {
+                    "stalker_failed"
+                },
                 format!(
                     "Stalker must implement {STALKER_CAPABILITY} (docs/contracts/stalker-retitle-v1.md); retry the same operation_id to reconcile: {stderr}"
                 ),
@@ -367,6 +393,16 @@ fn run(
     env: &[(&str, &str)],
     timeout: Duration,
 ) -> std::result::Result<Output, String> {
+    run_inheriting(argv, input, env, timeout, &[])
+}
+
+fn run_inheriting(
+    argv: &[&str],
+    input: Option<&[u8]>,
+    env: &[(&str, &str)],
+    timeout: Duration,
+    descriptors: &[i32],
+) -> std::result::Result<Output, String> {
     let mut command = Command::new(argv[0]);
     command
         .args(&argv[1..])
@@ -380,6 +416,25 @@ fn run(
     for (key, value) in env {
         command.env(key, value);
     }
+    #[cfg(unix)]
+    if !descriptors.is_empty() {
+        use std::os::unix::process::CommandExt;
+        let descriptors = descriptors.to_vec();
+        // Only the producer child inherits these descriptors. In particular, unrelated concurrent
+        // spawns cannot keep the writer or Clipper lock open after the coordinator dies.
+        unsafe {
+            command.pre_exec(move || {
+                for fd in &descriptors {
+                    if libc::fcntl(*fd, libc::F_SETFD, 0) < 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                }
+                Ok(())
+            });
+        }
+    }
+    #[cfg(not(unix))]
+    debug_assert!(descriptors.is_empty());
     let mut child = command.spawn().map_err(|e| e.to_string())?;
     if let (Some(bytes), Some(mut stdin)) = (input, child.stdin.take()) {
         let _ = stdin.write_all(bytes);

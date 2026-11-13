@@ -157,6 +157,9 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
                 "relink_release",
                 "closure_plan",
                 "closure_apply",
+                "retitle_capture",
+                "publish_revision",
+                "relayout",
             ]);
         }
     }
@@ -302,6 +305,18 @@ impl Engine {
                     .as_str()
                     .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
                 nuun_media::transfer::resume(&self.home(), write_backend(platform)?, job)
+            }
+            #[cfg(unix)]
+            "retitle_capture" => {
+                nuun_media::retitle::retitle(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(unix)]
+            "publish_revision" => {
+                nuun_media::revisions::publish(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(unix)]
+            "relayout" => {
+                nuun_media::relayout::apply(&self.home(), write_backend(platform)?, params)
             }
             "transcripts_backup" => {
                 nuun_media::transcripts::backup(&self.home(), write_backend(platform)?, params)

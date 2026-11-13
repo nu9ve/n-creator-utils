@@ -413,6 +413,12 @@ impl WritableCatalog {
 pub struct OperationLock(std::fs::File);
 
 impl OperationLock {
+    #[cfg(unix)]
+    pub(crate) fn fd(&self) -> std::os::fd::BorrowedFd<'_> {
+        use std::os::fd::AsFd;
+        self.0.as_fd()
+    }
+
     pub(crate) fn file(&mut self) -> &mut std::fs::File {
         &mut self.0
     }

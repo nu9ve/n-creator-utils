@@ -211,6 +211,8 @@ handoff sigue pendiente de consumidor. Luego acordar ciclo físico pequeño
 **autorizado aparte** con ambas apps reiniciadas; fixtures no certifican captura,
 sync/escucha, desconexión/remount ni retiro de originales reales.
 
+En el sandbox de macOS, Rust coordina retítulos y publicaciones con el mismo diario, token y FDs que Python. Las pruebas confirman que el productor conserva ambos bloqueos tras la muerte del coordinador y que se puede reconciliar el mismo ID después de recibir el ACK o escribir el recibo de una revisión.
+
 ## Publicación sobre una copia nueva · 2026-10-29
 
 El retitle in-place de este documento conserva sus bloqueos. La operación

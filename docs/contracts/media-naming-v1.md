@@ -67,6 +67,8 @@ Las copias de trabajo se eliminan al terminar de editar (ver [política](../feat
 
 Un renombre cambia rutas. Un consumidor que guardó la ruta vieja debe resolver por `sessionID`/`asset_id` (handoff nuevo) o hacer relink. No se renombra nada que un editor esté usando sin ese paso.
 
+En Rust, `relayout` verifica por SHA-256 las copias y consulta a Clipper bajo su bloqueo antes de renombrar. El diario conserva los destinos previstos para reanudar aunque una copia ya se haya movido. Los recibos portables se actualizan antes de publicar las rutas nuevas en el catálogo.
+
 ## Estado de archivo para productores
 
 `nu9ve media captures <biblioteca>` (sólo lectura) lista las sesiones `completed` de una biblioteca Stalker con `archived: true|false`. `true` significa que hay copia de archivo verificada con recibo para ese `sessionID` + digest del manifest. Es la única señal válida para ofrecer liberar el original local; un manifest modificado después de archivar vuelve a `false`. Stalker nunca reescribe un bundle `completed`, así que el digest sólo cambia si alguien lo edita fuera de Stalker; esa sesión vuelve a quedar pendiente de archivo.
