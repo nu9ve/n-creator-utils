@@ -149,7 +149,12 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
         if cfg!(target_os = "macos") {
-            writes.push("eject_card");
+            writes.extend([
+                "eject_card",
+                "missions_incorporate",
+                "dng_plan",
+                "dng_apply",
+            ]);
         }
         if cfg!(unix) {
             writes.extend([
@@ -422,6 +427,16 @@ impl Engine {
                 &self.home(),
                 backend(platform)?,
                 Some(nuun_media::storage::THIS_MAC_ROOT),
+            ),
+            #[cfg(target_os = "macos")]
+            "dng_plan" => nuun_media::dng::plan(&self.home(), write_backend(platform)?, params),
+            #[cfg(target_os = "macos")]
+            "dng_apply" => nuun_media::dng::apply(&self.home(), write_backend(platform)?, params),
+            #[cfg(target_os = "macos")]
+            "missions_incorporate" => nuun_media::mission_review::incorporate(
+                &self.home(),
+                write_backend(platform)?,
+                params,
             ),
             "missions_review" => {
                 nuun_media::mission_review::review(&self.catalog()?, platform, params)
@@ -888,7 +903,7 @@ mod tests {
         );
         assert_eq!(
             e.answer(
-                r#"{"id": 10, "method": "dng_apply", "params": {}}"#,
+                r#"{"id": 10, "method": "living_apply", "params": {}}"#,
                 Mode::Once
             )["error"]["code"],
             "not_ported"

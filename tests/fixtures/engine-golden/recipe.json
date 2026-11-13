@@ -1238,6 +1238,97 @@
       }
     }
   ],
+  "dng": {
+    "plan": {
+      "archive_id": "MEDIA",
+      "copy": [
+        {
+          "archive": "001_raw/dron/b.DNG",
+          "asset_id": "b",
+          "bytes": 6,
+          "sha256": "16367aacb67a4a017c8da8ab95682ccb390863780f7114dda0a0e0c55644c7c4",
+          "work": "001_proyectos/atlas-subaereo/photos/b.DNG"
+        }
+      ],
+      "flow": "subaereo",
+      "groups": [
+        {
+          "asset_ids": [
+            "b"
+          ],
+          "detail": "",
+          "reason": "chosen"
+        }
+      ],
+      "kept": [],
+      "problems": [],
+      "release": [
+        {
+          "archive": "001_raw/dron/a.DNG",
+          "archive_stamp": {
+            "size": 5
+          },
+          "asset_id": "a",
+          "bytes": 5,
+          "sha256": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e",
+          "work": "001_proyectos/atlas-subaereo/photos/a.DNG"
+        }
+      ],
+      "schema": "nu9ve-dng-plan/1",
+      "totals": {
+        "copy_bytes": 6,
+        "copy_files": 1,
+        "kept_files": 0,
+        "release_bytes": 5,
+        "release_files": 1,
+        "unbacked_bytes": 6,
+        "unbacked_files": 1
+      },
+      "trash_unbacked": [
+        {
+          "bytes": 6,
+          "stamp": {
+            "size": 6
+          },
+          "work": "001_proyectos/atlas-subaereo/photos/orphan.DNG"
+        }
+      ],
+      "work_id": "ESSD"
+    },
+    "result": {
+      "copied": 1,
+      "released": 1,
+      "trashed_unbacked": 1
+    },
+    "units": [
+      {
+        "archive": {
+          "dng": "001_raw/dron/a.DNG"
+        },
+        "asset_id": "a",
+        "sha256": {
+          "dng": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e"
+        },
+        "work": {
+          "dng": null,
+          "jpg": "photos/a.jpg"
+        }
+      },
+      {
+        "archive": {
+          "dng": "001_raw/dron/b.DNG"
+        },
+        "asset_id": "b",
+        "sha256": {
+          "dng": "16367aacb67a4a017c8da8ab95682ccb390863780f7114dda0a0e0c55644c7c4"
+        },
+        "work": {
+          "dng": "photos/b.DNG",
+          "jpg": "photos/b.jpg"
+        }
+      }
+    ]
+  },
   "editorial_closeout": {
     "applied": {
       "already_complete": false,
@@ -1930,6 +2021,221 @@
       }
     ],
     "sql": "BEGIN TRANSACTION;\nCREATE TABLE asset_jobs(asset_id TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY(asset_id,job_id));\nCREATE TABLE asset_projects(asset_id TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(asset_id,project_id));\nCREATE TABLE asset_revisions(asset_id TEXT NOT NULL, revision TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(asset_id,revision));\nCREATE TABLE assets(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"assets\" VALUES('a1','job-a1','{\"id\": \"a1\", \"project_id\": \"p1\", \"profile\": \"general\", \"kind\": \"stalker_session\", \"bundle\": \"S1.stalker\", \"paths\": [\"S1.stalker/manifest.json\", \"S1.stalker/screen.mov\"], \"job_id\": \"job-a1\", \"revision\": \"revision-a1\", \"session_id\": \"11111111-1111-4111-8111-111111111111\"}');\nINSERT INTO \"assets\" VALUES('a2','job-a2','{\"id\": \"a2\", \"project_id\": \"p1\", \"profile\": \"general\", \"kind\": \"delivery\", \"bundle\": \".\", \"paths\": [\"extra.txt\", \"main.mov\"], \"job_id\": \"job-a2\", \"revision\": \"revision-a2\"}');\nINSERT INTO \"assets\" VALUES('a3','job-a3','{\"id\": \"a3\", \"project_id\": \"p2\", \"profile\": \"general\", \"kind\": \"file\", \"bundle\": \".\", \"paths\": [\"photo.jpg\"], \"job_id\": \"job-a3\", \"revision\": \"revision-a3\"}');\nINSERT INTO \"assets\" VALUES('a4','job-a4','{\"id\": \"a4\", \"project_id\": \"p1\", \"profile\": \"general\", \"kind\": \"file\", \"bundle\": \".\", \"paths\": [\"conflict.mov\"], \"job_id\": \"job-a4\", \"revision\": \"revision-a4\"}');\nCREATE TABLE copies(job_id TEXT NOT NULL, volume_id TEXT NOT NULL,\n            relative_path TEXT NOT NULL, sha256 TEXT NOT NULL, payload TEXT NOT NULL,\n            PRIMARY KEY(job_id,volume_id,relative_path));\nINSERT INTO \"copies\" VALUES('job-a1','00000000-0000-0000-0000-000000000001','S1.stalker/manifest.json','sha-0','{\"path\": \"S1.stalker/manifest.json\", \"destination\": \"001_raw/A/S1.stalker/manifest.json\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a1','00000000-0000-0000-0000-000000000001','S1.stalker/screen.mov','sha-1','{\"path\": \"S1.stalker/screen.mov\", \"destination\": \"001_raw/A/S1.stalker/screen.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-1\", \"bytes\": 6}');\nINSERT INTO \"copies\" VALUES('job-a1','00000000-0000-0000-0000-000000000002','S1.stalker/manifest.json','sha-0','{\"path\": \"S1.stalker/manifest.json\", \"destination\": \"001_proyectos/W/S1.stalker/manifest.json\", \"volume_id\": \"00000000-0000-0000-0000-000000000002\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a1','00000000-0000-0000-0000-000000000002','S1.stalker/screen.mov','sha-1','{\"path\": \"S1.stalker/screen.mov\", \"destination\": \"001_proyectos/W/S1.stalker/screen.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000002\", \"sha256\": \"sha-1\", \"bytes\": 6}');\nINSERT INTO \"copies\" VALUES('job-a2','00000000-0000-0000-0000-000000000001','extra.txt','sha-0','{\"path\": \"extra.txt\", \"destination\": \"002_finales/A/extra.txt\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a2','00000000-0000-0000-0000-000000000001','main.mov','sha-1','{\"path\": \"main.mov\", \"destination\": \"002_finales/A/main.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-1\", \"bytes\": 6}');\nINSERT INTO \"copies\" VALUES('job-a2','00000000-0000-0000-0000-000000000002','main.mov','sha-1','{\"path\": \"main.mov\", \"destination\": \"002_finales/W/main.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000002\", \"sha256\": \"sha-1\", \"bytes\": 6}');\nINSERT INTO \"copies\" VALUES('job-a3','00000000-0000-0000-0000-000000000001','photo.jpg','sha-0','{\"path\": \"photo.jpg\", \"destination\": \"001_raw/A/photo.jpg\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a3','00000000-0000-0000-0000-000000000002','photo.jpg','sha-0','{\"path\": \"photo.jpg\", \"destination\": \"001_proyectos/W/photo.jpg\", \"volume_id\": \"00000000-0000-0000-0000-000000000002\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a4','00000000-0000-0000-0000-000000000001','conflict.mov','sha-0','{\"path\": \"conflict.mov\", \"destination\": \"001_raw/A/conflict.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000001\", \"sha256\": \"sha-0\", \"bytes\": 5}');\nINSERT INTO \"copies\" VALUES('job-a4','00000000-0000-0000-0000-000000000002','conflict.mov','conflict','{\"path\": \"conflict.mov\", \"destination\": \"001_proyectos/W/conflict.mov\", \"volume_id\": \"00000000-0000-0000-0000-000000000002\", \"sha256\": \"conflict\", \"bytes\": 5}');\nCREATE TABLE events(seq INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT NOT NULL,\n            kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);\nCREATE TABLE jobs(id TEXT PRIMARY KEY, digest TEXT NOT NULL, plan TEXT NOT NULL,\n            state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);\nINSERT INTO \"jobs\" VALUES('job-a1','digest','{\"id\": \"job-a1\", \"source_kind\": \"stalker\", \"files\": [{\"path\": \"S1.stalker/manifest.json\", \"stamp\": {\"size\": 5}}, {\"path\": \"S1.stalker/screen.mov\", \"stamp\": {\"size\": 6}}], \"layout\": {\"S1.stalker/manifest.json\": {\"archive\": \"A/S1.stalker/manifest.json\", \"work\": \"W/S1.stalker/manifest.json\"}, \"S1.stalker/screen.mov\": {\"archive\": \"A/S1.stalker/screen.mov\", \"work\": \"W/S1.stalker/screen.mov\"}}}','completed',NULL,'t','t');\nINSERT INTO \"jobs\" VALUES('job-a2','digest','{\"id\": \"job-a2\", \"source_kind\": \"delivery\", \"files\": [{\"path\": \"extra.txt\", \"stamp\": {\"size\": 5}}, {\"path\": \"main.mov\", \"stamp\": {\"size\": 6}}], \"layout\": {\"extra.txt\": {\"archive\": \"A/extra.txt\", \"work\": \"W/extra.txt\"}, \"main.mov\": {\"archive\": \"A/main.mov\", \"work\": \"W/main.mov\"}}}','completed',NULL,'t','t');\nINSERT INTO \"jobs\" VALUES('job-a3','digest','{\"id\": \"job-a3\", \"source_kind\": \"stalker\", \"files\": [{\"path\": \"photo.jpg\", \"stamp\": {\"size\": 5}}], \"layout\": {\"photo.jpg\": {\"archive\": \"A/photo.jpg\", \"work\": \"W/photo.jpg\"}}}','completed',NULL,'t','t');\nINSERT INTO \"jobs\" VALUES('job-a4','digest','{\"id\": \"job-a4\", \"source_kind\": \"stalker\", \"files\": [{\"path\": \"conflict.mov\", \"stamp\": {\"size\": 5}}], \"layout\": {\"conflict.mov\": {\"archive\": \"A/conflict.mov\", \"work\": \"W/conflict.mov\"}}}','completed',NULL,'t','t');\nCREATE TABLE living_files(collection_id TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL,\n            mtime_ns INTEGER NOT NULL, sha256 TEXT NOT NULL, archive_path TEXT NOT NULL, updated_at TEXT NOT NULL,\n            PRIMARY KEY(collection_id,path));\nCREATE TABLE members(job_id TEXT NOT NULL, relative_path TEXT NOT NULL,\n            sha256 TEXT NOT NULL, cleaned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,relative_path));\nCREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO \"metadata\" VALUES('schema','1');\nINSERT INTO \"metadata\" VALUES('creative-profiles','{\"general\":{\"clipper_profile\":\"editor\"}}');\nCREATE TABLE project_aliases(profile TEXT NOT NULL, alias TEXT NOT NULL, project_id TEXT NOT NULL, PRIMARY KEY(profile,alias));\nCREATE TABLE projects(id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL);\nCREATE TABLE publications(asset_id TEXT NOT NULL, variant TEXT NOT NULL, channel TEXT NOT NULL, state TEXT NOT NULL,\n            url TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(asset_id,variant,channel));\nCREATE TABLE sessions(session_id TEXT NOT NULL, manifest_digest TEXT NOT NULL, asset_id TEXT NOT NULL, PRIMARY KEY(session_id,manifest_digest,asset_id));\nDELETE FROM \"sqlite_sequence\";\nCREATE TABLE volumes(id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, payload TEXT NOT NULL);\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000001','MEDIA','{\"id\":\"00000000-0000-0000-0000-000000000001\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/archive\",\"physical\":\"<ROOT>/archive\",\"removable\":true,\"root_inode\":1,\"volume_uuid\":\"<ROOT>/archive\"},\"name\":\"MEDIA\",\"prefix\":\"001_raw\",\"role\":\"archive\",\"root\":\"<ROOT>/archive\"}');\nINSERT INTO \"volumes\" VALUES('00000000-0000-0000-0000-000000000002','ESSD','{\"id\":\"00000000-0000-0000-0000-000000000002\",\"identity\":{\"block_size\":4096,\"device\":1,\"disk_uuid\":\"fixture\",\"external\":true,\"filesystem\":\"fixture\",\"free\":1000000000000,\"mode\":\"fixture\",\"mount\":\"<ROOT>/work\",\"physical\":\"<ROOT>/work\",\"removable\":true,\"root_inode\":1,\"volume_uuid\":\"<ROOT>/work\"},\"name\":\"ESSD\",\"prefix\":\"001_proyectos\",\"role\":\"work\",\"root\":\"<ROOT>/work\"}');\nCREATE TABLE work(asset_id TEXT PRIMARY KEY, state TEXT NOT NULL,\n            target TEXT, updated_at TEXT NOT NULL);\nCOMMIT;"
+  },
+  "mission_incorporation": {
+    "changes": [
+      {
+        "at": "2026-11-13T00:00:00Z",
+        "change": "new",
+        "export": "JSON-a.json",
+        "export_sha256": "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236",
+        "exportedAt": "2026-11-07T01:00:00Z",
+        "flow": "subaereo",
+        "id": "c1",
+        "list": "captureLog"
+      },
+      {
+        "at": "2026-11-13T00:00:00Z",
+        "change": "new",
+        "export": "JSON-a.json",
+        "export_sha256": "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236",
+        "exportedAt": "2026-11-07T01:00:00Z",
+        "flow": "subaereo",
+        "id": "old",
+        "list": "plans"
+      },
+      {
+        "at": "2026-11-13T00:00:00Z",
+        "change": "new",
+        "export": "JSON-b.json",
+        "export_sha256": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce",
+        "exportedAt": "2026-11-08T01:00:00Z",
+        "flow": "subaereo",
+        "id": "new",
+        "list": "plans"
+      },
+      {
+        "at": "2026-11-13T00:00:00Z",
+        "change": "deleted",
+        "export": "JSON-b.json",
+        "export_sha256": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce",
+        "exportedAt": "2026-11-08T01:00:00Z",
+        "flow": "subaereo",
+        "id": "old",
+        "list": "plans"
+      }
+    ],
+    "files": {
+      "JSON-a.json": {
+        "captureLog": [
+          {
+            "captureID": "c1",
+            "capturedAt": "2026-11-07T00:00:00Z"
+          }
+        ],
+        "exportedAt": "2026-11-07T01:00:00Z",
+        "plans": [
+          {
+            "id": "old"
+          }
+        ],
+        "schemaVersion": 3
+      },
+      "JSON-b.json": {
+        "deletedPlanIDs": [
+          "old"
+        ],
+        "exportedAt": "2026-11-08T01:00:00Z",
+        "plans": [
+          {
+            "id": "new"
+          }
+        ],
+        "schemaVersion": 3
+      }
+    },
+    "history": {
+      "captureLog": [
+        {
+          "captureID": "c1",
+          "capturedAt": "2026-11-07T00:00:00Z"
+        }
+      ],
+      "captures": [],
+      "exportWindow": {
+        "kind": "merged",
+        "mergeKeys": {
+          "captureLog": "captureID",
+          "captures": "captureID",
+          "fieldNotes": "id",
+          "flightSessions": "id",
+          "plans": "id"
+        },
+        "since": null,
+        "until": "2026-11-08T01:00:00Z"
+      },
+      "exportedAt": "2026-11-08T01:00:00Z",
+      "fieldNotes": [],
+      "flightSessions": [],
+      "mergedFrom": [
+        {
+          "exportedAt": "2026-11-07T01:00:00Z",
+          "file": "JSON-a.json",
+          "kind": "plan",
+          "sha256": "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236"
+        },
+        {
+          "exportedAt": "2026-11-08T01:00:00Z",
+          "file": "JSON-b.json",
+          "kind": "plan",
+          "sha256": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce"
+        }
+      ],
+      "nuun": {
+        "changes_count": 4,
+        "flow": "subaereo",
+        "records": {
+          "captureLog": {
+            "c1": "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236"
+          },
+          "captures": {},
+          "fieldNotes": {},
+          "flightSessions": {},
+          "plans": {
+            "new": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce"
+          }
+        },
+        "schema": "nu9ve-mission-history/1",
+        "sources": {
+          "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce": {
+            "changes": {
+              "deleted": 1,
+              "new": 1,
+              "updated": 0
+            },
+            "exportedAt": "2026-11-08T01:00:00Z",
+            "file": "JSON-b.json",
+            "first": null,
+            "incorporated_at": "2026-11-13T00:00:00Z",
+            "kind": "plan",
+            "last": null,
+            "photos": 0,
+            "plans": 1,
+            "raw": "004_datos/subaereo/coverage/raw/2026/11/JSON-b.json.gz",
+            "schemaVersion": 3,
+            "sha256": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce"
+          },
+          "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236": {
+            "changes": {
+              "deleted": 0,
+              "new": 2,
+              "updated": 0
+            },
+            "exportedAt": "2026-11-07T01:00:00Z",
+            "file": "JSON-a.json",
+            "first": "2026-11-07T00:00:00Z",
+            "incorporated_at": "2026-11-13T00:00:00Z",
+            "kind": "plan",
+            "last": "2026-11-07T00:00:00Z",
+            "photos": 1,
+            "plans": 1,
+            "raw": "004_datos/subaereo/coverage/raw/2026/11/JSON-a.json.gz",
+            "schemaVersion": 3,
+            "sha256": "79b9bc8dd145538ce6cb3afa1ed3019bd844620be1f9595e0bbce4aa0159c236"
+          }
+        },
+        "tombstones": {
+          "plans": {
+            "old": {
+              "export_sha256": "21d888dca70c14361b814dcd689804883a243463644afa78adfcb69e986d60ce",
+              "exportedAt": "2026-11-08T01:00:00Z"
+            }
+          }
+        }
+      },
+      "plans": [
+        {
+          "id": "new"
+        }
+      ],
+      "schemaVersion": 3
+    },
+    "raw": {
+      "JSON-a.json.gz": "{\"captureLog\":[{\"captureID\":\"c1\",\"capturedAt\":\"2026-11-07T00:00:00Z\"}],\"exportedAt\":\"2026-11-07T01:00:00Z\",\"plans\":[{\"id\":\"old\"}],\"schemaVersion\":3}",
+      "JSON-b.json.gz": "{\"deletedPlanIDs\":[\"old\"],\"exportedAt\":\"2026-11-08T01:00:00Z\",\"plans\":[{\"id\":\"new\"}],\"schemaVersion\":3}"
+    },
+    "result": {
+      "changes": {
+        "deleted": 1,
+        "new": 3,
+        "updated": 0
+      },
+      "coverage": {
+        "exported_until": "2026-11-08T01:00:00Z",
+        "last_capture_at": "2026-11-07T00:00:00Z",
+        "last_media_created_at": null,
+        "records": {
+          "captureLog": 1,
+          "captures": 0,
+          "fieldNotes": 0,
+          "flightSessions": 0,
+          "plans": 1
+        },
+        "sources": 2
+      },
+      "history": "004_datos/subaereo/coverage/history.json",
+      "incorporated": [
+        "JSON-a.json",
+        "JSON-b.json"
+      ],
+      "invalid": [],
+      "kept": [],
+      "mirror": "written",
+      "removed_from_inbox": [
+        "JSON-a.json",
+        "JSON-b.json"
+      ]
+    }
   },
   "missions": {
     "files": {
