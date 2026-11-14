@@ -58,6 +58,12 @@ Cada aviso de **Requiere atención** se descarta en Inicio o Actividad. Descarta
 
 **Finales sin respaldar** es de sólo lectura: compara nombre y tamaño contra el mismo perfil en el respaldo porque ambos discos ordenan distinto, en un proceso propio, al abrir Inicio y como mucho cada 15 minutos. Requiere ambos discos conectados. No infiere proyecto y todavía no copia; ver [PLAN](../../PLAN.md).
 
+### Bandeja por proyecto
+
+Al expandir un proyecto, sus sesiones pendientes de Stalker abren la revisión de ingreso existente. «Ubicaciones y estado del cierre» consulta `sources` y `closure_candidates` a pedido. Muestra rutas catalogadas de respaldo y trabajo, su disponibilidad y las coincidencias de entregas por nombre con su publicación y vínculo. Los tipos requeridos se comparan con las entregas vinculadas del proyecto y de sus regrabaciones.
+
+El botón «Completar y liberar» abre la revisión editorial. «Revisar sólo raws» permite elegir una carpeta del disco de trabajo y abre la misma revisión disponible en Discos, con el nombre del proyecto prellenado. En ambos casos el motor comprueba hashes y dependencias de Clipper. La presencia de una ruta en la bandeja indica una ubicación del catálogo. La comprobación de bytes y la autorización de retiro pertenecen al plan.
+
 ## Perfiles y ubicaciones
 
 Los perfiles guardados tienen ID, etiqueta, carpeta relativa de raws y discos sugeridos. Elegirlos en la app aplica esas sugerencias; el usuario revisa siempre los destinos reales. La carpeta se aplica tanto a UI como CLI por el planner común. Un job tiene un destino de archivo y como máximo un SSD activo: varios SSD por perfiles dentro del mismo job no están implementados.

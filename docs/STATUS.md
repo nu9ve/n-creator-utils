@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `75b68bf24568`** (13 nov). Firma verificada y proceso del motor Rust empaquetado observado tras arrancar. Catálogo diario: `quick_check=ok`. Python sigue disponible como respaldo; `capture_discard_check` usa Python. Build anterior `e70e525ae792` en `app-backups/9eafbc30.app` |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `f238fda455c3`** (13 nov), build de depuración con firma ad-hoc verificada. Arrancaron la app y el motor Rust empaquetado. Catálogo diario: `quick_check=ok`. Python sigue disponible como respaldo; `capture_discard_check` usa Python. Build anterior `75b68bf24568` en `app-backups/89f2a799.app` |
 | Suites en macOS | Python **396**, Rust **174** (151 + 23 diferenciales), Swift **28**. Dorado actualizado con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. CI escrita, pendiente de ejecutar en GitHub. |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -21,8 +21,8 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | **Stalker** | En uso: bandeja, bundles completos, liberación local con relink/ACK de Clipper | Ingresos reales completos | Casos `recording`/`finalizing`/`recovery` reales; [pedidos](contracts/README.md#pendientes-para-n-creator-utils) |
 | **Dron / Atlas** | En uso de punta a punta: dispositivo por EXIF, registro de misiones, misión o no, trabajo JPG sin duplicados, descartes, `units.ndjson`, A11, A14, DNG a pedido | 8 nov: SD `MAVIC200` respaldada, verificada y vaciada (job `cc8bd128`); ESSD mayo–junio respaldado (`77bdcb73`); DNG `dng-d9549817` | Formatear la SD desde el dron. Reclasificar `pending_export` → misión cuando el export llega tarde. Confirmar un dispositivo nuevo desde la app. UI del plan de DNG. Atlas: leer `_missions/` y `units.ndjson`. [Contrato](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
 | **Cierre de proyecto** | En uso: finales, publicados, regenerables de Clipper por su `cleanup-plan`, transcripciones a MEDIA | 8 nov: cierre conjunto de Terra aplicado (`8fe6e578`) | Seis verticales de Terra por publicar; aviso opcional por verticales viejos. [Contrato](contracts/project-closeout-v1.md) |
-| **Biblioteca, Discos, cobertura** | Implementado en sólo lectura + recuperación/entrega desde archivo | Entrega desde MEDIA502 a ESSD (6 nov) | `coverage --no-hash` ESSD contra MEDIA502; restaurar sin SD; rehash periódico |
-| **Carpetas vivas** (música, samples, `0000_acomodar`) | Sin implementar | [Inventario SSD1](features/music-ssd1-inventory-2026-11-09.md) (9 nov, sólo lectura): 853 GB de audio, ~15 GB con copia en MEDIA502 | Fases M1–M4 en [music-flows](features/music-flows.md#fases): M1 código hecho (`collection-release-plan/apply`, 12 pruebas); M2 código hecho (`living-plan/apply`, 11 pruebas). Faltan las corridas reales (M1 con MEDIA500/501 y ESSD; M2 con las carpetas elegidas) |
+| **Biblioteca, Discos, cobertura** | Recuperación y entrega desde archivo. Bandeja por proyecto implementada en Swift con ubicaciones, entregas, Stalker y acceso al retiro de raws | Entrega desde MEDIA502 a ESSD (6 nov). [Diagnóstico de raws](#diagnóstico-de-essd-y-música--2026-11-13) (13 nov) | Aceptar la bandeja en ventana. Fuentes SD asignadas. Ampliar cobertura al resto del ESSD; restaurar sin SD; rehash periódico |
+| **Carpetas vivas** (música, samples, `0000_acomodar`) | M1 y M2 implementados por CLI/RPC | [Inventario SSD1](features/music-ssd1-inventory-2026-11-09.md) y [piloto de música](#diagnóstico-de-essd-y-música--2026-11-13) | M1 requiere SSD1, MEDIA500/501 y ESSD. M2: ampliar a producción de Ableton tras el piloto. [Fases](features/music-flows.md#fases) |
 | **Fotos / Kyū, H6, GoPro** | Detecta y planea con fixtures | Ninguna física | Aceptación por dispositivo |
 | **Recetas y Flujos** | La receta `nu9ve-default` describe familias de tarjeta (Stalker, Sony, H6, GoPro, Insta360, DJI, Canon) con su recomendación, tags de modelo, dispositivos por EXIF, categorías y flujos de misión. RPC/CLI `recipe` de sólo lectura; Flujos muestra «Lo que reconoce» desde ahí | Lectura del catálogo real con el motor instalado | Modelo por serial en vez de un tag por familia; editar la receta desde la app; generar los bloques de cada flujo desde la receta |
 | **Distribución** | Sólo instalación local de desarrollo | — | Runtime empaquetado, Developer ID, notarización. [Gates](release.md) |
@@ -41,6 +41,16 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Diagnóstico de ESSD y música · 2026-11-13
+
+Con `nuun-engine` instalado y una copia temporal del catálogo, `coverage --no-hash` encontró coincidencia de tamaño para 88 archivos (32.528.540.349 bytes) de `001_proyectos/e64_raw`. Cuatro revisiones verificaron SHA-256 en MEDIA502. Debloateando mi tele (8,14 GB) no requirió reenlaces. Buscando baches con el dron (9,60 GB) y El repositorio de nu9ve (6,75 GB) requirieron cuatro y dos reenlaces, respectivamente. Buscando baches en Hermosillo con el dron (7,86 GB) quedó bloqueado por exportaciones y snapshots de Clipper. Los cuatro cierres editoriales todavía requerían vincular entregas y declararlas completas. El plan independiente de raws evalúa sus propias dependencias.
+
+Con autorización, Rust aplicó el plan de Debloateando mi tele `b5c9738a` en el catálogo diario. Confirmados los 28 retiros (8.135.159.777 bytes), la presencia de sus 28 copias de archivo y 41 GiB libres en ESSD al terminar. El plan cubrió únicamente su carpeta raw.
+
+Rust completó el piloto de carpeta viva `1845c81a`, de `~/Music/03_final` a `MEDIA502/005_produccion/music-03_final`: 491 archivos y 9.836.439.290 bytes verificados. El manifiesto de archivo contiene los 491 y el segundo plan devolvió cero nuevos, cero cambiados y 491 sin cambios. El informe de referencias absolutas encontró un set y cero rutas externas. El XML de Live 10 de `parasito.als` contiene 15 muestras únicas referenciadas con rutas relativas. Se leyó el set de la copia y se verificaron su SHA-256 y los de las 15 muestras contra el manifiesto. Queda abrirlo en Ableton Live.
+
+La bandeja compiló en la build ad-hoc `f238fda455c3`; pasaron 28 pruebas Swift, la QA aislada de asignación y renombre de proyectos Stalker y tres pruebas enfocadas de música en Rust (diferencial con Python, protección y reanudación de M1, versiones y reanudación de M2). La build se instaló y se comprobó el arranque de la app y su motor. Queda la revisión en ventana de la bandeja nueva.
 
 ### Misiones DJI al incorporar un export · 2026-11-13
 

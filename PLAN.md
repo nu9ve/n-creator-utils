@@ -15,7 +15,8 @@ Actualizado: 2026-11-13, America/Hermosillo. Éste es el backlog priorizado. [ST
 | 1 | Aceptar en la app la build `a350af7f16af` | Tarjeta para ver, «sólo respaldo» dentro del ESSD, filtros Fecha/Sesión, Flujos → «Lo que reconoce» |
 | 2 | Formatear la SD `MAVIC200` en el dron y reconectar | El trabajo de dron cierra por observación, como Sony |
 | 3 | Popup al insertar | Medir latencia con la app cerrada y en menubar; aceptar o corregir |
-| 4 | Cobertura ESSD contra MEDIA502 | `coverage --no-hash` como informe; liberar exige hash actual. [Política](docs/features/replication-policy.md) |
+| 4 | Cobertura ESSD contra MEDIA502 | Informe por tamaño hecho para `001_proyectos/e64_raw`; falta ampliar al resto del ESSD. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
+| 5 | Retiro de raws del ESSD con un plan revisado | Debloateando mi tele aplicado (8,14 GB). Próximo: revisar 16,35 GB entre Baches con el dron y El repositorio de nu9ve, con reenlaces de Clipper. [Evidencia](docs/STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
 
 ## P1 · escalabilidad del motor (en curso)
 
@@ -79,9 +80,9 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 | Área | Pendiente real | Referencia |
 | --- | --- | --- |
-| **Música y SSD1** | Orden decidido en [music-flows](docs/features/music-flows.md): (1) liberar `recordingslong`/`recordings` (~252 GB) contra MEDIA500/501 por hash, conservando lo que usa un set (`.asd` o `.als`, 10.5 GB) — **código hecho 9 nov, falta la corrida real** ([runbook](docs/features/music-flows.md#m1--liberar-una-colección-implementado-2026-11-09)); (2) carpeta viva para producción y `~/Music` — **código hecho 9 nov, falta elegir carpetas y la primera corrida** ([runbook](docs/features/music-flows.md#m2--carpeta-viva-implementado-2026-11-09)); (3) triage de audio con Clipper (`audio-triage-v1`); (4) biblioteca con curado (`music-library-v1`) | [Inventario](docs/features/music-ssd1-inventory-2026-11-09.md) |
+| **Música y SSD1** | (1) Primera revisión de `recordingslong` 2019–2021 al conectar SSD1, MEDIA500/501 y ESSD; conservar lo que usa un set (`.asd` o `.als`). (2) Carpeta viva: piloto `~/Music/03_final` completado con Rust y segundo plan vacío. Abrir el set respaldado en Ableton y elegir la siguiente carpeta de producción. (3) Triage con Clipper (`audio-triage-v1`). (4) Biblioteca con curado (`music-library-v1`). | [Runbooks](docs/features/music-flows.md#fases) · [Evidencia](docs/STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
 | Dron, resto | Reclasificar en el archivo las fotos ya respaldadas como `pending_export`; confirmar dispositivo nuevo en la app; UI del plan de DNG. La revisión en curso ya se refresca al incorporar el export | [Evidencia DJI](docs/STATUS.md#misiones-dji-al-incorporar-un-export--2026-11-13), [Atlas](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
-| Selector por proyecto | Todas las fuentes y capturas pendientes de un proyecto, con un plan por fuente | Pedido del 6 nov |
+| Bandeja por proyecto | Primer corte en macOS: ubicaciones catalogadas, Stalker pendiente, entregas candidatas, requisitos de cierre y acceso a la revisión de raws. Faltan fuentes SD asignadas y aceptación en ventana | [Proyectos](docs/features/nuun-window.md#bandeja-por-proyecto) |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG | [Fotos](docs/features/product-flows.md#fotos-y-kyū) |
 | Audio / cámaras | H6/SSD1, DJI 360/acción, GoPro con evidencia real | Por dispositivo |
 | Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |

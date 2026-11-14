@@ -139,7 +139,9 @@ struct ProjectRow: View {
             }
             if expanded {
                 VStack(alignment: .leading, spacing: 6) {
+                    ProjectPendingCaptures(model: model, item: item)
                     if !item["project_id"].string.isEmpty && title != "finales" {
+                        ProjectMediaReview(model: model, item: item)
                         Button("Completar y liberar…", systemImage: "checkmark.seal") { model.openProjectClosure(item) }.disabled(model.busy)
                         ForEach(model.projectIndex.filter { item["link_suggestions"].array.map(\.string).contains($0["project_id"].string) }, id: \.["project_id"].string) { other in
                             HStack(spacing: 6) {
@@ -218,6 +220,239 @@ struct ProjectRow: View {
         guard canRename else { return }
         model.renameProject(item, to: trimmedName)
         renaming = false
+    }
+}
+
+private struct ProjectPendingCaptures: View {
+    @Bindable var model: Model
+    let item: JSONValue
+
+    private var captures: [JSONValue] {
+        let names = [item["project"].string] + item["aliases"].array.map(\.string)
+        return model.pendingCaptures.filter { capture in
+            let tag = capture["tag"]["name"].string
+            let name = tag.isEmpty ? capture["project_hint"]["name"].string : tag
+            return !name.isEmpty && names.contains { $0.caseInsensitiveCompare(name) == .orderedSame }
+        }
+    }
+
+    var body: some View {
+        ForEach(captures, id: \.["path"].string) { capture in
+            HStack {
+                Label(URL(fileURLWithPath: capture["path"].string).lastPathComponent, systemImage: "record.circle")
+                    .lineLimit(1)
+                Spacer()
+                Button("Revisar ingreso de Stalker…") {
+                    model.prepareCaptureBatch(capture["path"].string)
+                }.disabled(model.busy)
+            }
+        }
+    }
+}
+
+private struct ProjectMediaReview: View {
+    @Bindable var model: Model
+    let item: JSONValue
+    @State private var showing = false
+
+    var body: some View {
+        DisclosureGroup("Ubicaciones y estado del cierre", isExpanded: $showing) {
+            if showing { ProjectMediaDetails(model: model, item: item) }
+        }
+    }
+}
+
+private struct ProjectMediaDetails: View {
+    @Bindable var model: Model
+    let item: JSONValue
+    @State private var sourceData: JSONValue?
+    @State private var closureData: JSONValue?
+    @State private var sourceError: String?
+    @State private var closureError: String?
+    @State private var showingDeliveries = false
+    @State private var showingLocations = false
+    @State private var visibleSources = 20
+    @State private var reload = 0
+
+    private var projectID: JSONValue { item["project_id"] }
+    private var sourceRows: [JSONValue] {
+        guard let sourceData else { return [] }
+        let assetIDs = Set(model.assets.filter { asset in
+            asset["project_id"] == projectID || asset["projects"].array.contains { $0["id"] == projectID }
+        }.map(\.["id"].string))
+        return (sourceData["sources"].array + sourceData["offline"].array)
+            .filter { assetIDs.contains($0["asset_id"].string) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Material y entregas").fontWeight(.semibold)
+                Spacer()
+                Button("Revisar sólo raws…") { chooseRawFolder() }.disabled(model.busy)
+                Button("Actualizar", systemImage: "arrow.clockwise") { reload += 1 }
+                    .labelStyle(.iconOnly)
+            }
+            if let closureData {
+                closureStatus(closureData)
+            } else if let closureError {
+                Label(closureError, systemImage: "exclamationmark.circle")
+            } else {
+                ProgressView("Consultando entregas…").controlSize(.small)
+            }
+            if let sourceError {
+                Label(sourceError, systemImage: "externaldrive.badge.exclamationmark")
+            } else if sourceData == nil {
+                ProgressView("Consultando ubicaciones…").controlSize(.small)
+            } else if sourceRows.isEmpty {
+                Text("Sin ubicaciones de media en el catálogo.").foregroundStyle(.secondary)
+            } else {
+                DisclosureGroup(isExpanded: $showingLocations) {
+                    if showingLocations {
+                        ForEach(sourceRows.prefix(visibleSources), id: \.["asset_id"].string) { source in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(source["name"].string).fontWeight(.medium)
+                                if !source["path"].string.isEmpty { location(source) }
+                                ForEach(source["alternatives"].array, id: \.["path"].string) { location($0) }
+                                ForEach(source["missing"].array, id: \.["path"].string) { location($0, missing: true) }
+                            }.padding(.vertical, 3)
+                        }
+                        if visibleSources < sourceRows.count {
+                            Button("Mostrar más ubicaciones") { visibleSources += 20 }
+                        }
+                    }
+                } label: {
+                    Text("Ubicaciones de media (\(sourceRows.count))")
+                }
+            }
+        }
+        .task(id: reload) {
+            sourceData = nil; closureData = nil; sourceError = nil; closureError = nil
+            async let sources: Void = loadSources()
+            async let closure: Void = loadClosure()
+            _ = await (sources, closure)
+        }
+    }
+
+    @ViewBuilder private func closureStatus(_ data: JSONValue) -> some View {
+        let settings = data["settings"]
+        let linked = settings["finals"].array + data["group"].array.flatMap { $0["finals"].array }
+        let roles = Set(linked.map(\.["role"].string))
+        let missing = settings["required"].array.map(\.string).filter { !roles.contains($0) }
+        let linkedDeliveries = data["deliveries"].array
+        let matches = data["files"].array.filter { candidate in
+            candidate["suggested"].bool && !linkedDeliveries.contains {
+                $0["volume_id"] == candidate["volume_id"] && $0["path"] == candidate["path"]
+            }
+        }
+        if item["released"].bool {
+            Label("Cierre aplicado", systemImage: "checkmark.seal")
+        } else {
+            if !settings["no_more"].bool {
+                Label("Falta declarar completas las entregas.", systemImage: "checkmark.seal")
+            }
+            if !missing.isEmpty {
+                Label {
+                    Text("Faltan entregas vinculadas: \(missing.map(deliveryRole).joined(separator: ", "))")
+                } icon: { Image(systemName: "film.stack") }
+            } else if settings["no_more"].bool {
+                Label("Entregas completas. Revisa el plan para comprobar respaldo y dependencias.", systemImage: "checkmark.seal")
+            }
+        }
+        if !matches.isEmpty || !linkedDeliveries.isEmpty {
+            let published = matches.filter { $0["published"].bool }.count
+            DisclosureGroup(isExpanded: $showingDeliveries) {
+                if showingDeliveries {
+                    ForEach(Array((linkedDeliveries + matches).enumerated()), id: \.offset) { index, match in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(match["name"].string).textSelection(.enabled)
+                            HStack {
+                                Text(deliveryRole(match["role"].string))
+                                Text(model.volume(match["volume_id"].string)?["name"].string ?? match["volume"].string)
+                                Text(match["published"].bool ? "Publicado" : "Por publicar")
+                                if index >= linkedDeliveries.count { Text("Sin vincular") }
+                                if match["state"].string == "missing" { Text("No encontrada") }
+                            }.foregroundStyle(.secondary)
+                        }.padding(.vertical, 2)
+                    }
+                }
+            } label: {
+                Text("Entregas vinculadas: \(linkedDeliveries.count)")
+                if !matches.isEmpty {
+                    Text("Coincidencias por nombre: \(matches.count) · publicadas: \(published)")
+                }
+            }
+        }
+    }
+
+    private func deliveryRole(_ role: String) -> String {
+        switch role {
+        case "horizontal": return String(localized: "Horizontal")
+        case "vertical": return String(localized: "Vertical")
+        case "thumbnail": return String(localized: "Thumbnail")
+        case "auxiliary": return String(localized: "Auxiliar")
+        default: return role
+        }
+    }
+
+    private func location(_ value: JSONValue, missing: Bool = false) -> some View {
+        let role = value["role"].string == "archive" ? String(localized: "Respaldo") : String(localized: "Copia para editar")
+        let path = value["path"].string
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text("\(role) · \(value["volume"].string)")
+                if missing { Text("No encontrada").foregroundStyle(.secondary) }
+                else if !value["online"].bool { Text("Desconectado").foregroundStyle(.secondary) }
+                else {
+                    Button("Mostrar en Finder", systemImage: "folder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                    }.labelStyle(.iconOnly)
+                }
+            }
+            Text(path).foregroundStyle(.secondary).textSelection(.enabled)
+        }
+    }
+
+    private func loadSources() async {
+        guard let client = model.client else { return }
+        do {
+            let data = try await client.call("sources", ["project": item["project"], "purpose": .string("archive")])
+            if !Task.isCancelled { sourceData = data }
+        } catch let failure as BackendFailure where failure.code == "unknown_project" {
+            if !Task.isCancelled { sourceData = .object([:]) }
+        } catch {
+            if !Task.isCancelled { sourceError = error.localizedDescription }
+        }
+    }
+
+    private func loadClosure() async {
+        guard let reader = model.reader else { return }
+        do {
+            let data = try await reader.call("closure_candidates", ["project_id": projectID])
+            if !Task.isCancelled { closureData = data }
+        } catch {
+            if !Task.isCancelled { closureError = error.localizedDescription }
+        }
+    }
+
+    private func chooseRawFolder() {
+        let directory = model.volume(model.work).map { URL(fileURLWithPath: $0["root"].string) }
+        pickURL(message: String(localized: "Elige la carpeta de raws de este proyecto."), directory: directory) { url in
+            let path = url.standardizedFileURL.path
+            guard let volume = model.volumes.first(where: {
+                let root = $0["root"].string
+                return $0["role"].string == "work" && $0["online"].bool
+                    && !root.isEmpty && path.hasPrefix(root + "/")
+            }) else {
+                model.error = String(localized: "Elige una carpeta dentro de un disco de trabajo conectado.")
+                return
+            }
+            model.work = volume["id"].string
+            model.auditPath = String(path.dropFirst(volume["root"].string.count + 1))
+            model.releaseProject = item["project"].string
+            model.releasePlan = nil
+            model.showRelease = true
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 # Música: liberar, analizar, respaldar y organizar
 
-Propuesta del 2026-11-09, a partir del [inventario de SSD1](music-ssd1-inventory-2026-11-09.md) y de lo que dijo el usuario. Nada de esto está implementado. Prioridad en [PLAN](../../PLAN.md).
+Flujos definidos a partir del [inventario de SSD1](music-ssd1-inventory-2026-11-09.md). M1 y M2 están implementados por CLI/RPC. M3 y M4 siguen en diseño. Prioridad en [PLAN](../../PLAN.md) y evidencia de corridas en [STATUS](../STATUS.md#diagnóstico-de-essd-y-música--2026-11-13).
 
 ## Quién es dueño de qué
 
@@ -27,12 +27,7 @@ Medido el 9 nov (sólo lectura). Todos los WAV tienen el nombre fechado del impo
 | `recordings` | 7 GB | ~0 | 6.9 GB |
 | **Total** | **262 GB** | **10.5 GB** | **~252 GB** |
 
-**Cómo:** se reutiliza la liberación que ya existe ([release.py](../../media/release.py)). Busca cada archivo **por contenido** (SHA-256) en un archivo registrado, aunque allá tenga otro nombre, y no borra sin coincidencia. Falta:
-
-1. Registrar MEDIA500 y MEDIA501 como archivos cuando estén conectados. Sólo se leen.
-2. Permitir liberar una carpeta de un disco de colección (SSD1), no sólo de un disco de trabajo.
-3. Una lista de conservación: `.asd` junto al WAV, referencias desde `.als` y, si se quiere, años o carpetas elegidos. El plan la congela en su digest.
-4. Lo que no aparezca en MEDIA500/501 no se borra: se respalda primero en MEDIA502.
+**Cómo:** el plan M1 busca cada archivo **por contenido** (SHA-256) en un archivo registrado, aunque allá tenga otro nombre. Congela la lista de conservación (`.asd`, referencias de `.als` y rutas elegidas). Para la primera corrida se necesitan SSD1 y los archivos MEDIA500/501 conectados y registrados. Lo que no coincida con una copia se conserva hasta respaldarlo en MEDIA502.
 
 Resultado: un plan revisable por año, con «se libera (hash coincide en MEDIA50x)», «se conserva (lo usa un set)» y «sin respaldo». Lo liberado va a la Papelera del SSD1, con journal.
 
@@ -106,7 +101,7 @@ Cada fase cierra con pruebas en fixtures, docs al día (esta página, [STATUS](.
 | Fase | Entrega | Criterio de cierre | Estado |
 | --- | --- | --- | --- |
 | M1 · Liberar grabaciones | Liberación de una carpeta de un disco de colección (SSD1) contra archivos registrados (MEDIA500/501/502) por hash, con lista de conservación (`.asd`, referencias `.als`, rutas elegidas) congelada en el digest; CLI/RPC | Pruebas: renombrado en el archivo, sin copia → no se libera, conservados intactos, cambio tras revisar → rechazo, Papelera + journal. Corrida real: el usuario conecta MEDIA500/501 y revisa el plan | **Código hecho 9 nov** ([detalle](#m1--liberar-una-colección-implementado-2026-11-09)); falta la corrida real |
-| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | **Código hecho 9 nov** ([detalle](#m2--carpeta-viva-implementado-2026-11-09)); falta la primera corrida real |
+| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | Piloto real `~/Music/03_final` completado con Rust, segundo plan sin cambios. [Evidencia](../STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
 | M3 · Triage de audio | Contrato `audio-triage-v1` con Clipper (niveles 0–1 primero); filtros en la revisión | Fixture de silencio, ruido, voz y música clasificado; nunca borra | Pendiente |
 | M4 · Biblioteca | Deduplicar por hash y huella; reorganizar con curado mediante `music-library-v1` (mapa de rutas + ACK, `rekordbox.xml`) | Un lote movido sin perder cues ni playlists en curado/rekordbox | Pendiente |
 

@@ -224,6 +224,15 @@ La alternativa más corta, dos cierres separados en los que el requisito acepta 
 
 ## Operación
 
+En Proyectos, «Ubicaciones y estado del cierre» muestra qué tipos requeridos
+siguen sin una entrega vinculada y si falta declarar la selección definitiva.
+También muestra las coincidencias por nombre y su publicación. Inicio sugiere
+cierres a partir de verticales publicados. Un horizontal publicado por sí solo
+puede verse en Proyectos aunque el proyecto no aparezca entre las sugerencias de
+Inicio. Si el proyecto no necesita un vertical, los tipos elegidos pueden
+usarse como excepción para ese proyecto. «Revisar sólo raws» abre el flujo
+independiente de retiro verificado; se revisan sus propios hashes y dependencias.
+
 Owner: [closure.py](../../media/closure.py), boundary [service.py](../../media/service.py),
 retiro compartido [release.py](../../media/release.py).
 
