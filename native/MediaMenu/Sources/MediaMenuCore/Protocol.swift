@@ -291,9 +291,19 @@ public final class BackendClient: @unchecked Sendable {
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string(method), "params": .object(params)]))
         let epoch = currentEpoch()
+        let rustOnly = method == "save_all_review" || method == "save_all_apply"
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
-                do { continuation.resume(returning: try self.run(request, epoch: epoch)) }
+                do {
+                    if rustOnly {
+                        guard let engine = self.configuration.engine else {
+                            throw BackendFailure(code: "runtime_missing", message: "Poner al día requiere el motor Rust.")
+                        }
+                        continuation.resume(returning: try self.execute(engine, self.state + ["rpc"], request, epoch: epoch))
+                    } else {
+                        continuation.resume(returning: try self.run(request, epoch: epoch))
+                    }
+                }
                 catch { continuation.resume(throwing: error) }
             }
         }

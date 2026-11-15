@@ -4,6 +4,8 @@ Backlog de diseño; varias filas ya tienen una entrega implementada (Inicio, Dis
 
 ## Qué debe responder el dashboard
 
+La entrega [Poner al día](save-all.md) reúne los pendientes y revisa el impacto de un lote en el espacio libre. Describe qué operaciones pueden ejecutarse en conjunto y cuáles abren sus revisiones específicas.
+
 «¿Qué requiere mi atención?», «¿dónde están mis archivos?», «¿qué puedo editar ahora?» y «¿qué puedo liberar?». Archivo verificado, trabajo preparado, publicación y SD lista son estados separados.
 
 | Prioridad | Feature | Datos / criterio de aceptación |

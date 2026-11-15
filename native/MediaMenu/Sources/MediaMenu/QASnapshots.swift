@@ -406,6 +406,7 @@ import MediaMenuCore
         model.presentation = .full
         model.route = .home
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("route-home.png"))
+        await render(SaveAllSheet(model: model), size: NSSize(width: 550, height: 440), to: folder.appendingPathComponent("save-all.png"))
         await render(InboxView(model: model), size: NSSize(width: 1180, height: 1500), to: folder.appendingPathComponent("route-home-full.png"))
         await render(VStack { ForEach(model.projectIndex.prefix(4), id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 500), to: folder.appendingPathComponent("project-details.png"))
         await render(VStack { ForEach(model.projectIndex.filter { $0["stage"].string == "finished" || !$0["link_suggestions"].array.isEmpty }, id: \.["key"].string) { ProjectRow(model: model, item: $0, expanded: .constant(true)) } }.padding(20).frame(maxHeight: .infinity, alignment: .top), size: NSSize(width: 900, height: 480), to: folder.appendingPathComponent("projects-awaiting.png"))

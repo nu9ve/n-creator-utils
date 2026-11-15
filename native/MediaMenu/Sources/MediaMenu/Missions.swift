@@ -53,6 +53,10 @@ extension Model {
     }
 
     func reloadAfterMissionImport(archive: String) {
+        saveAllPlans = saveAllPlans.filter {
+            let plan = $0.value.display
+            return plan["archive_id"].string != archive || ["stalker", "delivery"].contains(plan["source_kind"].string)
+        }
         for path in Array(ingestDrafts.keys) {
             guard var draft = ingestDrafts[path], draft.archive == archive,
                   draft.kind != "stalker", draft.kind != "delivery" else { continue }

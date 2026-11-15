@@ -19,11 +19,13 @@ struct InboxView: View {
     @Bindable var model: Model
     private var pendingWork: Int { model.assets.filter { $0["work_delivery_status"].string == "pending" }.count }
     var body: some View {
+        ScrollViewReader { reader in
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PageHeader(title: "Inicio", subtitle: "Lo que puedes respaldar o atender ahora. Nada se mueve sin un plan revisado.") {
+                PageHeader(title: "Inicio") {
                     Button("Elegir fuente…", systemImage: "folder") { model.chooseSource() }
                 }
+                HomeSaveAllHeader(model: model)
                 ErrorBanner(model: model)
                 if !model.sourceCards.isEmpty {
                     SectionTitle("Tarjetas conectadas")
@@ -31,7 +33,7 @@ struct InboxView: View {
                         ForEach(model.sourceCards, id: \.["path"].string) { card in CardSuggestion(model: model, card: card) }
                     }
                 }
-                if !model.pendingMissionExports.isEmpty { MissionsSection(model: model) }
+                if !model.pendingMissionExports.isEmpty { MissionsSection(model: model).id("missions") }
                 if !model.attentionJobs.isEmpty || pendingWork > 0 {
                     AttentionSection(model: model, pendingWork: pendingWork)
                 }
@@ -48,7 +50,10 @@ struct InboxView: View {
                     }
                 }
                 if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty &&
-                    model.suggestedProjectClosures.isEmpty && !model.projectClosures.contains(where: { $0["needs_release"].bool }) {
+                    model.pendingMissionExports.isEmpty && pendingWork == 0 &&
+                    !(model.finals?["groups"].array.contains { $0["pending"].double > 0 || $0["waiting"].double > 0 } ?? false) &&
+                    archived.isEmpty && model.suggestedProjectClosures.isEmpty &&
+                    !model.projectClosures.contains(where: { $0["needs_release"].bool }) {
                     ContentUnavailableView("Todo al día", systemImage: "checkmark.circle", description: Text("Conecta una SD o termina una sesión de Stalker para verla aquí."))
                         .frame(maxWidth: .infinity)
                 }
@@ -56,6 +61,13 @@ struct InboxView: View {
         }
         // Names and sizes only, and at most every 15 minutes; never a timer of its own.
         .onAppear { model.checkFinals() }
+        .task(id: model.saveAllHomeTarget) {
+            if let target = model.saveAllHomeTarget {
+                reader.scrollTo(target, anchor: .top)
+                model.saveAllHomeTarget = nil
+            }
+        }
+        }
     }
 }
 

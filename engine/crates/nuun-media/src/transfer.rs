@@ -1627,6 +1627,15 @@ pub fn apply_reviewed(
 ) -> Result<Value> {
     #[cfg(target_os = "macos")]
     let _cancel = crate::interrupt::Cancel::install()?;
+    apply_cancellable(home, backend, plan, reviewed_digest)
+}
+
+pub(crate) fn apply_cancellable(
+    home: &Path,
+    backend: &dyn Backend,
+    plan: &Value,
+    reviewed_digest: &str,
+) -> Result<Value> {
     apply(home, backend, plan, reviewed_digest, &|_, _| {
         #[cfg(target_os = "macos")]
         require(

@@ -22,6 +22,7 @@ struct WindowRoot: View {
             }
             .skinSheet(isPresented: $model.showRelease) { ReleaseSheet(model: model) }
             .skinSheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model) }
+            .skinSheet(isPresented: $model.showSaveAll) { SaveAllSheet(model: model) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(CreatorAppearance())
@@ -78,6 +79,12 @@ struct WindowTopBar: View {
                     Spacer(minLength: 0)
                 }
                 if model.presentation == .full { TitleBarDisks(model: model, width: geometry.size.width) }
+                if model.presentation != .full {
+                    Button("Poner al día…", systemImage: "tray.full") { model.showSaveAll = true }
+                        .labelStyle(.iconOnly).buttonStyle(.borderless)
+                        .help("Poner al día…").accessibilityLabel("Poner al día…")
+                        .disabled(model.busy)
+                }
                 if model.busy {
                     Button { model.open(.activity); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
                         .buttonStyle(.plain).help("Ver actividad")

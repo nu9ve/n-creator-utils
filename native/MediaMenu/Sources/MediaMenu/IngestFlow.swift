@@ -115,6 +115,9 @@ struct IngestFooter: View {
                     .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || model.source.isEmpty)
             case .destinations, .review:
                 if let plan = model.plan {
+                    if model.presentation == .full {
+                        Button("Agregar al lote") { model.addToSaveAll() }.disabled(model.busy)
+                    }
                     Button(plan["cleanup"].bool || plan["release_stalker_source"].bool ? "Respaldar y liberar origen" : "Respaldar y conservar origen", systemImage: "arrow.right.circle.fill") { model.apply() }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy)
                 } else {

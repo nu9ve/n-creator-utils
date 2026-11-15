@@ -148,6 +148,7 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     }
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
+        writes.push("save_all_apply");
         if cfg!(target_os = "macos") {
             writes.extend([
                 "eject_card",
@@ -199,7 +200,8 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 10] = [
+const ONCE_READS: [&str; 11] = [
+    "save_all_review",
     "discover",
     "finals_status",
     "captures",
@@ -239,6 +241,12 @@ impl Engine {
         let platform = platform_backend(&self.home());
         let platform = platform.as_deref();
         match method {
+            "save_all_review" => {
+                nuun_media::save_all::review(&self.home(), backend(platform)?, params)
+            }
+            "save_all_apply" => {
+                nuun_media::save_all::apply(&self.home(), write_backend(platform)?, params)
+            }
             // Python: summary(catalog): the recipe saved in the catalog (or the template) and the confirmed devices.
             "recipe" => {
                 let catalog = self.catalog()?;

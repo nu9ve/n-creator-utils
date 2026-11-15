@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `f238fda455c3`** (13 nov), build de depuración con firma ad-hoc verificada. Arrancaron la app y el motor Rust empaquetado. Catálogo diario: `quick_check=ok`. Python sigue disponible como respaldo; `capture_discard_check` usa Python. Build anterior `75b68bf24568` en `app-backups/89f2a799.app` |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `d5ead0609529`** (14 nov), build de depuración con firma ad-hoc verificada. El Rust empaquetado respondió a `save_all_review` con catálogo temporal. Catálogo diario: `quick_check=ok`. Build anterior `f238fda455c3` en `app-backups/58ceb5a7.app` |
 | Suites en macOS | Python **396**, Rust **174** (151 + 23 diferenciales), Swift **28**. Dorado actualizado con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. CI escrita, pendiente de ejecutar en GitHub. |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -41,6 +41,12 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Poner al día · 2026-11-14
+
+Inicio completo muestra espacio disponible y el acceso a pendientes. Compacto y selección tienen el acceso en la barra. «Agregar al lote» reúne planes preparados de SD, Stalker y finales publicados. Rust valida los documentos, identidades, destinos y capacidad antes de ejecutar; conserva el resultado y el journal de cada operación iniciada. Misiones, copias pendientes, cierres, liberaciones y jobs con seguimiento abren sus revisiones existentes. La selección del lote vive en la sesión. [Flujos, contrato y límites](features/save-all.md).
+
+Evidencia con fixtures: 28 pruebas Swift, 7 del binario Rust y 118 del motor (diferenciales ignorados en esta corrida); Clippy limpio. El caso de lote rechazó superposición de fuentes, espacio insuficiente y orden distinto al revisado, y ejecutó dos planes con políticas de origen distintas. QA visual aislada de Inicio, barra compacta y selector. Build de desarrollo `d5ead0609529` instalada y firma verificada. Queda recorrer selección, revisión y resultado en ventana.
 
 ### Diagnóstico de ESSD y música · 2026-11-13
 

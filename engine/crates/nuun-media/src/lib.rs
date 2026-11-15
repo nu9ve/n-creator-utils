@@ -39,6 +39,7 @@ pub mod retitle;
 #[cfg(unix)]
 pub mod revisions;
 pub mod rules;
+pub mod save_all;
 pub mod scan;
 pub mod settings;
 pub mod snapshot;

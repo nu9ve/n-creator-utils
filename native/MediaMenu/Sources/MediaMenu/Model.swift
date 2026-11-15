@@ -155,6 +155,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closureReviewing = false
     var closureApplying = false
     var showClosure = false
+    var showSaveAll = false
+    var excludedSaveAllItems: Set<String> = []
+    var saveAllHomeTarget: String?
+    var saveAllPlans: [String: ReviewedPlan] = [:]
+    var saveAllResult: JSONValue?
     var titlebarCenter: CGFloat = 0
     var ingestDrafts: [String: IngestDraft] = [:]
     /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
@@ -917,6 +922,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 }
             }
             let result = try await self.client!.call("apply", reviewed.applyParameters)
+            self.saveAllPlans = self.saveAllPlans.filter { $0.value.display["id"].string != jobID }
             self.lastResult = result
             self.message = self.stateLabel(result["state"].string)
             let release = result["stalker_release"]
