@@ -1,0 +1,27 @@
+[package]
+name = "nu9ve-engine"
+description = "Bounded NDJSON and framed stdio RPC for the nu9ve-engine-v1 contract"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[features]
+# Match downstream serde_json feature unification in CI. Wire ids work in either configuration.
+arbitrary_precision = ["serde_json/arbitrary_precision"]
+preserve_order = ["serde_json/preserve_order"]
+
+[dependencies]
+# The suite error and success envelopes.
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# Borrow request ids as JSON tokens and transmit already-serialized data without converting to Value.
+serde_json = { version = "=1.0.154", features = ["raw_value"] }
+# Serialize the envelope with its exact wire id.
+serde = "=1.0.229"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

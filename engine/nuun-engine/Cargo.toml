@@ -8,6 +8,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+# Shared RPC transport and exact wire ids (serde_json raw_value).
+nu9ve-engine = { path = "../../vendor/nu9ve-core/rust/nu9ve-engine", version = "=0.1.0" }
 nu9ve-json.workspace = true
 nuun-recipe = { path = "../crates/nuun-recipe" }
 nuun-media = { path = "../crates/nuun-media" }

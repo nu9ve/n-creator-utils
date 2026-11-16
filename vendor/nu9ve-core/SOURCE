@@ -5,6 +5,7 @@ date=2026-11-16
 path=contracts
 path=data
 path=docs
+path=rust/nu9ve-engine
 path=rust/nu9ve-fs
 path=rust/nu9ve-json
 path=scripts/sync-core.sh

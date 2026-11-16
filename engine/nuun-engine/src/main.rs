@@ -6,9 +6,11 @@
 //! until each method reaches parity (rust-engine.md §7): a read method that is not ported yet answers
 //! `not_ported`, so a client can ask the Python engine (or the Windows maqueta) instead.
 
+use nu9ve_engine::{EngineInfo, Request, RpcError, serve_lines};
 use nu9ve_json::{Error, Result, error_envelope, ok_envelope, require};
 use nuun_media::volumes::{Backend, platform_backend, platform_backend_name};
-use serde_json::{Value, json};
+use serde_json::{Value, json, value::RawValue};
+use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 
@@ -156,7 +158,7 @@ const NATIVE: [&str; 12] = [
     "save_all_work_plan",
 ];
 const READ_WHEN_EMPTY: [&str; 2] = ["defaults", "integration_settings"];
-const MAX_LINE: usize = 1024 * 1024;
+const MAX_ONCE_BYTES: usize = 16 * 1024 * 1024;
 
 /// Methods this engine answers on every platform. Everything else in READ_METHODS is `not_ported`.
 const PORTABLE: [&str; 25] = [
@@ -705,27 +707,35 @@ impl Engine {
             "closure_save" => nuun_media::settings::closure_save(&self.home(), platform, params),
             "save_profile" => nuun_media::settings::save_profile(&self.home(), params),
             "confirm_device" => nuun_media::settings::confirm_device(&self.home(), params),
-            // Not in Python: lets a client know which engine answered and what it can do.
-            // nu9ve-engine-v1 §4. `ported`: the reads `rpc-serve` answers that Python has too; `writes` and `once`
-            // are nüün's own fields for what only the one-shot `rpc` answers.
-            "engine_info" => Ok(json!({
-                "contract": "nu9ve-engine/1",
-                "protocol": "nuun-media/1",
-                "engine": "rust",
-                "version": env!("CARGO_PKG_VERSION"),
-                "capabilities": [],
-                "ported": ported(),
-                "native": native(platform),
-                "writes": ported_writes(platform),
-                // Which real volume backend answers volume methods here (`null`: none yet, ask Python).
-                "volume_backend": platform_backend_name(),
-                "once": ONCE_READS,
-                "state_dir": self.state_dir.as_ref().map(|p| p.display().to_string()),
-            })),
             _ => Err(Error::new(
                 "unknown_method",
                 format!("Unknown media service method: {method}"),
             )),
+        }
+    }
+
+    fn info<'a>(
+        &self,
+        ported: &'a [&'a str],
+        native: &'a [&'a str],
+        platform: Option<&dyn Backend>,
+    ) -> EngineInfo<'a> {
+        // These extra fields describe the platform and one-shot operations.
+        EngineInfo {
+            protocol: "nuun-media/1",
+            version: env!("CARGO_PKG_VERSION"),
+            capabilities: &[],
+            ported,
+            native,
+            extra: serde_json::Map::from_iter([
+                ("writes".into(), json!(ported_writes(platform))),
+                ("volume_backend".into(), json!(platform_backend_name())),
+                ("once".into(), json!(ONCE_READS)),
+                (
+                    "state_dir".into(),
+                    json!(self.state_dir.as_ref().map(|p| p.display().to_string())),
+                ),
+            ]),
         }
     }
 
@@ -736,9 +746,20 @@ impl Engine {
             format!("Unknown media service method: {method}"),
         )?;
         let empty = params.as_object().is_some_and(|p| p.is_empty());
-        let readable = READ_METHODS.contains(&method)
-            || method == "engine_info"
-            || (READ_WHEN_EMPTY.contains(&method) && empty);
+        if method == "engine_info" {
+            require(
+                empty,
+                "invalid_params",
+                "This method accepts an empty params object.",
+            )?;
+            let platform = platform_backend(&self.home());
+            let platform = platform.as_deref();
+            return Ok(self
+                .info(&ported(), &native(platform), platform)
+                .into_data());
+        }
+        let readable =
+            READ_METHODS.contains(&method) || (READ_WHEN_EMPTY.contains(&method) && empty);
         if mode == Mode::Serve {
             require(
                 readable,
@@ -769,44 +790,54 @@ impl Engine {
         Ok(self.call(method, params)?)
     }
 
-    /// One line in, one envelope out. Never panics on input.
-    #[cfg(test)]
-    fn answer(&self, line: &str, mode: Mode) -> Value {
-        self.reply(line, mode).envelope
-    }
-
-    /// The envelope and the id as JSON text: an integer id beyond 64 bits keeps its digits (§2.1).
-    fn reply(&self, line: &str, mode: Mode) -> Reply {
-        let mut id = (Value::Null, None);
+    fn reply_once(&self, wire: &[u8]) -> Reply {
+        if wire.len() > MAX_ONCE_BYTES {
+            return Reply::invalid_request("request_too_large", "Request exceeds 16 MiB");
+        }
+        let mut id = RawValue::NULL;
         let result = (|| -> RpcResult<Value> {
+            let text = std::str::from_utf8(wire)
+                .map_err(|_| Error::new("invalid_request", "Expected valid UTF-8 JSON"))?;
             require(
-                mode == Mode::Once || line.len() <= MAX_LINE,
-                "request_too_large",
-                "Request line exceeds 1 MiB",
-            )?;
-            let request: Value = serde_json::from_str(line)
-                .map_err(|e| Error::new("invalid_request", format!("Request is not JSON: {e}")))?;
-            require(
-                request.is_object(),
+                text.trim_start_matches([' ', '\t', '\n', '\r'])
+                    .starts_with('{'),
                 "invalid_request",
                 "Expected an id/method/params JSON object",
             )?;
-            id = request_id(line, &request["id"])?;
-            let method = request["method"]
-                .as_str()
-                .ok_or_else(|| Error::new("invalid_request", "method must be a string"))?;
-            let params = match &request["params"] {
-                Value::Null => json!({}), // `null` is tolerated as `{}` (§2), as Python does
-                params @ Value::Object(_) => params.clone(),
-                _ => return Err(Error::new("invalid_params", "params must be an object").into()),
+            let request: HashMap<String, &RawValue> = serde_json::from_str(text)
+                .map_err(|e| Error::new("invalid_request", format!("Request is not JSON: {e}")))?;
+            let raw_id = request.get("id").copied().unwrap_or(RawValue::NULL);
+            let valid_id = match raw_id.get().as_bytes().first() {
+                Some(b'"') => serde_json::from_str::<String>(raw_id.get()).is_ok(),
+                Some(b'-' | b'0'..=b'9') => !raw_id.get().contains(['.', 'e', 'E']),
+                _ => raw_id.get() == "null",
             };
-            self.dispatch(method, &params, mode)
+            require(
+                valid_id,
+                "invalid_request",
+                "id must be an integer, a string or null",
+            )?;
+            id = raw_id;
+            let method: String = request
+                .get("method")
+                .and_then(|raw| serde_json::from_str(raw.get()).ok())
+                .ok_or_else(|| Error::new("invalid_request", "method must be a string"))?;
+            let params = match request.get("params") {
+                None => json!({}),
+                Some(raw) if raw.get().starts_with('{') => serde_json::from_str(raw.get())
+                    .map_err(|e| {
+                        Error::new("invalid_request", format!("Request is not JSON: {e}"))
+                    })?,
+                Some(_) => {
+                    return Err(Error::new("invalid_params", "params must be an object").into());
+                }
+            };
+            self.dispatch(&method, &params, Mode::Once)
         })();
-        let (id, digits) = id;
         let envelope = match result {
-            Ok(data) => ok_envelope(&id, data),
+            Ok(data) => ok_envelope(&Value::Null, data),
             Err(failure) => {
-                let mut envelope = error_envelope(&id, &failure.error);
+                let mut envelope = error_envelope(&Value::Null, &failure.error);
                 if let Some(reason) = failure.reason {
                     envelope["error"]["reason"] = json!(reason);
                 }
@@ -814,39 +845,40 @@ impl Engine {
             }
         };
         Reply {
-            id: digits.unwrap_or_else(|| id.to_string()),
+            id: id.get().to_owned(),
             envelope,
         }
     }
 
-    fn serve(&self, mut input: impl BufRead, mut output: impl Write) -> io::Result<()> {
-        let mut line = Vec::new();
-        loop {
-            line.clear();
-            if (&mut input)
-                .take((MAX_LINE + 1) as u64)
-                .read_until(b'\n', &mut line)?
-                == 0
-            {
-                return Ok(());
-            }
-            let oversized = line.len() > MAX_LINE;
-            let reply = if oversized {
-                Reply::invalid_request("request_too_large", "Request line exceeds 1 MiB")
-            } else if line.iter().all(u8::is_ascii_whitespace) {
-                continue;
-            } else {
-                match std::str::from_utf8(&line) {
-                    Ok(line) => self.reply(line, Mode::Serve),
-                    Err(_) => {
-                        Reply::invalid_request("invalid_request", "Expected valid UTF-8 JSON")
-                    }
-                }
-            };
-            writeln!(output, "{}", reply.line())?;
-            output.flush()?;
-            if oversized && !line.ends_with(b"\n") {
-                input.skip_until(b'\n')?;
+    fn serve(&self, input: impl BufRead, output: impl Write) -> io::Result<()> {
+        let platform = platform_backend(&self.home());
+        let platform = platform.as_deref();
+        let ported = ported();
+        let native = native(platform);
+        serve_lines(
+            input,
+            output,
+            self.info(&ported, &native, platform),
+            |request: Request<'_>| {
+                self.dispatch(
+                    request.method,
+                    &Value::Object(request.params.clone()),
+                    Mode::Serve,
+                )
+                .map(Into::into)
+                .map_err(Into::into)
+            },
+        )
+    }
+
+    #[cfg(test)]
+    fn answer(&self, line: &str, mode: Mode) -> Value {
+        match mode {
+            Mode::Once => serde_json::from_str(&self.reply_once(line.as_bytes()).line()).unwrap(),
+            Mode::Serve => {
+                let mut output = Vec::new();
+                self.serve(line.as_bytes(), &mut output).unwrap();
+                serde_json::from_slice(&output).unwrap()
             }
         }
     }
@@ -909,31 +941,12 @@ impl Reply {
     }
 }
 
-/// §2.1: the id is an integer, a string or null (`invalid_request` otherwise, answered with `id: null`).
-/// An integer beyond 64 bits reads as a double in `serde_json` without `arbitrary_precision` (which would change
-/// what `nu9ve-json` reads, nu9ve-json-v1 §8), so its digits come from the raw text of the request.
-fn request_id(line: &str, id: &Value) -> Result<(Value, Option<String>)> {
-    let invalid = || Error::new("invalid_request", "id must be an integer, a string or null");
-    match id {
-        Value::Null | Value::String(_) => Ok((id.clone(), None)),
-        Value::Number(n) if n.is_i64() || n.is_u64() => Ok((id.clone(), None)),
-        Value::Number(_) => {
-            let fields: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
-                serde_json::from_str(line).map_err(|_| invalid())?;
-            let text = fields.get("id").map(|raw| raw.get().trim()).unwrap_or("");
-            let digits = text.strip_prefix('-').unwrap_or(text);
-            if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
-                return Err(invalid());
-            }
-            // `-0` is the integer 0, as Python reads it.
-            let text = if digits.bytes().all(|b| b == b'0') {
-                "0"
-            } else {
-                text
-            };
-            Ok((id.clone(), Some(text.to_owned())))
+impl From<RpcFailure> for RpcError {
+    fn from(failure: RpcFailure) -> Self {
+        match failure.reason {
+            Some(reason) => Self::not_ported(reason, failure.error.message),
+            None => Self::new(&failure.error.code, failure.error.message),
         }
-        _ => Err(invalid()),
     }
 }
 
@@ -960,20 +973,19 @@ fn main() {
     let code = match command.as_deref() {
         Some("rpc-serve") => match engine.serve(io::stdin().lock(), io::stdout().lock()) {
             Ok(()) => 0,
-            Err(error) if error.kind() == io::ErrorKind::BrokenPipe => 0,
             Err(error) => {
                 eprintln!("rpc-serve: {error}");
                 1
             }
         },
         Some("rpc") => {
-            let mut raw = String::new();
-            let read = std::io::stdin()
-                .take(16 * 1024 * 1024 + 1)
-                .read_to_string(&mut raw);
-            let reply = match read {
-                Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.reply(raw.trim(), Mode::Once),
-                _ => Reply::invalid_request("request_too_large", "Request exceeds 16 MiB"),
+            let mut raw = Vec::new();
+            let reply = match io::stdin()
+                .take((MAX_ONCE_BYTES + 1) as u64)
+                .read_to_end(&mut raw)
+            {
+                Ok(_) => engine.reply_once(&raw),
+                Err(error) => Reply::invalid_request("invalid_request", &error.to_string()),
             };
             println!("{}", reply.line());
             i32::from(reply.envelope["ok"] != json!(true))
@@ -1215,7 +1227,7 @@ mod tests {
         );
         let long = format!(
             r#"{{"id": 4, "method": "recipe", "params": {{"pad": "{}"}}}}"#,
-            "x".repeat(MAX_LINE)
+            "x".repeat(nu9ve_engine::MAX_MESSAGE_BYTES)
         );
         assert_eq!(
             e.answer(&long, Mode::Serve)["error"]["code"],
@@ -1338,38 +1350,41 @@ mod tests {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../vendor/nu9ve-core/data/engine-examples-v1.json");
         let examples: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-        let e = engine();
-        let check = |request: &str, expected: &Value, name: &str| {
-            if request.trim().is_empty() {
-                assert!(expected.is_null(), "{name}");
-                return; // `serve` skips it: no answer
-            }
-            let line = e.reply(request, Mode::Serve).line();
-            let reply: Value = serde_json::from_str(&line).unwrap();
-            let id: Value = serde_json::from_str(expected["id"].as_str().unwrap()).unwrap();
-            // The id comes back with its text: the same digits, the same type.
-            let digits = line
-                .strip_prefix(r#"{"id":"#)
-                .and_then(|rest| rest.split(r#","ok":"#).next())
-                .unwrap();
-            assert_eq!(digits, expected["id"].as_str().unwrap(), "{name}: {line}");
-            assert_eq!(reply["id"], id, "{name}");
-            assert_eq!(reply["ok"], expected["ok"], "{name}: {line}");
-            if expected["ok"] == json!(false) {
-                assert_eq!(reply["error"]["code"], expected["code"], "{name}: {line}");
-            }
-        };
         let cases = examples["server"].as_array().unwrap();
         assert_eq!(cases.len(), 20);
+        let mut input = Vec::new();
+        let mut expected = Vec::new();
         for case in cases {
             let name = case["name"].as_str().unwrap();
             let mut request = case["request"].as_str().unwrap().to_owned();
             if let Some(pad) = case["pad_bytes"].as_u64() {
                 request = request.replace("<pad>", &"x".repeat(pad as usize));
             }
-            check(&request, &case["response"], name);
+            writeln!(input, "{request}").unwrap();
+            if !case["response"].is_null() {
+                expected.push((name, &case["response"]));
+            }
             if let Some(then) = case.get("then") {
-                check(then["request"].as_str().unwrap(), &then["response"], name);
+                writeln!(input, "{}", then["request"].as_str().unwrap()).unwrap();
+                expected.push((name, &then["response"]));
+            }
+        }
+        let mut output = Vec::new();
+        engine().serve(input.as_slice(), &mut output).unwrap();
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.ends_with('\n'));
+        assert_eq!(output.lines().count(), expected.len());
+        for (line, (name, expected)) in output.lines().zip(expected) {
+            let fields: HashMap<String, &RawValue> = serde_json::from_str(line).unwrap();
+            assert_eq!(
+                fields["id"].get(),
+                expected["id"].as_str().unwrap(),
+                "{name}: {line}"
+            );
+            let reply: Value = serde_json::from_str(line).unwrap();
+            assert_eq!(reply["ok"], expected["ok"], "{name}: {line}");
+            if expected["ok"] == json!(false) {
+                assert_eq!(reply["error"]["code"], expected["code"], "{name}: {line}");
             }
         }
     }

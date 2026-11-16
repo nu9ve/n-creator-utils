@@ -148,8 +148,9 @@ MAX_LINE = 1024 * 1024
 UNEXPECTED = (OSError, ValueError, KeyError, TypeError, RuntimeError)
 
 
-def engine_info():
+def engine_info(params):
     """§4: the same in `rpc-serve` and `rpc`. Python is the oracle, so everything it answers is `ported`."""
+    require(not params, 'invalid_params', 'This method accepts an empty params object.')
     reads = READ_METHODS | READ_WHEN_EMPTY | {'engine_info'}
     return {'contract': CONTRACT, 'protocol': PROTOCOL, 'engine': 'python', 'version': VERSION, 'capabilities': [],
             'ported': sorted(reads), 'native': [], 'writes': sorted(METHODS - READ_METHODS)}
@@ -172,8 +173,7 @@ def read_request(text, seen):
     seen['id'] = identifier
     method = request.get('method')
     require(isinstance(method, str), 'invalid_request', 'method must be a string')
-    params = request.get('params')
-    params = {} if params is None else params  # `null` is tolerated as `{}` (§2)
+    params = request.get('params', {})
     require(isinstance(params, dict), 'invalid_params', 'params must be an object')
     require(method in METHODS or method == 'engine_info', 'unknown_method', 'Unknown media service method: ' + method)
     return identifier, method, params
@@ -200,7 +200,7 @@ def serve_reads(service, stdin=None, stdout=None, shadow=None):
             identifier, method, params = read_request(line, seen)
             require(method in READ_METHODS or method == 'engine_info' or (method in READ_WHEN_EMPTY and not params),
                     'read_only', 'rpc-serve only answers reads: ' + method)
-            data = engine_info() if method == 'engine_info' else service.call(method, params)
+            data = engine_info(params) if method == 'engine_info' else service.call(method, params)
             envelope = {'id': identifier, 'ok': True, 'data': data}
         except UNEXPECTED as error:
             envelope = {'id': seen['id'], 'ok': False, 'error': failure(error)}
@@ -227,6 +227,10 @@ def main(argv=None):
     catalog = None
     seen = {'id': None}
     try:
+        if args.command == 'rpc':
+            raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
+            require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')
+            _, method, params = read_request(raw, seen)
         catalog = Catalog(args.state_dir)
         service = Service(catalog, cancel=lambda: cancelled[0])
         if args.command == 'mcp':
@@ -240,11 +244,7 @@ def main(argv=None):
             finally:
                 if shadow is not None:
                     shadow.close()
-        if args.command == 'rpc':
-            raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
-            require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')
-            _, method, params = read_request(raw, seen)
-        else:
+        if args.command != 'rpc':
             params = vars(args).copy()
             method = params.pop('command'); params.pop('state_dir')
             if method == 'volumes':
@@ -278,7 +278,7 @@ def main(argv=None):
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans', 'collection-release-plan': 'collection_release_plan', 'collection-release-apply': 'collection_release_apply', 'collection-release-plans': 'collection_release_plans', 'living-plan': 'living_plan', 'living-apply': 'living_apply', 'living-collections': 'living_collections',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
                       'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
-        data = engine_info() if method == 'engine_info' else service.call(method, params)
+        data = engine_info(params) if method == 'engine_info' else service.call(method, params)
         envelope = {'ok': True, 'command': method, 'data': data}
         if args.command == 'rpc':
             envelope.update(seen)

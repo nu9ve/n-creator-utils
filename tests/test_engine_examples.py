@@ -88,35 +88,65 @@ class EngineExamples(unittest.TestCase):
                          [(7, None), (None, 'request_too_large'), (None, 'request_too_large'),
                           (None, 'invalid_request'), (7, None), (None, 'request_too_large')])
 
-    def test_python_one_shot_envelope(self):
+    def check_one_shot_envelope(self, argv, python=False):
+        digits = b'9' * 350  # Beyond even the range of an f64.
         cases = [
-            (b'{"id":18446744073709551616,"method":"engine_info"}', 18446744073709551616, None),
+            (b'{"id":' + digits + b',"method":"engine_info"}', int(digits), None),
             (b'{"method":"engine_info"}', None, None),
             (b'{"id":"broken method","method":9}', 'broken method', 'invalid_request'),
             (b'{"id":"bad params","method":"engine_info","params":[]}', 'bad params', 'invalid_params'),
             (b'{"id":"unknown","method":"absent"}', 'unknown', 'unknown_method'),
             (b'{"id":true,"method":"engine_info"}', None, 'invalid_request'),
             (b'{"id":7,', None, 'invalid_request'),
+            (b'{"id":"\xff","method":"engine_info"}', None, 'invalid_request'),
             (b' ' * (16 * 1024 * 1024 + 1), None, 'request_too_large'),
         ]
-        with tempfile.TemporaryDirectory() as temp:
-            argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc']
-            for request, identifier, code in cases:
-                done = subprocess.run(argv, input=request, capture_output=True, timeout=30, cwd=REPO)
-                reply = json.loads(done.stdout)
-                self.assertEqual((type(reply['id']), reply['id']), (type(identifier), identifier))
-                self.assertEqual(reply['ok'], code is None)
-                self.assertEqual(done.returncode, int(code is not None))
-                if code is None:
-                    self.assertEqual(reply['command'], 'engine_info')
-                else:
-                    self.assertEqual(reply['error']['code'], code)
+        for request, identifier, code in cases:
+            done = subprocess.run(argv, input=request, capture_output=True, timeout=30, cwd=REPO)
+            reply = json.loads(done.stdout)
+            self.assertEqual((type(reply['id']), reply['id']), (type(identifier), identifier))
+            self.assertEqual(reply['ok'], code is None)
+            self.assertEqual(done.returncode, int(code is not None))
+            if code is None and python:
+                self.assertEqual(reply['command'], 'engine_info')
+            if code is not None:
+                self.assertEqual(reply['error']['code'], code)
+
+    def check_contract_requests(self, argv):
+        digits = b'9' * 350
+        wire = (
+            b'{"id":' + digits + b',"method":"engine_info"}\n'
+            b'{"id":1,"method":"recipe","params":null}\n'
+            b'{"id":2,"method":"engine_info","params":{"unexpected":true}}\n'
+        )
+        done = subprocess.run(argv, input=wire, capture_output=True, check=True, timeout=30, cwd=REPO,
+                              env=dict(os.environ, NUUN_SHADOW_ENGINE='off'))
+        handshake, null_params, handshake_params = map(json.loads, done.stdout.splitlines())
+        self.assertIs(handshake['ok'], True)
+        self.assertEqual(handshake['id'], int(digits))
+        for identifier, reply in enumerate((null_params, handshake_params), start=1):
+            self.assertEqual(reply['id'], identifier)
+            self.assertEqual(reply['error']['code'], 'invalid_params')
 
     def test_python(self):
         with tempfile.TemporaryDirectory() as temp:
             argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve']
             self.check(argv)
             self.check_line_limit(argv)
+            self.check_contract_requests(argv)
+
+    def test_python_one_shot_envelope(self):
+        with tempfile.TemporaryDirectory() as temp:
+            argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc']
+            self.check_one_shot_envelope(argv, python=True)
+            # A valid id survives a failure opening the requested state directory.
+            state = Path(temp).resolve() / 'unsafe'
+            argv[-2] = str(state)
+            state.symlink_to(Path(temp).resolve(), target_is_directory=True)
+            done = subprocess.run(argv, input=b'{"id":17,"method":"recipe"}',
+                                  capture_output=True, timeout=30, cwd=REPO)
+            reply = json.loads(done.stdout)
+            self.assertEqual((done.returncode, reply['id'], reply['error']['code']), (1, 17, 'unsafe_state'))
 
     @unittest.skipUnless(rust_engine(), 'Rust engine not built: cd engine && cargo build --offline')
     def test_rust(self):
@@ -124,6 +154,13 @@ class EngineExamples(unittest.TestCase):
             argv = [rust_engine(), '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve']
             self.check(argv)
             self.check_line_limit(argv)
+            self.check_contract_requests(argv)
+
+    @unittest.skipUnless(rust_engine(), 'Rust engine not built: cd engine && cargo build --offline')
+    def test_rust_one_shot_envelope(self):
+        with tempfile.TemporaryDirectory() as temp:
+            argv = [rust_engine(), '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc']
+            self.check_one_shot_envelope(argv)
 
 
 if __name__ == '__main__':
