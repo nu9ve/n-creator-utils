@@ -148,13 +148,20 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     }
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
-        writes.extend(["save_all_apply", "save_all_save_draft"]);
+        writes.extend([
+            "save_all_apply",
+            "save_all_save_draft",
+            "save_all_replan_dji",
+        ]);
+        writes.push("clipper_restore_apply");
+        writes.push("missions_archived_apply");
         if cfg!(target_os = "macos") {
             writes.extend([
                 "eject_card",
                 "storage_scan",
                 "storage_compare",
                 "missions_incorporate",
+                "save_all_incorporate_missions",
                 "dng_plan",
                 "dng_apply",
                 "living_plan",
@@ -200,7 +207,9 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 14] = [
+const ONCE_READS: [&str; 16] = [
+    "missions_archived_review",
+    "clipper_restore_plan",
     "save_all_work_plan",
     "clipper_project_status",
     "save_all_review",
@@ -244,6 +253,27 @@ impl Engine {
         let platform = platform_backend(&self.home());
         let platform = platform.as_deref();
         match method {
+            "missions_archived_apply" => {
+                nuun_media::missions::archived_apply(&self.home(), write_backend(platform)?, params)
+            }
+            "missions_archived_review" => {
+                nuun_media::missions::archived_review(&self.catalog()?, backend(platform)?, params)
+            }
+            "clipper_restore_plan" => {
+                nuun_media::clipper::restore_plan(&self.home(), backend(platform)?, params)
+            }
+            "clipper_restore_apply" => {
+                nuun_media::clipper::restore_apply(&self.home(), write_backend(platform)?, params)
+            }
+            "save_all_replan_dji" => {
+                nuun_media::save_all::replan_dji(&self.home(), write_backend(platform)?, params)
+            }
+            #[cfg(target_os = "macos")]
+            "save_all_incorporate_missions" => nuun_media::mission_review::incorporate(
+                &self.home(),
+                write_backend(platform)?,
+                params,
+            ),
             "save_all_work_plan" => {
                 nuun_media::save_all::plan_work(&self.home(), backend(platform)?, params)
             }

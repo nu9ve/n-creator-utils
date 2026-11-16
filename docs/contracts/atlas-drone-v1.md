@@ -192,7 +192,7 @@ no está todavía en el trabajo. `utc_basis: host_zone` significa que el EXIF de
 | A16 DNG a pedido | Hecho: muestra de 128 en trabajo y 999 liberados tras verificar (`dng-d9549817`); `dng-plan` con `keep` para pedir más | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dng-del-essd-muestra-conservada-y-el-resto-a-la-papelera-a16--2026-11-08) |
 
 Pendiente del lado nüün:
-- **Reclasificar al llegar el export:** pasar `pending_export` → `misiones/` renombrando dentro del archivo. Hoy sólo puede pasar con la limpieza apagada.
+- **Reclasificar al llegar el export:** Flujos → Dron y misiones ofrece revisar las unidades archivadas como `pending_export`. Rust compara EXIF registrado con el historial actual y enumera coincidencias con copias presentes. Guardar verifica SHA-256 según los recibos y registra una asociación por asset con el hash del historial. Conserva los recibos y rutas. `sources` expone el dato en `mission_association`. El movimiento a `misiones/`, el ajuste de recibos y de mapas de rutas requieren un plan propio.
 - **Confirmar un dispositivo nuevo desde la app.**
 - **Interfaz para el plan de DNG.** Hoy es CLI/servicio.
 

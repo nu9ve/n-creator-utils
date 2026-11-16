@@ -58,6 +58,69 @@ mod mission_tests {
     use crate::volumes::test_backend::setup;
     use serde_json::{Value, json};
 
+    #[test]
+    fn late_mission_refreshes_draft_and_associates_verified_archive_without_moving() {
+        let s = setup();
+        let dir = s.card.join("DCIM/101MEDIA");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("DJI_0001.JPG"),
+            sample::jpeg("DJI", "FC3170", "2026:11:04 16:32:12", None),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("DJI_0001.DNG"),
+            sample::tiff("DJI", "FC3170", "2026:11:04 16:32:12"),
+        )
+        .unwrap();
+        let mut params = json!({"source":s.card, "archive":"MEDIA","work":"ESSD","project":"intro","cleanup":false});
+        let pending = crate::planner::build_plan(&s.home, &s.backend, &params).unwrap();
+        crate::transfer::apply(
+            &s.home,
+            &s.backend,
+            &pending,
+            pending["digest"].as_str().unwrap(),
+            &|_, _| Ok(()),
+        )
+        .unwrap();
+        params["project"] = json!("next-project");
+        let draft = crate::planner::build_plan(&s.home, &s.backend, &params).unwrap();
+        crate::save_all::save_draft(&s.home, &json!({"key":"card","document":draft.to_string()}))
+            .unwrap();
+        let area = s.archive.join("004_datos/subaereo/coverage");
+        std::fs::create_dir_all(&area).unwrap();
+        std::fs::write(area.join("history.json"), json!({"plans":[{"id":"P1","name":"Calles"}],
+            "captureLog":[{"captureID":"C1","planID":"P1","sessionID":"S1","mediaCreatedAt":"2026-11-04 16:32:13",
+                "imageJPEGReference":"DJI_0001.JPG","latitude":29.09,"longitude":-110.9583333}]}).to_string()).unwrap();
+        let update =
+            crate::save_all::replan_dji(&s.home, &s.backend, &json!({"key":"card"})).unwrap();
+        assert_eq!(update["before"]["subaereo"]["units"]["pending_export"], 1);
+        assert_eq!(update["after"]["subaereo"]["units"]["matched"], 1);
+        assert_eq!(
+            crate::save_all::draft(&s.home).unwrap()["plans"]["card"],
+            draft.to_string()
+        );
+        let catalog = crate::catalog::Catalog::open(&s.home).unwrap();
+        let options = json!({"archive":"MEDIA"});
+        let review = crate::missions::archived_review(&catalog, &s.backend, &options).unwrap();
+        assert_eq!(review["matched"], 1);
+        let path = review["sample"][0]["paths"][0].as_str().unwrap();
+        assert!(s.archive.join(path).is_file());
+        let applied = crate::missions::archived_apply(
+            &s.home,
+            &s.backend,
+            &json!({"archive":"MEDIA","digest":review["digest"]}),
+        )
+        .unwrap();
+        assert_eq!(applied["associated"], 1);
+        assert_eq!(applied["files_moved"], 0);
+        assert!(s.archive.join(path).is_file());
+        assert_eq!(
+            crate::missions::archived_review(&catalog, &s.backend, &options).unwrap()["recorded"],
+            1
+        );
+    }
+
     /// tests/test_mission_match.py: a matched drone still goes to the mission folders and into units.ndjson.
     #[test]
     fn a_matched_mission_lands_in_its_folders_and_in_the_units_map() {

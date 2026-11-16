@@ -303,6 +303,14 @@ pub fn sources(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Resu
             "session_id": asset.get("session_id").cloned().unwrap_or(Value::Null), "name": name, "bytes": bytes,
             "sha256": sha, "alternatives": candidates.iter().skip(1).map(|c| c.2.clone()).collect::<Vec<_>>(),
             "missing": missing});
+        if asset["camera"] == "dji-drone"
+            && let Some(association) = catalog.get(&format!(
+                "mission-association:{}",
+                asset["id"].as_str().unwrap_or_default()
+            ))?
+        {
+            entry["mission_association"] = association;
+        }
         let parsed =
             parse_name(&name).unwrap_or(json!({"captured_at": null, "duration_seconds": null}));
         for (k, v) in parsed.as_object().into_iter().flatten() {

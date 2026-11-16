@@ -38,12 +38,12 @@ extension Model {
         pendingMissionExports.reduce(0) { $0 + Int($1["changes"]["new"].double + $1["changes"]["updated"].double + $1["changes"]["deleted"].double) }
     }
     /// One click authorizes exactly the reviewed exports: archive copy, registry, mirror, then out of the inbox.
-    func incorporateMissions() {
+    func incorporateMissions(inBatch: Bool = false) {
         guard let review = missionInbox, missionArchiveOnline, review["archive"].string == archive else { missionsChanged(); return }
         operation(String(localized: "Incorporando exports de misiones"), scope: .settings) {
             var params: [String: JSONValue] = ["archive": .string(self.archive), "digest_value": review["digest"]]
             if self.volumes.contains(where: { $0["id"].string == self.work && $0["online"].bool }) { params["work"] = .string(self.work) }
-            let result = try await self.client!.call("missions_incorporate", params)
+            let result = try await self.client!.call(inBatch ? "save_all_incorporate_missions" : "missions_incorporate", params)
             let added = Int(result["changes"]["new"].double + result["changes"]["updated"].double)
             self.message = String(localized: "Registro de misiones actualizado: \(added) registros; Descargas quedó limpia")
             self.missionInbox = nil
@@ -53,10 +53,6 @@ extension Model {
     }
 
     func reloadAfterMissionImport(archive: String) {
-        saveAllPlans = saveAllPlans.filter {
-            let plan = $0.value.display
-            return plan["archive_id"].string != archive || ["stalker", "delivery"].contains(plan["source_kind"].string)
-        }
         for path in Array(ingestDrafts.keys) {
             guard var draft = ingestDrafts[path], draft.archive == archive,
                   draft.kind != "stalker", draft.kind != "delivery" else { continue }
@@ -98,6 +94,58 @@ struct MissionsSection: View {
             if !last.isEmpty { Text("El registro cubre hasta \(String(last.prefix(16)))").font(.caption).foregroundStyle(.secondary) }
         }
         .modifier(Panel(padding: 14))
+    }
+}
+
+struct ArchivedMissionReview: View {
+    @Bindable var model: Model
+    @State private var result: JSONValue?
+    @State private var error = ""
+    @State private var loading = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button("Revisar fotos ya archivadas…") {
+                loading = true; result = nil; error = ""
+                Task {
+                    defer { loading = false }
+                    do {
+                        result = try await model.oneShot("missions_archived_review", ["archive": .string(model.archive)])
+                    } catch { self.error = error.localizedDescription }
+                }
+            }.disabled(!model.missionArchiveOnline || model.busy || loading)
+            if loading { ProgressView().controlSize(.small) }
+            if !error.isEmpty { Label(error, systemImage: "exclamationmark.triangle") }
+            if let result {
+                let matched = Int(result["matched"].double)
+                Text("\(matched) por asociar · \(Int(result["waiting"].double)) siguen esperando · \(Int(result["no_mission"].double)) sin misión")
+                if result["recorded"].double > 0 { Text("\(Int(result["recorded"].double)) asociaciones guardadas") }
+                if result["incomplete"].double > 0 {
+                    Text("\(Int(result["incomplete"].double)) copias o datos por comprobar")
+                }
+                if matched > 0 {
+                    Text("Se verifica el respaldo y se guarda la misión en el catálogo. Las fotos conservan sus rutas.")
+                    Button("Guardar asociaciones verificadas") { apply(result) }.disabled(model.busy || loading)
+                }
+            }
+        }.font(.caption)
+    }
+
+    private func apply(_ reviewed: JSONValue) {
+        guard let client = model.client else { return }
+        error = ""
+        model.operation(String(localized: "Verificando fotos archivadas"), scope: .space) {
+            do {
+                let saved = try await client.call("missions_archived_apply", [
+                    "archive": reviewed["archive"], "flow_id": reviewed["flow_id"], "digest": reviewed["digest"]
+                ])
+                result = nil
+                model.message = String(localized: "\(Int(saved["associated"].double)) asociaciones guardadas")
+                if !saved["metadata_backup_error"].string.isEmpty {
+                    self.error = String(localized: "Asociaciones guardadas. Falta respaldar el catálogo.")
+                }
+            } catch { self.error = error.localizedDescription }
+        }
     }
 }
 

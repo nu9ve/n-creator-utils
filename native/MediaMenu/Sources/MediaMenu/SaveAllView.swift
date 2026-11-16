@@ -224,6 +224,9 @@ struct SaveAllSheet: View {
     @State private var folderPlan: JSONValue?
     @State private var workPlan: JSONValue?
     @State private var workItem: SaveAllItem?
+    @State private var reviewingExports = false
+    @State private var djiUpdate: JSONValue?
+    @State private var djiKey = ""
 
     private var plans: [(String, ReviewedPlan)] {
         draftPlans.filter { !model.excludedSaveAllItems.contains($0.0) }
@@ -276,6 +279,52 @@ struct SaveAllSheet: View {
             }
             if let failure { Label(failure, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(palette.warning) }
             if let result = model.saveAllResult { resultSummary(result) }
+            if reviewingExports && !model.pendingMissionExports.isEmpty {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(model.pendingMissionExports.count) exports de misión")
+                        Text("Verifica el respaldo y retira los exports de Descargas. Después revisa DJI.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Incorporar exports") { model.incorporateMissions(inBatch: true) }
+                        .disabled(!model.missionArchiveOnline || model.busy || inFlight || model.saveAllUpdating)
+                }
+            }
+            if reviewingExports && model.pendingMissionExports.isEmpty, !model.busy {
+                ArchivedMissionReview(model: model)
+            }
+            if reviewingExports && !model.error.isEmpty {
+                Label(model.error, systemImage: "exclamationmark.triangle").font(.caption)
+            }
+            if let djiUpdate {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Plan DJI actualizado").fontWeight(.medium)
+                    Text("\(Int(djiUpdate["changed"].double)) cambian de ruta o acción · \(Int(djiUpdate["added"].double)) entran · \(Int(djiUpdate["removed"].double)) salen")
+                    ForEach(djiUpdate["after"].object.keys.sorted(), id: \.self) { flow in
+                        let old = djiUpdate["before"][flow]["units"]
+                        let new = djiUpdate["after"][flow]["units"]
+                        Text("Por asignar a misión: \(Int(old["pending_export"].double)) → \(Int(new["pending_export"].double))")
+                    }
+                    if !djiUpdate["sample"].array.isEmpty {
+                        DisclosureGroup("Ejemplos de rutas actualizadas") {
+                            ScrollView {
+                                ForEach(Array(djiUpdate["sample"].array.enumerated()), id: \.offset) { _, row in
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(row["path"].string).fontWeight(.medium)
+                                        Text("\(row["before"].string) → \(row["after"].string)").textSelection(.enabled)
+                                    }
+                                }
+                            }.frame(maxHeight: 96)
+                        }
+                    }
+                    HStack {
+                        Button("Cerrar revisión") { self.djiUpdate = nil }
+                        Button("Usar el nuevo plan") { acceptDJI(djiUpdate) }
+                            .disabled(model.saveAllUpdating || model.busy)
+                    }
+                }.font(.caption)
+            }
             if model.saveAllProject == nil, !model.saveAllCollections.isEmpty, review == nil {
                 Menu("Respaldar carpeta…", systemImage: "folder.badge.plus") {
                     ForEach(model.saveAllCollections, id: \.["id"].string) { collection in
@@ -338,8 +387,9 @@ struct SaveAllSheet: View {
                                     Button(item.action.label) {
                                         if case .work(let ids) = item.action {
                                             prepareWork(item, ids: ids)
+                                        } else if case .missions = item.action {
+                                            reviewingExports = true
                                         } else {
-                                            dismiss()
                                             model.reviewSaveAllItem(item)
                                         }
                                     }.disabled(model.busy || inFlight || model.saveAllUpdating)
@@ -394,7 +444,7 @@ struct SaveAllSheet: View {
                         .disabled(inFlight || !review["volumes"].array.allSatisfy { $0["fits"].bool })
                 } else if showSelected {
                     Button("Cambiar selección") { showSelected = false }
-                    if !plans.isEmpty { Button("Calcular impacto") { calculate() }.disabled(inFlight) }
+                    if !plans.isEmpty { Button("Calcular impacto") { calculate() }.disabled(inFlight || djiUpdate != nil) }
                 } else if !items.isEmpty && plans.isEmpty {
                     Button("Revisar selección (\(selected.count))") { showSelected = true }
                         .buttonStyle(CreatorButtonStyle(prominent: true))
@@ -405,7 +455,7 @@ struct SaveAllSheet: View {
                     }
                     if !plans.isEmpty {
                         Button("Calcular impacto") { calculate() }
-                            .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(inFlight)
+                            .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(inFlight || djiUpdate != nil)
                     }
                 }
             }
@@ -458,6 +508,10 @@ struct SaveAllSheet: View {
                     ? plan.display["title"].string : URL(fileURLWithPath: plan.display["source"].string).lastPathComponent)
                     .fontWeight(.medium).lineLimit(1)
                 Spacer()
+                if !plan.display["missions"].object.isEmpty, review == nil {
+                    Button("Recalcular DJI") { recalculateDJI(key) }
+                        .disabled(inFlight || model.busy || model.saveAllUpdating)
+                }
                 Button("Quitar del lote") { model.updateSaveAll(["key": .string(key)]) }
                     .disabled(inFlight || model.busy || model.saveAllUpdating)
             }
@@ -469,6 +523,23 @@ struct SaveAllSheet: View {
                 Text("\(discarded) archivos se descartan sin respaldo.").foregroundStyle(.secondary)
             }
         }.font(.caption)
+    }
+
+    private func recalculateDJI(_ key: String) {
+        inFlight = true; failure = nil; djiUpdate = nil
+        Task {
+            defer { inFlight = false }
+            do {
+                let update = try await model.oneShot("save_all_replan_dji", ["key": .string(key)])
+                djiKey = key
+                djiUpdate = update
+            } catch { failure = error.localizedDescription }
+        }
+    }
+
+    private func acceptDJI(_ update: JSONValue) {
+        model.updateSaveAll(["key": .string(djiKey), "document": update["document"],
+            "previous_digest": update["previous_digest"]]) { self.djiUpdate = nil }
     }
 
     private func prepareFolder(_ collection: JSONValue) {

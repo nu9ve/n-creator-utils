@@ -85,6 +85,83 @@ fn check_reviewed(catalog: &Catalog, plan: &Value) -> Result<()> {
     )
 }
 
+pub fn replan_dji(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let _batch = draft_lock(home)?;
+    let catalog = Catalog::open(home)?;
+    let saved = draft(home)?;
+    let key = text(params, "key");
+    let before = document(&saved["plans"][key])?;
+    check_reviewed(&catalog, &before)?;
+    planner::preflight(&catalog, backend, &before, false)?;
+    let identity = backend.describe(
+        Path::new(text(&before, "source")),
+        before["cleanup"] == true,
+    )?;
+    require(
+        before["source_identity"].as_object().is_some_and(|fields| {
+            fields
+                .iter()
+                .all(|(name, value)| identity.get(name) == Some(value))
+        }),
+        "source_replaced",
+        "La tarjeta cambió. Selecciona la fuente y revísala de nuevo.",
+    )?;
+    let record = catalog
+        .get(&format!("reviewed-plan:{}", text(&before, "id")))?
+        .unwrap_or_default();
+    let request = &record["mission_request"];
+    require(
+        request.is_object(),
+        "plan_changed",
+        "Abre Ingreso para volver a revisar este plan anterior.",
+    )?;
+    let after = planner::build_plan(home, backend, request)?;
+    require(
+        after["source_identity"] == before["source_identity"],
+        "source_replaced",
+        "La tarjeta cambió durante la revisión.",
+    )?;
+
+    let previous: BTreeMap<_, _> = before["preview"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|row| (text(row, "source"), row))
+        .collect();
+    let current: BTreeMap<_, _> = after["preview"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|row| (text(row, "source"), row))
+        .collect();
+    let mut sample = Vec::new();
+    let moved = current
+        .iter()
+        .filter(|(path, row)| {
+            let Some(old) = previous.get(*path) else {
+                return false;
+            };
+            let changed = ["archive_path", "work_path", "project", "source_action"]
+                .into_iter()
+                .any(|field| old[field] != row[field]);
+            if changed && sample.len() < 8 {
+                sample.push(
+                    json!({"path":path, "before":old["archive_path"], "after":row["archive_path"],
+                    "work_before":old["work_path"],"work_after":row["work_path"]}),
+                );
+            }
+            changed
+        })
+        .count();
+    Ok(
+        json!({"document": String::from_utf8(nu9ve_json::canonical(&after)).unwrap_or_default(),
+        "previous_digest":before["digest"], "source":before["source"], "changed": moved,
+        "added": current.keys().filter(|key| !previous.contains_key(*key)).count(),
+        "removed": previous.keys().filter(|key| !current.contains_key(*key)).count(),
+        "before": before["missions"], "after": after["missions"], "sample":sample}),
+    )
+}
+
 pub fn draft(home: &Path) -> Result<Value> {
     let catalog = Catalog::open(home)?;
     let mut draft = crate::tree::read_bytes(home, DRAFT, MAX_DRAFT + 1)?
@@ -129,6 +206,16 @@ pub fn save_draft(home: &Path, params: &Value) -> Result<Value> {
             .filter(|key| !key.is_empty() && key.len() <= 4096)
             .ok_or_else(|| Error::new("invalid_request", "Invalid draft item"))?;
         let plans = draft["plans"].as_object_mut().expect("checked by draft");
+        if let Some(digest) = params.get("previous_digest") {
+            let prior = plans
+                .get(key)
+                .ok_or_else(|| Error::new("plan_changed", "El plan del lote cambió."))?;
+            require(
+                &document(prior)?["digest"] == digest,
+                "plan_changed",
+                "El plan del lote cambió.",
+            )?;
+        }
         if params["document"].is_null() {
             plans.remove(key);
         } else {

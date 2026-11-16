@@ -274,6 +274,9 @@ private struct ProjectMediaDetails: View {
     @State private var showingClipper = false
     @State private var clipperStatus: JSONValue?
     @State private var clipperError = ""
+    @State private var clipperRestore: JSONValue?
+    @State private var clipperNotice = ""
+    @State private var checkingRestore = false
     @State private var visibleSources = 20
     @State private var reload = 0
 
@@ -322,6 +325,9 @@ private struct ProjectMediaDetails: View {
                         ForEach(sourceRows.prefix(visibleSources), id: \.["asset_id"].string) { source in
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(source["name"].string).fontWeight(.medium)
+                                if !source["mission_association"]["mission"]["plan_name"].string.isEmpty {
+                                    Label(source["mission_association"]["mission"]["plan_name"].string, systemImage: "airplane")
+                                }
                                 if !source["path"].string.isEmpty { location(source) }
                                 ForEach(source["alternatives"].array, id: \.["path"].string) { location($0) }
                                 ForEach(source["missing"].array, id: \.["path"].string) { location($0, missing: true) }
@@ -349,7 +355,14 @@ private struct ProjectMediaDetails: View {
             Label(clipperError, systemImage: "exclamationmark.circle")
         } else if let status = clipperStatus {
             if status["queued_assets"].double > 0 {
-                Label("Clipper tiene exportaciones en cola", systemImage: "clock")
+                DisclosureGroup {
+                    ForEach(Array(status["queued_exports"].array.enumerated()), id: \.offset) { _, entry in
+                        Text(entry.string).textSelection(.enabled)
+                    }
+                    Text("Termina o retira esas exportaciones en Clipper antes de liberar los raws.").foregroundStyle(.secondary)
+                } label: {
+                    Label("Clipper tiene exportaciones en cola", systemImage: "clock")
+                }
             }
             if status["used_assets"].double > 0 {
                 Label("\(Int(status["used_assets"].double)) fuentes en uso", systemImage: "link")
@@ -357,6 +370,15 @@ private struct ProjectMediaDetails: View {
             if status["missing_work_assets"].double > 0 {
                 Label("\(Int(status["missing_work_assets"].double)) rutas de edición ausentes", systemImage: "folder.badge.questionmark")
                 Button("Ver respaldos") { showingLocations = true }.buttonStyle(.link)
+                ForEach(status["missing"].array, id: \.["path"].string) { row in
+                    HStack {
+                        Text(URL(fileURLWithPath: row["path"].string).lastPathComponent)
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                        Button("Revisar restauración…") { reviewClipperRestore(row) }
+                            .disabled(model.busy || checkingRestore)
+                    }
+                }
             }
             if status["retired"].double > 0 {
                 Label("Retiro editorial registrado", systemImage: "archivebox")
@@ -369,6 +391,46 @@ private struct ProjectMediaDetails: View {
             }
         } else {
             ProgressView().controlSize(.small)
+        }
+        if !clipperNotice.isEmpty { Text(clipperNotice).foregroundStyle(.secondary) }
+        if let plan = clipperRestore {
+            HStack {
+                Text("\(Int(plan["files"].double)) archivos · \(bytesLabel(plan["bytes"].double)) → \(plan["volume"].string)")
+                Spacer()
+                Button("Cancelar") { clipperRestore = nil }.disabled(model.busy)
+                Button("Restaurar desde el respaldo") { applyClipperRestore(plan) }.disabled(model.busy)
+            }
+            Text(plan["path"].string).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+        }
+    }
+
+    private func reviewClipperRestore(_ row: JSONValue) {
+        checkingRestore = true; clipperRestore = nil; clipperNotice = ""
+        Task {
+            defer { checkingRestore = false }
+            do {
+                clipperRestore = try await model.oneShot("clipper_restore_plan", [
+                    "project_id": projectID, "asset_id": row["asset_id"], "path": row["path"]
+                ])
+            } catch { clipperNotice = error.localizedDescription }
+        }
+    }
+
+    private func applyClipperRestore(_ plan: JSONValue) {
+        guard let client = model.client else { return }
+        model.operation(String(localized: "Restaurando copia de edición"), scope: .space) {
+            do {
+                let result = try await client.call("clipper_restore_apply", [
+                    "project_id": projectID, "asset_id": plan["asset_id"],
+                    "path": plan["path"], "digest": plan["digest"]
+                ])
+                clipperRestore = nil
+                if result["status"] != .null { clipperStatus = result["status"] }
+                clipperNotice = result["recognized"].bool
+                    ? String(localized: "Copia verificada en la ruta que usa Clipper.")
+                    : String(localized: "Copia verificada. Falta confirmar la ruta en Clipper.")
+                await loadSources()
+            } catch { clipperNotice = error.localizedDescription }
         }
     }
 

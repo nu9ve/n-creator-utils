@@ -158,6 +158,7 @@ struct FlowsView: View {
                     FlowPipeline(flow: selected)
                     FlowLegend()
                     if selected.id == "finals" { FinalsFolders(model: model) }
+                    if selected.id == "drone" { ArchivedMissionReview(model: model) }
                     if let recipe = model.recipeSummary { RecipeRecognition(recipe: recipe) }
                     Text("Muestra lo que hace nüün hoy, con tus discos. Todavía no se edita aquí; nada se mueve sin un plan revisado.")
                         .font(.caption).foregroundStyle(.secondary)

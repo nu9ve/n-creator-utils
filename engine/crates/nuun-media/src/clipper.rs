@@ -276,7 +276,9 @@ pub fn project_status(
     let mut active = 0;
     let mut used = 0;
     let mut queued = 0;
-    let mut missing = 0;
+    let mut queues = std::collections::BTreeSet::new();
+    let mut missing = Vec::new();
+    let mut references = Vec::new();
     let roots = catalog
         .volumes()?
         .into_iter()
@@ -292,28 +294,153 @@ pub fn project_status(
                 .as_str()
                 .map(Path::new)
                 .filter(|p| p.is_absolute())
-                && roots.iter().any(|v| {
-                    v["root"]
-                        .as_str()
-                        .is_some_and(|root| path.starts_with(root))
-                })
-                && std::fs::symlink_metadata(path)
-                    .is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+                && let Some(volume) = roots
+                    .iter()
+                    .filter(|v| {
+                        v["root"]
+                            .as_str()
+                            .is_some_and(|root| path.starts_with(root))
+                    })
+                    .max_by_key(|v| v["root"].as_str().map_or(0, str::len))
             {
-                missing += 1;
+                let row = json!({"asset_id":asset["asset_id"], "path":path, "work":volume["id"],
+                    "volume":volume["name"], "kind":asset["kind"], "revision":asset["revision"]});
+                let observed = std::fs::symlink_metadata(path);
+                if observed
+                    .as_ref()
+                    .is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+                {
+                    missing.push(row.clone());
+                }
+                references.push(row);
             }
             if asset["queued_exports"]
                 .as_array()
                 .is_some_and(|items| !items.is_empty())
             {
                 queued += 1;
+                queues.extend(
+                    asset["queued_exports"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned),
+                );
             }
         }
     }
     Ok(
         json!({"available": available, "active": active, "retired": retired,
-              "used_assets": used, "queued_assets": queued, "missing_work_assets": missing, "offline_projects": offline}),
+              "used_assets": used, "queued_assets": queued, "missing_work_assets": missing.len(),
+              "missing": missing, "references":references,"offline_projects": offline, "queued_exports":queues}),
     )
+}
+
+pub fn restore_plan(
+    home: &Path,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    restore_review(home, backend, params, false)
+}
+
+fn restore_review(
+    home: &Path,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+    retry: bool,
+) -> Result<Value> {
+    let catalog = Catalog::open(home)?;
+    let status = project_status(&catalog, backend, params)?;
+    let missing = status[if retry { "references" } else { "missing" }]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|row| row["asset_id"] == params["asset_id"] && row["path"] == params["path"])
+        .ok_or_else(|| {
+            Error::new(
+                "plan_changed",
+                "La referencia de Clipper ya no figura como ausente.",
+            )
+        })?;
+    let asset_id = missing["asset_id"]
+        .as_str()
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| Error::new("unknown_asset", "La referencia no tiene un asset asociado."))?;
+    let asset = catalog
+        .json_rows("SELECT payload FROM assets WHERE id=?", [asset_id])?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::new("unknown_asset", "La referencia no tiene un asset asociado."))?;
+    require(
+        missing["revision"].is_null() || missing["revision"] == asset["revision"],
+        "revision_mismatch",
+        "Clipper usa otra revisión de esta fuente.",
+    )?;
+    let plan = crate::delivery::work_preview(
+        &catalog,
+        backend,
+        &json!({"asset_ids": [missing["asset_id"]], "work": missing["work"]}),
+    )?;
+    let work = catalog.volume(missing["work"].as_str().unwrap_or_default())?;
+    let root = Path::new(work["root"].as_str().unwrap_or_default());
+    let expected = Path::new(missing["path"].as_str().unwrap_or_default());
+    let targets: Vec<_> = plan["entries"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|entry| root.join(entry["path"].as_str().unwrap_or_default()))
+        .collect();
+    require(
+        targets.iter().any(|target| target == expected)
+            || missing["kind"] == "stalker_session"
+                && targets.iter().all(|target| target.starts_with(expected)),
+        "relink_required",
+        "La copia de trabajo llega a otra ruta. Revisa el reenlace en Clipper.",
+    )?;
+    let digest = nu9ve_json::digest(
+        &json!({"project_id":params["project_id"], "asset_id":asset_id,
+        "path":expected, "revision":missing["revision"], "delivery_digest":plan["digest"]}),
+    );
+    Ok(
+        json!({"project_id":params["project_id"], "asset_id":asset_id, "path":expected, "volume":missing["volume"],
+        "revision":missing["revision"], "digest":digest, "files":targets.len(),
+        "bytes":plan["entries"].as_array().into_iter().flatten().fold(0u64, |sum, entry|
+            sum.saturating_add(entry["bytes"].as_u64().unwrap_or_default())),
+        "delivery":plan}),
+    )
+}
+
+pub fn restore_apply(
+    home: &Path,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    #[cfg(target_os = "macos")]
+    let _cancel = crate::interrupt::Cancel::install()?;
+    let plan = restore_review(home, backend, params, true)?;
+    require(
+        plan["digest"] == params["digest"],
+        "plan_changed",
+        "Revisa nuevamente la restauración.",
+    )?;
+    crate::delivery::deliver_reviewed(home, backend, &plan["delivery"])?;
+    let catalog = Catalog::open(home)?;
+    let status = project_status(&catalog, backend, &plan);
+    let recognized = status.as_ref().is_ok_and(|value| {
+        value["references"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|asset| {
+                asset["asset_id"] == plan["asset_id"]
+                    && asset["path"] == plan["path"]
+                    && asset["revision"] == plan["revision"]
+                    && Path::new(plan["path"].as_str().unwrap_or_default()).exists()
+            })
+    });
+    Ok(json!({"recognized":recognized, "status":status.ok(), "path":plan["path"]}))
 }
 
 /// `inspect` with the consumer settings and the home folder given (tests use a fixture Clipper and home).
@@ -444,6 +571,63 @@ pub(crate) fn inspect_dependencies(
 mod tests {
     use super::*;
     use crate::captures::{Places, discard_check_with};
+
+    #[test]
+    fn restores_exact_clipper_path_and_rechecks_reference() {
+        use std::os::unix::fs::PermissionsExt;
+        let s = crate::volumes::test_backend::setup();
+        std::fs::write(s.card.join("clip.mp4"), b"fixture").unwrap();
+        let plan = crate::planner::build_plan(
+            &s.home,
+            &s.backend,
+            &json!({
+                "source":s.card,"archive":"MEDIA","work":"ESSD","project":"restore",
+                "archive_only":true,"confirm_archive_only":true,"work_decision":"pending"
+            }),
+        )
+        .unwrap();
+        crate::transfer::apply(
+            &s.home,
+            &s.backend,
+            &plan,
+            plan["digest"].as_str().unwrap(),
+            &|_, _| Ok(()),
+        )
+        .unwrap();
+        let id = &plan["units"][0]["id"];
+        let catalog = Catalog::open(&s.home).unwrap();
+        let copy = crate::delivery::work_preview(
+            &catalog,
+            &s.backend,
+            &json!({"asset_ids":[id],"work":"ESSD"}),
+        )
+        .unwrap();
+        let path = s.work.join(copy["entries"][0]["path"].as_str().unwrap());
+        let fixture = s.home.join("fake-clipper");
+        let deps = json!({"schema":"clipper-library-deps/1","capabilities":[],"offline_projects":[],"projects":[
+            {"project_id":"fixture-project","clipper_root":s.work,"relinks":[],
+                "assets":[{"asset_id":id,"path":path,"in_use":true,"queued_exports":[],"items":[]}]}
+        ]});
+        std::fs::write(&fixture, format!("#!/bin/sh\ncat <<'JSON'\n{deps}\nJSON\n")).unwrap();
+        std::fs::set_permissions(&fixture, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::catalog::WritableCatalog::open(&s.home)
+            .unwrap()
+            .set("clipper-executable", &json!(fixture))
+            .unwrap();
+        let mut params = json!({"project_id":"fixture-project","asset_id":id,"path":path});
+        let reviewed = restore_plan(&s.home, &s.backend, &params).unwrap();
+        assert!(!path.exists());
+        params["digest"] = reviewed["digest"].clone();
+        assert_eq!(
+            restore_apply(&s.home, &s.backend, &params).unwrap()["recognized"],
+            true
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), b"fixture");
+        assert_eq!(
+            restore_apply(&s.home, &s.backend, &params).unwrap()["recognized"],
+            true
+        );
+    }
 
     /// E0b: the same fixture Clipper, legacy project, registry, queue and sessions as Python's, the same answers.
     #[test]

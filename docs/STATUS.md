@@ -42,6 +42,14 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### DJI, Clipper y recuperación · 2026-11-15
+
+El lote incorpora exports y permite recalcular una SD con sus asignaciones originales. Compara pendientes y rutas antes de sustituir el plan. Fotos ya archivadas pueden asociarse a misiones en el catálogo tras rehash, conservando sus rutas. Proyectos puede preparar y restaurar una copia en la ruta exacta de Clipper, comprobar la referencia después y mostrar IDs de cola. [Lote](features/save-all.md) · [Dron](contracts/atlas-drone-v1.md) · [Clipper](contracts/project-closeout-v1.md#restaurar-una-ruta-que-clipper-sigue-usando).
+
+Recuperación de sólo lectura con MEDIA502 y sin SD: el snapshot `5124be72` coincidió con SHA-256 del recibo y pasó `integrity_check` en un estado temporal. Rust leyó 20 proyectos, 2 perfiles y 2 decisiones de cierre. La copia contiene 20 aliases, 3189 estados de trabajo y 8579 recibos de copia. No se sustituyó el catálogo diario. Atlas local ya consume el mapa y el registro. Su lector abrió 2985 rutas JPG de ESSD, todas presentes, y resolvió los 2451 IDs de misión contra el registro; 13 pruebas de su catálogo pasaron. Quedan ensayos físicos H6, GoPro, DJI 360/acción y RAW+JPG.
+
+Build de desarrollo `f7c3f4f012ab` compilada y firma ad-hoc verificada. Pasaron 150 pruebas Rust, con diferenciales, y 28 Swift. El motor empaquetado preparó, en sólo lectura, cinco restauraciones exactas de Clipper (26 miembros, 12.135.502.496 bytes) y el informe de MEDIA502 devolvió cero unidades pendientes de asociación. No se aplicaron las restauraciones ni se instaló la build mientras nüün seguía abierto.
+
 ### Lote recuperable y estado de Clipper · 2026-11-15
 
 «Retomar lote» conserva los planes pendientes con reemplazo atómico y muestra los jobs iniciados en Actividad. Conserva un solo resumen local. Rust admite copias de edición por proyecto y carpetas vivas registradas; los respaldos incrementales completados desde el lote reducen su plan a un recibo compacto. Un cambio del registro DJI exige volver a revisar una tarjeta cuyo job aún no inició. [Contrato](features/save-all.md).

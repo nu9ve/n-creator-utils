@@ -383,6 +383,222 @@ pub(crate) fn check_plan(catalog: &crate::catalog::Catalog, plan: &Value) -> Res
     Ok(())
 }
 
+pub fn archived_review(
+    catalog: &crate::catalog::Catalog,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    let (mut review, _) = archived_candidates(catalog, backend, params)?;
+    review["sample"]
+        .as_array_mut()
+        .expect("sample array")
+        .truncate(20);
+    Ok(review)
+}
+
+fn archived_candidates(
+    catalog: &crate::catalog::Catalog,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<(Value, Value)> {
+    let archive = catalog.volume(params["archive"].as_str().unwrap_or_default())?;
+    nu9ve_json::require(
+        archive["role"] == "archive",
+        "invalid_role",
+        "Elige un disco de respaldo.",
+    )?;
+    crate::volumes::check(backend, &archive)?;
+    let flow = crate::mission_review::flow(catalog, &params["flow_id"])?;
+    let flow_id = flow["id"].as_str().unwrap_or_default();
+    let index = index_for(&archive, &flow)?;
+    let mut matched = 0;
+    let mut waiting = 0;
+    let mut no_mission = 0;
+    let mut incomplete = 0;
+    let mut sample = Vec::new();
+    let mut files_to_verify = Vec::new();
+    let mut recorded = 0;
+    let plans = catalog.json_rows(
+        "SELECT plan FROM jobs WHERE state IN ('completed','source_retained','camera_action_required','recovered') AND json_extract(plan,'$.archive_id')=? AND json_type(plan,'$.missions')='object' ORDER BY updated_at DESC",
+        [archive["id"].as_str().unwrap_or_default()],
+    )?;
+    let mut seen = std::collections::BTreeSet::new();
+    let tree = crate::tree::Root::open(Path::new(archive["root"].as_str().unwrap_or_default()))?;
+    for plan in plans {
+        if plan["missions"][flow_id]["units"]["pending_export"]
+            .as_u64()
+            .unwrap_or_default()
+            == 0
+        {
+            continue;
+        }
+        let job_id = plan["id"].as_str().unwrap_or_default();
+        let files: HashMap<_, _> = plan["files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|file| file["path"].as_str().map(|path| (path, file)))
+            .collect();
+        let receipts = catalog.json_rows(
+            "SELECT payload FROM copies WHERE job_id=? AND volume_id=?",
+            [job_id, archive["id"].as_str().unwrap_or_default()],
+        )?;
+        let copies: HashMap<_, _> = receipts
+            .iter()
+            .filter_map(|row| row["path"].as_str().map(|path| (path, row)))
+            .collect();
+        for unit in plan["units"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|unit| {
+                unit["mission"]["flow"] == flow_id && unit["mission"]["state"] == "pending_export"
+            })
+        {
+            let id = unit["id"].as_str().unwrap_or_default();
+            if catalog
+                .get(&format!("mission-association:{id}"))?
+                .is_some_and(|row| row["history_sha256"] == json!(index.history_sha256))
+            {
+                recorded += 1;
+                continue;
+            }
+            let members: Vec<_> = unit["paths"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .filter(|path| {
+                    matches!(crate::snapshot::kind_of(path), Some("image" | "raw_image"))
+                })
+                .collect();
+            let mut destinations = Vec::new();
+            let mut hashes = Vec::new();
+            for path in &members {
+                if let Some(receipt) = copies.get(path)
+                    && let Some(rel) = receipt["destination"].as_str()
+                    && receipt["sha256"]
+                        .as_str()
+                        .is_some_and(|value| value.len() == 64)
+                    && tree.stat(rel)?.is_some_and(|s| receipt["bytes"] == s.size)
+                {
+                    destinations.push(rel);
+                    hashes.push(json!({"path": rel, "sha256":receipt["sha256"]}));
+                }
+            }
+            if members.is_empty() || destinations.len() != members.len() {
+                incomplete += 1;
+                continue;
+            }
+            destinations.sort_unstable();
+            if !seen.insert(
+                destinations
+                    .iter()
+                    .map(|p| (*p).to_owned())
+                    .collect::<Vec<_>>(),
+            ) {
+                continue;
+            }
+            let Some(path) = members
+                .iter()
+                .filter(|p| {
+                    files
+                        .get(*p)
+                        .is_some_and(|f| f["photo"]["captured_at"].is_string())
+                })
+                .min_by_key(|p| crate::snapshot::kind_of(p) != Some("image"))
+            else {
+                incomplete += 1;
+                continue;
+            };
+            let original = path.rsplit('/').next().unwrap_or_default();
+            let result = index.matches(&files[path]["photo"], original)?;
+            match result["state"].as_str() {
+                Some("matched") => {
+                    matched += 1;
+                    sample.push(json!({"original":original, "paths":destinations,
+                        "unit_id":unit["id"],"mission":result}));
+                    files_to_verify.extend(hashes);
+                }
+                Some("none") => no_mission += 1,
+                _ => waiting += 1,
+            }
+        }
+    }
+    let digest = nu9ve_json::digest(
+        &json!({"archive":archive["id"],"identity":archive["identity"],
+        "history_sha256":index.history_sha256, "associations":sample, "verification": files_to_verify}),
+    );
+    Ok((
+        json!({"matched":matched,"waiting":waiting,"no_mission":no_mission,"incomplete":incomplete,
+        "recorded":recorded,"sample":sample,"digest":digest,"archive":archive["id"],"flow_id":flow_id,
+        "history_sha256":index.history_sha256}),
+        json!(files_to_verify),
+    ))
+}
+
+pub fn archived_apply(
+    home: &Path,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    #[cfg(target_os = "macos")]
+    let _cancel = crate::interrupt::Cancel::install()?;
+    let _write = crate::catalog::writer_lock(home)?;
+    let catalog = crate::catalog::Catalog::open(home)?;
+    let (review, files) = archived_candidates(&catalog, backend, params)?;
+    nu9ve_json::require(
+        review["digest"] == params["digest"] && review["matched"].as_u64().unwrap_or_default() > 0,
+        "plan_changed",
+        "Vuelve a revisar las asociaciones del archivo.",
+    )?;
+    let archive = catalog.volume(review["archive"].as_str().unwrap_or_default())?;
+    let root = crate::tree::Root::open(Path::new(archive["root"].as_str().unwrap_or_default()))?;
+    for file in files.as_array().into_iter().flatten() {
+        #[cfg(target_os = "macos")]
+        nu9ve_json::require(
+            !crate::interrupt::cancelled(),
+            "cancelled",
+            "Revisión cancelada",
+        )?;
+        let rel = file["path"].as_str().unwrap_or_default();
+        let hash = crate::release::checked_hash(&root, rel)?;
+        nu9ve_json::require(
+            hash.as_ref()
+                .is_some_and(|(sha, _)| file["sha256"] == sha.as_str()),
+            "checksum_mismatch",
+            format!("Cambió la copia de archivo: {rel}"),
+        )?;
+    }
+    crate::volumes::check(backend, &archive)?;
+    let flow = crate::mission_review::flow(&catalog, &review["flow_id"])?;
+    nu9ve_json::require(
+        json!(index_for(&archive, &flow)?.history_sha256) == review["history_sha256"],
+        "mission_registry_changed",
+        "Cambió el registro de misiones.",
+    )?;
+    let writer = crate::catalog::WritableCatalog::open(home)?;
+    let tx = writer
+        .db()
+        .unchecked_transaction()
+        .map_err(|e| Error::new("catalog_unavailable", e.to_string()))?;
+    for row in review["sample"].as_array().into_iter().flatten() {
+        let id = row["unit_id"].as_str().unwrap_or_default();
+        writer.set(&format!("mission-association:{id}"), &json!({"archive":review["archive"], "flow":review["flow_id"],
+            "path_unchanged":true, "history_sha256":review["history_sha256"], "mission":row["mission"]}))?;
+    }
+    tx.commit()
+        .map_err(|e| Error::new("catalog_unavailable", e.to_string()))?;
+    let backup = crate::units_map::backup_metadata_locked(
+        home,
+        backend,
+        review["archive"].as_str().unwrap_or_default(),
+        &writer,
+    );
+    Ok(json!({"associated":review["matched"],"files_moved":0,
+        "metadata_backup_error":backup.err().map(|e|e.message)}))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

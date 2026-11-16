@@ -1568,10 +1568,15 @@ pub fn build_plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<
     let catalog = Catalog::open(home)?;
     let plan = build(&catalog, backend, params)?;
     let sessions = check_retitle(&catalog, &plan)?;
-    writable.set(
-        &format!("reviewed-plan:{}", text(&plan, "id")),
-        &json!({"id": plan["id"], "digest": plan["digest"], "sessions": sessions, "cancelled": false}),
-    )?;
+    let mut reviewed = json!({"id": plan["id"], "digest": plan["digest"], "sessions": sessions, "cancelled": false});
+    if plan["source_kind"] == "card"
+        && plan["missions"]
+            .as_object()
+            .is_some_and(|flows| !flows.is_empty())
+    {
+        reviewed["mission_request"] = params.clone();
+    }
+    writable.set(&format!("reviewed-plan:{}", text(&plan, "id")), &reviewed)?;
     Ok(plan)
 }
 
@@ -1843,7 +1848,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             reviewed,
-            json!({"id": plan["id"], "digest": plan["digest"], "sessions": [], "cancelled": false})
+            json!({"id": plan["id"], "digest": plan["digest"], "sessions": [], "cancelled": false,
+                "mission_request": params(&s, json!({}))})
         );
         let _held = crate::catalog::writer_lock(&s.home).unwrap();
         assert_eq!(
