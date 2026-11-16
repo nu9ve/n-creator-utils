@@ -1,5 +1,7 @@
 # Mapa de la suite nu9ve
 
+Las menciones a «SoundShop» en los contratos se refieren a **SoundBender**, su nombre desde el 2026-11-16; las rutas de código siguen siendo las de hoy.
+
 Este repo coordina la suite: aquí viven los contratos que comparten las apps y este mapa de quién es quién. Cada app conserva sus datos, su estado y su plan en su repo; este mapa **enlaza** y no reemplaza esos estados. Leído en los repos el 2026-11-07: antes de decidir algo, revisa el STATUS de la app.
 
 ## Las apps
@@ -14,7 +16,7 @@ Cada nombre es «nueve» en un idioma, y de ahí sale su identidad ([tema §7](c
 | **neuf** | App nativa de edición sobre el motor de Clipper | Francia: el cine | macOS | SwiftUI (Xcode) | Clipper vendorizado por `AppServiceClient` (proceso) | local, sin remoto | Privada, sin instalar; sustitución de Studio en curso |
 | **kyu** | Cribado, revelado y entrega de fotos | Japón: las cámaras profesionales | macOS (Windows/Linux en etapa 3) | AppKit + SwiftUI + Metal | Rust (`kyu-core`) por FFI/XCFramework | local, sin remoto | v0.1 con fixtures; adoptando tema e interacción |
 | **curado** | Biblioteca de música y consola de dos decks | México/Sonora: curar, «curado» | macOS, Windows (Linux por validar) | Tauri + React, ventana Metal nativa | Rust (`audio-engine`) + comandos Tauri | `nu9ve/curado` | 0.1.0; Windows compilado y probado automáticamente |
-| **SoundShop** | Editor espectral: el sonido como lienzo | Sin país: el lienzo espectral | macOS | SwiftUI + Metal | Swift (`SoundCore`); stems con Python opcional | local, sin remoto | v0.29.0 |
+| **SoundBender** (antes SoundShop) | Editor espectral: el sonido como lienzo | Sin país: el lienzo espectral | macOS; plugin VST3/AU para Ableton Live y después Windows (plan) | SwiftUI + Metal | Swift (`SoundCore`); motor portable en plan, Rust a decidir tras una prueba comparativa; stems con Python opcional | `nu9ve/soundbender` (desde 2026-11-16) | v0.29.0; nombre nuevo decidido el 2026-11-16, el código aún dice SoundShop |
 | **nove** | Recolectar datos, seguir números de páginas, condiciones y avisos | Portugal: exploradores, el puerto | macOS, **Windows (activa)** | SwiftUI/AppKit · C#/WinUI 3 · extensión de Chrome | Rust; socket Unix / named pipe con el mismo protocolo; MCP local | `nu9ve/nove` | Mac 0.11.0, Windows 0.12.0.x por MSIX de desarrollo |
 | **Atlas** | Análisis de fotos nadir de dron (daño en calles) | Datos | macOS (Python) | Visor web local | Python | `data/atlas`, local | Exploración; consume archivos de nüün |
 | **Fractos** | Comunidad: mapa, trabajo, grupos, perfiles; la referencia expresiva de la suite | Fractos | iOS, macOS, web | SwiftUI (`FractosKit`) · Next.js | API de Fractos (`/api/v1`) + Supabase solo para auth | `nu9ve/ios-fractos`, `nu9ve-machine/nu9ve.xyz` | Leído el 2026-11-10 (`f1a7bcb`): iOS `implemented-local`; Mac 0.1.0 (`Apps/macOS`, macOS 26) con login, Trabajo, Calendario, Mapa, Textos, Grupos y Perfil, probada en QA y sin cuenta real; web activa en nu9ve.xyz. Detalle en su `docs/MONOREPO.md` y `docs/SUITE-DESKTOP.md` |
@@ -31,7 +33,7 @@ En propuesta, sin código: un puente con Brave y un «escenario» web para graba
 | Cámara → edición | SD → nüün (respaldo verificado + copia de trabajo) → Clipper/neuf | [ingreso](contracts/ingest-flow-v1.md), [naming](contracts/media-naming-v1.md), [biblioteca](contracts/media-library-v1.md) |
 | Fotos | SD → nüün → kyu reconecta por huella, solo lectura (`nu9ve media projects/sources`) | [README de contratos](contracts/README.md), [fotos y Kyū](features/product-flows.md#fotos-y-kyū) |
 | Dron | SD + exports de subaereo → nüün → Atlas | [atlas-drone](contracts/atlas-drone-v1.md) |
-| Audio | Descargas/stems en nüün (CLI legado); curado y SoundShop con sus propias bibliotecas | Sin contrato común todavía |
+| Audio | Descargas/stems en nüün (CLI legado); curado y SoundBender con sus propias bibliotecas; Clipper compone música para el video | Sin contrato común todavía; capas compartidas en propuesta ([audio en la suite](platforms/audio.md)) |
 | Datos | nove por su cuenta; MCP local con lectura, «muéstramelo» y cambios de agente deshacibles ([MCP v1](contracts/nu9ve-mcp-v1.md)) | Contratos propios en `nove/docs/contracts` |
 
 ## Contratos de la suite
@@ -60,7 +62,7 @@ Clipper mantiene además los suyos (`clipper/apps/APP_CONTRACT.md`, `APP_SERVICE
   - **nüün:** motor Python, pero la parte de discos y volúmenes es específica de Mac.
   - **Clipper:** Python, y su TUI ya corre en cualquier terminal.
 
-  Las que dependen de frameworks de Apple (Stalker con ScreenCaptureKit, SoundShop con Metal, neuf) necesitarían otro motor o capa de captura.
+  Las que dependen de frameworks de Apple (Stalker con ScreenCaptureKit, neuf) necesitarían otro motor o capa de captura. **SoundBender** planea un motor portable: primero un plugin VST3/AU para Ableton Live y después Windows ([audio en la suite](platforms/audio.md)).
 - **iOS y web:** Fractos (y subaereo para la captura de dron).
 
 ## Lo que ya se repite y podría compartirse
@@ -84,6 +86,8 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](contrac
 | Rust | Identidad de volumen por serial, letras y espacio libre en Windows | curado `identity.rs`/`relink.rs` (nüün lo necesitará: [motor en Rust](platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps)) | 1 |
 | Rust / Python | Regla de `slug()` para nombres | nüün `media`, kyu `naming.rs` (copia declarada) | 2 |
 | TypeScript | Paleta pura, dither y pruebas de contraste | curado `theme.ts`, `dither.ts`; Fractos web `packages/styles` | 2 |
+| Rust / Swift / Python | Separación de stems con Demucs: proceso aislado y publicación de resultados | curado `stems.rs`, SoundBender `separate.py`, nüün `manager/` | 3 |
+| Rust / Swift | Loudness (LUFS), limitador, BPM y clave | curado `audio-engine`, SoundBender `SoundCore`; Clipper en Python | 2–3 ([audio en la suite](platforms/audio.md)) |
 | Todas | QA aislada por variable de entorno; instalar en la carpeta de apps del usuario con respaldo del anterior | nüün, nove, curado, kyu, SoundShop | 5 |
 
 **Primer candidato maduro:** `NuMacShell` + roles de tema en Swift (Acerca de, ventana, barra y paleta), con nüün, Fractos, SoundShop y kyu como consumidores. Antes de crearlo hay que decidir en qué repo vive y cómo se versiona; queda pendiente y no se crea sin esa decisión.

@@ -137,14 +137,24 @@ Ningún paso deja una app sin compilar, y cada uno cabe en una sesión. El inven
 | 2 | El script `sync-suite`, generalizando el de Fractos, con su gemelo en PowerShell | Todas |
 | 3 | `rust/`: `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time` | nüün; curado cuando cambie su `identity.rs` por el crate |
 | 4 | `windows/`: `Nu9ve.Core`, `Nu9ve.WinUI` | nüün; nove (su trabajo de tema esperaba esta decisión) |
-| 5 | `swift/`: `NuMacShell`, desde `ios-fractos` | Fractos, nüün; SoundShop y neuf al tocarlos |
+| 5 | `swift/`: `NuMacShell`, desde `ios-fractos` | Fractos, nüün; SoundBender y neuf al tocarlos |
+| 5b | `rust/`: capas de audio con dos o más copias (`nu9ve-audio-io`, `nu9ve-loudness`, `nu9ve-music`, `nu9ve-stems`), desde curado ([audio en la suite](platforms/audio.md)) | SoundBender y curado |
 | 6 | `data/sound/` y, después, el motor de sonido de Swift | nüün Windows primero |
 
 `n-creator-utils` vuelve a ser sólo nüün: su motor, sus apps y los contratos de media.
 
 ## 8. Lo que decide el usuario
 
-1. ~~¿Se crea `nu9ve/suite`?~~ **Sí** (2026-11-11). Falta confirmar el nombre y que sea privado al crearlo.
+1. ~~¿Se crea `nu9ve/suite`?~~ **Sí** (2026-11-11). Falta confirmar el nombre y que sea privado al crearlo. El 2026-11-16 el repo aún no existe (ni `nu9ve/suite` ni `nu9ve/platform`) y al usuario «suite» no lo convence. Candidatos:
+
+   | Nombre | De dónde | A favor | En contra |
+   | --- | --- | --- | --- |
+   | **`novem`** (recomendado) | Latín, «nueve»: la raíz de nueve, nove y neuf | Es literalmente de donde descienden los nombres de las apps; corto, se dice igual en español e inglés | Recuerda a «noviembre» |
+   | `ennea` | Griego, «nueve» | Une las dos convenciones: los nueves en idiomas y los dioses griegos de los repos de TouchDesigner | Menos obvio de leer y decir |
+   | `ennead` | La Enéada, los nueve dioses de Heliópolis | Nueve y dioses a la vez: un grupo de nueve que reúne a los demás | Egipcio y no griego; se lee en inglés |
+   | `platform` | Descriptivo | Dice qué es | Genérico; `github.com/nu9ve/` ya da el contexto |
+
+   Con cualquiera, los crates y paquetes **conservan el prefijo `nu9ve-`** (`nu9ve-json`, `Nu9ve.Core`), que ya usan nüün y la maqueta de Windows: el repo es dónde se editan, la marca es la de la organización. Cambiar el prefijo obligaría a renombrar lo que ya se consume.
 2. ~~¿Copia fijada o dependencias de paquete?~~ **Copia fijada** (2026-11-11).
 3. ¿`NuMacShell` y, después, el motor de sonido salen de `ios-fractos` y Fractos los consume como las demás?
 4. ¿Los documentos de la suite se quedan en español, como hoy? (curado documenta en inglés.)

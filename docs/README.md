@@ -32,6 +32,7 @@
 | Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](suite-browser.md) (proposal, nothing built) |
 | OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](contracts/nu9ve-notifications-v1.md) (proposal) |
 | Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](contracts/nu9ve-sound-v1.md) (proposal) |
+| Decide what audio code the apps share (I/O, DSP, loudness, music analysis, stems) and what each keeps; SoundBender's portable engine | [Audio in the suite](platforms/audio.md) (proposal, 2026-11-16) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |
 | Configure older downloads/stems/importer | [Configuration](configuration.md), [commands](commands.md) |
