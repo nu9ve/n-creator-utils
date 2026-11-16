@@ -392,7 +392,8 @@ struct ContentStep: View {
         ("likely_unregistered", "Parecen de misión", "scope"), ("discarded", "Descartadas", "trash"),
         ("video", "Videos", "film"), ("image", "Fotos", "photo"),
         ("raw_image", "RAW", "camera.aperture"), ("audio", "Audio", "waveform"), ("drone", "Dron", "airplane"), ("360", "360°", "view.360"),
-        ("stalker", "Stalker", "record.circle"), ("support", "Auxiliares", "doc"), ("dji", "DJI sin clasificar", "questionmark.circle")]
+        ("stalker", "Stalker", "record.circle"), ("support", "Auxiliares", "doc"), ("other", "Otros archivos", "doc.badge.questionmark"),
+        ("dji", "DJI sin clasificar", "questionmark.circle")]
     private func count(_ key: String) -> Int {
         switch key {
         case "": return model.units.filter { !$0.isSupport }.count

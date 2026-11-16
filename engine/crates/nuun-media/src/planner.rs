@@ -359,6 +359,23 @@ pub fn validate_plan(plan: &Value) -> Result<()> {
             "invalid_plan",
             "Empty or inconsistent plan",
         )?;
+        if let Some(retained) = plan.get("retained") {
+            for (path, bytes) in retained.as_object().ok_or_else(malformed)? {
+                relative(path)?;
+                require(
+                    kind == "card"
+                        && bytes.is_u64()
+                        && !seen.contains(path)
+                        && !plan["discarded"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .any(|item| item["stamps"].get(path).is_some()),
+                    "invalid_plan",
+                    "Retained files cannot be copied or discarded",
+                )?;
+            }
+        }
         if plan["schema"] == "nu9ve-ingest-plan/2"
             && (kind != "delivery" || plan.get("layout").is_some())
         {
@@ -820,10 +837,12 @@ fn build_with_stamps(
     let mut mission_indexes: BTreeMap<String, MissionIndex> = BTreeMap::new();
     let mut units: Vec<Value> = Vec::new();
     let mut discarded: Vec<Value> = Vec::new();
+    let mut retained = Map::new();
     let mut unit_of: BTreeMap<String, String> = BTreeMap::new();
     for (group, members) in &groups {
-        let support = group == "camera-support";
-        let choices: Vec<&Value> = if support {
+        let other = crate::scan::other_card_group(group);
+        let support = group == "camera-support" || other;
+        let choices: Vec<&Value> = if support && !other {
             Vec::new()
         } else {
             members
@@ -832,7 +851,15 @@ fn build_with_stamps(
                 .collect()
         };
         for choice in &choices {
-            let allowed = ["project", "profile", "country", "camera", "work", "discard"];
+            let allowed = [
+                "project",
+                "profile",
+                "country",
+                "camera",
+                "work",
+                "discard",
+                "include_other",
+            ];
             require(
                 choice
                     .as_object()
@@ -850,6 +877,14 @@ fn build_with_stamps(
                 "invalid_assignment",
                 "discard must be boolean",
             )?;
+            require(
+                choice
+                    .get("include_other")
+                    .is_none_or(|value| other && value.is_boolean())
+                    && (!other || choice["discard"] != true),
+                "invalid_assignment",
+                "Other files must be backed up before cleanup",
+            )?;
         }
         require(
             choices.iter().all(|c| *c == choices[0]),
@@ -858,6 +893,11 @@ fn build_with_stamps(
         )?;
         let empty = json!({});
         let assignment = choices.first().copied().unwrap_or(&empty);
+        if other && assignment["include_other"] != true {
+            let path = text(&members[0], "path");
+            retained.insert(path.to_owned(), members[0]["stamp"]["size"].clone());
+            continue;
+        }
         if assignment["discard"] == true {
             // Discarded by the person: not backed up nor copied, and never deleted here.
             require(
@@ -1042,6 +1082,7 @@ fn build_with_stamps(
             file["unit_id"] = json!(id);
         }
     }
+    files.retain(|file| !retained.contains_key(text(file, "path")));
     if !discarded.is_empty() {
         let gone: BTreeSet<String> = discarded
             .iter()
@@ -1055,6 +1096,11 @@ fn build_with_stamps(
             "Everything was discarded; nothing to back up",
         )?;
     }
+    require(
+        !files.is_empty(),
+        "empty_source",
+        "No files selected to back up",
+    )?;
     require(
         archive_only == true
             || units
@@ -1086,6 +1132,9 @@ fn build_with_stamps(
     if !discarded.is_empty() {
         discarded.sort_by(|a, b| a["paths"][0].as_str().cmp(&b["paths"][0].as_str()));
         plan["discarded"] = json!(discarded);
+    }
+    if !retained.is_empty() {
+        plan["retained"] = Value::Object(retained);
     }
     let configured = catalog.get("creative-profiles")?.unwrap_or(json!({}));
     let mut routes = Map::new();
@@ -1626,6 +1675,43 @@ mod tests {
             .iter()
             .find(|u| !truthy(&u["support"]))
             .unwrap()
+    }
+
+    #[test]
+    fn h6_session_uses_broadcast_wav_time_and_keeps_tracks_with_the_project() {
+        let s = setup();
+        let dir = "FOLDER01/ZOOM0001";
+        std::fs::create_dir_all(s.card.join(dir)).unwrap();
+        let mut wav = b"RIFF".to_vec();
+        wav.extend(350u32.to_le_bytes());
+        wav.extend(b"WAVEbext");
+        wav.extend(338u32.to_le_bytes());
+        let mut fields = [0; 338];
+        let originator = b"ZOOM Handy Recorder H6";
+        fields[256..256 + originator.len()].copy_from_slice(originator);
+        fields[320..].copy_from_slice(b"2026-10-0221:06:30");
+        wav.extend(fields);
+        for name in ["ZOOM0001_LR.WAV", "ZOOM0001_Tr1.WAV", "ZOOM0001_Tr2.WAV"] {
+            std::fs::write(s.card.join(dir).join(name), &wav).unwrap();
+        }
+        std::fs::write(s.card.join(dir).join("ZOOM0001.hprj"), b"project").unwrap();
+        let plan = plan(&s, json!({})).unwrap();
+        assert_eq!(plan["units"].as_array().unwrap().len(), 1);
+        let unit = media_unit(&plan);
+        assert_eq!(unit["camera"], "h6");
+        assert_eq!(unit["capture_time"]["original"], "2026-10-02T21:06:30");
+        assert_eq!(unit["paths"].as_array().unwrap().len(), 4);
+        for (original, dest) in plan["layout"].as_object().unwrap() {
+            let basename = original.rsplit('/').next().unwrap();
+            assert_eq!(
+                dest["archive"],
+                format!("recordings/2026/10/26OCT02-210630_ZOOM0001_MX-INTRO[]/{basename}")
+            );
+            assert_eq!(
+                dest["work"],
+                format!("e64_raw/intro/26OCT02-210630_ZOOM0001_MX-INTRO[]/{basename}")
+            );
+        }
     }
 
     #[test]

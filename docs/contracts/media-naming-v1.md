@@ -65,6 +65,10 @@ Los pares `VID_…_00_…insv` y `VID_…_10_…insv` se agrupan por carpeta de 
 
 Ingreso propone «Ninguno · sólo respaldo» si detecta Insta360 en la fuente. Para llevar una toma al disco de edición se puede elegir esa unidad al ingresar o entregarla después desde el archivo. Al elegirla se copian todos sus miembros. Una copia omitida por defecto queda como trabajo omitido, sin generar un pendiente.
 
+### Sesiones Zoom H6 en Rust
+
+El WAV Broadcast identifica la H6 y contiene la hora de inicio del dispositivo. Las pistas de la misma sesión y su HPRJ se agrupan conservando sus nombres originales. La sesión va a una subcarpeta de `001_raw/recordings/AAAA/MM/` o `001_raw/recordingslong/AAAA/MM/` según su duración. Si se pide copia de edición, la sesión completa va al perfil y proyecto de trabajo.
+
 ## Identidad y bundles Stalker
 
 - Un bundle archivado cambia **sólo el nombre de su carpeta**. `manifest.json`, pistas, `mic.wav`, `events.ndjson` y `sources/` quedan byte a byte.

@@ -234,7 +234,7 @@ struct UnitPreview: View {
                         .padding(.horizontal, 6).padding(.vertical, 4)
                         .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
                         .padding(5).padding(.bottom, 10).allowsHitTesting(false)
-                    } else if unit.isInsta360 && unit.paths.count > 1 {
+                    } else if (unit.isInsta360 || unit.detectedFamily == "h6") && unit.paths.count > 1 {
                         Text("\(unit.paths.count) archivos juntos")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.white)
@@ -252,7 +252,7 @@ struct UnitPreview: View {
                 })
                 .opacity(unit.discard ? 0.35 : 1)
                 .overlay(alignment: .bottomTrailing) {
-                    if !unit.isSupport && unit.category != "stalker" {
+                    if !unit.isSupport && !unit.isOther && unit.category != "stalker" {
                         Button { unit.discard.toggle() } label: {
                             Image(systemName: unit.discard ? "trash.fill" : "trash")
                                 .font(.caption).foregroundStyle(unit.discard ? palette.warning : palette.ink)
@@ -297,7 +297,13 @@ struct UnitPreview: View {
                         .font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
                 }
             }
-            if unit.isSupport {
+            if unit.isOther {
+                Button { unit.includeOther.toggle() } label: {
+                    Label(unit.includeOther ? "Incluir en el respaldo" : "Se queda en la SD",
+                          systemImage: unit.includeOther ? "checkmark.circle.fill" : "circle")
+                }.buttonStyle(.link).font(.caption)
+                .help("Incluye este archivo para respaldarlo y aplicarle la limpieza del plan")
+            } else if unit.isSupport {
                 Text("Datos de cámara incluidos · sin proyecto propio").font(.caption).foregroundStyle(.secondary)
             } else if editingProject {
                 HStack(spacing: 4) {

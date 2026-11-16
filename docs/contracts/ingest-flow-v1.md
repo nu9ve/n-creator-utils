@@ -128,6 +128,10 @@ tratamiento de error y Python reintenta la lectura una vez. Si la
 comprobación queda pendiente tras un retiro registrado, Actividad espera
 la observación de la tarjeta al reconectarla.
 
+### Otros archivos de la tarjeta en Rust
+
+Contenido muestra los archivos de formato desconocido aparte de los medios y datos reconocidos de cámara. La revisión los incluye como «Se quedan en la SD». No requieren un destino, y la limpieza no los toca. Si se marcan para respaldar, van al archivo conservando su ruta relativa y se liberan sólo si se eligió limpieza y su copia fue verificada.
+
 ### Etapas observadas del retiro Sony · 2026-11-07
 
 El motor da a cada trabajo Sony una etapa (`sony_stage` en `job` y `jobs`, de

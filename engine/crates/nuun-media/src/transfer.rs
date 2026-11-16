@@ -347,7 +347,10 @@ impl<'a> Transfer<'a> {
                 .filter_map(|p| p.as_str().map(str::to_owned))
                 .collect();
             let known = |p: &String| {
-                expected.contains_key(p) || discarded.contains_key(p) || archived.contains(p)
+                expected.contains_key(p)
+                    || discarded.contains_key(p)
+                    || archived.contains(p)
+                    || plan["retained"].get(p).is_some()
             };
             require(
                 (delivery || actual.keys().all(known))
@@ -1406,6 +1409,7 @@ impl<'a> Transfer<'a> {
         let unexpected = remaining.files.iter().any(|f| {
             let path = text(f, "path");
             !left.contains(path)
+                && plan["retained"].get(path).is_none()
                 && kept
                     .get(path)
                     .is_none_or(|stamp| !source_stamp_matches(plan, path, stamp, &f["stamp"]))
@@ -2199,6 +2203,28 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         assert_eq!(completed["state"], "completed");
         assert_eq!(completed["progress"]["phase"], "completed");
         assert_eq!(std::fs::read(&clip).unwrap(), b"new!");
+    }
+
+    #[test]
+    fn other_files_stay_on_the_card_unless_selected_for_verified_backup() {
+        for include in [false, true] {
+            let s = fixture();
+            let path = "PIONEER/export.pdb";
+            std::fs::create_dir(s.card.join("PIONEER")).unwrap();
+            std::fs::write(s.card.join(path), b"independent library").unwrap();
+            let plan = plan(
+                &s,
+                json!({"assignments": {path: {"include_other": include}}}),
+            );
+            assert_eq!(plan["retained"].get(path).is_none(), include);
+            assert_eq!(plan["layout"].get(path).is_some(), include);
+            assert_eq!(run(&s, &plan, &ok()).unwrap()["state"], "completed");
+            assert_eq!(
+                count(&s.archive, "/PIONEER/export.pdb"),
+                usize::from(include)
+            );
+            assert_eq!(s.card.join(path).exists(), !include);
+        }
     }
 
     #[test]

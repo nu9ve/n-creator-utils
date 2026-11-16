@@ -32,6 +32,8 @@ struct DraftUnit: Identifiable, Equatable {
     var missionFlowProject = ""
     /// Left out of the backup by the person; the reviewed cleanup deletes it from the card without a copy.
     var discard = false
+    var includeOther = false
+    var isOther: Bool { category == "other" }
     var previewPath: String? {
         if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
         return paths.first { path in
@@ -506,7 +508,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         case "cleaning_source": return (kind ?? sourceKind) == "delivery" ? String(localized: "Liberando el disco de edición") : String(localized: "Limpiando SD")
         case "completed" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · liberado del disco de edición")
         case "source_has_new_material" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · llegaron archivos nuevos a la carpeta; no están respaldados")
-        case "completed": return stalker ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · SD libre")
+        case "completed": return stalker ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · retiro completado")
         case "camera_action_required": return String(localized: "Respaldo verificado · libera la tarjeta desde la cámara")
         case "source_retained": return stalker ? String(localized: "Respaldo verificado · original Stalker conservado") : String(localized: "Respaldo verificado · origen conservado")
         case "source_has_new_material": return String(localized: "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados")
@@ -585,6 +587,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     func jobLabel(_ job: JSONValue) -> String {
         let listed = job["source_kind"].string
         let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
+        if job["state"].string == "completed", !job["plan"]["retained"].object.isEmpty {
+            return String(localized: "Respaldo verificado · otros archivos siguen en la SD")
+        }
         // Observed stages (transfer.sony_stage): nothing here asks the person to confirm.
         switch job["sony_stage"].string {
         case "formatted": return String(localized: "Formato observado · SD lista para grabar")
@@ -823,13 +828,13 @@ enum OperationScope { case ingest, library, space, settings, source }
     var projectIsReady: Bool {
         let hasBatchProject = !project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         if hasBatchProject { return true }
-        let media = units.filter { !$0.isSupport && !$0.discard }
+        let media = units.filter { !$0.isSupport && !$0.isOther && !$0.discard }
         return !units.isEmpty && media.allSatisfy { !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
     var flowReviewKey: String {
         [sourceKey, loadedSourceKey, project, profile, country, city, work, copyChoice,
          String(cleanup), String(deferWork), String(archiveExceptionConfirmed),
-         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
+         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing), String($0.includeOther)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
     }
     var canPrepareFlow: Bool {
         if sourceKind == "delivery" { return !source.isEmpty && !archive.isEmpty }
@@ -905,6 +910,12 @@ enum OperationScope { case ingest, library, space, settings, source }
                 _ = try await self.client!.call("save_capture_tags", ["session_ids": .array(tag.sessions), "project": .string(tag.project), "country": .string(tag.country)])
             }
             for unit in self.units {
+                if unit.isOther {
+                    if unit.includeOther {
+                        for path in unit.paths { assignments[path] = .object(["include_other": .bool(true)]) }
+                    }
+                    continue
+                }
                 var values: [String: JSONValue] = [:]
                 if !unit.project.isEmpty { values["project"] = .string(unit.project) }
                 if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
@@ -947,7 +958,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             let result = try await self.client!.call("apply", reviewed.applyParameters)
             self.saveAllPlans = self.saveAllPlans.filter { $0.value.display["id"].string != jobID }
             self.lastResult = result
-            self.message = self.stateLabel(result["state"].string)
+            self.message = self.jobLabel(result)
             let release = result["stalker_release"]
             if release["status"].string == "retained" || release["status"].string == "partial" {
                 let reasons = release["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }

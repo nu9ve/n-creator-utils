@@ -64,6 +64,11 @@ enum PlanRows {
                 detail: "", bytes: item["bytes"].double, files: paths.count,
                 archived: false, work: .none, source: plan["cleanup"].bool ? .discard : .keep))
         }
+        for (path, bytes) in plan["retained"].object.sorted(by: { $0.key < $1.key }) {
+            rows.append(PlanUnitRow(id: "retained:" + path, name: path, project: "—",
+                group: String(localized: "Se quedan en la SD"), detail: "", bytes: bytes.double,
+                files: 1, archived: false, work: .none, source: .keep))
+        }
         let grouped = Dictionary(grouping: rows, by: \.group)
         let groups = grouped.map { name, members in
             PlanGroupRow(id: name, units: members.count, bytes: members.reduce(0) { $0 + $1.bytes },

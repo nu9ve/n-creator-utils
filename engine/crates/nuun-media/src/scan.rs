@@ -383,6 +383,15 @@ impl Walker<'_> {
                 });
                 if self.photos && bundle.is_none() {
                     let ext = suffix(&name);
+                    if ext == ".wav"
+                        && let Some(start) = crate::layout::h6_start(&path)
+                    {
+                        record["h6_started"] = json!(start);
+                        record["evidence"]
+                            .as_array_mut()
+                            .expect("evidence is an array")
+                            .push(json!({"source": "bwf", "family": "h6", "confidence": "high"}));
+                    }
                     let (key, meta) = if PHOTO_SUFFIXES.contains(&ext.as_str()) {
                         ("photo", crate::photo_meta::read(&path))
                     } else if ext == ".mp4" {
@@ -489,6 +498,25 @@ pub fn group_key(file: &Value) -> String {
     }
     let path = file["path"].as_str().unwrap_or_default();
     let (parent, name) = path.rsplit_once('/').unwrap_or((".", path));
+    let session = parent
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    if session
+        .strip_prefix("ZOOM")
+        .is_some_and(|n| n.len() == 4 && n.bytes().all(|b| b.is_ascii_digit()))
+    {
+        let base = stem(name).to_ascii_uppercase();
+        if (suffix(name) == ".hprj" && base == session)
+            || (file["h6_started"].is_string()
+                && base
+                    .strip_prefix(&session)
+                    .is_some_and(|tail| tail.is_empty() || tail.starts_with('_')))
+        {
+            return format!("{parent}/h6:{session}");
+        }
+    }
     if let Some(capture) = insta360_video_stem(name) {
         return format!("{parent}/insta360:{capture}");
     }
@@ -499,11 +527,31 @@ pub fn group_key(file: &Value) -> String {
     format!("{parent}/{upper}")
 }
 
+/// Unknown standalone files stay outside the camera job unless the person includes them.
+fn other_card_file(path: &str) -> bool {
+    if crate::snapshot::kind_of(path).is_some() {
+        return false;
+    }
+    let path = path.to_ascii_lowercase();
+    !path.starts_with("misc/")
+        && !path.starts_with("h6_settings/")
+        && !(path.starts_with("dcim/canonmsc/") && path.ends_with(".ctg"))
+}
+
+pub(crate) fn other_card_group(key: &str) -> bool {
+    key.starts_with("other:")
+}
+
 /// Python `grouped_files`, keeping insertion order; standalone camera support goes last as `camera-support`.
 pub fn grouped_files(files: &[Value]) -> Vec<(String, Vec<Value>)> {
     let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
     for file in files {
-        let key = group_key(file);
+        let path = file["path"].as_str().unwrap_or_default();
+        let key = if file["bundle"].is_null() && other_card_file(path) {
+            format!("other:{path}")
+        } else {
+            group_key(file)
+        };
         match groups.iter_mut().find(|(k, _)| *k == key) {
             Some((_, members)) => members.push(file.clone()),
             None => groups.push((key, vec![file.clone()])),
@@ -516,7 +564,7 @@ pub fn grouped_files(files: &[Value]) -> Vec<(String, Vec<Value>)> {
             crate::snapshot::kind_of(f["path"].as_str().unwrap_or_default())
                 .is_some_and(|k| MEDIA_KINDS.contains(&k))
         });
-        if members[0]["bundle"].is_null() && !media {
+        if members[0]["bundle"].is_null() && !media && !other_card_group(&key) {
             support.extend(members);
         } else {
             result.push((key, members));
@@ -583,6 +631,7 @@ pub fn discover(
             f["photo"]["captured_at"]
                 .as_str()
                 .or_else(|| f["video_meta"]["captured_at"].as_str())
+                .or_else(|| f["h6_started"].as_str())
                 .filter(|c| !c.is_empty())
         });
         let mut extra = Map::new();
@@ -666,7 +715,9 @@ pub fn discover(
                 ("tag".into(), tag.unwrap_or_else(|| json!({}))),
             ]);
         }
-        let category = if !bundle.is_null() {
+        let category = if other_card_group(&key) {
+            "other"
+        } else if !bundle.is_null() {
             "stalker"
         } else {
             kinds

@@ -356,6 +356,43 @@ const PCM_SUBFORMAT: [u8; 16] = [
     1, 0, 0, 0, 0, 0, 16, 0, 0x80, 0, 0, 0xAA, 0, 0x38, 0x9B, 0x71,
 ];
 
+/// Zoom H6 Broadcast WAV origination time. The recorder stores a wall clock without a zone.
+pub(crate) fn h6_start(path: &Path) -> Option<String> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut header = [0; 12];
+    file.read_exact(&mut header).ok()?;
+    if &header[..4] != b"RIFF" || &header[8..] != b"WAVE" {
+        return None;
+    }
+    for _ in 0..128 {
+        let mut chunk = [0; 8];
+        file.read_exact(&mut chunk).ok()?;
+        let size = u32::from_le_bytes(chunk[4..].try_into().ok()?);
+        match &chunk[..4] {
+            b"bext" if size >= 338 => {
+                let mut body = [0; 338];
+                file.read_exact(&mut body).ok()?;
+                let originator = std::str::from_utf8(&body[256..288])
+                    .ok()?
+                    .trim_matches(['\0', ' ']);
+                if !originator.eq_ignore_ascii_case("ZOOM Handy Recorder H6") {
+                    return None;
+                }
+                let date = std::str::from_utf8(&body[320..330]).ok()?;
+                let time = std::str::from_utf8(&body[330..338]).ok()?;
+                let value = format!("{date}T{time}");
+                return DateTime::fromisoformat(&value).map(|_| value);
+            }
+            b"data" => return None,
+            _ => file
+                .seek(SeekFrom::Current(i64::from(size) + i64::from(size % 2)))
+                .ok()?,
+        };
+    }
+    None
+}
+
 /// Python `layout.wav_seconds` (`wave` module): frames / frame rate of a PCM WAV, `None` when unreadable.
 pub fn wav_seconds(path: &Path) -> Option<f64> {
     use std::io::{Read, Seek, SeekFrom};
@@ -372,6 +409,9 @@ pub fn wav_seconds(path: &Path) -> Option<f64> {
         let size = u32::from_le_bytes([chunk[4], chunk[5], chunk[6], chunk[7]]);
         match &chunk[0..4] {
             b"fmt " => {
+                if !(16..=4096).contains(&size) {
+                    return None;
+                }
                 let mut body = vec![0u8; size as usize];
                 file.read_exact(&mut body).ok()?;
                 if body.len() < 16 {
@@ -464,6 +504,10 @@ pub fn facts(source: &Path, file: &Value, use_photo: bool) -> Result<Facts> {
             }
             found = found.over(canon);
         }
+    }
+    if let Some(start) = file["h6_started"].as_str() {
+        found.created = DateTime::fromisoformat(start);
+        found.capture_time = Some(capture_time(Some(start), "wav.bext.origination"));
     }
     if matches!(kind, Some("video" | "audio")) && found.seconds.is_none() {
         if suffix(rel) == ".wav"
@@ -700,6 +744,42 @@ pub fn build_layout(
         }
         let camera = text(&unit, "camera").to_owned();
         let mission = &unit["mission"];
+        if camera == "h6"
+            && let Some(anchor) = media.iter().find(|file| file["h6_started"].is_string())
+        {
+            let found = facts(source, anchor, false)?;
+            let created = found.created.expect("facts always has a creation time");
+            if first_capture
+                .as_ref()
+                .is_none_or(|first| earlier(&created, first))
+            {
+                first_capture = Some(created);
+            }
+            let folder = archive_folder("audio", &found, &camera, &plan["category_folders"]);
+            units[index]["capture_time"] = found.capture_time.unwrap_or(Value::Null);
+            let path = Path::new(text(anchor, "path"));
+            let name = path
+                .parent()
+                .and_then(Path::file_name)
+                .and_then(|s| s.to_str())
+                .unwrap_or("H6");
+            let month = created.strftime("%Y/%m");
+            let dir = claim(
+                &mut taken,
+                &format!("{month}/{}_{}_{}[]", stamp(&created), name, label),
+            );
+            let work_dir = after_month(&dir);
+            for file in members {
+                let path = text(file, "path");
+                let name = path.rsplit('/').next().unwrap_or(path);
+                layout.insert(
+                    path.to_owned(),
+                    json!({"archive": format!("{folder}/{dir}/{name}"),
+                           "work": format!("{work_root}/{work_dir}/{name}")}),
+                );
+            }
+            continue;
+        }
         if camera == "insta360"
             && let Some(anchor) = media
                 .iter()
