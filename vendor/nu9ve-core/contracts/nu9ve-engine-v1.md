@@ -115,7 +115,7 @@ Todo motor responde `engine_info` con `params` vacíos, en cualquier modo, sin t
 - **Debe:** `reason` es un token que cumple `^[a-z_]{1,40}$` (lo que la sombra de Clipper acepta). Dice por qué, para contar en la sombra qué falta portar; nunca lleva datos de la persona. Dos tokens comunes:
   - `method_unavailable`: el método existe en el oráculo y este motor no lo tiene;
   - `platform_unavailable`: el motor lo tiene, pero no en esta plataforma (nüün sin backend de volúmenes).
-  
+
   Los demás son de cada app (`validator_input`, `config_value`, `civil_datetime`… en Clipper).
 - **Debe:** un método de `ported` **puede** contestar `not_ported` para algunos parámetros (un caso que el port aún no cubre). Uno que no está en ninguna lista es `unknown_method`, no `not_ported`.
 - **Debe:** un motor que ya empezó a producir efectos no responde `not_ported`: responde el error real.
@@ -169,7 +169,7 @@ Un código es lo que el programa compara; por eso un error de transporte y uno d
 | `response_timeout` | El motor no terminó a tiempo; consultar el estado (§6.3) | nove |
 | `idempotency_key` | Escritura sin clave válida | nove |
 | `cancelled` | Se canceló (§6.2) | nüün (cliente), Clipper (trabajos) |
-| `internal_error` | Falla que el motor no clasificó. El mensaje no lleva trazas | Clipper; nüün usa `operation_failed` (§13) |
+| `internal_error` | Falla que el motor no clasificó. El mensaje no lleva trazas. `operation_failed` no es un código de la suite (§13, decisión 1) | Clipper; nüün usa `operation_failed` |
 
 **Los produce el cliente,** nunca vienen del motor: `engine_missing` (no hay binario o runtime; nüün `runtime_missing`), `startup_failed`, `startup_timeout`, `incompatible_engine` (§4), `timeout`, `connection_lost` (nüün `reader_unavailable`, nove `ipc_closed`), `engine_unavailable` (socket o pipe que no contesta; nove `ipc_unavailable`), `peer_user` y `unsafe_endpoint` (§9). **Conviene** que cada cliente use estos nombres; uno que conserve los suyos documenta la equivalencia.
 
@@ -219,8 +219,9 @@ Para portar un motor sin arriesgar la respuesta: el oráculo responde, el candid
   | `error_mismatch` | Uno con error, o los dos con códigos distintos; van los dos códigos |
   | `shadow_failed` | El candidato no respondió (no está, plazo, se cerró, sobre inválido); va un `reason` |
 
+- **Debe:** la comparación es estricta en el tipo: `1` y `1.0` son respuestas distintas, como lo son en el JSON canónico de la suite y en el digest de un plan firmado (§13, decisión 2). `true` tampoco es `1`.
 - **Debe:** las diferencias son rutas JSON (`$.items[3].title`, `$.items.length`), como mucho 20, con una marca si hay más.
-- **Conviene:** el registro no guarda valores: rutas, códigos y tiempos (Clipper). Si guarda valores, cortos (nüün: 160 caracteres), y la app lo dice (§13).
+- **Debe:** el registro no guarda valores, sólo rutas, códigos y tiempos (Clipper), porque los valores son títulos y rutas de la persona (§13, decisión 3). Tampoco el mensaje de un error, que puede llevarlos.
 - **Debe:** lo que cambia entre dos ejecuciones (la hora en que se pidió: nüün `checked_at`, Clipper `generated_at`) se declara por método y se quita de las dos respuestas antes de comparar. Que el campo exista sí se compara.
 - **Conviene:** una herramienta con `enable`, `disable` y `report` (resultados por método y medianas de tiempo), y una con `replay`, que pide las lecturas sin parámetros sobre una carpeta de estado real a los dos motores (nüün).
 
@@ -258,11 +259,11 @@ Leído el 2026-11-16: nüün en `n-creator-utils` (`8ac8307`), Clipper (`41084cc
 
 1. Rust: `engine_info` suma `contract`, `protocol` (propuesta: `nuun-media/1`), `native` (vacío) y `capabilities`. Python responde también `engine_info`, para que el cliente lo pida a cualquiera de los dos.
 2. `not_ported` con `reason`: `method_unavailable` para «Method not ported…» y `platform_unavailable` para «No volume backend…».
-3. Errores: `invalid_request` para JSON roto, `invalid_params` para parámetros y `unknown_method` antes que `read_only`, en Python y Rust a la vez, para que la sombra siga en `same_error`. El código de los imprevistos espera la decisión de la §13.
+3. Errores: `invalid_request` para JSON roto, `invalid_params` para parámetros y `unknown_method` antes que `read_only`, en Python y Rust a la vez, para que la sombra siga en `same_error`. Los imprevistos pasan a `internal_error`.
 4. id: leer el `id` antes de validar `method`, aceptar sólo entero, cadena o `null` y, en el `nuun-engine`, conservar los enteros grandes (con `arbitrary_precision`, revisando antes lo que dice `nu9ve-json-v1` §8) o rechazarlos con `invalid_request`. Python hace lo mismo.
 5. Línea de más: leer con tope y descartar hasta `\n`, como Clipper.
 6. `rpc` de Python: el sobre con `id` (`null` si la petición no lo trae). `command` puede seguir mientras algún script lo lea.
-7. Sombra: lo que decida la §13 sobre valores y números.
+7. Sombra: comparar tipos (`1` ya no es `1.0`) y dejar de guardar valores en el registro (hoy los valores de `python` y `rust` en `diffs`, y `rust_message`); sólo rutas, códigos y tiempos. Lo que hoy da `same` por la comparación laxa puede pasar a `diff`: es una diferencia real del port, no de la sombra.
 
 ### 12.2 Clipper
 
@@ -285,11 +286,11 @@ Los mensajes nativos de la extensión de Chrome no cambian: su formato lo fija C
 
 ## 13. Decisiones abiertas
 
-Del usuario; mientras no se decidan, cada app sigue como está.
+Del usuario. Las tres primeras ya se decidieron y son regla en §7 y §10; las demás, mientras no se decidan, dejan a cada app como está.
 
-1. **El código de un imprevisto:** `internal_error` (Clipper) u `operation_failed` (nüün). La propuesta es `internal_error`, porque `operation_failed` suena a un fallo esperado del método. Cambiarlo en nüün toca Python y Rust en el mismo paso.
-2. **Números en la sombra:** si `1` y `1.0` son la misma respuesta (nüün) o distintas (Clipper). La propuesta es distintas: el JSON canónico de la suite los escribe distinto, y un plan que se firma cambiaría de digest.
-3. **Valores en el registro de la sombra:** sólo rutas (Clipper) o valores cortos (nüün). La propuesta es sólo rutas, porque los valores son títulos y rutas de la persona.
+1. **Decidido (el usuario, 2026-11-16): el código de un imprevisto es `internal_error`** (Clipper), no `operation_failed` (nüün), que suena a un fallo esperado del método. En nüün cambia en Python y Rust en el mismo paso.
+2. **Decidido (el usuario, 2026-11-16): en la sombra, `1` y `1.0` son distintas** (Clipper). El JSON canónico de la suite los escribe distinto, y un plan firmado cambiaría de digest.
+3. **Decidido (el usuario, 2026-11-16): el registro de la sombra guarda sólo rutas,** códigos y tiempos (Clipper), sin valores, porque los valores son títulos y rutas de la persona.
 4. **Cancelar un proceso de una vez en Windows,** donde no hay `SIGINT`: `GenerateConsoleCtrlEvent`, un archivo de cancelación o un método. Se decide cuando vuelva a haber una máquina con Windows.
 5. **Progreso o eventos dentro del canal:** v1 no los tiene. Si hacen falta, ¿v2 de este contrato, o el `nu9ve-jobs` de la ola 3?
 6. **Cuándo retira nove su sobre viejo** (paso 4 de la §12.3), y si la ventana de transición tiene fecha.

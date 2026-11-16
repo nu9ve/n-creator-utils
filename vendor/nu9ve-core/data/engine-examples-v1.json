@@ -475,6 +475,26 @@
       ]
     },
     {
+      "name": "diff_integer_is_not_float",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":{\"n\":1}}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":{\"n\":1.0}}",
+      "volatile": [],
+      "outcome": "diff",
+      "diffs": [
+        "$.n"
+      ]
+    },
+    {
+      "name": "diff_bool_is_not_integer",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":[true]}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":[1]}",
+      "volatile": [],
+      "outcome": "diff",
+      "diffs": [
+        "$[0]"
+      ]
+    },
+    {
       "name": "diff_length",
       "oracle": "{\"id\":1,\"ok\":true,\"data\":[1,2,3]}",
       "candidate": "{\"id\":1,\"ok\":true,\"data\":[1,2]}",

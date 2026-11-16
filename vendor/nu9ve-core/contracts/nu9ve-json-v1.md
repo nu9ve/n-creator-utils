@@ -132,7 +132,7 @@ En el transporte de líneas (`rpc-serve` de nüün), cada respuesta es un objeto
 - En Rust: `ok_envelope(&id, data)` y `error_envelope(&id, &error)`.
 - La línea en el cable no tiene por qué ser canónica. Cuando un sobre se guarda o se firma, sí: se escribe con §1.
 
-Que nove adopte este sobre en su IPC es la ola 3 de la [adopción](../docs/suite-adoption.md); hoy usa `{code, message}` en sus errores, que es la misma forma de `error`.
+El protocolo de un motor detrás de una app usa este sobre: [nu9ve-engine-v1 §3](nu9ve-engine-v1.md#3-respuesta). Cómo llega a él una app que hoy responde con otro está en su §12.
 
 ## 10. Vectores
 

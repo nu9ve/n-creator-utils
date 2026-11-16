@@ -60,10 +60,10 @@ Leído en el código el 2026-11-16: nüün `8ac8307`, Clipper `41084ccb`, nove `
 | 4 `engine_info` | Parcial: sólo Rust, sin `contract`, `protocol`, `native` ni `capabilities` | Parcial: sin `contract`, `version` ni `capabilities` | No: `hello` |
 | 5 `not_ported` | Parcial: sin `reason` | Sí | No aplica |
 | 6 Grandes, progreso, escrituras | Progreso por sondeo; escrituras sólo en una vez, sin clave | Sí: `data` ya serializado, `request_id`, `write_status` | Parcial: claves e `idempotency_key` sí; una respuesta de más de 1 MiB se pierde |
-| 7 Códigos | Parcial: `operation_failed`; método desconocido es `read_only` en `rpc-serve` | Sí | Parcial: `invalid_json`, `frame_size` |
+| 7 Códigos | Parcial: `operation_failed` en vez de `internal_error`; método desconocido es `read_only` en `rpc-serve` | Sí | Parcial: `invalid_json`, `frame_size` |
 | 8 Ciclo de vida | Sí | Sí | Sí: `--parent-pid`, `engine_shutdown` |
 | 9 Seguridad | Sí (stdio) | Sí (stdio) | Sí: socket `0600` con uid del par; pipe con DACL y PID |
-| 10 Sombra | Sí, con valores cortos en el registro | Sí | No aplica: sin oráculo |
+| 10 Sombra | Parcial: guarda valores cortos en el registro y da `1` igual a `1.0` | Sí | No aplica: sin oráculo |
 | Casos de motor (§11) | Rust 9 de 20; Python 2 de 20 | 20 de 20 en los dos | Sin medir |
 
 ## nu9ve-fs-v1

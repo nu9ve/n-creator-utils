@@ -23,13 +23,18 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
   - El `fsync(2)` simple, el de Python, existe como variante explícita para los motores que comparan con Python (Clipper y las pruebas doradas de nüün).
   - Un fallo al sincronizar la carpeta **se propaga**, como en Python. Ignorarlo es justo lo que hoy hace diferir la cola de Rust de Clipper de la de Python.
 
+- **`nu9ve-engine-v1`** (el usuario, el 2026-11-16, [§13](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas)):
+  - Un imprevisto del motor es `internal_error`, no `operation_failed`.
+  - En la sombra, `1` y `1.0` son respuestas distintas.
+  - El registro de la sombra guarda rutas, códigos y tiempos, nunca valores.
+
 ## Lo que sigue, por olas
 
 ### Ola 1 · ahora
 
 | Pieza | Destino | De dónde | Primeros usuarios |
 | --- | --- | --- | --- |
-| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper suma `contract`, `version` y `capabilities` a `engine_info`; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper primero (es lo más corto), después nüün; nove en sus cuatro pasos. Antes, las [decisiones abiertas](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas) 1 a 3, que cambian códigos y la sombra |
+| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper suma `contract`, `version` y `capabilities` a `engine_info`; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper primero (es lo más corto), después nüün; nove en sus cuatro pasos. Las decisiones 1 a 3 ya están tomadas: nüün cambia códigos y su sombra en el mismo paso |
 
 ### Ola 2 · con dos usuarios a la vista
 
@@ -162,6 +167,6 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 ## Orden
 
 1. **Hecho:** `Nu9veTheme` en `swift/`, con nüün y Kyū como primeros consumidores.
-2. Adoptar `nu9ve-engine-v1`: Clipper, nüün y el primer paso de nove, después de las decisiones abiertas 1 a 3 del contrato.
+2. Adoptar `nu9ve-engine-v1`: Clipper, nüün y el primer paso de nove.
 3. Guía de prácticas comunes (`docs/practices.md`).
 4. `nu9ve-py`, cuando nüün o Clipper vuelvan a portar semántica de Python.
