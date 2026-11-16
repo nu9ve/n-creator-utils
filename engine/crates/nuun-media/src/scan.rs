@@ -381,14 +381,29 @@ impl Walker<'_> {
                     "bundle": bundle,
                     "evidence": camera_evidence(&path),
                 });
-                if self.photos
-                    && bundle.is_none()
-                    && PHOTO_SUFFIXES.contains(&suffix(&name).as_str())
-                {
-                    // Device identity of a still (Make+Model+Serial, flight XMP): bounded read, never a guess by name.
-                    let photo = crate::photo_meta::read(&path);
-                    if !photo.is_empty() {
-                        record["photo"] = Value::Object(photo);
+                if self.photos && bundle.is_none() {
+                    let ext = suffix(&name);
+                    let (key, meta) = if PHOTO_SUFFIXES.contains(&ext.as_str()) {
+                        ("photo", crate::photo_meta::read(&path))
+                    } else if ext == ".mp4" {
+                        ("video_meta", crate::photo_meta::read_canon_video(&path))
+                    } else {
+                        ("", Map::new())
+                    };
+                    if meta
+                        .get("make")
+                        .and_then(Value::as_str)
+                        .is_some_and(|make| make.eq_ignore_ascii_case("Canon"))
+                    {
+                        record["evidence"]
+                            .as_array_mut()
+                            .expect("evidence is an array")
+                            .push(
+                                json!({"source": "exif", "family": "canon", "confidence": "high"}),
+                            );
+                    }
+                    if !meta.is_empty() {
+                        record[key] = Value::Object(meta);
                     }
                 }
                 self.scan.files.push(record);
@@ -564,9 +579,12 @@ pub fn discover(
         } else {
             None
         };
-        let captured = members
-            .iter()
-            .find_map(|f| f["photo"]["captured_at"].as_str().filter(|c| !c.is_empty()));
+        let captured = members.iter().find_map(|f| {
+            f["photo"]["captured_at"]
+                .as_str()
+                .or_else(|| f["video_meta"]["captured_at"].as_str())
+                .filter(|c| !c.is_empty())
+        });
         let mut extra = Map::new();
         if let Some(device) = device.filter(|d| d["conflict"] != true) {
             let keep = [

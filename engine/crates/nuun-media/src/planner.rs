@@ -1629,6 +1629,35 @@ mod tests {
     }
 
     #[test]
+    fn canon_clip_uses_its_own_model_and_capture_clock() {
+        let s = setup();
+        let clip = "DCIM/100CANON/MVI_0001.MP4";
+        std::fs::create_dir_all(s.card.join("DCIM/100CANON")).unwrap();
+        std::fs::write(
+            s.card.join(clip),
+            sample::canon_mp4("Canon EOS Rebel SL3", "2026:10:31 23:21:13"),
+        )
+        .unwrap();
+        let plan = plan(&s, json!({})).unwrap();
+        let unit = media_unit(&plan);
+        assert_eq!(unit["camera"], "canon");
+        assert_eq!(unit["device"]["model"], "Canon EOS Rebel SL3");
+        assert_eq!(
+            unit["capture_time"]["provenance"],
+            "canon_mp4.exif.DateTimeOriginal"
+        );
+        assert_eq!(
+            unit["capture_time"]["captured_at_absolute"],
+            "2026-11-01T06:21:13Z"
+        );
+        assert!(
+            text(&plan["layout"][clip], "archive")
+                .starts_with("videos/2026/10/26OCT31-232113_CANONEOSREBELSL3_")
+        );
+        assert!(text(&plan["layout"][clip], "work").starts_with("e64_raw/intro/"));
+    }
+
+    #[test]
     fn a_known_drone_is_classified_by_exif_and_named_by_the_recipe() {
         let s = setup();
         pair(&s, "DCIM/101MEDIA", "DJI_0001", "FC3170");

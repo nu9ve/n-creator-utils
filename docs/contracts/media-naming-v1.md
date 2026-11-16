@@ -42,6 +42,8 @@ YYMONDD-HHMMSS_<FUENTE>_<MM-SS>_<PAIS>-<PROYECTO>[]<-N>.<EXT>
 
 Fuentes de tiempo, en orden: Sony `CreationDate` + `Duration`/`captureFps` del XML M01; Stalker `createdAt` (UTC → local) + `duration.value/timescale` del manifest; `ffprobe` (`creation_time`, `duration`); WAV por cabecera; por último `mtime` sin duración. El plan registra el nombre resultante y entra en su digest: revisar el plan es revisar los nombres.
 
+En Rust, un MP4 Canon con miniatura EXIF interna aporta su propio modelo y `DateTimeOriginal` con offset. Esa fecha se usa antes de `creation_time` del contenedor. `ffprobe` aporta duración y dimensiones. Cuando la miniatura está ausente o es ilegible se conserva la detección y el reloj disponibles por las vías existentes.
+
 ## Carpetas
 
 | Destino | Contenido |

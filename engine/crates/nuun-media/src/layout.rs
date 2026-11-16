@@ -454,6 +454,16 @@ pub fn facts(source: &Path, file: &Value, use_photo: bool) -> Result<Facts> {
     if kind == Some("video") && suffix(rel) == ".mp4" {
         let xml = path.with_file_name(format!("{}M01.XML", stem(rel)));
         found = sony_xml(&xml)?;
+        let video = &file["video_meta"];
+        if found.created.is_none()
+            && video["captured_at"].is_string()
+            && let Ok(mut canon) = photo_facts(video)
+        {
+            if let Some(time) = canon.capture_time.as_mut() {
+                time["provenance"] = json!("canon_mp4.exif.DateTimeOriginal");
+            }
+            found = found.over(canon);
+        }
     }
     if matches!(kind, Some("video" | "audio")) && found.seconds.is_none() {
         if suffix(rel) == ".wav"

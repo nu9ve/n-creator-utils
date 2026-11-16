@@ -119,7 +119,7 @@ pub fn unit_device(
 ) -> Result<Option<Value>> {
     let found: Vec<&Value> = members
         .iter()
-        .map(|f| &f["photo"])
+        .filter_map(|f| f.get("photo").or_else(|| f.get("video_meta")))
         .filter(|p| is_truthy(p))
         .collect();
     let Some(first) = found.first() else {

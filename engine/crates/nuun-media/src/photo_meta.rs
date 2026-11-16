@@ -1,4 +1,4 @@
-//! Bounded, read-only EXIF/XMP facts of a still (JPEG or TIFF/DNG). Port of `media/photo_meta.py`, no dependencies.
+//! Bounded, read-only EXIF/XMP from JPEG, TIFF/DNG and Canon movie thumbnails.
 //!
 //! Only what identifies the device and the capture: Make, Model, serial, DateTimeOriginal (+ offset), GPS and the DJI
 //! flight XMP (`drone-dji:*`). Never fails for a damaged or foreign file: returns an empty object. The XMP
@@ -349,7 +349,7 @@ fn xmp_facts(xmp: &[u8]) -> Map<String, Value> {
 }
 
 /// Walk JPEG segment headers with seeks; read only APP1 bodies (EXIF, XMP). Stops at the image data.
-fn jpeg(file: &mut std::fs::File) -> R<Facts> {
+fn jpeg(file: &mut (impl Read + Seek)) -> R<Facts> {
     let mut soi = [0u8; 2];
     if file.read_exact(&mut soi).is_err() || soi != [0xFF, 0xD8] {
         return Ok((Map::new(), None));
@@ -398,6 +398,95 @@ fn jpeg(file: &mut std::fs::File) -> R<Facts> {
     };
     let (found, embedded) = tiff_facts(&mut read, 0)?;
     Ok((found, xmp.or(embedded)))
+}
+
+const CANON_UUID: [u8; 16] = 0x85c0b687820f11e08111f4ce462b6a48_u128.to_be_bytes();
+
+/// Walk MP4 boxes by seeking past unrelated payloads, including the media stream.
+fn mp4_box(
+    file: &mut std::fs::File,
+    parent: std::ops::Range<u64>,
+    name: &[u8; 4],
+    uuid: Option<[u8; 16]>,
+) -> Option<std::ops::Range<u64>> {
+    let mut start = parent.start;
+    for _ in 0..1024 {
+        let available = parent.end.checked_sub(start)?;
+        if available < 8 {
+            return None;
+        }
+        file.seek(SeekFrom::Start(start)).ok()?;
+        let mut header = [0; 8];
+        file.read_exact(&mut header).ok()?;
+        let size = u32::from_be_bytes(header[..4].try_into().ok()?);
+        let (size, mut payload) = match size {
+            0 => (available, start + 8),
+            1 if available >= 16 => {
+                let mut extended = [0; 8];
+                file.read_exact(&mut extended).ok()?;
+                (u64::from_be_bytes(extended), start + 16)
+            }
+            1 => return None,
+            size => (u64::from(size), start + 8),
+        };
+        if size < payload - start || size > available {
+            return None;
+        }
+        let end = start + size;
+        if &header[4..] == name {
+            if let Some(uuid) = uuid {
+                if end - payload < 16 {
+                    return None;
+                }
+                let mut id = [0; 16];
+                file.read_exact(&mut id).ok()?;
+                payload += 16;
+                if id != uuid {
+                    start = end;
+                    continue;
+                }
+            }
+            return Some(payload..end);
+        }
+        start = end;
+    }
+    None
+}
+
+/// Canon embeds EXIF in the JPEG thumbnail at moov / UUID-Canon / CNTH / CNDA.
+pub fn read_canon_video(path: &Path) -> Map<String, Value> {
+    fn thumbnail(path: &Path) -> Option<Facts> {
+        let mut file = std::fs::File::open(path).ok()?;
+        let length = file.metadata().ok()?.len();
+        let movie = mp4_box(&mut file, 0..length, b"moov", None)?;
+        let canon = mp4_box(&mut file, movie, b"uuid", Some(CANON_UUID))?;
+        let thumbnail = mp4_box(&mut file, canon, b"CNTH", None)?;
+        let jpeg_box = mp4_box(&mut file, thumbnail, b"CNDA", None)?;
+        if jpeg_box.end - jpeg_box.start > JPEG_HEAD {
+            return None;
+        }
+        file.seek(SeekFrom::Start(jpeg_box.start)).ok()?;
+        let mut bytes = Vec::new();
+        file.take(jpeg_box.end - jpeg_box.start)
+            .read_to_end(&mut bytes)
+            .ok()?;
+        jpeg(&mut std::io::Cursor::new(bytes)).ok()
+    }
+
+    let Some((facts, _)) = thumbnail(path) else {
+        return Map::new();
+    };
+    if !facts
+        .get("make")
+        .and_then(Value::as_str)
+        .is_some_and(|make| make.eq_ignore_ascii_case("Canon"))
+    {
+        return Map::new();
+    }
+    facts
+        .into_iter()
+        .filter(|(_, value)| !value.is_null())
+        .collect()
 }
 
 /// `{make, model, serial, captured_at, offset, gps, flight}` for a JPEG/DNG; `{}` when absent or unreadable.
@@ -554,6 +643,24 @@ pub mod sample {
         out.extend([0xFF, 0xDA, 0x00, 0x02]); // start of scan: the walk stops here
         out.extend([0x00; 16]);
         out
+    }
+
+    pub fn canon_mp4(model: &str, when: &str) -> Vec<u8> {
+        fn atom(name: &[u8; 4], payload: &[u8]) -> Vec<u8> {
+            let mut out = ((8 + payload.len()) as u32).to_be_bytes().to_vec();
+            out.extend(name);
+            out.extend(payload);
+            out
+        }
+
+        let image = atom(b"CNDA", &jpeg("Canon", model, when, None));
+        let mut user = super::CANON_UUID.to_vec();
+        user.extend(atom(b"CNTH", &image));
+        let mut movie = atom(b"uuid", &[0; 16]); // an unrelated UUID before the camera's metadata
+        movie.extend(atom(b"uuid", &user));
+        let mut clip = atom(b"mdat", &[0; 32]);
+        clip.extend(atom(b"moov", &movie));
+        clip
     }
 }
 
