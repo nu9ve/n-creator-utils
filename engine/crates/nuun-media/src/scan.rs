@@ -60,9 +60,9 @@ fn join(prefix: &str, name: &str) -> String {
 
 fn entries(folder: &Path) -> Result<Vec<(String, PathBuf)>> {
     let mut list: Vec<(String, PathBuf)> = std::fs::read_dir(folder)
-        .map_err(|e| Error::new("operation_failed", format!("{}: {e}", folder.display())))?
+        .map_err(|e| Error::new("internal_error", format!("{}: {e}", folder.display())))?
         .map(|entry| {
-            let entry = entry.map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            let entry = entry.map_err(|e| Error::new("internal_error", e.to_string()))?;
             Ok((
                 entry.file_name().to_string_lossy().into_owned(),
                 entry.path(),
@@ -104,28 +104,22 @@ pub fn finder_only_residue(folder: &Path) -> bool {
 
 pub(crate) fn read_manifest(root: &crate::tree::Root, rel: &str) -> Result<Value> {
     const LIMIT: u64 = 1024 * 1024;
-    let stamp = root.stat(rel)?.ok_or_else(|| {
-        Error::new(
-            "operation_failed",
-            format!("Stalker manifest missing: {rel}"),
-        )
-    })?;
+    let stamp = root
+        .stat(rel)?
+        .ok_or_else(|| Error::new("internal_error", format!("Stalker manifest missing: {rel}")))?;
     require(
         stamp.size <= LIMIT,
         "document_too_large",
         "JSON input exceeds size limit",
     )?;
-    let file = root.open_read(rel)?.ok_or_else(|| {
-        Error::new(
-            "operation_failed",
-            format!("Stalker manifest missing: {rel}"),
-        )
-    })?;
+    let file = root
+        .open_read(rel)?
+        .ok_or_else(|| Error::new("internal_error", format!("Stalker manifest missing: {rel}")))?;
     use std::io::Read;
     let mut raw = Vec::new();
     file.take(LIMIT + 1)
         .read_to_end(&mut raw)
-        .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        .map_err(|e| Error::new("internal_error", e.to_string()))?;
     require(
         raw.len() as u64 <= LIMIT,
         "document_too_large",
@@ -245,7 +239,7 @@ impl Walker<'_> {
     fn require_file(&self, rel: &str) -> Result<()> {
         require(
             self.root.stat(rel)?.is_some(),
-            "operation_failed",
+            "internal_error",
             format!("Stalker bundle member missing: {rel}"),
         )
     }
@@ -596,7 +590,7 @@ pub fn discover(
     let mut indexes: HashMap<String, Option<MissionIndex>> = HashMap::new();
     let source = params["source"]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", "'source'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'source'"))?;
     let stalker = params["source_kind"] == "stalker";
     let mut found = scan_source(Path::new(source), true, stalker, true, true, None)?;
     if stalker && let Some(name) = archive {
@@ -1099,7 +1093,7 @@ mod tests {
         let root = tree(&[("S.stalker/manifest.json", missing_track.as_bytes())]);
         assert_eq!(
             scan(root.path(), true, false, true).err().unwrap().code,
-            "operation_failed"
+            "internal_error"
         );
         let bad_version =
             json!({"producer": "stalker", "schemaVersion": 9, "status": "completed"}).to_string();

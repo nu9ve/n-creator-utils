@@ -33,7 +33,7 @@ fn utc(local: &str, offset: Option<&str>) -> Result<(String, &'static str)> {
     let value = format!("{local}{}", offset.unwrap_or_default());
     let when = DateTime::fromisoformat(&value).ok_or_else(|| {
         Error::new(
-            "operation_failed",
+            "internal_error",
             format!("Invalid isoformat string: '{value}'"),
         )
     })?;
@@ -226,7 +226,7 @@ pub fn write_units_map(home: &Path, backend: &dyn Backend, plan: &Value) -> Resu
     for flow_id in &used {
         let flow = flows
             .get(flow_id.as_str())
-            .ok_or_else(|| Error::new("operation_failed", format!("'{flow_id}'")))?;
+            .ok_or_else(|| Error::new("internal_error", format!("'{flow_id}'")))?;
         let rel = format!(
             "{}/{}",
             text(&record, "prefix").trim_matches('/'),
@@ -241,7 +241,7 @@ pub fn write_units_map(home: &Path, backend: &dyn Backend, plan: &Value) -> Resu
             .filter(|l| !l.trim().is_empty())
         {
             let value: Value = serde_json::from_str(line)
-                .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                .map_err(|e| Error::new("internal_error", e.to_string()))?;
             current.insert(text(&value, "asset_id").to_owned(), value);
         }
         for entry in unit_entries(&catalog, plan, &rel)? {

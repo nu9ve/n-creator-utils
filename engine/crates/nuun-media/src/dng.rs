@@ -24,7 +24,7 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
 fn required<'a>(params: &'a Value, key: &str) -> Result<&'a str> {
     params[key]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
 }
 
 fn load_units(root: &Root, path: &str) -> Result<Vec<Value>> {
@@ -34,12 +34,11 @@ fn load_units(root: &Root, path: &str) -> Result<Vec<Value>> {
             "No units map yet: ingest drone stills first",
         )
     })?;
-    let raw =
-        std::str::from_utf8(&raw).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+    let raw = std::str::from_utf8(&raw).map_err(|e| Error::new("internal_error", e.to_string()))?;
     raw.lines()
         .filter(|line| !line.trim().is_empty())
         .map(|line| {
-            serde_json::from_str(line).map_err(|e| Error::new("operation_failed", e.to_string()))
+            serde_json::from_str(line).map_err(|e| Error::new("internal_error", e.to_string()))
         })
         .collect()
 }
@@ -357,7 +356,7 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
     );
     let raw = crate::tree::read_bytes(Path::new(text(&archive, "root")), &history_path, MAX_MAP)?;
     let history: Value = serde_json::from_slice(raw.as_deref().unwrap_or(b"{}"))
-        .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        .map_err(|e| Error::new("internal_error", e.to_string()))?;
     let rules = &flow["dng"];
     let groups = if params["keep"].is_null() {
         select(&units, &history, &labels(&root, &work, rules)?, rules)
@@ -494,7 +493,7 @@ fn apply_with(
     hook: crate::transfer::Hook<'_>,
 ) -> Result<Value> {
     let mut value: Value = if let Some(raw) = params["plan"].as_str() {
-        serde_json::from_str(raw).map_err(|e| Error::new("operation_failed", e.to_string()))?
+        serde_json::from_str(raw).map_err(|e| Error::new("internal_error", e.to_string()))?
     } else {
         params["plan"].clone()
     };

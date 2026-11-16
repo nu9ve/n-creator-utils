@@ -21,7 +21,7 @@ fn required<'a>(params: &'a Value, key: &str) -> Result<&'a str> {
     params
         .get(key)
         .and_then(Value::as_str)
-        .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
 }
 
 fn sql(error: rusqlite::Error) -> Error {
@@ -29,7 +29,7 @@ fn sql(error: rusqlite::Error) -> Error {
 }
 
 fn parse(raw: &str) -> Result<Value> {
-    serde_json::from_str(raw).map_err(|e| Error::new("operation_failed", e.to_string()))
+    serde_json::from_str(raw).map_err(|e| Error::new("internal_error", e.to_string()))
 }
 
 fn payloads(db: &Connection, query: &str, params: impl Params) -> Result<Vec<Value>> {
@@ -107,7 +107,7 @@ fn manifest(bundle: &Path) -> Result<Value> {
                 error
             }
         })?
-        .ok_or_else(|| Error::new("operation_failed", "Manifest not found"))?;
+        .ok_or_else(|| Error::new("internal_error", "Manifest not found"))?;
     serde_json::from_slice(&data).map_err(|_| Error::new("invalid_json", "Invalid JSON document"))
 }
 
@@ -304,7 +304,7 @@ fn build_review(
             "Progress callbacks are internal to the local service",
         )?;
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("plan_release() got an unexpected keyword argument '{key}'"),
         ));
     }
@@ -349,7 +349,7 @@ fn build_review(
             "Only completed Stalker captures may be released",
         )?;
         let id = crate::captures::python_uuid(required(&manifest, "sessionID")?)
-            .ok_or_else(|| Error::new("operation_failed", "Invalid session UUID"))?;
+            .ok_or_else(|| Error::new("internal_error", "Invalid session UUID"))?;
         let sha = digest(&manifest);
         assets = payloads(
             db,
@@ -426,7 +426,7 @@ fn build_review(
     let mut bytes = 0;
     for path in paths {
         let (sha, stamp) = checked_hash(&origin, &path)?
-            .ok_or_else(|| Error::new("operation_failed", format!("[FileNotFoundError] {path}")))?;
+            .ok_or_else(|| Error::new("internal_error", format!("[FileNotFoundError] {path}")))?;
         let size = stamp["size"].as_u64().unwrap_or_default();
         let mut candidates = receipts.get(sha.as_str()).cloned().unwrap_or_default();
         let mut local_candidates = Vec::new();

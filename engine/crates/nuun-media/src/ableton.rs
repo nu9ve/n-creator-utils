@@ -11,7 +11,7 @@ const LIMIT: u64 = 256 * 1024 * 1024;
 fn decode(root: &Root, path: &str) -> Result<Vec<u8>> {
     let mut file = root
         .open_read(path)?
-        .ok_or_else(|| Error::new("operation_failed", "Set missing"))?;
+        .ok_or_else(|| Error::new("internal_error", "Set missing"))?;
     let mut header = [0; 2];
     let n = file.read(&mut header).map_err(io)?;
     if n == 0 {
@@ -19,7 +19,7 @@ fn decode(root: &Root, path: &str) -> Result<Vec<u8>> {
     }
     require(
         header == [0x1f, 0x8b],
-        "operation_failed",
+        "internal_error",
         format!(
             "Not a gzipped file ({:?})",
             String::from_utf8_lossy(&header[..n])
@@ -56,7 +56,7 @@ fn decode(root: &Root, path: &str) -> Result<Vec<u8>> {
         )?;
         require(
             status.success(),
-            "operation_failed",
+            "internal_error",
             "Invalid or truncated Ableton gzip",
         )?;
         fed.map_err(io)?;
@@ -65,7 +65,7 @@ fn decode(root: &Root, path: &str) -> Result<Vec<u8>> {
 }
 
 fn io(error: std::io::Error) -> Error {
-    Error::new("operation_failed", error.to_string())
+    Error::new("internal_error", error.to_string())
 }
 
 pub(crate) fn references(

@@ -583,7 +583,7 @@ pub fn stamp(path: &Path) -> Result<Stamp> {
     };
     if handle == INVALID_HANDLE_VALUE {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("{}: {}", path.display(), std::io::Error::last_os_error()),
         ));
     }
@@ -604,7 +604,7 @@ pub fn stamp(path: &Path) -> Result<Stamp> {
     unsafe { CloseHandle(handle) };
     if !ok {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("{}: {error}", path.display()),
         ));
     }
@@ -634,7 +634,7 @@ pub fn stamp(path: &Path) -> Result<Stamp> {
 pub fn stamp(path: &Path) -> Result<Stamp> {
     use std::os::unix::fs::MetadataExt;
     let meta = std::fs::symlink_metadata(path)
-        .map_err(|e| Error::new("operation_failed", format!("{}: {e}", path.display())))?;
+        .map_err(|e| Error::new("internal_error", format!("{}: {e}", path.display())))?;
     let file_type = meta.file_type();
     let kind = if file_type.is_symlink() {
         EntryKind::Link

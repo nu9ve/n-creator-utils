@@ -138,13 +138,13 @@ pub(crate) fn hash_file_counted(
     mut counted: impl FnMut(u64) -> Result<()>,
 ) -> Result<String> {
     file.seek(SeekFrom::Start(0))
-        .map_err(|e| Error::new("operation_failed", format!("[OSError] {e}")))?;
+        .map_err(|e| Error::new("internal_error", format!("[OSError] {e}")))?;
     let mut hasher = Sha256::new();
     let mut buffer = vec![0u8; CHUNK_SIZE];
     loop {
         let n = file
             .read(&mut buffer)
-            .map_err(|e| Error::new("operation_failed", format!("[OSError] {e}")))?;
+            .map_err(|e| Error::new("internal_error", format!("[OSError] {e}")))?;
         if n == 0 {
             return Ok(nu9ve_json::hex(&hasher.finalize()));
         }
@@ -467,13 +467,13 @@ impl<'a> Transfer<'a> {
         source.check()?;
         let mut src = fs::uncached(source.open_read(source_rel)?.ok_or_else(|| {
             Error::new(
-                "operation_failed",
+                "internal_error",
                 format!("[FileNotFoundError] {source_rel}"),
             )
         })?);
         let initial = source.stat(source_rel)?.ok_or_else(|| {
             Error::new(
-                "operation_failed",
+                "internal_error",
                 format!("[FileNotFoundError] {source_rel}"),
             )
         })?;
@@ -958,7 +958,7 @@ impl<'a> Transfer<'a> {
                         .map_err(|e| Error::new("catalog_corrupt", e.to_string()))?;
                     let mut fd =
                         fs::verify_read(roots[r].open_read(&target)?.ok_or_else(|| {
-                            Error::new("operation_failed", format!("[FileNotFoundError] {target}"))
+                            Error::new("internal_error", format!("[FileNotFoundError] {target}"))
                         })?);
                     self.verify_cache = self.verify_cache.max(fd.cache());
                     let mut counted = 0;
@@ -1222,7 +1222,7 @@ impl<'a> Transfer<'a> {
                     .optional()
                     .map_err(sql)?;
                 let mut fd = roots[*r].open_read(target)?.ok_or_else(|| {
-                    Error::new("operation_failed", format!("[FileNotFoundError] {target}"))
+                    Error::new("internal_error", format!("[FileNotFoundError] {target}"))
                 })?;
                 let found = hash_file(&mut fd, |_| {})?;
                 require(
@@ -1259,7 +1259,7 @@ impl<'a> Transfer<'a> {
                 if roots[r].stat(target)?.map(|s| stamp_json(&s)).as_ref() != Some(stamp) {
                     let expected = self.member_sha(&id, path)?;
                     let mut fd = roots[r].open_read(target)?.ok_or_else(|| {
-                        Error::new("operation_failed", format!("[FileNotFoundError] {target}"))
+                        Error::new("internal_error", format!("[FileNotFoundError] {target}"))
                     })?;
                     require(
                         expected.as_deref() == Some(hash_file(&mut fd, |_| {})?.as_str()),
@@ -1300,7 +1300,7 @@ impl<'a> Transfer<'a> {
                     // Replicas may all descend from one card read; a fresh read must agree before the only original goes.
                     let expected = self.member_sha(&id, path)?;
                     let mut fd = fs::verify_read(source.open_read(path)?.ok_or_else(|| {
-                        Error::new("operation_failed", format!("[FileNotFoundError] {path}"))
+                        Error::new("internal_error", format!("[FileNotFoundError] {path}"))
                     })?);
                     let mut counted = 0;
                     let found = hash_file(&mut fd, |n| counted += n)?;
@@ -1576,7 +1576,7 @@ pub fn apply(
                 "plan_too_large",
                 "Plan document exceeds 12 MiB",
             )?;
-            serde_json::from_str(text).map_err(|e| Error::new("operation_failed", e.to_string()))?
+            serde_json::from_str(text).map_err(|e| Error::new("internal_error", e.to_string()))?
         }
         other => other.clone(),
     };
@@ -1727,7 +1727,7 @@ mod tests {
     }
 
     fn os_error(message: &str) -> Error {
-        Error::new("operation_failed", format!("[OSError] {message}"))
+        Error::new("internal_error", format!("[OSError] {message}"))
     }
 
     fn count(root: &Path, suffix: &str) -> usize {

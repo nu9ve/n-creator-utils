@@ -8,7 +8,7 @@ use nu9ve_volumes::{EntryKind, Stamp, fs, stamp};
 use std::path::{Path, PathBuf};
 
 fn io(error: std::io::Error) -> Error {
-    Error::new("operation_failed", error.to_string())
+    Error::new("internal_error", error.to_string())
 }
 
 /// The root, checked as `Tree.__enter__`: no link in it or its parents, and a directory.
@@ -23,10 +23,10 @@ fn open_root(root: &Path) -> Result<PathBuf> {
             )?;
         }
     }
-    let s = stamp(&root).map_err(|e| Error::new("operation_failed", e.message))?;
+    let s = stamp(&root).map_err(|e| Error::new("internal_error", e.message))?;
     require(
         s.kind == EntryKind::Dir,
-        "operation_failed",
+        "internal_error",
         format!("Not a directory: {}", root.display()),
     )?;
     Ok(root)
@@ -42,7 +42,7 @@ fn walk(root: &Path, rel: &str) -> Result<Option<(PathBuf, Stamp)>> {
         let Ok(s) = stamp(&path) else { return Ok(None) };
         require(
             s.kind != EntryKind::Link,
-            "operation_failed",
+            "internal_error",
             format!("Too many levels of symbolic links: {rel}"),
         )?;
         if i + 1 < parts.len() {
@@ -108,7 +108,7 @@ impl Root {
     pub fn open(root: &Path) -> Result<Root> {
         let path = open_root(root)?;
         let inode = stamp(&path)
-            .map_err(|e| Error::new("operation_failed", e.message))?
+            .map_err(|e| Error::new("internal_error", e.message))?
             .inode;
         Ok(Root { path, inode })
     }
@@ -138,7 +138,7 @@ impl Root {
                 Some(s) if s.kind == EntryKind::Dir => {}
                 Some(_) => {
                     return Err(Error::new(
-                        "operation_failed",
+                        "internal_error",
                         format!("[NotADirectoryError] {}", next.display()),
                     ));
                 }
@@ -158,13 +158,13 @@ impl Root {
                     }
                     require(
                         fs::is_dir(&next)? == Some(true),
-                        "operation_failed",
+                        "internal_error",
                         format!("Not a directory: {}", next.display()),
                     )?;
                 }
                 None => {
                     return Err(Error::new(
-                        "operation_failed",
+                        "internal_error",
                         format!("[FileNotFoundError] {}", next.display()),
                     ));
                 }
@@ -212,7 +212,7 @@ impl Root {
         let (dir, name) = self.parent(rel, false)?;
         let path = dir.join(&name);
         let s = fs::stamp_opt(&path)?
-            .ok_or_else(|| Error::new("operation_failed", format!("[FileNotFoundError] {rel}")))?;
+            .ok_or_else(|| Error::new("internal_error", format!("[FileNotFoundError] {rel}")))?;
         require(
             s.kind == EntryKind::File,
             "unsafe_file",

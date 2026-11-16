@@ -173,7 +173,7 @@ fn apply_with(
 ) -> Result<Value> {
     let id = params["job_id"]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'job_id'"))?;
     let catalog = Catalog::open(home)?;
     let guard = acquire()?;
     let _lock = writer_lock(home)?;
@@ -194,7 +194,7 @@ fn apply_with(
     )?;
     let key = format!("relayout-intent:{id}");
     let moves: Vec<Value> = if let Some(prior) = writer.get(&key)? {
-        serde_json::from_value(prior).map_err(|e| Error::new("operation_failed", e.to_string()))?
+        serde_json::from_value(prior).map_err(|e| Error::new("internal_error", e.to_string()))?
     } else {
         let moves = prepare(&catalog, backend, &job)?;
         for movement in &moves {
@@ -325,7 +325,7 @@ fn apply_with(
         let root = Path::new(text(&volume, "root"));
         if let Some(raw) = crate::tree::read_bytes(root, &receipt_rel, 16 * 1024 * 1024)? {
             let mut receipt: Value = serde_json::from_slice(&raw)
-                .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                .map_err(|e| Error::new("internal_error", e.to_string()))?;
             if let Some(files) = receipt["files"].as_array_mut() {
                 for file in files {
                     if let Some(copy) = copies.get(text(file, "path")) {

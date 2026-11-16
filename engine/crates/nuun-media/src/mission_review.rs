@@ -197,7 +197,7 @@ fn load_state(raw: Option<Vec<u8>>, flow: &Value) -> Result<State> {
         return Ok(empty_state(flow));
     };
     let history: Value =
-        serde_json::from_slice(&raw).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        serde_json::from_slice(&raw).map_err(|e| Error::new("internal_error", e.to_string()))?;
     let nuun = if truthy(&history["nuun"]) {
         &history["nuun"]
     } else {
@@ -484,7 +484,7 @@ fn candidates(flow: &Value, paths: &Value) -> Result<(PathBuf, Vec<PathBuf>)> {
             .map(|e| e.path())
             .collect(),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
-        Err(e) => return Err(Error::new("operation_failed", e.to_string())),
+        Err(e) => return Err(Error::new("internal_error", e.to_string())),
     };
     found.sort();
     Ok((inbox, found))
@@ -497,15 +497,14 @@ fn read_export(path: &Path) -> Result<(Vec<u8>, Value)> {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let stamp =
-        nu9ve_volumes::stamp(path).map_err(|e| Error::new("operation_failed", e.message))?;
+    let stamp = nu9ve_volumes::stamp(path).map_err(|e| Error::new("internal_error", e.message))?;
     require(
         stamp.size <= MAX_EXPORT,
         "file_too_large",
         format!("Export larger than 64 MiB: {name}"),
     )?;
     let raw = crate::tree::read_bytes(parent, &name, MAX_EXPORT as usize)?
-        .ok_or_else(|| Error::new("operation_failed", format!("No such file: {name}")))?;
+        .ok_or_else(|| Error::new("internal_error", format!("No such file: {name}")))?;
     require(
         nu9ve_volumes::stamp(path)? == stamp,
         "source_changed",
@@ -544,7 +543,7 @@ pub fn review(catalog: &Catalog, backend: Option<&dyn Backend>, params: &Value) 
             .find(|k| !["archive", "paths", "flow_id"].contains(&k.as_str()))
     }) {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("review() got an unexpected keyword argument '{unexpected}'"),
         ));
     }
@@ -718,7 +717,7 @@ mod incorporate {
 
     /// macOS supplies gzip. Limit both directions to the reviewed export size ceiling.
     fn gzip(input: &[u8], decompress: bool) -> Result<Vec<u8>> {
-        let io = |e: std::io::Error| Error::new("operation_failed", format!("gzip: {e}"));
+        let io = |e: std::io::Error| Error::new("internal_error", format!("gzip: {e}"));
         let mut child = Command::new("/usr/bin/gzip")
             .arg(if decompress { "-dc" } else { "-nc" })
             .env_remove("GZIP")
@@ -813,16 +812,16 @@ mod incorporate {
             })
         }) {
             return Err(Error::new(
-                "operation_failed",
+                "internal_error",
                 format!("incorporate() got an unexpected keyword argument '{key}'"),
             ));
         }
         let archive = params["archive"]
             .as_str()
-            .ok_or_else(|| Error::new("operation_failed", "'archive'"))?;
+            .ok_or_else(|| Error::new("internal_error", "'archive'"))?;
         let expected = params
             .get("digest_value")
-            .ok_or_else(|| Error::new("operation_failed", "'digest_value'"))?;
+            .ok_or_else(|| Error::new("internal_error", "'digest_value'"))?;
         let remove = params.get("remove_from_inbox").is_none_or(truthy);
         let _lock = writer_lock(home)?;
         let catalog = Catalog::open(home)?;
@@ -849,7 +848,7 @@ mod incorporate {
         let mut state = load_state(history.clone(), &flow)?;
         let committed = state.nuun["changes_count"].as_u64().unwrap_or_default() as usize;
         let mut changes = String::from_utf8(existing.clone())
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?
+            .map_err(|e| Error::new("internal_error", e.to_string()))?
             .lines()
             .filter(|line| !line.trim().is_empty())
             .take(committed)
@@ -894,7 +893,7 @@ mod incorporate {
             }
             let raw_rel = store_raw(&root, area, entry, &raw)?;
             let data: Value = serde_json::from_slice(&raw)
-                .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                .map_err(|e| Error::new("internal_error", e.to_string()))?;
             let at = nu9ve_time::now_utc();
             for mut change in merge(&mut state, &data, sha, name, &flow, &merge_keys) {
                 change["at"] = json!(at);

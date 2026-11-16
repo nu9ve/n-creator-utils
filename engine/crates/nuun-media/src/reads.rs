@@ -61,7 +61,7 @@ fn count(db: &rusqlite::Connection, query: &str, id: &str) -> Result<i64> {
 pub fn job(catalog: &Catalog, params: &Value) -> Result<Value> {
     let id = params["job_id"]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'job_id'"))?;
     let db = catalog
         .db()
         .ok_or_else(|| Error::new("unknown_job", "Job not found"))?;
@@ -160,18 +160,18 @@ pub fn release_plans(catalog: &Catalog) -> Result<Vec<Value>> {
     catalog.json_rows("SELECT value FROM metadata WHERE key LIKE 'release:%'", [])
 }
 
-/// A required string parameter, failing as Python's `params['name']` does (`KeyError` → `operation_failed`).
+/// A required string parameter, failing as Python's `params['name']` does (`KeyError` → `internal_error`).
 fn param<'a>(params: &'a Value, name: &str) -> Result<&'a str> {
     match params.get(name) {
         Some(Value::String(text)) => Ok(text),
         Some(other) => Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!(
                 "can only concatenate str (not \"{}\") to str",
                 python_type(other)
             ),
         )),
-        None => Err(Error::new("operation_failed", format!("'{name}'"))),
+        None => Err(Error::new("internal_error", format!("'{name}'"))),
     }
 }
 
@@ -266,7 +266,7 @@ pub fn missions_status(catalog: &Catalog, params: &Value) -> Result<Value> {
         .and_then(|p| p.keys().find(|k| k.as_str() != "flow_id"))
     {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("status() got an unexpected keyword argument '{unexpected}'"),
         ));
     }

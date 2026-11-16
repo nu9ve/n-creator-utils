@@ -607,7 +607,7 @@ def reads_cases():
                 except MediaError as error:
                     answer = {'ok': False, 'code': error.code}
                 except (KeyError, TypeError, ValueError) as error:
-                    answer = {'ok': False, 'code': 'operation_failed', 'error': type(error).__name__}
+                    answer = {'ok': False, 'code': 'internal_error', 'error': type(error).__name__}
                 cases.append({'method': method, 'params': params, 'answer': answer})
             sql = sql_dump(catalog.db)
         finally:
@@ -1327,7 +1327,7 @@ def write_cases():
                 except MediaError as error:
                     answers.append({'ok': False, 'code': error.code})
                 except (KeyError, TypeError, ValueError):
-                    answers.append({'ok': False, 'code': 'operation_failed'})
+                    answers.append({'ok': False, 'code': 'internal_error'})
             tables = {name: [list(row) for row in db.execute('SELECT * FROM %s ORDER BY %s' % (name, order))]
                       for name, order in WRITE_TABLES.items()}
         finally:

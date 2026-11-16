@@ -21,7 +21,7 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
 fn param<'a>(params: &'a Value, key: &str) -> Result<&'a str> {
     params[key]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
 }
 
 fn settings_group(catalog: &Catalog, id: &str) -> Result<Vec<(String, Value)>> {
@@ -83,7 +83,7 @@ fn plan_with(
             "Progress callbacks are internal to the local service",
         )?;
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("plan_close() got an unexpected keyword argument '{key}'"),
         ));
     }
@@ -208,7 +208,7 @@ fn plan_with(
             .holding(rel, text(&volume, "name"), "", "verify");
         progress.report()?;
         let (sha, stamp) = checked_hash(&tree, rel)?
-            .ok_or_else(|| Error::new("operation_failed", format!("[FileNotFoundError] {rel}")))?;
+            .ok_or_else(|| Error::new("internal_error", format!("[FileNotFoundError] {rel}")))?;
         require(
             stamp == item["stamp"],
             "source_changed",

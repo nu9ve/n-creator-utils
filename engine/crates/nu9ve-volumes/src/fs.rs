@@ -18,7 +18,7 @@ pub fn io_error(error: std::io::Error, context: &Path) -> Error {
         _ => "OSError",
     };
     Error::new(
-        "operation_failed",
+        "internal_error",
         format!("[{name}] {}: {error}", context.display()),
     )
 }
@@ -46,7 +46,7 @@ pub fn stamp_opt(path: &Path) -> Result<Option<Stamp>> {
 /// Full synchronization for media and metadata.
 pub fn full_sync(file: &File) -> Result<()> {
     nu9ve_fs::sync_file(file, SyncMode::Full)
-        .map_err(|e| Error::new("operation_failed", format!("[OSError] fsync: {e}")))
+        .map_err(|e| Error::new("internal_error", format!("[OSError] fsync: {e}")))
 }
 
 /// Make the entries of `dir` durable.

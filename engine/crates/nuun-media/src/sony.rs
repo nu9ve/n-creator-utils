@@ -17,7 +17,7 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
 fn required<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
     value[key]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
 }
 
 type Members = BTreeMap<String, (Option<String>, i64)>;
@@ -96,7 +96,7 @@ pub(crate) fn removal_recorded(catalog: &Catalog, job: &Value) -> Result<bool> {
 pub fn reconcile(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     require(
         params.get("identity").is_some(),
-        "operation_failed",
+        "internal_error",
         "'identity'",
     )?;
     observe(
@@ -116,7 +116,7 @@ fn observe(
     only: Option<&str>,
 ) -> Result<Value> {
     let root =
-        std::path::absolute(source).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        std::path::absolute(source).map_err(|e| Error::new("internal_error", e.to_string()))?;
     let info = backend.describe(&root, true)?;
     volumes::validate_card(&root, &info)?;
     if let Some(identity) = identity.filter(|id| !id.is_null()) {
@@ -330,8 +330,8 @@ pub fn confirm(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
             "invalid_state",
             "Job is not waiting for a camera-side cleanup",
         )?;
-        let root = std::path::absolute(source)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        let root =
+            std::path::absolute(source).map_err(|e| Error::new("internal_error", e.to_string()))?;
         let info = backend.describe(&root, true)?;
         require(
             info["mount"] == json!(root),

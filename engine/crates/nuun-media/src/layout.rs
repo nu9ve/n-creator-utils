@@ -160,7 +160,7 @@ impl Facts {
 }
 
 fn bad(message: impl Into<String>) -> Error {
-    Error::new("operation_failed", message)
+    Error::new("internal_error", message)
 }
 
 /// Python `layout.sony_xml`: facts of a Sony clip's `M01.XML` (creation, duration, fps, width, model).

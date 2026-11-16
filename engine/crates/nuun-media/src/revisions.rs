@@ -137,7 +137,7 @@ fn publish_with(
     let asset_id = text(params, "asset_id");
     let expected = &params["expected_revision"];
     let home = std::path::absolute(home)
-        .map_err(|error| Error::new("operation_failed", error.to_string()))?;
+        .map_err(|error| Error::new("internal_error", error.to_string()))?;
     let catalog = Catalog::open(&home)?;
     let archive = catalog.volume(text(params, "archive"))?;
     require(
@@ -202,7 +202,7 @@ fn publish_with(
             "Publication inventory differs from its journal",
         )?;
         let rows = serde_json::from_value(prior["previous_copies"].clone())
-            .map_err(|error| Error::new("operation_failed", error.to_string()))?;
+            .map_err(|error| Error::new("internal_error", error.to_string()))?;
         (prior, rows)
     } else {
         let rows = inventory(&catalog, &current, &archive)?;

@@ -478,7 +478,7 @@ pub(crate) fn operation_lock(
 }
 
 fn io(error: std::io::Error) -> Error {
-    Error::new("operation_failed", error.to_string())
+    Error::new("internal_error", error.to_string())
 }
 
 /// Test support: a catalog with Python's schema, written the way `Catalog.register` writes it.

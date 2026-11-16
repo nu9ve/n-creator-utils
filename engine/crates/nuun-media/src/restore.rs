@@ -15,7 +15,7 @@ pub fn restore(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
         params
             .get(key)
             .and_then(Value::as_str)
-            .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+            .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
     };
     let asset_id = required("asset_id")?;
     let _lock = writer_lock(home)?;
@@ -124,13 +124,13 @@ pub(crate) fn claim_directory(tree: &Root, rel: &str, owner: &Value) -> Result<(
     }
     let file = tree
         .open_read(&marker)?
-        .ok_or_else(|| Error::new("operation_failed", "Destination has no owner marker"))?;
+        .ok_or_else(|| Error::new("internal_error", "Destination has no owner marker"))?;
     let mut bytes = Vec::new();
     file.take(4097)
         .read_to_end(&mut bytes)
         .map_err(|e| nu9ve_volumes::fs::io_error(e, &directory))?;
-    let actual: Value = serde_json::from_slice(&bytes)
-        .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+    let actual: Value =
+        serde_json::from_slice(&bytes).map_err(|e| Error::new("internal_error", e.to_string()))?;
     require(
         &actual == owner,
         "destination_conflict",

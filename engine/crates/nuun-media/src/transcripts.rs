@@ -526,7 +526,7 @@ fn backup_with(
     let param = |key| {
         params[key]
             .as_str()
-            .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+            .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
     };
     let project = param("project_id")?;
     let archive = param("archive")?;

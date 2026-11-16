@@ -25,7 +25,7 @@ fn only(params: &Value, allowed: &[&str], function: &str) -> Result<()> {
         .and_then(|p| p.keys().find(|k| !allowed.contains(&k.as_str())))
     {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("{function}() got an unexpected keyword argument '{unexpected}'"),
         ));
     }
@@ -36,13 +36,13 @@ fn only(params: &Value, allowed: &[&str], function: &str) -> Result<()> {
 fn required<'a>(params: &'a Value, name: &str) -> Result<&'a Value> {
     params
         .get(name)
-        .ok_or_else(|| Error::new("operation_failed", format!("'{name}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{name}'")))
 }
 
 fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str> {
     required(params, name)?
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", format!("'{name}' must be a string")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{name}' must be a string")))
 }
 
 /// The `defaults` method with parameters: the suggestions a new ingest starts from.
@@ -189,8 +189,8 @@ fn retag(catalog: &WritableCatalog, old: &[String], title: &str) -> Result<()> {
         found.collect::<rusqlite::Result<_>>().map_err(sql)?
     };
     for (key, raw) in rows {
-        let mut tag: Value = serde_json::from_str(&raw)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        let mut tag: Value =
+            serde_json::from_str(&raw).map_err(|e| Error::new("internal_error", e.to_string()))?;
         if tag["name"]
             .as_str()
             .is_some_and(|n| old.iter().any(|o| o == n))
@@ -272,7 +272,7 @@ pub fn rename_project(home: &Path, params: &Value) -> Result<Value> {
             };
             for (id, raw) in assets {
                 let mut asset: Value = serde_json::from_str(&raw)
-                    .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                    .map_err(|e| Error::new("internal_error", e.to_string()))?;
                 if asset["project_id"] == key.as_str() {
                     asset["project"] = json!(title);
                     let payload =
@@ -301,7 +301,7 @@ fn asset_record(catalog: &WritableCatalog, id: &str) -> Result<Value> {
         .optional()
         .map_err(sql)?;
     let raw = raw.ok_or_else(|| Error::new("unknown_asset", "Asset not found"))?;
-    serde_json::from_str(&raw).map_err(|e| Error::new("operation_failed", e.to_string()))
+    serde_json::from_str(&raw).map_err(|e| Error::new("internal_error", e.to_string()))
 }
 
 /// The `set_work_state` method: some assets wait for, or skip, their editing copy.
@@ -417,7 +417,7 @@ fn uuid_text(value: &Value) -> Result<String> {
     value
         .as_str()
         .and_then(crate::captures::python_uuid)
-        .ok_or_else(|| Error::new("operation_failed", "badly formed hexadecimal UUID string"))
+        .ok_or_else(|| Error::new("internal_error", "badly formed hexadecimal UUID string"))
 }
 
 /// The `save_capture_tags` method (and `save_capture_tag` for one): one writer for a whole batch, and the project
@@ -588,7 +588,7 @@ pub fn closure_save(
         .map_err(sql)?;
     for config in configs {
         let value: Value = serde_json::from_str(&config.map_err(sql)?)
-            .map_err(|error| Error::new("operation_failed", error.to_string()))?;
+            .map_err(|error| Error::new("internal_error", error.to_string()))?;
         for item in value["finals"].as_array().into_iter().flatten() {
             if let (Some(id), Some(path)) = (item["volume_id"].as_str(), item["path"].as_str()) {
                 other_finals.insert((id.to_owned(), path.to_owned()));
@@ -638,7 +638,7 @@ pub fn closure_save(
         let root = Path::new(volume["root"].as_str().unwrap_or_default());
         let stamp = tree::Root::open(root)?
             .stat(path)?
-            .ok_or_else(|| Error::new("operation_failed", format!("[FileNotFoundError] {path}")))?;
+            .ok_or_else(|| Error::new("internal_error", format!("[FileNotFoundError] {path}")))?;
         let stamp = tree::stamp_json(&stamp);
         let selection = (id.to_owned(), path.to_owned());
         require(

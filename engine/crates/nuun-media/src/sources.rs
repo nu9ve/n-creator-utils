@@ -143,7 +143,7 @@ pub(crate) fn receipt_metadata(
 pub fn sources(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Result<Value> {
     let project = params
         .get("project")
-        .ok_or_else(|| Error::new("operation_failed", "'project'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'project'"))?;
     let purpose = match params.get("purpose") {
         Some(Value::String(p)) if !p.is_empty() => p.as_str(),
         _ => "edit",
@@ -241,7 +241,7 @@ pub fn sources(catalog: &Catalog, backend: &dyn Backend, params: &Value) -> Resu
                 continue;
             }
             let Some(volume) = volumes_by_id.get(volume_id) else {
-                return Err(Error::new("operation_failed", format!("'{volume_id}'")));
+                return Err(Error::new("internal_error", format!("'{volume_id}'")));
             };
             let Some(sample) = row(rows, &primary[0]).cloned() else {
                 continue;

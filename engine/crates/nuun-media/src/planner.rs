@@ -105,13 +105,13 @@ pub(crate) fn absolute_source(source: &str) -> Result<PathBuf> {
             let home = std::env::var_os("HOME")
                 .or_else(|| std::env::var_os("USERPROFILE"))
                 .ok_or_else(|| {
-                    Error::new("operation_failed", "Could not determine home directory")
+                    Error::new("internal_error", "Could not determine home directory")
                 })?;
             PathBuf::from(home).join(rest.trim_start_matches(['/', '\\']))
         }
         _ => PathBuf::from(source),
     };
-    std::path::absolute(&expanded).map_err(|e| Error::new("operation_failed", e.to_string()))
+    std::path::absolute(&expanded).map_err(|e| Error::new("internal_error", e.to_string()))
 }
 
 /// A comparable form of a path: on Windows the file system ignores case, so the comparison does too.
@@ -633,20 +633,20 @@ fn build_with_stamps(
     let p = params.as_object().cloned().unwrap_or_default();
     if let Some(unexpected) = p.keys().find(|k| !PARAMS.contains(&k.as_str())) {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("_build_plan() got an unexpected keyword argument '{unexpected}'"),
         ));
     }
     let get = |k: &str, default: Value| p.get(k).cloned().unwrap_or(default);
     let source = p.get("source").and_then(Value::as_str).ok_or_else(|| {
         Error::new(
-            "operation_failed",
+            "internal_error",
             "_build_plan() missing required argument: 'source'",
         )
     })?;
     let archive = p.get("archive").ok_or_else(|| {
         Error::new(
-            "operation_failed",
+            "internal_error",
             "_build_plan() missing required argument: 'archive'",
         )
     })?;
@@ -810,7 +810,7 @@ fn build_with_stamps(
     }
     for (target, is_work) in &targets {
         let root = std::path::absolute(text(target, "root"))
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            .map_err(|e| Error::new("internal_error", e.to_string()))?;
         if *is_work && is_parent(&root, &source) {
             // A folder already on the work disk is its own editing copy: back it up only.
             return Err(Error::new(
@@ -949,7 +949,7 @@ fn build_with_stamps(
                 source_info
                     .get(k)
                     .cloned()
-                    .ok_or_else(|| Error::new("operation_failed", format!("'{k}'")))?,
+                    .ok_or_else(|| Error::new("internal_error", format!("'{k}'")))?,
             );
         }
         Value::Object(keyed)
@@ -1195,7 +1195,7 @@ fn build_with_stamps(
                     device
                         .get(k)
                         .cloned()
-                        .ok_or_else(|| Error::new("operation_failed", format!("'{k}'")))?,
+                        .ok_or_else(|| Error::new("internal_error", format!("'{k}'")))?,
                 );
             }
             shown.insert("category".into(), device["category"].clone());
@@ -1279,7 +1279,7 @@ fn build_with_stamps(
             let raw = entry
                 .get("raw_dir")
                 .cloned()
-                .ok_or_else(|| Error::new("operation_failed", "'raw_dir'"))?;
+                .ok_or_else(|| Error::new("internal_error", "'raw_dir'"))?;
             routes.insert(profile.to_owned(), raw);
         }
     }
@@ -1300,7 +1300,7 @@ fn build_with_stamps(
                 category
                     .get("archive")
                     .cloned()
-                    .ok_or_else(|| Error::new("operation_failed", "'archive'"))?,
+                    .ok_or_else(|| Error::new("internal_error", "'archive'"))?,
             );
             if let Some(kinds) = category.get("work_kinds") {
                 work_kinds.insert(camera.to_owned(), kinds.clone());
@@ -1366,7 +1366,7 @@ fn build_with_stamps(
         // Backing up a folder that already is the consumer's work copy: those stills are the work copy.
         for record in catalog.volumes()? {
             let root = std::path::absolute(text(&record, "root"))
-                .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                .map_err(|e| Error::new("internal_error", e.to_string()))?;
             if record["role"] != "work" || !is_parent(&root, &source) {
                 continue;
             }
@@ -1749,7 +1749,7 @@ pub(crate) fn check_retitle(catalog: &Catalog, plan: &Value) -> Result<Vec<Strin
             continue;
         };
         let id = crate::captures::python_uuid(session)
-            .ok_or_else(|| Error::new("operation_failed", "Invalid session UUID"))?;
+            .ok_or_else(|| Error::new("internal_error", "Invalid session UUID"))?;
         if operations.is_none() {
             operations = Some(
                 catalog.json_rows("SELECT value FROM metadata WHERE key LIKE 'retitle:%'", [])?,
@@ -2214,7 +2214,7 @@ mod tests {
         assert_eq!(code(json!({"cleanup": "yes"})), "invalid_policy");
         assert_eq!(code(json!({"camera": "drone"})), "invalid_camera");
         assert_eq!(code(json!({"source_kind": "stalker"})), "empty_source");
-        assert_eq!(code(json!({"frobnicate": 1})), "operation_failed");
+        assert_eq!(code(json!({"frobnicate": 1})), "internal_error");
         assert_eq!(
             code(json!({"assignments": {"nope.JPG": {}}})),
             "invalid_assignment"

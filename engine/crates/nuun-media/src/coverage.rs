@@ -34,7 +34,7 @@ pub(crate) fn walk(
             let name = child
                 .file_name()
                 .into_string()
-                .map_err(|_| Error::new("operation_failed", "Path is not valid UTF-8"))?;
+                .map_err(|_| Error::new("internal_error", "Path is not valid UTF-8"))?;
             if IGNORED_FILES.contains(&name.as_str())
                 || name.starts_with("._")
                 || name.ends_with(".ncpartial")
@@ -64,7 +64,7 @@ pub(crate) fn walk(
 fn digest_of(tree: &Root, path: &str) -> Result<String> {
     let file = tree
         .open_read(path)?
-        .ok_or_else(|| Error::new("operation_failed", format!("[FileNotFoundError] {path}")))?;
+        .ok_or_else(|| Error::new("internal_error", format!("[FileNotFoundError] {path}")))?;
     crate::transfer::hash_file(&mut fs::verify_read(file), |_| {})
 }
 
@@ -104,7 +104,7 @@ pub fn report(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Valu
         params
             .get(key)
             .and_then(Value::as_str)
-            .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+            .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
     };
     let work = required("work")?;
     let archive = required("archive")?;
@@ -188,7 +188,7 @@ pub fn report(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Valu
                         "only_work": only_work, "links_or_special": special, "totals": totals});
     let state = Root::open(home)?;
     let bytes = serde_json::to_vec_pretty(&report)
-        .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        .map_err(|e| Error::new("internal_error", e.to_string()))?;
     state.write_bytes(&rel, &bytes, false)?;
     Ok(
         json!({"report": state.path.join(rel), "totals": totals, "folders": folders,

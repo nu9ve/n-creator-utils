@@ -225,7 +225,7 @@ impl Backend for MacBackend {
             require(!link(path), "unsafe_path", "Volume root contains a symlink")?;
         }
         let st =
-            std::fs::metadata(&root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            std::fs::metadata(&root).map_err(|e| Error::new("internal_error", e.to_string()))?;
         let mount_path = mount_point(&root)
             .map_err(|_| identity_unavailable("Cannot determine source filesystem"))?;
         let data = diskutil(
@@ -304,7 +304,7 @@ impl Backend for MacBackend {
             "Use a mounted external volume",
         )?;
         let (_, _, free) =
-            disk_usage(&root).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            disk_usage(&root).map_err(|e| Error::new("internal_error", e.to_string()))?;
         Ok(json!({
             "mode": "macos",
             "volume_uuid": data["VolumeUUID"],
@@ -372,7 +372,7 @@ impl Backend for MacBackend {
                 "eject_failed",
                 "Could not eject card; close files and retry",
             ),
-            Failure::Other(message) => Error::new("operation_failed", message),
+            Failure::Other(message) => Error::new("internal_error", message),
         })
     }
 }
@@ -891,7 +891,7 @@ pub fn register_volume(home: &Path, backend: &dyn Backend, params: &Value) -> Re
         params[key]
             .as_str()
             .map(str::to_owned)
-            .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+            .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
     };
     let (name, role, root) = (text("name")?, text("role")?, text("root")?);
     let allow_local = params["allow_local"].as_bool().unwrap_or(false);
@@ -1423,10 +1423,7 @@ mod tests {
             reg(json!({"name": "X", "role": "work", "root": root, "prefix": "../up"})),
             "unsafe_path"
         );
-        assert_eq!(
-            reg(json!({"role": "work", "root": root})),
-            "operation_failed"
-        );
+        assert_eq!(reg(json!({"role": "work", "root": root})), "internal_error");
         let missing = s._temp.path().join("not-mounted").display().to_string();
         assert_eq!(
             reg(json!({"name": "X", "role": "work", "root": missing})),

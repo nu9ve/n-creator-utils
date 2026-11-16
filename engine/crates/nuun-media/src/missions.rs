@@ -4,7 +4,7 @@
 //!
 //! Times are civil like Python's: camera wall clocks are naive local times, `capturedAt` (UTC) becomes local with
 //! the host zone (`nu9ve-time`, CPython's rule). A registry whose `mediaCreatedAt` carries an offset would make
-//! Python compare aware and naive times and fail; here it fails too (`operation_failed`), never a silent match.
+//! Python compare aware and naive times and fail; here it fails too (`internal_error`), never a silent match.
 
 use nu9ve_json::{Error, Result};
 use nu9ve_time::DateTime;
@@ -74,7 +74,7 @@ fn local_of(record: &Value) -> Result<Option<DateTime>> {
     {
         if found.offset.is_some() {
             return Err(Error::new(
-                "operation_failed",
+                "internal_error",
                 "can't compare offset-naive and offset-aware datetimes (mediaCreatedAt with an offset)",
             ));
         }
@@ -241,7 +241,7 @@ impl MissionIndex {
                 // Python: max() over a None (unparsable exportedAt) raises.
                 fulls.push(parse_date(&source["exportedAt"]).ok_or_else(|| {
                     Error::new(
-                        "operation_failed",
+                        "internal_error",
                         "'>' not supported between instances of 'NoneType' and 'datetime'",
                     )
                 })?);
@@ -276,7 +276,7 @@ impl MissionIndex {
         };
         let when = naive(when).ok_or_else(|| {
             Error::new(
-                "operation_failed",
+                "internal_error",
                 format!("Invalid isoformat string: '{when}'"),
             )
         })?;
@@ -358,7 +358,7 @@ pub fn index_for(archive: &Value, flow: &Value) -> Result<MissionIndex> {
         return Ok(MissionIndex::empty(flow));
     };
     let history: Value =
-        serde_json::from_slice(&raw).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        serde_json::from_slice(&raw).map_err(|e| Error::new("internal_error", e.to_string()))?;
     let sha = {
         use sha2::Digest;
         nu9ve_json::hex(&sha2::Sha256::digest(&raw))
@@ -737,7 +737,7 @@ mod tests {
         let aware = json!({"captureLog": [{"mediaCreatedAt": "2026-11-04 16:32:13-07:00", "imageReference": "a.jpg"}]});
         assert_eq!(
             MissionIndex::new(&aware, &flow(), None).err().unwrap().code,
-            "operation_failed"
+            "internal_error"
         );
     }
 

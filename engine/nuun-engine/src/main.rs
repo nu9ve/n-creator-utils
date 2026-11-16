@@ -472,10 +472,10 @@ impl Engine {
             "apply" => {
                 let digest = params["digest"]
                     .as_str()
-                    .ok_or_else(|| Error::new("operation_failed", "'digest'"))?;
+                    .ok_or_else(|| Error::new("internal_error", "'digest'"))?;
                 let plan = params
                     .get("plan")
-                    .ok_or_else(|| Error::new("operation_failed", "'plan'"))?;
+                    .ok_or_else(|| Error::new("internal_error", "'plan'"))?;
                 nuun_media::transfer::apply_reviewed(
                     &self.home(),
                     write_backend(platform)?,
@@ -486,7 +486,7 @@ impl Engine {
             "resume" => {
                 let job = params["job_id"]
                     .as_str()
-                    .ok_or_else(|| Error::new("operation_failed", "'job_id'"))?;
+                    .ok_or_else(|| Error::new("internal_error", "'job_id'"))?;
                 nuun_media::transfer::resume(&self.home(), write_backend(platform)?, job)
             }
             #[cfg(unix)]
@@ -507,7 +507,7 @@ impl Engine {
             "backup_metadata" => {
                 let archive = params["archive"]
                     .as_str()
-                    .ok_or_else(|| Error::new("operation_failed", "'archive'"))?;
+                    .ok_or_else(|| Error::new("internal_error", "'archive'"))?;
                 nuun_media::units_map::backup_metadata(
                     &self.home(),
                     write_backend(platform)?,
@@ -1108,12 +1108,12 @@ mod tests {
         let e = engine();
         assert_eq!(
             e.answer(r#"{"id": 1, "method": "storage_tree"}"#, Mode::Serve)["error"]["code"],
-            "operation_failed",
+            "internal_error",
             "Python: KeyError on a missing target"
         );
         assert_eq!(
             e.answer(r#"{"id": 1, "method": "job"}"#, Mode::Serve)["error"]["code"],
-            "operation_failed",
+            "internal_error",
             "Python: KeyError on a missing job_id"
         );
         assert_eq!(
@@ -1192,7 +1192,7 @@ mod tests {
                 Mode::Once
             )["error"]["code"],
             if cfg!(target_os = "macos") {
-                "operation_failed"
+                "internal_error"
             } else {
                 "not_ported"
             }

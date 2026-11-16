@@ -279,7 +279,7 @@ pub fn captures_changed(
         }
     } else {
         let entries = std::fs::read_dir(root_path)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            .map_err(|e| Error::new("internal_error", e.to_string()))?;
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
             if name.to_lowercase().ends_with(".stalker")
@@ -356,13 +356,13 @@ pub fn captures_method(catalog: &Catalog, params: &Value) -> Result<Value> {
             .find(|k| !["root", "changed_paths"].contains(&k.as_str()))
     }) {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("captures() got an unexpected keyword argument '{unexpected}'"),
         ));
     }
     let root = params["root"].as_str().ok_or_else(|| {
         Error::new(
-            "operation_failed",
+            "internal_error",
             "captures() missing 1 required positional argument: 'root'",
         )
     })?;
@@ -401,7 +401,7 @@ pub(crate) fn discard_check_with(
 ) -> Result<Value> {
     let raw = params["path"]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", "'path'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'path'"))?;
     let chosen = match params.get("override") {
         Some(Value::String(text)) if !text.is_empty() => text.clone(),
         _ => catalog
@@ -555,7 +555,7 @@ pub fn libraries(catalog: &Catalog, chosen: &str, places: &Places) -> Result<Val
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let read = tree::read_bytes(parent, &name, 1024 * 1024).and_then(|bytes| {
-            let bytes = bytes.ok_or_else(|| Error::new("operation_failed", "No such file"))?;
+            let bytes = bytes.ok_or_else(|| Error::new("internal_error", "No such file"))?;
             serde_json::from_slice::<Value>(&bytes)
                 .map_err(|_| Error::new("invalid_json", "Invalid JSON document"))
         });

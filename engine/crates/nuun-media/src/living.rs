@@ -22,7 +22,7 @@ pub(crate) fn text<'a>(value: &'a Value, key: &str) -> &'a str {
 pub(crate) fn required<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
     value[key]
         .as_str()
-        .ok_or_else(|| Error::new("operation_failed", format!("'{key}'")))
+        .ok_or_else(|| Error::new("internal_error", format!("'{key}'")))
 }
 
 pub(crate) fn source(path: &str) -> Result<PathBuf> {

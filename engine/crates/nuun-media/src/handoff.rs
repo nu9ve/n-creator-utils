@@ -106,7 +106,7 @@ fn location(
 pub fn handoff(catalog: &Catalog, params: &Value) -> Result<Value> {
     let ids = params
         .get("asset_ids")
-        .ok_or_else(|| Error::new("operation_failed", "'asset_ids'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'asset_ids'"))?;
     let ids = ids
         .as_array()
         .filter(|ids| !ids.is_empty() && ids.iter().all(Value::is_string))
@@ -203,7 +203,7 @@ pub fn handoff(catalog: &Catalog, params: &Value) -> Result<Value> {
             .extend(crate::sources::receipt_metadata(catalog, asset, &groups)?);
         if let Some(session) = asset["session_id"].as_str().filter(|id| !id.is_empty()) {
             item["capture_session_id"] = json!(crate::captures::python_uuid(session).ok_or_else(
-                || Error::new("operation_failed", "badly formed hexadecimal UUID string")
+                || Error::new("internal_error", "badly formed hexadecimal UUID string")
             )?);
         }
         items.push(item);

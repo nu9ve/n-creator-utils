@@ -29,7 +29,7 @@ fn sql(error: rusqlite::Error) -> Error {
 }
 
 fn io(error: std::io::Error) -> Error {
-    Error::new("operation_failed", error.to_string())
+    Error::new("internal_error", error.to_string())
 }
 
 fn truthy(value: &Value) -> bool {
@@ -179,8 +179,8 @@ pub(crate) fn published_receipts(catalog: &Catalog) -> Result<HashMap<(String, S
         ) else {
             continue;
         };
-        let copy: Value = serde_json::from_str(&copy)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        let copy: Value =
+            serde_json::from_str(&copy).map_err(|e| Error::new("internal_error", e.to_string()))?;
         let origin = Path::new(&source).join(copy["path"].as_str().unwrap_or_default());
         for volume in &work {
             let prefix = volume["finals_prefix"].as_str().unwrap_or("002_finales");
@@ -430,8 +430,8 @@ fn delivery_decisions(catalog: &Catalog) -> Result<HashMap<(String, String), (St
         .map_err(sql)?;
     for row in rows {
         let (key, raw) = row.map_err(sql)?;
-        let config: Value = serde_json::from_str(&raw)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        let config: Value =
+            serde_json::from_str(&raw).map_err(|e| Error::new("internal_error", e.to_string()))?;
         for final_ in config["finals"].as_array().into_iter().flatten() {
             let mut value = final_.clone();
             if value.get("published").is_none() {
@@ -459,7 +459,7 @@ pub fn closure_candidates(
     let project_id = params
         .get("project_id")
         .and_then(Value::as_str)
-        .ok_or_else(|| Error::new("operation_failed", "'project_id'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'project_id'"))?;
     let (_, profile, title) = reads::project_record(catalog, project_id)?;
     let default_query = params.get("query").is_none_or(Value::is_null);
     let query = match params.get("query") {
@@ -532,7 +532,7 @@ pub fn closure_candidates(
             }
             // Python reads `saved[1]['stamp']`: a saved final always has one; without it Python stops here.
             if prior.is_some_and(|p| p.1.get("stamp").is_none()) {
-                return Err(Error::new("operation_failed", "'stamp'"));
+                return Err(Error::new("internal_error", "'stamp'"));
             }
             let Ok(info) = nu9ve_volumes::stamp(&path) else {
                 continue;
@@ -702,7 +702,7 @@ pub fn plan_finals(home: &Path, backend: &dyn Backend, params: &Value) -> Result
             .find(|key| !["profile", "archive", "work", "release"].contains(&key.as_str()))
     }) {
         return Err(Error::new(
-            "operation_failed",
+            "internal_error",
             format!("plan_params() got an unexpected keyword argument '{unexpected}'"),
         ));
     }
@@ -712,7 +712,7 @@ pub fn plan_finals(home: &Path, backend: &dyn Backend, params: &Value) -> Result
         .ok_or_else(|| Error::new("invalid_policy", "release must be boolean"))?;
     let profile = params
         .get("profile")
-        .ok_or_else(|| Error::new("operation_failed", "'profile'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'profile'"))?;
     let profile = profile
         .as_str()
         .filter(|name| !name.is_empty() && !name.starts_with('.') && !name.contains('/'))
@@ -963,7 +963,7 @@ pub fn finals_status(catalog: &Catalog, backend: &dyn Backend, params: &Value) -
         let saved = decisions.get(&key);
         let stamp = crate::tree::stamp_json(info);
         if saved.is_some_and(|s| s.1.get("stamp").is_none()) {
-            return Err(Error::new("operation_failed", "'stamp'"));
+            return Err(Error::new("internal_error", "'stamp'"));
         }
         let role = match saved {
             Some((_, f)) if f.get("stamp") == Some(&stamp) => {
@@ -1102,7 +1102,7 @@ pub fn closure_deliveries(
     let project_id = params
         .get("project_id")
         .and_then(Value::as_str)
-        .ok_or_else(|| Error::new("operation_failed", "'project_id'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'project_id'"))?;
     let cached = volumes::Cached::new(backend);
     Ok(json!(delivery_states(
         catalog,
@@ -1262,7 +1262,7 @@ pub fn overview(
             Some("skipped") => 2,
             other => {
                 return Err(Error::new(
-                    "operation_failed",
+                    "internal_error",
                     format!("'work_{}'", other.unwrap_or("None")),
                 ));
             }

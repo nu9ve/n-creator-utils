@@ -145,7 +145,7 @@ fn deliver_with(
     let work = reader.volume(
         params["work"]
             .as_str()
-            .ok_or_else(|| Error::new("operation_failed", "'work'"))?,
+            .ok_or_else(|| Error::new("internal_error", "'work'"))?,
     )?;
     require(
         work["role"] == "work",
@@ -279,7 +279,7 @@ fn deliver_with(
                     None,
                 )?
                 .try_into()
-                .map_err(|_| Error::new("operation_failed", "Missing verified work copy"))?;
+                .map_err(|_| Error::new("internal_error", "Missing verified work copy"))?;
             let copy = json!({"job_id": job_id, "volume_id": work_id, "path": path, "destination": destination,
                 "sha256": sha, "bytes": file["stamp"]["size"], "verified_at": nu9ve_time::now_utc(),
                 "stamp": stamp, "receipt_id": receipt_id});

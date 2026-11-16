@@ -19,7 +19,7 @@ pub(crate) fn uuid(value: &Value) -> Result<String> {
     value
         .as_str()
         .and_then(crate::captures::python_uuid)
-        .ok_or_else(|| Error::new("operation_failed", "badly formed hexadecimal UUID string"))
+        .ok_or_else(|| Error::new("internal_error", "badly formed hexadecimal UUID string"))
 }
 
 pub(crate) fn is_sha(value: &Value) -> bool {
@@ -51,7 +51,7 @@ pub(crate) fn manifest_at(path: &Path) -> Result<(Value, String)> {
         )
     })?;
     let value: Value = serde_json::from_slice(&raw)
-        .map_err(|error| Error::new("operation_failed", error.to_string()))?;
+        .map_err(|error| Error::new("internal_error", error.to_string()))?;
     require(
         value["producer"] == "stalker"
             && matches!(value["schemaVersion"].as_u64(), Some(1..=3))
@@ -241,7 +241,7 @@ fn retitle_with(
         "Expected raw manifest SHA-256 required",
     )?;
     let home =
-        std::path::absolute(home).map_err(|e| Error::new("operation_failed", e.to_string()))?;
+        std::path::absolute(home).map_err(|e| Error::new("internal_error", e.to_string()))?;
     let request = json!({"schema": STALKER_CAPABILITY, "operation_id": operation, "path": path,
         "session_id": sid, "expected_manifest_sha256": expected, "project": project, "catalog_id": home});
     // Validate the parent so a renamed session can recover and the sandbox cannot access unrelated sessions.

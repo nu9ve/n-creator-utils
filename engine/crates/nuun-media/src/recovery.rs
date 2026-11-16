@@ -33,7 +33,7 @@ pub fn recover(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
     let volume = params
         .get("volume")
         .and_then(Value::as_str)
-        .ok_or_else(|| Error::new("operation_failed", "'volume'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'volume'"))?;
     let _lock = writer_lock(home)?;
     let record = Catalog::open(home)?.volume(volume)?;
     require(
@@ -74,7 +74,7 @@ pub fn recover(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
             "Receipt exceeds input limit",
         )?;
         let receipt: Value = serde_json::from_slice(&raw)
-            .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+            .map_err(|e| Error::new("internal_error", e.to_string()))?;
         let schema = text(&receipt, "schema");
         if !schema.starts_with("nu9ve-transfer-receipt/") {
             continue;
@@ -130,10 +130,10 @@ pub fn recover(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
                 "Receipt size mismatch",
             )?;
             let before = tree.stat(rel)?.ok_or_else(|| {
-                Error::new("operation_failed", format!("[FileNotFoundError] {rel}"))
+                Error::new("internal_error", format!("[FileNotFoundError] {rel}"))
             })?;
             let file = tree.open_read(rel)?.ok_or_else(|| {
-                Error::new("operation_failed", format!("[FileNotFoundError] {rel}"))
+                Error::new("internal_error", format!("[FileNotFoundError] {rel}"))
             })?;
             require(
                 json!(before.size) == copy["bytes"]

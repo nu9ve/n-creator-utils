@@ -24,7 +24,7 @@ impl Cancel {
             let mut old = std::mem::MaybeUninit::uninit();
             if libc::sigaction(libc::SIGINT, &action, old.as_mut_ptr()) != 0 {
                 return Err(Error::new(
-                    "operation_failed",
+                    "internal_error",
                     io::Error::last_os_error().to_string(),
                 ));
             }

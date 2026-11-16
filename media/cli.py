@@ -180,7 +180,7 @@ def read_request(text, seen):
 
 def failure(error):
     """The error of an envelope: a MediaError keeps its code; anything the engine did not classify is internal."""
-    code = error.code if isinstance(error, MediaError) else 'operation_failed'
+    code = error.code if isinstance(error, MediaError) else 'internal_error'
     return {'code': code, 'message': str(error)}
 
 

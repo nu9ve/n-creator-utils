@@ -119,7 +119,7 @@ pub fn targets(catalog: &Catalog, this_mac: Option<&str>) -> Result<Vec<Value>> 
 fn target(all_targets: &[Value], params: &Value) -> Result<Value> {
     let wanted = params
         .get("target")
-        .ok_or_else(|| Error::new("operation_failed", "'target'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'target'"))?;
     all_targets
         .iter()
         .find(|t| &t["id"] == wanted || &t["name"] == wanted)
@@ -160,7 +160,7 @@ fn add_observed(
     let source = params
         .get("root")
         .and_then(Value::as_str)
-        .ok_or_else(|| Error::new("operation_failed", "'root'"))?;
+        .ok_or_else(|| Error::new("internal_error", "'root'"))?;
     let root = crate::planner::absolute_source(source)?;
     require(
         root.parent().is_some() && !system_roots.iter().any(|base| root.starts_with(base)),
@@ -373,7 +373,7 @@ pub fn overview(
                 "SELECT files,bytes,allocated,kinds FROM folders WHERE target_id=? AND run_id=? AND path=?",
                 rusqlite::params![&id, index["run_id"].as_i64(), ""],
             )?
-            .ok_or_else(|| Error::new("operation_failed", "'NoneType' object is not subscriptable"))?;
+            .ok_or_else(|| Error::new("internal_error", "'NoneType' object is not subscriptable"))?;
             value["indexed_at"] = index["indexed_at"].clone();
             value["seconds"] = round3(index["seconds"].as_f64().unwrap_or(0.0));
             value["unreadable"] = index["unreadable"].clone();
