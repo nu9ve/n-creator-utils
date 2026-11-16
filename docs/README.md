@@ -28,7 +28,7 @@
 | Translate a system feature between macOS, Windows and Linux; OS features the suite does not use yet; naming/path convention; `nu9ve://` links | [OS integration](../vendor/nu9ve-core/docs/platforms/os-integration.md) (proposal) |
 | Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](../vendor/nu9ve-core/docs/platforms/linux.md) (proposal) |
 | Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](../vendor/nu9ve-core/docs/suite-sharing.md) (decided 2026-11-11: pinned copies; repo named `nu9ve/core` on 2026-11-16) |
-| Know, file by file, what moves from this repo to `nu9ve/core`, when, and what stays in nüün | [Suite split](../vendor/nu9ve-core/docs/suite-split.md) (docs and data moved 2026-11-16; code not yet) |
+| See what the apps already share, what moves next, and what stays in nüün | [Adoption plan](../vendor/nu9ve-core/docs/suite-adoption.md), [file inventory](../vendor/nu9ve-core/docs/suite-split.md) |
 | Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](../vendor/nu9ve-core/docs/suite-browser.md) (proposal, nothing built) |
 | OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](../vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md) (proposal) |
 | Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](../vendor/nu9ve-core/contracts/nu9ve-sound-v1.md) (proposal) |
@@ -39,7 +39,7 @@
 | Resume the current Sony/two-multicam acceptance | [Expected flow and pending evidence](sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06) |
 | Run a Sony hardware trial | [Sony validation](sony-validation.md) |
 
-Suite contracts, the suite map, platform guides and the 2026-11-10 audit live in `nu9ve/core` (`~/code/ai/core`) since 2026-11-16. This repo carries a pinned copy in [vendor/nu9ve-core](../vendor/nu9ve-core/SOURCE): read it here, edit it there, then run `vendor/nu9ve-core/scripts/sync-core.sh --source ~/code/ai/core`. The gate checks it with `vendor/nu9ve-core/scripts/sync-core.sh --check`. The old paths under `docs/` keep a one-line note pointing to the copy.
+Suite contracts, the suite map, platform guides and the 2026-11-10 audit live in `nu9ve/core` since 2026-11-16. This repo carries a pinned copy in [vendor/nu9ve-core](../vendor/nu9ve-core/SOURCE): read it here, edit it there, then run `vendor/nu9ve-core/scripts/sync-core.sh --source ~/code/ai/core`. The gate checks it with `vendor/nu9ve-core/scripts/sync-core.sh --check`. The old paths under `docs/` keep a one-line note pointing to the copy.
 
 STATUS is the current snapshot. Architecture/experience contain design beyond shipped code. Historical pages retain their date/scope and link forward. Contracts say separately whether a producer, consumer, transport or schema is implemented.
 
