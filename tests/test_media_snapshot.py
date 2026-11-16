@@ -82,7 +82,7 @@ class SnapshotFixture(unittest.TestCase):
         requests = [{'id': 1, 'method': 'volumes'}, {'id': 2, 'method': 'defaults', 'params': {'project': 'x'}},
                     {'id': 3, 'method': 'apply', 'params': {}}, {'id': 4, 'method': 'defaults'}]
         output = io.StringIO()
-        serve_reads(self.service, io.StringIO('\n'.join(json.dumps(r) for r in requests) + '\n\n'), output)
+        serve_reads(self.service, io.BytesIO(('\n'.join(json.dumps(r) for r in requests) + '\n\n').encode()), output)
         lines = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual([line['id'] for line in lines], [1, 2, 3, 4])
         self.assertTrue(lines[0]['ok'])

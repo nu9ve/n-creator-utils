@@ -140,7 +140,7 @@ class ShadowServe(unittest.TestCase):
         stdout = io.StringIO()
         recorder = Recorder(stdout)
         lines = [json.dumps({'id': 1, 'method': 'recipe'}), json.dumps({'id': 2, 'method': 'apply', 'params': {}})]
-        serve_reads(FakeService(), stdin=io.StringIO('\n'.join(lines) + '\n'), stdout=stdout, shadow=recorder)
+        serve_reads(FakeService(), stdin=io.BytesIO(('\n'.join(lines) + '\n').encode()), stdout=stdout, shadow=recorder)
         self.assertEqual(recorder.calls, [('recipe', True, 1)])
         answers = [json.loads(line) for line in stdout.getvalue().splitlines()]
         self.assertEqual([a['ok'] for a in answers], [True, False])
@@ -154,7 +154,7 @@ class ShadowServe(unittest.TestCase):
             stdout = io.StringIO()
             requests = ''.join(json.dumps({'id': i, 'method': m}) + '\n'
                                for i, m in enumerate(['recipe', 'jobs', 'library']))
-            serve_reads(FakeService(), stdin=io.StringIO(requests), stdout=stdout, shadow=shadow)
+            serve_reads(FakeService(), stdin=io.BytesIO(requests.encode()), stdout=stdout, shadow=shadow)
             deadline = time.time() + 10
             log = None
             while time.time() < deadline:
@@ -177,7 +177,7 @@ class ShadowServe(unittest.TestCase):
     def test_a_missing_engine_is_logged_not_raised(self):
         with tempfile.TemporaryDirectory() as home:
             shadow = Shadow(str(Path(home) / 'absent'), home)
-            serve_reads(FakeService(), stdin=io.StringIO(json.dumps({'id': 1, 'method': 'recipe'}) + '\n'),
+            serve_reads(FakeService(), stdin=io.BytesIO((json.dumps({'id': 1, 'method': 'recipe'}) + '\n').encode()),
                         stdout=io.StringIO(), shadow=shadow)
             shadow.close(wait=5)
             entries = [json.loads(line) for p in (Path(home) / 'shadow').glob('*.ndjson')

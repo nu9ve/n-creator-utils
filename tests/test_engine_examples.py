@@ -70,14 +70,36 @@ class EngineExamples(unittest.TestCase):
         self.assertEqual(last['data']['protocol'], 'nuun-media/1')
         self.assertEqual(passed, 20)
 
+    def check_line_limit(self, argv):
+        limit = 1024 * 1024
+        request = b'{"id":7,"method":"engine_info"}'
+        wire = (
+            request + b' ' * (limit - len(request) - 1) + b'\n'  # exactly 1 MiB with LF
+            + b' ' * (limit * 3) + b'\n'                          # oversized even though blank
+            + b'{"id":"' + ('ñ' * (limit // 2)).encode() + b'","method":"engine_info"}\n'
+            + b'{"id":"\xff","method":"engine_info"}\n'
+            + request + b'\n'
+            + b' ' * (limit + 1)                                   # oversized at EOF
+        )
+        done = subprocess.run(argv, input=wire, capture_output=True, check=True, timeout=120, cwd=REPO,
+                              env=dict(os.environ, NUUN_SHADOW_ENGINE='off'))
+        replies = [json.loads(line) for line in done.stdout.splitlines()]
+        self.assertEqual([(r['id'], r.get('error', {}).get('code')) for r in replies],
+                         [(7, None), (None, 'request_too_large'), (None, 'request_too_large'),
+                          (None, 'invalid_request'), (7, None), (None, 'request_too_large')])
+
     def test_python(self):
         with tempfile.TemporaryDirectory() as temp:
-            self.check([sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve'])
+            argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve']
+            self.check(argv)
+            self.check_line_limit(argv)
 
     @unittest.skipUnless(rust_engine(), 'Rust engine not built: cd engine && cargo build --offline')
     def test_rust(self):
         with tempfile.TemporaryDirectory() as temp:
-            self.check([rust_engine(), '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve'])
+            argv = [rust_engine(), '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve']
+            self.check(argv)
+            self.check_line_limit(argv)
 
 
 if __name__ == '__main__':

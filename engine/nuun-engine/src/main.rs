@@ -9,7 +9,7 @@
 use nu9ve_json::{Error, Result, error_envelope, ok_envelope, require};
 use nuun_media::volumes::{Backend, platform_backend, platform_backend_name};
 use serde_json::{Value, json};
-use std::io::{BufRead, Read, Write};
+use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 
 /// media/cli.py `READ_METHODS` and `READ_WHEN_EMPTY`; tests/test_engine_boundary.py keeps them equal.
@@ -819,23 +819,36 @@ impl Engine {
         }
     }
 
-    fn serve(&self) -> i32 {
-        let stdin = std::io::stdin();
-        let mut stdout = std::io::stdout().lock();
-        for line in stdin.lock().lines() {
-            let Ok(line) = line else { return 1 };
-            if line.trim().is_empty() {
-                continue;
-            }
-            let reply = self.reply(&line, Mode::Serve);
-            if writeln!(stdout, "{}", reply.line())
-                .and_then(|_| stdout.flush())
-                .is_err()
+    fn serve(&self, mut input: impl BufRead, mut output: impl Write) -> io::Result<()> {
+        let mut line = Vec::new();
+        loop {
+            line.clear();
+            if (&mut input)
+                .take((MAX_LINE + 1) as u64)
+                .read_until(b'\n', &mut line)?
+                == 0
             {
-                return 0; // the client went away
+                return Ok(());
+            }
+            let oversized = line.len() > MAX_LINE;
+            let reply = if oversized {
+                Reply::invalid_request("request_too_large", "Request line exceeds 1 MiB")
+            } else if line.iter().all(u8::is_ascii_whitespace) {
+                continue;
+            } else {
+                match std::str::from_utf8(&line) {
+                    Ok(line) => self.reply(line, Mode::Serve),
+                    Err(_) => {
+                        Reply::invalid_request("invalid_request", "Expected valid UTF-8 JSON")
+                    }
+                }
+            };
+            writeln!(output, "{}", reply.line())?;
+            output.flush()?;
+            if oversized && !line.ends_with(b"\n") {
+                input.skip_until(b'\n')?;
             }
         }
-        0
     }
 }
 
@@ -877,6 +890,13 @@ struct Reply {
 }
 
 impl Reply {
+    fn invalid_request(code: &str, message: &str) -> Self {
+        Self {
+            id: "null".to_owned(),
+            envelope: error_envelope(&Value::Null, &Error::new(code, message)),
+        }
+    }
+
     /// `{"id":…,"ok":…,"data"|"error":…}` on one line, with the id exactly as it arrived.
     fn line(&self) -> String {
         let ok = self.envelope["ok"] == json!(true);
@@ -938,7 +958,14 @@ fn main() {
     }
     let engine = Engine { state_dir };
     let code = match command.as_deref() {
-        Some("rpc-serve") => engine.serve(),
+        Some("rpc-serve") => match engine.serve(io::stdin().lock(), io::stdout().lock()) {
+            Ok(()) => 0,
+            Err(error) if error.kind() == io::ErrorKind::BrokenPipe => 0,
+            Err(error) => {
+                eprintln!("rpc-serve: {error}");
+                1
+            }
+        },
         Some("rpc") => {
             let mut raw = String::new();
             let read = std::io::stdin()
@@ -946,13 +973,7 @@ fn main() {
                 .read_to_string(&mut raw);
             let reply = match read {
                 Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.reply(raw.trim(), Mode::Once),
-                _ => Reply {
-                    id: "null".to_owned(),
-                    envelope: error_envelope(
-                        &Value::Null,
-                        &Error::new("request_too_large", "Request exceeds 16 MiB"),
-                    ),
-                },
+                _ => Reply::invalid_request("request_too_large", "Request exceeds 16 MiB"),
             };
             println!("{}", reply.line());
             i32::from(reply.envelope["ok"] != json!(true))

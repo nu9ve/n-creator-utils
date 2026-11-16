@@ -436,7 +436,7 @@ class BoundaryTests(StorageFixture):
         lines = [{'id': 1, 'method': 'storage_overview'}, {'id': 2, 'method': 'storage_tree', 'params': {'target': 'ESSD'}},
                  {'id': 3, 'method': 'storage_scan', 'params': {'target': 'ESSD'}}, {'id': 4, 'method': 'storage_compare', 'params': {'target': 'ESSD'}}]
         output = io.StringIO()
-        serve_reads(self.service, io.StringIO('\n'.join(json.dumps(line) for line in lines) + '\n'), output)
+        serve_reads(self.service, io.BytesIO(('\n'.join(json.dumps(line) for line in lines) + '\n').encode()), output)
         answers = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertTrue(answers[0]['ok'] and answers[1]['ok'])
         self.assertEqual([a['error']['code'] for a in answers[2:]], ['read_only', 'read_only'])

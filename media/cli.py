@@ -144,6 +144,7 @@ CONTRACT = 'nu9ve-engine/1'
 PROTOCOL = 'nuun-media/1'
 # pyproject.toml `version`; tests/test_engine_boundary.py keeps them equal.
 VERSION = '0.1.0'
+MAX_LINE = 1024 * 1024
 UNEXPECTED = (OSError, ValueError, KeyError, TypeError, RuntimeError)
 
 
@@ -161,7 +162,7 @@ def _no_constant(name):
 def read_request(text, seen):
     """A request `{id, method, params}` by §2 of the contract. `seen['id']` holds the id once it is valid."""
     try:
-        request = json.loads(text, parse_constant=_no_constant)
+        request = json.loads(text.decode('utf-8'), parse_constant=_no_constant)
     except ValueError as error:
         raise MediaError('invalid_request', 'Request is not JSON: ' + str(error)) from error
     require(isinstance(request, dict), 'invalid_request', 'Expected an id/method/params JSON object')
@@ -186,15 +187,16 @@ def failure(error):
 
 def serve_reads(service, stdin=None, stdout=None, shadow=None):
     # `shadow` (media/shadow.py) repeats each answered read on the Rust engine after the answer is written.
-    stdin, stdout = stdin or sys.stdin, stdout or sys.stdout
-    for line in stdin:
-        if not line.strip():
+    stdin, stdout = stdin or sys.stdin.buffer, stdout or sys.stdout
+    while line := stdin.readline(MAX_LINE + 1):
+        oversized = len(line) > MAX_LINE
+        if not oversized and not line.strip():
             continue
         seen = {'id': None}
         method = params = None
         started = time.perf_counter()
         try:
-            require(len(line) <= 1024 * 1024, 'request_too_large', 'Request line exceeds 1 MiB')
+            require(not oversized, 'request_too_large', 'Request line exceeds 1 MiB')
             identifier, method, params = read_request(line, seen)
             require(method in READ_METHODS or method == 'engine_info' or (method in READ_WHEN_EMPTY and not params),
                     'read_only', 'rpc-serve only answers reads: ' + method)
@@ -205,6 +207,11 @@ def serve_reads(service, stdin=None, stdout=None, shadow=None):
         elapsed = time.perf_counter() - started
         stdout.write(json.dumps(envelope, ensure_ascii=False) + '\n')
         stdout.flush()
+        if oversized and not line.endswith(b'\n'):
+            # Drain through the delimiter in small chunks so the next request starts on a fresh line.
+            while chunk := stdin.readline(64 * 1024):
+                if chunk.endswith(b'\n'):
+                    break
         if shadow is not None and method is not None and method != 'engine_info' and \
                 (envelope['ok'] or envelope['error']['code'] not in {'read_only', 'unknown_method'}):
             shadow.submit(method, params, envelope, elapsed)
