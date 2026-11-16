@@ -29,6 +29,7 @@
 | Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](platforms/linux.md) (proposal) |
 | Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](suite-sharing.md) (decided 2026-11-11: `nu9ve/suite` with pinned copies) |
 | Know, file by file, what moves from this repo to `nu9ve/suite`, when, and what stays in nüün | [Suite split](suite-split.md) (inventory, nothing moved) |
+| Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](suite-browser.md) (proposal, nothing built) |
 | OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](contracts/nu9ve-notifications-v1.md) (proposal) |
 | Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](contracts/nu9ve-sound-v1.md) (proposal) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |

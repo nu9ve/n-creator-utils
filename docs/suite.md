@@ -21,6 +21,8 @@ Cada nombre es «nueve» en un idioma, y de ahí sale su identidad ([tema §7](c
 
 Otros proyectos del colectivo, fuera de este mapa por ahora: docufin (documentos → conocimiento), arre.click (scout), forja (GUI para agentes) y video (Remotion).
 
+En propuesta, sin código: un puente con Brave y un «escenario» web para grabar, coordinados con Stalker, Clipper y MCP ([navegador en la suite](suite-browser.md)).
+
 ## Flujos que cruzan apps
 
 | Flujo | Recorrido | Contrato |
