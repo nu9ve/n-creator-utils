@@ -43,6 +43,17 @@ const PARAMS: [&str; 17] = [
     "finals_role",
 ];
 
+pub(crate) fn check_handycam_cleanup(
+    cleanup: bool,
+    paths: impl IntoIterator<Item = impl AsRef<str>>,
+) -> Result<()> {
+    require(
+        !cleanup || !crate::layout::handycam_hdd(paths),
+        "handycam_cleanup_in_camera",
+        "Desactiva Limpiar SD. La Handycam se limpia desde su propio menú después de comprobar el respaldo.",
+    )
+}
+
 fn truthy(value: &Value) -> bool {
     match value {
         Value::Null => false,
@@ -375,6 +386,17 @@ pub fn validate_plan(plan: &Value) -> Result<()> {
                     "Retained files cannot be copied or discarded",
                 )?;
             }
+        }
+        if kind == "card" {
+            check_handycam_cleanup(
+                plan["cleanup"] == true,
+                seen.iter().map(String::as_str).chain(
+                    plan["retained"]
+                        .as_object()
+                        .into_iter()
+                        .flat_map(|files| files.keys().map(String::as_str)),
+                ),
+            )?;
         }
         if plan["schema"] == "nu9ve-ingest-plan/2"
             && (kind != "delivery" || plan.get("layout").is_some())
@@ -737,6 +759,9 @@ fn build_with_stamps(
         )?;
     }
     let found = scan(&source, stalker, stalker, true)?;
+    if source_kind == "card" {
+        check_handycam_cleanup(cleanup, found.files.iter().map(|file| text(file, "path")))?;
+    }
     let mut files = found.files;
     let mut bundles = found.bundles;
     if stalker {
@@ -1675,6 +1700,28 @@ mod tests {
             .iter()
             .find(|u| !truthy(&u["support"]))
             .unwrap()
+    }
+
+    #[test]
+    fn handycam_hdd_is_copy_only_even_if_it_looks_like_a_sony_card() {
+        let s = setup();
+        let movie = "MP_ROOT/101PNV01/M2U00001.MPG";
+        std::fs::create_dir_all(s.card.join("MP_ROOT/101PNV01")).unwrap();
+        std::fs::write(s.card.join(movie), b"fixture").unwrap();
+        assert_eq!(
+            plan(&s, json!({"cleanup": true})).unwrap_err().code,
+            "handycam_cleanup_in_camera"
+        );
+        let copy = plan(&s, json!({"cleanup": false})).unwrap();
+        assert_eq!(copy["preview"][0]["source_action"], "retain");
+        let mut unsafe_plan = copy;
+        unsafe_plan["cleanup"] = json!(true);
+        unsafe_plan.as_object_mut().unwrap().remove("digest");
+        unsafe_plan["digest"] = json!(digest(&unsafe_plan));
+        assert_eq!(
+            validate_plan(&unsafe_plan).unwrap_err().code,
+            "handycam_cleanup_in_camera"
+        );
     }
 
     #[test]

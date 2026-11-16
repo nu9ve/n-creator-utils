@@ -305,6 +305,9 @@ impl<'a> Transfer<'a> {
             .into_iter()
             .map(|f| (text(&f, "path").to_owned(), f))
             .collect();
+        if plan["source_kind"] == "card" {
+            crate::planner::check_handycam_cleanup(plan["cleanup"] == true, actual.keys())?;
+        }
         let expected: BTreeMap<String, &Value> = plan["files"]
             .as_array()
             .into_iter()

@@ -132,6 +132,12 @@ la observación de la tarjeta al reconectarla.
 
 Contenido muestra los archivos de formato desconocido aparte de los medios y datos reconocidos de cámara. La revisión los incluye como «Se quedan en la SD». No requieren un destino, y la limpieza no los toca. Si se marcan para respaldar, van al archivo conservando su ruta relativa y se liberan sólo si se eligió limpieza y su copia fue verificada.
 
+### HDD de Handycam por USB
+
+Rust rechaza la limpieza de un HDD Handycam reconocido por `MP_ROOT/<número>PNV<nn>/M2U*.MPG` o por `MODELCFG.IND` junto al índice `AVF_INFO`. La comprobación se aplica al preparar el plan y al validar el origen, incluidos planes previos. El borrado o formato se realiza desde el menú de la cámara, tras comprobar la cobertura de todos los videos y fotos que se quitarán.
+
+El flujo por implementar es copia temporal verificada del MPG, conversión a MP4 y verificación del derivado en MEDIA antes de dar por respaldado el origen. El recibo necesita SHA-256 de ambos, modelo y ruta original, parámetros de conversión, duración y procedencia de la fecha. Para el historial se propone `001_raw/handycam/AAAA/MM/` y un destino explícito para fecha sin resolver. Los MP4 existentes se pueden adoptar por hash conservando su contenido. El número `M2U` facilita cruzar candidatos, y dos archivos con ese número y contenido distinto requieren revisión.
+
 ### Etapas observadas del retiro Sony · 2026-11-07
 
 El motor da a cada trabajo Sony una etapa (`sony_stage` en `job` y `jobs`, de

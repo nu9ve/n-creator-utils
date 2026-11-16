@@ -28,6 +28,32 @@ pub fn sony_card_path(path: &str) -> bool {
         || lowered.starts_with("/avf_info/")
 }
 
+/// HDD Handycam cameras expose a movie tree and management files through USB.
+pub(crate) fn handycam_hdd(paths: impl IntoIterator<Item = impl AsRef<str>>) -> bool {
+    let mut model = false;
+    let mut index = false;
+    for path in paths {
+        let path = path.as_ref().to_ascii_lowercase();
+        if let Some((folder, file)) = path
+            .strip_prefix("mp_root/")
+            .and_then(|p| p.split_once('/'))
+            && let Some((number, suffix)) = folder.split_once("pnv")
+            && number.len() == 3
+            && number.bytes().all(|b| b.is_ascii_digit())
+            && suffix.len() == 2
+            && suffix.bytes().all(|b| b.is_ascii_digit())
+            && file.starts_with("m2u")
+            && file.ends_with(".mpg")
+            && !file.contains('/')
+        {
+            return true;
+        }
+        model |= path == "modelcfg.ind";
+        index |= path.starts_with("avf_info/");
+    }
+    model && index
+}
+
 /// Python `layout.sony_index_member`: Sony camera databases/indexes, never deleted or edited here.
 pub fn sony_index_member(path: &str) -> bool {
     let lowered = format!("/{}", path.to_lowercase());
