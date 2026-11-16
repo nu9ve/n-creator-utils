@@ -731,6 +731,7 @@ impl<'a> Transfer<'a> {
             existing.is_none(),
         )?;
         if existing.is_none() {
+            crate::missions::check_plan(&reader, plan)?;
             let now = nu9ve_time::now_utc();
             let document = String::from_utf8(canonical(plan)).unwrap_or_default();
             self.catalog

@@ -160,6 +160,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     var saveAllHomeTarget: String?
     var saveAllPlans: [String: ReviewedPlan] = [:]
     var saveAllResult: JSONValue?
+    var saveAllUpdating = false
+    var saveAllError = ""
+    var saveAllCollections: [JSONValue] = []
+    var saveAllProject: String?
     var titlebarCenter: CGFloat = 0
     var ingestDrafts: [String: IngestDraft] = [:]
     /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
@@ -361,6 +365,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 error = String(localized: "No se pudieron actualizar las SDs: ") + data["errors"]["source_cards"].string
             }
             if loadDefaults {
+                loadSaveAll()
                 if !integrations["capture_override"].string.isEmpty { captureRoot = integrations["capture_override"].string }
                 else if !captureRoot.isEmpty { _ = try await client?.call("integration_settings", ["capture_override": .string(captureRoot)]) }
                 let values = data["defaults"]
@@ -398,6 +403,11 @@ enum OperationScope { case ingest, library, space, settings, source }
                 if let failure = error as? BackendFailure, failure.code == "plan_changed" {
                     self.plan = nil
                     self.error = String(localized: "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. ") + failure.message
+                } else if let failure = error as? BackendFailure, failure.code == "mission_registry_changed" {
+                    self.invalidatePlan()
+                    self.loadedSourceKey = ""
+                    self.goToStep(.content)
+                    self.error = failure.message
                 } else if let failure = error as? BackendFailure, failure.code == "camera_review_required" {
                     self.error = String(localized: "Hay archivos DJI sin clasificar. Elige dron, 360 o action para cada uno y revisa de nuevo.")
                     self.typeFilter = "dji"; self.goToStep(.content)

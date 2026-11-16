@@ -366,9 +366,48 @@ pub fn index_for(archive: &Value, flow: &Value) -> Result<MissionIndex> {
     MissionIndex::new(&history, flow, Some(sha))
 }
 
+pub(crate) fn check_plan(catalog: &crate::catalog::Catalog, plan: &Value) -> Result<()> {
+    let Some(missions) = plan["missions"].as_object().filter(|m| !m.is_empty()) else {
+        return Ok(());
+    };
+    let archive = catalog.volume(plan["archive_id"].as_str().unwrap_or_default())?;
+    for (id, planned) in missions {
+        let flow = crate::mission_review::flow(catalog, &json!(id))?;
+        let current = index_for(&archive, &flow)?;
+        nu9ve_json::require(
+            planned["history_sha256"] == json!(current.history_sha256),
+            "mission_registry_changed",
+            "Cambió el registro de misiones. Vuelve a revisar la tarjeta.",
+        )?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn changed_registry_requires_new_review() {
+        let fixture = crate::volumes::test_backend::setup();
+        let catalog = crate::catalog::Catalog::open(&fixture.home).unwrap();
+        let flow = flow();
+        let plan = json!({"archive_id":"MEDIA","missions": {
+            flow["id"].as_str().unwrap(): {"history_sha256": null}
+        }});
+        check_plan(&catalog, &plan).unwrap();
+        let area = fixture.archive.join(flow["archive_area"].as_str().unwrap());
+        std::fs::create_dir_all(&area).unwrap();
+        std::fs::write(
+            area.join("history.json"),
+            b"{\"plans\":[],\"captureLog\":[]}",
+        )
+        .unwrap();
+        assert_eq!(
+            check_plan(&catalog, &plan).unwrap_err().code,
+            "mission_registry_changed"
+        );
+    }
 
     fn flow() -> Value {
         nuun_recipe::template()["missions"][0].clone()

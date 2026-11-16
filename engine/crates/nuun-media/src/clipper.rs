@@ -4,7 +4,7 @@
 
 use crate::catalog::Catalog;
 use crate::integrations::Integrations;
-use nu9ve_json::{Result, require};
+use nu9ve_json::{Error, Result, require};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -247,6 +247,73 @@ pub fn inspect(catalog: &Catalog, paths: &[(String, Option<String>)]) -> Result<
         .map(PathBuf::from)
         .unwrap_or_default();
     inspect_with(&Integrations::read(catalog)?, paths, &home)
+}
+
+/// Informational only. A retirement receipt or an absent path never authorizes a raw release.
+pub fn project_status(
+    catalog: &Catalog,
+    backend: &dyn crate::volumes::Backend,
+    params: &Value,
+) -> Result<Value> {
+    let id = params["project_id"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| Error::new("invalid_request", "Expected project ID"))?;
+    let (deps, available) =
+        Integrations::read(catalog)?.dependencies_within(Duration::from_secs(15))?;
+    let projects = deps["projects"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|p| p["project_id"] == id);
+    let retired = deps["retired_projects"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|p| p["library_project_id"] == id && p["status"] == "retired")
+        .count();
+    let offline = deps["offline_projects"].as_array().map_or(0, Vec::len);
+    let mut active = 0;
+    let mut used = 0;
+    let mut queued = 0;
+    let mut missing = 0;
+    let roots = catalog
+        .volumes()?
+        .into_iter()
+        .filter(|v| v["role"] == "work" && crate::volumes::online(backend, v).is_some())
+        .collect::<Vec<_>>();
+    for project in projects {
+        active += 1;
+        for asset in project["assets"].as_array().into_iter().flatten() {
+            if asset["in_use"] == true {
+                used += 1;
+            }
+            if let Some(path) = asset["path"]
+                .as_str()
+                .map(Path::new)
+                .filter(|p| p.is_absolute())
+                && roots.iter().any(|v| {
+                    v["root"]
+                        .as_str()
+                        .is_some_and(|root| path.starts_with(root))
+                })
+                && std::fs::symlink_metadata(path)
+                    .is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+            {
+                missing += 1;
+            }
+            if asset["queued_exports"]
+                .as_array()
+                .is_some_and(|items| !items.is_empty())
+            {
+                queued += 1;
+            }
+        }
+    }
+    Ok(
+        json!({"available": available, "active": active, "retired": retired,
+              "used_assets": used, "queued_assets": queued, "missing_work_assets": missing, "offline_projects": offline}),
+    )
 }
 
 /// `inspect` with the consumer settings and the home folder given (tests use a fixture Clipper and home).

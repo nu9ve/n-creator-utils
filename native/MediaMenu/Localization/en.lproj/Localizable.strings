@@ -932,3 +932,26 @@
 "Aplicar lote" = "Apply batch";
 "Aplicando planes revisados" = "Applying reviewed plans";
 "Lote: %lld de %lld intentados" = "Batch: %lld of %lld attempted";
+
+"Dependencias de Clipper" = "Clipper dependencies";
+"Clipper tiene exportaciones en cola" = "Clipper has queued exports";
+"%lld fuentes en uso" = "%lld sources in use";
+"Retiro editorial registrado" = "Editorial retirement recorded";
+"Hay proyectos Clipper desconectados" = "Some Clipper projects are offline";
+"Sin vínculo registrado en Clipper" = "No recorded Clipper link";
+"Clipper sin configurar" = "Clipper is not configured";
+"Revisar antes de planear DJI" = "Review before planning DJI cards";
+"Respaldar carpeta…" = "Back up folder…";
+"%lld nuevos · %lld cambiados · %@" = "%lld new · %lld changed · %@";
+"Revisa las referencias externas de Ableton" = "Review external Ableton references";
+"Respaldo incremental · conserva el origen" = "Incremental backup · keeps source";
+"La carpeta ya está al día." = "The folder is already up to date.";
+"Retomar lote…" = "Resume batch…";
+"Ver pendientes…" = "View pending items…";
+"Ver todos los pendientes" = "View all pending items";
+"%lld rutas de edición ausentes" = "%lld missing editing paths";
+"Ver respaldos" = "View backups";
+"Preparar copias" = "Prepare copies";
+"%lld archivos · %@ → %@" = "%lld files · %@ → %@";
+"%lld archivos cambiaron y siguen pendientes." = "%lld files changed and are still pending.";
+"Incluir en el lote" = "Include in batch";

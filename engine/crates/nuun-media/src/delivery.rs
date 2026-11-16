@@ -15,12 +15,133 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
 }
 
 pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    deliver_with(home, backend, params, None)
+}
+
+pub(crate) fn deliver_reviewed(home: &Path, backend: &dyn Backend, plan: &Value) -> Result<Value> {
+    deliver_with(
+        home,
+        backend,
+        plan,
+        Some(plan["digest"].as_str().unwrap_or_default()),
+    )
+}
+
+pub(crate) fn work_preview(
+    catalog: &Catalog,
+    backend: &dyn Backend,
+    params: &Value,
+) -> Result<Value> {
+    let ids = params["asset_ids"]
+        .as_array()
+        .filter(|a| !a.is_empty())
+        .ok_or_else(|| Error::new("empty_selection", "Select assets to deliver"))?;
+    let work = catalog.volume(text(params, "work"))?;
+    require(
+        work["role"] == "work",
+        "invalid_role",
+        "Work volume required",
+    )?;
+    let cached = volumes::Cached::new(backend);
+    let work_info = volumes::check(&cached, &work)?;
+    let mut entries = Vec::new();
+    for id in ids {
+        let id = id
+            .as_str()
+            .ok_or_else(|| Error::new("unknown_asset", "Asset not found"))?;
+        let asset = catalog
+            .json_rows("SELECT payload FROM assets WHERE id=?", [id])?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::new("unknown_asset", "Asset not found"))?;
+        let job = crate::reads::job(catalog, &json!({"job_id": asset["job_id"]}))?;
+        let plan = &job["plan"];
+        let archive = catalog.volume(text(plan, "archive_id"))?;
+        let archive_info = volumes::check(&cached, &archive)?;
+        require(
+            volumes::independent(&archive_info, &work_info),
+            "same_physical_disk",
+            "Work and archive must be separate physical disks",
+        )?;
+        let job_id = text(plan, "id");
+        let overrides = catalog
+            .get(&format!("layout_override:{job_id}"))?
+            .unwrap_or(Value::Null);
+        let mut count = 0;
+        for file in plan["files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|file| file["unit_id"] == id)
+        {
+            let path = text(file, "path");
+            let Some(destination) = work_path(&work, plan, &asset, path, &overrides)? else {
+                continue;
+            };
+            let receipt = catalog
+                .json_rows(
+                    "SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?",
+                    [job_id, text(&archive, "id"), path],
+                )?
+                .into_iter()
+                .next()
+                .ok_or_else(|| Error::new("missing_receipt", "Archive copy is not verified"))?;
+            entries.push(json!({"asset_id": id, "bytes": file["stamp"]["size"], "path": destination,
+                "archive": archive["id"], "archive_identity": archive["identity"], "archive_root": archive["root"], "sha256": receipt["sha256"],
+                "archive_path": receipt["destination"]}));
+            count += 1;
+        }
+        require(count > 0, "empty_selection", "No work files to deliver")?;
+    }
+    let frozen = json!({"schema":"nuun-save-all-work/1","asset_ids": ids, "work": work["id"],
+        "identity": work["identity"], "root": work["root"], "entries": entries});
+    let digest = nu9ve_json::digest(&frozen);
+    Ok(
+        json!({"schema":"nuun-save-all-work/1","id":uuid5(&NAMESPACE_URL, &digest), "digest":digest,
+        "asset_ids":ids,"work":work["id"],"entries":entries}),
+    )
+}
+
+fn work_path(
+    work: &Value,
+    plan: &Value,
+    asset: &Value,
+    path: &str,
+    overrides: &Value,
+) -> Result<Option<String>> {
+    let Some(destination) = destination_path(work, plan, asset, path, false)? else {
+        return Ok(None);
+    };
+    match overrides[path]["work"].as_str().filter(|v| !v.is_empty()) {
+        Some(rel) => Ok(Some(format!(
+            "{}/{}",
+            text(work, "prefix"),
+            crate::rules::relative(rel)?
+        ))),
+        None => Ok(Some(destination)),
+    }
+}
+
+fn deliver_with(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+    reviewed: Option<&str>,
+) -> Result<Value> {
     let ids = params["asset_ids"]
         .as_array()
         .filter(|items| !items.is_empty())
         .ok_or_else(|| Error::new("empty_selection", "Select assets to deliver"))?;
     let _lock = writer_lock(home)?;
     let reader = Catalog::open(home)?;
+    if let Some(expected) = reviewed {
+        let actual = work_preview(&reader, backend, params)?;
+        require(
+            actual["digest"] == expected,
+            "plan_changed",
+            "Review the editing copies again",
+        )?;
+    }
     let work = reader.volume(
         params["work"]
             .as_str()
@@ -32,7 +153,16 @@ pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
         "Work volume required",
     )?;
     let catalog = WritableCatalog::open(home)?;
-    let mut transfer = Transfer::new(home, &catalog, backend, &|_, _| Ok(()));
+    let hook = |_: &str, _: &Value| {
+        #[cfg(target_os = "macos")]
+        require(
+            reviewed.is_none() || !crate::interrupt::cancelled(),
+            "cancelled",
+            "Editing copy paused",
+        )?;
+        Ok(())
+    };
+    let mut transfer = Transfer::new(home, &catalog, backend, &hook);
     let mut progress =
         ActionProgress::new(&catalog, params["progress_id"].as_str(), "delivering_work");
     let mut done = 0;
@@ -96,14 +226,7 @@ pub fn deliver(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
         let mut targets = Vec::new();
         for file in files {
             let path = text(file, "path");
-            if let Some(mut destination) = destination_path(&work, plan, &asset, path, false)? {
-                if let Some(rel) = overrides[path]["work"]
-                    .as_str()
-                    .filter(|path| !path.is_empty())
-                {
-                    destination =
-                        format!("{}/{}", text(&work, "prefix"), crate::rules::relative(rel)?);
-                }
+            if let Some(destination) = work_path(&work, plan, &asset, path, &overrides)? {
                 targets.push((file, destination));
             }
         }

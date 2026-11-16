@@ -80,7 +80,7 @@ struct WindowTopBar: View {
                 }
                 if model.presentation == .full { TitleBarDisks(model: model, width: geometry.size.width) }
                 if model.presentation != .full {
-                    Button("Poner al día…", systemImage: "tray.full") { model.showSaveAll = true }
+                    Button("Poner al día…", systemImage: "tray.full") { model.openSaveAll() }
                         .labelStyle(.iconOnly).buttonStyle(.borderless)
                         .help("Poner al día…").accessibilityLabel("Poner al día…")
                         .disabled(model.busy)

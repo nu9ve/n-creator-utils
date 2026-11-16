@@ -271,6 +271,9 @@ private struct ProjectMediaDetails: View {
     @State private var closureError: String?
     @State private var showingDeliveries = false
     @State private var showingLocations = false
+    @State private var showingClipper = false
+    @State private var clipperStatus: JSONValue?
+    @State private var clipperError = ""
     @State private var visibleSources = 20
     @State private var reload = 0
 
@@ -289,6 +292,7 @@ private struct ProjectMediaDetails: View {
             HStack {
                 Text("Material y entregas").fontWeight(.semibold)
                 Spacer()
+                Button("Ver pendientes…") { model.openSaveAll(project: item["project"].string) }.disabled(model.busy)
                 Button("Revisar sólo raws…") { chooseRawFolder() }.disabled(model.busy)
                 Button("Actualizar", systemImage: "arrow.clockwise") { reload += 1 }
                     .labelStyle(.iconOnly)
@@ -299,6 +303,12 @@ private struct ProjectMediaDetails: View {
                 Label(closureError, systemImage: "exclamationmark.circle")
             } else {
                 ProgressView("Consultando entregas…").controlSize(.small)
+            }
+            DisclosureGroup("Dependencias de Clipper", isExpanded: $showingClipper) {
+                if showingClipper {
+                    clipperDetails
+                        .task(id: reload) { await loadClipper() }
+                }
             }
             if let sourceError {
                 Label(sourceError, systemImage: "externaldrive.badge.exclamationmark")
@@ -331,6 +341,44 @@ private struct ProjectMediaDetails: View {
             async let sources: Void = loadSources()
             async let closure: Void = loadClosure()
             _ = await (sources, closure)
+        }
+    }
+
+    @ViewBuilder private var clipperDetails: some View {
+        if !clipperError.isEmpty {
+            Label(clipperError, systemImage: "exclamationmark.circle")
+        } else if let status = clipperStatus {
+            if status["queued_assets"].double > 0 {
+                Label("Clipper tiene exportaciones en cola", systemImage: "clock")
+            }
+            if status["used_assets"].double > 0 {
+                Label("\(Int(status["used_assets"].double)) fuentes en uso", systemImage: "link")
+            }
+            if status["missing_work_assets"].double > 0 {
+                Label("\(Int(status["missing_work_assets"].double)) rutas de edición ausentes", systemImage: "folder.badge.questionmark")
+                Button("Ver respaldos") { showingLocations = true }.buttonStyle(.link)
+            }
+            if status["retired"].double > 0 {
+                Label("Retiro editorial registrado", systemImage: "archivebox")
+            }
+            if status["offline_projects"].double > 0 {
+                Label("Hay proyectos Clipper desconectados", systemImage: "externaldrive.badge.xmark")
+            }
+            if status["active"].double == 0 && status["retired"].double == 0 {
+                Text(status["available"].bool ? "Sin vínculo registrado en Clipper" : "Clipper sin configurar")
+            }
+        } else {
+            ProgressView().controlSize(.small)
+        }
+    }
+
+    private func loadClipper() async {
+        clipperError = ""; clipperStatus = nil
+        do {
+            let status = try await model.oneShot("clipper_project_status", ["project_id": projectID])
+            if !Task.isCancelled { clipperStatus = status }
+        } catch {
+            if !Task.isCancelled { clipperError = error.localizedDescription }
         }
     }
 

@@ -24,7 +24,7 @@ struct SaveAllItem: Identifiable {
             case .card, .stalker: "Asignar y planear"
             case .missions: "Ver exports"
             case .finals: "Preparar plan"
-            case .work: "Ver copias pendientes"
+            case .work: "Preparar copias"
             case .closure: "Revisar cierre"
             case .localRelease: "Revisar liberación"
             case .job: "Ver actividad"
@@ -40,7 +40,13 @@ struct SaveAllItem: Identifiable {
 
 extension Model {
     var saveAllItems: [SaveAllItem] {
-        var items = sourceCards.map { card in
+        var items: [SaveAllItem] = []
+        if !pendingMissionExports.isEmpty {
+            items.append(SaveAllItem(id: "missions", title: String(localized: "Exports de misiones"),
+                                     detail: missionArchiveOnline ? String(localized: "Revisar antes de planear DJI") : String(localized: "Conecta el disco de respaldo"),
+                                     action: .missions))
+        }
+        items += sourceCards.map { card in
             SaveAllItem(id: "card:" + card["path"].string, title: card["name"].string,
                         detail: cardKindLabel(card["hint"]), action: .card(card["path"].string))
         }
@@ -48,11 +54,6 @@ extension Model {
             items.append(SaveAllItem(id: "stalker:" + root, title: "Stalker",
                                      detail: String(localized: "\(captures.count) sesiones · \(URL(fileURLWithPath: root).lastPathComponent)"),
                                      action: .stalker(root)))
-        }
-        if !pendingMissionExports.isEmpty {
-            items.append(SaveAllItem(id: "missions", title: String(localized: "Exports de misiones"),
-                                     detail: missionArchiveOnline ? String(localized: "\(pendingMissionExports.count) en Descargas") : String(localized: "Conecta el disco de respaldo"),
-                                     action: .missions))
         }
         for group in finals?["groups"].array ?? [] where group["pending"].double > 0 {
             items.append(SaveAllItem(id: "finals:" + group["folder"].string,
@@ -76,7 +77,8 @@ extension Model {
             items.append(SaveAllItem(id: "local:" + path, title: URL(fileURLWithPath: path).lastPathComponent,
                                      detail: String(localized: "Stalker · original local archivado"), action: .localRelease(capture)))
         }
-        for job in attentionJobs {
+        let attentionIDs = Set(attentionJobs.map(\.["id"].string))
+        for job in jobs where attentionIDs.contains(job["id"].string) || (resumable(job) && !job["dismissed"].bool) {
             let id = job["id"].string
             items.append(SaveAllItem(id: "job:" + id, title: jobLabel(job),
                                      detail: stateLabel(job["state"].string), action: .job(id)))
@@ -85,11 +87,17 @@ extension Model {
     }
 
     func reviewSaveAllItem(_ item: SaveAllItem) {
-        guard !busy else { return }
+        guard !busy, !saveAllUpdating else { return }
+        if saveAllPlans[item.id] != nil {
+            updateSaveAll(["key": .string(item.id)]) { self.openSaveAllItem(item) }
+        } else {
+            openSaveAllItem(item)
+        }
+    }
+
+    private func openSaveAllItem(_ item: SaveAllItem) {
         showSaveAll = false
         changeMode?(.full)
-        // Reopening a source for edits requires adding its next reviewed document explicitly.
-        saveAllPlans.removeValue(forKey: item.id)
         switch item.action {
         case .card(let path):
             if source == path && sourceKind == "card" && lastResult == nil { route = .ingest }
@@ -119,11 +127,40 @@ extension Model {
     }
 
     func addToSaveAll() {
-        guard let reviewed = reviewedPlan, !busy else { return }
+        guard let reviewed = reviewedPlan, !busy, !saveAllUpdating else { return }
         let key = saveAllPlanKey(reviewed.display)
-        saveAllPlans[key] = reviewed
-        excludedSaveAllItems.remove(key)
+        saveAllProject = nil
         showSaveAll = true
+        updateSaveAll(["key": .string(key), "document": .string(reviewed.document),
+                       "include": .bool(true)])
+    }
+
+    func openSaveAll(project: String? = nil) {
+        saveAllProject = project
+        showSaveAll = true
+    }
+
+    func loadSaveAll() {
+        updateSaveAll(nil)
+    }
+
+    func updateSaveAll(_ params: [String: JSONValue]?, then: @escaping @MainActor () -> Void = {}) {
+        guard !saveAllUpdating else { return }
+        saveAllUpdating = true
+        saveAllError = ""
+        Task {
+            defer { saveAllUpdating = false }
+            do {
+                let data = try await oneShot(params == nil ? "save_all_draft" : "save_all_save_draft", params ?? [:])
+                saveAllPlans = try data["plans"].object.mapValues { try ReviewedPlan(document: $0.string) }
+                excludedSaveAllItems = Set(data["excluded"].array.map(\.string))
+                if params == nil {
+                    saveAllResult = data["last_result"] == .null ? nil : data["last_result"]
+                    saveAllCollections = data["collections"].array
+                }
+                then()
+            } catch { saveAllError = error.localizedDescription }
+        }
     }
 
     func saveAllPlanKey(_ plan: JSONValue) -> String {
@@ -167,7 +204,7 @@ struct HomeSaveAllHeader: View {
             }
             .frame(maxWidth: 340, alignment: .leading)
             Spacer(minLength: 0)
-            Button("Poner al día…", systemImage: "tray.full") { model.showSaveAll = true }
+            Button(model.saveAllPlans.isEmpty ? "Poner al día…" : "Retomar lote…", systemImage: "tray.full") { model.openSaveAll() }
                 .buttonStyle(CreatorButtonStyle(prominent: true))
                 .disabled(model.busy)
         }
@@ -184,19 +221,93 @@ struct SaveAllSheet: View {
     @State private var review: JSONValue?
     @State private var failure: String?
     @State private var inFlight = false
+    @State private var folderPlan: JSONValue?
+    @State private var workPlan: JSONValue?
+    @State private var workItem: SaveAllItem?
 
     private var plans: [(String, ReviewedPlan)] {
-        model.saveAllPlans.filter { !model.excludedSaveAllItems.contains($0.key) }.sorted { $0.key < $1.key }
+        draftPlans.filter { !model.excludedSaveAllItems.contains($0.0) }
+    }
+
+    private var draftPlans: [(String, ReviewedPlan)] {
+        let project = model.saveAllProject?.lowercased()
+        return model.saveAllPlans.filter { _, plan in
+            guard let project else { return true }
+            return plan.display["title"].string.lowercased() == project || plan.display["units"].array.contains {
+                !$0["support"].bool && $0["project"].string.lowercased() == project
+            }
+        }.sorted { $0.key < $1.key }
+    }
+    private var displayedItems: [SaveAllItem] {
+        let items = model.saveAllItems
+        guard let project = model.saveAllProject else { return items }
+        let key = project.lowercased()
+        return items.filter { item in
+            if item.title.lowercased() == key { return true }
+            if model.saveAllPlans[item.id]?.display["units"].array.contains(where: {
+                !$0["support"].bool && $0["project"].string.lowercased() == key
+            }) == true { return true }
+            if case .stalker(let root) = item.action {
+                return model.pendingCaptures.contains { capture in
+                    let tag = capture["tag"]["name"].string
+                    let title = tag.isEmpty ? capture["project_hint"]["name"].string : tag
+                    return capture["root"].string == root && title.lowercased() == key
+                }
+            }
+            return false
+        }
     }
     private var payload: [String: JSONValue] { ["plans": .array(plans.map { .string($0.1.document) })] }
 
     var body: some View {
-        let items = model.saveAllItems
+        let items = displayedItems
         let selected = items.filter { !model.excludedSaveAllItems.contains($0.id) }
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Poner al día", subtitle: "Elige los pendientes que quieres revisar.")
+            if let project = model.saveAllProject {
+                HStack {
+                    Label(project, systemImage: "folder")
+                    Spacer()
+                    Button("Ver todos los pendientes") { model.saveAllProject = nil }.buttonStyle(.link)
+                }.font(.caption)
+            }
+            if !model.saveAllError.isEmpty {
+                Label(model.saveAllError, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(palette.warning)
+            }
             if let failure { Label(failure, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(palette.warning) }
             if let result = model.saveAllResult { resultSummary(result) }
+            if model.saveAllProject == nil, !model.saveAllCollections.isEmpty, review == nil {
+                Menu("Respaldar carpeta…", systemImage: "folder.badge.plus") {
+                    ForEach(model.saveAllCollections, id: \.["id"].string) { collection in
+                        Button(collection["name"].string) { prepareFolder(collection) }
+                    }
+                }.disabled(inFlight || model.busy || model.saveAllUpdating)
+            }
+            if let folderPlan {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(folderPlan["name"].string).fontWeight(.medium)
+                        Text("\(folderPlan["new"].array.count) nuevos · \(folderPlan["changed"].array.count) cambiados · \(bytesLabel(folderPlan["bytes"].double))")
+                        if folderPlan["ableton"]["missing"].double > 0 || !folderPlan["ableton"]["not_covered"].array.isEmpty || !folderPlan["ableton"]["unreadable"].array.isEmpty {
+                            Label("Revisa las referencias externas de Ableton", systemImage: "exclamationmark.triangle")
+                        }
+                    }
+                    Spacer()
+                    Button("Agregar al lote") { addFolder(folderPlan) }
+                        .disabled(model.saveAllUpdating || inFlight || model.busy)
+                }.font(.caption)
+            }
+            if let workPlan, let workItem {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(workItem.title).fontWeight(.medium)
+                        Text("\(Int(workPlan["files"].double)) archivos · \(bytesLabel(workPlan["bytes"].double)) → \(model.volume(workPlan["work"].string)?["name"].string ?? "")")
+                    }
+                    Spacer()
+                    Button("Agregar al lote") { addWork(workPlan, item: workItem) }
+                        .disabled(model.saveAllUpdating || inFlight || model.busy)
+                }.font(.caption)
+            }
             if items.isEmpty && plans.isEmpty {
                 ContentUnavailableView("Sin pendientes detectados", systemImage: "tray")
             } else {
@@ -208,11 +319,13 @@ struct SaveAllSheet: View {
                                     Toggle(isOn: Binding(
                                         get: { !model.excludedSaveAllItems.contains(item.id) },
                                         set: { included in
-                                            if included { model.excludedSaveAllItems.remove(item.id) }
-                                            else { model.excludedSaveAllItems.insert(item.id) }
+                                            var excluded = model.excludedSaveAllItems
+                                            if included { excluded.remove(item.id) }
+                                            else { excluded.insert(item.id) }
+                                            model.updateSaveAll(["excluded": .array(excluded.sorted().map(JSONValue.string))])
                                         })) {
                                             Text(item.title)
-                                        }.toggleStyle(.checkbox).labelsHidden().disabled(inFlight || model.busy)
+                                        }.toggleStyle(.checkbox).labelsHidden().disabled(inFlight || model.busy || model.saveAllUpdating)
                                 }
                                 Image(systemName: item.action.symbol).foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 2) {
@@ -223,9 +336,13 @@ struct SaveAllSheet: View {
                                 Spacer(minLength: 4)
                                 if showSelected && review == nil {
                                     Button(item.action.label) {
-                                        dismiss()
-                                        model.reviewSaveAllItem(item)
-                                    }.disabled(model.busy || inFlight)
+                                        if case .work(let ids) = item.action {
+                                            prepareWork(item, ids: ids)
+                                        } else {
+                                            dismiss()
+                                            model.reviewSaveAllItem(item)
+                                        }
+                                    }.disabled(model.busy || inFlight || model.saveAllUpdating)
                                 }
                             }
                             .padding(.vertical, 6)
@@ -234,16 +351,16 @@ struct SaveAllSheet: View {
                     }
                 }
             }
-            if !plans.isEmpty {
-                DisclosureGroup("Planes agregados (\(plans.count))", isExpanded: $showPlans) {
+            if !draftPlans.isEmpty {
+                DisclosureGroup("Planes agregados (\(draftPlans.count))", isExpanded: $showPlans) {
                     ScrollView {
-                        ForEach(plans, id: \.0) { key, plan in
+                        ForEach(draftPlans, id: \.0) { key, plan in
                             planRow(key, plan)
                         }
                     }.frame(maxHeight: 110)
                 }
             }
-            if inFlight { ProgressView("Comprobando destinos…").controlSize(.small) }
+            if inFlight || model.saveAllUpdating { ProgressView().controlSize(.small) }
             if let review {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Espacio estimado después del lote").font(.headline)
@@ -293,6 +410,7 @@ struct SaveAllSheet: View {
                 }
             }
         }
+        .onAppear { model.loadSaveAll() }
         .onChange(of: plans.map { $0.1.display["digest"].string }) { _, _ in review = nil }
         .interactiveDismissDisabled(model.busy || inFlight)
         .padding(16)
@@ -302,13 +420,17 @@ struct SaveAllSheet: View {
 
     private func resultSummary(_ result: JSONValue) -> some View {
         let rows = result["results"].array
-        return DisclosureGroup("Lote: \(rows.count) de \(Int(result["total"].double)) intentados") {
+        let attempted = result["attempted"] == .null ? rows.count : Int(result["attempted"].double)
+        return DisclosureGroup("Lote: \(attempted) de \(Int(result["total"].double)) intentados") {
             ScrollView {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row["source"].string)
                         Text(row["error"] != .null ? row["error"]["message"].string : model.stateLabel(row["state"].string))
                         if !row["metadata_backup_error"].string.isEmpty { Text(row["metadata_backup_error"].string) }
+                        if row["changed_since_review"].double > 0 {
+                            Text("\(Int(row["changed_since_review"].double)) archivos cambiaron y siguen pendientes.")
+                        }
                         ForEach(Array(row["stalker_release"]["retained"].array.enumerated()), id: \.offset) { _, retained in
                             Text(retained["reason"].string)
                         }
@@ -321,12 +443,27 @@ struct SaveAllSheet: View {
     private func planRow(_ key: String, _ plan: ReviewedPlan) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(URL(fileURLWithPath: plan.display["source"].string).lastPathComponent)
+                if review == nil {
+                    Toggle("Incluir en el lote", isOn: Binding(
+                        get: { !model.excludedSaveAllItems.contains(key) },
+                        set: { included in
+                            var excluded = model.excludedSaveAllItems
+                            if included { excluded.remove(key) }
+                            else { excluded.insert(key) }
+                            model.updateSaveAll(["excluded": .array(excluded.sorted().map(JSONValue.string))])
+                        }
+                    )).toggleStyle(.checkbox).labelsHidden().disabled(inFlight || model.busy || model.saveAllUpdating)
+                }
+                Text(plan.display["schema"].string == "nuun-save-all-work/1"
+                    ? plan.display["title"].string : URL(fileURLWithPath: plan.display["source"].string).lastPathComponent)
                     .fontWeight(.medium).lineLimit(1)
                 Spacer()
-                Button("Quitar del lote") { model.saveAllPlans.removeValue(forKey: key) }.disabled(inFlight || model.busy)
+                Button("Quitar del lote") { model.updateSaveAll(["key": .string(key)]) }
+                    .disabled(inFlight || model.busy || model.saveAllUpdating)
             }
-            Text(PlanReview(model: model).cleanupText(plan.display))
+            Text(plan.display["schema"].string == "nuun-save-all-living/1"
+                ? String(localized: "Respaldo incremental · conserva el origen")
+                : PlanReview(model: model).cleanupText(plan.display))
             let discarded = plan.display["discarded"].array.count
             if discarded > 0 && plan.display["cleanup"].bool {
                 Text("\(discarded) archivos se descartan sin respaldo.").foregroundStyle(.secondary)
@@ -334,7 +471,58 @@ struct SaveAllSheet: View {
         }.font(.caption)
     }
 
+    private func prepareFolder(_ collection: JSONValue) {
+        inFlight = true; failure = nil; folderPlan = nil
+        Task {
+            defer { inFlight = false }
+            do {
+                let plan = try await model.oneShot("living_plan", [
+                    "source": collection["source"], "archive": collection["archive_id"],
+                    "folder": collection["folder"], "name": collection["name"], "batch_managed": .bool(true)
+                ])
+                if plan["new"].array.isEmpty && plan["changed"].array.isEmpty {
+                    failure = String(localized: "La carpeta ya está al día.")
+                } else { folderPlan = plan }
+            } catch { failure = error.localizedDescription }
+        }
+    }
+
+    private func addFolder(_ plan: JSONValue) {
+        let reference = JSONValue.object(["schema": .string("nuun-save-all-living/1"),
+            "id": plan["id"], "digest": plan["digest"], "source": plan["source"]])
+        do {
+            let document = String(decoding: try JSONEncoder().encode(reference), as: UTF8.self)
+            model.updateSaveAll(["key": .string("living:" + plan["collection_id"].string),
+                "document": .string(document), "include": .bool(true)]) { folderPlan = nil }
+        } catch { failure = error.localizedDescription }
+    }
+
+    private func prepareWork(_ item: SaveAllItem, ids: Set<String>) {
+        inFlight = true; failure = nil; workPlan = nil; folderPlan = nil
+        Task {
+            defer { inFlight = false }
+            do {
+                workPlan = try await model.oneShot("save_all_work_plan", [
+                    "asset_ids": .array(ids.sorted().map(JSONValue.string)), "work": .string(model.work)
+                ])
+                workItem = item
+            } catch { failure = error.localizedDescription }
+        }
+    }
+
+    private func addWork(_ plan: JSONValue, item: SaveAllItem) {
+        var reference = plan.object
+        reference["title"] = .string(item.title)
+        do {
+            let document = String(decoding: try JSONEncoder().encode(JSONValue.object(reference)), as: UTF8.self)
+            model.updateSaveAll(["key": .string(item.id), "document": .string(document), "include": .bool(true)]) {
+                workPlan = nil; workItem = nil
+            }
+        } catch { failure = error.localizedDescription }
+    }
+
     private func calculate() {
+        guard !model.saveAllUpdating else { return }
         let request = payload
         inFlight = true; failure = nil; model.saveAllResult = nil
         Task {
@@ -347,7 +535,7 @@ struct SaveAllSheet: View {
     }
 
     private func apply(_ reviewed: JSONValue) {
-        guard let client = model.client else { return }
+        guard let client = model.client, !model.saveAllUpdating else { return }
         let snapshot = plans
         let request = payload.merging(["digest": reviewed["digest"]]) { _, new in new }
         review = nil; failure = nil
@@ -355,7 +543,8 @@ struct SaveAllSheet: View {
             do {
                 let result = try await client.call("save_all_apply", request)
                 model.saveAllResult = result
-                let attempted = Set(result["results"].array.map(\.["id"].string))
+                if !result["draft_warning"].string.isEmpty { failure = result["draft_warning"].string }
+                let attempted = Set(result["results"].array.filter { $0["error"] == .null }.map(\.["id"].string))
                 for (key, plan) in snapshot where attempted.contains(plan.display["id"].string) {
                     model.saveAllPlans.removeValue(forKey: key)
                     model.ingestDrafts.removeValue(forKey: plan.display["source"].string)
@@ -367,6 +556,7 @@ struct SaveAllSheet: View {
                 model.finals = nil
                 model.finalsCheckedAt = nil
             } catch { failure = error.localizedDescription }
+            model.loadSaveAll()
         }
     }
 }

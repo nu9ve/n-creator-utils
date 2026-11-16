@@ -1,6 +1,6 @@
 # Estado vigente
 
-Actualizado: 2026-11-13, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
+Actualizado: 2026-11-15, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
 
 Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área** (estado, evidencia, pendiente) y se agrega, como mucho, una entrada corta en «Entregas recientes». Cuando esa sección pase de ~5 entradas, las más viejas se mueven a la bitácora de `releases/`.
 
@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `d5ead0609529`** (14 nov), build de depuración con firma ad-hoc verificada. El Rust empaquetado respondió a `save_all_review` con catálogo temporal. Catálogo diario: `quick_check=ok`. Build anterior `f238fda455c3` en `app-backups/58ceb5a7.app` |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `0b484e294bf4`** (15 nov), build de depuración con firma ad-hoc verificada. Arrancaron la app y el motor Rust. `save_all_draft` respondió con catálogo temporal y el catálogo diario dio `quick_check=ok`. Build anterior `d5ead0609529` en `app-backups/0105de65.app` |
 | Suites en macOS | Python **396**, Rust **174** (151 + 23 diferenciales), Swift **28**. Dorado actualizado con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. CI escrita, pendiente de ejecutar en GitHub. |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -41,6 +41,14 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### Lote recuperable y estado de Clipper · 2026-11-15
+
+«Retomar lote» conserva los planes pendientes con reemplazo atómico y muestra los jobs iniciados en Actividad. Conserva un solo resumen local. Rust admite copias de edición por proyecto y carpetas vivas registradas; los respaldos incrementales completados desde el lote reducen su plan a un recibo compacto. Un cambio del registro DJI exige volver a revisar una tarjeta cuyo job aún no inició. [Contrato](features/save-all.md).
+
+Evidencia: 28 pruebas Swift, 129 pruebas Rust de binario y motor y 19 diferenciales. Clippy limpio. Fixtures de reapertura y compactación, entrega de trabajo desde recibos, copia de carpeta viva y registro DJI cambiado. Se inspeccionó el selector en la build empaquetada usando fixtures. Falta recorrido completo de ventana con interrupción y reconexión de dispositivos.
+
+Auditoría de sólo lectura de ESSD, catálogo y Clipper: cinco rutas de edición ausentes siguen en uso en dos proyectos y las cinco tienen ubicación visible en MEDIA502. Siete assets de Baches en Hermosillo siguen ligados a la cola. [Observación por proyecto y límites](contracts/project-closeout-v1.md#observación-en-essd--2026-11-15).
 
 ### Poner al día · 2026-11-14
 

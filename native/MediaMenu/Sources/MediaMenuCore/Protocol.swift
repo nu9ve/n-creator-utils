@@ -291,13 +291,14 @@ public final class BackendClient: @unchecked Sendable {
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string(method), "params": .object(params)]))
         let epoch = currentEpoch()
-        let rustOnly = method == "save_all_review" || method == "save_all_apply"
+        let rustOnly = method.hasPrefix("save_all_") || method == "clipper_project_status"
+            || method == "living_plan" && params["batch_managed"] == .bool(true)
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 do {
                     if rustOnly {
                         guard let engine = self.configuration.engine else {
-                            throw BackendFailure(code: "runtime_missing", message: "Poner al día requiere el motor Rust.")
+                            throw BackendFailure(code: "runtime_missing", message: "Esta operación requiere el motor Rust.")
                         }
                         continuation.resume(returning: try self.execute(engine, self.state + ["rpc"], request, epoch: epoch))
                     } else {

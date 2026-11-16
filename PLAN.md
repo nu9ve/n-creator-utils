@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-13, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-15, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -82,7 +82,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | --- | --- | --- |
 | **Música y SSD1** | (1) Primera revisión de `recordingslong` 2019–2021 al conectar SSD1, MEDIA500/501 y ESSD; conservar lo que usa un set (`.asd` o `.als`). (2) Carpeta viva: piloto `~/Music/03_final` completado con Rust y segundo plan vacío. Abrir el set respaldado en Ableton y elegir la siguiente carpeta de producción. (3) Triage con Clipper (`audio-triage-v1`). (4) Biblioteca con curado (`music-library-v1`). | [Runbooks](docs/features/music-flows.md#fases) · [Evidencia](docs/STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
 | Dron, resto | Reclasificar en el archivo las fotos ya respaldadas como `pending_export`; confirmar dispositivo nuevo en la app; UI del plan de DNG. La revisión en curso ya se refresca al incorporar el export | [Evidencia DJI](docs/STATUS.md#misiones-dji-al-incorporar-un-export--2026-11-13), [Atlas](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
-| Poner al día | Encabezado y selección en Inicio, acceso compacto, revisión y ejecución Rust de planes de SD/Stalker/finales. Siguiente: aceptación de ventana, lote durable y añadir operaciones con contratos propios | [Flujos y contrato](docs/features/save-all.md) |
+| Poner al día | Borrador recuperable, copias de edición y carpetas vivas registradas en el lote Rust. Siguiente: aceptación en ventana al desconectar y reconectar, progreso por paso e incorporación de misiones con revisión del plan resultante | [Flujos y contrato](docs/features/save-all.md) |
 | Bandeja por proyecto | Primer corte en macOS: ubicaciones catalogadas, Stalker pendiente, entregas candidatas, requisitos de cierre y acceso a la revisión de raws. Faltan fuentes SD asignadas y aceptación en ventana | [Proyectos](docs/features/nuun-window.md#bandeja-por-proyecto) |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG | [Fotos](docs/features/product-flows.md#fotos-y-kyū) |
 | Audio / cámaras | H6/SSD1, DJI 360/acción, GoPro con evidencia real | Por dispositivo |

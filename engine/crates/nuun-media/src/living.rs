@@ -151,7 +151,15 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
     require(
         params.as_object().is_some_and(|p| {
             p.keys().all(|k| {
-                ["source", "archive", "folder", "name", "progress_id"].contains(&k.as_str())
+                [
+                    "source",
+                    "archive",
+                    "folder",
+                    "name",
+                    "progress_id",
+                    "batch_managed",
+                ]
+                .contains(&k.as_str())
             })
         }),
         "invalid_request",
@@ -266,6 +274,14 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
         "gone_from_source":gone.iter().take(1000).collect::<Vec<_>>(),"gone_count":gone.len(),"bytes":bytes,
         "free":info["free"],"ableton":external(&root,&crate::reads::living_collections(&catalog)?,&cid)?,
         "state":"review","done":{}});
+    if params["batch_managed"] == true {
+        if value["new"].as_array().is_some_and(Vec::is_empty)
+            && value["changed"].as_array().is_some_and(Vec::is_empty)
+        {
+            return Ok(value);
+        }
+        value["batch_managed"] = json!(true);
+    }
     value["digest"] = json!(digest(&value));
     let _lock = writer_lock(home)?;
     check_folder(&catalog, &cid, archive_id, folder)?;
@@ -275,6 +291,20 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
 
 pub fn apply(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     apply_with(home, backend, params, &|_, _| Ok(()))
+}
+
+pub(crate) fn apply_cancellable(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+) -> Result<Value> {
+    apply_with(home, backend, params, &|_, _| {
+        require(
+            !crate::interrupt::cancelled(),
+            "cancelled",
+            "Folder backup paused",
+        )
+    })
 }
 
 fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>) -> Result<Value> {
@@ -509,7 +539,23 @@ fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>
     payload["bytes"] = json!(processed);
     payload["versions"] = json!(versions.len());
     let tx = writer.db().unchecked_transaction().map_err(sql)?;
-    writer.set(&key, &value)?;
+    if value["batch_managed"] == true {
+        let summary = json!({"schema": SCHEMA, "id": id, "digest": value["digest"],
+            "source": source, "archive_id": value["archive_id"], "collection_id": cid,
+            "state": "completed", "completed_at": now, "result": payload});
+        writer.set(&key, &summary)?;
+        tx.execute(
+            "DELETE FROM metadata WHERE key=? OR substr(key, 1, length(?))=?",
+            (
+                &run_key,
+                format!("living-version:{id}:"),
+                format!("living-version:{id}:"),
+            ),
+        )
+        .map_err(sql)?;
+    } else {
+        writer.set(&key, &value)?;
+    }
     writer.set(&collection_key, &collection)?;
     writer.event(&cid, "living_backup_completed", &payload)?;
     tx.commit().map_err(sql)?;

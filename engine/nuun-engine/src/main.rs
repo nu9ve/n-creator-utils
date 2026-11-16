@@ -148,7 +148,7 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
     }
     if backend.is_some_and(|b| b.writes()) {
         writes.extend(VOLUME_WRITES);
-        writes.push("save_all_apply");
+        writes.extend(["save_all_apply", "save_all_save_draft"]);
         if cfg!(target_os = "macos") {
             writes.extend([
                 "eject_card",
@@ -200,8 +200,11 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 11] = [
+const ONCE_READS: [&str; 14] = [
+    "save_all_work_plan",
+    "clipper_project_status",
     "save_all_review",
+    "save_all_draft",
     "discover",
     "finals_status",
     "captures",
@@ -241,6 +244,18 @@ impl Engine {
         let platform = platform_backend(&self.home());
         let platform = platform.as_deref();
         match method {
+            "save_all_work_plan" => {
+                nuun_media::save_all::plan_work(&self.home(), backend(platform)?, params)
+            }
+            "clipper_project_status" => {
+                nuun_media::clipper::project_status(&self.catalog()?, backend(platform)?, params)
+            }
+            "save_all_draft" => {
+                let mut draft = nuun_media::save_all::draft(&self.home())?;
+                draft["collections"] = nuun_media::reads::living_collections(&self.catalog()?)?;
+                Ok(draft)
+            }
+            "save_all_save_draft" => nuun_media::save_all::save_draft(&self.home(), params),
             "save_all_review" => {
                 nuun_media::save_all::review(&self.home(), backend(platform)?, params)
             }
