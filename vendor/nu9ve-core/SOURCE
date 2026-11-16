@@ -1,0 +1,8 @@
+# Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
+repo=nu9ve/core
+commit=452f211d3b9119c3b5f405d7045ff32a2c072134
+date=2026-11-16
+path=contracts
+path=data
+path=docs
+path=scripts/sync-core.sh

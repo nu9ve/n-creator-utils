@@ -15,29 +15,31 @@
 | Evolve dashboard/launcher | [Feature backlog](features/dashboard-launcher.md) |
 | Improve app shell, flows, performance, i18n, platforms | [App review 2026-10](features/app-review-2026-10.md) |
 | Change a cross-app boundary | [Contracts index](contracts/README.md) |
-| Build or review a native Mac app: title bar, menus, About, documents, distribution | [macOS app contract](contracts/macos-app-v1.md) |
-| Shared look across nu9ve apps: color roles, Appearance settings, skins, per-app identity | [Visual theme contract](contracts/nu9ve-theme-v1.md) (proposal) |
-| Keyboard-first interaction: shortcut catalog, key badges and modifier layers, context help, ⌘/ panel | [Interaction contract](contracts/nu9ve-interaction-v1.md) (proposal) |
-| Build or review a native Windows app sharing an engine with its Mac app | [Windows app contract](contracts/windows-app-v1.md) (proposal) |
-| Build a Windows app on the suite base; Windows lessons from nove, curado and nüün; nüün's Windows maqueta | [Windows in the suite](platforms/windows.md), [native/windows](../native/windows/README.md) |
-| Add or review an app's MCP server: tiers (read, show, edit, act), per-session permission, untrusted data, per-app status | [MCP contract](contracts/nu9ve-mcp-v1.md) (proposal) |
+| Build or review a native Mac app: title bar, menus, About, documents, distribution | [macOS app contract](../vendor/nu9ve-core/contracts/macos-app-v1.md) |
+| Shared look across nu9ve apps: color roles, Appearance settings, skins, per-app identity | [Visual theme contract](../vendor/nu9ve-core/contracts/nu9ve-theme-v1.md) (proposal) |
+| Keyboard-first interaction: shortcut catalog, key badges and modifier layers, context help, ⌘/ panel | [Interaction contract](../vendor/nu9ve-core/contracts/nu9ve-interaction-v1.md) (proposal) |
+| Build or review a native Windows app sharing an engine with its Mac app | [Windows app contract](../vendor/nu9ve-core/contracts/windows-app-v1.md) (proposal) |
+| Build a Windows app on the suite base; Windows lessons from nove, curado and nüün; nüün's Windows maqueta | [Windows in the suite](../vendor/nu9ve-core/docs/platforms/windows.md), [native/windows](../native/windows/README.md) |
+| Add or review an app's MCP server: tiers (read, show, edit, act), per-session permission, untrusted data, per-app status | [MCP contract](../vendor/nu9ve-core/contracts/nu9ve-mcp-v1.md) (proposal) |
 | Decide whether to move the media engine to Rust: measurements, gains, risks, migration path, shared crates | [Rust engine analysis](platforms/rust-engine.md) |
-| See every nu9ve app, what it is for, its platforms, shared flows/contracts and package candidates | [Suite map](suite.md) |
-| Read the 2026-11-10 suite audit: prioritized findings on OS practices, standards, engine, cross-repo drift | [Fable audit](audits/fable-audit-2026-11-10.md) (read-only audit, proposes) |
-| Hand an audit finding to another session as a self-contained task | [Session briefs](audits/session-briefs-2026-11-10.md) |
-| Translate a system feature between macOS, Windows and Linux; OS features the suite does not use yet; naming/path convention; `nu9ve://` links | [OS integration](platforms/os-integration.md) (proposal) |
-| Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](platforms/linux.md) (proposal) |
-| Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](suite-sharing.md) (decided 2026-11-11: pinned copies; repo named `nu9ve/core` on 2026-11-16) |
-| Know, file by file, what moves from this repo to `nu9ve/core`, when, and what stays in nüün | [Suite split](suite-split.md) (inventory, nothing moved) |
-| Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](suite-browser.md) (proposal, nothing built) |
-| OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](contracts/nu9ve-notifications-v1.md) (proposal) |
-| Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](contracts/nu9ve-sound-v1.md) (proposal) |
-| Decide what audio code the apps share (I/O, DSP, loudness, music analysis, stems) and what each keeps; SoundBender's portable engine | [Audio in the suite](platforms/audio.md) (proposal, 2026-11-16) |
+| See every nu9ve app, what it is for, its platforms, shared flows/contracts and package candidates | [Suite map](../vendor/nu9ve-core/docs/suite.md) |
+| Read the 2026-11-10 suite audit: prioritized findings on OS practices, standards, engine, cross-repo drift | [Fable audit](../vendor/nu9ve-core/docs/audits/fable-audit-2026-11-10.md) (read-only audit, proposes) |
+| Hand an audit finding to another session as a self-contained task | [Session briefs](../vendor/nu9ve-core/docs/audits/session-briefs-2026-11-10.md) |
+| Translate a system feature between macOS, Windows and Linux; OS features the suite does not use yet; naming/path convention; `nu9ve://` links | [OS integration](../vendor/nu9ve-core/docs/platforms/os-integration.md) (proposal) |
+| Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](../vendor/nu9ve-core/docs/platforms/linux.md) (proposal) |
+| Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](../vendor/nu9ve-core/docs/suite-sharing.md) (decided 2026-11-11: pinned copies; repo named `nu9ve/core` on 2026-11-16) |
+| Know, file by file, what moves from this repo to `nu9ve/core`, when, and what stays in nüün | [Suite split](../vendor/nu9ve-core/docs/suite-split.md) (docs and data moved 2026-11-16; code not yet) |
+| Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](../vendor/nu9ve-core/docs/suite-browser.md) (proposal, nothing built) |
+| OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](../vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md) (proposal) |
+| Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](../vendor/nu9ve-core/contracts/nu9ve-sound-v1.md) (proposal) |
+| Decide what audio code the apps share (I/O, DSP, loudness, music analysis, stems) and what each keeps; SoundBender's portable engine | [Audio in the suite](../vendor/nu9ve-core/docs/platforms/audio.md) (proposal, 2026-11-16) |
 | Review storage architecture and intended UX | [Architecture](media-architecture.md), [experience](media-experience.md) |
 | Understand original requirements and legacy failures | [Audit](media-audit.md), [legacy importing](importing.md), [historical flow review](file-workflows.md) |
 | Configure older downloads/stems/importer | [Configuration](configuration.md), [commands](commands.md) |
 | Resume the current Sony/two-multicam acceptance | [Expected flow and pending evidence](sony-validation.md#aceptación-acompañada-sony-y-dos-multicams--2026-11-06) |
 | Run a Sony hardware trial | [Sony validation](sony-validation.md) |
+
+Suite contracts, the suite map, platform guides and the 2026-11-10 audit live in `nu9ve/core` (`~/code/ai/core`) since 2026-11-16. This repo carries a pinned copy in [vendor/nu9ve-core](../vendor/nu9ve-core/SOURCE): read it here, edit it there, then run `vendor/nu9ve-core/scripts/sync-core.sh --source ~/code/ai/core`. The gate checks it with `vendor/nu9ve-core/scripts/sync-core.sh --check`. The old paths under `docs/` keep a one-line note pointing to the copy.
 
 STATUS is the current snapshot. Architecture/experience contain design beyond shipped code. Historical pages retain their date/scope and link forward. Contracts say separately whether a producer, consumer, transport or schema is implemented.
 

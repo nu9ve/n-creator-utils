@@ -1,0 +1,6 @@
+# Lo que nüün usa de nu9ve/core. Se fija con:
+#   vendor/nu9ve-core/scripts/sync-core.sh --source ~/code/ai/core [<commit>]
+# El gate corre vendor/nu9ve-core/scripts/sync-core.sh --check
+contracts
+data
+docs

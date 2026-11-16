@@ -8,7 +8,9 @@ namespace Nuun.Core.Tests;
 /// <summary>
 /// nu9ve-theme-v1 §3 «Conviene: compartir vectores de prueba». The file holds, per skin × mode × base,
 /// the hex of every common role. C# checks it here; Swift (MediaMenuCoreTests) and TypeScript should read
-/// the same file. Regenerate only on purpose: `$env:NU9VE_WRITE_THEME_VECTORS = "1"; dotnet test`.
+/// the same file. It lives in nu9ve/core (data/theme-vectors-v1.json); this repo reads its pinned copy.
+/// Regenerate only on purpose: `$env:NU9VE_WRITE_THEME_VECTORS = "1"; dotnet test` writes the pinned copy,
+/// which `sync-core.sh --check` then rejects until the file is committed in nu9ve/core and pinned again.
 /// </summary>
 public class ThemeVectorsTests
 {
@@ -17,9 +19,9 @@ public class ThemeVectorsTests
     static string VectorsPath()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "docs", "contracts"))) dir = dir.Parent;
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "vendor", "nu9ve-core"))) dir = dir.Parent;
         Assert.NotNull(dir);
-        return Path.Combine(dir!.FullName, "docs", "contracts", "examples", "theme-vectors-v1.json");
+        return Path.Combine(dir!.FullName, "vendor", "nu9ve-core", "data", "theme-vectors-v1.json");
     }
 
     static JsonObject Generate()

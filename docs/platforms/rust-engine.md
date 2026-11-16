@@ -7,7 +7,7 @@ Análisis del 2026-11-09, pedido por el usuario. **Adoptado por el usuario el 20
 - **Sí conviene, pero no por velocidad de verificación.** Copiar y verificar están limitados por los discos, no por el lenguaje. Medido: SHA-256 en un hilo va a **1,67 GB/s tanto en Rust (`sha2`) como en .NET (CNG)**, y `hashlib` de Python usa OpenSSL con las mismas instrucciones del procesador. Una SD lee entre 90 y 250 MB/s y un disco USB entre 150 y 1000 MB/s, así que el hash es entre 2 y 18 veces más rápido que el disco que lo alimenta. El motor de Python además ya hace lo caro bien: lee la tarjeta una sola vez, reparte cada bloque en paralelo a todos los destinos, solapa la lectura con la escritura y verifica sin caché (`transfer.py` `copy_many`).
 - **Lo que sí mejora con Rust:**
   1. Un binario firmado sin Python externo, que es un gate de [release](../release.md) en Mac y el bloqueo principal en Windows.
-  2. El mismo motor en Windows y en Mac ([windows-app-v1 §0](../contracts/windows-app-v1.md#0-principio-dos-apps-nativas-un-producto)).
+  2. El mismo motor en Windows y en Mac ([windows-app-v1 §0](../../vendor/nu9ve-core/contracts/windows-app-v1.md#0-principio-dos-apps-nativas-un-producto)).
   3. Arranque inmediato de los procesos por mutación.
   4. Menos sobrecarga por archivo en miles de archivos chicos (miniaturas, DNG, sidecars).
   5. Contratos con tipos que generan sus esquemas.
@@ -63,12 +63,12 @@ Una copia verificada de N bytes a D destinos cuesta, en el mejor caso, leer N de
 
 ## 6. Qué compartir en Rust entre las apps
 
-Primero se copia con comentario de origen y se extrae a crate común al llegar a tres copias ([tema §10](../contracts/nu9ve-theme-v1.md#10-implementación-compartida)).
+Primero se copia con comentario de origen y se extrae a crate común al llegar a tres copias ([tema §10](../../vendor/nu9ve-core/contracts/nu9ve-theme-v1.md#10-implementación-compartida)).
 
 | Crate candidato | Origen hoy | Lo usaría |
 | --- | --- | --- |
 | `nu9ve-ipc`: JSON enmarcado por named pipe (ACL del SID, `FIRST_PIPE_INSTANCE`, PID del servidor) y socket Unix `0700` | nove `core` | nüün cuando su motor sea de larga vida (bandeja, segundo plano) |
-| `nu9ve-mcp`: servidor stdio con niveles, anotaciones, `_untrusted`, salida acotada, diálogo nativo, permiso por sesión ([nu9ve-mcp-v1](../contracts/nu9ve-mcp-v1.md)) | nove `core/src/mcp.rs`, `agent.rs` | nüün, curado, kyu |
+| `nu9ve-mcp`: servidor stdio con niveles, anotaciones, `_untrusted`, salida acotada, diálogo nativo, permiso por sesión ([nu9ve-mcp-v1](../../vendor/nu9ve-core/contracts/nu9ve-mcp-v1.md)) | nove `core/src/mcp.rs`, `agent.rs` | nüün, curado, kyu |
 | `nu9ve-volumes`: identidad de volumen por serial (`GetVolumeInformationW`), letras, espacio libre (`GetDiskFreeSpaceExW`), equivalentes en Mac (`statfs`, DiskArbitration) | curado `identity.rs`/`relink.rs` (Windows); nüün `volumes.py` (Mac) | nüün (tarjetas y destinos), curado (USB de rekordbox), kyu |
 | `nu9ve-journal`: escritura `.partial` → verificar → renombrar sin reemplazar, `fsync` completo, lock de escritor único, diario de operaciones | nüün `transfer.py`/`catalog.py`; nove (lock de raíz, `fs2`) | nüün, kyu (entrega de fotos), Clipper si migra |
 | `nu9ve-json`: JSON canónico y digest, sobre `{code, message}` de errores | nüün `common.py` (`canonical`, `digest`); nove | Todas |

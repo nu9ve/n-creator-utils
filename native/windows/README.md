@@ -1,6 +1,6 @@
 # nüün para Windows (maqueta)
 
-Cliente WinUI 3 de nüün y la primera base reutilizable de la suite para Windows. **Es una maqueta:** muestra el shell, los cinco skins y las pantallas principales con datos ficticios. No lee ni escribe discos, porque el motor (`media/service.py`) todavía no tiene adaptador de volúmenes para Windows. Reglas: [windows-app-v1](../../docs/contracts/windows-app-v1.md) · guía y aprendizajes: [Windows en la suite](../../docs/platforms/windows.md) · estado: [STATUS](../../docs/STATUS.md).
+Cliente WinUI 3 de nüün y la primera base reutilizable de la suite para Windows. **Es una maqueta:** muestra el shell, los cinco skins y las pantallas principales con datos ficticios. No lee ni escribe discos, porque el motor (`media/service.py`) todavía no tiene adaptador de volúmenes para Windows. Reglas: [windows-app-v1](../../vendor/nu9ve-core/contracts/windows-app-v1.md) · guía y aprendizajes: [Windows en la suite](../../vendor/nu9ve-core/docs/platforms/windows.md) · estado: [STATUS](../../docs/STATUS.md).
 
 | Proyecto | Contenido | Depende de |
 | --- | --- | --- |

@@ -100,7 +100,7 @@ Aplicar el plan sigue siendo el paso que copia y libera.
 
 ## Aplicar con progreso total y reabrir un cierre aplicado · 2026-11-07
 
-Al aplicar, la hoja reemplaza el plan por la vista de acción ([interacción, «Acciones largas»](nu9ve-interaction-v1.md#acciones-largas)). El motor emite en `closure_progress`:
+Al aplicar, la hoja reemplaza el plan por la vista de acción ([interacción, «Acciones largas»](../../vendor/nu9ve-core/contracts/nu9ve-interaction-v1.md#acciones-largas)). El motor emite en `closure_progress`:
 - `overall_done`/`overall_total` en bytes: copiar y verificar cada final cuenta dos veces su tamaño, y retirar cada copia de edición cuenta su lectura;
 - `files_done`/`files_total`;
 - `current` (nombre, origen, destino, acción);
