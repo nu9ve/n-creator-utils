@@ -57,6 +57,12 @@ Fuentes de tiempo, en orden: Sony `CreationDate` + `Duration`/`captureFps` del X
 
 Copias aterrizan como `.<nombre>.ncpartial`, se verifican por lectura y se renombran sin reemplazar nada. Un archivo idéntico ya presente se adopta; uno distinto bloquea el plan en revisión.
 
+### Originales Insta360 en Rust
+
+Los pares `VID_…_00_…insv` y `VID_…_10_…insv` se agrupan por carpeta de origen, fecha, hora y secuencia, con su proxy `LRV_…_01_…lrv` o `LRV_…_11_…lrv` cuando existe. Las fotos INSP y DNG del mismo nombre base también forman una unidad. Cada unidad conserva los nombres originales juntos en una subcarpeta de `001_raw/360/videos/AAAA/MM/` o `001_raw/360/images/AAAA/MM/` y, si el plan incluye trabajo, dentro de la carpeta de edición del proyecto. Así Insta360 Studio puede encontrar los miembros al importar.
+
+Ingreso propone «Ninguno · sólo respaldo» si detecta Insta360 en la fuente. Para llevar una toma al disco de edición se puede elegir esa unidad al ingresar o entregarla después desde el archivo. Al elegirla se copian todos sus miembros. Una copia omitida por defecto queda como trabajo omitido, sin generar un pendiente.
+
 ## Identidad y bundles Stalker
 
 - Un bundle archivado cambia **sólo el nombre de su carpeta**. `manifest.json`, pistas, `mic.wav`, `events.ndjson` y `sources/` quedan byte a byte.

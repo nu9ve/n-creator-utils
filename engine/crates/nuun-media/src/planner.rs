@@ -1005,6 +1005,8 @@ fn build_with_stamps(
             "capture_manifest_digest": session.map(|value| &value["manifest_digest"])});
         if support {
             unit["support"] = json!(true);
+        }
+        if support || selected_camera == "insta360" {
             unit["work_selected"] = json!(false);
         }
         if let Some(work) = assignment.get("work") {
@@ -1722,6 +1724,96 @@ mod tests {
             json!({"matched": 1, "none": 0, "pending_export": 0})
         );
         assert!(plan["missions"]["subaereo"]["history_sha256"].is_string());
+        validate_plan(&plan).unwrap();
+    }
+
+    #[test]
+    fn insta360_lenses_proxy_and_raw_photo_keep_their_original_neighbors() {
+        let s = setup();
+        let dir = "DCIM/Camera01";
+        let names = [
+            "VID_20261104_163212_00_001.insv",
+            "VID_20261104_163212_10_001.insv",
+            "LRV_20261104_163212_11_001.lrv",
+            "IMG_20261104_164100_00_002.insp",
+            "IMG_20261104_164100_00_002.dng",
+        ];
+        std::fs::create_dir_all(s.card.join(dir)).unwrap();
+        for name in names {
+            std::fs::write(s.card.join(dir).join(name), b"synthetic capture").unwrap();
+        }
+        let archive_only = plan(
+            &s,
+            json!({"work": null, "archive_only": true, "confirm_archive_only": true, "work_decision": "skipped"}),
+        )
+        .unwrap();
+        assert!(archive_only["work_id"].is_null());
+        assert!(
+            archive_only["units"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|unit| unit["work_selected"] == false)
+        );
+        let selected = format!("{dir}/{}", names[0]);
+        let plan = plan(&s, json!({"assignments": {selected: {"work": true}}})).unwrap();
+        let units = plan["units"].as_array().unwrap();
+        assert_eq!(units.len(), 2);
+        assert!(units.iter().all(|u| u["camera"] == "insta360"
+            && u["kind"] == "camera_bundle"
+            && u["mission"].is_null()));
+        let work_disk = json!({"role": "work", "prefix": "001_proyectos"});
+        for (folder, names) in [("videos", &names[..3]), ("images", &names[3..])] {
+            for (destination, prefix) in [
+                ("archive", format!("360/{folder}/")),
+                ("work", "e64_raw/intro/".to_owned()),
+            ] {
+                let mut expected_parent = None;
+                for name in names {
+                    let path = format!("{dir}/{name}");
+                    let target = text(&plan["layout"][path.as_str()], destination);
+                    let (parent, basename) = target.rsplit_once('/').unwrap();
+                    assert!(parent.starts_with(&prefix));
+                    assert_eq!(basename, *name);
+                    assert_eq!(*expected_parent.get_or_insert(parent), parent);
+                    let unit = units
+                        .iter()
+                        .find(|u| u["paths"].as_array().unwrap().contains(&json!(path)))
+                        .unwrap();
+                    assert_eq!(
+                        destination_path(&work_disk, &plan, unit, &path, true)
+                            .unwrap()
+                            .is_some(),
+                        folder == "videos"
+                    );
+                }
+            }
+        }
+        validate_plan(&plan).unwrap();
+    }
+
+    #[test]
+    fn a_dji_360_clip_stays_out_of_the_drone_mission_flow() {
+        let s = setup();
+        pair(&s, "DCIM/101MEDIA", "DJI_0001", "FC3170");
+        let clip = "DCIM/102MEDIA/DJI_0002.MP4";
+        std::fs::create_dir_all(s.card.join("DCIM/102MEDIA")).unwrap();
+        std::fs::write(s.card.join(clip), b"video fixture").unwrap();
+
+        assert_eq!(
+            plan(&s, json!({})).unwrap_err().code,
+            "camera_review_required"
+        );
+        let plan = plan(&s, json!({"assignments": {clip: {"camera": "dji-360"}}})).unwrap();
+        let units = plan["units"].as_array().unwrap();
+        let drone = units.iter().find(|u| u["camera"] == "dji-drone").unwrap();
+        let panorama = units.iter().find(|u| u["camera"] == "dji-360").unwrap();
+        assert_eq!(drone["mission"]["state"], "pending_export");
+        assert_eq!(plan["missions"]["subaereo"]["units"]["pending_export"], 1);
+        assert!(panorama["mission"].is_null());
+        assert_eq!(panorama["project"], "intro");
+        assert!(text(&plan["layout"][clip], "archive").starts_with("360/videos/"));
+        assert!(text(&plan["layout"][clip], "work").contains("/intro/"));
         validate_plan(&plan).unwrap();
     }
 

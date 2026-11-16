@@ -690,6 +690,47 @@ pub fn build_layout(
         }
         let camera = text(&unit, "camera").to_owned();
         let mission = &unit["mission"];
+        if camera == "insta360"
+            && let Some(anchor) = media
+                .iter()
+                .find(|f| matches!(suffix(text(f, "path")).as_str(), ".insv" | ".insp"))
+        {
+            let path = text(anchor, "path");
+            let name = path.rsplit('/').next().unwrap_or(path);
+            let (folder, capture) = if suffix(name) == ".insv" {
+                (
+                    "360/videos",
+                    crate::scan::insta360_video_stem(name).unwrap_or_else(|| stem(name).to_owned()),
+                )
+            } else {
+                ("360/images", stem(name).to_owned())
+            };
+            let found = facts(source, anchor, truthy(&unit["device"]))?;
+            let created = found.created.expect("facts always has a creation time");
+            if let Some(evidence) = &found.capture_time {
+                units[index]["capture_time"] = evidence.clone();
+            }
+            if first_capture
+                .as_ref()
+                .is_none_or(|first| earlier(&created, first))
+            {
+                first_capture = Some(created);
+            }
+            // Studio pairs the original names within one directory, including RAW photos and proxies.
+            let month = created.strftime("%Y/%m");
+            let dir = claim(&mut taken, &format!("{month}/{capture}[]"));
+            let work_dir = after_month(&dir);
+            for file in members {
+                let path = text(file, "path");
+                let name = path.rsplit('/').next().unwrap_or(path);
+                layout.insert(
+                    path.to_owned(),
+                    json!({"archive": format!("{folder}/{dir}/{name}"),
+                           "work": format!("{work_root}/{work_dir}/{name}")}),
+                );
+            }
+            continue;
+        }
         let mut primary: Option<(String, String)> = None;
         for file in media {
             let path = text(file, "path");

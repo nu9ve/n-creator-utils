@@ -12,6 +12,7 @@ struct DraftUnit: Identifiable, Equatable {
     var copyForEditing = false
     var category = "support"
     var detectedCamera = ""
+    var detectedFamily = ""
     var bytes: Double = 0
     var createdAt = ""
     var duration: Double = 0
@@ -40,9 +41,10 @@ struct DraftUnit: Identifiable, Equatable {
     }
     /// Drone/360 only when explicitly classified; never inferred from the DJI brand.
     var displayCategory: String {
-        let effective = camera == "auto" ? deviceCategory : camera
+        let effective = camera == "auto" ? (deviceCategory.isEmpty ? detectedFamily : deviceCategory) : camera
         return effective == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(effective) ? "360" : category
     }
+    var isInsta360: Bool { detectedFamily == "insta360" }
     var needsCameraReview: Bool { !isSupport && !discard && camera == "auto" && deviceCategory.isEmpty && detectedCamera.lowercased().hasPrefix("dji") }
     var isSupport: Bool { category == "support" }
 }
@@ -282,7 +284,15 @@ enum OperationScope { case ingest, library, space, settings, source }
     var readEngine = UserDefaults.standard.string(forKey: "readEngine") ?? "rust"
     var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
     var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
-    var copyChoice = "all" { didSet { if copyChoice != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
+    private var copyChoiceOverride: String?
+    var copyChoice: String {
+        get { copyChoiceOverride ?? (units.contains(where: \.isInsta360) ? "none" : "all") }
+        set {
+            let previous = copyChoice
+            copyChoiceOverride = newValue
+            if previous != newValue { archiveExceptionConfirmed = false; invalidatePlan() }
+        }
+    }
     var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
     var ingestStep: IngestStep = .source
     var activeJobID = ""
@@ -713,7 +723,8 @@ enum OperationScope { case ingest, library, space, settings, source }
                     unit.project = value["tag"]["name"].string
                     unit.country = value["tag"]["country"].string
                 }
-                unit.category = value["category"].string; unit.detectedCamera = value["camera"].string
+                unit.category = value["category"].string; unit.detectedFamily = value["camera"].string
+                unit.detectedCamera = unit.detectedFamily
                 let device = value["device"]
                 unit.deviceCategory = device["requires_confirmation"].bool ? "" : device["category"].string
                 unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
@@ -744,7 +755,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
-        if source != path || sourceKind != kind { parkIngestDraft(); copyChoice = "all" }
+        if source != path || sourceKind != kind { parkIngestDraft(); copyChoiceOverride = nil }
         sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
         // Already on the work disk: it is its own editing copy, so only the backup applies.
@@ -777,7 +788,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         if source != path { parkIngestDraft() }
         ingestDrafts.removeValue(forKey: path)
         sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; loadedSourceKey = ""
-        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil; copyChoice = "all"
+        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil; copyChoiceOverride = nil
         route = .ingest; ingestStep = .source
         if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
     }
@@ -795,7 +806,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         goToStep(.destinations)
     }
     func newIngest() {
-        copyChoice = "all"
+        copyChoiceOverride = nil
         source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""; dayFilter = ""; sessionFilter = ""
         ingestStep = .source; message = String(localized: "Listo")
     }
@@ -823,7 +834,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var canPrepareFlow: Bool {
         if sourceKind == "delivery" { return !source.isEmpty && !archive.isEmpty }
         let offlineWork = !noWork && !volumes.contains { $0["id"].string == work && $0["online"].bool }
-        return !source.isEmpty && !archive.isEmpty && (!contentLoaded || planBlockers.isEmpty) && (!offlineWork || archiveExceptionConfirmed)
+        return !source.isEmpty && !archive.isEmpty
+            && (!contentLoaded || (planBlockers.isEmpty && (!offlineWork || archiveExceptionConfirmed)))
     }
     /// Only what the planner truly needs; everything else has a default or is reviewed in the plan.
     var planBlockers: [String] {
@@ -900,6 +912,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
                 if unit.discard { values["discard"] = .bool(true) }
                 if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
+                if self.copyChoice == "all" && unit.isInsta360 { values["work"] = .bool(true) }
                 if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
             }
             var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),

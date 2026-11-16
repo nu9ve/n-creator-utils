@@ -234,6 +234,14 @@ struct UnitPreview: View {
                         .padding(.horizontal, 6).padding(.vertical, 4)
                         .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
                         .padding(5).padding(.bottom, 10).allowsHitTesting(false)
+                    } else if unit.isInsta360 && unit.paths.count > 1 {
+                        Text("\(unit.paths.count) archivos juntos")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(5)
+                            .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5)
+                            .allowsHitTesting(false)
                     }
                 }
                 .contentShape(Rectangle())

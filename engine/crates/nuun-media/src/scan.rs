@@ -446,13 +446,37 @@ fn scan_source(
     Ok(result)
 }
 
-/// Python `group_key`: sidecars share their media's unit; Sony `…M01.XML` joins its clip.
+/// Original Insta360 lens streams and their proxy share the camera's timestamp and sequence.
+pub(crate) fn insta360_video_stem(name: &str) -> Option<String> {
+    let ext = suffix(name);
+    let upper = stem(name).to_ascii_uppercase();
+    let fields: Vec<&str> = upper.split('_').collect();
+    let [prefix, date, time, lens, sequence] = fields.as_slice() else {
+        return None;
+    };
+    let supported = matches!(
+        (*prefix, *lens, ext.as_str()),
+        ("VID", "00" | "10", ".insv") | ("LRV", "01" | "11", ".lrv")
+    );
+    let digits = |value: &str| value.bytes().all(|b| b.is_ascii_digit());
+    (supported
+        && date.len() == 8
+        && time.len() == 6
+        && sequence.len() == 3
+        && [*date, *time, *sequence].into_iter().all(digits))
+    .then(|| format!("VID_{date}_{time}_00_{sequence}"))
+}
+
+/// Sidecars share their media's unit; Sony `…M01.XML` joins its clip.
 pub fn group_key(file: &Value) -> String {
     if let Some(bundle) = file["bundle"].as_str() {
         return format!("stalker:{bundle}");
     }
     let path = file["path"].as_str().unwrap_or_default();
     let (parent, name) = path.rsplit_once('/').unwrap_or((".", path));
+    if let Some(capture) = insta360_video_stem(name) {
+        return format!("{parent}/insta360:{capture}");
+    }
     let mut upper = stem(name).to_uppercase();
     if suffix(name) == ".xml" && upper.ends_with("M01") {
         upper.truncate(upper.len() - 3);

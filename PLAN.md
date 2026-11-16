@@ -85,7 +85,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | Poner al día | Borrador recuperable, copias de edición y carpetas vivas registradas en el lote Rust. DJI incorpora y compara dentro del lote. Siguiente: aceptación en ventana al desconectar y reconectar y progreso por paso | [Flujos y contrato](docs/features/save-all.md) |
 | Bandeja por proyecto | Primer corte en macOS: ubicaciones catalogadas, Stalker pendiente, entregas candidatas, requisitos de cierre y acceso a la revisión de raws. Faltan fuentes SD asignadas y aceptación en ventana | [Proyectos](docs/features/nuun-window.md#bandeja-por-proyecto) |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG | [Fotos](docs/features/product-flows.md#fotos-y-kyū) |
-| Audio / cámaras | H6/SSD1, DJI 360/acción, GoPro con evidencia real | Por dispositivo |
+| Audio / cámaras | H6/SSD1, DJI 360/acción y GoPro con evidencia real. Insta360 X3: plan físico de INSV y fotos comprobado en Rust. Falta copiar y abrir una muestra en Studio y resolver FreeFrame. | [Estado por dispositivo](docs/STATUS.md#por-área) |
 | Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |
 | Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
