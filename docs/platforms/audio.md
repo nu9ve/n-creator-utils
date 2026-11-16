@@ -32,10 +32,10 @@ Repeticiones de hoy:
 
 | Crate | Contenido | Copias hoy | Cuándo mudarlo |
 | --- | --- | --- | --- |
-| `nu9ve-audio-io` | WAV de 16, 24 y 32 bits con dither, metadatos BPM y clave, decodificación, resample | curado, SoundBender, Clipper | Al existir el repo común |
+| `nu9ve-audio-io` | WAV de 16, 24 y 32 bits con dither, metadatos BPM y clave, decodificación, resample | curado, SoundBender, Clipper | Al existir `nu9ve/core` |
 | `nu9ve-dsp` | FFT y STFT por bloques con halos, ventanas, filtros, interpolación | SoundBender, curado | Cuando lo use una tercera app |
-| `nu9ve-loudness` | LUFS integrado y de corto plazo, true peak, limitador | curado, SoundBender (Clipper normaliza con FFmpeg) | Al existir el repo común; los números deben coincidir |
-| `nu9ve-music` | Beats y downbeats, BPM, clave, escalas, afinaciones, acordes por grados | curado, SoundBender, Clipper (Python) | Al existir el repo común |
+| `nu9ve-loudness` | LUFS integrado y de corto plazo, true peak, limitador | curado, SoundBender (Clipper normaliza con FFmpeg) | Al existir `nu9ve/core`; los números deben coincidir |
+| `nu9ve-music` | Beats y downbeats, BPM, clave, escalas, afinaciones, acordes por grados | curado, SoundBender, Clipper (Python) | Al existir `nu9ve/core` |
 | `nu9ve-rt` | Colas sin bloqueo, rampas, comprobación de no-asignación, salida a dispositivo | curado; el plugin de SoundBender | Con el plugin |
 | `nu9ve-stems` | Adaptador de Demucs: proceso aislado y cancelable, manifiesto, publicación atómica | curado, SoundBender, nüün | Ya hay tres copias |
 | `nu9ve-sound` | Motor de sonidos de interfaz ([S17](../audits/session-briefs-2026-11-10.md#s17--motor-de-sonido-en-rust)) | Fractos (Swift) | Según S17; no depende de las capas anteriores |
@@ -55,6 +55,6 @@ Lo que **no** se comparte todavía:
 
 ## 5. Preguntas para el usuario
 
-1. El nombre del repo común ([suite-sharing §8](../suite-sharing.md#8-lo-que-decide-el-usuario)).
+1. ~~El nombre del repo común~~: **`nu9ve/core`** (2026-11-16, [suite-sharing §8](../suite-sharing.md#8-lo-que-decide-el-usuario)). Las capas van en su `rust/` y cada app las copia en `vendor/nu9ve-core/`.
 2. Si curado acepta pasar su `audio-engine` a consumir estas capas cuando se muden, o si las capas nacen copiando de curado y curado sincroniza después.
 3. Si Clipper quiere su normalización y su análisis de intros en Rust compartido o se quedan en Python.

@@ -1,11 +1,11 @@
 # Cómo se comparte código y contratos entre los repos de la suite
 
-Estado: **decidido por el usuario el 2026-11-11, sin implementar**: repo `nu9ve/suite` con copia fijada en cada app (forma C de la §2). Siguen abiertas las preguntas 3 y 4 de la [§8](#8-lo-que-decide-el-usuario). Nació como propuesta el 2026-11-10, parte de la [auditoría Fable](audits/fable-audit-2026-11-10.md) ([C9](audits/fable-audit-2026-11-10.md#c9--los-contratos-de-la-suite-viven-en-el-repo-de-una-app)). Responde a la pregunta del usuario: ¿el repo común sería `n-creator-utils`?, ¿todos dependerían de tenerlo al desarrollar y de manejar versiones entre ellos?, ¿un solo repo con lo de Windows, Mac y Rust, o repetir en cada repo y coordinar sólo por contrato? Nada de esto está hecho; es la decisión que destraba varias colas.
+Estado: **decidido por el usuario el 2026-11-11, sin implementar**: repo común con copia fijada en cada app (forma C de la §2). El 2026-11-16 el usuario fijó el nombre: **`nu9ve/core`** ([§8](#8-lo-que-decide-el-usuario)). Siguen abiertas las preguntas 3 y 4 de la [§8](#8-lo-que-decide-el-usuario). Nació como propuesta el 2026-11-10, parte de la [auditoría Fable](audits/fable-audit-2026-11-10.md) ([C9](audits/fable-audit-2026-11-10.md#c9--los-contratos-de-la-suite-viven-en-el-repo-de-una-app)). Responde a la pregunta del usuario: ¿el repo común sería `n-creator-utils`?, ¿todos dependerían de tenerlo al desarrollar y de manejar versiones entre ellos?, ¿un solo repo con lo de Windows, Mac y Rust, o repetir en cada repo y coordinar sólo por contrato? Nada de esto está hecho; es la decisión que destraba varias colas.
 
 ## 1. Respuesta corta
 
 - **No `n-creator-utils`.** Ése es el repo de nüün. Hoy guarda los contratos de la suite por accidente histórico, y por eso nove y curado «dependen» del repo de otra app.
-- **Sí un repo propio y pequeño, `nu9ve/suite`**, donde lo compartido se **edita**: contratos, datos comunes y el código común de Mac, de Windows y de Rust, en carpetas separadas del mismo repo.
+- **Sí un repo propio y pequeño, `nu9ve/core`**, donde lo compartido se **edita**: contratos, datos comunes y el código común de Mac, de Windows y de Rust, en carpetas separadas del mismo repo.
 - **Ninguna app necesita tener ese repo clonado para compilar ni para trabajar.** Cada app lleva dentro una **copia fijada** de lo que usa, con el commit del que salió y una lista de hashes, y un script que la actualiza y la comprueba. Es lo que Fractos ya hace con el contrato de la web (`ios-fractos`: `Contracts/`, `scripts/sync-contracts.sh`).
 - **Las versiones no se negocian entre apps.** Cada app dice de qué commit de la suite es su copia y la sube cuando le conviene. Un cambio en la suite no rompe a nadie hasta que esa app sincroniza.
 - **No es «repetir en cada repo».** Repetir a mano y coordinar por contrato fue lo correcto para arrancar («replicar primero»). La copia fijada es el paso siguiente: la misma copia, pero idéntica al origen y comprobada por máquina.
@@ -34,10 +34,10 @@ Estado: **decidido por el usuario el 2026-11-11, sin implementar**: repo `nu9ve/
 
 C no es irreversible. Si un día hay más gente o más consumidores, las mismas carpetas se vuelven dependencias de paquete cambiando una ruta por una URL.
 
-## 3. Qué vive en `nu9ve/suite`
+## 3. Qué vive en `nu9ve/core`
 
 ```text
-suite/
+core/
 ├─ contracts/     macos-app, windows-app, nu9ve-theme, nu9ve-interaction, nu9ve-mcp,
 │                 nu9ve-sound, nu9ve-notifications (y los que vengan: protocolo, identidad de volumen)
 ├─ docs/          suite.md (mapa), platforms/ (windows, os-integration, linux), auditorías
@@ -46,7 +46,7 @@ suite/
 │                 (después: nu9ve-ipc, nu9ve-mcp, nu9ve-sound)
 ├─ swift/         Package.swift: NuMacShell (después: roles de tema, motor de sonido)
 ├─ windows/       Nu9ve.Core, Nu9ve.WinUI y sus pruebas
-├─ scripts/       sync-suite (sh y ps1), scripts de QA de Windows
+├─ scripts/       sync-core (sh y ps1), scripts de QA de Windows
 └─ CHANGELOG.md
 ```
 
@@ -62,12 +62,12 @@ Un solo repo con las tres plataformas está bien: son carpetas independientes qu
 
 ## 4. Cómo lo consume una app
 
-Dentro de cada repo de app, una carpeta `vendor/suite/` con sólo lo que esa app declara que usa:
+Dentro de cada repo de app, una carpeta `vendor/nu9ve-core/` con sólo lo que esa app declara que usa:
 
 ```text
 nove/
-└─ vendor/suite/
-   ├─ SOURCE              repo=nu9ve/suite · commit=… · date=…
+└─ vendor/nu9ve-core/
+   ├─ SOURCE              repo=nu9ve/core · commit=… · date=…
    ├─ MANIFEST.sha256     un hash por archivo copiado
    ├─ contracts/          los contratos, para leerlos sin salir del repo
    ├─ data/theme-vectors-v1.json
@@ -77,19 +77,19 @@ nove/
 
 | Ecosistema | Cómo se referencia |
 | --- | --- |
-| Rust | `nu9ve-json = { path = "../vendor/suite/rust/nu9ve-json" }` |
-| Swift | `.package(path: "vendor/suite/swift")` |
-| C# | `<ProjectReference Include="..\vendor\suite\windows\Nu9ve.Core\Nu9ve.Core.csproj" />` |
+| Rust | `nu9ve-json = { path = "../vendor/nu9ve-core/rust/nu9ve-json" }` |
+| Swift | `.package(path: "vendor/nu9ve-core/swift")` |
+| C# | `<ProjectReference Include="..\vendor\nu9ve-core\windows\Nu9ve.Core\Nu9ve.Core.csproj" />` |
 | Datos y contratos | Se leen del archivo; las pruebas los usan directamente |
 
 El script, calcado del de Fractos:
 
 | Comando | Qué hace | Cuándo |
 | --- | --- | --- |
-| `sync-suite --check` | Comprueba que la copia coincide con su manifiesto: nadie la editó | En el gate de cada cambio |
-| `sync-suite --strict` | Además falla si la suite avanzó | Antes de una release |
-| `sync-suite <commit>` | Trae ese commit de la suite y reescribe `SOURCE` y el manifiesto | Al actualizar, en un cambio propio |
-| `sync-suite --from <carpeta>` | Copia desde un checkout local de la suite, para probar un cambio antes de subirlo. Marca la copia como sucia y el gate la rechaza hasta fijar un commit | Sólo mientras se desarrolla |
+| `sync-core --check` | Comprueba que la copia coincide con su manifiesto: nadie la editó | En el gate de cada cambio |
+| `sync-core --strict` | Además falla si la suite avanzó | Antes de una release |
+| `sync-core <commit>` | Trae ese commit de la suite y reescribe `SOURCE` y el manifiesto | Al actualizar, en un cambio propio |
+| `sync-core --from <carpeta>` | Copia desde un checkout local de la suite, para probar un cambio antes de subirlo. Marca la copia como sucia y el gate la rechaza hasta fijar un commit | Sólo mientras se desarrolla |
 
 Reglas:
 
@@ -100,15 +100,15 @@ Reglas:
 ## 5. Versiones y coordinación
 
 - **En la suite:** un `CHANGELOG.md` con una entrada por cambio, diciendo qué pieza y si rompe algo. Los contratos llevan su versión en el nombre (`-v1`). Una etiqueta con fecha sólo cuando haga falta nombrar un punto.
-- **En cada app:** `vendor/suite/SOURCE` es la versión. STATUS puede decirlo en una línea («suite en `abc1234`»).
+- **En cada app:** `vendor/nu9ve-core/SOURCE` es la versión. STATUS puede decirlo en una línea («suite en `abc1234`»).
 - **Un cambio que rompe:** se hace en la suite con su prueba; cada app lo adopta al sincronizar, a su ritmo. Si el cambio es de un contrato, sube a `-v2` y las dos versiones conviven mientras las apps migran.
-- **Quién va atrasado:** `sync-suite --strict` lo dice por app. Las tablas de adopción de cada contrato siguen siendo el resumen humano.
+- **Quién va atrasado:** `sync-core --strict` lo dice por app. Las tablas de adopción de cada contrato siguen siendo el resumen humano.
 - **Dónde se prueba lo compartido:** una vez, en el repo de la suite, en los tres sistemas (Rust en macOS, Windows y Linux; Swift en macOS; C# en Windows). Las apps prueban que lo usan bien, no que funciona.
 
 Ejemplo de un cambio completo, «progreso en la barra de tareas para todas las apps de Windows»:
 
 1. Se añade a `windows/Nu9ve.WinUI` en la suite, con su prueba y su línea en el CHANGELOG.
-2. En nüün: `sync-suite <commit>`, se revisa el diff, se usa.
+2. En nüün: `sync-core <commit>`, se revisa el diff, se usa.
 3. nove lo recibe cuando sincronice. Hasta entonces sigue compilando igual que ayer.
 
 ## 6. El caso del sonido y de la web
@@ -134,7 +134,7 @@ Ningún paso deja una app sin compilar, y cada uno cabe en una sesión. El inven
 | Paso | Qué se mueve | Quién lo consume después |
 | --- | --- | --- |
 | 1 | Se crea el repo con los contratos de suite, `suite.md`, `platforms/` y los vectores de tema. Sólo documentos y datos | Todas, como lectura. `n-creator-utils` deja un índice que apunta a su copia |
-| 2 | El script `sync-suite`, generalizando el de Fractos, con su gemelo en PowerShell | Todas |
+| 2 | El script `sync-core`, generalizando el de Fractos, con su gemelo en PowerShell | Todas |
 | 3 | `rust/`: `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time` | nüün; curado cuando cambie su `identity.rs` por el crate |
 | 4 | `windows/`: `Nu9ve.Core`, `Nu9ve.WinUI` | nüün; nove (su trabajo de tema esperaba esta decisión) |
 | 5 | `swift/`: `NuMacShell`, desde `ios-fractos` | Fractos, nüün; SoundBender y neuf al tocarlos |
@@ -145,18 +145,13 @@ Ningún paso deja una app sin compilar, y cada uno cabe en una sesión. El inven
 
 ## 8. Lo que decide el usuario
 
-1. ~~¿Se crea `nu9ve/suite`?~~ **Sí** (2026-11-11). Falta confirmar el nombre y que sea privado al crearlo. El 2026-11-16 el repo aún no existe (ni `nu9ve/suite` ni `nu9ve/platform`) y al usuario «suite» no lo convence. Candidatos:
-
-   | Nombre | De dónde | A favor | En contra |
-   | --- | --- | --- | --- |
-   | **`novem`** (recomendado) | Latín, «nueve»: la raíz de nueve, nove y neuf | Es literalmente de donde descienden los nombres de las apps; corto, se dice igual en español e inglés | Recuerda a «noviembre» |
-   | `ennea` | Griego, «nueve» | Une las dos convenciones: los nueves en idiomas y los dioses griegos de los repos de TouchDesigner | Menos obvio de leer y decir |
-   | `ennead` | La Enéada, los nueve dioses de Heliópolis | Nueve y dioses a la vez: un grupo de nueve que reúne a los demás | Egipcio y no griego; se lee en inglés |
-   | `platform` | Descriptivo | Dice qué es | Genérico; `github.com/nu9ve/` ya da el contexto |
-
-   Con cualquiera, los crates y paquetes **conservan el prefijo `nu9ve-`** (`nu9ve-json`, `Nu9ve.Core`), que ya usan nüün y la maqueta de Windows: el repo es dónde se editan, la marca es la de la organización. Cambiar el prefijo obligaría a renombrar lo que ya se consume.
+1. ~~¿Se crea el repo común y cómo se llama?~~ **Sí, `nu9ve/core`** (creación decidida el 2026-11-11, nombre el 2026-11-16). Será privado. El 2026-11-16 aún no existe en GitHub. Su checkout local, `~/code/ai/core`, tiene desde ese día el esqueleto: README, AGENTS, CHANGELOG, una nota por carpeta con lo que entra y cuándo, y `scripts/sync-core.sh` con sus pruebas. No tiene commits ni documentos mudados; la fuente de los contratos sigue aquí. Se descartaron `suite`, `platform`, `novem`, `ennea` y `ennead`: `core` es el nombre que cualquiera entiende al leerlo. Reglas para que no se confunda con los `core/` de cada app (kyu, nove, Clipper) ni con los módulos `SoundCore`, `StalkerCore`, `kyu-core` y `clipper-core`:
+   - **Nada adentro se llama sólo `core` o `Core`.** Un crate `core` taparía la biblioteca estándar de Rust. Crates y paquetes **conservan el prefijo `nu9ve-`** (`nu9ve-json`, `Nu9veTheme`, `Nu9ve.Core`), que ya usan nüün y la maqueta de Windows. `Nu9ve.Core` sigue siendo la biblioteca base de C#, que vive en `windows/` de `nu9ve/core`.
+   - **La copia en cada app va en `vendor/nu9ve-core/`**, no en `vendor/core/`, para no mezclarla con el `core/` propio de la app. El script es `sync-core`.
+   - En los documentos se escribe **`nu9ve/core`** o «el core común», nunca «el core» a secas, que en cada app ya significa su motor.
+   - SwiftPM identifica un paquete remoto por el final de su URL (`core`). Con la copia fijada se usa por ruta y no importa; si un día se consume por URL, ninguna otra dependencia de esa app debe terminar en `/core`.
 2. ~~¿Copia fijada o dependencias de paquete?~~ **Copia fijada** (2026-11-11).
 3. ¿`NuMacShell` y, después, el motor de sonido salen de `ios-fractos` y Fractos los consume como las demás?
 4. ¿Los documentos de la suite se quedan en español, como hoy? (curado documenta en inglés.)
 
-Brief para ejecutarlo: [S5](audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite).
+Brief para ejecutarlo: [S5](audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Se escribió con el nombre provisional `nu9ve/suite`; donde lo diga, léase `nu9ve/core`, `vendor/nu9ve-core/` y `sync-core`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The suite's pieces never depend on nüün (docs/suite-split.md §1): a `nu9ve-*` crate or a `Nu9ve.*` project
 # that names something of nüün in code or in a manifest fails here. Comments may cite where a piece came from.
-# The day these pieces move to nu9ve/suite, moving them is copying folders, not untangling them.
+# The day these pieces move to nu9ve/core, moving them is copying folders, not untangling them.
 #
 # Usage: scripts/check_suite_boundary.sh   (macOS, Linux or Git Bash on Windows; no dependencies)
 set -euo pipefail

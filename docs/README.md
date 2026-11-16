@@ -27,8 +27,8 @@
 | Hand an audit finding to another session as a self-contained task | [Session briefs](audits/session-briefs-2026-11-10.md) |
 | Translate a system feature between macOS, Windows and Linux; OS features the suite does not use yet; naming/path convention; `nu9ve://` links | [OS integration](platforms/os-integration.md) (proposal) |
 | Plan Linux: engine backend, UI decision, packaging and distro matrix | [Linux in the suite](platforms/linux.md) (proposal) |
-| Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](suite-sharing.md) (decided 2026-11-11: `nu9ve/suite` with pinned copies) |
-| Know, file by file, what moves from this repo to `nu9ve/suite`, when, and what stays in nüün | [Suite split](suite-split.md) (inventory, nothing moved) |
+| Decide where shared code and contracts live, how each app consumes them and how versions are coordinated | [Sharing across repos](suite-sharing.md) (decided 2026-11-11: pinned copies; repo named `nu9ve/core` on 2026-11-16) |
+| Know, file by file, what moves from this repo to `nu9ve/core`, when, and what stays in nüün | [Suite split](suite-split.md) (inventory, nothing moved) |
 | Decide whether the suite needs a browser: Brave bridge, recording "stage", engine options, Arc's end, Stalker/Clipper/MCP coordination | [Suite browser](suite-browser.md) (proposal, nothing built) |
 | OS notifications for any suite app: engine outbox, exact-object click, defaults, limits, urgency, sound; nove on Windows as the base | [Notifications contract](contracts/nu9ve-notifications-v1.md) (proposal) |
 | Shared interface sounds per skin, sourced from Fractos' v2 sound engine | [Theme sound contract](contracts/nu9ve-sound-v1.md) (proposal) |

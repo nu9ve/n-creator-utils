@@ -91,7 +91,7 @@ Cada contrato lo decide su dueño. Aquí sólo se propone la forma.
 | **Bandeja de links** | Por decidir; candidata nüün, como «inbox» de referencias de proyecto | Entrada con URL, título `_untrusted`, origen (Brave, escenario o agente), proyecto opcional y hora. Se abre con `nu9ve://…/link/<id>` |
 | **Uso en Clipper** | Clipper | Capítulos sugeridos por navegación, links para la descripción, placa de URL como overlay, desenfoque por lista de dominios sensibles. Todo como sugerencia y nada automático, igual que hoy con los highlights |
 
-Mientras no exista `nu9ve/suite`, estos contratos se escriben aquí como propuesta, igual que los demás ([cómo se comparte](suite-sharing.md)).
+Mientras no exista `nu9ve/core`, estos contratos se escriben aquí como propuesta, igual que los demás ([cómo se comparte](suite-sharing.md)).
 
 ## 8. Arquitectura
 

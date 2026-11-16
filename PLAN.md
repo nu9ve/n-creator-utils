@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-15, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-16, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -86,7 +86,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | Bandeja por proyecto | Primer corte en macOS: ubicaciones catalogadas, Stalker pendiente, entregas candidatas, requisitos de cierre y acceso a la revisión de raws. Faltan fuentes SD asignadas y aceptación en ventana | [Proyectos](docs/features/nuun-window.md#bandeja-por-proyecto) |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG. Canon SL3 ya tiene evidencia de detección y plan con JPG y MP4. Falta probar RAW+JPG y ejecutar una copia física de muestra. | [Fotos](docs/features/product-flows.md#fotos-y-kyū) · [Estado por dispositivo](docs/STATUS.md#por-área) |
 | Audio / cámaras | H6: WAV/HPRJ agrupados, reloj BWF y archivos ajenos separados en vista previa real. Confirmar SSD1 antes de aplicar. DJI 360/acción y GoPro requieren evidencia física. Insta360 X3: plan físico de INSV y fotos comprobado en Rust. Falta copiar y abrir una muestra en Studio y resolver FreeFrame. | [Estado por dispositivo](docs/STATUS.md#por-área) |
-| Handycam | Histórico principal ya consolidado por Poner al día en `001_raw/handycam/`. Aceptar una conversión física desde Ingreso o el lote. Limpiar sólo desde el equipo después de comprobar cobertura. | [Contrato y pasos](docs/contracts/ingest-flow-v1.md#hdd-de-handycam-por-usb) |
+| Handycam | Histórico principal consolidado por Poner al día y conversión física con expulsión comprobada. Validar un lote mixto en ventana. Limpiar sólo desde el equipo después de comprobar cobertura. | [Contrato y pasos](docs/contracts/ingest-flow-v1.md#hdd-de-handycam-por-usb) |
 | Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |
 | Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
@@ -100,7 +100,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 - Distribución: runtime empaquetado, versiones alineadas, Developer ID, notarización. [Gates](docs/release.md).
 - MCP con mutaciones, Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
 - **Windows** (maqueta hecha 2026-11-09, [guía](docs/platforms/windows.md)). Siguiente, en orden:
-  1. ~~Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`~~: decidido el 2026-11-11, repo `nu9ve/suite` con copia fijada ([S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite)); falta crearlo.
+  1. ~~Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`~~: decidido el 2026-11-11, repo `nu9ve/core` con copia fijada ([S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite)); falta crearlo.
   2. Que `ThemeRolesTests.swift` lea los vectores compartidos.
   3. ~~Adaptador de volúmenes de Windows en `media/` y Python empaquetado~~: ya no hace falta; el adaptador existe en Rust y Windows usa el motor de Rust. Lo que sigue es la [Fase A del motor](#motor-en-rust--ruta).
   4. Firma e instalación del MSIX y del Setup en una máquina limpia.
@@ -113,7 +113,7 @@ La [auditoría Fable](docs/audits/fable-audit-2026-11-10.md) revisó nüün, nov
 
 Decidido por el usuario el 2026-11-10: sonido de interfaz **encendido por defecto, con una opción clara para silenciar**, en toda la suite ([sonido v1 §7](docs/contracts/nu9ve-sound-v1.md#7-valor-por-defecto-ajustes-y-formato)).
 
-Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/suite` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`). Inventario por archivo de lo que se muda, cuándo y lo que se queda: [suite-split](docs/suite-split.md). En resumen: documentos y datos ya; el código de Rust después de que el motor funcione en la Mac; Swift tras decidir `NuMacShell`; C# cuando haya Windows.
+Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/core` y cada app llevará una **copia fijada** ([cómo](docs/suite-sharing.md)); sin implementar, empieza por el [brief S5](docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite). Esto responde el paso 1 de Windows en P3 (dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`). Inventario por archivo de lo que se muda, cuándo y lo que se queda: [suite-split](docs/suite-split.md). En resumen: documentos y datos ya; el código de Rust después de que el motor funcione en la Mac; Swift tras decidir `NuMacShell`; C# cuando haya Windows.
 
 Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](docs/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
 
