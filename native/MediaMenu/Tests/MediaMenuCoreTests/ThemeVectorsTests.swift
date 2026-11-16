@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import MediaMenuCore
+import Nu9veTheme
 
 private struct ThemeVectors: Decodable {
     struct Case: Decodable {

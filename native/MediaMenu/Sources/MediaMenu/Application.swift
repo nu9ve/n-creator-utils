@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UserNotifications
 import MediaMenuCore
+import Nu9veTheme
 
 private extension NSToolbarItem.Identifier {
     static let shellBar = NSToolbarItem.Identifier("nuun.shell")

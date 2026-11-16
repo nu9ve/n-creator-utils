@@ -13,6 +13,7 @@ Reglas que toda la suite sigue. Cada contrato dice la regla; qué cumple cada ap
 | [Sonido de tema v1](nu9ve-sound-v1.md) | Sonidos de interfaz por skin, con el motor v2 de Fractos como fuente | Propuesta |
 | [JSON canónico v1](nu9ve-json-v1.md) | Bytes canónicos compatibles con Python, digest, ids, sobre de errores; vectores en [data/](../data/json-vectors-v1.json) | Implementado en nüün |
 | [Archivos v1](nu9ve-fs-v1.md) | Escritura y publicación duraderas, candados, lecturas de verificación | Implementado |
+| [Motor detrás de una app v1](nu9ve-engine-v1.md) | Transporte (líneas, marcos, una vez), petición e id, sobre, `engine_info`, `not_ported`, códigos de error, ciclo de vida, seguridad local, sombra contra un oráculo; ejemplos en [data/](../data/engine-examples-v1.json) | Propuesta |
 
 Los contratos de media (Stalker, Clipper, Atlas, ingreso, nombres, cierre de proyectos) se quedan en [n-creator-utils](https://github.com/nu9ve/n-creator-utils/blob/master/docs/contracts/README.md): son entre nüün y otra app.
 

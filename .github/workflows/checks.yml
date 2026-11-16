@@ -87,7 +87,8 @@ jobs:
           cargo test
 
   swift:
-    runs-on: macos-15
+    # The shared Swift package requires Swift 6.2 (Xcode 26).
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Swift tests

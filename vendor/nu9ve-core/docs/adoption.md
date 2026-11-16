@@ -46,6 +46,26 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 - **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/. En Windows (maqueta, 2026-11-09) ya hay catálogo con pruebas de duplicados y de teclas del sistema, aceleradores y tooltips generados desde él, `AccessKey` en la navegación y panel Ctrl+/; es la referencia para portar el catálogo a la app de Mac.
 - **kyu y neuf:** el recorrido completo por teclado de la §10, porque son las apps de edición más densas.
 
+## nu9ve-engine-v1
+
+[Protocolo de un motor detrás de una app v1](../contracts/nu9ve-engine-v1.md)
+
+Leído en el código el 2026-11-16: nüün `8ac8307`, Clipper `41084ccb`, nove `9935227`. Los casos de motor de [`data/engine-examples-v1.json`](../data/engine-examples-v1.json) se corrieron ese día contra los binarios de nüün y Clipper; nove no, porque su petición todavía no es v1. Qué falta en detalle y en qué orden está en la [§12 del contrato](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1).
+
+| Regla | nüün (Python y `nuun-engine`) | Clipper (Python y `clipper-core`) | nove |
+| --- | --- | --- | --- |
+| 1 Transporte | Sí: líneas (`rpc-serve`) y una vez (`rpc`). Una línea de más se lee entera antes de rechazarla | Sí: líneas (`serve`) | Sí: marcos por stdio, socket y pipe; una vez (`call`) |
+| 2 Petición e id | Parcial: acepta ids de cualquier tipo; Rust escribe los enteros de más de 64 bits como decimal; sin `method`, pierde el `id` | Sí | No: `request_id`, `protocol` |
+| 3 Sobre | Sí en `rpc-serve`; `rpc` de Python sin `id` | Sí | No: `{result, error}` ([transición](../contracts/nu9ve-engine-v1.md#123-nove-transición-con-los-dos-sobres)) |
+| 4 `engine_info` | Parcial: sólo Rust, sin `contract`, `protocol`, `native` ni `capabilities` | Parcial: sin `contract`, `version` ni `capabilities` | No: `hello` |
+| 5 `not_ported` | Parcial: sin `reason` | Sí | No aplica |
+| 6 Grandes, progreso, escrituras | Progreso por sondeo; escrituras sólo en una vez, sin clave | Sí: `data` ya serializado, `request_id`, `write_status` | Parcial: claves e `idempotency_key` sí; una respuesta de más de 1 MiB se pierde |
+| 7 Códigos | Parcial: `operation_failed`; método desconocido es `read_only` en `rpc-serve` | Sí | Parcial: `invalid_json`, `frame_size` |
+| 8 Ciclo de vida | Sí | Sí | Sí: `--parent-pid`, `engine_shutdown` |
+| 9 Seguridad | Sí (stdio) | Sí (stdio) | Sí: socket `0600` con uid del par; pipe con DACL y PID |
+| 10 Sombra | Sí, con valores cortos en el registro | Sí | No aplica: sin oráculo |
+| Casos de motor (§11) | Rust 9 de 20; Python 2 de 20 | 20 de 20 en los dos | Sin medir |
+
 ## nu9ve-fs-v1
 
 [Escritura duradera y acceso a archivos v1](../contracts/nu9ve-fs-v1.md)
@@ -149,10 +169,10 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 
 | Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
-| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz y los 110 vectores para `accent` y `onAccent` (TypeScript, 2026-11-16) | Sí, sin matriz | Sí, matriz (`ThemeRolesTests`) y [110 vectores fijados](../data/theme-vectors-v1.json) en Swift (`ThemeVectorsTests`, 2026-11-16) | No | No | Parcial: texto sobre acento | No aplica |
-| 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
-| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
+| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, 15 roles desde `Nu9veTheme`; falta `secondary` | Sí, 15 roles desde `Nu9veTheme`, más `secondary` y el entorno fotográfico neutro | No: colores fijos | No: colores del sistema | No aplica: sistema |
+| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz y los 110 vectores para `accent` y `onAccent` (TypeScript, 2026-11-16) | Sí, sin matriz | Sí, matriz y [110 vectores fijados](../data/theme-vectors-v1.json) con `Nu9veTheme` | Sí, matriz y los 110 vectores con `Nu9veTheme` (Gótico se prueba en la biblioteca) | No | Parcial: texto sobre acento | No aplica |
+| 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Sí: skin, modo, color, contraste, textura y tipografía con migración | No | Parcial: modo | No aplica |
+| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Sí: washi, Macintosh, Windows 9x, Terminal, Neón, Cristal, Grano y Mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
 | 8 Todas las ventanas | Sí en código (Mac): `ThemedWindowContent` da barra y atmósfera a Ajustes y Acerca de | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
 | 9 Idioma | No en Mac: sólo español, sin catálogo de textos; iOS con catálogo incompleto | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
@@ -160,7 +180,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
 - **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark. **Windows (2026-11-09, maqueta):** mismos roles y cinco skins portados a C# con su matriz, más una prueba de contraste por superficie con skin (`SurfaceChromeTests`). En Windows la ventana y sus botones siguen siendo del sistema ([windows-app-v1 §3](../contracts/windows-app-v1.md#3-tema)).
-- **kyu:** derivar toda la paleta desde el acento.
+- **Kyū (2026-11-16):** usa `Nu9veTheme` desde su copia fijada en macOS 15. Cristal, Macintosh, Windows 9x y Terminal toman los roles comunes en contraste neutro. El fondo de la foto y de la cuadrícula se comprueba en gris neutro.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.
 - **SoundShop:** añadir i18n.

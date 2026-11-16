@@ -10,7 +10,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | --- | --- |
 | App instalada | `~/Applications/nuun.app`, **0.2.0 / `43a7ad4eb289`** (16 nov), build de depuración con firma ad-hoc verificada. Build anterior `e4e62bf7efac` en `app-backups/2600b4af.app`. |
 | Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE): Python **397**, Rust **184** (161 + 23 diferenciales), Swift **29**. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
-| Tema de macOS | Swift compara los 15 roles y el modo resuelto de los **110 casos** en los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
+| Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
 ## Por área

@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import MediaMenuCore
+import Nu9veTheme
 
 // nu9ve-theme-v1 §5 y §8 · origen: ios-fractos Apps/macOS/FractosMac/ThemedWindowBar.swift y
 // FractosDesign/ThemeChrome.swift (Win9xBevel, ClassicPinstripes, WindowGrowBox).

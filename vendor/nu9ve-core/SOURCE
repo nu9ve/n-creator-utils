@@ -1,6 +1,6 @@
 # Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
 repo=nu9ve/core
-commit=43721e5c7c986a156b6ee489c93f2752f11ce534
+commit=e5f09c33d83fa5cfa942e955756c722ab3b9a972
 date=2026-11-16
 path=contracts
 path=data
@@ -8,3 +8,4 @@ path=docs
 path=rust/nu9ve-fs
 path=rust/nu9ve-json
 path=scripts/sync-core.sh
+path=swift

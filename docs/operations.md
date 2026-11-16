@@ -12,7 +12,7 @@ nu9ve --help
 nu9ve media --help
 ```
 
-Python 3.9+; el nuevo motor no necesita SDK cloud ni FFmpeg para copiar/verificar. FFprobe/FFmpeg siguen siendo herramientas de algunas utilidades/pruebas antiguas. App nativa: macOS 14+ y Swift 6 para compilar.
+Python 3.9+; el nuevo motor no necesita SDK cloud ni FFmpeg para copiar/verificar. FFprobe/FFmpeg siguen siendo herramientas de algunas utilidades/pruebas antiguas. App nativa: macOS 15+ y Swift 6.2+ para compilar.
 
 macOS guarda estado en `~/Library/Application Support/n-creator-utils/media/`. `NU9VE_MEDIA_HOME` o `media --state-dir` eligen otro catálogo. Es local: no poner una SQLite WAL activa compartida en MEDIA. Usar paths físicos sin symlinks para estado/raíces; en pruebas, `/private/tmp` evita el alias `/tmp`.
 

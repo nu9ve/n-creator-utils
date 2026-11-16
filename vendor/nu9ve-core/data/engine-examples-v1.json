@@ -1,0 +1,535 @@
+{
+  "contract": "nu9ve-engine-v1",
+  "regenerate": "python3 -I scripts/engine-examples.py",
+  "note": "Every message is JSON text: parse it with the language under test. Ids are JSON text too.",
+  "envelopes": {
+    "valid": [
+      {
+        "name": "ok_integer_id",
+        "text": "{\"id\":7,\"ok\":true,\"data\":{\"title\":\"Día 1\"}}"
+      },
+      {
+        "name": "ok_string_id",
+        "text": "{\"id\":\"handshake\",\"ok\":true,\"data\":[]}"
+      },
+      {
+        "name": "ok_null_id",
+        "text": "{\"id\":null,\"ok\":true,\"data\":null}"
+      },
+      {
+        "name": "ok_big_integer_id",
+        "text": "{\"id\":18446744073709551616,\"ok\":true,\"data\":1}"
+      },
+      {
+        "name": "ok_unknown_top_level_field",
+        "text": "{\"id\":7,\"ok\":true,\"data\":{},\"command\":\"projects\"}"
+      },
+      {
+        "name": "error",
+        "text": "{\"id\":7,\"ok\":false,\"error\":{\"code\":\"project_not_found\",\"message\":\"No project manifest.\"}}"
+      },
+      {
+        "name": "error_extra_fields",
+        "text": "{\"id\":\"a\",\"ok\":false,\"error\":{\"code\":\"engine_busy\",\"message\":\"Queue full\",\"retryable\":true,\"retry_after_seconds\":2}}"
+      },
+      {
+        "name": "not_ported_with_reason",
+        "text": "{\"id\":9,\"ok\":false,\"error\":{\"code\":\"not_ported\",\"message\":\"This method is available in the Python engine.\",\"reason\":\"method_unavailable\"}}"
+      },
+      {
+        "name": "indented_once",
+        "text": "{\n  \"id\": null,\n  \"ok\": true,\n  \"data\": {\"a\": 1}\n}"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "not_json",
+        "text": "{\"id\":7,\"ok\":true",
+        "why": "not_json"
+      },
+      {
+        "name": "nan",
+        "text": "{\"id\":7,\"ok\":true,\"data\":NaN}",
+        "why": "not_json"
+      },
+      {
+        "name": "array",
+        "text": "[{\"id\":7,\"ok\":true,\"data\":1}]",
+        "why": "not_object"
+      },
+      {
+        "name": "no_id",
+        "text": "{\"ok\":true,\"data\":1}",
+        "why": "bad_id"
+      },
+      {
+        "name": "float_id",
+        "text": "{\"id\":7.0,\"ok\":true,\"data\":1}",
+        "why": "bad_id"
+      },
+      {
+        "name": "bool_id",
+        "text": "{\"id\":true,\"ok\":true,\"data\":1}",
+        "why": "bad_id"
+      },
+      {
+        "name": "ok_as_string",
+        "text": "{\"id\":7,\"ok\":\"true\",\"data\":1}",
+        "why": "bad_ok"
+      },
+      {
+        "name": "ok_without_data",
+        "text": "{\"id\":7,\"ok\":true}",
+        "why": "data_and_error"
+      },
+      {
+        "name": "ok_with_error",
+        "text": "{\"id\":7,\"ok\":true,\"data\":1,\"error\":{\"code\":\"x\",\"message\":\"y\"}}",
+        "why": "data_and_error"
+      },
+      {
+        "name": "error_with_data",
+        "text": "{\"id\":7,\"ok\":false,\"data\":1,\"error\":{\"code\":\"x\",\"message\":\"y\"}}",
+        "why": "data_and_error"
+      },
+      {
+        "name": "error_as_string",
+        "text": "{\"id\":7,\"ok\":false,\"error\":\"read_only\"}",
+        "why": "data_and_error"
+      },
+      {
+        "name": "code_uppercase",
+        "text": "{\"id\":7,\"ok\":false,\"error\":{\"code\":\"ReadOnly\",\"message\":\"y\"}}",
+        "why": "bad_code"
+      },
+      {
+        "name": "code_with_digits",
+        "text": "{\"id\":7,\"ok\":false,\"error\":{\"code\":\"error_2\",\"message\":\"y\"}}",
+        "why": "bad_code"
+      },
+      {
+        "name": "no_message",
+        "text": "{\"id\":7,\"ok\":false,\"error\":{\"code\":\"read_only\"}}",
+        "why": "bad_message"
+      },
+      {
+        "name": "not_ported_without_reason",
+        "text": "{\"id\":7,\"ok\":false,\"error\":{\"code\":\"not_ported\",\"message\":\"Method not ported to the Rust engine yet: volumes\"}}",
+        "why": "not_ported_without_reason"
+      },
+      {
+        "name": "nove_legacy_is_not_v1",
+        "text": "{\"protocol\":1,\"request_id\":\"a1\",\"result\":{\"stopping\":true},\"error\":null}",
+        "why": "bad_id"
+      }
+    ]
+  },
+  "id_match": [
+    {
+      "name": "same_integer",
+      "sent": "7",
+      "received": "7",
+      "match": true
+    },
+    {
+      "name": "same_string",
+      "sent": "\"7\"",
+      "received": "\"7\"",
+      "match": true
+    },
+    {
+      "name": "integer_is_not_string",
+      "sent": "7",
+      "received": "\"7\"",
+      "match": false
+    },
+    {
+      "name": "integer_is_not_float",
+      "sent": "7",
+      "received": "7.0",
+      "match": false
+    },
+    {
+      "name": "big_integer_exact",
+      "sent": "18446744073709551616",
+      "received": "18446744073709551616",
+      "match": true
+    },
+    {
+      "name": "big_integer_as_float",
+      "sent": "18446744073709551616",
+      "received": "1.8446744073709552e+19",
+      "match": false
+    },
+    {
+      "name": "null",
+      "sent": "null",
+      "received": "null",
+      "match": true
+    }
+  ],
+  "server": [
+    {
+      "name": "engine_info",
+      "request": "{\"id\":1,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "1",
+        "ok": true
+      }
+    },
+    {
+      "name": "engine_info_empty_params",
+      "request": "{\"id\":1,\"method\":\"engine_info\",\"params\":{}}",
+      "response": {
+        "id": "1",
+        "ok": true
+      }
+    },
+    {
+      "name": "id_missing_is_null",
+      "request": "{\"method\":\"engine_info\"}",
+      "response": {
+        "id": "null",
+        "ok": true
+      }
+    },
+    {
+      "name": "id_string",
+      "request": "{\"id\":\"handshake\",\"method\":\"engine_info\"}",
+      "response": {
+        "id": "\"handshake\"",
+        "ok": true
+      }
+    },
+    {
+      "name": "id_beyond_64_bits",
+      "request": "{\"id\":18446744073709551616,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "18446744073709551616",
+        "ok": true
+      }
+    },
+    {
+      "name": "id_negative",
+      "request": "{\"id\":-1,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "-1",
+        "ok": true
+      }
+    },
+    {
+      "name": "unknown_fields_ignored",
+      "request": "{\"id\":2,\"method\":\"engine_info\",\"protocol\":1,\"later\":true}",
+      "response": {
+        "id": "2",
+        "ok": true
+      }
+    },
+    {
+      "name": "unknown_method",
+      "request": "{\"id\":3,\"method\":\"no_such_method_in_any_engine\"}",
+      "response": {
+        "id": "3",
+        "ok": false,
+        "code": "unknown_method"
+      }
+    },
+    {
+      "name": "params_array",
+      "request": "{\"id\":4,\"method\":\"engine_info\",\"params\":[]}",
+      "response": {
+        "id": "4",
+        "ok": false,
+        "code": "invalid_params"
+      }
+    },
+    {
+      "name": "params_string",
+      "request": "{\"id\":4,\"method\":\"engine_info\",\"params\":\"{}\"}",
+      "response": {
+        "id": "4",
+        "ok": false,
+        "code": "invalid_params"
+      }
+    },
+    {
+      "name": "method_missing",
+      "request": "{\"id\":5}",
+      "response": {
+        "id": "5",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "method_not_string",
+      "request": "{\"id\":5,\"method\":7}",
+      "response": {
+        "id": "5",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "id_float",
+      "request": "{\"id\":1.5,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "id_exponent",
+      "request": "{\"id\":1e3,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "id_bool",
+      "request": "{\"id\":true,\"method\":\"engine_info\"}",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "id_object",
+      "request": "{\"id\":{\"n\":1},\"method\":\"engine_info\"}",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "not_json",
+      "request": "{\"id\":6,\"method\":",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "not_object",
+      "request": "[\"engine_info\"]",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "invalid_request"
+      }
+    },
+    {
+      "name": "blank_line",
+      "request": "   ",
+      "response": null
+    },
+    {
+      "name": "too_large_then_continue",
+      "pad_bytes": 2097152,
+      "request": "{\"id\":8,\"method\":\"engine_info\",\"pad\":\"<pad>\"}",
+      "response": {
+        "id": "null",
+        "ok": false,
+        "code": "request_too_large"
+      },
+      "then": {
+        "request": "{\"id\":9,\"method\":\"engine_info\"}",
+        "response": {
+          "id": "9",
+          "ok": true
+        }
+      }
+    }
+  ],
+  "engine_info": {
+    "valid": [
+      {
+        "name": "clipper_like",
+        "data": "{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"clipper-engine/1\",\"engine\":\"rust\",\"version\":\"0.1.0\",\"capabilities\":[],\"ported\":[\"engine_info\",\"project_summary\"],\"native\":[\"score_levels\"],\"queue_views\":[\"tui\",\"cli\"]}"
+      },
+      {
+        "name": "nuun_like",
+        "data": "{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nuun-media/1\",\"engine\":\"python\",\"version\":\"0.1.0\",\"capabilities\":[],\"ported\":[\"engine_info\",\"recipe\",\"snapshot\"],\"native\":[]}"
+      },
+      {
+        "name": "no_oracle",
+        "data": "{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.11.0\",\"capabilities\":[\"web_watches_v1\"],\"ported\":[],\"native\":[\"engine_info\",\"hello\",\"snapshot\"],\"limits\":{\"request_bytes\":1048576,\"response_bytes\":1048576}}"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "clipper_today",
+        "data": "{\"engine\":\"rust\",\"protocol\":\"clipper-engine/1\",\"ported\":[\"engine_info\"],\"native\":[]}",
+        "why": "missing_contract"
+      },
+      {
+        "name": "nuun_today",
+        "data": "{\"engine\":\"rust\",\"version\":\"0.1.0\",\"ported\":[\"recipe\"],\"writes\":[],\"once\":[]}",
+        "why": "missing_contract"
+      },
+      {
+        "name": "other_contract",
+        "data": "{\"contract\":\"nu9ve-engine/2\",\"protocol\":\"x/1\",\"engine\":\"rust\",\"version\":\"1\",\"capabilities\":[],\"ported\":[],\"native\":[]}",
+        "why": "other_contract"
+      },
+      {
+        "name": "protocol_without_major",
+        "data": "{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"clipper-engine\",\"engine\":\"rust\",\"version\":\"1\",\"capabilities\":[],\"ported\":[],\"native\":[]}",
+        "why": "bad_protocol"
+      },
+      {
+        "name": "overlap",
+        "data": "{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"x/1\",\"engine\":\"rust\",\"version\":\"1\",\"capabilities\":[],\"ported\":[\"a\"],\"native\":[\"a\"]}",
+        "why": "ported_and_native_overlap"
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "engine_info",
+      "payload": "{\"id\":1,\"method\":\"engine_info\"}",
+      "hex": "0000001f7b226964223a312c226d6574686f64223a22656e67696e655f696e666f227d"
+    },
+    {
+      "name": "non_ascii",
+      "payload": "{\"id\":\"ñ\",\"ok\":true,\"data\":\"Día\"}",
+      "hex": "000000237b226964223a22c3b1222c226f6b223a747275652c2264617461223a2244c3ad61227d"
+    }
+  ],
+  "nove_either_envelope": [
+    {
+      "name": "legacy_result",
+      "text": "{\"protocol\":1,\"request_id\":\"a1\",\"result\":{\"stopping\":true},\"error\":null}",
+      "v1": {
+        "id": "a1",
+        "ok": true,
+        "data": {
+          "stopping": true
+        }
+      }
+    },
+    {
+      "name": "legacy_error",
+      "text": "{\"protocol\":1,\"request_id\":\"a2\",\"result\":null,\"error\":{\"code\":\"engine_busy\",\"message\":\"IPC queue is full\",\"retryable\":true}}",
+      "v1": {
+        "id": "a2",
+        "ok": false,
+        "error": {
+          "code": "engine_busy",
+          "message": "IPC queue is full",
+          "retryable": true
+        }
+      }
+    },
+    {
+      "name": "legacy_unreadable_request",
+      "text": "{\"protocol\":1,\"request_id\":\"\",\"result\":null,\"error\":{\"code\":\"invalid_json\",\"message\":\"JSON does not match the versioned contract\",\"retryable\":false}}",
+      "v1": {
+        "id": "",
+        "ok": false,
+        "error": {
+          "code": "invalid_json",
+          "message": "JSON does not match the versioned contract",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "name": "v1",
+      "text": "{\"id\":\"a3\",\"ok\":true,\"data\":[]}",
+      "v1": {
+        "id": "a3",
+        "ok": true,
+        "data": []
+      }
+    },
+    {
+      "name": "neither",
+      "text": "{\"protocol\":1,\"data\":1}",
+      "v1": null
+    }
+  ],
+  "shadow": [
+    {
+      "name": "same",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":{\"a\":[1,2]}}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":{\"a\":[1,2]}}",
+      "volatile": [],
+      "outcome": "same"
+    },
+    {
+      "name": "diff_value_and_missing_key",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":{\"a\":[1,2],\"b\":\"x\"}}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":{\"a\":[1,3]}}",
+      "volatile": [],
+      "outcome": "diff",
+      "diffs": [
+        "$.a[1]",
+        "$.b"
+      ]
+    },
+    {
+      "name": "diff_length",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":[1,2,3]}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":[1,2]}",
+      "volatile": [],
+      "outcome": "diff",
+      "diffs": [
+        "$.length"
+      ]
+    },
+    {
+      "name": "volatile_removed",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":{\"checked_at\":\"2026-11-16T10:00:00\",\"n\":1}}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":{\"checked_at\":\"2026-11-16T10:00:01\",\"n\":1}}",
+      "volatile": [
+        "checked_at"
+      ],
+      "outcome": "same"
+    },
+    {
+      "name": "volatile_presence_compared",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":{\"generated_at\":\"2026-11-16T10:00:00\"}}",
+      "candidate": "{\"id\":1,\"ok\":true,\"data\":{}}",
+      "volatile": [
+        "generated_at"
+      ],
+      "outcome": "diff",
+      "diffs": [
+        "$.generated_at"
+      ]
+    },
+    {
+      "name": "not_ported",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":1}",
+      "candidate": "{\"id\":1,\"ok\":false,\"error\":{\"code\":\"not_ported\",\"message\":\"m\",\"reason\":\"platform_unavailable\"}}",
+      "volatile": [],
+      "outcome": "not_ported",
+      "reason": "platform_unavailable"
+    },
+    {
+      "name": "same_error",
+      "oracle": "{\"id\":1,\"ok\":false,\"error\":{\"code\":\"project_not_found\",\"message\":\"a\"}}",
+      "candidate": "{\"id\":1,\"ok\":false,\"error\":{\"code\":\"project_not_found\",\"message\":\"b\"}}",
+      "volatile": [],
+      "outcome": "same_error",
+      "oracle_error": "project_not_found",
+      "candidate_error": "project_not_found"
+    },
+    {
+      "name": "error_mismatch",
+      "oracle": "{\"id\":1,\"ok\":true,\"data\":1}",
+      "candidate": "{\"id\":1,\"ok\":false,\"error\":{\"code\":\"internal_error\",\"message\":\"m\"}}",
+      "volatile": [],
+      "outcome": "error_mismatch",
+      "oracle_error": null,
+      "candidate_error": "internal_error"
+    }
+  ]
+}

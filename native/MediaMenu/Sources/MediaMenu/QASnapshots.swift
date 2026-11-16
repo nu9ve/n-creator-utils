@@ -2,6 +2,7 @@
 import AppKit
 import SwiftUI
 import MediaMenuCore
+import Nu9veTheme
 
 /// Debug-only visual QA without screen-recording permission: `--qa-snapshots DIR` renders each
 /// route/step with fixture data to PNG; `--qa-fullscreen` logs whether the toolbar stays visible.

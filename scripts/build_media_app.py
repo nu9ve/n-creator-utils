@@ -73,8 +73,10 @@ def main():
         # Relative to Resources: installation must not retain the build directory path.
         (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': 'backend/source/nu9ve.py'}))
     fingerprint = hashlib.sha256()
-    inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift']]
-    for folder in ['media', 'manager', 'native/MediaMenu/Sources', 'native/MediaMenu/Localization']:
+    inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift',
+                                        'native/MediaMenu/Package.swift', 'vendor/nu9ve-core/swift/Package.swift']]
+    for folder in ['media', 'manager', 'native/MediaMenu/Sources', 'native/MediaMenu/Localization',
+                   'vendor/nu9ve-core/swift/Sources/Nu9veTheme']:
         inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift', '.strings', '.stringsdict'})
     if engine is not None:
         inputs.extend(p for p in (repo / 'engine').rglob('*') if 'target' not in p.relative_to(repo / 'engine').parts
@@ -84,7 +86,7 @@ def main():
     build_id = fingerprint.hexdigest()[:12]
     info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'nüün', 'CFBundleDisplayName': 'nüün',
             'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
-            'CFBundleVersion': '1', 'LSMinimumSystemVersion': '14.0', 'CFBundleDevelopmentRegion': 'es', 'CFBundleLocalizations': ['es', 'en'], 'LSUIElement': True,
+            'CFBundleVersion': '1', 'LSMinimumSystemVersion': '15.0', 'CFBundleDevelopmentRegion': 'es', 'CFBundleLocalizations': ['es', 'en'], 'LSUIElement': True,
             'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
             'NSHumanReadableCopyright': '© 2026 nu9ve',
             'LSHasLocalizedDisplayName': True, 'Nu9veSearchAliases': ['nuun', 'nun', 'creator utils'],

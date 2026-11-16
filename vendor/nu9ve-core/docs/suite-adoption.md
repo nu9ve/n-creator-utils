@@ -11,8 +11,10 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `NuMacShell` en `swift/` (macOS 15, [por qué](../swift/README.md#macos-mínimo-15)) | 2026-11-16 | Fractos. Lo siguen nüün, tras su semana de uso diario, y las demás apps de Mac |
 | [`nu9ve-json-v1`](../contracts/nu9ve-json-v1.md), sus vectores y `rust/nu9ve-json` | 2026-11-16 | nüün (motor de Rust) y Clipper (sobre, `sha256_hex`, `uuid4`) |
 | [`nu9ve-fs-v1`](../contracts/nu9ve-fs-v1.md) y `rust/nu9ve-fs` | 2026-11-16 | nüün (`nu9ve-volumes`) y Clipper (`fsio.rs` y `store.rs`); curado después |
+| [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Nadie todavía. Clipper habla casi todo; nüün y nove tienen sus pasos en la [§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1) |
 | `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
-| Vectores de tema probados en Swift (nüün, 15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | Base de `Nu9veTheme`. Falta kyu |
+| Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
+| [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
 
 ## Decisiones tomadas para lo que sigue
 
@@ -27,8 +29,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | Pieza | Destino | De dónde | Primeros usuarios |
 | --- | --- | --- | --- |
-| `Nu9veTheme`: roles, `readable`, presets y skins, probados con `data/theme-vectors-v1.json` | `swift/` | nüün `ThemeColor.swift`; kyu `ThemePalette.swift`; SoundBender `Appearance.swift` | nüün y kyu, cuando kyu pase los vectores |
-| Contrato `nu9ve-engine-v1`: el protocolo de un motor detrás de una app (NDJSON por stdin/stdout o pipe, sobre, `engine_info`, capacidades, `not_ported`, sombra contra el oráculo) | `contracts/` | nüün (`rpc-serve`), Clipper (`clipper-engine/1`), nove (pipe con `{result}`/`{error}`) | Los tres. El crate de servidor viene después del contrato |
+| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper suma `contract`, `version` y `capabilities` a `engine_info`; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper primero (es lo más corto), después nüün; nove en sus cuatro pasos. Antes, las [decisiones abiertas](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas) 1 a 3, que cambian códigos y la sombra |
 
 ### Ola 2 · con dos usuarios a la vista
 
@@ -37,6 +38,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `MasterLimiter` | SoundBender decide si su motor portable es Rust ([audio en la suite](platforms/audio.md)) |
 | `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | Decidir antes la identidad portable de un disco ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)), porque cambia su API |
 | Guía de prácticas comunes | `docs/practices.md` | Lo que ya repiten cinco apps: QA aislada por variable de entorno, instalar en la carpeta de apps del usuario con respaldo del anterior, gate con `sync-core.sh --check`, CHANGELOG por pieza | Escribirla con lo que ya hacen nüün, nove, curado, kyu y SoundBender, sin inventar reglas nuevas |
+| Crate `nu9ve-engine`: servidor de líneas y marcos (lectura con tope, descarte de la línea de más, sobre, ids exactos, `engine_info`) y su cliente de prueba con los ejemplos | `rust/` | `clipper-core` `main.rs` y `nuun-engine` `main.rs`; los marcos de nove `protocol.rs` | Que nüün y Clipper adopten el contrato, para que haya dos servidores que reemplazar. Cuándo y con quién primero es la [decisión abierta 7](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas) |
 | `nu9ve-py`: semántica de CPython (`repr`, `round`, `json.dumps` con indentación, cadenas, `pathlib`, `datetime`) | `rust/` | Clipper `py.rs`, `pyval.rs`, `paths.rs`; nüün `nu9ve-time` | Mientras nüün y Clipper porten desde Python. Vectores generados por CPython |
 
 ### Ola 3 · con su condición
@@ -55,13 +57,13 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | App | Copia fijada | Lo siguiente que adopta | Qué aporta a la suite |
 | --- | --- | --- | --- |
-| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json` y `rust/nu9ve-fs`; `--check` en su gate | `NuMacShell` después de la semana de uso diario; `Nu9veTheme` | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
+| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs` y `swift` (`Nu9veTheme`); `--check` en su gate | `NuMacShell` después de la semana de uso diario | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | `Nu9veTheme` | `NuMacShell`, el motor de sonido (ola 3) |
 | **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, `nu9ve-fs-v1`, vectores de JSON, `rust/nu9ve-json` y `rust/nu9ve-fs`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | `nu9ve-engine-v1` | Supervisor de procesos, semántica de Python |
 | **curado** | Contratos de Mac, Windows, tema e interacción y vectores de tema; `bun run core:check` | `nu9ve-fs`; `nu9ve-volumes` cuando se decida la identidad portable | Capas de audio y supervisión de stems |
 | **nove** | Contratos de Mac, Windows, tema, interacción, MCP y avisos, y vectores de tema | `nu9ve-engine-v1`; `NuMacShell` en Mac | IPC enmarcado con ACL y MCP con niveles |
-| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, y vectores de tema; `--check` en `validate.sh` | `NuMacShell`, `Nu9veTheme` | `ShortcutCatalog`; segundo usuario de loudness |
-| **kyu** | Contratos de Mac, tema e interacción, y vectores de tema; `--check` en `validate.sh` | Probar sus roles con los vectores; después `Nu9veTheme` y `NuMacShell` | Segunda verificación de los vectores en Swift; la regla de `slug()` |
+| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, y vectores de tema; `--check` en `validate.sh` | `NuMacShell` y `Nu9veTheme` al resolver su mínimo de macOS 14 | `ShortcutCatalog`; segundo usuario de loudness |
+| **kyu** | Contratos de Mac, tema e interacción, vectores de tema y `swift` (`Nu9veTheme`); `--check` en `validate.sh` | `NuMacShell` | Segunda verificación de los vectores en Swift; la regla de `slug()` |
 | **neuf** | Sin copia todavía | `macos-app-v1` y `nu9ve-theme-v1`; después `NuMacShell` | — |
 | **Stalker** | Sin copia todavía | `macos-app-v1`; `NuMacShell` al tocar su interfaz | — |
 
@@ -78,7 +80,7 @@ Revisado el 2026-11-16. Los tamaños son líneas del archivo de nüün, salvo lo
 
 | Pieza | Archivo en nüün y tamaño | Quién más la tiene |
 | --- | --- | --- |
-| Roles, contraste, presets y preferencias | `native/MediaMenu/Sources/MediaMenuCore/ThemeColor.swift` (284), `native/MediaMenu/Sources/MediaMenu/Appearance.swift` (351); el port de roles está en `native/windows/Nu9ve.Core/Theme/ThemeRoles.cs` (155) | kyu: `apps/macos/Sources/KyuKit/ThemePalette.swift`; SoundBender: `Sources/SoundShop/Appearance.swift`; curado: `src/lib/theme.ts`. Los primeros dos son los paralelos en Swift de `Nu9veTheme`. |
+| Roles, contraste, presets y preferencias | `MediaMenuCore/ThemeColor.swift` pasó a `swift/Sources/Nu9veTheme`; `MediaMenu/Appearance.swift` conserva el estado y las vistas. El port de C# sigue en `native/windows/Nu9ve.Core/Theme/ThemeRoles.cs`. | Kyū comparte el cálculo de los roles y conserva sus superficies y colores de dominio. SoundBender: `Sources/SoundShop/Appearance.swift`; curado: `src/lib/theme.ts`. |
 | Ventana, agarres de borde y controles de skin | `native/MediaMenu/Sources/MediaMenu/ShellWindow.swift` (243), `native/MediaMenu/Sources/MediaMenu/SkinChrome.swift` (411) | core: `swift/Sources/NuMacShell/{ShellWindow,WindowChrome}.swift`, ya consumidos por Fractos; kyu conserva `apps/macos/Sources/Kyu/SkinChrome.swift`. La ventana se migra después de la semana de uso diario. |
 | Acerca de e identidad de build | `native/MediaMenu/Sources/MediaMenu/AboutView.swift` (50), `native/MediaMenu/Sources/MediaMenuCore/AppIdentity.swift` (74) | core: `swift/Sources/NuMacShell/{AboutView,AppIdentity}.swift`, usados por Fractos; SoundBender tiene su propio `Sources/SoundShop/AboutWindow.swift`. |
 | Catálogo de atajos | `native/windows/Nu9ve.Core/Shell/Shortcuts.cs` (54) y `native/windows/Nuun.Core/Shell/ShortcutCatalog.cs` (36) | SoundBender: `Sources/SoundShop/AppCommands.swift` y `ShortcutsPanel.swift`. Se puede comparar la validación de acciones; cada catálogo conserva los atajos de su app. |
@@ -159,7 +161,7 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 
 ## Orden
 
-1. kyu prueba sus roles con los vectores, y después nace `Nu9veTheme` en `swift/`.
-2. Contrato `nu9ve-engine-v1`.
+1. **Hecho:** `Nu9veTheme` en `swift/`, con nüün y Kyū como primeros consumidores.
+2. Adoptar `nu9ve-engine-v1`: Clipper, nüün y el primer paso de nove, después de las decisiones abiertas 1 a 3 del contrato.
 3. Guía de prácticas comunes (`docs/practices.md`).
 4. `nu9ve-py`, cuando nüün o Clipper vuelvan a portar semántica de Python.

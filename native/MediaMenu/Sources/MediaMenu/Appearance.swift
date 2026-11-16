@@ -1,19 +1,21 @@
 import AppKit
 import SwiftUI
 import MediaMenuCore
+import Nu9veTheme
 
-/// nu9ve-theme-v1 §2: the common roles, resolved by `ThemeRoles` (pure, tested in Core), plus the
+/// nu9ve-theme-v1 §2: the common roles, resolved by `ThemeRoles` (pure, tested in Nu9veTheme), plus the
 /// skin's shapes and display type (§5–6). Backgrounds and window chrome derive from the same seed.
 struct CreatorPalette: Sendable {
     static let defaultHue = ThemeRoles.defaultHue
     static let defaultSaturation = ThemeRoles.defaultSaturation
     let roles: ThemeRoles
+    let skin: ThemeSkin
     init(skin: ThemeSkin = .glass, dark: Bool, hue: Double, saturation: Double, brightness: Double) {
+        self.skin = skin
         roles = ThemeRoles(skin: skin, dark: dark, hue: hue, saturation: saturation, brightness: brightness)
     }
     static func ns(_ color: ThemeColor) -> NSColor { NSColor(srgbRed: color.red, green: color.green, blue: color.blue, alpha: 1) }
     static func color(_ color: ThemeColor) -> Color { Color(.sRGB, red: color.red, green: color.green, blue: color.blue, opacity: 1) }
-    var skin: ThemeSkin { roles.skin }
     var dark: Bool { roles.dark }
     var canvasNS: NSColor { Self.ns(roles.canvas) }
     var canvas: Color { Self.color(roles.canvas) }

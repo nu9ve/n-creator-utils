@@ -1,5 +1,5 @@
 import Testing
-@testable import MediaMenuCore
+import Nu9veTheme
 
 // nu9ve-theme-v1 §3: every seed in the matrix keeps the contract's minimums on every surface.
 private let seeds: [(Double, Double, Double)] = {

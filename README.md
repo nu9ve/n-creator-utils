@@ -51,7 +51,7 @@ nu9ve --help
 nu9ve media --help
 ```
 
-Para compilar e instalar la app localmente se necesita macOS 14+ y Swift 6.
+Para compilar e instalar la app localmente se necesita macOS 15+ y Swift 6.2+.
 
 El motor en Rust se compila y prueba sin descargar nada más que el compilador fijado en `engine/rust-toolchain.toml`:
 

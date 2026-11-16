@@ -5,6 +5,7 @@ Archivos que varias apps leen y prueban igual, para que el mismo cálculo dé el
 | Archivo | Qué es | Quién lo prueba |
 | --- | --- | --- |
 | [theme-vectors-v1.json](theme-vectors-v1.json) | Hex esperado de cada rol de tema para cada color base ([tema v1 §10](../contracts/nu9ve-theme-v1.md#10-implementación-compartida)) | C# (`ThemeVectorsTests` de nüün); Swift pendiente. Se regenera aquí, nunca en una copia fijada |
+| [engine-examples-v1.json](engine-examples-v1.json) | Sobres válidos e inválidos, casos de petición y respuesta para un motor, ids, marcos, los dos sobres de nove y comparaciones de sombra ([motor v1 §11](../contracts/nu9ve-engine-v1.md#11-ejemplos)) | Ningún motor todavía; los casos de motor se corrieron a mano contra nüün y Clipper el 2026-11-16. Se regenera aquí con `python3 -I scripts/engine-examples.py` |
 | [json-vectors-v1.json](json-vectors-v1.json) | Bytes canónicos y digest de textos JSON, entradas rechazadas, límites conocidos e ids UUID 5 ([JSON canónico v1 §10](../contracts/nu9ve-json-v1.md#10-vectores)) | Rust (`nu9ve-json/tests/vectors.rs` de nüün). Se regenera aquí con `python3 -I scripts/json-vectors.py` |
 
 Lo que entra después:

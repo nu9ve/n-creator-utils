@@ -9,3 +9,6 @@ rust/nu9ve-json
 
 # Primitivas duraderas del motor (contrato nu9ve-fs-v1).
 rust/nu9ve-fs
+
+# Los roles de tema de la app de macOS.
+swift
