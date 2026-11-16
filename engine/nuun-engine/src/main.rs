@@ -262,11 +262,20 @@ const CATALOG_WRITES: [&str; 17] = [
 ];
 
 fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
+    writes_for(
+        backend.is_some(),
+        backend.is_some_and(|b| b.writes()),
+        cfg!(target_os = "macos"),
+        cfg!(unix),
+    )
+}
+
+fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
-    if backend.is_some() {
+    if has_backend {
         writes.push("coverage");
     }
-    if backend.is_some_and(|b| b.writes()) {
+    if can_write {
         writes.extend(VOLUME_WRITES);
         writes.extend([
             "save_all_apply",
@@ -275,7 +284,7 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
         ]);
         writes.push("clipper_restore_apply");
         writes.push("missions_archived_apply");
-        if cfg!(target_os = "macos") {
+        if macos {
             writes.extend([
                 "eject_card",
                 "storage_scan",
@@ -290,7 +299,7 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
                 "collection_release_apply",
             ]);
         }
-        if cfg!(unix) {
+        if unix {
             writes.extend([
                 "apply_release",
                 "relink_release",
@@ -713,18 +722,51 @@ impl Engine {
                 "once": ONCE_READS,
                 "state_dir": self.state_dir.as_ref().map(|p| p.display().to_string()),
             })),
-            _ if READ_METHODS.contains(&method) || READ_WHEN_EMPTY.contains(&method) => {
-                let _ = params;
-                Err(Error::new(
-                    "not_ported",
-                    format!("Method not ported to the Rust engine yet: {method}"),
-                ))
-            }
             _ => Err(Error::new(
                 "unknown_method",
                 format!("Unknown media service method: {method}"),
             )),
         }
+    }
+
+    fn dispatch(&self, method: &str, params: &Value, mode: Mode) -> RpcResult<Value> {
+        require(
+            method == "engine_info" || ORACLE_METHODS.contains(&method) || NATIVE.contains(&method),
+            "unknown_method",
+            format!("Unknown media service method: {method}"),
+        )?;
+        let empty = params.as_object().is_some_and(|p| p.is_empty());
+        let readable = READ_METHODS.contains(&method)
+            || method == "engine_info"
+            || (READ_WHEN_EMPTY.contains(&method) && empty);
+        if mode == Mode::Serve {
+            require(
+                readable,
+                "read_only",
+                format!("rpc-serve only answers reads: {method}"),
+            )?;
+        }
+        if readable && !PORTABLE.contains(&method) && !VOLUME_READS.contains(&method) {
+            return Err(RpcFailure::not_ported(
+                "method_unavailable",
+                format!("Method not ported to the Rust engine yet: {method}"),
+            ));
+        }
+        if !readable
+            && !ported_writes(platform_backend(&self.home()).as_deref()).contains(&method)
+            && !ONCE_READS.contains(&method)
+        {
+            let reason = if writes_for(true, true, true, true).contains(&method) {
+                "platform_unavailable"
+            } else {
+                "method_unavailable"
+            };
+            return Err(RpcFailure::not_ported(
+                reason,
+                format!("Write not ported to the Rust engine yet: {method}"),
+            ));
+        }
+        Ok(self.call(method, params)?)
     }
 
     /// One line in, one envelope out. Never panics on input.
@@ -736,7 +778,7 @@ impl Engine {
     /// The envelope and the id as JSON text: an integer id beyond 64 bits keeps its digits (§2.1).
     fn reply(&self, line: &str, mode: Mode) -> Reply {
         let mut id = (Value::Null, None);
-        let result = (|| -> Result<Value> {
+        let result = (|| -> RpcResult<Value> {
             require(
                 mode == Mode::Once || line.len() <= MAX_LINE,
                 "request_too_large",
@@ -756,40 +798,20 @@ impl Engine {
             let params = match &request["params"] {
                 Value::Null => json!({}), // `null` is tolerated as `{}` (§2), as Python does
                 params @ Value::Object(_) => params.clone(),
-                _ => return Err(Error::new("invalid_params", "params must be an object")),
+                _ => return Err(Error::new("invalid_params", "params must be an object").into()),
             };
-            require(
-                method == "engine_info"
-                    || ORACLE_METHODS.contains(&method)
-                    || NATIVE.contains(&method),
-                "unknown_method",
-                format!("Unknown media service method: {method}"),
-            )?;
-            let empty = params.as_object().is_none_or(|p| p.is_empty());
-            let readable = READ_METHODS.contains(&method)
-                || method == "engine_info"
-                || (READ_WHEN_EMPTY.contains(&method) && empty);
-            if mode == Mode::Serve {
-                require(
-                    readable,
-                    "read_only",
-                    format!("rpc-serve only answers reads: {method}"),
-                )?;
-            } else if !readable
-                && !ported_writes(platform_backend(&self.home()).as_deref()).contains(&method)
-                && !ONCE_READS.contains(&method)
-            {
-                return Err(Error::new(
-                    "not_ported",
-                    format!("Write not ported to the Rust engine yet: {method}"),
-                ));
-            }
-            self.call(method, &params)
+            self.dispatch(method, &params, mode)
         })();
         let (id, digits) = id;
         let envelope = match result {
             Ok(data) => ok_envelope(&id, data),
-            Err(error) => error_envelope(&id, &error),
+            Err(failure) => {
+                let mut envelope = error_envelope(&id, &failure.error);
+                if let Some(reason) = failure.reason {
+                    envelope["error"]["reason"] = json!(reason);
+                }
+                envelope
+            }
         };
         Reply {
             id: digits.unwrap_or_else(|| id.to_string()),
@@ -814,6 +836,37 @@ impl Engine {
             }
         }
         0
+    }
+}
+
+type RpcResult<T> = std::result::Result<T, RpcFailure>;
+
+struct RpcFailure {
+    error: Error,
+    reason: Option<&'static str>,
+}
+
+impl RpcFailure {
+    fn not_ported(reason: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            error: Error::new("not_ported", message),
+            reason: Some(reason),
+        }
+    }
+}
+
+impl From<Error> for RpcFailure {
+    fn from(error: Error) -> Self {
+        // Domain-level refusals are platform restrictions, except for closeout plans
+        // submitted to the simple release methods.
+        let reason = (error.code == "not_ported").then_some(
+            if error.message == "Use the project closeout operation" {
+                "closeout_plan"
+            } else {
+                "platform_unavailable"
+            },
+        );
+        Self { error, reason }
     }
 }
 
@@ -1150,6 +1203,16 @@ mod tests {
     }
 
     #[test]
+    fn not_ported_errors_explain_why() {
+        let Err(error) = backend(None) else {
+            panic!("expected a missing platform backend");
+        };
+        let failure = RpcFailure::from(error);
+        assert_eq!(failure.error.code, "not_ported");
+        assert_eq!(failure.reason, Some("platform_unavailable"));
+    }
+
+    #[test]
     fn discover_answers_only_through_the_one_shot_rpc() {
         let temp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(temp.path().join("DCIM/100GOPRO")).unwrap();
@@ -1239,10 +1302,9 @@ mod tests {
             // No backend that writes: every volume write answers `not_ported`, never `unknown_method`.
             if !writes {
                 let request = json!({"id": 2, "method": method, "params": {}}).to_string();
-                assert_eq!(
-                    engine().answer(&request, Mode::Once)["error"]["code"],
-                    "not_ported"
-                );
+                let reply = engine().answer(&request, Mode::Once);
+                assert_eq!(reply["error"]["code"], "not_ported");
+                assert_eq!(reply["error"]["reason"], "platform_unavailable");
             }
         }
         assert_eq!(cfg!(any(windows, target_os = "macos")), has);
