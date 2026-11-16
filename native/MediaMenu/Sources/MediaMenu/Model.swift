@@ -34,11 +34,13 @@ struct DraftUnit: Identifiable, Equatable {
     var discard = false
     var includeOther = false
     var isOther: Bool { category == "other" }
+    var convertsHandycamMovie = false
+    var canCopyForEditing: Bool { !isSupport && !isOther && !discard && !convertsHandycamMovie }
     var previewPath: String? {
         if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
         return paths.first { path in
             let lower = path.lowercased()
-            return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
+            return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mpg", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
         }
     }
     /// Drone/360 only when explicitly classified; never inferred from the DJI brand.
@@ -295,7 +297,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             if previous != newValue { archiveExceptionConfirmed = false; invalidatePlan() }
         }
     }
-    var noWork: Bool { copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
+    var noWork: Bool { isHandycamArchiveOnly || copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
     var ingestStep: IngestStep = .source
     var activeJobID = ""
     var jobProgress: JSONValue?
@@ -486,8 +488,17 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     /// The device read from one photo (recipe or confirmed registry) names the card better than its folders.
     func cardKindLabel(_ hint: JSONValue) -> String {
+        if let model = handycamModel(hint) { return "Sony Handycam " + model }
         let device = hint["device"]["label"].string.isEmpty ? hint["device"]["source"].string : hint["device"]["label"].string
         return device.isEmpty ? familyLabel(hint["family"].string) : device
+    }
+    func handycamModel(_ hint: JSONValue) -> String? {
+        let model = hint["device"]["model"].string
+        return model.uppercased().hasPrefix("DCR-SR") ? model : nil
+    }
+    func cardRecommendation(_ hint: JSONValue) -> String {
+        if handycamModel(hint) != nil { return String(localized: "Convierte a MP4 · sólo respaldo") }
+        return recommendationLabel(hint["recommendation"].string)
     }
     func recommendationLabel(_ raw: String) -> String {
         switch raw {
@@ -664,12 +675,20 @@ enum OperationScope { case ingest, library, space, settings, source }
         }
     }
     private var handycamHistorySources: Set<String> = []
-    func chooseHandycamHistory() {
+    var ingestFromSaveAll = false
+    var isHandycamHistory: Bool { handycamHistorySources.contains(source) }
+    var isHandycamHDD: Bool {
+        sourceKind == "card" && !isHandycamHistory
+            && (selectedCard.map { handycamModel($0["hint"]) != nil } == true || units.contains(where: \.convertsHandycamMovie))
+    }
+    var isHandycamArchiveOnly: Bool { isHandycamHDD || isHandycamHistory }
+    func chooseHandycamHistory(fromSaveAll: Bool = false) {
         pickURL(message: String(localized: "Elige la carpeta con los MP4 de la Handycam")) { url in
             self.showSaveAll = false
             self.changeMode?(.full)
             self.handycamHistorySources.insert(url.path)
             self.prepareSource(url.path, kind: "card")
+            self.ingestFromSaveAll = fromSaveAll
             self.copyChoice = "none"
             self.cleanup = false
             self.goToStep(.content)
@@ -737,7 +756,9 @@ enum OperationScope { case ingest, library, space, settings, source }
                 copyChoice = "none"
             }
             units = data["units"].array.map { value in
-                var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
+                let paths = value["paths"].array.map(\.string)
+                var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: paths)
+                unit.paths = paths
                 unit.sessionID = value["session_id"].string
                 unit.suggestedProject = value["project_hint"]["name"].string
                 unit.suggestedCountry = value["project_hint"]["country"].string
@@ -746,11 +767,17 @@ enum OperationScope { case ingest, library, space, settings, source }
                     unit.country = value["tag"]["country"].string
                 }
                 unit.category = value["category"].string; unit.detectedFamily = value["camera"].string
+                unit.convertsHandycamMovie = data["handycam_hdd"].bool && unit.category == "video" && unit.paths.contains {
+                    $0.lowercased().hasPrefix("mp_root/") && $0.lowercased().hasSuffix(".mpg")
+                }
                 unit.detectedCamera = unit.detectedFamily
                 let device = value["device"]
                 unit.deviceCategory = device["requires_confirmation"].bool ? "" : device["category"].string
                 unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
                 if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
+                if unit.convertsHandycamMovie {
+                    unit.detectedCamera = selectedCard.map { cardKindLabel($0["hint"]) } ?? "Sony Handycam"
+                }
                 let mission = value["mission"]
                 let previousMission = unit.missionState
                 unit.missionState = mission["state"].string; unit.missionPlan = mission["plan_name"].string
@@ -777,7 +804,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         await sourceReadTask?.value
     }
     func prepareSource(_ path: String, kind: String) {
-        if source != path || sourceKind != kind { parkIngestDraft(); copyChoiceOverride = nil }
+        if source != path || sourceKind != kind { parkIngestDraft(); copyChoiceOverride = nil; ingestFromSaveAll = false }
         sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
         if kind == "stalker" { project = "" }
         // Already on the work disk: it is its own editing copy, so only the backup applies.
@@ -807,10 +834,12 @@ enum OperationScope { case ingest, library, space, settings, source }
         changeMode?(.full)
     }
     func useCard(_ path: String) {
-        if source != path { parkIngestDraft() }
+        if source != path || sourceKind != "card" { parkIngestDraft(); ingestFromSaveAll = false }
         ingestDrafts.removeValue(forKey: path)
         sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; loadedSourceKey = ""
-        sourceKind = "card"; cleanup = true; source = path; units = []; plan = nil; project = ""; lastResult = nil; copyChoiceOverride = nil
+        sourceKind = "card"; source = path; units = []; plan = nil; project = ""; lastResult = nil
+        cleanup = !isHandycamArchiveOnly
+        copyChoiceOverride = isHandycamArchiveOnly ? "none" : nil
         route = .ingest; ingestStep = .source
         if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
     }
@@ -828,6 +857,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         goToStep(.destinations)
     }
     func newIngest() {
+        ingestFromSaveAll = false
         copyChoiceOverride = nil
         source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""; dayFilter = ""; sessionFilter = ""
         ingestStep = .source; message = String(localized: "Listo")
@@ -880,7 +910,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     func nextStep() {
         switch ingestStep {
         case .source, .content: goToStep(.destinations)
-        case .destinations, .review: if plan != nil { apply() } else { reviewPlan() }
+        case .destinations, .review:
+            if plan == nil { reviewPlan() }
+            else if ingestFromSaveAll { addToSaveAll() }
+            else { apply() }
         case .run: newIngest()
         }
     }
@@ -945,7 +978,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
             var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),
                 "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
-                "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
+                "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card" && !self.isHandycamArchiveOnly),
                 "assignments": .object(assignments)]
             if self.handycamHistorySources.contains(self.source) { params["handycam_history"] = .bool(true) }
             params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork, deferWork: self.deferWork, work: self.work)) { _, new in new }
@@ -1152,7 +1185,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
             let content = UNMutableNotificationContent()
             content.title = card.map { cardKindLabel($0["hint"]) + " · " + $0["name"].string } ?? String(localized: "Tarjeta detectada")
-            content.body = card.map { recommendationLabel($0["hint"]["recommendation"].string) } ?? String(localized: "Abre nüün para revisar el plan")
+            content.body = card.map { cardRecommendation($0["hint"]) } ?? String(localized: "Abre nüün para revisar el plan")
             try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
         }
     }

@@ -5,7 +5,7 @@ struct IngestDraft {
     let source: String, kind: String, project: String, profile: String, country: String, city: String
     let archive: String, work: String, copy: String
     var loadedKey: String
-    let cleanup: Bool, deferWork: Bool, archiveException: Bool
+    let cleanup: Bool, deferWork: Bool, archiveException: Bool, fromSaveAll: Bool
     let units: [DraftUnit]
     var reviewed: ReviewedPlan?
 }
@@ -15,7 +15,8 @@ extension Model {
         guard !busy, lastResult == nil, !source.isEmpty, !units.isEmpty || !project.isEmpty || plan != nil else { return }
         ingestDrafts[source] = IngestDraft(source: source, kind: sourceKind, project: project, profile: profile,
             country: country, city: city, archive: archive, work: work, copy: copyChoice, loadedKey: loadedSourceKey,
-            cleanup: cleanup, deferWork: deferWork, archiveException: archiveExceptionConfirmed, units: units, reviewed: reviewedPlan)
+            cleanup: cleanup, deferWork: deferWork, archiveException: archiveExceptionConfirmed,
+            fromSaveAll: ingestFromSaveAll, units: units, reviewed: reviewedPlan)
     }
     func restoreIngestDraft(_ path: String) {
         guard !busy, let saved = ingestDrafts[path] else { return }
@@ -24,6 +25,7 @@ extension Model {
         country = saved.country; city = saved.city; archive = saved.archive; work = saved.work
         copyChoice = saved.copy; cleanup = saved.cleanup; deferWork = saved.deferWork
         archiveExceptionConfirmed = saved.archiveException
+        ingestFromSaveAll = saved.fromSaveAll
         units = saved.units; loadedSourceKey = saved.loadedKey; lastResult = nil
         plan = saved.reviewed?.display; reviewedPlan = saved.reviewed
         route = .ingest; ingestStep = .content

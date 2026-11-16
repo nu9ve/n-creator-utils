@@ -174,11 +174,14 @@ struct ImportGrid: View {
             let minimum: CGFloat = dense ? 150 : 180
             let visible = model.visibleUnits
             let count = min(max(1, visible.count), max(1, Int((geometry.size.width + 14) / (minimum + 14))))
+            let singleBeside = visible.count == 1 && geometry.size.width >= 440
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: count), alignment: .leading, spacing: 14) {
                     ForEach(visible) { unit in
                         if let index = model.units.firstIndex(where: { $0.id == unit.id }) {
-                            UnitPreview(model: model, unit: $model.units[index], dense: dense)
+                            UnitPreview(model: model, unit: $model.units[index], dense: dense,
+                                        singlePreviewHeight: visible.count == 1 ? max(56, geometry.size.height - (singleBeside ? 12 : 112)) : nil,
+                                        singleBeside: singleBeside)
                         }
                     }
                 }.padding(4)
@@ -207,6 +210,8 @@ struct UnitPreview: View {
     @Bindable var model: Model
     @Binding var unit: DraftUnit
     let dense: Bool
+    let singlePreviewHeight: CGFloat?
+    let singleBeside: Bool
     @Environment(\.creatorPalette) private var palette
     @State private var editingProject = false
     private var effectiveProject: String { unit.project.isEmpty ? model.project : unit.project }
@@ -214,132 +219,152 @@ struct UnitPreview: View {
     private var selected: Bool { model.gridSelection.contains(unit.id) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ZStack(alignment: .topTrailing) {
-                GeometryReader { geometry in
-                    AssetThumbnail(url: model.previewURL(unit), height: geometry.size.height)
-                }
-                .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .overlay(palette.control.stroke(selected ? palette.accentText : .clear, lineWidth: 3))
-                .overlay(alignment: .bottomLeading) {
-                    if unit.category == "stalker" {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Stalker · " + String(unit.createdAt.prefix(16)).replacingOccurrences(of: "T", with: " "))
-                                .font(.caption2.weight(.semibold)).lineLimit(1)
-                            Text(([String(localized: "\(unit.tracks) pistas")] + (durationLabel(unit.duration).map { [$0] } ?? []) + [String(localized: "\(unit.paths.count) archivos")]).joined(separator: " · "))
-                                .font(.caption2).lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6).padding(.vertical, 4)
-                        .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
-                        .padding(5).padding(.bottom, 10).allowsHitTesting(false)
-                    } else if (unit.isInsta360 || unit.detectedFamily == "h6") && unit.paths.count > 1 {
-                        Text("\(unit.paths.count) archivos juntos")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(5)
-                            .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
-                            .padding(5)
-                            .allowsHitTesting(false)
+        if singleBeside {
+            HStack(alignment: .top, spacing: 12) {
+                thumbnail.frame(maxWidth: .infinity)
+                VStack(alignment: .leading, spacing: 4) { details }
+                    .frame(width: 180, alignment: .leading)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                if singlePreviewHeight != nil { details }
+                thumbnail
+                if singlePreviewHeight == nil { details }
+            }
+        }
+    }
+
+    private var thumbnail: some View {
+        ZStack(alignment: .topTrailing) {
+            GeometryReader { geometry in
+                AssetThumbnail(url: model.previewURL(unit), height: geometry.size.height)
+            }
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .frame(height: singlePreviewHeight)
+            .overlay(palette.control.stroke(selected ? palette.accentText : .clear, lineWidth: 3))
+            .overlay(alignment: .bottomLeading) {
+                if unit.category == "stalker" {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Stalker · " + String(unit.createdAt.prefix(16)).replacingOccurrences(of: "T", with: " "))
+                            .font(.caption2.weight(.semibold)).lineLimit(1)
+                        Text(([String(localized: "\(unit.tracks) pistas")] + (durationLabel(unit.duration).map { [$0] } ?? []) + [String(localized: "\(unit.paths.count) archivos")]).joined(separator: " · "))
+                            .font(.caption2).lineLimit(1)
                     }
-                }
-                .contentShape(Rectangle())
-                .gesture(TapGesture(count: 2).onEnded { model.quickLookURL = model.previewURL(unit) })
-                .simultaneousGesture(TapGesture().onEnded {
-                    let flags = NSEvent.modifierFlags
-                    model.select(unit.id, extend: flags.contains(.command), range: flags.contains(.shift))
-                })
-                .opacity(unit.discard ? 0.35 : 1)
-                .overlay(alignment: .bottomTrailing) {
-                    if !unit.isSupport && !unit.isOther && unit.category != "stalker" {
-                        Button { unit.discard.toggle() } label: {
-                            Image(systemName: unit.discard ? "trash.fill" : "trash")
-                                .font(.caption).foregroundStyle(unit.discard ? palette.warning : palette.ink)
-                                .padding(5).background(palette.canvas.opacity(0.85), in: Circle())
-                        }
-                        .buttonStyle(.plain).padding(5)
-                        .help(unit.discard ? "Conservar: vuelve al respaldo" : "Descartar: no se respalda; si limpias la SD, se borra sin copia")
-                        .accessibilityLabel(unit.discard ? "Conservar" : "Descartar")
-                    }
-                }
-                .overlay(alignment: .topLeading) {
-                    if model.copyChoice == "some" && unit.previewPath != nil {
-                        Button { unit.copyForEditing.toggle() } label: {
-                            Image(systemName: unit.copyForEditing ? "checkmark.circle.fill" : "circle")
-                                .font(.title3).foregroundStyle(unit.copyForEditing ? palette.accentText : palette.ink)
-                                .padding(4).background(palette.canvas.opacity(0.9), in: Circle())
-                        }
-                        .buttonStyle(.plain).padding(4)
-                        .help("Copiar también al SSD para editar")
-                    }
-                }
-                Text(model.profileName(effectiveProfile))
-                    .font(.caption2.weight(.medium)).lineLimit(1)
-                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .foregroundStyle(.white)
-                    .background(.black.opacity(0.72), in: Capsule())
-                    .padding(5).allowsHitTesting(false)
-            }
-            if unit.category != "stalker" {
-                Text(URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent)
-                    .font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                Text(bytesLabel(unit.bytes) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                if unit.discard {
-                    Label("Descartada · no se respalda", systemImage: "trash").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
-                } else if unit.missionState == "matched" {
-                    Label(unit.missionPlan, systemImage: "map").font(.caption2).lineLimit(1).truncationMode(.middle).help("Foto de misión")
-                } else if unit.missionState == "none" && unit.missionLikely {
-                    Label("Sin registro · parece de misión", systemImage: "scope").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                } else if unit.missionState == "pending_export" {
-                    Label(unit.missionLikely ? "Falta el export · parece de misión" : "Falta el export", systemImage: "clock.badge.questionmark")
-                        .font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+                    .padding(.horizontal, 6).padding(.vertical, 4)
+                    .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
+                    .padding(5).padding(.bottom, 10).allowsHitTesting(false)
+                } else if (unit.isInsta360 || unit.detectedFamily == "h6") && unit.paths.count > 1 {
+                    Text("\(unit.paths.count) archivos juntos")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(5)
+                        .background(.black.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
+                        .padding(5)
+                        .allowsHitTesting(false)
                 }
             }
-            if unit.isOther {
-                Button { unit.includeOther.toggle() } label: {
-                    Label(unit.includeOther ? "Incluir en el respaldo" : "Se queda en la SD",
-                          systemImage: unit.includeOther ? "checkmark.circle.fill" : "circle")
-                }.buttonStyle(.link).font(.caption)
-                .help("Incluye este archivo para respaldarlo y aplicarle la limpieza del plan")
-            } else if unit.isSupport {
-                Text("Datos de cámara incluidos · sin proyecto propio").font(.caption).foregroundStyle(.secondary)
-            } else if editingProject {
-                HStack(spacing: 4) {
-                    TextField(unit.category == "stalker" ? "Proyecto de esta sesión" : "Proyecto de este archivo", text: $unit.project)
-                        .textFieldStyle(.plain).font(.caption).onSubmit { editingProject = false }
-                    Button { editingProject = false } label: { Image(systemName: "checkmark") }.buttonStyle(.plain).help("Listo")
-                }
-                ProjectNamePreview(model: model, name: unit.project)
-                if unit.project.isEmpty && !unit.suggestedProject.isEmpty {
-                    Button("Sugerido: \(unit.suggestedProject)") { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry; editingProject = false }
-                        .buttonStyle(.link).font(.caption2).lineLimit(1)
-                }
-            } else {
-                HStack(spacing: 4) {
-                    if effectiveProject.isEmpty {
-                        Text(unit.suggestedProject.isEmpty ? "Sin proyecto" : "Sugerido: \(unit.suggestedProject)").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
-                    } else {
-                        Text(effectiveProject).font(.caption2.weight(.medium)).lineLimit(1).help(effectiveProject)
-                        if unit.project.isEmpty { Text("lote").font(.system(size: 9)).foregroundStyle(.secondary) }
+            .contentShape(Rectangle())
+            .gesture(TapGesture(count: 2).onEnded { model.quickLookURL = model.previewURL(unit) })
+            .simultaneousGesture(TapGesture().onEnded {
+                let flags = NSEvent.modifierFlags
+                model.select(unit.id, extend: flags.contains(.command), range: flags.contains(.shift))
+            })
+            .opacity(unit.discard ? 0.35 : 1)
+            .overlay(alignment: .bottomTrailing) {
+                if !unit.isSupport && !unit.isOther && unit.category != "stalker" {
+                    Button { unit.discard.toggle() } label: {
+                        Image(systemName: unit.discard ? "trash.fill" : "trash")
+                            .font(.caption).foregroundStyle(unit.discard ? palette.warning : palette.ink)
+                            .padding(5).background(palette.canvas.opacity(0.85), in: Circle())
                     }
-                    Spacer(minLength: 0)
-                    Button { editingProject = true } label: { Image(systemName: "pencil") }
-                        .buttonStyle(.plain).font(.caption2).help("Cambiar proyecto de esta unidad")
-                }.frame(height: 16)
+                    .buttonStyle(.plain).padding(5)
+                    .help(unit.discard ? "Conservar: vuelve al respaldo" : "Descartar: no se respalda; si limpias la SD, se borra sin copia")
+                    .accessibilityLabel(unit.discard ? "Conservar" : "Descartar")
+                }
             }
-            if unit.detectedCamera.lowercased().hasPrefix("dji") || unit.camera != "auto" {
-                Menu {
-                    ForEach(["auto", "dji-drone", "dji-360", "dji-action", "sony", "canon", "insta360", "generic"], id: \.self) { value in
-                        Button(value == "auto" ? String(localized: "Detectada") : value) { unit.camera = value }
+            .overlay(alignment: .topLeading) {
+                if model.copyChoice == "some" && unit.canCopyForEditing && !model.isHandycamArchiveOnly {
+                    Button { unit.copyForEditing.toggle() } label: {
+                        Image(systemName: unit.copyForEditing ? "checkmark.circle.fill" : "circle")
+                            .font(.title3).foregroundStyle(unit.copyForEditing ? palette.accentText : palette.ink)
+                            .padding(4).background(palette.canvas.opacity(0.9), in: Circle())
                     }
-                } label: { Label(unit.camera == "auto" ? unit.detectedCamera : unit.camera, systemImage: unit.needsCameraReview ? "questionmark.circle" : "camera") }
-                    .menuStyle(.borderlessButton).font(.caption2).fixedSize()
-                    .foregroundStyle(unit.needsCameraReview ? palette.warning : palette.ink)
-                    .help("Clasificar cámara")
+                    .buttonStyle(.plain).padding(4)
+                    .help("Copiar también al SSD para editar")
+                }
             }
-            if unit.previewPath == nil { Text("Auxiliar · sólo respaldo").font(.caption2).foregroundStyle(.secondary) }
+            Text(model.profileName(effectiveProfile))
+                .font(.caption2.weight(.medium)).lineLimit(1)
+                .padding(.horizontal, 6).padding(.vertical, 3)
+                .foregroundStyle(.white)
+                .background(.black.opacity(0.72), in: Capsule())
+                .padding(5).allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder private var details: some View {
+        if unit.category != "stalker" {
+            Text(URL(fileURLWithPath: unit.paths.first ?? "").lastPathComponent)
+                .font(.caption.weight(.medium)).lineLimit(1).truncationMode(.middle)
+            Text(bytesLabel(unit.bytes) + (unit.detectedCamera.isEmpty ? "" : " · " + unit.detectedCamera))
+                .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            if unit.convertsHandycamMovie {
+                Label("Video · Convertir a MP4", systemImage: "film").font(.caption2).foregroundStyle(.secondary)
+            }
+            if unit.discard {
+                Label("Descartada · no se respalda", systemImage: "trash").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+            } else if unit.missionState == "matched" {
+                Label(unit.missionPlan, systemImage: "map").font(.caption2).lineLimit(1).truncationMode(.middle).help("Foto de misión")
+            } else if unit.missionState == "none" && unit.missionLikely {
+                Label("Sin registro · parece de misión", systemImage: "scope").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            } else if unit.missionState == "pending_export" {
+                Label(unit.missionLikely ? "Falta el export · parece de misión" : "Falta el export", systemImage: "clock.badge.questionmark")
+                    .font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+            }
+        }
+        if unit.isOther {
+            Button { unit.includeOther.toggle() } label: {
+                Label(unit.includeOther ? "Incluir en el respaldo" : "Se queda en la SD",
+                      systemImage: unit.includeOther ? "checkmark.circle.fill" : "circle")
+            }.buttonStyle(.link).font(.caption)
+            .help("Incluye este archivo para respaldarlo y aplicarle la limpieza del plan")
+        } else if unit.isSupport {
+            Text("Datos de cámara incluidos · sin proyecto propio").font(.caption).foregroundStyle(.secondary)
+        } else if editingProject {
+            HStack(spacing: 4) {
+                TextField(unit.category == "stalker" ? "Proyecto de esta sesión" : "Proyecto de este archivo", text: $unit.project)
+                    .textFieldStyle(.plain).font(.caption).onSubmit { editingProject = false }
+                Button { editingProject = false } label: { Image(systemName: "checkmark") }.buttonStyle(.plain).help("Listo")
+            }
+            ProjectNamePreview(model: model, name: unit.project)
+            if unit.project.isEmpty && !unit.suggestedProject.isEmpty {
+                Button("Sugerido: \(unit.suggestedProject)") { unit.project = unit.suggestedProject; unit.country = unit.suggestedCountry; editingProject = false }
+                    .buttonStyle(.link).font(.caption2).lineLimit(1)
+            }
+        } else {
+            HStack(spacing: 4) {
+                if effectiveProject.isEmpty {
+                    Text(unit.suggestedProject.isEmpty ? "Sin proyecto" : "Sugerido: \(unit.suggestedProject)").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+                } else {
+                    Text(effectiveProject).font(.caption2.weight(.medium)).lineLimit(1).help(effectiveProject)
+                    if unit.project.isEmpty { Text("lote").font(.system(size: 9)).foregroundStyle(.secondary) }
+                }
+                Spacer(minLength: 0)
+                Button { editingProject = true } label: { Image(systemName: "pencil") }
+                    .buttonStyle(.plain).font(.caption2).help("Cambiar proyecto de esta unidad")
+            }.frame(height: 16)
+        }
+        if unit.detectedCamera.lowercased().hasPrefix("dji") || unit.camera != "auto" {
+            Menu {
+                ForEach(["auto", "dji-drone", "dji-360", "dji-action", "sony", "canon", "insta360", "generic"], id: \.self) { value in
+                    Button(value == "auto" ? String(localized: "Detectada") : value) { unit.camera = value }
+                }
+            } label: { Label(unit.camera == "auto" ? unit.detectedCamera : unit.camera, systemImage: unit.needsCameraReview ? "questionmark.circle" : "camera") }
+                .menuStyle(.borderlessButton).font(.caption2).fixedSize()
+                .foregroundStyle(unit.needsCameraReview ? palette.warning : palette.ink)
+                .help("Clasificar cámara")
         }
     }
 }

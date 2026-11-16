@@ -84,7 +84,8 @@ struct StepBar: View {
                     .contentShape(palette.pill)
                 }
                 .buttonStyle(.plain)
-                .disabled(model.ingestLocked || (step == .run && model.lastResult == nil && !model.busy))
+                .disabled(model.ingestLocked || (step == .destinations && model.source.isEmpty)
+                          || (step == .run && model.lastResult == nil && !model.busy))
                 if step != .run { Image(systemName: "chevron.compact.right").foregroundStyle(palette.muted.opacity(0.6)) }
             }
         }
@@ -115,11 +116,16 @@ struct IngestFooter: View {
                     .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || model.source.isEmpty)
             case .destinations, .review:
                 if let plan = model.plan {
-                    if model.presentation == .full {
-                        Button("Agregar al lote") { model.addToSaveAll() }.disabled(model.busy)
+                    if model.ingestFromSaveAll {
+                        Button("Agregar al lote", systemImage: "tray.and.arrow.down") { model.addToSaveAll() }
+                            .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || model.saveAllUpdating)
+                    } else {
+                        if model.presentation == .full {
+                            Button("Agregar al lote") { model.addToSaveAll() }.disabled(model.busy || model.saveAllUpdating)
+                        }
+                        Button(plan["cleanup"].bool || plan["release_stalker_source"].bool ? "Respaldar y liberar origen" : "Respaldar y conservar origen", systemImage: "arrow.right.circle.fill") { model.apply() }
+                            .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy)
                     }
-                    Button(plan["cleanup"].bool || plan["release_stalker_source"].bool ? "Respaldar y liberar origen" : "Respaldar y conservar origen", systemImage: "arrow.right.circle.fill") { model.apply() }
-                        .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy)
                 } else {
                     Button("Preparar plan", systemImage: "checklist") { model.reviewPlan() }
                         .buttonStyle(CreatorButtonStyle(prominent: true)).disabled(model.busy || !model.canPrepareFlow)
@@ -175,7 +181,7 @@ struct SourceTiles: View {
                 SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card" && (model.contentLoaded || model.discoveryLoading),
                            symbol: "sdcard.fill", title: card["name"].string,
                            subtitle: hint == .null ? String(localized: "SD conectada") : model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
-                           detail: hint == .null ? nil : model.recommendationLabel(hint["recommendation"].string),
+                           detail: hint == .null ? nil : model.cardRecommendation(hint),
                            eject: { model.eject(card["path"].string) }) {
                     model.useCard(card["path"].string); model.discover()
                 }
@@ -542,11 +548,11 @@ struct AssignPanel: View {
     }
     /// Left out of the backup and the editing copy; with cleanup, the reviewed plan deletes it from the card.
     @ViewBuilder private var discardControls: some View {
-        let targets = model.units.filter { model.targetIDs.contains($0.id) && !$0.isSupport && $0.category != "stalker" }
+        let targets = model.units.filter { model.targetIDs.contains($0.id) && !$0.isSupport && !$0.isOther && $0.category != "stalker" }
         if !targets.isEmpty {
             HStack(spacing: 8) {
                 if targets.contains(where: { !$0.discard }) {
-                    Button("Descartar", systemImage: "trash") { model.updateTargets { if !$0.isSupport && $0.category != "stalker" { $0.discard = true } } }
+                    Button("Descartar", systemImage: "trash") { model.updateTargets { if !$0.isSupport && !$0.isOther && $0.category != "stalker" { $0.discard = true } } }
                 }
                 if targets.contains(where: \.discard) {
                     Button("Conservar", systemImage: "arrow.uturn.backward") { model.updateTargets { $0.discard = false } }
@@ -555,9 +561,11 @@ struct AssignPanel: View {
         }
     }
     @ViewBuilder private var copyControls: some View {
-        if model.copyChoice == "some" {
+        if model.isHandycamArchiveOnly {
+            Text("Sólo respaldo").font(.caption).foregroundStyle(.secondary)
+        } else if model.copyChoice == "some" {
             HStack {
-                Button("Copiar al SSD") { model.updateTargets { if $0.previewPath != nil { $0.copyForEditing = true } } }
+                Button("Copiar al SSD") { model.updateTargets { if $0.canCopyForEditing { $0.copyForEditing = true } } }
                 Button("No copiar") { model.updateTargets { $0.copyForEditing = false } }
             }.controlSize(.small)
             if !compact { Text("\(model.units.filter(\.copyForEditing).count) de \(model.units.count) se copiarán al SSD para editar").font(.caption).foregroundStyle(.secondary) }
@@ -583,33 +591,73 @@ struct DestinationsStep: View {
     let compact: Bool
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
+                SectionTitle(model.ingestFromSaveAll ? "Poner al día" : "Ingreso individual")
+                if !model.source.isEmpty {
+                    Label(sourceTitle, systemImage: model.isHandycamArchiveOnly ? "film" : "tray.and.arrow.down")
+                        .font(.callout.weight(.semibold)).lineLimit(1).truncationMode(.middle)
+                    if model.isHandycamHDD {
+                        Text("Convierte los MPG a MP4 y conserva los originales en la cámara.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                if !model.source.isEmpty {
+                    TextField(model.projectIsReady && model.project.isEmpty ? "Proyecto común (opcional)" : "Nombre del proyecto",
+                              text: $model.project)
+                        .textFieldStyle(CreatorTextFieldStyle())
+                        .accessibilityLabel("Nombre del proyecto")
+                        .onSubmit { if model.canPrepareFlow { model.reviewPlan() } }
+                    ProjectNamePreview(model: model, name: model.project)
+                }
+            }
             SectionTitle("Respaldo")
             VolumeChoices(model: model, role: "archive", selection: $model.archive, allowNone: false)
-            SectionTitle("Copia para editar")
-            if let volume = model.sourceWorkVolume {
+            if model.isHandycamArchiveOnly {
+                Label("Sólo respaldo · sin copia para editar", systemImage: "externaldrive")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if let volume = model.sourceWorkVolume {
+                SectionTitle("Copia para editar")
                 Label("Esta carpeta ya está en \(volume["name"].string): es su propia copia para editar, así que sólo se respalda.", systemImage: "info.circle")
                     .font(.callout).foregroundStyle(.secondary)
             } else {
+                SectionTitle("Copia para editar")
                 EditingChoice(model: model, compact: compact)
             }
-            if model.copyChoice != "none" {
+            if !model.isHandycamArchiveOnly && model.copyChoice != "none" {
                 VolumeChoices(model: model, role: "work", selection: $model.work, allowNone: true)
                 Toggle("Si el SSD no está conectado, dejar la copia para editar pendiente", isOn: $model.deferWork)
             }
-            if !model.noWork && !model.volumes.contains(where: { $0["id"].string == model.work && $0["online"].bool }) {
+            if !model.isHandycamArchiveOnly && !model.noWork && !model.volumes.contains(where: { $0["id"].string == model.work && $0["online"].bool }) {
                 Toggle("Esta vez, continuar sin el SSD y respaldar primero", isOn: $model.archiveExceptionConfirmed).toggleStyle(.checkbox)
             }
             SectionTitle("Después de verificar")
             if model.sourceKind == "stalker" {
                 Text(model.retainStalkerSource ? "El original Stalker se conserva según Ajustes." : "Después de verificar se revisa Clipper y se libera el original Stalker; si algo falla, se conserva.")
                     .font(.caption).foregroundStyle(.secondary)
+            } else if model.isHandycamArchiveOnly {
+                Text(model.isHandycamHDD ? "Para borrar grabaciones, usa el menú de la Handycam." : "Los MP4 de la carpeta de origen se conservan.")
+                    .font(.caption).foregroundStyle(.secondary)
             } else {
                 Toggle("Limpiar la SD después de verificar todos los destinos", isOn: $model.cleanup).disabled(model.selectedCard == nil)
-                Text("Sony: se borran los clips verificados; los índices se conservan hasta formatear en la cámara.").font(.caption).foregroundStyle(.secondary)
+                if model.selectedCard?["hint"]["recommendation"].string == "sony_format_in_camera" {
+                    Text("Sony: se borran los clips verificados; los índices se conservan hasta formatear en la cámara.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             ForEach(model.spaceWarnings, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(palette.warning) }
             Button("Registrar otro disco…") { model.openSettings?("disks") }.buttonStyle(.link)
         }.disabled(model.ingestLocked)
+    }
+
+    private var sourceTitle: String {
+        let name = URL(fileURLWithPath: model.source).lastPathComponent
+        if model.isHandycamHistory { return String(localized: "Histórico Handycam · \(name)") }
+        if model.sourceKind == "stalker" { return "Stalker · " + name }
+        if let card = model.selectedCard, card["hint"] != .null {
+            let label = model.cardKindLabel(card["hint"])
+            if !model.isHandycamHDD || model.handycamModel(card["hint"]) != nil { return label + " · " + name }
+        }
+        return model.isHandycamHDD ? "Sony Handycam · " + name : name
     }
 }
 
@@ -657,11 +705,11 @@ struct ReviewStep: View {
             } else {
                 SectionTitle("Antes de revisar")
                 if model.planBlockers.isEmpty {
-                    Text("Todo listo. «Revisar plan» calcula rutas, espacio y verificaciones; todavía no copia nada.").foregroundStyle(.secondary)
+                    Text("«Preparar plan» calcula rutas y espacio para que los revises.").foregroundStyle(.secondary)
                 } else {
                     ForEach(model.planBlockers, id: \.self) { Label($0, systemImage: "circle.dashed") }
                     HStack {
-                        Button("Ir a fuente y proyecto") { model.goToStep(.source) }
+                        if model.source.isEmpty { Button("Elegir fuente") { model.goToStep(.source) } }
                         if model.units.contains(where: \.needsCameraReview) { Button("Clasificar en Contenido") { model.typeFilter = "dji"; model.goToStep(.content) } }
                     }
                 }

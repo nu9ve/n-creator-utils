@@ -114,6 +114,27 @@ import MediaMenuCore
         model.activeScope = .settings  // suppress automatic plan preparation in this presentation-only fixture
         await render(IngestFlow(model: model), size: NSSize(width: 440, height: 660), to: folder.appendingPathComponent("flow.png"), visible: true)
         model.activeScope = nil
+        let handycam = folder.appendingPathComponent("fixture-handycam")
+        model.sourceCards = [.object(["path": .string(handycam.path), "name": .string("NO NAME"),
+            "hint": .object(["family": .string("sony"), "recommendation": .string("sony_format_in_camera"),
+                             "device": .object(["model": .string("DCR-SR42")])])])]
+        model.useCard(handycam.path)
+        model.units = [DraftUnit(id: "M2U01204", paths: ["M2U01204.MPG"], category: "video",
+                                 detectedCamera: "Sony Handycam DCR-SR42", convertsHandycamMovie: true)]
+        model.loadedSourceKey = model.sourceKey
+        passed = passed && model.isHandycamHDD && model.noWork && !model.cleanup && !model.canPrepareFlow
+        passed = passed && model.units.first?.previewPath == "M2U01204.MPG" && model.units.first?.isSupport == false
+        delegate.present(.full)
+        model.volumes = [.object(["id": .string("a"), "name": .string("QA-MEDIA"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12)])]
+        model.archive = "a"
+        model.ingestStep = .content
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("handycam-input.png"))
+        model.ingestFromSaveAll = true
+        model.ingestStep = .destinations
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("handycam-flow.png"))
+        model.project = "prueba-handycam"
+        model.archive = "a"
+        passed = passed && model.canPrepareFlow
         print("QA ingest choices \(passed ? "OK" : "FAILED")")
         NSApp.terminate(nil)
     }

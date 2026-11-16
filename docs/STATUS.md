@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `e4e62bf7efac`** (16 nov), build de depuración con firma ad-hoc verificada. Arrancaron la app y el motor Rust. El catálogo diario dio `quick_check=ok`. Build anterior `f7c3f4f012ab` en `app-backups/a080c7b4.app` |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `43a7ad4eb289`** (16 nov), build de depuración con firma ad-hoc verificada. Build anterior `e4e62bf7efac` en `app-backups/2600b4af.app`. |
 | Suites en macOS | Python **396**, Rust **174** (151 + 23 diferenciales), Swift **28**. Dorado actualizado con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. CI escrita, pendiente de ejecutar en GitHub. |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -16,7 +16,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Área | Estado | Evidencia física | Pendiente |
 | --- | --- | --- | --- |
-| **Ingreso de cámara** (Entrada → Flujo → Resultado) | En uso | Varios ingresos reales a MEDIA502 + ESSD desde la app | Plan, progreso, pausa y reanudación comprobados en ventana con imágenes. Pendientes la latencia del popup y la extracción/reconexión a mitad de copia en físico |
+| **Ingreso de cámara** (Entrada → Flujo → Resultado) | En uso. Flujo identifica fuente y alcance individual/lote, y permite escribir el proyecto donde se prepara el plan. El detalle y los controles de un único resultado quedan visibles al lado o encima de la vista previa. | Varios ingresos reales a MEDIA502 + ESSD desde la app. El bloque Handycam, la etiqueta de video MPG y la habilitación del plan tras nombrar el proyecto pasaron QA visual aislada. | Plan, progreso, pausa y reanudación comprobados en ventana con imágenes. Pendientes la latencia del popup y la aceptación desde la ventana de una conversión Handycam real. |
 | **Sony α6400** | En uso. Retira clips verificados, conserva índices y observa el formato al reconectar. Corregida la lectura final de entradas retiradas que siguen listadas | Job físico `17e70e69`: 21 archivos en MEDIA502 y 4 en ESSD cotejados con sus recibos por SHA-256. Doce retiros journalizados y nueve archivos de cámara intactos. [Detalle](#lectura-final-sony--2026-11-13) | La limpieza del clip real de prueba pasó con Rust. El retiro persistió tras remontar sin formatear. Falta observar el cierre por formato |
 | **Stalker** | En uso: bandeja, bundles completos, liberación local con relink/ACK de Clipper | Ingresos reales completos | Casos `recording`/`finalizing`/`recovery` reales; [pedidos](contracts/README.md#pendientes-para-n-creator-utils) |
 | **Dron / Atlas** | En uso de punta a punta: dispositivo por EXIF, registro de misiones, trabajo JPG, descartes y DNG a pedido. Atlas local lee `_missions/` y `units.ndjson`. La asociación de exports tardíos está disponible en el catálogo. | 8 nov: SD `MAVIC200` respaldada, verificada y vaciada (job `cc8bd128`); ESSD mayo–junio respaldado (`77bdcb73`); DNG `dng-d9549817`. [Validación del lector Atlas](#dji-clipper-y-recuperación--2026-11-15) | Formatear la SD desde el dron. Traslado journalizado de fotos ya archivadas y actualización de mapas. Confirmar un dispositivo nuevo desde la app. UI del plan de DNG. [Contrato](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |

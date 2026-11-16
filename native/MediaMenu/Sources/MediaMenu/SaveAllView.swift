@@ -103,15 +103,18 @@ extension Model {
             if source == path && sourceKind == "card" && lastResult == nil { route = .ingest }
             else if ingestDrafts[path] != nil { restoreIngestDraft(path) }
             else { prepareCardBackup(path) }
+            ingestFromSaveAll = true
         case .stalker(let root):
             if source == root && sourceKind == "stalker" && lastResult == nil { route = .ingest }
             else if ingestDrafts[root] != nil { restoreIngestDraft(root) }
             else { prepareCaptureBatch(root) }
+            ingestFromSaveAll = true
         case .missions:
             route = .home
             saveAllHomeTarget = "missions"
         case .finals(let group):
             parkIngestDraft()
+            ingestFromSaveAll = true
             planFinals(group)
         case .work(let ids):
             libraryQuery = ""
@@ -267,7 +270,7 @@ struct SaveAllSheet: View {
         let selected = items.filter { !model.excludedSaveAllItems.contains($0.id) }
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Poner al día", subtitle: "Elige los pendientes que quieres revisar.")
-            Button("Histórico Handycam…", systemImage: "film.stack") { model.chooseHandycamHistory() }
+            Button("Histórico Handycam…", systemImage: "film.stack") { model.chooseHandycamHistory(fromSaveAll: true) }
                 .buttonStyle(.link).disabled(inFlight || model.busy || model.saveAllUpdating)
             if let project = model.saveAllProject {
                 HStack {

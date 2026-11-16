@@ -142,6 +142,8 @@ El perfil DCR-SR42 copia el MPG a temporal dentro del archivo, coteja su SHA-256
 
 Los dos modos se pueden agregar a «Poner al día». La revisión conjunta detecta destinos en conflicto y reserva espacio temporal de conversión junto con el de las demás operaciones.
 
+En macOS, Flujo identifica la cámara y el alcance de la operación. Puedes definir ahí el nombre común del proyecto. Si se abrió desde «Poner al día», la acción principal agrega el plan al lote. Para Handycam, Contenido muestra el MPG como video a convertir y Flujo presenta la política de sólo respaldo.
+
 ### Etapas observadas del retiro Sony · 2026-11-07
 
 El motor da a cada trabajo Sony una etapa (`sony_stage` en `job` y `jobs`, de

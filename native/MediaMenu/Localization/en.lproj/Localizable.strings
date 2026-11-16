@@ -628,6 +628,15 @@
 "Esta vez, continuar sin el SSD y respaldar primero" = "This time, continue without the SSD and back up first";
 "Los auxiliares se respaldan con el ingreso; no necesitan proyecto propio." = "Auxiliary files are backed up with the ingest; they do not need a separate project.";
 "Preparar plan" = "Prepare plan";
+"Ingreso individual" = "Individual ingest";
+"Proyecto común (opcional)" = "Batch project (optional)";
+"Video · Convertir a MP4" = "Video · convert to MP4";
+"Convierte a MP4 · sólo respaldo" = "Convert to MP4 · backup only";
+"Convierte los MPG a MP4 y conserva los originales en la cámara." = "Convert MPG files to MP4 and keep the originals on the camera.";
+"Sólo respaldo · sin copia para editar" = "Backup only · no editing copy";
+"Para borrar grabaciones, usa el menú de la Handycam." = "To delete recordings, use the Handycam menu.";
+"Los MP4 de la carpeta de origen se conservan." = "The MP4 files in the source folder are kept.";
+"«Preparar plan» calcula rutas y espacio para que los revises." = "Prepare plan checks destination paths and space for review.";
 "Principal" = "Main media";
 "Publicado" = "Published";
 "Respaldar y conservar origen" = "Back up and keep source";
