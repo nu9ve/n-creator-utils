@@ -76,7 +76,7 @@ Una sola implementación por plataforma, pura y probada:
 
 - **Debe:** luminancia relativa WCAG (sRGB lineal, coeficientes 0.2126/0.7152/0.0722) y la razón `(L1 + 0.05) / (L2 + 0.05)`.
 - **Debe:** probar la matriz completa: skins × al menos 10 colores × 3 modos × 3 contrastes. Los colores incluyen gris, amarillo puro, un casi negro, un casi blanco y los presets de la app (curado ya lo hace con 5×10×3×3).
-- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift, C# y TypeScript, para que las implementaciones den el mismo color. Existe desde 2026-11-09: [`examples/theme-vectors-v1.json`](../data/theme-vectors-v1.json), 110 casos (5 skins × 2 modos × 11 bases), generado y verificado por el port de C# (`native/windows`, `ThemeVectorsTests`). Falta que lo lean `ThemeRolesTests.swift` y la matriz de curado (`theme.test.ts`, con sus propios estilos).
+- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift, C# y TypeScript, para que las implementaciones den el mismo color. Existe desde 2026-11-09: [`theme-vectors-v1.json`](../data/theme-vectors-v1.json), 110 casos (5 skins × 2 modos × 11 bases), generado y verificado por el port de C# (`native/windows`, `ThemeVectorsTests`). Swift también los comprueba en `ThemeVectorsTests.swift`; la matriz de contraste se conserva en `ThemeRolesTests.swift`. Los estilos propios pueden usar las bases en su matriz de contraste y comparar los roles independientes del skin (`accent` y `onAccent`).
 
 ## 4. Lo que el usuario configura
 
@@ -276,7 +276,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 | Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
-| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz | Sí, sin matriz | Sí, con matriz (`ThemeRolesTests`) | No | No | Parcial: texto sobre acento | No aplica |
+| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz y los 110 vectores para `accent` y `onAccent` (TypeScript, 2026-11-16) | Sí, sin matriz | Sí, matriz (`ThemeRolesTests`) y [110 vectores fijados](../data/theme-vectors-v1.json) en Swift (`ThemeVectorsTests`, 2026-11-16) | No | No | Parcial: texto sobre acento | No aplica |
 | 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
 | 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
@@ -290,6 +290,8 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.
 - **SoundShop:** añadir i18n.
+
+- **curado (2026-11-16):** `bun test src/lib/theme.test.ts` comprueba los hex de `accent` y `onAccent` en los 110 casos fijados y añade sus 11 bases a la matriz de los cinco estilos propios. La comparación de los demás hex queda pendiente de adoptar las paletas comunes.
 
 ## Cambios
 

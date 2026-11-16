@@ -1,6 +1,6 @@
 # JSON canónico, digest, ids y sobre de errores v1
 
-Estado: **implementado en nüün** (2026-11-16). Escribe como regla de la suite lo que ya hacen dos implementaciones de nüün: la de Python (`media/common.py`: `canonical`, `digest`, `uid`, `MediaError`) y el crate de Rust `nu9ve-json` (`n-creator-utils/engine/crates/nu9ve-json`). Mientras Python sea el oráculo del motor, «compatible con Python byte a byte» es una restricción; cuando Python se retire, este documento y sus [vectores](../data/json-vectors-v1.json) pasan a ser la especificación.
+Estado: **implementado en nüün** (2026-11-16). Escribe como regla de la suite lo que ya hacen dos implementaciones de nüün: la de Python (`media/common.py`: `canonical`, `digest`, `uid`, `MediaError`) y el crate de Rust [`nu9ve-json`](../rust/nu9ve-json), que nüün consume desde su copia fijada. Mientras Python sea el oráculo del motor, «compatible con Python byte a byte» es una restricción; cuando Python se retire, este documento y sus [vectores](../data/json-vectors-v1.json) pasan a ser la especificación.
 
 **Debe** es obligatorio. **Conviene** es lo recomendado.
 
@@ -152,6 +152,6 @@ Se regeneran aquí con `python3 -I scripts/json-vectors.py` (y `--check` comprue
 
 | App | Implementación | Prueba los vectores | Nota |
 | --- | --- | --- | --- |
-| nüün | Python `media/common.py` (oráculo) y Rust `nu9ve-json` | Rust: `engine/crates/nu9ve-json/tests/vectors.rs`, desde su copia fijada | Python además se compara con Rust en `scripts/engine_golden.py` |
+| nüün | Python `media/common.py` (oráculo) y Rust `nu9ve-json` | Rust: `engine/nuun-engine/tests/json_vectors.rs`, con el crate y los vectores de su copia fijada | El gate compara además el motor con el dorado de Python (`scripts/engine_golden.py --check` y 23 diferenciales en macOS) |
 | Clipper | Rust `nu9ve-json` desde su copia fijada, para el sobre de `clipper-engine/1`, `sha256_hex` y `uuid4` (desde el 2026-11-16); su JSON propio sigue en `py.rs`/`pyval.rs` | No todavía: el canónico no lo usa | Compila `serde_json` con `arbitrary_precision` y `preserve_order` (§8) |
 | nove | Sobre `{code, message}` propio | — | Ola 3 |
