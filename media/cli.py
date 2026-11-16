@@ -7,7 +7,7 @@ import time
 
 from .catalog import Catalog
 from .common import MediaError, read_json, require
-from .service import Service
+from .service import METHODS, Service
 
 
 def parser():
@@ -139,29 +139,74 @@ READ_METHODS = {'project_preview', 'closure_overview', 'closure_candidates', 'cl
 READ_WHEN_EMPTY = {'defaults', 'integration_settings'}
 
 
+# nu9ve-engine-v1 (vendor/nu9ve-core/contracts/nu9ve-engine-v1.md): what `engine_info` says this engine speaks.
+CONTRACT = 'nu9ve-engine/1'
+PROTOCOL = 'nuun-media/1'
+# pyproject.toml `version`; tests/test_engine_boundary.py keeps them equal.
+VERSION = '0.1.0'
+UNEXPECTED = (OSError, ValueError, KeyError, TypeError, RuntimeError)
+
+
+def engine_info():
+    """§4: the same in `rpc-serve` and `rpc`. Python is the oracle, so everything it answers is `ported`."""
+    reads = READ_METHODS | READ_WHEN_EMPTY | {'engine_info'}
+    return {'contract': CONTRACT, 'protocol': PROTOCOL, 'engine': 'python', 'version': VERSION, 'capabilities': [],
+            'ported': sorted(reads), 'native': [], 'writes': sorted(METHODS - READ_METHODS)}
+
+
+def _no_constant(name):
+    raise ValueError('Not JSON: ' + name)
+
+
+def read_request(text, seen):
+    """A request `{id, method, params}` by §2 of the contract. `seen['id']` holds the id once it is valid."""
+    try:
+        request = json.loads(text, parse_constant=_no_constant)
+    except ValueError as error:
+        raise MediaError('invalid_request', 'Request is not JSON: ' + str(error)) from error
+    require(isinstance(request, dict), 'invalid_request', 'Expected an id/method/params JSON object')
+    identifier = request.get('id')
+    require(identifier is None or isinstance(identifier, str) or (isinstance(identifier, int) and not isinstance(identifier, bool)),
+            'invalid_request', 'id must be an integer, a string or null')
+    seen['id'] = identifier
+    method = request.get('method')
+    require(isinstance(method, str), 'invalid_request', 'method must be a string')
+    params = request.get('params')
+    params = {} if params is None else params  # `null` is tolerated as `{}` (§2)
+    require(isinstance(params, dict), 'invalid_params', 'params must be an object')
+    require(method in METHODS or method == 'engine_info', 'unknown_method', 'Unknown media service method: ' + method)
+    return identifier, method, params
+
+
+def failure(error):
+    """The error of an envelope: a MediaError keeps its code; anything the engine did not classify is internal."""
+    code = error.code if isinstance(error, MediaError) else 'operation_failed'
+    return {'code': code, 'message': str(error)}
+
+
 def serve_reads(service, stdin=None, stdout=None, shadow=None):
     # `shadow` (media/shadow.py) repeats each answered read on the Rust engine after the answer is written.
     stdin, stdout = stdin or sys.stdin, stdout or sys.stdout
     for line in stdin:
         if not line.strip():
             continue
-        identifier = None
+        seen = {'id': None}
         method = params = None
         started = time.perf_counter()
         try:
             require(len(line) <= 1024 * 1024, 'request_too_large', 'Request line exceeds 1 MiB')
-            request = json.loads(line)
-            require(isinstance(request, dict) and isinstance(request.get('method'), str), 'invalid_request', 'Expected id/method/params JSON')
-            identifier, method, params = request.get('id'), request['method'], request.get('params') or {}
-            require(method in READ_METHODS or (method in READ_WHEN_EMPTY and not params), 'read_only', 'rpc-serve only answers reads: ' + method)
-            envelope = {'id': identifier, 'ok': True, 'data': service.call(method, params)}
-        except (MediaError, OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
-            code = error.code if isinstance(error, MediaError) else 'operation_failed'
-            envelope = {'id': identifier, 'ok': False, 'error': {'code': code, 'message': str(error)}}
+            identifier, method, params = read_request(line, seen)
+            require(method in READ_METHODS or method == 'engine_info' or (method in READ_WHEN_EMPTY and not params),
+                    'read_only', 'rpc-serve only answers reads: ' + method)
+            data = engine_info() if method == 'engine_info' else service.call(method, params)
+            envelope = {'id': identifier, 'ok': True, 'data': data}
+        except UNEXPECTED as error:
+            envelope = {'id': seen['id'], 'ok': False, 'error': failure(error)}
         elapsed = time.perf_counter() - started
         stdout.write(json.dumps(envelope, ensure_ascii=False) + '\n')
         stdout.flush()
-        if shadow is not None and method is not None and (envelope['ok'] or envelope['error']['code'] != 'read_only'):
+        if shadow is not None and method is not None and method != 'engine_info' and \
+                (envelope['ok'] or envelope['error']['code'] not in {'read_only', 'unknown_method'}):
             shadow.submit(method, params, envelope, elapsed)
     return 0
 
@@ -190,9 +235,7 @@ def main(argv=None):
         if args.command == 'rpc':
             raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')
-            request = json.loads(raw)
-            require(isinstance(request, dict) and isinstance(request.get('method'), str), 'invalid_request', 'Expected method/params JSON')
-            method, params = request['method'], request.get('params', {})
+            _, method, params = read_request(raw, {'id': None})
         else:
             params = vars(args).copy()
             method = params.pop('command'); params.pop('state_dir')
@@ -227,12 +270,11 @@ def main(argv=None):
                       'plan-release': 'plan_release', 'apply-release': 'apply_release', 'relink-release': 'relink_release', 'release-plans': 'release_plans', 'collection-release-plan': 'collection_release_plan', 'collection-release-apply': 'collection_release_apply', 'collection-release-plans': 'collection_release_plans', 'living-plan': 'living_plan', 'living-apply': 'living_apply', 'living-collections': 'living_collections',
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
                       'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
-        data = service.call(method, params)
+        data = engine_info() if method == 'engine_info' else service.call(method, params)
         print(json.dumps({'ok': True, 'command': method, 'data': data}, ensure_ascii=False, indent=2))
         return 0
-    except (MediaError, OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
-        code = error.code if isinstance(error, MediaError) else 'operation_failed'
-        print(json.dumps({'ok': False, 'error': {'code': code, 'message': str(error)}}, ensure_ascii=False))
+    except UNEXPECTED as error:
+        print(json.dumps({'ok': False, 'error': failure(error)}, ensure_ascii=False))
         return 1
     finally:
         if catalog:

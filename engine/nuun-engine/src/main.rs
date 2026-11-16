@@ -44,6 +44,117 @@ const READ_METHODS: [&str; 29] = [
     "storage_progress",
     "storage_tree",
 ];
+/// Every method Python's `Service.call` answers (media/service.py `METHODS`; tests/test_engine_boundary.py keeps
+/// them equal). A method in neither this list nor `NATIVE` is `unknown_method`, before any mode check (§7).
+const ORACLE_METHODS: [&str; 92] = [
+    "action_progress",
+    "apply",
+    "apply_release",
+    "asset_revisions",
+    "backup_metadata",
+    "cancel_plan",
+    "capture_discard_check",
+    "capture_discarded",
+    "capture_libraries",
+    "capture_overview",
+    "captures",
+    "closure_apply",
+    "closure_candidates",
+    "closure_deliveries",
+    "closure_link",
+    "closure_link_candidates",
+    "closure_overview",
+    "closure_plan",
+    "closure_progress",
+    "closure_save",
+    "collection_release_apply",
+    "collection_release_plan",
+    "collection_release_plans",
+    "confirm_camera_cleanup",
+    "confirm_device",
+    "coverage",
+    "defaults",
+    "deliver_work",
+    "devices",
+    "discover",
+    "dismiss_job",
+    "dng_apply",
+    "dng_plan",
+    "eject_card",
+    "finals_status",
+    "handoff",
+    "integration_capabilities",
+    "integration_settings",
+    "job",
+    "jobs",
+    "library",
+    "living_apply",
+    "living_collections",
+    "living_plan",
+    "missions_incorporate",
+    "missions_review",
+    "missions_status",
+    "plan",
+    "plan_document",
+    "plan_finals",
+    "plan_finals_document",
+    "plan_release",
+    "profiles",
+    "project_preview",
+    "projects",
+    "publications",
+    "publish_revision",
+    "recipe",
+    "reconcile_sony_cleanup",
+    "recover_catalog",
+    "register_volume",
+    "relayout",
+    "release_plans",
+    "relink_release",
+    "rename_project",
+    "resolve",
+    "restore",
+    "resume",
+    "retitle_capture",
+    "retitle_operations",
+    "review_release",
+    "save_capture_tag",
+    "save_capture_tags",
+    "save_profile",
+    "set_finals_folder",
+    "set_project_state",
+    "set_publication",
+    "set_work_state",
+    "snapshot",
+    "source_cards",
+    "sources",
+    "storage_add_folder",
+    "storage_compare",
+    "storage_overview",
+    "storage_progress",
+    "storage_remove_folder",
+    "storage_scan",
+    "storage_tree",
+    "suggest",
+    "touch_project",
+    "transcripts_backup",
+    "volumes",
+];
+/// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
+const NATIVE: [&str; 12] = [
+    "clipper_project_status",
+    "clipper_restore_apply",
+    "clipper_restore_plan",
+    "missions_archived_apply",
+    "missions_archived_review",
+    "save_all_apply",
+    "save_all_draft",
+    "save_all_incorporate_missions",
+    "save_all_replan_dji",
+    "save_all_review",
+    "save_all_save_draft",
+    "save_all_work_plan",
+];
 const READ_WHEN_EMPTY: [&str; 2] = ["defaults", "integration_settings"];
 const MAX_LINE: usize = 1024 * 1024;
 
@@ -117,6 +228,15 @@ fn ported() -> Vec<&'static str> {
         methods.extend(VOLUME_READS);
     }
     methods
+}
+
+/// The methods only this engine has that it answers on this platform (`rpc` only).
+fn native(platform: Option<&dyn Backend>) -> Vec<&'static str> {
+    let writes = ported_writes(platform);
+    NATIVE
+        .into_iter()
+        .filter(|m| ONCE_READS.contains(m) || writes.contains(m))
+        .collect()
 }
 
 /// The writes this engine performs on this platform (none without a volume backend).
@@ -577,10 +697,16 @@ impl Engine {
             "save_profile" => nuun_media::settings::save_profile(&self.home(), params),
             "confirm_device" => nuun_media::settings::confirm_device(&self.home(), params),
             // Not in Python: lets a client know which engine answered and what it can do.
+            // nu9ve-engine-v1 §4. `ported`: the reads `rpc-serve` answers that Python has too; `writes` and `once`
+            // are nüün's own fields for what only the one-shot `rpc` answers.
             "engine_info" => Ok(json!({
+                "contract": "nu9ve-engine/1",
+                "protocol": "nuun-media/1",
                 "engine": "rust",
                 "version": env!("CARGO_PKG_VERSION"),
+                "capabilities": [],
                 "ported": ported(),
+                "native": native(platform),
                 "writes": ported_writes(platform),
                 // Which real volume backend answers volume methods here (`null`: none yet, ask Python).
                 "volume_backend": platform_backend_name(),
@@ -602,8 +728,14 @@ impl Engine {
     }
 
     /// One line in, one envelope out. Never panics on input.
+    #[cfg(test)]
     fn answer(&self, line: &str, mode: Mode) -> Value {
-        let mut id = Value::Null;
+        self.reply(line, mode).envelope
+    }
+
+    /// The envelope and the id as JSON text: an integer id beyond 64 bits keeps its digits (§2.1).
+    fn reply(&self, line: &str, mode: Mode) -> Reply {
+        let mut id = (Value::Null, None);
         let result = (|| -> Result<Value> {
             require(
                 mode == Mode::Once || line.len() <= MAX_LINE,
@@ -611,18 +743,28 @@ impl Engine {
                 "Request line exceeds 1 MiB",
             )?;
             let request: Value = serde_json::from_str(line)
-                .map_err(|e| Error::new("operation_failed", e.to_string()))?;
+                .map_err(|e| Error::new("invalid_request", format!("Request is not JSON: {e}")))?;
             require(
-                request.is_object() && request["method"].is_string(),
+                request.is_object(),
                 "invalid_request",
-                "Expected id/method/params JSON",
+                "Expected an id/method/params JSON object",
             )?;
-            id = request["id"].clone();
-            let method = request["method"].as_str().unwrap_or_default();
+            id = request_id(line, &request["id"])?;
+            let method = request["method"]
+                .as_str()
+                .ok_or_else(|| Error::new("invalid_request", "method must be a string"))?;
             let params = match &request["params"] {
-                Value::Null => json!({}),
-                other => other.clone(),
+                Value::Null => json!({}), // `null` is tolerated as `{}` (§2), as Python does
+                params @ Value::Object(_) => params.clone(),
+                _ => return Err(Error::new("invalid_params", "params must be an object")),
             };
+            require(
+                method == "engine_info"
+                    || ORACLE_METHODS.contains(&method)
+                    || NATIVE.contains(&method),
+                "unknown_method",
+                format!("Unknown media service method: {method}"),
+            )?;
             let empty = params.as_object().is_none_or(|p| p.is_empty());
             let readable = READ_METHODS.contains(&method)
                 || method == "engine_info"
@@ -644,9 +786,14 @@ impl Engine {
             }
             self.call(method, &params)
         })();
-        match result {
+        let (id, digits) = id;
+        let envelope = match result {
             Ok(data) => ok_envelope(&id, data),
             Err(error) => error_envelope(&id, &error),
+        };
+        Reply {
+            id: digits.unwrap_or_else(|| id.to_string()),
+            envelope,
         }
     }
 
@@ -658,8 +805,8 @@ impl Engine {
             if line.trim().is_empty() {
                 continue;
             }
-            let envelope = self.answer(&line, Mode::Serve);
-            if writeln!(stdout, "{envelope}")
+            let reply = self.reply(&line, Mode::Serve);
+            if writeln!(stdout, "{}", reply.line())
                 .and_then(|_| stdout.flush())
                 .is_err()
             {
@@ -667,6 +814,53 @@ impl Engine {
             }
         }
         0
+    }
+}
+
+/// An answer: the envelope, and its `id` as the JSON text to write.
+struct Reply {
+    id: String,
+    envelope: Value,
+}
+
+impl Reply {
+    /// `{"id":…,"ok":…,"data"|"error":…}` on one line, with the id exactly as it arrived.
+    fn line(&self) -> String {
+        let ok = self.envelope["ok"] == json!(true);
+        let (key, payload) = if ok {
+            ("data", &self.envelope["data"])
+        } else {
+            ("error", &self.envelope["error"])
+        };
+        format!(r#"{{"id":{},"ok":{ok},"{key}":{payload}}}"#, self.id)
+    }
+}
+
+/// §2.1: the id is an integer, a string or null (`invalid_request` otherwise, answered with `id: null`).
+/// An integer beyond 64 bits reads as a double in `serde_json` without `arbitrary_precision` (which would change
+/// what `nu9ve-json` reads, nu9ve-json-v1 §8), so its digits come from the raw text of the request.
+fn request_id(line: &str, id: &Value) -> Result<(Value, Option<String>)> {
+    let invalid = || Error::new("invalid_request", "id must be an integer, a string or null");
+    match id {
+        Value::Null | Value::String(_) => Ok((id.clone(), None)),
+        Value::Number(n) if n.is_i64() || n.is_u64() => Ok((id.clone(), None)),
+        Value::Number(_) => {
+            let fields: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+                serde_json::from_str(line).map_err(|_| invalid())?;
+            let text = fields.get("id").map(|raw| raw.get().trim()).unwrap_or("");
+            let digits = text.strip_prefix('-').unwrap_or(text);
+            if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(invalid());
+            }
+            // `-0` is the integer 0, as Python reads it.
+            let text = if digits.bytes().all(|b| b == b'0') {
+                "0"
+            } else {
+                text
+            };
+            Ok((id.clone(), Some(text.to_owned())))
+        }
+        _ => Err(invalid()),
     }
 }
 
@@ -697,15 +891,18 @@ fn main() {
             let read = std::io::stdin()
                 .take(16 * 1024 * 1024 + 1)
                 .read_to_string(&mut raw);
-            let envelope = match read {
-                Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.answer(raw.trim(), Mode::Once),
-                _ => error_envelope(
-                    &Value::Null,
-                    &Error::new("request_too_large", "Request exceeds 16 MiB"),
-                ),
+            let reply = match read {
+                Ok(_) if raw.len() <= 16 * 1024 * 1024 => engine.reply(raw.trim(), Mode::Once),
+                _ => Reply {
+                    id: "null".to_owned(),
+                    envelope: error_envelope(
+                        &Value::Null,
+                        &Error::new("request_too_large", "Request exceeds 16 MiB"),
+                    ),
+                },
             };
-            println!("{envelope}");
-            i32::from(envelope["ok"] != json!(true))
+            println!("{}", reply.line());
+            i32::from(reply.envelope["ok"] != json!(true))
         }
         _ => {
             eprintln!("usage: nuun-engine [--state-dir DIR] rpc-serve | rpc | --version");
@@ -932,7 +1129,11 @@ mod tests {
         );
         assert_eq!(
             e.answer("not json", Mode::Serve)["error"]["code"],
-            "operation_failed"
+            "invalid_request"
+        );
+        assert_eq!(
+            e.answer(r#"{"id": 5, "method": "frobnicate"}"#, Mode::Once)["error"]["code"],
+            "unknown_method"
         );
         assert_eq!(
             e.answer(r#"[1, 2]"#, Mode::Serve)["error"]["code"],
@@ -1046,6 +1247,68 @@ mod tests {
         }
         assert_eq!(cfg!(any(windows, target_os = "macos")), has);
         assert_eq!(cfg!(any(windows, target_os = "macos")), writes);
+    }
+
+    /// nu9ve-engine-v1 §11: the 20 engine cases of the pinned examples, line by line as `rpc-serve` reads them.
+    #[test]
+    fn engine_examples_v1() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../vendor/nu9ve-core/data/engine-examples-v1.json");
+        let examples: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let e = engine();
+        let check = |request: &str, expected: &Value, name: &str| {
+            if request.trim().is_empty() {
+                assert!(expected.is_null(), "{name}");
+                return; // `serve` skips it: no answer
+            }
+            let line = e.reply(request, Mode::Serve).line();
+            let reply: Value = serde_json::from_str(&line).unwrap();
+            let id: Value = serde_json::from_str(expected["id"].as_str().unwrap()).unwrap();
+            // The id comes back with its text: the same digits, the same type.
+            let digits = line
+                .strip_prefix(r#"{"id":"#)
+                .and_then(|rest| rest.split(r#","ok":"#).next())
+                .unwrap();
+            assert_eq!(digits, expected["id"].as_str().unwrap(), "{name}: {line}");
+            assert_eq!(reply["id"], id, "{name}");
+            assert_eq!(reply["ok"], expected["ok"], "{name}: {line}");
+            if expected["ok"] == json!(false) {
+                assert_eq!(reply["error"]["code"], expected["code"], "{name}: {line}");
+            }
+        };
+        let cases = examples["server"].as_array().unwrap();
+        assert_eq!(cases.len(), 20);
+        for case in cases {
+            let name = case["name"].as_str().unwrap();
+            let mut request = case["request"].as_str().unwrap().to_owned();
+            if let Some(pad) = case["pad_bytes"].as_u64() {
+                request = request.replace("<pad>", &"x".repeat(pad as usize));
+            }
+            check(&request, &case["response"], name);
+            if let Some(then) = case.get("then") {
+                check(then["request"].as_str().unwrap(), &then["response"], name);
+            }
+        }
+    }
+
+    #[test]
+    fn engine_info_follows_the_contract() {
+        let info =
+            engine().answer(r#"{"id": 1, "method": "engine_info"}"#, Mode::Serve)["data"].clone();
+        assert_eq!(info["contract"], "nu9ve-engine/1");
+        assert_eq!(info["protocol"], "nuun-media/1");
+        assert_eq!(info["capabilities"], json!([]));
+        let ported = info["ported"].as_array().unwrap();
+        for method in info["native"].as_array().unwrap() {
+            assert!(!ported.contains(method), "{method} is ported and native");
+            assert!(
+                !ORACLE_METHODS.contains(&method.as_str().unwrap()),
+                "{method}"
+            );
+        }
+        for method in NATIVE {
+            assert!(!ORACLE_METHODS.contains(&method), "{method}");
+        }
     }
 
     #[test]

@@ -13,13 +13,35 @@ from .transfer import Transfer
 from .volumes import VolumeBackend
 
 
+# Every method `Service.call` answers (tests/test_engine_boundary.py checks it against the dispatch below and
+# against the Rust engine's ORACLE_METHODS). Anything else is `unknown_method`, before any mode check.
+METHODS = frozenset({
+    'action_progress', 'apply', 'apply_release', 'asset_revisions', 'backup_metadata', 'cancel_plan',
+    'capture_discard_check', 'capture_discarded', 'capture_libraries', 'capture_overview', 'captures',
+    'closure_apply', 'closure_candidates', 'closure_deliveries', 'closure_link', 'closure_link_candidates',
+    'closure_overview', 'closure_plan', 'closure_progress', 'closure_save', 'collection_release_apply',
+    'collection_release_plan', 'collection_release_plans', 'confirm_camera_cleanup', 'confirm_device', 'coverage',
+    'defaults', 'deliver_work', 'devices', 'discover', 'dismiss_job', 'dng_apply', 'dng_plan', 'eject_card',
+    'finals_status', 'handoff', 'integration_capabilities', 'integration_settings', 'job', 'jobs', 'library',
+    'living_apply', 'living_collections', 'living_plan', 'missions_incorporate', 'missions_review', 'missions_status',
+    'plan', 'plan_document', 'plan_finals', 'plan_finals_document', 'plan_release', 'profiles', 'project_preview',
+    'projects', 'publications', 'publish_revision', 'recipe', 'reconcile_sony_cleanup', 'recover_catalog',
+    'register_volume', 'relayout', 'release_plans', 'relink_release', 'rename_project', 'resolve', 'restore',
+    'resume', 'retitle_capture', 'retitle_operations', 'review_release', 'save_capture_tag', 'save_capture_tags',
+    'save_profile', 'set_finals_folder', 'set_project_state', 'set_publication', 'set_work_state', 'snapshot',
+    'source_cards', 'sources', 'storage_add_folder', 'storage_compare', 'storage_overview', 'storage_progress',
+    'storage_remove_folder', 'storage_scan', 'storage_tree', 'suggest', 'touch_project', 'transcripts_backup',
+    'volumes',
+})
+
+
 class Service:
     def __init__(self, catalog, backend=None, cancel=None):
         self.catalog, self.backend, self.cancel = catalog, backend or VolumeBackend(catalog.home), cancel
 
     def call(self, method, params=None):
         params = params or {}
-        require(isinstance(params, dict), 'invalid_request', 'params must be an object')
+        require(isinstance(params, dict), 'invalid_params', 'params must be an object')
         if method == 'project_preview':
             from .common import slug
             return {'name': slug(params.get('name'))}

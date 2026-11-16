@@ -11,7 +11,9 @@ publish.workspace = true
 nu9ve-json.workspace = true
 nuun-recipe = { path = "../crates/nuun-recipe" }
 nuun-media = { path = "../crates/nuun-media" }
-serde_json.workspace = true
+# `raw_value`: the digits of an integer id beyond 64 bits (nu9ve-engine-v1 §2.1), without `arbitrary_precision`,
+# which would change what `nu9ve-json` reads (nu9ve-json-v1 §8). It only adds `RawValue`; `Value` reads the same.
+serde_json = { workspace = true, features = ["raw_value"] }
 
 [lints]
 workspace = true
