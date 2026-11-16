@@ -1,6 +1,6 @@
 # Contratos
 
-Reglas que toda la suite sigue. Cada contrato dice por separado qué está implementado y en qué app, con una tabla de adopción por app. Se mudaron de `n-creator-utils/docs/contracts/` el 2026-11-16 y desde entonces se editan aquí.
+Reglas que toda la suite sigue. Cada contrato dice la regla; qué cumple cada app está aparte, en [adopción por app](../docs/adoption.md). Se mudaron de `n-creator-utils/docs/contracts/` el 2026-11-16 y desde entonces se editan aquí.
 
 | Contrato | Qué define | Estado |
 | --- | --- | --- |
@@ -15,4 +15,4 @@ Reglas que toda la suite sigue. Cada contrato dice por separado qué está imple
 
 Los contratos de media (Stalker, Clipper, Atlas, ingreso, nombres, cierre de proyectos) se quedan en [n-creator-utils](https://github.com/nu9ve/n-creator-utils/blob/master/docs/contracts/README.md): son entre nüün y otra app.
 
-Un cambio que rompe sube de versión (`-v2`) y las dos conviven mientras las apps migran. Cada app actualiza su fila de adopción desde su propio repo, con un cambio aquí.
+Un cambio que rompe sube de versión (`-v2`) y las dos conviven mientras las apps migran. Un contrato cambia sólo cuando cambia su regla. Cada app actualiza su fila en [adopción por app](../docs/adoption.md) desde su propio repo, con un cambio aquí, y eso no deja atrás a las apps que fijan el contrato.

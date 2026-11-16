@@ -126,29 +126,7 @@ Enlaza con el [sonido de tema](nu9ve-sound-v1.md). Una notificación puede sonar
 
 ## Adopción
 
-Leído en el código el 2026-11-10; nadie probó un aviso desde esta sesión.
-
-| Regla | nove (Windows) | nove (Mac) | nüün (Mac) | nüün (Windows) | curado | Fractos Mac |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 Cola en el motor | Sí (`deliveries.rs`) | No: publica la app | No: publica la app | No | No | No |
-| 2 Catálogo de tipos | Implícito en el motor (web, OTC, prueba) | Implícito | Un tipo: tarjeta detectada. Falta fin de trabajo | No | No | No |
-| 3 Por defecto y control | Sí: «todo salvo excepciones» (A36), prueba de canal | Opt-in por vigilancia | Sin ajustes de avisos | No | No | No |
-| 4 Contenido | Sí: tres líneas, botón «Ver en el Buzón», argumentos validados | Parcial | Parcial: título y recomendación; sin botones | No | No | No |
-| 5 Identidad y límites | Sí: etiqueta y grupo, 30/h, 12 h, reintentos | Identificador por aviso | Identificador por tarjeta; sin límite | No | No | No |
-| 6 Urgencia | Sí: recordatorio para señales de estrategia | No | No | No | No | No |
-| 7 Sonido | Del sistema | Del sistema (pide `.sound`) | Silencioso (sólo pide `.alert`) | No | No | No |
-| 8 Adaptador | Sí: rol `--deliver-toast`, activación COM | En la app | En la app; el clic abre Ingreso | No | No | No |
-| 9 Validación | Automática sí; clic físico pendiente | Con ayudante ficticio; aceptación del sistema pendiente | Sin pruebas vistas | — | — | — |
-
-Primeros pasos sugeridos:
-
-- **nüün (Mac):** avisos de trabajo terminado y fallido con la app en segundo plano, con «Ver resultado» y «Expulsar tarjeta»; sección Avisos en Ajustes; sonido.
-- **nüün (Windows):** el adaptador copiando el rol de nove con comentario de origen, cuando `plan`/`apply` estén en la ventana ([brief S9](../docs/audits/session-briefs-2026-11-10.md#s9--integración-de-sistema-en-la-ventana-de-windows)).
-- **nove (Mac):** llevar el canal del sistema a la cola del motor al alcanzar el esquema actual, para que Mac y Windows compartan límites, alcance y caducidad.
-- **nove (Windows):** registrar el clic físico; decidir si el canal nace encendido.
-- **curado y Fractos Mac:** sólo cuando tengan algo que avisar en segundo plano.
-
-Brief: [S18](../docs/audits/session-briefs-2026-11-10.md#s18--avisos-del-sistema-en-nüün-para-mac).
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-notifications-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 

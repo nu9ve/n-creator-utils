@@ -150,8 +150,4 @@ Se regeneran aquí con `python3 -I scripts/json-vectors.py` (y `--check` comprue
 
 ## Adopción
 
-| App | Implementación | Prueba los vectores | Nota |
-| --- | --- | --- | --- |
-| nüün | Python `media/common.py` (oráculo) y Rust `nu9ve-json` | Rust: `engine/nuun-engine/tests/json_vectors.rs`, con el crate y los vectores de su copia fijada | El gate compara además el motor con el dorado de Python (`scripts/engine_golden.py --check` y 23 diferenciales en macOS) |
-| Clipper | Rust `nu9ve-json` desde su copia fijada, para el sobre de `clipper-engine/1`, `sha256_hex` y `uuid4` (desde el 2026-11-16); su JSON propio sigue en `py.rs`/`pyval.rs` | No todavía: el canónico no lo usa | Compila `serde_json` con `arbitrary_precision` y `preserve_order` (§8) |
-| nove | Sobre `{code, message}` propio | — | Ola 3 |
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-json-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.

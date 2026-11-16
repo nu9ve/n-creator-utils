@@ -5,6 +5,7 @@
 | Ver cada app de nu9ve, para qué sirve, sus plataformas y lo que se repite | [Mapa de la suite](suite.md) |
 | Entender por qué hay un repo común y cómo lo consume una app | [Cómo se comparte](suite-sharing.md) |
 | Saber qué falta mudar de n-creator-utils y cuándo | [Qué se muda](suite-split.md) |
+| Ver qué cumple cada app de cada contrato | [Adopción por app](adoption.md) |
 | Ver qué se extrae después, en qué orden, y cómo empieza a compartir cada app | [Qué se extrae y cómo se adopta](suite-adoption.md) |
 | Construir una app de Windows sobre la base de la suite | [Windows en la suite](platforms/windows.md) |
 | Traducir una función del sistema entre macOS, Windows y Linux | [Integración con el sistema](platforms/os-integration.md) (propuesta) |

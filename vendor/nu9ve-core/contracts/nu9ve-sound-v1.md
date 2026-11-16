@@ -224,26 +224,7 @@ Los **datos** (receta, referencia, paquete) se comparten desde el primer día; l
 
 ## Adopción
 
-Leído en el código el 2026-11-10; nada escuchado.
-
-| Regla | Fractos Mac | Fractos iOS | nüün | nove | curado |
-| --- | --- | --- | --- | --- | --- |
-| 1 Motor v2 | Sí, receta 3 | No: motor v1 | No | No | No |
-| 2 Señales y gestos | Sí: es el origen de la tabla | Vocabulario propio de 11 acciones | No | No | No |
-| 3 Voz por skin | Sí, por tema | Por tema | No | No | No |
-| 4 Entrega | Motor Swift | Motor v1 | — | — | — |
-| 5 Reproducción | Sí: precarga, límites, fatiga, reposo a los 20 s | `AVAudioEngine` con grupos y caché | No | No | No (tiene respuesta visual y háptica de teclado, no sonido de interfaz) |
-| 6 Silencio | No: sólo en QA; no lee la preferencia del sistema | Coordinador de sesión de audio | No | No | No |
-| 7 Por defecto y ajustes | Encendido por defecto (cumple la decisión); dos interruptores en Ajustes, sin volumen, sin «Silenciar» a un paso ni aviso de primera vez | Efectos, voz, volúmenes y háptica; sincroniza con su API | Parcial: Windows guarda `app.interfaceSounds`; nada suena | No | No |
-| 8 Háptica | Sí, sin probar con trackpad | Sí | No | No | Háptica propia en Mac |
-
-Primeros pasos sugeridos:
-
-1. **Mac, con el repo de la web:** confirmar este contrato contra el motor de la web, resolver la pregunta de niveles y exportar el paquete (S19).
-2. **Usuario:** confirmar las voces de los skins que Fractos no tiene (§3).
-3. **Fractos:** decir en sus documentos que el v2 es el vigente; en la app de Mac, «Silenciar» a un paso, volumen y reglas de silencio.
-4. **nüün Windows** como primera app consumidora (paquete): ya tiene los cinco skins y un `ThemeService` central.
-5. **nüün Mac** con el motor Swift, cuando se decida dónde vive lo compartido.
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-sound-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 

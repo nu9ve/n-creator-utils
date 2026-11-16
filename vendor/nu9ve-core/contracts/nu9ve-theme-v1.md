@@ -271,28 +271,8 @@ Cada skin puede sonar a su época, como Fractos (`FractosSoundV2`, voces sinteti
 
 ## Adopción
 
-Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar. La columna de Fractos se releyó el 2026-11-10 en `ios-fractos` (`f1a7bcb`, app de Mac y `FractosDesign`), también sin verla.
-
-| Regla | Fractos | curado | SoundShop | nüün | kyu | nove | neuf | Stalker |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, con estados; sin `secondary` (2026-11-07) | No: solo acento | No: colores fijos | No: colores del sistema | No aplica: sistema |
-| 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz y los 110 vectores para `accent` y `onAccent` (TypeScript, 2026-11-16) | Sí, sin matriz | Sí, matriz (`ThemeRolesTests`) y [110 vectores fijados](../data/theme-vectors-v1.json) en Swift (`ThemeVectorsTests`, 2026-11-16) | No | No | Parcial: texto sobre acento | No aplica |
-| 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Parcial: estilo, modo, acento | No | Parcial: modo | No aplica |
-| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Parcial: washi, dither, cristal, mínimo | No | No | No aplica |
-| 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Parcial: solo escrita | No | No aplica |
-| 8 Todas las ventanas | Sí en código (Mac): `ThemedWindowContent` da barra y atmósfera a Ajustes y Acerca de | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
-| 9 Idioma | No en Mac: sólo español, sin catálogo de textos; iOS con catálogo incompleto | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
-
-Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
-
-- **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark. **Windows (2026-11-09, maqueta):** mismos roles y cinco skins portados a C# con su matriz, más una prueba de contraste por superficie con skin (`SurfaceChromeTests`). En Windows la ventana y sus botones siguen siendo del sistema ([windows-app-v1 §3](windows-app-v1.md#3-tema)).
-- **kyu:** derivar toda la paleta desde el acento.
-- **nove:** sus tres direcciones como presets y quitar los colores fijos.
-- **neuf:** elegir su dirección de cine.
-- **SoundShop:** añadir i18n.
-
-- **curado (2026-11-16):** `bun test src/lib/theme.test.ts` comprueba los hex de `accent` y `onAccent` en los 110 casos fijados y añade sus 11 bases a la matriz de los cinco estilos propios. La comparación de los demás hex queda pendiente de adoptar las paletas comunes.
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-theme-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 
-Regla nueva o más estricta: añadirla, actualizar esta tabla y avisar en cada app afectada. Cambiar la medida de un skin la cambia en todas las apps que lo soportan.
+Regla nueva o más estricta: añadirla, actualizar su tabla en [adopción por app](../docs/adoption.md#nu9ve-theme-v1) y avisar en cada app afectada. Cambiar la medida de un skin la cambia en todas las apps que lo soportan.

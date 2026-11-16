@@ -107,24 +107,7 @@ Candidato a crate común (`nu9ve-mcp`) cuando otra app con motor Rust lo necesit
 
 ## Adopción
 
-nove y nüün leídos en su código el 2026-11-09. Las demás apps no están clonadas en esta máquina: sin revisar.
-
-| Regla | nove 0.12 (Windows) | nüün (`media mcp`) | curado | Clipper · kyu · Stalker · neuf · SoundShop · Atlas |
-| --- | --- | --- | --- | --- |
-| 0 Local stdio, sin HTTP | Sí | Sí | No tiene servidor (revisado: sin `mcp` en el código) | Sin revisar |
-| 0 Cliente del motor en ejecución | Sí: named pipe, usuario y PID verificados | **No:** abre el catálogo con `Service` en su proceso | — | Sin revisar |
-| 1 Protocolo y errores | Sí; versiones hasta 2025-06-18 | Sí; versiones hasta 2025-11-25; `serverInfo` `ncreator-media` 0.2.0, no el nombre y la versión de la app | — | Sin revisar |
-| 2 Niveles | Leer, Mostrar, Editar, Actuar | Sólo Leer (7 herramientas: biblioteca, recurso, jobs, job, volúmenes, almacenamiento) | — | Sin revisar |
-| 3 Permiso por sesión y registro | Sí (datos 22, 60 min, deshacer) | No aplica todavía | — | Sin revisar |
-| 4 `_untrusted` e instrucciones | Sí | Parcial: instrucciones de una línea; nombres de archivo y proyecto sin marcar como datos | — | Sin revisar |
-| 5 Registro e instalación | Alias MSIX `nove-mcp.exe`; Mac responde «sólo Windows» | `nu9ve media mcp` desde el checkout; sin alias ni ruta en el bundle | — | Sin revisar |
-| 6 Validación | Motor real + MCP en `tests/mcp.rs`; **cliente real comprobado el 2026-11-09**: esta sesión de Claude Code llamó `nove_status` y respondió (motor en segundo plano, esquema 24) | `test_mcp_is_read_only_and_does_not_invoke_mutations` (en proceso); sin cliente real registrado | — | Sin revisar |
-
-Primeros pasos sugeridos:
-
-- **nüün:** que el MCP pida al lector persistente (`snapshot`) en lugar de abrir el catálogo, `serverInfo` `nuun` con la versión de la app, campos `_untrusted` para nombres de archivo y proyecto, y `show_in_app` para abrir un proyecto o un plan revisado en la ventana. Escribir `docs/mcp.md`.
-- **nove:** servidor también en Mac; `<app>_status` ya existe como `nove_status`.
-- **curado, kyu, Clipper:** empezar por Leer (biblioteca, proyectos, estado) y Mostrar; Editar sólo con registro deshacible.
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-mcp-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 

@@ -125,21 +125,8 @@ Atajos de dominio que ya existen y conviene conservar entre apps del mismo tipo:
 
 ## Adopción
 
-Leído en el código el 2026-11-07, sin probar a mano. Revisar al actualizar. La columna de Fractos se releyó el 2026-11-10 en la app de Mac de `ios-fractos` (`f1a7bcb`).
-
-| Regla | curado | SoundShop | Clipper TUI | nüün | kyu | Fractos | nove · neuf · Stalker |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 Catálogo | Sí (`keyboard.ts`) | Sí, con prueba | Sí (`SHORTCUT_SPECS`), con prueba | No: atajos solo en el menú | Sin revisar | No (Mac): atajos en `AppCommands.swift` y sueltos en pantallas | Sin revisar |
-| 2 Todo por teclado | Sí en la cabina | Parcial | Sí | Parcial: menús, ⌘1…⌘6, pasos de Ingreso | Parcial: cribado con 0–5, P/X/U, flechas | Parcial (Mac): menús, flechas en Trabajo y Calendario; las secciones van en ⌥⌘1… y ⌘1/⌘2 son filtros de Trabajo, no las vistas de la §8 | Sin revisar |
-| 3 Badges y capas | Sí, con capa de Option | Sí en el footer; en los controles sin revisar | Barra de contexto (terminal) | No | Sin revisar | No | Sin revisar |
-| 4 Ayuda contextual | Sí (footer) | Sí (barra de estado) | Barra de contexto | No | Sin revisar | No | Sin revisar |
-| 5 Panel de atajos | Pestaña teclado | Sí (⌘/) | Sin revisar | No | Sin revisar | No | Sin revisar |
-| 6 Remapeo | Sí | Sin revisar | Sin revisar | No | Sin revisar | No | Sin revisar |
-
-Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
-- **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/. En Windows (maqueta, 2026-11-09) ya hay catálogo con pruebas de duplicados y de teclas del sistema, aceleradores y tooltips generados desde él, `AccessKey` en la navegación y panel Ctrl+/; es la referencia para portar el catálogo a la app de Mac.
-- **kyu y neuf:** el recorrido completo por teclado de la §10, porque son las apps de edición más densas.
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-interaction-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 
-Regla nueva o más estricta: añadirla, actualizar esta tabla y avisar en cada app afectada.
+Regla nueva o más estricta: añadirla, actualizar su tabla en [adopción por app](../docs/adoption.md#nu9ve-interaction-v1) y avisar en cada app afectada.

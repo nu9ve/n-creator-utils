@@ -163,22 +163,7 @@ El instalador nativo de MSIX (App Installer) no se puede personalizar. Para que 
 
 ## Adopción
 
-nove y curado leídos en sus repos el 2026-11-07; nüün probado en Windows 11 el 2026-11-09 (compilación, pruebas, capturas y recorrido por UI Automation).
-
-| Regla | nove 0.12 Windows | curado 0.1 (Tauri) | nüün 0.1 Windows (maqueta) |
-| --- | --- | --- | --- |
-| 0 Motor común | Sí: Rust, named pipe, pruebas de contrato | Sí: Rust + comandos Tauri | Parcial: protocolo de `media rpc-serve`, transporte probado en memoria; motor no portado (volúmenes de Mac) |
-| 1 Barra de título | Sí: `TitleBar` | Barra decorada del sistema en Windows (THEMES.md) | Sí: `TitleBar`, botones del sistema teñidos, dos filas en skins de época |
-| 2 Ventana | Parcial | Sin revisar | Parcial: tres modos con tamaños de Mac por DPI, compacto encima; no recuerda el marco |
-| 3 Tema | Parcial: «Puerto» claro/oscuro/alto contraste en código, sin captura de alto contraste | Sí en la WebView; alto contraste sin revisar | Sí en código y capturas: cinco skins, roles y superficies probados, vectores compartidos; alto contraste sin revisar a mano |
-| 4 Teclado | Parcial: menús de bandeja con teclado; catálogo y access keys sin revisar | Sí en la WebView (remapeo); access keys no aplican | Parcial: catálogo con pruebas, aceleradores, `AccessKey`, panel Ctrl+/; sin badges de Ctrl/Shift |
-| 5 Acerca de | Sí | Sin revisar | Sí (maqueta) |
-| 7 Ajustes | Sí | Sí | Parcial: Apariencia y Teclado |
-| 8 Sistema | Sí: host, bandeja, StartupTask, avisos, Credential Manager; falta aceptación física de sesión/suspensión | Sin segundo plano | No aplica todavía: sin segundo plano |
-| 9 Paquete | Parcial: MSIX con certificado de desarrollo | Parcial: instaladores generados, uso en Windows pendiente | Parcial: MSIX empaquetado sin firmar; Setup con identidad en demostración |
-| 10 Validación | Sí: `NOVE_QA_ROOT`, UI Automation | Pruebas automáticas en Windows 11; GUI pendiente | Sí: `NUUN_QA_ROOT`, `qa-skins.ps1`, UI Automation; 55 pruebas |
-
-Las demás apps no tienen cliente Windows. El [mapa de la suite](../docs/suite.md#plataformas) dice cuál podría tenerlo y con qué motor.
+Quién adoptó qué está en [adopción por app](../docs/adoption.md#windows-app-v1). Cambia cuando una app avanza, sin tocar este contrato: así una app que lo fija no queda atrás por el avance de otra.
 
 ## Cambios
 

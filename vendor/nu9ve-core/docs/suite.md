@@ -94,4 +94,4 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 
 ## Mantener este mapa
 
-Actualízalo cuando nazca una app, cambie su plataforma o motor, se adopte un contrato o una pieza llegue a tres copias. Los detalles y la evidencia van en el repo de cada app y en la tabla de adopción de cada contrato; aquí solo el resumen y los enlaces.
+Actualízalo cuando nazca una app, cambie su plataforma o motor, se adopte un contrato o una pieza llegue a tres copias. Los detalles y la evidencia van en el repo de cada app y en [adopción por app](adoption.md) de cada contrato; aquí solo el resumen y los enlaces.
