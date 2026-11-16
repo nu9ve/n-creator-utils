@@ -54,12 +54,31 @@ El primer paso es igual en todas y no mueve código: declarar en `vendor/nu9ve-c
 | **kyu** | `contracts/{nu9ve-theme,nu9ve-interaction}-v1.md`, `data/theme-vectors-v1.json` | `NuMacShell`, `Nu9veTheme` | Sus pruebas de roles, como segunda verificación de los vectores en Swift; la regla de `slug()` | Sin remoto todavía |
 | **neuf** | `contracts/{macos-app,nu9ve-theme}-v1.md` | `NuMacShell` (ventana y doble clic) | — | Remoto `nu9ve/neuf` |
 | **Stalker** | `contracts/macos-app-v1.md` | `NuMacShell` al tocar su interfaz | — | Último cambio el 2026-10-29; baja prioridad |
-| **Clipper** | `contracts/nu9ve-mcp-v1.md` y, con el contrato, `nu9ve-json-v1` | `nu9ve-json` para firmas y sobres, después de comprobar los vectores byte a byte | — | Mayormente Python; su roadmap ya enlaza aquí |
+| **Clipper** | `contracts/nu9ve-json-v1.md`, `contracts/nu9ve-mcp-v1.md`, `data/json-vectors-v1.json`, `rust/nu9ve-json` | `nu9ve-json` en lugar de su sobre, su SHA-256 a mano y sus ids ([§4](#4-clipper-qué-de-su-rust-sirve-a-la-suite)) | Semántica de Python (`nu9ve-py`), archivos atómicos y bloqueo (`nu9ve-fs`), supervisor de procesos (`nu9ve-jobs`) | Motor de Rust de unas 39 000 líneas que porta desde Python, como nüün |
 
-## 4. Orden sugerido
+## 4. Clipper: qué de su Rust sirve a la suite
+
+Leído el 2026-11-16 en `clipper` (`main`, `0dd5d81`). `clipper-core` es un solo crate de unas 39 000 líneas, `edition = "2024"`, `rust-version = "1.89"`, cuya única dependencia es `serde_json` (con `arbitrary_precision` y `preserve_order`). Igual que nüün, porta a Rust un motor de Python método por método, con la respuesta byte a byte como criterio y `not_ported` para lo que falta. Ese camino común es la razón de casi todo el solapamiento.
+
+| Pieza de Clipper | Qué hace | Ya existe en la suite | Qué haría falta |
+| --- | --- | --- | --- |
+| Sobre de `main.rs` (`{id, ok, data}` / `{id, ok: false, error: {code, message}}`) | Respuestas del protocolo `clipper-engine/1` | Es el mismo sobre de [`nu9ve-json-v1` §9](../contracts/nu9ve-json-v1.md) (`ok_envelope`, `error_envelope`) | Adoptar `nu9ve-json` para el sobre. Ningún cambio en el protocolo |
+| `py::sha256_hex` (SHA-256 escrito a mano), `fsio::random_bytes`, `fsio::uuid4` | Digest de esquemas y reglas, ids | `nu9ve-json`: `digest`, `hex`, `random_bytes`, `uid` (sobre `sha2`) | Adoptar `nu9ve-json` y borrar las copias. Antes, aceptar en Clipper la dependencia `sha2` y comprobar los vectores |
+| `py::float_repr`, `pyval::dumps` (los formatos de `json.dumps`, con indentación incluida), `round_to`, `casefold`, `strip`; `paths.rs` (`pathlib` de POSIX) | Reproducir CPython para que las respuestas coincidan con Python | `nu9ve-json::python_float_repr` y el JSON canónico; `nu9ve-time` en nüün para `datetime` | **Candidato nuevo, `nu9ve-py`**: «semántica de Python» para los dos motores que portan desde Python. El JSON canónico se queda en `nu9ve-json`. Lo de `json.dumps(indent=2)`, `round`, cadenas y `pathlib` va al crate nuevo, con vectores generados por CPython como `data/json-vectors-v1.json` |
+| `rpc_writes/fsio.rs` (`atomic_write` con `mkstemp`, fsync y rename, más fsync del directorio; `locked_path` con `flock`) y otra `atomic_write` en `rpc_jobs/store.rs` | Escribir y bloquear igual que `storage.py` | `nu9ve-volumes/src/fs.rs` en nüün: `full_sync`, `sync_dir`, `create_new`, leer sin caché | **Candidato nuevo, `nu9ve-fs`**: separar de `nu9ve-volumes` la parte de archivos (lo que no es identidad de disco) y sumar escritura atómica y bloqueo. Clipper sería el segundo usuario y curado el tercero. Ojo: Clipper usa `fsync(2)` simple a propósito, para igualar a Python, mientras `File::sync_all` en macOS hace `F_FULLFSYNC`. Hay que decidirlo en el contrato |
+| `rpc_jobs/supervise.rs` (≈2 500 líneas con `publication` y `sequence`) | Supervisa un proceso: grupo propio, eventos NDJSON, cancelar por señal, archivo o cola, timeout y bloqueo con SIGTERM y luego SIGKILL, y publicación atómica de lo que produjo | Nada todavía. Lo mismo, en otra forma, en los stems de curado (Demucs aislado), en `separate.py` de SoundBender y en las transferencias de nüün | **Candidato de la ola 3, `nu9ve-jobs`**: el supervisor genérico sin el manifiesto `clipper-job/1`. Entra cuando un segundo motor de Rust (curado o nüün) lo necesite. Antes hay que separar en Clipper lo genérico de lo que conoce su cola |
+| `rpc_jobs/progress.rs` (progreso de FFmpeg `-progress`, archivo `fracción\tetiqueta`, ETA) | Progreso de los workers | — | Se queda en Clipper por ahora. Es candidato a acompañar a `nu9ve-jobs` si nüün o curado leen el progreso de FFmpeg |
+| `ClipperScore` (DSP en Swift, según `docs/2026-11-12-native-core-migration.md`) | Análisis de audio | Las capas de audio en propuesta (`nu9ve-loudness`, `nu9ve-dsp`) | Si Clipper lo porta a Rust, que use o alimente `nu9ve-loudness` y no un tercer limitador o LUFS |
+| Timeline, cortes, subtítulos, framing, multicam, overlays, miniaturas, `program_clock`, cola de exportación | El dominio editorial | — | Se queda en Clipper |
+
+**Regla para Clipper:** la primera adopción es `nu9ve-json`, porque ya duplica su sobre, su digest y sus ids. Como `nu9ve-json` exige `rust-version = "1.89"`, igual que Clipper, la adopción se reduce a fijar `rust/nu9ve-json` y `data/json-vectors-v1.json`, comprobar los vectores en su gate y borrar las copias. `nu9ve-py` y `nu9ve-fs` se diseñan con nüün y Clipper juntos, cada uno en un cambio propio aquí.
+
+## 5. Orden sugerido
 
 1. ~~Mudar `NuMacShell` a `swift/`, con Fractos como primera copia fijada.~~ Hecho el 2026-11-16.
 2. ~~Escribir `nu9ve-json-v1` con sus vectores, mudar `nu9ve-json` y crear el workspace de `rust/`.~~ Hecho el 2026-11-16.
-3. Hacer la primera copia fijada en nove, kyu, SoundBender y curado. Cada app, un cambio propio en su repo.
-4. Pruebas de tema en Swift contra los vectores (nüün y kyu), y después `Nu9veTheme`.
-5. Escribir la guía de prácticas comunes.
+3. ~~Hacer la primera copia fijada en nove, kyu, SoundBender y curado.~~ Hecho el 2026-11-16, en `e0e7683`. Además de lo de la tabla, kyu y curado fijan `macos-app-v1`, y SoundBender los vectores de tema. kyu no tiene remoto.
+4. ~~Clipper adopta `nu9ve-json`~~ Hecho el 2026-11-16 ([§4](#4-clipper-qué-de-su-rust-sirve-a-la-suite)): primera copia fijada, y el sobre, el SHA-256 y los ids salen del crate. Sus 186 equivalencias doradas con Python siguen iguales.
+5. Pruebas de tema en Swift contra los vectores (nüün y kyu), y después `Nu9veTheme`.
+6. Diseñar `nu9ve-fs` (de `nu9ve-volumes/fs.rs` y `fsio.rs` de Clipper) y `nu9ve-py` (de `py.rs`, `pyval.rs`, `paths.rs` y `nu9ve-time`), cada uno con su contrato y sus vectores.
+7. Escribir la guía de prácticas comunes.

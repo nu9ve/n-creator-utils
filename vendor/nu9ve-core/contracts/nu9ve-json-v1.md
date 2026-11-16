@@ -83,6 +83,8 @@ Python los lee y falla al escribir (`ValueError`, `UnicodeEncodeError`); `serde_
 
 El digest de un valor es **SHA-256 de sus bytes canónicos**, en hexadecimal de 64 caracteres en minúsculas. `{"a":1}` → `015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862`.
 
+Para bytes que no son un valor canónico (un archivo de esquema, un texto ya serializado), `sha256_hex(bytes)` da el mismo hexadecimal que `hashlib.sha256(data).hexdigest()`. Eso no es un digest de la suite: sólo dice qué bytes se hashearon.
+
 ## 7. Ids
 
 | Id | Forma | Python | Rust |
@@ -104,6 +106,8 @@ Entradas en las que hoy las implementaciones **no** coinciden. Ningún productor
 | `-0` (entero) | `0` | `-0.0` | `serde_json` lee `-0` como double |
 | Enteros fuera de `i64`/`u64` (`18446744073709551616`) | el entero exacto | un double (`1.8446744073709552e+19`) | `serde_json` sin `arbitrary_precision` |
 | Un decimal que cae justo entre dos doubles con más de 17 dígitos (`9007199254740993.0`, `12345678901234567.0`) | redondea al par | a veces al otro | `serde_json` sin `float_roundtrip` no siempre redondea bien |
+
+**Con `arbitrary_precision`.** Cargo une las features de `serde_json` en todo el binario, así que una app que las activa (Clipper: `arbitrary_precision` y `preserve_order`) compila `nu9ve-json` con ellas. Medido el 2026-11-16: todos los vectores `accepted` siguen dando los mismos bytes y digests que Python. Cambian dos cosas del lector: el entero `-0` se escribe `0`, como en Python, y `1e400` se lee en vez de rechazarse. Esa app **no debe** pasar a `canonical` ni a `digest` valores leídos de afuera sin rechazar antes los números que no caben en un double.
 
 Lo que sí está garantizado: todo texto que escribe esta regla se relee igual. Los dígitos más cortos de §3.2 nunca caen en un empate, y las pruebas lo comprueban leyendo de vuelta cada salida canónica.
 
@@ -149,5 +153,5 @@ Se regeneran aquí con `python3 -I scripts/json-vectors.py` (y `--check` comprue
 | App | Implementación | Prueba los vectores | Nota |
 | --- | --- | --- | --- |
 | nüün | Python `media/common.py` (oráculo) y Rust `nu9ve-json` | Rust: `engine/crates/nu9ve-json/tests/vectors.rs`, desde su copia fijada | Python además se compara con Rust en `scripts/engine_golden.py` |
-| Clipper | — | — | Lo evalúa en su roadmap para firmas y sobres |
+| Clipper | Rust `nu9ve-json` desde su copia fijada, para el sobre de `clipper-engine/1`, `sha256_hex` y `uuid4` (desde el 2026-11-16); su JSON propio sigue en `py.rs`/`pyval.rs` | No todavía: el canónico no lo usa | Compila `serde_json` con `arbitrary_precision` y `preserve_order` (§8) |
 | nove | Sobre `{code, message}` propio | — | Ola 3 |

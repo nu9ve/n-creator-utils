@@ -57,7 +57,13 @@ pub fn canonical(value: &Value) -> Vec<u8> {
 
 /// SHA-256 hex of the canonical bytes (Python's `digest`).
 pub fn digest(value: &Value) -> String {
-    hex(&Sha256::digest(canonical(value)))
+    sha256_hex(&canonical(value))
+}
+
+/// SHA-256 hex of any bytes (Python's `hashlib.sha256(data).hexdigest()`), for apps that hash text that is
+/// not a canonical value, such as a schema file.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    hex(&Sha256::digest(bytes))
 }
 
 pub fn hex(bytes: &[u8]) -> String {
@@ -193,6 +199,16 @@ pub fn python_float_repr(x: f64) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn sha256_hex_matches_hashlib() {
+        // hashlib.sha256(b"abc").hexdigest()
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(digest(&json!({"a": 1})), sha256_hex(b"{\"a\":1}"));
+    }
 
     #[test]
     fn floats_follow_python_repr() {
