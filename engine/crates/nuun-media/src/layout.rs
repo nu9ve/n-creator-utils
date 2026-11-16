@@ -54,6 +54,18 @@ pub(crate) fn handycam_hdd(paths: impl IntoIterator<Item = impl AsRef<str>>) -> 
     model && index
 }
 
+/// The sequence is evidence for grouping candidates. It is not a content identity.
+pub(crate) fn handycam_sequence(path: &str) -> Option<String> {
+    let name = path.rsplit('/').next()?.to_ascii_uppercase();
+    let sequence = name.get(..8)?;
+    let tail = name.get(8..)?;
+    (sequence.starts_with("M2U")
+        && sequence[3..].bytes().all(|b| b.is_ascii_digit())
+        && (tail.starts_with('_') || tail.starts_with('.'))
+        && (name.ends_with(".MPG") || name.ends_with(".MP4")))
+    .then(|| sequence.to_owned())
+}
+
 /// Python `layout.sony_index_member`: Sony camera databases/indexes, never deleted or edited here.
 pub fn sony_index_member(path: &str) -> bool {
     let lowered = format!("/{}", path.to_lowercase());
@@ -366,13 +378,22 @@ pub fn probe_facts(data: &Value) -> Facts {
 }
 
 /// Python `shutil.which(name)` on the current PATH.
-fn which(name: &str) -> Option<std::path::PathBuf> {
+pub(crate) fn which(name: &str) -> Option<std::path::PathBuf> {
     let exe = if cfg!(windows) {
         format!("{name}.exe")
     } else {
         name.to_owned()
     };
-    std::env::split_paths(&std::env::var_os("PATH")?)
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    std::env::split_paths(&path)
+        .filter(|dir| dir.is_absolute())
+        .chain(if cfg!(target_os = "macos") {
+            ["/opt/homebrew/bin", "/usr/local/bin"]
+                .map(std::path::PathBuf::from)
+                .to_vec()
+        } else {
+            Vec::new()
+        })
         .map(|dir| dir.join(&exe))
         .find(|p| p.is_file())
 }
@@ -875,6 +896,22 @@ pub fn build_layout(
             let ext = suffix(path).trim_start_matches('.').to_uppercase();
             let folder = archive_folder(kind, &found, &camera, &plan["category_folders"]);
             let month = created.strftime("%Y/%m");
+            if plan["handycam"].is_string()
+                && kind == "video"
+                && let Some(sequence) = handycam_sequence(path)
+            {
+                let name = format!(
+                    "{}_SONYDCRSR42_{}_{}-{}[].MP4",
+                    stamp(&created),
+                    duration(found.seconds),
+                    label,
+                    sequence
+                );
+                let target = claim(&mut taken, &format!("handycam/{month}/{name}"));
+                primary.get_or_insert_with(|| (month.clone(), stem(&target).to_owned()));
+                layout.insert(path.to_owned(), json!({"archive": target, "work": null}));
+                continue;
+            }
             let claimed = claim(
                 &mut taken,
                 &format!("{month}/{}_{label}[].{ext}", parts.join("_")),

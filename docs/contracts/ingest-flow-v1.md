@@ -136,7 +136,11 @@ Contenido muestra los archivos de formato desconocido aparte de los medios y dat
 
 Rust rechaza la limpieza de un HDD Handycam reconocido por `MP_ROOT/<número>PNV<nn>/M2U*.MPG` o por `MODELCFG.IND` junto al índice `AVF_INFO`. La comprobación se aplica al preparar el plan y al validar el origen, incluidos planes previos. El borrado o formato se realiza desde el menú de la cámara, tras comprobar la cobertura de todos los videos y fotos que se quitarán.
 
-El flujo por implementar es copia temporal verificada del MPG, conversión a MP4 y verificación del derivado en MEDIA antes de dar por respaldado el origen. El recibo necesita SHA-256 de ambos, modelo y ruta original, parámetros de conversión, duración y procedencia de la fecha. Para el historial se propone `001_raw/handycam/AAAA/MM/` y un destino explícito para fecha sin resolver. Los MP4 existentes se pueden adoptar por hash conservando su contenido. El número `M2U` facilita cruzar candidatos, y dos archivos con ese número y contenido distinto requieren revisión.
+El perfil DCR-SR42 copia el MPG a temporal dentro del archivo, coteja su SHA-256 con el plan, convierte a H.264/AAC y verifica que el MP4 decodifica completo y conserva ancho y duración. Transfer verifica la copia publicada. El recibo guarda la ruta y SHA-256 de origen, el preset y el SHA-256 del MP4. No se publica el MPG y los JPG siguen su ruta normal. La conversión requiere FFmpeg y ffprobe.
+
+«Histórico Handycam» toma MP4 existentes y los copia sin reconvertir a `001_raw/handycam/AAAA/MM/`, usando las fechas disponibles según el orden de naming. Ante un mismo número `M2U` y tamaño, compara SHA-256. Si coincide con otro miembro del plan o con el destino consolidado, omite la copia. Contenido distinto conserva un nombre propio, con `-2`, `-3` antes de `[]` si coincide el nombre base. El histórico de origen queda conservado. Conviene planear el respaldo principal primero y las carpetas de trabajo después, cuando el destino ya permite cotejar sus copias.
+
+Los dos modos se pueden agregar a «Poner al día». La revisión conjunta detecta destinos en conflicto y reserva espacio temporal de conversión junto con el de las demás operaciones.
 
 ### Etapas observadas del retiro Sony · 2026-11-07
 

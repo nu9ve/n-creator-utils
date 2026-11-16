@@ -1013,6 +1013,21 @@ impl<'a> Transfer<'a> {
                             None,
                         )?
                     }
+                    None if file["handycam_original_sha256"].is_string() => {
+                        self.report(true, json!({"phase":"converting","file":path}))?;
+                        let archive = targets.first().ok_or_else(|| {
+                            Error::new("invalid_plan", "Falta el archivo de la Handycam")
+                        })?;
+                        let staged = crate::handycam::stage(&source, archive.root, file)?;
+                        self.report(true, json!({"phase":"copying","file":path}))?;
+                        self.copy_many(
+                            archive.root,
+                            &staged.output,
+                            &targets,
+                            expected.as_deref(),
+                            None,
+                        )?
+                    }
                     None => self.copy_many(
                         &source,
                         &path,
@@ -1047,8 +1062,12 @@ impl<'a> Transfer<'a> {
                     continue;
                 };
                 let receipt = json!({"job_id": id, "volume_id": record["id"], "path": path, "destination": target,
-                    "sha256": sha, "bytes": file["stamp"]["size"], "verified_at": nu9ve_time::now_utc(), "stamp": stamp,
+                    "sha256": sha, "bytes": stamp["size"], "verified_at": nu9ve_time::now_utc(), "stamp": stamp,
                     "receipt_id": uuid5(&NAMESPACE_URL, &format!("{id}:{}", text(record, "id")))});
+                let mut receipt = receipt;
+                if let Some(original) = file["handycam_original_sha256"].as_str() {
+                    receipt["derivation"] = json!({"from":path, "source_sha256":original, "preset":"handycam-h264-crf23-aac192-v1"});
+                }
                 let payload = String::from_utf8(canonical(&receipt)).unwrap_or_default();
                 self.catalog
                     .db()
@@ -2206,6 +2225,79 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         assert_eq!(completed["state"], "completed");
         assert_eq!(completed["progress"]["phase"], "completed");
         assert_eq!(std::fs::read(&clip).unwrap(), b"new!");
+    }
+
+    #[test]
+    fn handycam_conversion_runs_as_a_reviewed_batch_and_records_both_hashes() {
+        let (Some(ffmpeg), Some(_)) = (
+            crate::layout::which("ffmpeg"),
+            crate::layout::which("ffprobe"),
+        ) else {
+            return;
+        };
+        let s = setup();
+        let movie = "MP_ROOT/101PNV01/M2U01204.MPG";
+        std::fs::create_dir_all(s.card.join("MP_ROOT/101PNV01")).unwrap();
+        let made = std::process::Command::new(ffmpeg)
+            .args([
+                "-loglevel",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc2=size=720x480:rate=30000/1001",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=400:sample_rate=48000",
+                "-t",
+                "1",
+                "-c:v",
+                "mpeg2video",
+                "-c:a",
+                "ac3",
+                "-f",
+                "mpeg",
+            ])
+            .arg(s.card.join(movie))
+            .status()
+            .unwrap();
+        assert!(made.success());
+        let plan = plan(
+            &s,
+            json!({"work": null, "cleanup": false, "archive_only": true,
+            "confirm_archive_only": true, "work_decision": "skipped"}),
+        );
+        let mut batch = json!({"plans": [String::from_utf8(canonical(&plan)).unwrap()]});
+        let review = crate::save_all::review(&s.home, &s.backend, &batch).unwrap();
+        batch["digest"] = review["digest"].clone();
+        let result = crate::save_all::apply(&s.home, &s.backend, &batch).unwrap();
+        assert_eq!(result["results"][0]["state"], "source_retained", "{result}");
+        let root = Root::open(&s.archive).unwrap();
+        let receipt = crate::tree::read_bytes(
+            &s.archive,
+            &format!(".ncreator/receipts/{}.json", plan["id"].as_str().unwrap()),
+            1024 * 1024,
+        )
+        .unwrap()
+        .unwrap();
+        let receipt: Value = serde_json::from_slice(&receipt).unwrap();
+        let copy = &receipt["files"][0];
+        assert_eq!(
+            copy["derivation"]["source_sha256"],
+            plan["files"][0]["handycam_original_sha256"]
+        );
+        assert_eq!(
+            copy["sha256"],
+            crate::handycam::source_hash(&root, text(copy, "destination")).unwrap()
+        );
+        assert!(text(copy, "destination").ends_with("-M2U01204[].MP4"));
+        assert!(s.card.join(movie).exists());
+        assert!(
+            !s.archive
+                .join(".ncreator/handycam-stage/output.mp4")
+                .exists()
+        );
     }
 
     #[test]

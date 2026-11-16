@@ -17,6 +17,7 @@ pub mod devices;
 pub mod dng;
 mod editorial;
 pub mod handoff;
+mod handycam;
 pub mod integrations;
 #[cfg(target_os = "macos")]
 mod interrupt;

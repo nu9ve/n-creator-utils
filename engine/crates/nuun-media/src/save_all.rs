@@ -444,7 +444,7 @@ pub fn review(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Valu
                     "destination_conflict",
                     format!("Two plans would write {}", path.display()),
                 )?;
-                let size = file["stamp"]["size"].as_u64().unwrap_or_default();
+                let size = planner::transfer_budget(file);
                 let allocated = size.div_ceil(block).saturating_mul(block);
                 *total = total.saturating_add(allocated);
                 *shared_total = shared_total.saturating_add(allocated);

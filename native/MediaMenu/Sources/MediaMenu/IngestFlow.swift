@@ -194,6 +194,8 @@ struct SourceTiles: View {
             }
             SourceTile(selected: false, symbol: "folder.badge.plus", title: String(localized: "Otra carpeta…"),
                        subtitle: String(localized: "Tarjeta, disco o carpeta"), detail: nil, eject: nil) { model.chooseSource() }
+            SourceTile(selected: false, symbol: "film.stack", title: String(localized: "Histórico Handycam…"),
+                       subtitle: String(localized: "Organizar los MP4 en el archivo"), detail: nil, eject: nil) { model.chooseHandycamHistory() }
         }
         if model.sourceCards.isEmpty && !model.volumes.contains(where: { $0["online"].bool }) {
             Text("Conecta tu disco de respaldo para que nüün sugiera las SD conectadas.").font(.caption).foregroundStyle(.secondary)
@@ -706,8 +708,11 @@ struct PlanReview: View {
                         .font(.callout).foregroundStyle(palette.warning)
                 }
                 if plan["source_kind"].string != "delivery" && !plan["already_archived"].array.isEmpty {
-                    Label("\(plan["already_archived"].array.count) archivos ya están en el respaldo por un ingreso anterior (mismo nombre y tamaño): no se copian otra vez y se quedan en el origen.", systemImage: "equal.circle")
-                        .font(.callout).foregroundStyle(.secondary)
+                    let count = plan["already_archived"].array.count
+                    let summary = plan["handycam"].string == "history"
+                        ? String(localized: "\(count) duplicados exactos por SHA-256. Quedan en su carpeta de origen.")
+                        : String(localized: "\(count) archivos ya están en el respaldo por un ingreso anterior (mismo nombre y tamaño): no se copian otra vez y se quedan en el origen.")
+                    Label(summary, systemImage: "equal.circle").font(.callout).foregroundStyle(.secondary)
                 }
                 PlanTable(model: model, plan: plan)
             }

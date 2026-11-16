@@ -267,6 +267,8 @@ struct SaveAllSheet: View {
         let selected = items.filter { !model.excludedSaveAllItems.contains($0.id) }
         VStack(alignment: .leading, spacing: 12) {
             PageHeader(title: "Poner al día", subtitle: "Elige los pendientes que quieres revisar.")
+            Button("Histórico Handycam…", systemImage: "film.stack") { model.chooseHandycamHistory() }
+                .buttonStyle(.link).disabled(inFlight || model.busy || model.saveAllUpdating)
             if let project = model.saveAllProject {
                 HStack {
                     Label(project, systemImage: "folder")

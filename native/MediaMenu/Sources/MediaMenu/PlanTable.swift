@@ -54,7 +54,8 @@ enum PlanRows {
             rows.append(PlanUnitRow(id: unit["id"].string, name: unitName(unit, paths: paths),
                 project: support ? String(localized: "Datos de cámara") : unit["project"].string,
                 group: support ? String(localized: "Datos de cámara") : folder(first["archive_path"].string, root: root, prefix: prefix),
-                detail: missionLabel(mission), bytes: previews.reduce(0) { $0 + $1["bytes"].double }, files: paths.count,
+                detail: previews.contains { $0["conversion"].bool } ? String(localized: "Convertir a MP4") : missionLabel(mission),
+                bytes: previews.reduce(0) { $0 + $1["bytes"].double }, files: paths.count,
                 archived: true, work: work, source: source))
         }
         for item in plan["discarded"].array {
@@ -68,6 +69,13 @@ enum PlanRows {
             rows.append(PlanUnitRow(id: "retained:" + path, name: path, project: "—",
                 group: String(localized: "Se quedan en la SD"), detail: "", bytes: bytes.double,
                 files: 1, archived: false, work: .none, source: .keep))
+        }
+        if plan["handycam"].string == "history" {
+            for path in plan["already_archived"].array.map(\.string) {
+                rows.append(PlanUnitRow(id: "duplicate:" + path, name: path, project: "—",
+                    group: String(localized: "Duplicados exactos"), detail: "", bytes: 0,
+                    files: 1, archived: false, work: .none, source: .keep))
+            }
         }
         let grouped = Dictionary(grouping: rows, by: \.group)
         let groups = grouped.map { name, members in

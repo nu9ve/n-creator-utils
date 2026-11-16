@@ -755,6 +755,9 @@ pub fn discover(
         .map(|f| f["stamp"]["size"].as_u64().unwrap_or(0))
         .sum();
     let mut result = json!({"units": units, "skipped": found.skipped, "bytes": bytes});
+    if crate::layout::handycam_hdd(found.files.iter().filter_map(|f| f["path"].as_str())) {
+        result["handycam_hdd"] = json!(true);
+    }
     if missions {
         // Without a volume backend the archive's mission registry cannot be checked here: say so.
         result["not_ported"] = json!(["mission"]);

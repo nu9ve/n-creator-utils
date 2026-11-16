@@ -23,7 +23,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-const PARAMS: [&str; 17] = [
+const PARAMS: [&str; 18] = [
     "source",
     "archive",
     "work",
@@ -41,7 +41,18 @@ const PARAMS: [&str; 17] = [
     "finals_route",
     "delivery_paths",
     "finals_role",
+    "handycam_history",
 ];
+
+fn disjoint_target(source: &Path, root: &Path, prefix: &str, history: bool) -> bool {
+    if history && is_parent(root, source) {
+        let target = root.join(prefix).join("handycam");
+        return key(source) != key(&target)
+            && !is_parent(source, &target)
+            && !is_parent(&target, source);
+    }
+    key(source) != key(root) && !is_parent(source, root) && !is_parent(root, source)
+}
 
 pub(crate) fn check_handycam_cleanup(
     cleanup: bool,
@@ -52,6 +63,16 @@ pub(crate) fn check_handycam_cleanup(
         "handycam_cleanup_in_camera",
         "Desactiva Limpiar SD. La Handycam se limpia desde su propio menú después de comprobar el respaldo.",
     )
+}
+
+pub(crate) fn transfer_budget(file: &Value) -> u64 {
+    let size = file["stamp"]["size"].as_u64().unwrap_or_default();
+    // Original temporary copy, temporary MP4 and published MP4.
+    if file["handycam_original_sha256"].is_string() {
+        size.saturating_mul(5)
+    } else {
+        size
+    }
 }
 
 fn truthy(value: &Value) -> bool {
@@ -354,6 +375,21 @@ pub fn validate_plan(plan: &Value) -> Result<()> {
                 "Unit/member mismatch",
             )?;
             let size = &file["stamp"]["size"];
+            if file.get("handycam_original_sha256").is_some() {
+                require(
+                    plan["handycam"] == "usb"
+                        && plan["cleanup"] == false
+                        && plan["work_id"].is_null()
+                        && crate::handycam::needs_conversion(path)
+                        && file["handycam_original_sha256"]
+                            .as_str()
+                            .is_some_and(|sha| {
+                                sha.len() == 64 && sha.bytes().all(|b| b.is_ascii_hexdigit())
+                            }),
+                    "invalid_plan",
+                    "Invalid Handycam conversion",
+                )?;
+            }
             require(
                 size.is_u64() || size.as_i64().is_some_and(|s| s >= 0),
                 "invalid_plan",
@@ -396,6 +432,22 @@ pub fn validate_plan(plan: &Value) -> Result<()> {
                         .into_iter()
                         .flat_map(|files| files.keys().map(String::as_str)),
                 ),
+            )?;
+        }
+        if plan["handycam"] == "history" {
+            require(
+                kind == "card"
+                    && plan["cleanup"] == false
+                    && plan["work_id"].is_null()
+                    && plan["layout"].as_object().is_some_and(|layout| {
+                        layout.iter().all(|(path, target)| {
+                            crate::handycam::is_history_movie(path)
+                                && target["work"].is_null()
+                                && text(target, "archive").starts_with("handycam/")
+                        })
+                    }),
+                "invalid_plan",
+                "An invalid Handycam history layout overlaps the source",
             )?;
         }
         if plan["schema"] == "nu9ve-ingest-plan/2"
@@ -527,7 +579,12 @@ pub fn preflight(
             PathBuf::from(text(&record, "root")),
         );
         require(
-            key(&source) != key(&root) && !is_parent(&source, &root) && !is_parent(&root, &source),
+            disjoint_target(
+                &source,
+                &root,
+                text(&record, "prefix"),
+                plan["handycam"] == "history",
+            ),
             "overlapping_roots",
             "Overlapping roots",
         )?;
@@ -539,7 +596,8 @@ pub fn preflight(
                 .copied()
                 .unwrap_or(&Value::Null);
             if destination_path(&record, plan, unit, text(file, "path"), true)?.is_some() {
-                needed += file["stamp"]["size"].as_u64().unwrap_or(0).div_ceil(block) * block;
+                needed = needed
+                    .saturating_add(transfer_budget(file).div_ceil(block).saturating_mul(block));
             }
         }
         if reserve {
@@ -603,6 +661,17 @@ fn build_with_stamps(
     let finals_route = get("finals_route", json!(false));
     let finals_role = get("finals_role", Value::Null);
     let delivery_paths = get("delivery_paths", Value::Null);
+    let history = get("handycam_history", json!(false));
+    require(
+        history.is_boolean()
+            && (history == false
+                || (source_kind == "card"
+                    && cleanup == false
+                    && archive_only == true
+                    && work.is_null())),
+        "invalid_policy",
+        "El histórico Handycam sólo se copia al archivo",
+    )?;
     require(
         archive_only.is_boolean() && confirm.is_boolean(),
         "invalid_policy",
@@ -753,16 +822,44 @@ fn build_with_stamps(
             ));
         }
         require(
-            key(&source) != key(&root) && !is_parent(&source, &root) && !is_parent(&root, &source),
+            disjoint_target(&source, &root, text(target, "prefix"), history == true),
             "overlapping_roots",
             "Source and destination roots must not overlap",
         )?;
     }
     let found = scan(&source, stalker, stalker, true)?;
+    let handycam = if history == true {
+        Some("history")
+    } else if source_kind == "card"
+        && crate::layout::handycam_hdd(found.files.iter().map(|f| text(f, "path")))
+    {
+        Some("usb")
+    } else {
+        None
+    };
     if source_kind == "card" {
         check_handycam_cleanup(cleanup, found.files.iter().map(|file| text(file, "path")))?;
     }
     let mut files = found.files;
+    if handycam == Some("usb")
+        && files
+            .iter()
+            .any(|f| crate::handycam::needs_conversion(text(f, "path")))
+    {
+        require(
+            work.is_null() && archive_only == true,
+            "invalid_policy",
+            "Elige sólo respaldo para convertir los MPG de la Handycam",
+        )?;
+        let tree = crate::tree::Root::open(&source)?;
+        for file in &mut files {
+            let path = text(file, "path");
+            if crate::handycam::needs_conversion(path) {
+                file["handycam_original_sha256"] =
+                    json!(crate::handycam::source_hash(&tree, path)?);
+            }
+        }
+    }
     let mut bundles = found.bundles;
     if stalker {
         pending_stalker_files(catalog, &archive_record, &mut files, &mut bundles)?;
@@ -865,6 +962,16 @@ fn build_with_stamps(
     let mut retained = Map::new();
     let mut unit_of: BTreeMap<String, String> = BTreeMap::new();
     for (group, members) in &groups {
+        if history == true
+            && !members
+                .iter()
+                .all(|file| crate::handycam::is_history_movie(text(file, "path")))
+        {
+            for file in members {
+                retained.insert(text(file, "path").to_owned(), file["stamp"]["size"].clone());
+            }
+            continue;
+        }
         let other = crate::scan::other_card_group(group);
         let support = group == "camera-support" || other;
         let choices: Vec<&Value> = if support && !other {
@@ -1154,6 +1261,9 @@ fn build_with_stamps(
         "work_delivery_status": work_decision, "cleanup": cleanup, "country": country, "city": city,
         "release_stalker_source": release_stalker_source, "media_date": media_date, "source_name": source_name,
         "files": [], "units": [], "bundles": bundles, "skipped": skipped});
+    if let Some(handycam) = handycam {
+        plan["handycam"] = json!(handycam);
+    }
     if !discarded.is_empty() {
         discarded.sort_by(|a, b| a["paths"][0].as_str().cmp(&b["paths"][0].as_str()));
         plan["discarded"] = json!(discarded);
@@ -1337,6 +1447,30 @@ fn build_with_stamps(
         plan["layout"] = Value::Object(layout);
         plan["already_archived"] = json!(archived);
     }
+    if history == true {
+        let adopted = crate::handycam::review_history(
+            &source,
+            &archive_record,
+            &files,
+            plan["layout"].as_object_mut().expect("layout"),
+        )?;
+        if !adopted.is_empty() {
+            files.retain(|file| !adopted.contains(text(file, "path")));
+            require(
+                !files.is_empty(),
+                "empty_source",
+                "Los MP4 de esta carpeta ya están respaldados",
+            )?;
+            for unit in &mut plan_units {
+                if let Some(paths) = unit["paths"].as_array_mut() {
+                    paths.retain(|path| !adopted.contains(path.as_str().unwrap_or_default()));
+                }
+            }
+            plan_units.retain(|u| u["paths"].as_array().is_some_and(|paths| !paths.is_empty()));
+            plan["files"] = json!(files);
+            plan["already_archived"] = json!(adopted);
+        }
+    }
     plan["units"] = json!(plan_units);
     if source_kind != "delivery" && !mission_indexes.is_empty() && !cleanup {
         // A still already backed up by an earlier verified job at the same archive name and size stays out.
@@ -1486,6 +1620,9 @@ fn build_with_stamps(
             "profile": unit["profile"], "camera": unit["camera"],
             "archive_path": joined(text(&archive_record, "root"), &archive_rel), "work_path": work_path,
             "source_action": action}));
+        if file["handycam_original_sha256"].is_string() {
+            preview.last_mut().expect("preview row")["conversion"] = json!(true);
+        }
     }
     preview.sort_by(|a, b| text(a, "archive_path").cmp(text(b, "archive_path")));
     plan["preview"] = json!(preview);
@@ -1496,7 +1633,9 @@ fn build_with_stamps(
             let Some(rel) = destination_path(record, &plan, unit, text(file, "path"), true)? else {
                 continue;
             };
-            if let Some(size) = crate::tree::file_size(Path::new(text(record, "root")), &rel)? {
+            if !file["handycam_original_sha256"].is_string()
+                && let Some(size) = crate::tree::file_size(Path::new(text(record, "root")), &rel)?
+            {
                 require(
                     Some(size) == file["stamp"]["size"].as_u64(),
                     "destination_conflict",
@@ -1703,6 +1842,46 @@ mod tests {
     }
 
     #[test]
+    fn handycam_history_skips_exact_duplicates_and_keeps_distinct_variants() {
+        let s = setup();
+        for (folder, data) in [("a", b"same"), ("b", b"same"), ("c", b"diff")] {
+            let path = s.card.join(folder);
+            std::fs::create_dir(&path).unwrap();
+            let file = std::fs::File::create(path.join("M2U00001_720.mp4")).unwrap();
+            use std::io::Write;
+            (&file).write_all(data).unwrap();
+            file.set_times(
+                std::fs::FileTimes::new().set_modified(
+                    std::time::UNIX_EPOCH + std::time::Duration::from_secs(1767340800),
+                ),
+            )
+            .unwrap();
+        }
+        let plan = plan(
+            &s,
+            json!({"handycam_history": true, "work": null,
+            "archive_only": true, "confirm_archive_only": true, "work_decision": "skipped"}),
+        )
+        .unwrap();
+        assert_eq!(plan["files"].as_array().unwrap().len(), 2);
+        assert_eq!(plan["already_archived"], json!(["b/M2U00001_720.mp4"]));
+        let paths: Vec<_> = plan["layout"]
+            .as_object()
+            .unwrap()
+            .values()
+            .map(|entry| text(entry, "archive"))
+            .collect();
+        assert!(
+            paths
+                .iter()
+                .all(|path| path.starts_with("handycam/2026/01/"))
+        );
+        assert!(paths.iter().any(|path| path.ends_with("-M2U00001[].MP4")));
+        assert_ne!(paths[0], paths[1]);
+        validate_plan(&plan).unwrap();
+    }
+
+    #[test]
     fn handycam_hdd_is_copy_only_even_if_it_looks_like_a_sony_card() {
         let s = setup();
         let movie = "MP_ROOT/101PNV01/M2U00001.MPG";
@@ -1712,10 +1891,19 @@ mod tests {
             plan(&s, json!({"cleanup": true})).unwrap_err().code,
             "handycam_cleanup_in_camera"
         );
-        let copy = plan(&s, json!({"cleanup": false})).unwrap();
+        let copy = plan(
+            &s,
+            json!({"cleanup": false, "work": null, "archive_only": true,
+            "confirm_archive_only": true, "work_decision": "skipped"}),
+        )
+        .unwrap();
         assert_eq!(copy["preview"][0]["source_action"], "retain");
         let mut unsafe_plan = copy;
         unsafe_plan["cleanup"] = json!(true);
+        unsafe_plan["files"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("handycam_original_sha256");
         unsafe_plan.as_object_mut().unwrap().remove("digest");
         unsafe_plan["digest"] = json!(digest(&unsafe_plan));
         assert_eq!(

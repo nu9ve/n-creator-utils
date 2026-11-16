@@ -564,6 +564,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
         let files = " · " + String(localized: "\(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos")
         switch p["phase"].string {
+        case "converting": return String(localized: "Convirtiendo a MP4 y comprobando el video")
         case "copying": return String(localized: "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB") + rate + files
         case "verifying": return String(localized: "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB") + files
         case "cleaning": return String(localized: "Limpiando SD tras verificar")
@@ -662,6 +663,18 @@ enum OperationScope { case ingest, library, space, settings, source }
             else { self.prepareSource(url.path, kind: Self.holdsStalkerSessions(url) ? "stalker" : "card") }
         }
     }
+    private var handycamHistorySources: Set<String> = []
+    func chooseHandycamHistory() {
+        pickURL(message: String(localized: "Elige la carpeta con los MP4 de la Handycam")) { url in
+            self.showSaveAll = false
+            self.changeMode?(.full)
+            self.handycamHistorySources.insert(url.path)
+            self.prepareSource(url.path, kind: "card")
+            self.copyChoice = "none"
+            self.cleanup = false
+            self.goToStep(.content)
+        }
+    }
     /// A source says what it is: nobody should have to tell nüün that a folder of bundles is Stalker.
     nonisolated static func holdsStalkerSessions(_ url: URL) -> Bool {
         if url.pathExtension.lowercased() == "stalker" { return true }
@@ -719,6 +732,10 @@ enum OperationScope { case ingest, library, space, settings, source }
             } onCancel: { reader.cancel() }
             guard !Task.isCancelled, sourceKey == key, pendingReadID == readID else { return }
             let existing = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0) })
+            if data["handycam_hdd"].bool, !contentLoaded {
+                cleanup = false
+                copyChoice = "none"
+            }
             units = data["units"].array.map { value in
                 var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: value["paths"].array.map(\.string))
                 unit.sessionID = value["session_id"].string
@@ -930,6 +947,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
                 "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card"),
                 "assignments": .object(assignments)]
+            if self.handycamHistorySources.contains(self.source) { params["handycam_history"] = .bool(true) }
             params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork, deferWork: self.deferWork, work: self.work)) { _, new in new }
             let document = try await self.client!.call("plan_document", params).string
             let reviewed = try ReviewedPlan(document: document)
