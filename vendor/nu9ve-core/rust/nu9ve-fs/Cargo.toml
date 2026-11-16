@@ -1,0 +1,30 @@
+[package]
+name = "nu9ve-fs"
+description = "Durable file writes, exclusive publication, locks and verification reads (nu9ve-fs-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Generador del sistema para los nombres de temporales, sin añadir otro generador.
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+
+[target.'cfg(unix)'.dependencies]
+# fsync, opciones de caché y rename exclusivo del sistema.
+libc = "=0.2.191"
+
+[target.'cfg(windows)'.dependencies]
+# Rename write-through y reapertura del mismo handle para lecturas sin búfer.
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_Security"] }
+
+[dev-dependencies]
+# Directorios aislados con limpieza automática para las pruebas.
+tempfile = "=3.27.0"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

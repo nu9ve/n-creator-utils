@@ -12,6 +12,7 @@ Reglas que toda la suite sigue. Cada contrato dice la regla; qué cumple cada ap
 | [Avisos del sistema v1](nu9ve-notifications-v1.md) | Notificaciones del sistema: cola de entregas, clic al objeto exacto, límites, sonido | Propuesta |
 | [Sonido de tema v1](nu9ve-sound-v1.md) | Sonidos de interfaz por skin, con el motor v2 de Fractos como fuente | Propuesta |
 | [JSON canónico v1](nu9ve-json-v1.md) | Bytes canónicos compatibles con Python, digest, ids, sobre de errores; vectores en [data/](../data/json-vectors-v1.json) | Implementado en nüün |
+| [Archivos v1](nu9ve-fs-v1.md) | Escritura y publicación duraderas, candados, lecturas de verificación | Implementado |
 
 Los contratos de media (Stalker, Clipper, Atlas, ingreso, nombres, cierre de proyectos) se quedan en [n-creator-utils](https://github.com/nu9ve/n-creator-utils/blob/master/docs/contracts/README.md): son entre nüün y otra app.
 

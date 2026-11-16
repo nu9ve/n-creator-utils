@@ -46,6 +46,15 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 - **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/. En Windows (maqueta, 2026-11-09) ya hay catálogo con pruebas de duplicados y de teclas del sistema, aceleradores y tooltips generados desde él, `AccessKey` en la navegación y panel Ctrl+/; es la referencia para portar el catálogo a la app de Mac.
 - **kyu y neuf:** el recorrido completo por teclado de la §10, porque son las apps de edición más densas.
 
+## nu9ve-fs-v1
+
+[Escritura duradera y acceso a archivos v1](../contracts/nu9ve-fs-v1.md)
+
+| App | Implementación | Alcance |
+| --- | --- | --- |
+| nüün | `nu9ve-volumes::fs` usa `nu9ve-fs` desde la copia fijada | `Full`, creación exclusiva, reemplazo, rename exclusivo bajo el candado del escritor y lectura de verificación. El motor conserva sus errores y sus comprobaciones de archivos regulares. |
+| Clipper | `rpc_writes/fsio.rs` y `rpc_jobs/store.rs` usan `nu9ve-fs` desde la copia fijada | Las escrituras que siguen a Python usan `Plain`. Usa candados exclusivos y compartidos, y sondea el candado del runner. La cola distingue el fallo anterior al rename del fallo de sincronización posterior. |
+
 ## nu9ve-json-v1
 
 [JSON canónico, digest, ids y sobre de errores v1](../contracts/nu9ve-json-v1.md)

@@ -10,6 +10,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `sync-core.sh` con `--check`, `--strict` y `--from` | 2026-11-16 | nüün, Fractos, nove, kyu, SoundBender, curado, Clipper |
 | `NuMacShell` en `swift/` (macOS 15, [por qué](../swift/README.md#macos-mínimo-15)) | 2026-11-16 | Fractos. Lo siguen nüün, tras su semana de uso diario, y las demás apps de Mac |
 | [`nu9ve-json-v1`](../contracts/nu9ve-json-v1.md), sus vectores y `rust/nu9ve-json` | 2026-11-16 | nüün (motor de Rust) y Clipper (sobre, `sha256_hex`, `uuid4`) |
+| [`nu9ve-fs-v1`](../contracts/nu9ve-fs-v1.md) y `rust/nu9ve-fs` | 2026-11-16 | nüün (`nu9ve-volumes`) y Clipper (`fsio.rs` y `store.rs`); curado después |
 | `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
 | Vectores de tema probados en Swift (nüün, 15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | Base de `Nu9veTheme`. Falta kyu |
 
@@ -26,7 +27,6 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | Pieza | Destino | De dónde | Primeros usuarios |
 | --- | --- | --- | --- |
-| Contrato `nu9ve-fs-v1` y crate `nu9ve-fs`: escritura atómica, `fsync` de archivo y carpeta, publicar sin reemplazar, `flock` con plazo, leer sin caché | `contracts/`, `rust/nu9ve-fs` | `nu9ve-volumes/src/fs.rs` de nüün y `rpc_writes/fsio.rs` de Clipper ([inventario](#nu9ve-fs-en-clipper-qué-es-genérico-en-fsiors-y-storers)) | nüün y Clipper; curado después |
 | `Nu9veTheme`: roles, `readable`, presets y skins, probados con `data/theme-vectors-v1.json` | `swift/` | nüün `ThemeColor.swift`; kyu `ThemePalette.swift`; SoundBender `Appearance.swift` | nüün y kyu, cuando kyu pase los vectores |
 | Contrato `nu9ve-engine-v1`: el protocolo de un motor detrás de una app (NDJSON por stdin/stdout o pipe, sobre, `engine_info`, capacidades, `not_ported`, sombra contra el oráculo) | `contracts/` | nüün (`rpc-serve`), Clipper (`clipper-engine/1`), nove (pipe con `{result}`/`{error}`) | Los tres. El crate de servidor viene después del contrato |
 
@@ -55,9 +55,9 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | App | Copia fijada | Lo siguiente que adopta | Qué aporta a la suite |
 | --- | --- | --- | --- |
-| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`; `--check` en su gate | `nu9ve-fs`; `NuMacShell` después de la semana de uso diario; `Nu9veTheme` | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
+| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json` y `rust/nu9ve-fs`; `--check` en su gate | `NuMacShell` después de la semana de uso diario; `Nu9veTheme` | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | `Nu9veTheme` | `NuMacShell`, el motor de sonido (ola 3) |
-| **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, vectores de JSON, `rust/nu9ve-json`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | `nu9ve-fs`, `nu9ve-engine-v1` | Supervisor de procesos, semántica de Python |
+| **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, `nu9ve-fs-v1`, vectores de JSON, `rust/nu9ve-json` y `rust/nu9ve-fs`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | `nu9ve-engine-v1` | Supervisor de procesos, semántica de Python |
 | **curado** | Contratos de Mac, Windows, tema e interacción y vectores de tema; `bun run core:check` | `nu9ve-fs`; `nu9ve-volumes` cuando se decida la identidad portable | Capas de audio y supervisión de stems |
 | **nove** | Contratos de Mac, Windows, tema, interacción, MCP y avisos, y vectores de tema | `nu9ve-engine-v1`; `NuMacShell` en Mac | IPC enmarcado con ACL y MCP con niveles |
 | **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, y vectores de tema; `--check` en `validate.sh` | `NuMacShell`, `Nu9veTheme` | `ShortcutCatalog`; segundo usuario de loudness |
@@ -83,7 +83,7 @@ Revisado el 2026-11-16. Los tamaños son líneas del archivo de nüün, salvo lo
 | Acerca de e identidad de build | `native/MediaMenu/Sources/MediaMenu/AboutView.swift` (50), `native/MediaMenu/Sources/MediaMenuCore/AppIdentity.swift` (74) | core: `swift/Sources/NuMacShell/{AboutView,AppIdentity}.swift`, usados por Fractos; SoundBender tiene su propio `Sources/SoundShop/AboutWindow.swift`. |
 | Catálogo de atajos | `native/windows/Nu9ve.Core/Shell/Shortcuts.cs` (54) y `native/windows/Nuun.Core/Shell/ShortcutCatalog.cs` (36) | SoundBender: `Sources/SoundShop/AppCommands.swift` y `ShortcutsPanel.swift`. Se puede comparar la validación de acciones; cada catálogo conserva los atajos de su app. |
 | JSON canónico, digest e id aleatorio | `media/common.py:52–61` (10) | core: `rust/nu9ve-json`; Clipper conserva su serialización Python en `core/src/rpc_jobs/pyval.rs`. La copia Python de nüün sigue como oráculo; el motor Rust ya usa el crate fijado. |
-| Escritura atómica y sincronización de archivos | `engine/crates/nuun-media/src/tree.rs:251–286` (36), `engine/crates/nu9ve-volumes/src/fs.rs` (626; incluye otras operaciones) | Clipper: `core/src/rpc_writes/fsio.rs`. Comparten el patrón temporal, sincronización y publicación; las garantías de no reemplazar y el tipo de sincronización deben decidirse al diseñar `nu9ve-fs`. |
+| Escritura atómica y sincronización de archivos | `engine/crates/nuun-media/src/tree.rs:251–286` (36), `engine/crates/nu9ve-volumes/src/fs.rs` (626; incluye otras operaciones) | Clipper: `core/src/rpc_writes/fsio.rs`. Las primitivas comunes viven en `nu9ve-fs`. El motor conserva las comprobaciones de rutas y usa `Full`. |
 | Supervisión de subprocesos | `engine/crates/nuun-media/src/integrations.rs:390–480` (91), `native/MediaMenu/Sources/MediaMenuCore/Protocol.swift` (378; incluye el protocolo) | Clipper: `core/src/rpc_jobs/supervise.rs` y submódulos. Se repiten el manejo de tuberías, salida y terminación; el lector persistente y los trabajos de Clipper tienen ciclos de vida distintos. |
 | Separación de stems | `manager/file.py:885–889` (5, `split_file`) | curado: `src-tauri/native/separate.py`; SoundBender: `Sources/SoundShop/Resources/separate.py`. Lo común es lanzar Demucs y manejar su resultado; nüün no implementa el DSP. |
 
@@ -121,7 +121,7 @@ Revisado el 2026-11-16 sobre `4d3ad12`. Los tamaños son líneas del archivo de 
 <a id="nu9ve-fs-en-clipper-qué-es-genérico-en-fsiors-y-storers"></a>
 #### `nu9ve-fs` en Clipper: qué es genérico en `fsio.rs` y `store.rs`
 
-Leído el 2026-11-16 en `clipper` (`main`, `4d3ad12`). Sólo inventario: el código sigue en Clipper. Los tamaños son líneas de la función o del intervalo, en `core/src/`.
+Leído el 2026-11-16 en `clipper` (`main`, `4d3ad12`). Inventario previo a la extracción. Los tamaños son líneas de la función o del intervalo, en `core/src/`. La [adopción](adoption.md#nu9ve-fs-v1) recoge las llamadas que ya migraron.
 
 | Función | Dónde y tamaño | Genérica o de Clipper | Qué la ata a Clipper o a Python |
 | --- | --- | --- | --- |
@@ -159,8 +159,7 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 
 ## Orden
 
-1. Contrato `nu9ve-fs-v1` y crate `nu9ve-fs`, con nüün y Clipper como primeros usuarios.
-2. kyu prueba sus roles con los vectores, y después nace `Nu9veTheme` en `swift/`.
-3. Contrato `nu9ve-engine-v1`.
-4. Guía de prácticas comunes (`docs/practices.md`).
-5. `nu9ve-py`, cuando nüün o Clipper vuelvan a portar semántica de Python.
+1. kyu prueba sus roles con los vectores, y después nace `Nu9veTheme` en `swift/`.
+2. Contrato `nu9ve-engine-v1`.
+3. Guía de prácticas comunes (`docs/practices.md`).
+4. `nu9ve-py`, cuando nüün o Clipper vuelvan a portar semántica de Python.

@@ -9,6 +9,8 @@ publish.workspace = true
 
 [dependencies]
 nu9ve-json.workspace = true
+# Creación y publicación duraderas, sincronización y lectura de verificación (nu9ve-fs-v1).
+nu9ve-fs = { path = "../../../vendor/nu9ve-core/rust/nu9ve-fs" }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true

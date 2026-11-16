@@ -6,3 +6,6 @@ data
 docs
 # El crate de JSON canónico del motor (engine/); lee sus vectores de data/.
 rust/nu9ve-json
+
+# Primitivas duraderas del motor (contrato nu9ve-fs-v1).
+rust/nu9ve-fs
