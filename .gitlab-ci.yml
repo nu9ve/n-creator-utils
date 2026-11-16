@@ -1,0 +1,24 @@
+# Fixture-only checks: never mount or write personal SDs/MEDIA/ESSD from CI.
+stages: [test]
+
+.python:
+  stage: test
+  script:
+    - python -m unittest discover -s tests -v
+
+python-3.9:
+  extends: .python
+  image: python:3.9-slim  # Minimum supported version (pyproject requires-python).
+
+python-3.12:
+  extends: .python
+  image: python:3.12-slim
+
+swift-macos:
+  stage: test
+  # Needs a macOS runner (GitLab SaaS macOS or a registered self-hosted Mac); run manually until one is assigned.
+  tags: [saas-macos-medium-m1]
+  when: manual
+  allow_failure: true
+  script:
+    - swift test --package-path native/MediaMenu

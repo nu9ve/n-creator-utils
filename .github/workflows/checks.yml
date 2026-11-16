@@ -1,0 +1,86 @@
+# Fixture-only checks: nothing here mounts, reads or writes a personal SD, MEDIA, ESSD or SSD1.
+# One workflow so the Mac half (Python oracle, Swift app, engine on macOS) and the Windows half
+# (engine with its volume backend) are validated on every push, not on whichever machine is at hand.
+name: checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    # The oracle the Rust engine is compared against; macOS because media/ uses flock, F_NOCACHE, DiskArbitration.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python tests
+        run: |
+          export TMPDIR="$(cd "$TMPDIR" && pwd -P)"
+          python -m unittest discover -s tests
+      - name: Golden answers are the ones in git
+        run: python scripts/engine_golden.py --check
+
+  engine-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      # macOS temporary folders hang from /var, a symlink the engine refuses (as Python): every test needs it resolved.
+      - name: Resolved TMPDIR
+        run: echo "TMPDIR=$(cd "$TMPDIR" && pwd -P)" >> "$GITHUB_ENV"
+      - name: Toolchain from engine/rust-toolchain.toml
+        working-directory: engine
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine/target
+          key: engine-macos-${{ hashFiles('engine/Cargo.lock', 'engine/rust-toolchain.toml') }}
+      - name: fmt, clippy, tests
+        working-directory: engine
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+      - name: Differential against the Python golden (TZ fixed as the generator)
+        working-directory: engine
+        run: TZ=America/Hermosillo cargo test -- --ignored
+      - name: Suite boundary
+        run: bash scripts/check_suite_boundary.sh
+
+  engine-windows:
+    # The only volume backend with plan/apply today; the golden compares on macOS, where the generator runs.
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            engine/target
+          key: engine-windows-${{ hashFiles('engine/Cargo.lock', 'engine/rust-toolchain.toml') }}
+      - name: fmt, clippy, tests
+        working-directory: engine
+        shell: bash
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+
+  swift:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift tests
+        run: swift test --package-path native/MediaMenu
