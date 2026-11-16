@@ -9,7 +9,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | Qué | Valor |
 | --- | --- |
 | App instalada | `~/Applications/nuun.app`, **0.2.0 / `43a7ad4eb289`** (16 nov), build de depuración con firma ad-hoc verificada. Build anterior `e4e62bf7efac` en `app-backups/2600b4af.app`. |
-| Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE): Python **397**, Rust **184** (161 + 23 diferenciales), Swift **29**. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
+| Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE): Python **405**, Rust **186** (163 + 23 diferenciales), Swift **29**. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
 | Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
@@ -49,6 +49,10 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### nu9ve-engine-v1 en los dos motores · 2026-11-16
+
+Sólo el protocolo de `rpc-serve`/`rpc` y la sombra; la app no se reinstaló. (1) **Brechas de la [§12.1](../vendor/nu9ve-core/contracts/nu9ve-engine-v1.md#121-nüün):** un método que ningún motor tiene es `unknown_method` antes que `read_only` ([`METHODS`](../media/service.py) es el catálogo de Python, que Rust copia en `ORACLE_METHODS`); el `id` se lee antes que `method` y sólo vale entero, cadena o `null`; un entero de más de 64 bits vuelve con sus dígitos en Rust (`raw_value`, sin `arbitrary_precision`); `params` que no es objeto es `invalid_params` y JSON roto, `invalid_request`; Python responde `engine_info` y los dos dicen `contract`, `protocol` (`nuun-media/1`), `capabilities` y `native`. (2) `operation_failed` pasa a **`internal_error`** en Python y Rust a la vez; ningún cliente Swift o C# lo leía. (3) **Sombra:** compara tipos (`1` no es `1.0`, `true` no es `1`) y el registro guarda sólo rutas, códigos, `reason` y tiempos, nunca valores ni mensajes. Evidencia: los **20 casos de motor** de los [ejemplos fijados](../vendor/nu9ve-core/data/engine-examples-v1.json) pasan en Python y Rust ([tests/test_engine_examples.py](../tests/test_engine_examples.py), `engine_examples_v1` en Rust y el cliente `scripts/engine-examples.py` de core), y los 10 de sombra en [tests/test_engine_shadow.py](../tests/test_engine_shadow.py). Gate: Rust 1.99.1 fmt, clippy y pruebas; 23 diferenciales con `TZ=America/Hermosillo`; `engine_golden.py --check` (regenerado: sólo cambian los dos códigos); unittest; `swift test`; `check_suite_boundary.sh`. `replay` estricto sobre el catálogo del dorado (no el real): ninguna diferencia nueva por la comparación de tipos. Las dos que da ya estaban con la laxa y son del port: `job` sobre un plan sin `files` (Python falla con `KeyError`, `internal_error`; Rust responde) y `storage_overview` `fs_free`/`fs_used` (espacio libre leído en vivo, cambia entre las dos lecturas). Falta: `replay` estricto sobre el catálogo real, `reason` en `not_ported`, descartar la línea de más con tope, el `id` en el sobre de `rpc` de Python y adoptar el crate `nu9ve-engine`.
 
 ### DJI, Clipper y recuperación · 2026-11-15
 

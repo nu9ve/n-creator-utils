@@ -11,6 +11,8 @@ from pathlib import Path
 from media.cli import serve_reads
 from media.shadow import Shadow, compare, configured_engine, differences, summarize
 
+EXAMPLES = Path(__file__).resolve().parents[1] / 'vendor' / 'nu9ve-core' / 'data' / 'engine-examples-v1.json'
+
 # A stand-in for `nuun-engine rpc-serve`: answers `recipe` like Python, `jobs` differently, the rest not_ported.
 FAKE_ENGINE = r'''#!%s
 import json, sys
@@ -48,10 +50,12 @@ class ShadowCompare(unittest.TestCase):
     def test_outcomes(self):
         ok = lambda data: {'ok': True, 'data': data}  # noqa: E731
         self.assertEqual(compare('m', ok({'a': 1}), ok({'a': 1}))['outcome'], 'same')
-        self.assertEqual(compare('m', ok(1), ok(1.0))['outcome'], 'same')
+        # Strict in the type (nu9ve-engine-v1 §10): 1 is not 1.0 and true is not 1.
+        self.assertEqual(compare('m', ok(1), ok(1.0))['diffs'], ['$'])
+        self.assertEqual(compare('m', ok([True]), ok([1]))['diffs'], ['$[0]'])
         entry = compare('m', ok({'a': [1, 2]}), ok({'a': [1, 3], 'b': 0}))
         self.assertEqual(entry['outcome'], 'diff')
-        self.assertEqual([d['path'] for d in entry['diffs']], ['$.a[1]', '$.b'])
+        self.assertEqual(entry['diffs'], ['$.a[1]', '$.b'])
         self.assertEqual(compare('m', ok({}), {'ok': False, 'error': {'code': 'not_ported'}})['outcome'], 'not_ported')
         failed = {'ok': False, 'error': {'code': 'job_busy'}}
         self.assertEqual(compare('m', failed, failed)['outcome'], 'same_error')
@@ -59,6 +63,38 @@ class ShadowCompare(unittest.TestCase):
         partial = compare('m', ok({'a': 1}), ok({'a': 1, 'not_ported': ['mission']}))
         self.assertEqual((partial['outcome'], partial['rust_partial']), ('same', ['not_ported']))
         self.assertTrue(len(differences(list(range(50)), list(range(1, 51)))) <= 21)
+
+    def test_pinned_shadow_examples(self):
+        for case in json.loads(EXAMPLES.read_text(encoding='utf-8'))['shadow']:
+            with self.subTest(case['name']):
+                entry = compare('m', json.loads(case['oracle']), json.loads(case['candidate']), case['volatile'])
+                self.assertEqual(entry['outcome'], case['outcome'])
+                self.assertEqual(entry.get('diffs', []), case.get('diffs', []))
+                self.assertEqual(entry.get('reason'), case.get('reason'))
+                for key in ('oracle_error', 'candidate_error'):
+                    if key in case:
+                        self.assertEqual(entry[key], case[key])
+
+    def test_the_log_keeps_paths_and_codes_never_values(self):
+        secret = '/Volumes/MEDIA/Proyecto de Ana/clip.mov'
+        entries = [
+            compare('m', {'ok': True, 'data': {'title': secret}}, {'ok': True, 'data': {'title': secret + 'x'}}),
+            compare('m', {'ok': True, 'data': {'title': secret}}, {'ok': True, 'data': {}}),
+            compare('m', {'ok': False, 'error': {'code': 'project_not_found', 'message': secret}},
+                    {'ok': False, 'error': {'code': 'internal_error', 'message': secret}}),
+            compare('m', {'ok': True, 'data': 1}, {'ok': False, 'error': {'code': 'not_ported', 'reason': secret}}),
+            compare('m', {'ok': True, 'data': 1}, {'ok': False, 'error': {'code': secret}}),
+        ]
+        self.assertEqual([e['outcome'] for e in entries], ['diff', 'diff', 'error_mismatch', 'not_ported', 'error_mismatch'])
+        self.assertEqual(entries[4]['candidate_error'], 'invalid_code')
+        for entry in entries:
+            self.assertNotIn('Ana', json.dumps(entry, ensure_ascii=False))
+
+    def test_volatile_values_are_blanked_by_method(self):
+        first = {'ok': True, 'data': {'checked_at': '2026-11-16T10:00:00', 'groups': []}}
+        second = {'ok': True, 'data': {'checked_at': '2026-11-16T10:00:01', 'groups': []}}
+        self.assertEqual(compare('finals_status', first, second)['outcome'], 'same')
+        self.assertEqual(compare('other', first, second)['diffs'], ['$.checked_at'])
 
     def test_summary_counts_and_medians(self):
         rows = summarize([{'method': 'jobs', 'outcome': 'same', 'python_ms': 3, 'rust_ms': 1},
@@ -119,7 +155,8 @@ class ShadowServe(unittest.TestCase):
             entries = [json.loads(line) for line in log.read_text().splitlines()]
             self.assertEqual([(e['method'], e['outcome']) for e in entries],
                              [('recipe', 'same'), ('jobs', 'diff'), ('library', 'not_ported')])
-            self.assertEqual(entries[1]['diffs'][0]['path'], '$[0].state')
+            self.assertEqual(entries[1]['diffs'], ['$[0].state'])
+            self.assertNotIn('failed', log.read_text())
             self.assertTrue(all('python_ms' in e for e in entries))
             # Python's answers are untouched by the shadow.
             self.assertEqual(json.loads(stdout.getvalue().splitlines()[1])['data'][0]['state'], 'completed')
@@ -132,7 +169,8 @@ class ShadowServe(unittest.TestCase):
             shadow.close(wait=5)
             entries = [json.loads(line) for p in (Path(home) / 'shadow').glob('*.ndjson')
                        for line in p.read_text().splitlines()]
-            self.assertEqual([e['outcome'] for e in entries], ['shadow_failed'])
+            self.assertEqual([(e['outcome'], e['reason']) for e in entries], [('shadow_failed', 'engine_missing')])
+            self.assertNotIn('message', entries[0])
 
 
 if __name__ == '__main__':

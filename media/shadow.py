@@ -2,7 +2,8 @@
 
 Python stays the engine that answers. When a shadow engine is configured, the same *read* is asked of
 `nuun-engine rpc-serve` afterwards, on a background thread, and only the comparison is recorded: same answer,
-different (with the JSON paths that differ), `not_ported`, or an error, plus both times. Nothing here can change,
+different (with the JSON paths that differ), `not_ported`, or an error, plus both times. The comparison is strict
+in the type (`1` is not `1.0`) and the log holds paths, codes and times, never values (nu9ve-engine-v1 §10). Nothing here can change,
 delay or fail Python's answer, and nothing is sent anywhere: the log is a local file under the catalog folder.
 
 Configured by `NUUN_SHADOW_ENGINE` (path to the binary) or by `<catalog>/shadow.json` `{"engine": "/path"}`;
@@ -12,6 +13,7 @@ and the Rust engine refuses mutations there too.
 import json
 import os
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -19,9 +21,14 @@ from pathlib import Path
 
 LOG_DIR = 'shadow'
 MAX_DIFFS = 20
-MAX_VALUE = 160
 # Rust names what it cannot answer yet inside an answer; outside the comparison, reported apart.
 RUST_ONLY_KEYS = ('not_ported',)
+# nu9ve-engine-v1 §3 and §5: what a code and a `not_ported` reason may look like; anything else is not logged.
+CODE = re.compile(r'[a-z_]{1,64}')
+REASON = re.compile(r'[a-z_]{1,40}')
+# Values that change between two runs of the same read (the time it was asked): removed from both answers before
+# comparing; that the key is there is still compared (§10).
+VOLATILE = {'finals_status': ('checked_at',)}
 
 
 def configured_engine(home):
@@ -36,68 +43,97 @@ def configured_engine(home):
     return engine if isinstance(engine, str) and engine else None
 
 
-def _short(value):
-    text = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    return text if len(text) <= MAX_VALUE else text[:MAX_VALUE] + '…'
+def differences(oracle, candidate, path='$', out=None):
+    """JSON paths where the two answers differ, at most MAX_DIFFS + 1.
 
-
-def differences(python, rust, path='$', out=None):
-    """JSON paths where the two answers differ, as (path, python, rust), at most MAX_DIFFS + 1."""
+    Strict in the type (§10, decision 2): `1` is not `1.0` and `true` is not `1`, as in canonical JSON. Only paths:
+    the values are the person's titles and paths and never reach the log (decision 3).
+    """
     out = [] if out is None else out
     if len(out) > MAX_DIFFS:
         return out
-    if isinstance(python, dict) and isinstance(rust, dict):
-        for key in sorted(set(python) | set(rust)):
-            if key not in rust:
-                out.append((path + '.' + key, _short(python[key]), '<missing>'))
-            elif key not in python:
-                out.append((path + '.' + key, '<missing>', _short(rust[key])))
+    if type(oracle) is not type(candidate):
+        out.append(path)
+    elif isinstance(oracle, dict):
+        for key in sorted(set(oracle) | set(candidate)):
+            if key not in oracle or key not in candidate:
+                out.append(path + '.' + key)
             else:
-                differences(python[key], rust[key], path + '.' + key, out)
-    elif isinstance(python, list) and isinstance(rust, list):
-        if len(python) != len(rust):
-            out.append((path + '.length', len(python), len(rust)))
-        for index, (a, b) in enumerate(zip(python, rust)):
+                differences(oracle[key], candidate[key], path + '.' + key, out)
+    elif isinstance(oracle, list):
+        if len(oracle) != len(candidate):
+            out.append(path + '.length')
+        for index, (a, b) in enumerate(zip(oracle, candidate)):
             differences(a, b, '%s[%d]' % (path, index), out)
-    elif type(python) is not type(rust) and not (isinstance(python, (int, float)) and isinstance(rust, (int, float))
-                                                  and not isinstance(python, bool) and not isinstance(rust, bool)):
-        out.append((path, _short(python), _short(rust)))
-    elif python != rust:
-        out.append((path, _short(python), _short(rust)))
+    elif oracle != candidate:
+        out.append(path)
     return out
 
 
-def compare(method, python_envelope, rust_envelope):
-    """One log entry (without times) for the same request answered by both engines."""
+def _code(envelope):
+    """The error code of an envelope, only if it is a code token; `None` for an answer."""
+    if envelope.get('ok') is True:
+        return None
+    code = (envelope.get('error') or {}).get('code')
+    return code if isinstance(code, str) and CODE.fullmatch(code) else 'invalid_code'
+
+
+def _without(data, keys):
+    if isinstance(data, dict) and any(key in data for key in keys):
+        return {key: value for key, value in data.items() if key not in keys}
+    return data
+
+
+def _steady(data, keys):
+    """The answer with its volatile values blanked, so only whether each key is there is compared."""
+    if isinstance(data, dict) and any(key in data for key in keys):
+        return {key: (None if key in keys else value) for key, value in data.items()}
+    return data
+
+
+def compare(method, oracle, candidate, volatile=None):
+    """One log entry (without times) for the same request answered by Python (the oracle) and Rust.
+
+    Only the method, the outcome, JSON paths, codes and a `not_ported` reason: never a value nor an error message.
+    """
+    volatile = VOLATILE.get(method, ()) if volatile is None else tuple(volatile)
     entry = {'method': method}
-    rust_error = (rust_envelope.get('error') or {}) if not rust_envelope.get('ok') else None
-    if rust_error and rust_error.get('code') == 'not_ported':
+    candidate_code = _code(candidate)
+    if candidate_code == 'not_ported':
         entry['outcome'] = 'not_ported'
+        reason = (candidate.get('error') or {}).get('reason')
+        if isinstance(reason, str) and REASON.fullmatch(reason):
+            entry['reason'] = reason
         return entry
-    if not python_envelope.get('ok') or rust_error is not None:
-        python_code = None if python_envelope.get('ok') else (python_envelope.get('error') or {}).get('code')
-        rust_code = rust_error.get('code') if rust_error is not None else None
-        entry['outcome'] = 'same_error' if python_code == rust_code else 'error_mismatch'
-        entry['errors'] = {'python': python_code, 'rust': rust_code}
-        if rust_error is not None and python_code != rust_code:
-            entry['rust_message'] = str(rust_error.get('message', ''))[:MAX_VALUE]
+    oracle_code = _code(oracle)
+    if oracle_code is not None or candidate_code is not None:
+        entry['outcome'] = 'same_error' if oracle_code == candidate_code else 'error_mismatch'
+        entry['oracle_error'], entry['candidate_error'] = oracle_code, candidate_code
         return entry
-    rust_data = rust_envelope.get('data')
-    partial = []
-    if isinstance(rust_data, dict):
-        rust_data = dict(rust_data)
-        for key in RUST_ONLY_KEYS:
-            if key in rust_data:
-                partial.append(key)
-                rust_data.pop(key)
-    found = differences(python_envelope.get('data'), rust_data)
+    candidate_data = candidate.get('data')
+    partial = [key for key in RUST_ONLY_KEYS if isinstance(candidate_data, dict) and key in candidate_data]
+    found = differences(_steady(oracle.get('data'), volatile),
+                        _steady(_without(candidate_data, RUST_ONLY_KEYS), volatile))
     entry['outcome'] = 'same' if not found else 'diff'
     if partial:
         entry['rust_partial'] = partial
     if found:
-        entry['diffs'] = [{'path': p, 'python': a, 'rust': b} for p, a, b in found[:MAX_DIFFS]]
+        entry['diffs'] = found[:MAX_DIFFS]
         entry['more_diffs'] = len(found) > MAX_DIFFS
     return entry
+
+
+def failure_reason(error):
+    """`shadow_failed`: why the candidate gave no comparable answer, as a token (the message may carry paths)."""
+    if isinstance(error, FileNotFoundError):
+        return 'engine_missing'
+    if isinstance(error, (BrokenPipeError, ConnectionError, EOFError)):
+        return 'connection_lost'
+    if isinstance(error, ValueError):
+        return 'invalid_envelope'
+    if isinstance(error, OSError):
+        return 'engine_unavailable'
+    return 'internal_error'
 
 
 class RustReader:
@@ -118,8 +154,12 @@ class RustReader:
         line = self.process.stdout.readline()
         elapsed = time.perf_counter() - started
         if not line:
-            raise RuntimeError('shadow engine closed its output')
-        return json.loads(line), elapsed
+            raise EOFError('shadow engine closed its output')
+        envelope = json.loads(line)
+        # §2.1: an answer to another id is a protocol error, never the answer to this request.
+        if not isinstance(envelope, dict) or envelope.get('id') != request['id'] or not isinstance(envelope.get('ok'), bool):
+            raise ValueError('not the envelope of this request')
+        return envelope, elapsed
 
     def close(self):
         try:
@@ -182,7 +222,7 @@ class Shadow:
                 entry.update(compare(method, envelope, rust_envelope))
                 entry['rust_ms'] = round(rust_seconds * 1000, 2)
             except Exception as error:  # noqa: BLE001 - recorded, never raised
-                entry.update(method=method, outcome='shadow_failed', message=str(error)[:MAX_VALUE])
+                entry.update(method=method, outcome='shadow_failed', reason=failure_reason(error))
                 if self.reader is not None:
                     self.reader.close()
                     self.reader = None

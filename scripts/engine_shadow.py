@@ -76,10 +76,6 @@ def once(argv, method, params, env=None):
         return {'ok': False, 'error': {'code': 'no_answer', 'message': done.stderr[-300:]}}, elapsed
 
 
-# Values that change between two runs of the same read (the time it was asked).
-VOLATILE = {'finals_status': ('checked_at',)}
-
-
 def once_requests(python):
     """One-shot reads (`rpc`): ids, projects and libraries taken from this catalog."""
     requests = [('finals_status', {}), ('publications', {}), ('retitle_operations', {}), ('collection_release_plans', {})]
@@ -177,10 +173,6 @@ def replay(args):
             for _ in range(args.repeat):
                 theirs, python_seconds = once(python_once, method, params, env)
                 mine, rust_seconds = once(rust_once, method, params)
-                for envelope in (theirs, mine):
-                    for key in VOLATILE.get(method, ()):
-                        if isinstance(envelope.get('data'), dict):
-                            envelope['data'].pop(key, None)
                 entry = {'at': time.strftime('%Y-%m-%dT%H:%M:%S'), 'source': 'replay-once',
                          'python_ms': round(python_seconds * 1000, 2), 'rust_ms': round(rust_seconds * 1000, 2)}
                 entry.update(compare(method, theirs, mine))
@@ -224,10 +216,13 @@ def print_summary(summary, as_json):
         print('%-26s %5d  %-44s %10s %10s' % (method, row['count'], outcomes, row['python_ms_median'], row['rust_ms_median']))
     for entry in summary['diffs']:
         print('\n%s (%s)' % (entry['method'], entry['outcome']))
-        for diff in entry.get('diffs', [])[:8]:
-            print('  %s\n    python: %s\n    rust:   %s' % (diff['path'], diff['python'], diff['rust']))
-        if entry.get('errors'):
-            print('  errors:', entry['errors'], entry.get('rust_message', ''))
+        # Paths and codes only: the log never holds the values (nu9ve-engine-v1 §10).
+        for path in entry.get('diffs', [])[:8]:
+            print('  ' + path)
+        if entry.get('more_diffs'):
+            print('  …')
+        if 'candidate_error' in entry:
+            print('  python: %s · rust: %s' % (entry['oracle_error'], entry['candidate_error']))
 
 
 def set_enabled(args, enabled):
