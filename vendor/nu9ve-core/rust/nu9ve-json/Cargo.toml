@@ -1,0 +1,27 @@
+[package]
+name = "nu9ve-json"
+description = "Canonical JSON byte-compatible with CPython's json.dumps, digests, ids and the suite's error envelope (contracts/nu9ve-json-v1.md)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+# Mínimos que las apps ya tienen en su Cargo.lock; el Cargo.lock de este workspace fija la versión exacta que
+# se prueba aquí. Subir uno es un cambio de este crate con su entrada en el CHANGELOG.
+[dependencies]
+# Value como modelo de datos y lector de texto JSON. Sin `float_roundtrip` ni `arbitrary_precision`: los
+# límites que eso deja están en el contrato (§8). Activarlos cambia digests: sería nu9ve-json-v2.
+serde_json = "1.0.154"
+# SHA-256 del digest. RustCrypto, MIT o Apache-2.0.
+sha2 = "0.10.9"
+
+# Ids aleatorios del generador del sistema (BCryptGenRandom); /dev/urandom en los demás. Sin uuid ni getrandom.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

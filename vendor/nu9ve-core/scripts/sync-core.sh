@@ -9,7 +9,7 @@
 #   sync-core.sh --strict          --check, and fails if nu9ve/core moved on
 #
 # Options: --app <folder>     the app checkout (default: the git checkout around the current folder)
-#          --source <folder>  the nu9ve/core checkout (default: $NU9VE_CORE_REPO, then <app>/../core)
+#          --source <folder>  the nu9ve/core checkout (default: $NU9VE_CORE_REPO, <app>/../core, ~/code/ai/core)
 #
 # --check needs no nu9ve/core checkout, so a clean CI runner can use it.
 # The script copies itself into every pin, so an app runs vendor/nu9ve-core/scripts/sync-core.sh.
@@ -72,7 +72,17 @@ fi
 app="$(cd -- "${app}" && pwd)" || die "no app folder at ${app}"
 vendor="${app}/vendor/nu9ve-core"
 paths_file="${app}/vendor/nu9ve-core.paths"
-[[ -n "${source_repo}" ]] || source_repo="${app}/../core"
+# Without --source or NU9VE_CORE_REPO: a sibling checkout, then the suite's usual one. A folder
+# counts only if it is nu9ve/core (it carries this script), not an app's own core/.
+if [[ -z "${source_repo}" ]]; then
+    source_repo="${app}/../core"
+    for candidate in "${app}/../core" "${HOME:-/nonexistent}/code/ai/core"; do
+        if git -C "${candidate}" cat-file -e "HEAD:${self_path}" 2>/dev/null; then
+            source_repo="${candidate}"
+            break
+        fi
+    done
+fi
 
 sha256() {
     if command -v shasum >/dev/null 2>&1; then

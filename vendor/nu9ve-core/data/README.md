@@ -5,6 +5,7 @@ Archivos que varias apps leen y prueban igual, para que el mismo cálculo dé el
 | Archivo | Qué es | Quién lo prueba |
 | --- | --- | --- |
 | [theme-vectors-v1.json](theme-vectors-v1.json) | Hex esperado de cada rol de tema para cada color base ([tema v1 §10](../contracts/nu9ve-theme-v1.md#10-implementación-compartida)) | C# (`ThemeVectorsTests` de nüün); Swift pendiente. Se regenera aquí, nunca en una copia fijada |
+| [json-vectors-v1.json](json-vectors-v1.json) | Bytes canónicos y digest de textos JSON, entradas rechazadas, límites conocidos e ids UUID 5 ([JSON canónico v1 §10](../contracts/nu9ve-json-v1.md#10-vectores)) | Rust (`nu9ve-json/tests/vectors.rs` de nüün). Se regenera aquí con `python3 -I scripts/json-vectors.py` |
 
 Lo que entra después:
 

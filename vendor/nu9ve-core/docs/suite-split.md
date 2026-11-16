@@ -9,18 +9,18 @@ Contexto que cambia el orden: **las siguientes sesiones de este repo serán en l
 | Qué | Cuándo se muda | Por qué |
 | --- | --- | --- |
 | Contratos de suite, mapa, guías de plataforma, datos comunes | **Ya** ([S5](audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite), pasos 1–2) | Son estables, los leen varias apps y moverlos no rompe ninguna compilación |
-| Código de Rust `nu9ve-*` | **Después** de que el motor funcione en la Mac (backend de macOS y app de Mac usando Rust) | Hoy cambia cada semana. Con copia fijada, cada arreglo sería «editar en la suite → sincronizar → probar en nüün». Mientras sólo nüün lo usa, ese ciclo es puro costo |
-| Código de Swift | Cuando el usuario decida si `NuMacShell` sale de `ios-fractos` ([pregunta 3](suite-sharing.md#8-lo-que-decide-el-usuario)) y la app de Mac de nüün ya use Rust | nüün tiene su propio shell; converger con `NuMacShell` es trabajo de interfaz y no conviene mezclarlo con el cambio de motor |
+| Código de Rust `nu9ve-*` | **Después** de que el motor funcione en la Mac (backend de macOS y app de Mac usando Rust). `nu9ve-json` ya se mudó el 2026-11-16 (§3) | Hoy cambia cada semana. Con copia fijada, cada arreglo sería «editar en la suite → sincronizar → probar en nüün». Mientras sólo nüün lo usa, ese ciclo es puro costo |
+| Código de Swift | `NuMacShell` sale de `ios-fractos` (decidido el 2026-11-16, [pregunta 3](suite-sharing.md#8-lo-que-decide-el-usuario)); nüün lo adopta cuando su app de Mac ya use Rust | nüün tiene su propio shell; converger con `NuMacShell` es trabajo de interfaz y no conviene mezclarlo con el cambio de motor |
 | Código de C# | Cuando haya otra vez una máquina con Windows | WinUI sólo compila y se prueba en Windows; moverlo sin poder compilarlo sería mover a ciegas |
 
-Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` importa algo `nuun-*`**. Hoy se cumple: `nu9ve-volumes` sólo depende de `nu9ve-json`, y `Nu9ve.Core`/`Nu9ve.WinUI` reciben el nombre de la app como parámetro (`Storage.Configure("nuun", "NUUN_QA_ROOT", …)`). Lo comprueba `scripts/check_suite_boundary.sh` (desde el 2026-11-11, como `verify-packages.sh` de Fractos): falla si un crate `nu9ve-*` o un proyecto `Nu9ve.*` nombra algo de nüün fuera de un comentario. Así el día de la mudanza es copiar carpetas, no desenredar.
+Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` importa algo `nuun-*`**. Hoy se cumple: `nu9ve-volumes` sólo depende de `nu9ve-json` (ya en `nu9ve/core`), y `Nu9ve.Core`/`Nu9ve.WinUI` reciben el nombre de la app como parámetro (`Storage.Configure("nuun", "NUUN_QA_ROOT", …)`). Lo comprueba `scripts/check_suite_boundary.sh` (desde el 2026-11-11, como `verify-packages.sh` de Fractos): falla si un crate `nu9ve-*` o un proyecto `Nu9ve.*` nombra algo de nüün fuera de un comentario. Así el día de la mudanza es copiar carpetas, no desenredar.
 
 ## 2. Documentos y datos
 
 | Archivo | Destino | Nota |
 | --- | --- | --- |
 | `docs/contracts/macos-app-v1.md`, `windows-app-v1.md`, `nu9ve-theme-v1.md`, `nu9ve-interaction-v1.md`, `nu9ve-mcp-v1.md`, `nu9ve-sound-v1.md`, `nu9ve-notifications-v1.md` | `core/contracts/` | Son de toda la suite. Las tablas de adopción tienen una columna por app |
-| `docs/contracts/examples/theme-vectors-v1.json` | `core/data/` | Hoy lo prueba C#; Swift pendiente |
+| `docs/contracts/examples/theme-vectors-v1.json` | `core/data/theme-vectors-v1.json` | Hoy lo prueba C#; Swift pendiente |
 | `docs/suite.md`, `docs/suite-sharing.md`, este documento | `core/docs/` | Este documento se archiva cuando la mudanza termine |
 | `docs/platforms/windows.md`, `os-integration.md`, `linux.md` | `core/docs/platforms/` | `windows.md` mezcla lecciones de la suite con el estado de nüün en su §1: el estado se queda en STATUS |
 | `docs/platforms/rust-engine.md` | **Se parte** | La §6 («qué compartir en Rust») va a la suite. El resto es la migración de nüün y se queda |
@@ -33,7 +33,7 @@ Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` imp
 
 | Crate | Destino | Condición | Nota |
 | --- | --- | --- | --- |
-| `nu9ve-json` | `core/rust/` | Tras el cambio de motor en la Mac | Sobre de errores, JSON canónico, digest e ids: lo que la suite necesita para el [sobre común](audits/fable-audit-2026-11-10.md#c1--dos-sobres-y-dos-transportes). Al retirar Python, «compatible con Python byte a byte» pasa de ser una restricción a ser la **especificación** del JSON canónico de la suite. Escribirla como contrato corto antes de mudarlo |
+| ~~`nu9ve-json`~~ | `core/rust/nu9ve-json` | **Hecho el 2026-11-16**, con el [contrato nu9ve-json-v1](../contracts/nu9ve-json-v1.md) y sus vectores escritos antes | nüün lo usa por `vendor/nu9ve-core/rust/nu9ve-json` desde `engine/Cargo.toml` (`[workspace.dependencies]`), y su gate corre `sync-core.sh --check`. El original se borró en el mismo paso. Al retirar Python, el contrato pasa de restricción a **especificación** |
 | `nu9ve-volumes` | `core/rust/` | Tras la verificación sin caché ([S1](audits/session-briefs-2026-11-10.md#s1--verificación-sin-caché-en-windows-y-linux)) y el backend de macOS ([S16](audits/session-briefs-2026-11-10.md#s16--backend-de-volúmenes-de-macos-en-rust)) | Es la pieza que más cambia ahora. `fs.rs` (sincronizar, renombrar sin reemplazar, leer sin caché) le sirve también a curado. La identidad portable ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)) se decide antes de mudarlo, porque cambia su API |
 | `nu9ve-time` | **Se queda**, aunque se llame `nu9ve-` | Hasta que otra app lo necesite | Reproduce el `datetime` de CPython para que los nombres y digests coincidan con Python. Sólo nüün lo usa. Cuando se retire Python, sigue haciendo falta para que los nombres de destino no cambien |
 | `nuun-media`, `nuun-recipe`, `nuun-engine` | Se quedan | — | Dominio de nüün: catálogo, receta, planner, transferencia, binario |
@@ -82,9 +82,9 @@ Dos pistas que no se pisan: el **motor** (código de nüün, en este repo) y la 
 | Paso | Pista | Trabajo |
 | --- | --- | --- |
 | 1 | Ambas | Higiene sin diseño: `.gitattributes`, `rust-toolchain.toml` ([S3](audits/session-briefs-2026-11-10.md#s3--higiene-de-repos)). Antes de guardar fixtures doradas que se comparan byte a byte |
-| 2 | Suite | Crear `nu9ve/core` con los documentos y datos de la §2 y el script `sync-core` (hecho el 2026-11-16: esqueleto, script, documentos y datos, con la primera copia fijada en n-creator-utils; falta el remoto y la versión de PowerShell del script); nüün deja enlaces y su primera copia fijada de documentos ([S5](audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite), pasos 1–2). Responder las preguntas 3 y 4 de [suite-sharing §8](suite-sharing.md#8-lo-que-decide-el-usuario) |
+| 2 | Suite | Crear `nu9ve/core` con los documentos y datos de la §2 y el script `sync-core` (hecho el 2026-11-16: esqueleto, script, documentos y datos, con la primera copia fijada en n-creator-utils; remoto privado en GitHub el mismo día; falta la versión de PowerShell del script); nüün deja enlaces y su primera copia fijada de documentos ([S5](audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite), pasos 1–2). Preguntas 3 y 4 de [suite-sharing §8](suite-sharing.md#8-lo-que-decide-el-usuario), respondidas el 2026-11-16 |
 | 3 | Suite | El script de frontera de la §1 (nada `nu9ve-*` nombra algo `nuun-*`) |
 | 4 | Motor | Pasos de la Mac del PLAN: compilar y probar el motor en macOS, dorado, backend de volúmenes de macOS, la app de Mac usando Rust por método |
-| 5 | Suite | Con el motor ya usado en la Mac: escribir el contrato del JSON canónico y mudar `nu9ve-json` y `nu9ve-volumes` ([suite-sharing §7](suite-sharing.md#7-migración-por-pasos), paso 3) |
-| 6 | Suite | Swift: `NuMacShell` y `NuTheme`, si el usuario decide que salen de Fractos |
+| 5 | Suite | Con el motor ya usado en la Mac: escribir el contrato del JSON canónico y mudar `nu9ve-json` y `nu9ve-volumes` ([suite-sharing §7](suite-sharing.md#7-migración-por-pasos), paso 3). Contrato y `nu9ve-json`, hechos el 2026-11-16; falta `nu9ve-volumes` |
+| 6 | Suite | Swift: `NuMacShell` (decidido el 2026-11-16) y después `Nu9veTheme` |
 | — | Suite | C#: `Nu9ve.Core`/`Nu9ve.WinUI` cuando vuelva a haber Windows |

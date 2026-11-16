@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-nu9ve-json = { path = "../nu9ve-json" }
+nu9ve-json.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true

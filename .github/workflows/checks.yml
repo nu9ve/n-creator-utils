@@ -13,6 +13,14 @@ permissions:
   contents: read
 
 jobs:
+  nu9ve-core:
+    # vendor/nu9ve-core is a pinned copy of nu9ve/core (the engine builds nu9ve-json from it): it matches its
+    # manifest and came from a commit, not a working tree. Needs no nu9ve/core checkout.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: vendor/nu9ve-core/scripts/sync-core.sh --check
+
   python:
     # The oracle the Rust engine is compared against; macOS because media/ uses flock, F_NOCACHE, DiskArbitration.
     runs-on: macos-15

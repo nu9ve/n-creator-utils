@@ -1,0 +1,402 @@
+{
+  "contract": "nu9ve-json-v1",
+  "oracle": "CPython json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode('utf-8')",
+  "regenerate": "python3 -I scripts/json-vectors.py",
+  "accepted": [
+    {
+      "name": "keys_sorted",
+      "input": "{\"b\": 1, \"a\": 2, \"c\": 3}",
+      "canonical": "{\"a\":2,\"b\":1,\"c\":3}",
+      "digest": "e145110e712e3ed0a6b233551b27a90aa39b4c93ed67e111ba2002d16e5ed1fa"
+    },
+    {
+      "name": "keys_nested",
+      "input": "{\"z\": {\"y\": 1, \"x\": [{\"b\": 1, \"a\": 2}]}, \"a\": null}",
+      "canonical": "{\"a\":null,\"z\":{\"x\":[{\"a\":2,\"b\":1}],\"y\":1}}",
+      "digest": "e33b0495e6bfd853be253c19aaa57f977ec9505335ac471806e7ee264f8cef14"
+    },
+    {
+      "name": "keys_case",
+      "input": "{\"a\": 1, \"B\": 2, \"_\": 3, \"A\": 4, \"1\": 5}",
+      "canonical": "{\"1\":5,\"A\":4,\"B\":2,\"_\":3,\"a\":1}",
+      "digest": "2a2a6f3c5642f7a1c1e6c1bf7b556922f2baa2753e87bace79bdfc910d02605e"
+    },
+    {
+      "name": "keys_non_ascii",
+      "input": "{\"é\": 1, \"z\": 2, \"Á\": 3, \"ñ\": 4}",
+      "canonical": "{\"z\":2,\"Á\":3,\"é\":1,\"ñ\":4}",
+      "digest": "f1bb599b35325d7eaf1461c6ceb83d3aa18d1fd829ef63f842a2b02f7a43d0b2"
+    },
+    {
+      "name": "keys_astral_after_bmp",
+      "input": "{\"\\uffff\": 1, \"\\ud83d\\ude00\": 2, \"\\ue000\": 3}",
+      "canonical": "{\"\":3,\"￿\":1,\"😀\":2}",
+      "digest": "5afd6cb0dce6a2341d1987c7a09efae6a5703a087b3042d6399d27e8381d8dd6"
+    },
+    {
+      "name": "keys_duplicate_last_wins",
+      "input": "{\"a\": 1, \"a\": 2}",
+      "canonical": "{\"a\":2}",
+      "digest": "7e8059f495589fcd981232cc11d00b00da3802c01d688fa1cf1f6bed6e5bb33c"
+    },
+    {
+      "name": "empty_object",
+      "input": "{}",
+      "canonical": "{}",
+      "digest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "empty_array",
+      "input": "[]",
+      "canonical": "[]",
+      "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "name": "array_order_kept",
+      "input": "[3, 1, 2]",
+      "canonical": "[3,1,2]",
+      "digest": "51bda7ab4e44726cde71fcb6e4b515357059bb6b6dd5146d1fc50f73f11678c6"
+    },
+    {
+      "name": "literals",
+      "input": "[true, false, null]",
+      "canonical": "[true,false,null]",
+      "digest": "4d0f18de2133118249c26acc481838d4f6bb6bc1de882d99abbd19ae9397e8df"
+    },
+    {
+      "name": "int_zero",
+      "input": "0",
+      "canonical": "0",
+      "digest": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "int_negative",
+      "input": "-42",
+      "canonical": "-42",
+      "digest": "fec80006df0542549b4cbaafb8987eee00bb49bca396eefe9ac8be5b5928e8f6"
+    },
+    {
+      "name": "int_i64_max",
+      "input": "9223372036854775807",
+      "canonical": "9223372036854775807",
+      "digest": "b34a1c30a715f6bf8b7243afa7fab883ce3612b7231716bdcbbdc1982e1aed29"
+    },
+    {
+      "name": "int_i64_min",
+      "input": "-9223372036854775808",
+      "canonical": "-9223372036854775808",
+      "digest": "85386477f3af47e4a0b308ee3b3a688df16e8b2228105dd7d4dcd42a9807cb78"
+    },
+    {
+      "name": "int_u64_max",
+      "input": "18446744073709551615",
+      "canonical": "18446744073709551615",
+      "digest": "2cdb26265b4dc65e3b44d694f121fd6de99b9e4b8ae7f08d84bfa9537635ae43"
+    },
+    {
+      "name": "float_integral",
+      "input": "1.0",
+      "canonical": "1.0",
+      "digest": "d0ff5974b6aa52cf562bea5921840c032a860a91a3512f7fe8f768f6bbe005f6"
+    },
+    {
+      "name": "float_integral_large",
+      "input": "100.0",
+      "canonical": "100.0",
+      "digest": "43b87f618caab482ebe4976c92bcd6ad308b48055f1c27b4c574f3e31d7683e0"
+    },
+    {
+      "name": "float_exponent_integral",
+      "input": "1e2",
+      "canonical": "100.0",
+      "digest": "43b87f618caab482ebe4976c92bcd6ad308b48055f1c27b4c574f3e31d7683e0"
+    },
+    {
+      "name": "float_tenth",
+      "input": "0.1",
+      "canonical": "0.1",
+      "digest": "14be4b45f18e0d8c67b4f719b5144eee88497e413709d11d85b096d8e2346310"
+    },
+    {
+      "name": "float_sum_classic",
+      "input": "0.30000000000000004",
+      "canonical": "0.30000000000000004",
+      "digest": "06bad31060c1212ae832de4c031f7b31e3b48aed57858294478cb19450cf34ca"
+    },
+    {
+      "name": "float_negative_zero",
+      "input": "-0.0",
+      "canonical": "-0.0",
+      "digest": "c26617c7ccbcaa6631b45d851b8cf56e21d2ca624bdb1193afdbd4b560702cec"
+    },
+    {
+      "name": "float_zero",
+      "input": "0.0",
+      "canonical": "0.0",
+      "digest": "8aed642bf5118b9d3c859bd4be35ecac75b6e873cce34e7b6f554b06f75550d7"
+    },
+    {
+      "name": "float_fixed_small",
+      "input": "0.0001",
+      "canonical": "0.0001",
+      "digest": "e539aebac7fd2ed8aba8854fedeaa65436962f8ee1c82341b394698f085b6496"
+    },
+    {
+      "name": "float_sci_small",
+      "input": "0.00001",
+      "canonical": "1e-05",
+      "digest": "5a9530d3c6d5faad6ba8afe16fb8e438df23865128370b2ec14ef622bb5f2ec9"
+    },
+    {
+      "name": "float_sci_tiny",
+      "input": "1e-7",
+      "canonical": "1e-07",
+      "digest": "e485fac25775a7da830698e7daac582737fc8b43ba4b351467a16cf8ed83122a"
+    },
+    {
+      "name": "float_fixed_largest",
+      "input": "1234567890123456.0",
+      "canonical": "1234567890123456.0",
+      "digest": "0edd098b1ceb5bce524d070e86a286d257282b5d3e97035bc20bf54135af0fe7"
+    },
+    {
+      "name": "float_sci_large",
+      "input": "1e16",
+      "canonical": "1e+16",
+      "digest": "a144838520595009e7daf5aff8472573f9ce6a4bcd8c30673675618883464ab0"
+    },
+    {
+      "name": "float_sci_large_digits",
+      "input": "12345678901234568.0",
+      "canonical": "1.2345678901234568e+16",
+      "digest": "a7db90fc19a7e4c2a683f3424886e3ab88bb93460fb6f9dc0b9c0206392e05d6"
+    },
+    {
+      "name": "float_17_digits",
+      "input": "1234567890123.4568",
+      "canonical": "1234567890123.4568",
+      "digest": "bdece5324980b497766d79489e56dcc47808461efae7351d9a49c84f1006fede"
+    },
+    {
+      "name": "float_sci_big",
+      "input": "1.5e300",
+      "canonical": "1.5e+300",
+      "digest": "ba5b9d007ed3bac3aed4e53fff4395ec6e034ab008e90969287e3b8860c31b12"
+    },
+    {
+      "name": "float_subnormal",
+      "input": "-2.5e-310",
+      "canonical": "-2.5e-310",
+      "digest": "b7521fe8ee7162b74294183b99d20f7ed1f7d9bab3e8333b5571d1a84f125ecd"
+    },
+    {
+      "name": "float_min_positive",
+      "input": "5e-324",
+      "canonical": "5e-324",
+      "digest": "c46e7ca1be4c8734f373a56530787288fa2058d73d07855e9247e949f811a42a"
+    },
+    {
+      "name": "float_max",
+      "input": "1.7976931348623157e308",
+      "canonical": "1.7976931348623157e+308",
+      "digest": "c2784e1abd6317452708f3fbf9641c16b959561bc621a1d408c23a20aa2cb585"
+    },
+    {
+      "name": "float_many_digits",
+      "input": "0.12345678901234568",
+      "canonical": "0.12345678901234568",
+      "digest": "162d0205331896193ea0b09a9bf973bb64188453dde74ac35b7749b1447973a3"
+    },
+    {
+      "name": "float_rounds_to_shortest",
+      "input": "0.1000000000000000055511151231257827",
+      "canonical": "0.1",
+      "digest": "14be4b45f18e0d8c67b4f719b5144eee88497e413709d11d85b096d8e2346310"
+    },
+    {
+      "name": "float_exponent_upper",
+      "input": "2E-3",
+      "canonical": "0.002",
+      "digest": "8d938122d3904436fd32a463678148c7b7595bf667f263a65ab79059e5833a21"
+    },
+    {
+      "name": "string_escapes",
+      "input": "\"a\\\"b\\\\c\\n\\r\\t\\b\\f\"",
+      "canonical": "\"a\\\"b\\\\c\\n\\r\\t\\b\\f\"",
+      "digest": "72807c4cb30a3cb26d7d04f054a2909b1df39958dd5868e490ccf5a76ee293d6"
+    },
+    {
+      "name": "string_controls",
+      "input": "\"\\u0000\\u0001\\u001f\"",
+      "canonical": "\"\\u0000\\u0001\\u001f\"",
+      "digest": "842096a6d3fcd0968fe35809ea5810d33f7072b93743fc0f7b4ff484ae727d20"
+    },
+    {
+      "name": "string_slash_not_escaped",
+      "input": "\"a\\/b\"",
+      "canonical": "\"a/b\"",
+      "digest": "f5effa31772a3689cb116700c569f4b72d765290968f099016a899ab6c1e4ee3"
+    },
+    {
+      "name": "string_del_kept",
+      "input": "\"\\u007f\"",
+      "canonical": "\"\"",
+      "digest": "6fe76740e12a93d5598fe685cb6ad3d3c94e44609065a56866b69647772026ec"
+    },
+    {
+      "name": "string_line_separators_kept",
+      "input": "\"\\u2028\\u2029\"",
+      "canonical": "\"  \"",
+      "digest": "e3a0e2262ac7790f4df36b522a8fbdd4ee3370d568eb15dc25c5f1775f14ed6c"
+    },
+    {
+      "name": "string_non_ascii_kept",
+      "input": "\"ñandú — 東京\"",
+      "canonical": "\"ñandú — 東京\"",
+      "digest": "b42c9ece26baebbc6dfea04baba21e7bc055a3073d86eadf11f06703f6c3c59f"
+    },
+    {
+      "name": "string_astral_kept",
+      "input": "\"\\ud83c\\udfac 🎬\"",
+      "canonical": "\"🎬 🎬\"",
+      "digest": "b2e8e2fabdfb94daee9d2db05c47122d142cdeb164942ac401c490fee94b1733"
+    },
+    {
+      "name": "string_combining_not_normalized",
+      "input": "[\"é\", \"e\\u0301\"]",
+      "canonical": "[\"é\",\"é\"]",
+      "digest": "4f9aefe2a56dde33aa0522021cb5e8692f35b700043dbee664b3611e2b92f724"
+    },
+    {
+      "name": "string_bom_kept",
+      "input": "\"\\ufeffx\"",
+      "canonical": "\"﻿x\"",
+      "digest": "781f3e79ff1e89cd24a3f968a7e4c3759880fd6570684bdf083960e293b0be2d"
+    },
+    {
+      "name": "envelope_ok",
+      "input": "{\"id\": 7, \"ok\": true, \"data\": {\"items\": [], \"total\": 0}}",
+      "canonical": "{\"data\":{\"items\":[],\"total\":0},\"id\":7,\"ok\":true}",
+      "digest": "74913c0a06e335236d499a2ade3c713a333574a6f24e46ccd81fac6330b25e58"
+    },
+    {
+      "name": "envelope_error",
+      "input": "{\"id\": null, \"ok\": false, \"error\": {\"code\": \"read_only\", \"message\": \"No se puede escribir.\"}}",
+      "canonical": "{\"error\":{\"code\":\"read_only\",\"message\":\"No se puede escribir.\"},\"id\":null,\"ok\":false}",
+      "digest": "1f96002a23188c1d84b049d90ceb59e40ec2d778c1bd85ec765a55fa8a54728d"
+    },
+    {
+      "name": "mixed_document",
+      "input": "{\"version\": 1, \"plan\": {\"units\": [{\"bytes\": 1048576, \"ratio\": 0.5, \"name\": \"C0001.MP4\"}], \"created_at\": \"2026-11-16T10:00:00Z\"}, \"ok\": true}",
+      "canonical": "{\"ok\":true,\"plan\":{\"created_at\":\"2026-11-16T10:00:00Z\",\"units\":[{\"bytes\":1048576,\"name\":\"C0001.MP4\",\"ratio\":0.5}]},\"version\":1}",
+      "digest": "be7b0af9e119a9021164e976a681867993198639b58e15524a6b12ce4aa3abf2"
+    }
+  ],
+  "rejected": [
+    {
+      "name": "nan",
+      "input": "[NaN]",
+      "why": "NaN no es JSON y allow_nan=False lo rechaza"
+    },
+    {
+      "name": "infinity",
+      "input": "[Infinity]",
+      "why": "Infinity no es JSON"
+    },
+    {
+      "name": "negative_infinity",
+      "input": "[-Infinity]",
+      "why": "-Infinity no es JSON"
+    },
+    {
+      "name": "float_overflow",
+      "input": "[1e400]",
+      "why": "Se sale de un double: Python lo lee como inf y luego lo rechaza"
+    },
+    {
+      "name": "lone_high_surrogate",
+      "input": "\"\\ud800\"",
+      "why": "Un surrogate suelto no se puede escribir en UTF-8"
+    },
+    {
+      "name": "lone_low_surrogate",
+      "input": "\"\\udc00x\"",
+      "why": "Un surrogate suelto no se puede escribir en UTF-8"
+    }
+  ],
+  "limits": [
+    {
+      "name": "int_negative_zero",
+      "input": "-0",
+      "canonical": "0",
+      "digest": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+      "why": "serde_json lo lee como el float -0.0 y escribe -0.0"
+    },
+    {
+      "name": "int_beyond_u64",
+      "input": "18446744073709551616",
+      "canonical": "18446744073709551616",
+      "digest": "8b292fc2d32f1fd491784610c61b90dc4632a6e4add19261eca4c3979e4ea6d2",
+      "why": "serde_json lo lee como float y escribe 1.8446744073709552e+19"
+    },
+    {
+      "name": "float_tie_more_digits",
+      "input": "9007199254740993.0",
+      "canonical": "9007199254740992.0",
+      "digest": "0ad10bbdda8db20784fb3edc08722b255b8da67f2a12bb58ec32994ba4a3596e",
+      "why": "Empate exacto entre dos doubles: Python redondea al par; serde_json sin float_roundtrip no siempre"
+    },
+    {
+      "name": "float_tie_sci",
+      "input": "12345678901234567.0",
+      "canonical": "1.2345678901234568e+16",
+      "digest": "a7db90fc19a7e4c2a683f3424886e3ab88bb93460fb6f9dc0b9c0206392e05d6",
+      "why": "Empate exacto entre dos doubles: Python redondea al par; serde_json sin float_roundtrip no siempre"
+    },
+    {
+      "name": "int_below_i64",
+      "input": "-9223372036854775809",
+      "canonical": "-9223372036854775809",
+      "digest": "a11b7b6918ba4e84f8e3ab75638e7325e9f891fcf575dd801756523d4bc8a966",
+      "why": "serde_json lo lee como float y escribe -9.223372036854776e+18"
+    }
+  ],
+  "uuid5": [
+    {
+      "namespace": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "name": "http://python.org/",
+      "uuid": "4c565f0d-3f5a-5890-b41b-20cf47701c5e"
+    },
+    {
+      "namespace": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "name": "",
+      "uuid": "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
+    },
+    {
+      "namespace": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "name": "nu9ve-living:/Volumes/A|b|c",
+      "uuid": "46303da3-0eab-5326-b44b-3eead7876621"
+    },
+    {
+      "namespace": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "name": "ñandú:🎬",
+      "uuid": "3f943dda-2ec0-5525-8415-b61b3ee21226"
+    },
+    {
+      "namespace": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "name": "python.org",
+      "uuid": "886313e1-3b8a-5372-9b90-0c9aee199e5d"
+    }
+  ],
+  "content_id": {
+    "value": {
+      "source": "card-A",
+      "members": [
+        "C0001.MP4",
+        "C0002.MP4"
+      ]
+    },
+    "digest": "5ef4ce2f07feff5fed451ae7fde718445a963c6610b38a860812c41516d405e6",
+    "uuid": "d05ff37e-03a9-5223-bc91-7ae6745b5afb"
+  }
+}

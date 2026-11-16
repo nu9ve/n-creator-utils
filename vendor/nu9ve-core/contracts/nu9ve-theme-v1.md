@@ -249,7 +249,7 @@ Decisión (2026-11-06): **primero replicar, después extraer.** Todavía no hay 
 | Barra de título, arrastre y doble clic | nüün / SoundShop `TitleBarDragArea` | §8 |
 | `AppIdentity` y Acerca de | Fractos `NuMacShell` | [macos-app-v1 §5](macos-app-v1.md#5-acerca-de) |
 
-- **Más adelante:** cuando una pieza se repita igual, extraerla a un paquete (por ejemplo `NuTheme` / `NuMacShell`). Antes de crearlo hay que decidir en qué repo vive y cómo lo consumen las apps.
+- **Más adelante:** cuando una pieza se repita igual, extraerla a un paquete (por ejemplo `NuTheme` / `NuMacShell`). Vive en `nu9ve/core/swift/` y cada app lo consume por su copia fijada ([cómo se comparte](../docs/suite-sharing.md)).
 
 ## 11. Validación
 

@@ -1,19 +1,19 @@
-//! Canonical JSON, digests and errors shared by the suite's Rust engines.
+//! Canonical JSON, digests, ids and errors shared by the suite's Rust engines.
 //!
-//! nu9ve-mcp-v1 / rust-engine.md §6 · origin: n-creator-utils `media/common.py` (`canonical`, `digest`,
-//! `MediaError`). A plan's digest is SHA-256 of its canonical JSON, so the Rust engine must produce the
-//! **same bytes** as Python's
+//! The rule is contracts/nu9ve-json-v1.md, and data/json-vectors-v1.json checks it (tests/vectors.rs). A
+//! plan's digest is SHA-256 of its canonical JSON, so this crate must produce the **same bytes** as CPython's
 //! `json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':'), allow_nan=False)`:
 //! keys sorted by code point, no spaces, non-ASCII kept as UTF-8, Python's escapes, and Python's `repr`
 //! for floats (`1e-07`, `1e+16`, `1.0`). serde_json alone writes `1e-7` and `1e16`.
 //!
-//! Limit: integers must fit in i64/u64 (Python allows any size; serde_json would read a larger one as a float).
+//! Limits (contract §8): integers must fit in i64/u64, the integer `-0` reads as a float, and serde_json's
+//! reader may misround a decimal with more than 17 digits that falls exactly between two doubles.
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::fmt;
 
-/// An error with a stable code, as Python's `MediaError` and nove's engine errors (`{code, message}`).
+/// An error with a stable code and a message for people (contract §9: `{code, message}`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
     pub code: String,
@@ -48,7 +48,7 @@ pub fn require(condition: bool, code: &str, message: impl Into<String>) -> Resul
     }
 }
 
-/// Canonical bytes of a JSON value, identical to nüün's Python `canonical`.
+/// Canonical bytes of a JSON value, identical to CPython's `json.dumps` with the contract's arguments.
 pub fn canonical(value: &Value) -> Vec<u8> {
     let mut out = String::new();
     write_value(&mut out, value);
@@ -70,7 +70,7 @@ pub fn hex(bytes: &[u8]) -> String {
     text
 }
 
-/// The one-line envelope of `rpc-serve` (media/cli.py `serve_reads`): `{id, ok: true, data}`.
+/// The one-line response envelope (contract §9): `{id, ok: true, data}`.
 pub fn ok_envelope(id: &Value, data: Value) -> Value {
     serde_json::json!({"id": id, "ok": true, "data": data})
 }
@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn large_unsigned_integers_stay_integers() {
-        // The native transport fixture (tests/fixtures/native_plan_backend.py) uses 2**64 - 1.
+        // 2**64 - 1, the largest integer the contract guarantees.
         let value: Value = serde_json::from_str(
             "{\"unsigned\": 18446744073709551615, \"integral_float\": 1.0, \"small\": 1e-7}",
         )
@@ -304,7 +304,7 @@ pub fn random_bytes<const N: usize>() -> Result<[u8; N]> {
     Ok(bytes)
 }
 
-/// A random UUID version 4 in Python's `str(uuid.uuid4())` form (`media/common.py` `uid`).
+/// A random UUID version 4 in Python's `str(uuid.uuid4())` form (contract §7).
 pub fn uid() -> Result<String> {
     let mut b = random_bytes::<16>()?;
     b[6] = (b[6] & 0x0f) | 0x40; // version 4

@@ -2,7 +2,7 @@
 
 Las menciones a «SoundShop» en los contratos se refieren a **SoundBender**, su nombre desde el 2026-11-16; las rutas de código siguen siendo las de hoy.
 
-Este repo coordina la suite: aquí viven los contratos que comparten las apps y este mapa de quién es quién. Cada app conserva sus datos, su estado y su plan en su repo; este mapa **enlaza** y no reemplaza esos estados. Leído en los repos el 2026-11-07: antes de decidir algo, revisa el STATUS de la app.
+`nu9ve/core` coordina la suite: aquí viven los contratos que comparten las apps, su código común y este mapa de quién es quién. Cada app conserva sus datos, su estado y su plan en su repo; este mapa **enlaza** y no reemplaza esos estados. Leído en los repos el 2026-11-07: antes de decidir algo, revisa el STATUS de la app.
 
 ## Las apps
 
@@ -49,7 +49,7 @@ En propuesta, sin código: un puente con Brave y un «escenario» web para graba
 | [nu9ve-notifications-v1](../contracts/nu9ve-notifications-v1.md) | Avisos del sistema: cola en el motor, clic al objeto exacto, valores por defecto, límites, urgencia, sonido | Propuesta (2026-11-10); nove completo en Windows, nüün y nove parciales en Mac |
 | [Contratos de media](https://github.com/nu9ve/n-creator-utils/blob/master/docs/contracts/README.md) | Ingreso, naming, biblioteca/handoff, cierre, Stalker, Atlas | Vigentes, con adopción por app en su índice |
 
-Guías por plataforma (propuestas del 2026-11-10): [integración con el sistema operativo](platforms/os-integration.md) y [Linux](platforms/linux.md). Hallazgos entre repos: [auditoría Fable](audits/fable-audit-2026-11-10.md). Dónde debería vivir todo esto y cómo lo consumiría cada app: [cómo se comparte entre repos](suite-sharing.md) (propuesta).
+Guías por plataforma (propuestas del 2026-11-10): [integración con el sistema operativo](platforms/os-integration.md) y [Linux](platforms/linux.md). Hallazgos entre repos: [auditoría Fable](audits/fable-audit-2026-11-10.md). Dónde debería vivir todo esto y cómo lo consumiría cada app: [cómo se comparte entre repos](suite-sharing.md) (decidido: `nu9ve/core` con copia fijada).
 
 Clipper mantiene además los suyos (`clipper/apps/APP_CONTRACT.md`, `APP_SERVICES_CONTRACT.md`, `CROSS_APP_EDITORIAL_GUIDE.md`), y nove los de su motor (`nove/docs/contracts`).
 
@@ -80,7 +80,7 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 | Todas | Sello de build `Nu9veBuildID` / `Nu9veBuildDate` en Acerca de | Fractos `NuMacShell` `AppIdentity`, nüün `AppIdentity` | 2 |
 | C# (Windows) | Cliente del pipe, host de fondo, diccionarios de tema, settings cards | nove `Nove.Core` | 1 |
 | C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | nüün `native/windows` (primera copia; nove la tomaría como segunda) | 1 |
-| Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`contracts/examples/theme-vectors-v1.json`](../data/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |
+| Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`data/theme-vectors-v1.json`](../data/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |
 | Rust | IPC enmarcado sobre socket/pipe con ACL de usuario | nove `core` | 1 |
 | Rust | Servidor MCP con niveles y permiso por sesión | nove `core/src/mcp.rs` (nüün lo tiene en Python, sólo lectura) | 1 |
 | Rust | Identidad de volumen por serial, letras y espacio libre en Windows | curado `identity.rs`/`relink.rs` (nüün lo necesitará: [motor en Rust](https://github.com/nu9ve/n-creator-utils/blob/master/docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps)) | 1 |
@@ -90,7 +90,7 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 | Rust / Swift | Loudness (LUFS), limitador, BPM y clave | curado `audio-engine`, SoundBender `SoundCore`; Clipper en Python | 2–3 ([audio en la suite](platforms/audio.md)) |
 | Todas | QA aislada por variable de entorno; instalar en la carpeta de apps del usuario con respaldo del anterior | nüün, nove, curado, kyu, SoundShop | 5 |
 
-**Primer candidato maduro:** `NuMacShell` + roles de tema en Swift (Acerca de, ventana, barra y paleta), con nüün, Fractos, SoundShop y kyu como consumidores. Antes de crearlo hay que decidir en qué repo vive y cómo se versiona; queda pendiente y no se crea sin esa decisión.
+**Primer candidato maduro:** `NuMacShell` + roles de tema en Swift (Acerca de, ventana, barra y paleta), con nüün, Fractos, SoundShop y kyu como consumidores. Vive en `nu9ve/core/swift/`, con copia fijada en cada app (decidido el 2026-11-16).
 
 ## Mantener este mapa
 
