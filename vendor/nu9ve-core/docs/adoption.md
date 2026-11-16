@@ -50,21 +50,23 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 
 [Protocolo de un motor detrás de una app v1](../contracts/nu9ve-engine-v1.md)
 
-Leído en el código el 2026-11-16: nüün `8ac8307`, Clipper `41084ccb`, nove `9935227`. Los casos de motor de [`data/engine-examples-v1.json`](../data/engine-examples-v1.json) se corrieron ese día contra los binarios de nüün y Clipper; nove no, porque su petición todavía no es v1. Qué falta en detalle y en qué orden está en la [§12 del contrato](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1).
+Leído en el código el 2026-11-16: nüün `7737e2f`, Clipper `41084ccb`, nove `9935227`. Los casos de motor de [`data/engine-examples-v1.json`](../data/engine-examples-v1.json) se corrieron ese día contra los binarios de nüün y Clipper; nove no, porque su petición todavía no es v1. Qué falta en detalle y en qué orden está en la [§12 del contrato](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1).
 
 | Regla | nüün (Python y `nuun-engine`) | Clipper (Python y `clipper-core`) | nove |
 | --- | --- | --- | --- |
-| 1 Transporte | Sí: líneas (`rpc-serve`) y una vez (`rpc`). Una línea de más se lee entera antes de rechazarla | Sí: líneas (`serve`) | Sí: marcos por stdio, socket y pipe; una vez (`call`) |
-| 2 Petición e id | Parcial: acepta ids de cualquier tipo; Rust escribe los enteros de más de 64 bits como decimal; sin `method`, pierde el `id` | Sí | No: `request_id`, `protocol` |
-| 3 Sobre | Sí en `rpc-serve`; `rpc` de Python sin `id` | Sí | No: `{result, error}` ([transición](../contracts/nu9ve-engine-v1.md#123-nove-transición-con-los-dos-sobres)) |
-| 4 `engine_info` | Parcial: sólo Rust, sin `contract`, `protocol`, `native` ni `capabilities` | Parcial: sin `contract`, `version` ni `capabilities` | No: `hello` |
+| 1 Transporte | Sí: líneas (`rpc-serve`) y una vez (`rpc`). Una línea de más se lee entera antes de rechazarla | Sí: líneas (`serve`), con `nu9ve-engine` en Rust | Sí: marcos por stdio, socket y pipe; una vez (`call`) |
+| 2 Petición e id | Sí: el `id` se lee antes que `method` y sólo vale entero, cadena o `null`; los enteros de más de 64 bits vuelven exactos (Rust con `raw_value`, sin `arbitrary_precision`); `params` que no es objeto es `invalid_params` | Sí | No: `request_id`, `protocol` |
+| 3 Sobre | Sí en `rpc-serve`; `rpc` de Python sin `id` | Sí | Paso 1 implementado: los clientes leen el sobre viejo y v1. El motor emite el sobre viejo. |
+| 4 `engine_info` | Sí en los dos: `contract`, `protocol` (`nuun-media/1`), `engine`, `version`, `capabilities`, `ported` y `native`, más sus `writes` | Los dos motores incluyen `contract`, `version`, `capabilities` y `queue_views`. Al cliente le falta validar `contract` | No: `hello` |
 | 5 `not_ported` | Parcial: sin `reason` | Sí | No aplica |
 | 6 Grandes, progreso, escrituras | Progreso por sondeo; escrituras sólo en una vez, sin clave | Sí: `data` ya serializado, `request_id`, `write_status` | Parcial: claves e `idempotency_key` sí; una respuesta de más de 1 MiB se pierde |
-| 7 Códigos | Parcial: `operation_failed` en vez de `internal_error`; método desconocido es `read_only` en `rpc-serve` | Sí | Parcial: `invalid_json`, `frame_size` |
+| 7 Códigos | Sí: `invalid_request`, `invalid_params`, `unknown_method` antes que `read_only` e `internal_error` (antes `operation_failed`), en Python y Rust a la vez | Sí | Parcial: `invalid_json`, `frame_size` |
 | 8 Ciclo de vida | Sí | Sí | Sí: `--parent-pid`, `engine_shutdown` |
 | 9 Seguridad | Sí (stdio) | Sí (stdio) | Sí: socket `0600` con uid del par; pipe con DACL y PID |
-| 10 Sombra | Parcial: guarda valores cortos en el registro y da `1` igual a `1.0` | Sí | No aplica: sin oráculo |
-| Casos de motor (§11) | Rust 9 de 20; Python 2 de 20 | 20 de 20 en los dos | Sin medir |
+| 10 Sombra | Sí: compara tipos y el registro guarda sólo rutas, códigos, `reason` y tiempos. Quita `not_ported` de `data` antes de comparar (respuesta parcial) | Sí | No aplica: sin oráculo |
+| Casos de motor (§11) | 20 de 20 en los dos (`7737e2f`): `tests/test_engine_examples.py`, `engine_examples_v1` en Rust y `scripts/engine-examples.py` | 20 de 20 en los dos, en su CI | Sin medir |
+
+**nove (2026-11-16).** Contrato y ejemplos fijados desde `nu9ve/core@9df396d` en `8a7efd6`; lectores de Swift, C#, host del broker y `pipe-call` en `83fd776`. Las pruebas de ambos sobres pasan en Rust y Swift en Mac. El gate completo sigue abierto por fallos previos de Clippy y de tres pruebas Swift. Falta compilar y ejecutar las pruebas C# y comprobar los clientes Rust sobre named pipe en Windows. Quedan los pasos 2 a 4 de la [§12.3](../contracts/nu9ve-engine-v1.md#123-nove-transición-con-los-dos-sobres).
 
 ## nu9ve-fs-v1
 

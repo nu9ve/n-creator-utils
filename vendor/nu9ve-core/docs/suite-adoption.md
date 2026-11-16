@@ -11,7 +11,8 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `NuMacShell` en `swift/` (macOS 15, [por qué](../swift/README.md#macos-mínimo-15)) | 2026-11-16 | Fractos. Lo siguen nüün, tras su semana de uso diario, y las demás apps de Mac |
 | [`nu9ve-json-v1`](../contracts/nu9ve-json-v1.md), sus vectores y `rust/nu9ve-json` | 2026-11-16 | nüün (motor de Rust) y Clipper (sobre, `sha256_hex`, `uuid4`) |
 | [`nu9ve-fs-v1`](../contracts/nu9ve-fs-v1.md) y `rust/nu9ve-fs` | 2026-11-16 | nüün (`nu9ve-volumes`) y Clipper (`fsio.rs` y `store.rs`); curado después |
-| [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Nadie todavía. Clipper habla casi todo; nüün y nove tienen sus pasos en la [§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1) |
+| [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Clipper, con los 20 casos en su CI. nüün y nove tienen sus pasos en la [§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1) |
+| [`nu9ve-engine`](../rust/nu9ve-engine/): servidor de líneas y marcos con lectura acotada, ids exactos y `engine_info` | 2026-11-16 | Clipper (`clipper-core serve`), app de origen. nüün lo adopta tras cerrar sus brechas de la §12.1 |
 | `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
 | Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
 | [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
@@ -38,7 +39,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | Pieza | Destino | De dónde | Primeros usuarios |
 | --- | --- | --- | --- |
-| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper suma `contract`, `version` y `capabilities` a `engine_info`; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper primero (es lo más corto), después nüün; nove en sus cuatro pasos. Las decisiones 1 a 3 ya están tomadas: nüün cambia códigos y su sombra en el mismo paso |
+| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper valida `contract` en su cliente; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper ya sirve los campos de v1; nüün sigue y nove lo adopta en cuatro pasos. Las decisiones 1 a 3 ya están tomadas: nüün cambia códigos y su sombra en el mismo paso |
 
 ### Ola 2 · con dos usuarios a la vista
 
@@ -47,7 +48,6 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `MasterLimiter` | SoundBender decide si su motor portable es Rust ([audio en la suite](platforms/audio.md)) |
 | `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | Decidir antes la identidad portable de un disco ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)), porque cambia su API |
 | Guía de prácticas comunes | `docs/practices.md` | Lo que ya repiten cinco apps: QA aislada por variable de entorno, instalar en la carpeta de apps del usuario con respaldo del anterior, gate con `sync-core.sh --check`, CHANGELOG por pieza | Escribirla con lo que ya hacen nüün, nove, curado, kyu y SoundBender, sin inventar reglas nuevas |
-| Crate `nu9ve-engine`: servidor de líneas y marcos (lectura con tope, descarte de la línea de más, sobre, ids exactos, `engine_info`) y su cliente de prueba con los ejemplos | `rust/` | `clipper-core` `main.rs` y `nuun-engine` `main.rs`; los marcos de nove `protocol.rs` | Nace desde Clipper, que ya cumple el contrato ([decisión 7](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas)). nüün lo adopta al cerrar sus brechas de la §12.1 |
 | `nu9ve-py`: semántica de CPython (`repr`, `round`, `json.dumps` con indentación, cadenas, `pathlib`, `datetime`) | `rust/` | Clipper `py.rs`, `pyval.rs`, `paths.rs`; nüün `nu9ve-time` | Mientras nüün y Clipper porten desde Python. Vectores generados por CPython |
 
 ### Ola 3 · con su condición
@@ -68,7 +68,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | --- | --- | --- | --- |
 | **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs` y `swift` (`Nu9veTheme`); `--check` en su gate | `NuMacShell` después de la semana de uso diario | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | `Nu9veTheme` | `NuMacShell`, el motor de sonido (ola 3) |
-| **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, `nu9ve-fs-v1`, vectores de JSON, `rust/nu9ve-json` y `rust/nu9ve-fs`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | `nu9ve-engine-v1` | Supervisor de procesos, semántica de Python |
+| **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, `nu9ve-fs-v1`, `nu9ve-engine-v1`, vectores de JSON y ejemplos del motor, `rust/nu9ve-json`, `rust/nu9ve-fs` y `rust/nu9ve-engine`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | Validar `contract` en el cliente de Clipper | Servidor de líneas, supervisor de procesos, semántica de Python |
 | **curado** | Contratos de Mac, Windows, tema e interacción y vectores de tema; `bun run core:check` | `nu9ve-fs`; `nu9ve-volumes` cuando se decida la identidad portable | Capas de audio y supervisión de stems |
 | **nove** | Contratos de Mac, Windows, tema, interacción, MCP y avisos, y vectores de tema | `nu9ve-engine-v1`; `NuMacShell` en Mac | IPC enmarcado con ACL y MCP con niveles |
 | **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, y vectores de tema; `--check` en `validate.sh` | `NuMacShell` y `Nu9veTheme` al resolver su mínimo de macOS 14 | `ShortcutCatalog`; segundo usuario de loudness |
