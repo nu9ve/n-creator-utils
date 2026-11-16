@@ -96,6 +96,19 @@ class ShadowCompare(unittest.TestCase):
         self.assertEqual(compare('finals_status', first, second)['outcome'], 'same')
         self.assertEqual(compare('other', first, second)['diffs'], ['$.checked_at'])
 
+    def test_volatile_keys_inside_list_items(self):
+        def overview(free, used, uncounted, name='MEDIA502'):
+            return {'ok': True, 'data': {'targets': [{'name': name, 'fs_free': free, 'fs_used': used,
+                                                      'uncounted': uncounted, 'allocated': 10}]}}
+        self.assertEqual(compare('storage_overview', overview(5, 20, 10), overview(4, 21, 11))['outcome'], 'same')
+        # Only those values: anything else in the item still counts.
+        self.assertEqual(compare('storage_overview', overview(5, 20, 10), overview(4, 21, 11, 'ESSD'))['diffs'],
+                         ['$.targets[0].name'])
+        # Whether the key is there is still compared.
+        missing = overview(5, 20, 10)
+        del missing['data']['targets'][0]['uncounted']
+        self.assertEqual(compare('storage_overview', overview(5, 20, 10), missing)['outcome'], 'diff')
+
     def test_summary_counts_and_medians(self):
         rows = summarize([{'method': 'jobs', 'outcome': 'same', 'python_ms': 3, 'rust_ms': 1},
                           {'method': 'jobs', 'outcome': 'diff', 'python_ms': 5, 'rust_ms': 2},

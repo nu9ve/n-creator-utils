@@ -26,9 +26,12 @@ RUST_ONLY_KEYS = ('not_ported',)
 # nu9ve-engine-v1 §3 and §5: what a code and a `not_ported` reason may look like; anything else is not logged.
 CODE = re.compile(r'[a-z_]{1,64}')
 REASON = re.compile(r'[a-z_]{1,40}')
-# Values that change between two runs of the same read (the time it was asked): removed from both answers before
-# comparing; that the key is there is still compared (§10).
-VOLATILE = {'finals_status': ('checked_at',)}
+# Values that change between two runs of the same read: removed from both answers before comparing; that the key is
+# there is still compared (§10). A name is a top-level key; `list[].name` is that key in each item of a list.
+# `finals_status.checked_at` is the time it was asked. `storage_overview` reads free space live (statvfs), so a disk
+# in use changes between the Python and the Rust read; `uncounted` is `fs_used - allocated` and changes with it.
+VOLATILE = {'finals_status': ('checked_at',),
+            'storage_overview': ('targets[].fs_free', 'targets[].fs_used', 'targets[].uncounted')}
 
 
 def configured_engine(home):
@@ -86,9 +89,25 @@ def _without(data, keys):
 
 def _steady(data, keys):
     """The answer with its volatile values blanked, so only whether each key is there is compared."""
-    if isinstance(data, dict) and any(key in data for key in keys):
-        return {key: (None if key in keys else value) for key, value in data.items()}
-    return data
+    if not isinstance(data, dict) or not keys:
+        return data
+    top = {key for key in keys if '[].' not in key}
+    inner = {}
+    for key in keys:
+        if '[].' in key:
+            head, rest = key.split('[].', 1)
+            inner.setdefault(head, []).append(rest)
+    if not top.intersection(data) and not inner.keys() & data.keys():
+        return data
+    steady = {}
+    for key, value in data.items():
+        if key in top:
+            steady[key] = None
+        elif key in inner and isinstance(value, list):
+            steady[key] = [_steady(item, tuple(inner[key])) for item in value]
+        else:
+            steady[key] = value
+    return steady
 
 
 def compare(method, oracle, candidate, volatile=None):
