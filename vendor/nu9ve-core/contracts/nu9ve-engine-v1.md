@@ -135,7 +135,8 @@ v1 no lleva progreso ni eventos dentro del canal: una petición, una respuesta. 
 - **Debe:** un trabajo largo **no** corre dentro del bucle de un motor persistente, porque detendría las demás lecturas. Corre en un proceso de una vez (nüün: una mutación por proceso), en un trabajo supervisado (Clipper `clipper-core job run`) o en un worker del motor (nove).
 - **El progreso se lee:** un método de lectura que el cliente sondea (nüün `action_progress`, `closure_progress`, `storage_progress`; nove el estado de sus trabajos y `events` con cursor `after`).
 - **Cancelar:**
-  - un proceso de una vez se cancela con `SIGINT` o `SIGTERM` al proceso (nüün), que termina con el código `cancelled`. En Windows falta decidirlo (§13);
+  - un proceso de una vez se cancela con `SIGINT` o `SIGTERM` al proceso (nüün), que termina con el código `cancelled`;
+  - **en Windows**, donde no hay `SIGINT`, primero se cancela de forma cooperativa: un método `<cosa>_cancel` o un archivo de cancelación que el motor vigila, como el de Clipper. Después hay un plazo de gracia, y si el motor no terminó, el cliente lo corta con `TerminateJobObject` sobre el Job Object en el que lo arrancó, para que caigan también sus hijos. **No debe** depender de `GenerateConsoleCtrlEvent`, que no llega a un proceso sin consola. Cortado así, el cliente informa `cancelled` y no da por publicada ninguna salida;
   - un trabajo del motor se cancela con un método propio, `<cosa>_cancel` (nove `run_cancel`, `history_cancel`), que es una escritura (§6.3);
   - un trabajo supervisado, con señal o archivo de cancelación (Clipper).
 - **Debe:** `cancelled` es el código de lo que se canceló, y lo que se canceló no publica salidas parciales.
@@ -280,21 +281,21 @@ nove no tiene oráculo ni sombra; adopta el transporte de marcos tal como está,
 1. **Los clientes leen los dos sobres.** Swift (`Protocol.swift`), C# (`EngineClient.cs`), `broker_host.rs` y el cliente de `pipe-call`. Si el objeto tiene `ok` booleano, es v1. Si no, y tiene `request_id` y `result` o `error`, es el viejo: `result` se lee como `data` y `request_id` como `id`. Cualquier otra forma es error de protocolo. Ningún cambio de comportamiento: el motor sigue respondiendo el sobre viejo.
 2. **El motor responde v1 a quien pregunta v1.** Una petición con `id` y sin `request_id` recibe `{id, ok, data | error}`; una con `request_id`, el sobre viejo. `protocol` deja de ser obligatorio cuando falta `request_id`. `engine_info` se suma a `hello`, con `contract`, `protocol: "nove/1"`, `engine: "rust"`, `version` (hoy `build`), `capabilities` (las mismas), `ported: []` y `native` con sus métodos. `idempotency_key` sigue en el primer nivel, en los dos sobres. `retryable` y `retry_after_seconds` siguen en `error`.
 3. **Los clientes envían `id`.** Cada uno en su propio cambio. Los nombres de error pasan a v1 (`invalid_json` → `invalid_request` o `invalid_params`; `frame_size` → `request_too_large` o `response_too_large`), y una respuesta de más de 1 MiB vuelve como `response_too_large`.
-4. **Se retira el sobre viejo,** cuando ningún cliente lo envía. Es la decisión de la §13.
+4. **Se retira el sobre viejo** en la primera versión de nove en que todos sus clientes (Swift, C#, `broker_host.rs` y `pipe-call`) envían `id`. Va atado a ese hito, no a una fecha (§13).
 
 Los mensajes nativos de la extensión de Chrome no cambian: su formato lo fija Chrome.
 
 ## 13. Decisiones abiertas
 
-Del usuario. Las tres primeras ya se decidieron y son regla en §7 y §10; las demás, mientras no se decidan, dejan a cada app como está.
+Del usuario. Todas están decididas; cada una es regla en la sección que nombra.
 
 1. **Decidido (el usuario, 2026-11-16): el código de un imprevisto es `internal_error`** (Clipper), no `operation_failed` (nüün), que suena a un fallo esperado del método. En nüün cambia en Python y Rust en el mismo paso.
 2. **Decidido (el usuario, 2026-11-16): en la sombra, `1` y `1.0` son distintas** (Clipper). El JSON canónico de la suite los escribe distinto, y un plan firmado cambiaría de digest.
 3. **Decidido (el usuario, 2026-11-16): el registro de la sombra guarda sólo rutas,** códigos y tiempos (Clipper), sin valores, porque los valores son títulos y rutas de la persona.
-4. **Cancelar un proceso de una vez en Windows,** donde no hay `SIGINT`: `GenerateConsoleCtrlEvent`, un archivo de cancelación o un método. Se decide cuando vuelva a haber una máquina con Windows.
-5. **Progreso o eventos dentro del canal:** v1 no los tiene. Si hacen falta, ¿v2 de este contrato, o el `nu9ve-jobs` de la ola 3?
-6. **Cuándo retira nove su sobre viejo** (paso 4 de la §12.3), y si la ventana de transición tiene fecha.
-7. **El crate de servidor** (`nu9ve-engine`: lectura acotada, sobre, `engine_info`, descarte de líneas, marcos): cuándo, y si su primer usuario es nüün o Clipper.
+4. **Decidido (el usuario, 2026-11-16): en Windows se cancela primero de forma cooperativa,** con un método o un archivo de cancelación y un plazo de gracia, y al final con `TerminateJobObject` sobre su Job Object. Sin `GenerateConsoleCtrlEvent` (§6.2).
+5. **Decidido (el usuario, 2026-11-16): no hay progreso ni eventos dentro del canal,** ni ahora ni en una v2 prevista. El progreso se sondea (§6.2). Si una app necesita un flujo de eventos, eso es de `nu9ve-jobs`, que ya los tiene en el supervisor de Clipper, no de este protocolo.
+6. **Decidido (el usuario, 2026-11-16): nove retira su sobre viejo por hito, no por fecha,** en la primera versión en que todos sus clientes envían `id` (paso 4 de la §12.3).
+7. **Decidido (el usuario, 2026-11-16): el crate de servidor `nu9ve-engine` nace desde Clipper,** que ya pasa los 20 casos de motor en Rust. nüün lo adopta cuando cierre sus brechas de la §12.1 y cambie a `internal_error`.
 
 ## Adopción
 

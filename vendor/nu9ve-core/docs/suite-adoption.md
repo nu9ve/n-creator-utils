@@ -27,6 +27,10 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
   - Un imprevisto del motor es `internal_error`, no `operation_failed`.
   - En la sombra, `1` y `1.0` son respuestas distintas.
   - El registro de la sombra guarda rutas, códigos y tiempos, nunca valores.
+  - En Windows, un motor se cancela primero de forma cooperativa (método o archivo, con plazo de gracia) y al final con `TerminateJobObject`. Sin `GenerateConsoleCtrlEvent`.
+  - No hay progreso ni eventos dentro del canal. Un flujo de eventos es de `nu9ve-jobs`.
+  - nove retira su sobre viejo en la primera versión en que todos sus clientes envían `id`.
+  - El crate `nu9ve-engine` nace desde Clipper; nüün lo adopta después de cerrar sus brechas.
 
 ## Lo que sigue, por olas
 
@@ -43,7 +47,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `MasterLimiter` | SoundBender decide si su motor portable es Rust ([audio en la suite](platforms/audio.md)) |
 | `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | Decidir antes la identidad portable de un disco ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)), porque cambia su API |
 | Guía de prácticas comunes | `docs/practices.md` | Lo que ya repiten cinco apps: QA aislada por variable de entorno, instalar en la carpeta de apps del usuario con respaldo del anterior, gate con `sync-core.sh --check`, CHANGELOG por pieza | Escribirla con lo que ya hacen nüün, nove, curado, kyu y SoundBender, sin inventar reglas nuevas |
-| Crate `nu9ve-engine`: servidor de líneas y marcos (lectura con tope, descarte de la línea de más, sobre, ids exactos, `engine_info`) y su cliente de prueba con los ejemplos | `rust/` | `clipper-core` `main.rs` y `nuun-engine` `main.rs`; los marcos de nove `protocol.rs` | Que nüün y Clipper adopten el contrato, para que haya dos servidores que reemplazar. Cuándo y con quién primero es la [decisión abierta 7](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas) |
+| Crate `nu9ve-engine`: servidor de líneas y marcos (lectura con tope, descarte de la línea de más, sobre, ids exactos, `engine_info`) y su cliente de prueba con los ejemplos | `rust/` | `clipper-core` `main.rs` y `nuun-engine` `main.rs`; los marcos de nove `protocol.rs` | Nace desde Clipper, que ya cumple el contrato ([decisión 7](../contracts/nu9ve-engine-v1.md#13-decisiones-abiertas)). nüün lo adopta al cerrar sus brechas de la §12.1 |
 | `nu9ve-py`: semántica de CPython (`repr`, `round`, `json.dumps` con indentación, cadenas, `pathlib`, `datetime`) | `rust/` | Clipper `py.rs`, `pyval.rs`, `paths.rs`; nüün `nu9ve-time` | Mientras nüün y Clipper porten desde Python. Vectores generados por CPython |
 
 ### Ola 3 · con su condición
