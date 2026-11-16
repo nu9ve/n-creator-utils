@@ -225,6 +225,7 @@ def main(argv=None):
         cancelled[0] = True
     previous = {sig: signal.signal(sig, interrupt) for sig in (() if args.command == 'mcp' else (signal.SIGINT, signal.SIGTERM))}
     catalog = None
+    seen = {'id': None}
     try:
         catalog = Catalog(args.state_dir)
         service = Service(catalog, cancel=lambda: cancelled[0])
@@ -242,7 +243,7 @@ def main(argv=None):
         if args.command == 'rpc':
             raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
             require(len(raw) <= 16 * 1024 * 1024, 'request_too_large', 'Request exceeds 16 MiB')
-            _, method, params = read_request(raw, {'id': None})
+            _, method, params = read_request(raw, seen)
         else:
             params = vars(args).copy()
             method = params.pop('command'); params.pop('state_dir')
@@ -278,10 +279,16 @@ def main(argv=None):
                       'storage-overview': 'storage_overview', 'storage-tree': 'storage_tree', 'storage-scan': 'storage_scan', 'storage-compare': 'storage_compare',
                       'storage-add-folder': 'storage_add_folder', 'storage-remove-folder': 'storage_remove_folder'}.get(method, method)
         data = engine_info() if method == 'engine_info' else service.call(method, params)
-        print(json.dumps({'ok': True, 'command': method, 'data': data}, ensure_ascii=False, indent=2))
+        envelope = {'ok': True, 'command': method, 'data': data}
+        if args.command == 'rpc':
+            envelope.update(seen)
+        print(json.dumps(envelope, ensure_ascii=False, indent=2))
         return 0
     except UNEXPECTED as error:
-        print(json.dumps({'ok': False, 'error': failure(error)}, ensure_ascii=False))
+        envelope = {'ok': False, 'error': failure(error)}
+        if args.command == 'rpc':
+            envelope.update(seen)
+        print(json.dumps(envelope, ensure_ascii=False))
         return 1
     finally:
         if catalog:

@@ -88,6 +88,30 @@ class EngineExamples(unittest.TestCase):
                          [(7, None), (None, 'request_too_large'), (None, 'request_too_large'),
                           (None, 'invalid_request'), (7, None), (None, 'request_too_large')])
 
+    def test_python_one_shot_envelope(self):
+        cases = [
+            (b'{"id":18446744073709551616,"method":"engine_info"}', 18446744073709551616, None),
+            (b'{"method":"engine_info"}', None, None),
+            (b'{"id":"broken method","method":9}', 'broken method', 'invalid_request'),
+            (b'{"id":"bad params","method":"engine_info","params":[]}', 'bad params', 'invalid_params'),
+            (b'{"id":"unknown","method":"absent"}', 'unknown', 'unknown_method'),
+            (b'{"id":true,"method":"engine_info"}', None, 'invalid_request'),
+            (b'{"id":7,', None, 'invalid_request'),
+            (b' ' * (16 * 1024 * 1024 + 1), None, 'request_too_large'),
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc']
+            for request, identifier, code in cases:
+                done = subprocess.run(argv, input=request, capture_output=True, timeout=30, cwd=REPO)
+                reply = json.loads(done.stdout)
+                self.assertEqual((type(reply['id']), reply['id']), (type(identifier), identifier))
+                self.assertEqual(reply['ok'], code is None)
+                self.assertEqual(done.returncode, int(code is not None))
+                if code is None:
+                    self.assertEqual(reply['command'], 'engine_info')
+                else:
+                    self.assertEqual(reply['error']['code'], code)
+
     def test_python(self):
         with tempfile.TemporaryDirectory() as temp:
             argv = [sys.executable, '-S', 'nu9ve.py', 'media', '--state-dir', str(Path(temp).resolve() / 'absent'), 'rpc-serve']
