@@ -3,10 +3,8 @@
 # (engine with its volume backend) are validated on every push, not on whichever machine is at hand.
 name: checks
 
+# Sólo a mano (Actions › Run workflow): un push no gasta minutos de GitHub. Decisión del usuario, 2026-11-16.
 on:
-  push:
-    branches: [master]
-  pull_request:
   workflow_dispatch:
 
 permissions:
