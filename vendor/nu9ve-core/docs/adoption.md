@@ -182,6 +182,7 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
 - **nüün:** roles, contraste y presets suizos hechos (2026-11-07). Skins Grano, Macintosh, Windows 9x y Gótico (2026-11-07). Terminal hecho; Grano retirado. Faltan la opción de Contraste y la tipografía suiza del wordmark. **Windows (2026-11-09, maqueta):** mismos roles y cinco skins portados a C# con su matriz, más una prueba de contraste por superficie con skin (`SurfaceChromeTests`). En Windows la ventana y sus botones siguen siendo del sistema ([windows-app-v1 §3](../contracts/windows-app-v1.md#3-tema)).
+- **Identidad propia (2026-11-16, core `ace6d97`):** `Nu9veTheme` ya no trae colores de ninguna app. nüün declara su ámbar y sus presets suizos en `MediaMenuCore/ThemeIdentity.swift` (`1b83d23`), con los mismos valores. kyu ya tenía los suyos (Kyū·washi, neón) en `KyuSkin` y no cambió (`2de4e0f`). Una app que adopte el paquete conserva su original y su contraste, y suma los comunes de `ThemeSkin.commons`.
 - **Kyū (2026-11-16):** usa `Nu9veTheme` desde su copia fijada en macOS 15. Cristal, Macintosh, Windows 9x y Terminal toman los roles comunes en contraste neutro. El fondo de la foto y de la cuadrícula se comprueba en gris neutro.
 - **nove:** sus tres direcciones como presets y quitar los colores fijos.
 - **neuf:** elegir su dirección de cine.
