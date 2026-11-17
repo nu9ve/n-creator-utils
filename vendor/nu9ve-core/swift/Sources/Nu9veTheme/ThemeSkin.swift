@@ -1,7 +1,28 @@
-/// Shared skins and their window metrics.
+/// Where a skin sits in an app's set (nu9ve-theme-v1 §5, «Juego de skins por app»).
+public enum ThemeSkinPart: String, CaseIterable, Sendable {
+    /// The app's identity skin, its default. Each app draws its own.
+    case original
+    /// The one skin the app sets against its original. Each app chooses its own.
+    case contrast
+    /// Macintosh, Windows 9x and Terminal: the same in every app. This package is their source.
+    case common
+    /// Optional catalog skins an app may add; never replace the three parts above.
+    case extra
+}
+
+/// Skins this package can draw, with their window metrics (nu9ve-theme-v1 §5).
+///
+/// The three commons are the shared «nu9ve skin». `glass` and `gothic` are catalog skins with the
+/// catalog's measures; an app uses one as its original or contrast only if it chooses to. An app's own
+/// original or contrast that is not in the catalog (a paper tone, a canvas) stays in the app:
+/// it builds its roles with `ThemeRoles(dark:base:surfaces:)` and its own `ThemeSurfaces`.
 public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     case glass, classicMac, win9x, terminal, gothic
     public var id: String { rawValue }
+    /// The three skins every app offers, in the order Appearance lists them.
+    public static let commons: [ThemeSkin] = [.classicMac, .win9x, .terminal]
+    /// True for the three commons; the others are catalog skins an app may pick.
+    public var isCommon: Bool { Self.commons.contains(self) }
     /// Period skins keep the look of their era whatever the user's mode.
     public var forcedDark: Bool? {
         switch self {

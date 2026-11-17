@@ -1,7 +1,8 @@
 /// Common color roles from a single sRGB base and a skin.
+///
+/// The base color is the app's: its default and its presets are part of its identity (§7), so this
+/// package has no default color of its own.
 public struct ThemeRoles: Sendable, Equatable {
-    public static let defaultHue = 95.0 / (163.0 * 6.0)
-    public static let defaultSaturation = 163.0 / 255.0
     public let dark: Bool
     public let seed: ThemeColor
     public let canvas: ThemeColor

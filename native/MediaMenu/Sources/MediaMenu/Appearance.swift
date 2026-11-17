@@ -6,8 +6,8 @@ import Nu9veTheme
 /// nu9ve-theme-v1 §2: the common roles, resolved by `ThemeRoles` (pure, tested in Nu9veTheme), plus the
 /// skin's shapes and display type (§5–6). Backgrounds and window chrome derive from the same seed.
 struct CreatorPalette: Sendable {
-    static let defaultHue = ThemeRoles.defaultHue
-    static let defaultSaturation = ThemeRoles.defaultSaturation
+    static let defaultHue = NuunTheme.defaultHue
+    static let defaultSaturation = NuunTheme.defaultSaturation
     let roles: ThemeRoles
     let skin: ThemeSkin
     init(skin: ThemeSkin = .glass, dark: Bool, hue: Double, saturation: Double, brightness: Double) {
@@ -262,7 +262,7 @@ struct AppearanceSettings: View {
             Divider()
             Text("El color base coordina fondo, superficies, controles y barra de título.").font(.caption).foregroundStyle(palette.muted)
             HStack(spacing: 8) {
-                ForEach(ThemePreset.all) { preset in
+                ForEach(NuunTheme.presets) { preset in
                     let selected = palette.roles.seed.hex == preset.hex
                     Button { apply(preset) } label: {
                         HStack(spacing: 6) {

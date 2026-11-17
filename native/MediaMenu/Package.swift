@@ -6,7 +6,7 @@ let package = Package(
     products: [.executable(name: "MediaMenu", targets: ["MediaMenu"])],
     dependencies: [.package(path: "../../vendor/nu9ve-core/swift")],
     targets: [
-        .target(name: "MediaMenuCore"),
+        .target(name: "MediaMenuCore", dependencies: [.product(name: "Nu9veTheme", package: "swift")]),
         .executableTarget(name: "MediaMenu", dependencies: ["MediaMenuCore", .product(name: "Nu9veTheme", package: "swift")]),
         .testTarget(name: "MediaMenuCoreTests", dependencies: ["MediaMenuCore", .product(name: "Nu9veTheme", package: "swift")])
     ]
