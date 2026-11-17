@@ -5,7 +5,7 @@ Paquete de Swift (`Package.swift`, paquete `nu9ve-swift`), para las apps de Mac.
 | Pieza | Qué hace | De dónde | Estado |
 | --- | --- | --- | --- |
 | `NuMacShell` | `ShellWindow` y `ShellWindowHost` (ventana propia, esquinas cuadradas, bordes de arrastre, zoom que llena la pantalla), `WindowChromeBridge` (barra junto a los botones de ventana, pantalla completa), `TitleBarDragArea` y doble clic según el sistema, `AboutView`, `AppIdentity` con el sello `Nu9veBuildID`/`Nu9veBuildDate`, `HapticPlayer` y `PressureMonitor` | Fractos (`ios-fractos/Packages/FractosKit`, mudado el 2026-11-16) | Aquí. Consumidores: Fractos |
-| `Nu9veTheme` | Color sRGB, `readable`, 15 roles, el tipo `ThemePreset` y las medidas de los skins del catálogo, con `ThemeSkin.commons` (Macintosh, Windows 9x y Terminal) y `ThemeSkinPart`. Prueba los 110 casos de `data/theme-vectors-v1.json`. No trae colores de ninguna app: cada una declara su color por omisión y sus presets | nüün (`ThemeColor.swift`) | Aquí. Consumidores: nüün y Kyū |
+| `Nu9veTheme` | Color sRGB, `readable`, 15 roles, el tipo `ThemePreset` y las medidas de los skins del catálogo, con `ThemeSkin.commons` (Macintosh, Windows 9x y Terminal) y `ThemeSkinPart`. Prueba los 110 casos de `data/theme-vectors-v1.json`. No trae colores de ninguna app: cada una declara su color por omisión y sus presets | nüün (`ThemeColor.swift`) | Aquí. Consumidores: nüün, Kyū y SoundBender |
 | Motor de sonido de interfaz | | Fractos (`FractosSoundV2`) | Según el contrato de sonido |
 
 ## macOS mínimo: 15
@@ -13,7 +13,7 @@ Paquete de Swift (`Package.swift`, paquete `nu9ve-swift`), para las apps de Mac.
 `Package.swift` pide macOS 15. Es lo más bajo que permiten las APIs del shell, comprobado compilando con un mínimo menor: con macOS 13 o 14 sólo fallan `NSCursor.frameResize(position:directions:)` y `NSCursor.FrameResizePosition`, los cursores de borde y esquina de `ShellWindowResizeOverlay`, que llegaron en macOS 15. Lo demás pide macOS 13 a lo sumo (`URL.host()`, `Task.sleep(for:)`, `NSHostingView.sizingOptions`).
 
 - **Fractos** pide macOS 26 y lo usa sin cambios.
-- **nüün y Kyū** suben su mínimo de macOS 14 a 15 al adoptar `Nu9veTheme`. SoundBender sigue en 14 y queda pendiente su adopción.
+- **nüün, Kyū y SoundBender** subieron su mínimo de macOS 14 a 15 al adoptar `Nu9veTheme`.
 
 ## Reglas
 
