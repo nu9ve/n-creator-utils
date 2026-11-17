@@ -169,9 +169,11 @@ class Catalog:
         require(row is not None, 'unknown_job', 'Job not found')
         result = dict(row)
         result['plan'] = json.loads(result['plan'])
+        # Some plans (release, closure) carry no `files`: they have none to copy, like the Rust engine says.
+        files = result['plan'].get('files')
         result['progress'] = {'verified_copies': self.db.execute('SELECT COUNT(*) FROM copies WHERE job_id=?', (job_id,)).fetchone()[0],
                               'cleaned_files': self.db.execute('SELECT COUNT(*) FROM members WHERE job_id=? AND cleaned=1', (job_id,)).fetchone()[0],
-                              'total_files': len(result['plan']['files'])}
+                              'total_files': len(files) if isinstance(files, list) else 0}
         # Live bytes/phase from the running transfer (see Transfer.report); absent for older jobs.
         result['progress'].update(self.get('progress:' + job_id, {}))
         stalker_release = self.get('stalker-release:' + job_id)

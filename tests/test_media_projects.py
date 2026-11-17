@@ -503,3 +503,18 @@ class FinalsTests(ProjectFixture):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class JobWithoutFilesTests(unittest.TestCase):
+    """`job` on a plan that carries no `files` (release, closure) has nothing to copy, as the Rust engine answers."""
+
+    def test_total_files_is_zero_without_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            catalog = Catalog(Path(temp).resolve() / 'state')
+            self.addCleanup(catalog.close)
+            job = str(uuid.uuid4())
+            with catalog.db as db:
+                db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)',
+                           (job, 'd', '{"kind":"release"}', 'completed', None, '2026-11-16T00:00:00Z', '2026-11-16T00:00:00Z'))
+            self.assertEqual(catalog.job(job)['progress']['total_files'], 0)
+            self.assertEqual(catalog.job(job)['plan'], {'kind': 'release'})
