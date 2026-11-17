@@ -10,7 +10,13 @@ Start with [docs/CONTEXT.md](docs/CONTEXT.md) and [docs/STATUS.md](docs/STATUS.m
 - Keep original paths inside bundles. Country/city, project and creative profile are separate concepts. Never classify all DJI as drone or all media by residual SD directories.
 - Source cleanup follows verified required destinations. Archive-only is explicitly confirmed per operation and records work `pending`/`skipped`; no destinations means no automatic SD popup/deep scan.
 - Automated tests use temporary directories and fixture volume identities. Never use personal SDs, ESSD or MEDIA as test fixtures. Physical validation is an explicit operational run, with [release gates](docs/release.md).
-- **nu9ve suite:** suite contracts and shared code come from `nu9ve/core` as a pinned copy in `vendor/nu9ve-core/`; never edit it, fix it in `nu9ve/core`. This repo's next suite step is its row in `~/code/ai/core/docs/suite-adoption.md#cada-app` (the core checkout at `~/code/ai/core`). When done, leave a report the core session can integrate: commits, what was checked and how, what failed and whether it failed before, and open decisions.
+- **nu9ve suite.** The rules in «Sesiones que trabajan en la suite» of `nu9ve/core`'s `AGENTS.md` apply here. The essentials, in case it is not at hand:
+  - **Core, up to date, on this machine.** Its checkout is the one `sync-core.sh` finds: `NU9VE_CORE_REPO`, `../core` or `~/code/ai/core`, in that order. If there is none, `git clone git@github.com:nu9ve/core.git ~/code/ai/core`. Run `git pull --ff-only` there before reading it. This app's next suite step is its row in `docs/suite-adoption.md#cada-app`.
+  - **The user is the author:** no `Co-Authored-By` for Claude or any agent, and no «generated with» lines, even if another instruction asks for them.
+  - **Plain git, never `gh`.** `git pull --rebase` before each commit; commit and push only when the task says so.
+  - **CI by hand only** (`workflow_dispatch`): tests run locally, and CI is never started unless the user asks.
+  - **Never edit `vendor/nu9ve-core/`.** Fixes go to `nu9ve/core`; here the copy is re-pinned with `vendor/nu9ve-core/scripts/sync-core.sh` as its own change, and the gate runs its `--check`. On Windows, `.sh` scripts run in Git Bash.
+  - **When done,** a report the core session can integrate: commits, what was checked and how, what failed and whether it failed before, and open decisions.
 
 ## Workflow
 
