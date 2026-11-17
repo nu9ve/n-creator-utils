@@ -61,7 +61,7 @@ jobs:
         working-directory: engine
         run: TZ=America/Hermosillo cargo test -- --ignored
       - name: Suite boundary
-        run: bash scripts/check_suite_boundary.sh
+        run: bash vendor/nu9ve-core/scripts/check-boundary.sh engine/crates/nu9ve-*
 
   engine-windows:
     # The only volume backend with plan/apply today; the golden compares on macOS, where the generator runs.

@@ -13,7 +13,7 @@ Adoptado el 2026-11-09 ([análisis y ruta](../docs/platforms/rust-engine.md), [P
 | `crates/nuun-media` | Catálogo SQLite con lecturas que no crean el catálogo y escrituras con el esquema de Python. Comparte el lock de escritor (`writer.lock`, el mismo `flock` que Python en Mac). Reglas de `slug` y rutas relativas, identidad, independencia física, destinos, `volumes`, `source_cards` y `card_hint`; escaneo de tarjetas, EXIF/XMP de fotos y dispositivo por receta; misiones (índice y match), nombres de destino (`layout`), lecturas seguras bajo una raíz (`tree`) y el planner de tarjetas | `media/catalog.py`, `media/volumes.py`, `media/service.py`, `media/planner.py`, `media/photo_meta.py`, `media/recipes.py`, `media/missions.py`, `media/layout.py`, `media/common.py` `Tree` |
 | `nuun-engine` | Binario `nuun-engine [--state-dir DIR] rpc-serve \| rpc \| --version` | `media/cli.py` |
 
-Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del análisis](../docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps), [qué se muda y cuándo](../vendor/nu9ve-core/docs/suite-split.md)); los `nuun-*` son de nüün. Ninguna pieza `nu9ve-*` nombra algo de nüün: lo comprueba `scripts/check_suite_boundary.sh`.
+Los `nu9ve-*` son candidatos a compartirse con nove, curado y kyu ([§6 del análisis](../docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps), [qué se muda y cuándo](../vendor/nu9ve-core/docs/suite-split.md)); los `nuun-*` son de nüün. Ninguna pieza `nu9ve-*` nombra una app de la suite, ni en comentarios: lo comprueba el chequeo de frontera de nu9ve/core desde la copia fijada (`vendor/nu9ve-core/scripts/check-boundary.sh engine/crates/nu9ve-*`).
 
 **Backend de volúmenes por plataforma.** `nuun_media::volumes::platform_backend(home)` es el único lugar que pregunta por el sistema operativo: en Windows da `WindowsBackend`; en **macOS, `MacBackend`** (desde el 2026-11-12); en Linux, `None` todavía. El binario no tiene `cfg(windows)`: los métodos de volúmenes usan ese backend o responden `not_ported`, y `engine_info` dice `volume_backend`. En macOS, `Backend::writes` habilita las escrituras de volumen cuando el catálogo efectivo pertenece al sandbox. En uso diario, la app usa Python para las escrituras hasta la aceptación con hardware. [Gates](../docs/release.md).
 
@@ -95,7 +95,7 @@ cargo build --offline
 cargo test --offline
 cargo clippy --offline --all-targets -- -D warnings
 cargo fmt --check
-bash ../scripts/check_suite_boundary.sh
+(cd .. && bash vendor/nu9ve-core/scripts/check-boundary.sh engine/crates/nu9ve-*)
 ```
 
 El compilador está fijado en `rust-toolchain.toml` (1.99.1, con `rustfmt` y `clippy`); en una máquina sin esa versión, `rustup` la instala una vez. Estado del 2026-11-11: en Windows 11, 108 pruebas verdes y 5 ignoradas (las diferenciales), fmt y clippy limpios; en **macOS**, compilado sin descargas (el `cargo` de Homebrew ya es 1.99.1), 110 pruebas verdes con las 5 diferenciales, fmt y clippy limpios. En macOS las pruebas necesitan `TMPDIR` resuelto (las carpetas temporales cuelgan de `/var`, un enlace que el motor rechaza, como Python): `export TMPDIR="$(cd "$TMPDIR" && pwd -P)"`. La CI lo hace igual ([checks.yml](../.github/workflows/checks.yml)).

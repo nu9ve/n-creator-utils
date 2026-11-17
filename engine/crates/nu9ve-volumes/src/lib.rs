@@ -1,6 +1,6 @@
 //! Volumes for the suite's engines.
 //!
-//! rust-engine.md §6 · origin of the Windows half: curado `src-tauri/src/identity.rs` and `relink.rs`
+//! rust-engine.md §6 · origin of the Windows half: the suite's Tauri app (its disk identity and relink)
 //! (volume serial through `GetVolumeInformationW`, space available to the user through `GetDiskFreeSpaceExW`,
 //! drive letters). The macOS half uses statfs, statvfs and diskutil.
 //!
@@ -144,7 +144,7 @@ impl VolumeInfo {
     }
 }
 
-/// `C:\` → true; `C:`, UNC paths and relative paths → false (the same rule curado tests).
+/// `C:\` → true; `C:`, UNC paths and relative paths → false (the same rule the suite's Tauri app tests).
 pub fn is_drive_root(path: &Path) -> bool {
     let text = path.to_string_lossy();
     let bytes = text.as_bytes();
