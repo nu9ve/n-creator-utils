@@ -2,7 +2,7 @@
 
 **Propuesta: nada de esta página está implementado salvo donde se indica.** Lo vigente está en [STATUS](../STATUS.md); las prioridades, en [PLAN](../../PLAN.md). La vista de discos tiene su propia especificación: [mapa de almacenamiento](storage-map.md).
 
-Base: `master` en `b501864`, [landing](../../../../landings/nuun/app/LayerStory.tsx) en `aa0da14`, Kyū en `b14878f`. Se leyó código y documentación. Las cifras de discos y catálogo se tomaron el 2026-10-30 con `df`, `du` y SQLite `mode=ro`, sin escribir en los discos ni ejecutar flujos.
+Base: `master` en `1f91256`, [landing](../../../../landings/nuun/app/LayerStory.tsx) en `aa0da14`, Kyū en `b14878f`. Se leyó código y documentación. Las cifras de discos y catálogo se tomaron el 2026-10-30 con `df`, `du` y SQLite `mode=ro`, sin escribir en los discos ni ejecutar flujos.
 
 Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contracts/project-closeout-v1.md). El diagnóstico original es histórico donde esa entrega lo sustituye: ya existen estados y cierre revisado de raws/renders/finales. No incluye borrar editables Clipper ni operar sobre Final Cut.
 

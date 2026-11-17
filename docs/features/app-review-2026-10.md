@@ -7,7 +7,7 @@ comportamiento ni sustituye [STATUS](../STATUS.md) o [PLAN](../../PLAN.md). La e
 objetivo por flujo ya está en [media-experience](../media-experience.md) y la ventana actual
 en [nuun-window](nuun-window.md); aquí se agrega cómo llegar a ella con una base más fluida.
 
-Base revisada: `master` en `f3d1651`. Al escribir la revisión no se abrió la app ni se usaron volúmenes o media
+Base revisada: `master` en `1ca4519`. Al escribir la revisión no se abrió la app ni se usaron volúmenes o media
 personales; los hallazgos vienen de leer código. El bug de fullscreen **no se reprodujo**
 en esta sesión.
 

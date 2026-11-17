@@ -150,7 +150,7 @@ Entrega: hallazgos reproducibles con fixtures o mediciones no destructivas, expl
 
 ## 1. Stalker (`~/code/ai/stalker`)
 
-Estado: ejecutada el 2026-10-25 (Stalker `ecb18f1` y `d88eaf9`, main). Resultado en la [fila de adopción](README.md#estado-de-adopción-por-app) y en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25).
+Estado: ejecutada el 2026-10-25 (Stalker `d84e1e3` y `c53b87f`, main). Resultado en la [fila de adopción](README.md#estado-de-adopción-por-app) y en [naming v1](media-naming-v1.md#adopción-stalker-implementada-2026-10-25).
 
 ```text
 Eres la sesión de Stalker. Objetivo: terminar la implementación para que Stalker quede dentro del contrato del

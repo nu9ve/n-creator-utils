@@ -1,6 +1,6 @@
 # Naming y carpetas de media v1
 
-Estado: implementado en el productor (`media/layout.py`, planes esquema 2) el 2026-10-25 y usado en el primer respaldo real (`debloateando-mi-tele`). **Stalker lo adoptó en 0.4.0** (2026-10-25, `d88eaf9`, ver [adopción](#adopción-stalker-implementada-2026-10-25)). **Clipper lo adoptó en CLI/TUI** el 2026-10-25 (ver [adopción](#adopción-clipper-implementada-2026-10-25)). Índice: [contratos](README.md).
+Estado: implementado en el productor (`media/layout.py`, planes esquema 2) el 2026-10-25 y usado en el primer respaldo real (`debloateando-mi-tele`). **Stalker lo adoptó en 0.4.0** (2026-10-25, `c53b87f`, ver [adopción](#adopción-stalker-implementada-2026-10-25)). **Clipper lo adoptó en CLI/TUI** el 2026-10-25 (ver [adopción](#adopción-clipper-implementada-2026-10-25)). Índice: [contratos](README.md).
 
 ## Regla vigente de retitle · 2026-10-28
 
@@ -102,7 +102,7 @@ Implementada el 2026-10-25 con las decisiones de [Adopción: Stalker](#adopción
 
 ## Adopción: Stalker (implementada 2026-10-25)
 
-Stalker 0.4.0, commits `ecb18f1` y `d88eaf9` (main). Decisiones que afectan a las tres apps:
+Stalker 0.4.0, commits `d84e1e3` y `c53b87f` (main). Decisiones que afectan a las tres apps:
 
 | # | Decisión | Compatibilidad |
 | --- | --- | --- |
