@@ -11,8 +11,8 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `NuMacShell` en `swift/` (macOS 15, [por qué](../swift/README.md#macos-mínimo-15)) | 2026-11-16 | Fractos. Lo siguen nüün, tras su semana de uso diario, y las demás apps de Mac |
 | [`nu9ve-json-v1`](../contracts/nu9ve-json-v1.md), sus vectores y `rust/nu9ve-json` | 2026-11-16 | nüün (motor de Rust) y Clipper (sobre, `sha256_hex`, `uuid4`) |
 | [`nu9ve-fs-v1`](../contracts/nu9ve-fs-v1.md) y `rust/nu9ve-fs` | 2026-11-16 | nüün (`nu9ve-volumes`) y Clipper (`fsio.rs` y `store.rs`); curado después |
-| [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Clipper, con los 20 casos en su CI. nüün y nove tienen sus pasos en la [§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1) |
-| [`nu9ve-engine`](../rust/nu9ve-engine/): servidor de líneas y marcos con lectura acotada, ids exactos y `engine_info` | 2026-11-16 | Clipper (`clipper-core serve`), app de origen. nüün lo adopta tras cerrar sus brechas de la §12.1 |
+| [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Clipper y nüün pasan los 20 casos en sus dos motores. nove, pasos 1 a 3 en Mac; falta probarlo en Windows ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) |
+| [`nu9ve-engine`](../rust/nu9ve-engine/): servidor de líneas y marcos con lectura acotada, ids exactos y `engine_info` | 2026-11-16 | Clipper (`clipper-core serve`), app de origen, y nüün (`nuun-engine rpc-serve`) |
 | `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
 | Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
 | [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
@@ -170,7 +170,22 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 
 ## Orden
 
-1. **Hecho:** `Nu9veTheme` en `swift/`, con nüün y Kyū como primeros consumidores.
-2. Adoptar `nu9ve-engine-v1`: Clipper, nüün y el primer paso de nove.
-3. Guía de prácticas comunes (`docs/practices.md`).
-4. `nu9ve-py`, cuando nüün o Clipper vuelvan a portar semántica de Python.
+Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez disponible.
+
+1. **Windows:**
+   - nove, según su [guía para seguir en Windows](../../nove/docs/windows-next.md): C#, named pipe e instalar la 0.12.0.53. Con eso, el paso 4 de su transición: retirar el sobre viejo.
+   - Mudar `Nu9ve.Core` y `Nu9ve.WinUI` de nüün a `windows/`, con `sync-core.ps1`.
+   - La fase A de nüün en Windows ([qué se muda §5](suite-split.md#5-c-nativewindows)).
+2. **Ver en verde el CI de GitHub** (pestaña Actions) de core, nüün, Clipper y nove, sobre todo los jobs de Linux y Windows: ninguna sesión los ha visto correr.
+3. **`NuMacShell` y `Nu9veTheme` en las demás apps de Mac:**
+   - nüün, después de su semana de uso diario;
+   - SoundBender, que sube a macOS 15;
+   - primera copia fijada en neuf y Stalker.
+4. Guía de prácticas comunes (`docs/practices.md`).
+5. Lo que espera su condición:
+   - `nu9ve-jobs`, desde Clipper y curado;
+   - `nu9ve-loudness`, cuando SoundBender decida Rust;
+   - `nu9ve-volumes`, cuando se decida la identidad portable;
+   - `nu9ve-py`;
+   - el sonido de Fractos.
+6. Comparar `scripts/check-boundary.sh` con `check_suite_boundary.sh` de nüün y dejar uno.
