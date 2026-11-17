@@ -10,6 +10,7 @@ Start with [docs/CONTEXT.md](docs/CONTEXT.md) and [docs/STATUS.md](docs/STATUS.m
 - Keep original paths inside bundles. Country/city, project and creative profile are separate concepts. Never classify all DJI as drone or all media by residual SD directories.
 - Source cleanup follows verified required destinations. Archive-only is explicitly confirmed per operation and records work `pending`/`skipped`; no destinations means no automatic SD popup/deep scan.
 - Automated tests use temporary directories and fixture volume identities. Never use personal SDs, ESSD or MEDIA as test fixtures. Physical validation is an explicit operational run, with [release gates](docs/release.md).
+- **nu9ve suite:** suite contracts and shared code come from `nu9ve/core` as a pinned copy in `vendor/nu9ve-core/`; never edit it, fix it in `nu9ve/core`. This repo's next suite step is its row in `~/code/ai/core/docs/suite-adoption.md#cada-app` (the core checkout at `~/code/ai/core`). When done, leave a report the core session can integrate: commits, what was checked and how, what failed and whether it failed before, and open decisions.
 
 ## Workflow
 
