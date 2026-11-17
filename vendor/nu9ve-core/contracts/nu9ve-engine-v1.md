@@ -238,7 +238,7 @@ Para portar un motor sin arriesgar la respuesta: el oráculo responde, el candid
 
 ## 12. Diferencias por app y camino a v1
 
-Leído el 2026-11-16: nüün en `n-creator-utils` (`8ac8307`), Clipper (`41084ccb`), nove (`9935227`).
+Leído el 2026-11-16: nüün en `n-creator-utils` (`fc1d3bb`), Clipper (`41084ccb`), nove (`9935227`).
 
 | Regla | nüün | Clipper | nove |
 | --- | --- | --- | --- |

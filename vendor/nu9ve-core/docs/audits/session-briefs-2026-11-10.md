@@ -36,7 +36,7 @@ Encargos listos para entregar a otro modelo, **uno por sesión**. Salen de la [a
 
 ## S1 · Verificación sin caché en Windows y Linux
 
-**Hecho el 2026-11-11** en Windows (commit `e039350`, [STATUS](https://github.com/nu9ve/n-creator-utils/blob/master/docs/STATUS.md#entregas-recientes)). Queda: verlo en exFAT y con un lector SD real durante la corrida física, y compilar y probar la ruta de Linux (`posix_fadvise`), que no se ha compilado.
+**Hecho el 2026-11-11** en Windows (commit `8145e96`, [STATUS](https://github.com/nu9ve/n-creator-utils/blob/master/docs/STATUS.md#entregas-recientes)). Queda: verlo en exFAT y con un lector SD real durante la corrida física, y compilar y probar la ruta de Linux (`posix_fadvise`), que no se ha compilado.
 
 ```text
 Repo: n-creator-utils (Windows). Lee AGENTS.md, docs/CONTEXT.md, docs/STATUS.md, y luego

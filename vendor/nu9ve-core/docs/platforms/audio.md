@@ -55,7 +55,7 @@ Lo que **no** se comparte todavía:
 
 ## 5. curado y SoundBender, pieza por pieza
 
-Medido el 2026-11-16, con el código de curado (`crates/audio-engine`, `9516f85`) y el motor en Rust de SoundBender (`engine/soundbender-core`, fase 1 de su [decisión 036](../../../soundshop/docs/decisions/036-rust-engine-benchmark.md)). Es lo único que hoy existe dos veces en Rust.
+Medido el 2026-11-16, con el código de curado (`crates/audio-engine`, `2fcc0c0`) y el motor en Rust de SoundBender (`engine/soundbender-core`, fase 1 de su [decisión 036](../../../soundshop/docs/decisions/036-rust-engine-benchmark.md)). Es lo único que hoy existe dos veces en Rust.
 
 | Pieza | curado | SoundBender | ¿Mismo algoritmo? | Qué va al core |
 | --- | --- | --- | --- | --- |
