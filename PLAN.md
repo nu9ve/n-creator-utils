@@ -44,6 +44,8 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | 4 | Corrida física pedida por el usuario: una SD y un disco USB reales | Job con plan revisado, verificado y reanudado tras desconectar; tiempos por fase en STATUS | — |
 | 5 | `eject_card`, confirmación de limpieza de cámara, `recover_catalog`, `capabilities`; aviso al terminar con «Expulsar» y «Ver resultado» | Pruebas portadas de Python; aviso según [avisos v1](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md) | S9 |
 
+**Abierto con `nu9ve/core` (2026-11-16).** La pausa de Windows usa un evento con nombre (`NUUN_CANCEL_EVENT`). La §6.2 de [nu9ve-engine-v1](vendor/nu9ve-core/contracts/nu9ve-engine-v1.md#62-progreso-y-cancelación) pide un método o un archivo de cancelación, con plazo de gracia y `TerminateJobObject`. Falta que el usuario decida si el contrato acepta el evento o si nüün pasa a un archivo. En los dos casos, la ventana tiene que arrancar el trabajador en un Job Object y cortarlo tras el plazo de gracia. La propuesta, junto con lo que nüün y nove repiten en Windows (cliente de motor en C#, avisos, scripts de QA, certificado de desarrollo, barra de tareas), está en `nu9ve/core`: `docs/windows-shared-next.md`. Conviene resolverla antes del paso 4. Los avisos y la barra de tareas del paso 5 deberían nacer allá.
+
 **Fase B · Rust sustituye a Python en la Mac.**
 
 | Paso | Trabajo | Criterio de cierre | Brief |
