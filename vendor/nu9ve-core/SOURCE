@@ -1,6 +1,6 @@
 # Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
 repo=nu9ve/core
-commit=a7483f082f5ed57653505b7a455850a7a725a5fb
+commit=548c1a83ba8c38e9e5a0031ce8e21d2859dff98f
 date=2026-11-16
 path=contracts
 path=data

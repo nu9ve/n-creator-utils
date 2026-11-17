@@ -198,8 +198,13 @@ verify_integrity() {
     if grep -q '^dirty=' "${vendor}/${source_file}"; then
         die "vendor/nu9ve-core came from a working tree (--from). Pin a commit: sync-core.sh <commit>."
     fi
-    (cd -- "${vendor}" && sha256 --check --quiet "${manifest}") ||
+    if ! (cd -- "${vendor}" && sha256 --check --quiet "${manifest}"); then
+        # Git on Windows (core.autocrlf=true) checks text out with CRLF: same content, other bytes.
+        if [[ -n "$(cd -- "${vendor}" && grep -rlI $'\r' . 2>/dev/null | head -n 1)" ]]; then
+            die "vendor/nu9ve-core has CRLF line endings: Git converted it on checkout. Add 'vendor/nu9ve-core/** -text' to the app's .gitattributes, then delete vendor/nu9ve-core and restore it with 'git checkout -- vendor/nu9ve-core'."
+        fi
         die "vendor/nu9ve-core differs from its manifest. Do not edit it: change nu9ve/core and sync."
+    fi
     # Every file must be declared, or an unreviewed file could slip in.
     local declared present
     declared="$(sed -E 's/^[0-9a-f]+ [ *]//' "${vendor}/${manifest}" | LC_ALL=C sort)"

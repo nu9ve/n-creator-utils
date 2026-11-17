@@ -64,17 +64,19 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 <a id="3-cómo-empieza-cada-app"></a>
 ## Cada app
 
-| App | Copia fijada | Lo siguiente que adopta | Qué aporta a la suite |
-| --- | --- | --- | --- |
-| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs` y `swift` (`Nu9veTheme`); `--check` en su gate | `NuMacShell` después de la semana de uso diario | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI`, su prueba de vectores en Swift |
-| **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | `Nu9veTheme` | `NuMacShell`, el motor de sonido (ola 3) |
-| **Clipper** | `nu9ve-json-v1`, `nu9ve-mcp-v1`, `nu9ve-fs-v1`, `nu9ve-engine-v1`, vectores de JSON y ejemplos del motor, `rust/nu9ve-json`, `rust/nu9ve-fs` y `rust/nu9ve-engine`, `suite-adoption.md` y `suite-sharing.md`; `--check` en su CI | Validar `contract` en el cliente de Clipper | Servidor de líneas, supervisor de procesos, semántica de Python |
-| **curado** | Contratos de Mac, Windows, tema e interacción y vectores de tema; `bun run core:check` | `nu9ve-fs`; `nu9ve-volumes` cuando se decida la identidad portable | Capas de audio y supervisión de stems |
-| **nove** | Contratos de Mac, Windows, tema, interacción, MCP y avisos, y vectores de tema | `nu9ve-engine-v1`; `NuMacShell` en Mac | IPC enmarcado con ACL y MCP con niveles |
-| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, y vectores de tema; `--check` en `validate.sh` | `NuMacShell` y `Nu9veTheme` al resolver su mínimo de macOS 14 | `ShortcutCatalog`; segundo usuario de loudness |
-| **kyu** | Contratos de Mac, tema e interacción, vectores de tema y `swift` (`Nu9veTheme`); `--check` en `validate.sh` | `NuMacShell` | Segunda verificación de los vectores en Swift; la regla de `slug()` |
-| **neuf** | Sin copia todavía | `macos-app-v1` y `nu9ve-theme-v1`; después `NuMacShell` | — |
-| **Stalker** | Sin copia todavía | `macos-app-v1`; `NuMacShell` al tocar su interfaz | — |
+Cada app sigue lo suyo en **sesiones de su propio repo**: adoptar una pieza, sincronizar su copia, arreglar su gate. La sesión del core hace lo común: contratos, piezas compartidas, este plan y la adopción ([cómo se trabaja](../README.md#cómo-se-trabaja)). La última columna dice dónde retoma una sesión de esa app.
+
+| App | Copia fijada | Siguiente paso de la suite en su repo | Qué aporta a la suite | Dónde retoma |
+| --- | --- | --- | --- | --- |
+| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs`, `swift`; `--check` en su gate | `NuMacShell` en lugar de su `ShellWindow`, `SkinChrome` y `AboutView`, después de la semana de uso diario. En Windows, su fase A | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI` | [STATUS](../../../nu9ve/n-creator-utils/docs/STATUS.md) y su PLAN |
+| **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | Arreglar las pruebas de su contrato de la web (`sync-contracts.sh` con `nu9ve.xyz`). Más adelante, que su motor de sonido se mude al core | `NuMacShell`, el motor de sonido | [MONOREPO](../../../nu9ve/ios-fractos/docs/MONOREPO.md) y [SUITE-DESKTOP](../../../nu9ve/ios-fractos/docs/SUITE-DESKTOP.md) |
+| **Clipper** | Contratos de JSON, MCP, archivos y motor; vectores y ejemplos; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-engine`; este plan; `--check` en su CI | Separar lo genérico de su supervisor de procesos, como base de `nu9ve-jobs` | Servidor de líneas, supervisor de procesos, semántica de Python | [Roadmap del motor](../../clipper/docs/2026-11-13-clipper-core-roadmap.md) |
+| **curado** | Contratos de Mac, Windows, tema e interacción, y vectores de tema; `bun run core:check` | `nu9ve-fs` en su exportación; corregir el contraste de superficies elevadas y estados que encontró | Capas de audio y supervisión de stems | [STATUS](../../curado/docs/STATUS.md) |
+| **nove** | Contratos de Mac, Windows, tema, interacción, MCP, avisos y motor; vectores y ejemplos | En Windows: C#, named pipe, la 0.12.0.53 y retirar el sobre viejo | IPC enmarcado con ACL y MCP con niveles | [Seguir en Windows](../../nove/docs/windows-next.md) |
+| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, vectores de tema y `swift`; `--check` en `validate.sh` | Ventana cuadrada de época para los comunes; después, medidas y tipografía de cada skin | `ShortcutCatalog`; segundo usuario de loudness | [Ventana y skins de la suite](../../soundshop/docs/plans/suite-shell.md) |
+| **kyu** | Contratos de Mac, tema e interacción, vectores de tema y `swift`; `--check` en `validate.sh` | `NuMacShell` en lugar de su ventana y cromo | Segunda verificación de los vectores en Swift; la regla de `slug()` | [STATUS](../../kyu/docs/STATUS.md) |
+| **neuf** | Sin copia todavía | Primera copia fijada (`macos-app-v1`, `nu9ve-theme-v1`); después `NuMacShell` | — | [STATUS](../../neuf/docs/STATUS.md) |
+| **Stalker** | Sin copia todavía | Primera copia fijada (`macos-app-v1`); `NuMacShell` al tocar su interfaz | — | [README](../../stalker/README.md) |
 
 El primer paso de una app sin copia no mueve código: declarar en `vendor/nu9ve-core.paths` lo que ya sigue, fijarlo, poner `--check` en su gate y apuntar sus enlaces a la copia.
 
