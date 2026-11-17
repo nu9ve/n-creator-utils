@@ -1,0 +1,21 @@
+<Project>
+  <!-- Base de Windows de la suite (windows-app-v1): .NET 10, Windows App SDK 1.8.260921001, xUnit 2.9.3,
+       las mismas versiones que las apps. No añadir paquetes sin registrarlo en docs/platforms/windows.md. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <Company>nu9ve</Company>
+    <Product>nu9ve</Product>
+    <SatelliteResourceLanguages>es-MX;es;en-US;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <!-- In an app's pinned copy (<app>/vendor/nu9ve-core/windows) bin/ and obj/ would land inside the copy, and
+       the check of sync-core.sh rejects files outside the manifest. There, build output goes next to the copy, to
+       <app>/vendor/.nu9ve-core-build/, which the app ignores in Git. Here, in nu9ve/core, the usual bin/ and obj/. -->
+  <PropertyGroup Condition="'$(ArtifactsPath)' == '' and $([System.String]::Copy('$(MSBuildThisFileDirectory)').Replace('\', '/').Contains('/vendor/nu9ve-core/windows/'))">
+    <ArtifactsPath>$(MSBuildThisFileDirectory)..\..\.nu9ve-core-build</ArtifactsPath>
+  </PropertyGroup>
+</Project>

@@ -1,6 +1,6 @@
 # Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
 repo=nu9ve/core
-commit=548c1a83ba8c38e9e5a0031ce8e21d2859dff98f
+commit=6cb9f2d84dc32aaf81184121ba30106c90114fa0
 date=2026-11-16
 path=contracts
 path=data
@@ -10,3 +10,6 @@ path=rust/nu9ve-fs
 path=rust/nu9ve-json
 path=scripts/sync-core.sh
 path=swift
+path=windows/Directory.Build.props
+path=windows/Nu9ve.Core
+path=windows/Nu9ve.WinUI

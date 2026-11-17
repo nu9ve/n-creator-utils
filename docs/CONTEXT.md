@@ -40,7 +40,7 @@ native/MediaMenu → WindowRoot (3 modes) / Model / JSON bridge / FSEvents
 media/workspaces.py → creative profile registry; planner freezes profile_routes
 media/recipes.py → devices, card families, categories, mission flows as data (frozen per plan)
 manager/file.py → legacy-save + existing downloads/stems
-native/windows → Windows maqueta (WinUI 3): Nu9ve.Core + Nu9ve.WinUI (suite base), Nuun.Core (rpc + fixtures), Nuun, Nuun.Setup
+native/windows → Windows maqueta (WinUI 3): Nuun.Core (rpc, fixtures, NuunTheme), Nuun, Nuun.Setup; la base Nu9ve.Core + Nu9ve.WinUI viene de vendor/nu9ve-core/windows
 engine → Rust engine (adopted 2026-11-09): same rpc-serve as media/cli.py, ported method by method; Python stays the oracle
 ```
 

@@ -100,7 +100,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 - Distribución: runtime empaquetado, versiones alineadas, Developer ID, notarización. [Gates](docs/release.md).
 - MCP con mutaciones, Linux, nube y segunda réplica. Descargas/stems como derivados; MIDI, iluminación e IoT exploratorios.
 - **Windows** (maqueta hecha 2026-11-09, [guía](vendor/nu9ve-core/docs/platforms/windows.md)). Siguiente, en orden:
-  1. ~~Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`~~: decidido el 2026-11-11, repo `nu9ve/core` con copia fijada ([S5](vendor/nu9ve-core/docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite)); creado en local el 2026-11-16 con los documentos; `Nu9ve.Core`/`Nu9ve.WinUI` se mudan cuando vuelva a haber Windows.
+  1. ~~Decidir dónde viven `Nu9ve.Core`/`Nu9ve.WinUI`~~: decidido el 2026-11-11, repo `nu9ve/core` con copia fijada ([S5](vendor/nu9ve-core/docs/audits/session-briefs-2026-11-10.md#s5--decidir-y-crear-el-repo-de-la-suite)); creado en local el 2026-11-16 con los documentos. `Nu9ve.Core`/`Nu9ve.WinUI` se mudaron el 2026-11-16 a `nu9ve/core` `windows/`; nüün los usa desde su copia fijada y declara su identidad en `Nuun.Core/Theme/NuunTheme.cs`.
   2. Que `ThemeRolesTests.swift` lea los vectores compartidos.
   3. ~~Adaptador de volúmenes de Windows en `media/` y Python empaquetado~~: ya no hace falta; el adaptador existe en Rust y Windows usa el motor de Rust. Lo que sigue es la [Fase A del motor](#motor-en-rust--ruta).
   4. Firma e instalación del MSIX y del Setup en una máquina limpia.

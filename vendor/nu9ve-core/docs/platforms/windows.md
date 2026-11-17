@@ -53,7 +53,7 @@ flowchart TB
 | `App.Core` | Lo propio: transporte con su motor, DTOs tolerantes, maqueta, catálogo de atajos, textos de los códigos | UI |
 
 - Las vistas **eligen un rol** (`SurfaceKind.Panel`, `TextRole.Heading`); el skin decide cómo se ve. Ningún `switch` de skin vive en una página ([tema §1](../../contracts/nu9ve-theme-v1.md#1-tres-capas)).
-- Regla de extracción ([tema §10](../../contracts/nu9ve-theme-v1.md#10-implementación-compartida)): hoy hay **una** copia en C#. Cuando nove la adopte (segunda) y otra app nativa la use (tercera), se mueve a su propio repo o feed local. Ese repo y su versionado **siguen sin decidir**; mientras tanto, se copia con el comentario de origen.
+- Desde el 2026-11-16, `Nu9ve.Core` y `Nu9ve.WinUI` viven en [`windows/`](../../windows/README.md) de `nu9ve/core`, y cada app los toma de su copia fijada. No traen colores ni textos de ninguna app: cada una pasa su identidad a `ThemeService.Install`.
 
 ## 4. Ventana y barra
 
@@ -143,7 +143,7 @@ flowchart TB
 ## 11. Lista para una app nueva en Windows
 
 1. Motor común y protocolo único; la UI presenta y pide ([contrato §0](../../contracts/windows-app-v1.md#0-principio-dos-apps-nativas-un-producto)).
-2. Referenciar `Nu9ve.Core` y `Nu9ve.WinUI` (o copiarlos con comentario de origen mientras no exista el paquete).
+2. Fijar `windows/Directory.Build.props`, `windows/Nu9ve.Core` y `windows/Nu9ve.WinUI` con `sync-core.sh` y referenciarlos desde `vendor/nu9ve-core/windows/` ([cómo](../../windows/README.md#en-una-app)).
 3. `Storage.Configure` con su carpeta y su `<APP>_QA_ROOT`; `UI.Shortcuts = Catalog.Get`.
 4. Implementar el skin original, luego los tres comunes y luego el de contraste ([tema §5](../../contracts/nu9ve-theme-v1.md#juego-de-skins-por-app)).
 5. Catálogo de atajos con sus pruebas; `AccessKey` en la navegación.

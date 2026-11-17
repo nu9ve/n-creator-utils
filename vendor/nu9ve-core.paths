@@ -15,3 +15,9 @@ rust/nu9ve-engine
 
 # Los roles de tema de la app de macOS.
 swift
+
+# La base de Windows (Nu9ve.Core y Nu9ve.WinUI) y sus opciones de compilación. Compila en
+# vendor/.nu9ve-core-build/, fuera de la copia (windows/Directory.Build.props).
+windows/Directory.Build.props
+windows/Nu9ve.Core
+windows/Nu9ve.WinUI

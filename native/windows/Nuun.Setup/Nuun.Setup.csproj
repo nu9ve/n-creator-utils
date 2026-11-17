@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Nu9ve.WinUI\Nu9ve.WinUI.csproj" />
+    <ProjectReference Include="..\..\..\vendor\nu9ve-core\windows\Nu9ve.WinUI\Nu9ve.WinUI.csproj" />
     <!-- La identidad de tema de nüün (NuunTheme): el Setup se ve como la app. -->
     <ProjectReference Include="..\Nuun.Core\Nuun.Core.csproj" />
   </ItemGroup>

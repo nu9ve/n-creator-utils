@@ -16,6 +16,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
 | Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
 | [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
+| [`Nu9ve.Core` y `Nu9ve.WinUI` en `windows/`](../windows/README.md), sin la identidad de nüün y con sus pruebas | 2026-11-16 | nüün en Windows (app de origen). nove, después |
 
 ## Decisiones tomadas para lo que sigue
 
@@ -56,7 +57,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | --- | --- |
 | `data/sound/` y el motor de sonido de Swift (`FractosSoundV2`) | Cerrar la pregunta de niveles del [contrato de sonido](../contracts/nu9ve-sound-v1.md) en la Mac con el repo de la web; después, cuando una segunda app de Mac lo adopte |
 | `nu9ve-ipc`, `nu9ve-mcp` | Que nüün porte su MCP a Rust: entonces hay dos copias (nove `core/src/pipe.rs`, `mcp.rs`) |
-| `Nu9ve.Core`, `Nu9ve.WinUI` y `sync-core.ps1` | Que vuelva a haber una máquina con Windows |
+| `sync-core.ps1` | Decidir si hace falta: el script de bash corre en Git Bash, que viene con Git para Windows |
 | `ShortcutCatalog` y ayuda contextual (SoundBender) | Una segunda app que implemente el [contrato de interacción](../contracts/nu9ve-interaction-v1.md) |
 | Paleta y dither en TypeScript (curado, web de Fractos) | Decidir si `nu9ve/core` tendrá una carpeta de TypeScript; hoy no |
 | `nu9ve-jobs`: supervisar un proceso (grupo propio, NDJSON, cancelar, timeout, publicar) | Que un segundo motor de Rust lo necesite: curado (`stems.rs`) o nüün. Antes, separar en Clipper lo genérico de su cola ([inventario](#clipper)) |
@@ -68,7 +69,7 @@ Cada app sigue lo suyo en **sesiones de su propio repo**: adoptar una pieza, sin
 
 | App | Copia fijada | Siguiente paso de la suite en su repo | Qué aporta a la suite | Dónde retoma |
 | --- | --- | --- | --- | --- |
-| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs`, `swift`; `--check` en su gate | `NuMacShell` en lugar de su `ShellWindow`, `SkinChrome` y `AboutView`, después de la semana de uso diario. En Windows, su fase A | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI` | [STATUS](../../../nu9ve/n-creator-utils/docs/STATUS.md) y su PLAN |
+| **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs`, `rust/nu9ve-engine`, `swift`, `windows`; `--check` en su gate | `NuMacShell` en lugar de su `ShellWindow`, `SkinChrome` y `AboutView`, después de la semana de uso diario. En Windows, su fase A | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI` | [STATUS](../../../nu9ve/n-creator-utils/docs/STATUS.md) y su PLAN |
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | Arreglar las pruebas de su contrato de la web (`sync-contracts.sh` con `nu9ve.xyz`). Más adelante, que su motor de sonido se mude al core | `NuMacShell`, el motor de sonido | [MONOREPO](../../../nu9ve/ios-fractos/docs/MONOREPO.md) y [SUITE-DESKTOP](../../../nu9ve/ios-fractos/docs/SUITE-DESKTOP.md) |
 | **Clipper** | Contratos de JSON, MCP, archivos y motor; vectores y ejemplos; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-engine`; este plan; `--check` en su CI | Separar lo genérico de su supervisor de procesos, como base de `nu9ve-jobs` | Servidor de líneas, supervisor de procesos, semántica de Python | [Roadmap del motor](../../clipper/docs/2026-11-13-clipper-core-roadmap.md) |
 | **curado** | Contratos de Mac, Windows, tema e interacción, y vectores de tema; `bun run core:check` | `nu9ve-fs` en su exportación; corregir el contraste de superficies elevadas y estados que encontró | Capas de audio y supervisión de stems | [STATUS](../../curado/docs/STATUS.md) |
@@ -91,10 +92,10 @@ Revisado el 2026-11-16. Los tamaños son líneas del archivo de nüün, salvo lo
 
 | Pieza | Archivo en nüün y tamaño | Quién más la tiene |
 | --- | --- | --- |
-| Roles, contraste, presets y preferencias | `MediaMenuCore/ThemeColor.swift` pasó a `swift/Sources/Nu9veTheme`; `MediaMenu/Appearance.swift` conserva el estado y las vistas. El port de C# sigue en `native/windows/Nu9ve.Core/Theme/ThemeRoles.cs`. | Kyū comparte el cálculo de los roles y conserva sus superficies y colores de dominio. SoundBender: `Sources/SoundShop/Appearance.swift`; curado: `src/lib/theme.ts`. |
+| Roles, contraste, presets y preferencias | `MediaMenuCore/ThemeColor.swift` pasó a `swift/Sources/Nu9veTheme`; `MediaMenu/Appearance.swift` conserva el estado y las vistas. El port de C# pasó a `windows/Nu9ve.Core`; nüün declara su identidad en `Nuun.Core/Theme/NuunTheme.cs`. | Kyū comparte el cálculo de los roles y conserva sus superficies y colores de dominio. SoundBender: `Sources/SoundShop/Appearance.swift`; curado: `src/lib/theme.ts`. |
 | Ventana, agarres de borde y controles de skin | `native/MediaMenu/Sources/MediaMenu/ShellWindow.swift` (243), `native/MediaMenu/Sources/MediaMenu/SkinChrome.swift` (411) | core: `swift/Sources/NuMacShell/{ShellWindow,WindowChrome}.swift`, ya consumidos por Fractos; kyu conserva `apps/macos/Sources/Kyu/SkinChrome.swift`. La ventana se migra después de la semana de uso diario. |
 | Acerca de e identidad de build | `native/MediaMenu/Sources/MediaMenu/AboutView.swift` (50), `native/MediaMenu/Sources/MediaMenuCore/AppIdentity.swift` (74) | core: `swift/Sources/NuMacShell/{AboutView,AppIdentity}.swift`, usados por Fractos; SoundBender tiene su propio `Sources/SoundShop/AboutWindow.swift`. |
-| Catálogo de atajos | `native/windows/Nu9ve.Core/Shell/Shortcuts.cs` (54) y `native/windows/Nuun.Core/Shell/ShortcutCatalog.cs` (36) | SoundBender: `Sources/SoundShop/AppCommands.swift` y `ShortcutsPanel.swift`. Se puede comparar la validación de acciones; cada catálogo conserva los atajos de su app. |
+| Catálogo de atajos | `windows/Nu9ve.Core/Shell/Shortcuts.cs` (54, ya en el core) y `native/windows/Nuun.Core/Shell/ShortcutCatalog.cs` (36) | SoundBender: `Sources/SoundShop/AppCommands.swift` y `ShortcutsPanel.swift`. Se puede comparar la validación de acciones; cada catálogo conserva los atajos de su app. |
 | JSON canónico, digest e id aleatorio | `media/common.py:52–61` (10) | core: `rust/nu9ve-json`; Clipper conserva su serialización Python en `core/src/rpc_jobs/pyval.rs`. La copia Python de nüün sigue como oráculo; el motor Rust ya usa el crate fijado. |
 | Escritura atómica y sincronización de archivos | `engine/crates/nuun-media/src/tree.rs:251–286` (36), `engine/crates/nu9ve-volumes/src/fs.rs` (626; incluye otras operaciones) | Clipper: `core/src/rpc_writes/fsio.rs`. Las primitivas comunes viven en `nu9ve-fs`. El motor conserva las comprobaciones de rutas y usa `Full`. |
 | Supervisión de subprocesos | `engine/crates/nuun-media/src/integrations.rs:390–480` (91), `native/MediaMenu/Sources/MediaMenuCore/Protocol.swift` (378; incluye el protocolo) | Clipper: `core/src/rpc_jobs/supervise.rs` y submódulos. Se repiten el manejo de tuberías, salida y terminación; el lector persistente y los trabajos de Clipper tienen ciclos de vida distintos. |
@@ -176,7 +177,7 @@ Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez d
 
 1. **Windows:**
    - nove, según su [guía para seguir en Windows](../../nove/docs/windows-next.md): C#, named pipe e instalar la 0.12.0.53. Con eso, el paso 4 de su transición: retirar el sobre viejo.
-   - Mudar `Nu9ve.Core` y `Nu9ve.WinUI` de nüün a `windows/`, con `sync-core.ps1`.
+   - ~~Mudar `Nu9ve.Core` y `Nu9ve.WinUI` de nüün a `windows/`~~: hecho el 2026-11-16. Sigue que nove adopte el tema con «Puerto» como original.
    - La fase A de nüün en Windows ([qué se muda §5](suite-split.md#5-c-nativewindows)).
 2. **Ver en verde el CI de GitHub** (pestaña Actions) de core, nüün, Clipper y nove, sobre todo los jobs de Linux y Windows: ninguna sesión los ha visto correr.
 3. **`NuMacShell` y `Nu9veTheme` en las demás apps de Mac:**

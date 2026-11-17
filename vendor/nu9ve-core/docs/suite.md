@@ -79,7 +79,7 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 | Todas | Contrato ajeno como copia fijada con commit de origen y hashes | Fractos `Contracts/`, `scripts/sync-contracts.sh` | 1 |
 | Todas | Sello de build `Nu9veBuildID` / `Nu9veBuildDate` en Acerca de | Fractos `NuMacShell` `AppIdentity`, nüün `AppIdentity` | 2 |
 | C# (Windows) | Cliente del pipe, host de fondo, diccionarios de tema, settings cards | nove `Nove.Core` | 1 |
-| C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | nüün `native/windows` (primera copia; nove la tomaría como segunda) | 1 |
+| C# (Windows) | Tema puro (`ThemeRoles` portado de Swift), superficies por skin, reglas de atajos, ventana e instalador (`Nu9ve.Core`); servicio de tema, controles con skin y cromo de ventana (`Nu9ve.WinUI`) | [`windows/`](../windows/README.md) en el core, desde nüün; nove la tomaría como segunda | 1 |
 | Todas | Vectores de tema: hex esperado por rol, skin, modo y base | [`data/theme-vectors-v1.json`](../data/theme-vectors-v1.json); verificado en C#, pendiente en Swift y TypeScript | 1 |
 | Rust | IPC enmarcado sobre socket/pipe con ACL de usuario | nove `core` | 1 |
 | Rust | Servidor MCP con niveles y permiso por sesión | nove `core/src/mcp.rs` (nüün lo tiene en Python, sólo lectura) | 1 |

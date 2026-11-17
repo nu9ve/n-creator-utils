@@ -1,44 +1,9 @@
 using Nu9ve.Shell;
 using Nuun.Core.Shell;
 using Nu9ve.Theme;
-using Nuun.Core.Theme;
 using Xunit;
 
 namespace Nuun.Core.Tests;
-
-public class ThemePreferencesTests
-{
-    [Fact]
-    public void UnknownFieldsFallBackOneByOne()
-    {
-        var parsed = ThemePreferences.Parse("""{"version":1,"skin":"dither","base":"#D52B1E","mode":"sepia","contrast":"high","texture":"plasma","typography":"mono"}""", NuunTheme.Defaults);
-        Assert.Equal(ThemeSkin.Glass, parsed.Skin);            // retired skin → default
-        Assert.Equal("#D52B1E", parsed.Base);                  // kept
-        Assert.Equal(ThemeMode.System, parsed.Mode);           // unknown → default
-        Assert.Equal(ThemeContrast.High, parsed.Contrast);     // kept
-        Assert.Equal("auto", parsed.Texture);
-        Assert.Equal("mono", parsed.Typography);
-    }
-
-    [Fact]
-    public void BrokenJsonIsTheDefaultAndRoundTripIsExact()
-    {
-        Assert.Equal(NuunTheme.Defaults, ThemePreferences.Parse("{not json", NuunTheme.Defaults));
-        Assert.Equal(NuunTheme.Defaults, ThemePreferences.Parse(null, NuunTheme.Defaults));
-        var choice = NuunTheme.Defaults with { Skin = ThemeSkin.Win9x, Base = "#7CC6E6", Mode = ThemeMode.Dark, InterfaceSounds = true };
-        Assert.Equal(choice, ThemePreferences.Parse(choice.ToJson(), NuunTheme.Defaults));
-        Assert.Contains("\"skin\": \"win9x\"", choice.ToJson());
-    }
-
-    [Fact]
-    public void SystemModeFollowsTheSystemUnlessTheSkinFixesIt()
-    {
-        var system = NuunTheme.Defaults;
-        Assert.True(system.Roles(systemDark: true).Dark);
-        Assert.False(system.Roles(systemDark: false).Dark);
-        Assert.False((system with { Skin = ThemeSkin.Win9x }).Roles(systemDark: true).Dark);
-    }
-}
 
 public class ShortcutCatalogTests
 {
@@ -95,14 +60,6 @@ public class WindowLayoutTests
     }
 
     [Fact]
-    public void RememberedFrameStaysOnAnAvailableMonitor()
-    {
-        var work = (0, 0, 1280, 720);
-        Assert.Equal((100, 0, 1180, 720), WindowLayout.Fit((100, 20, 1180, 900), work));
-        Assert.Equal((840, 0, 440, 700), WindowLayout.Fit((3000, -50, 440, 700), work));
-    }
-
-    [Fact]
     public void TitleBarGivesWayInOrder()
     {
         TitleBarFit? previous = null;
@@ -123,21 +80,6 @@ public class WindowLayoutTests
         }
         Assert.Equal(16, WindowLayout.Gutter(440));
         Assert.Equal(32, WindowLayout.Gutter(1180));
-    }
-
-    [Fact]
-    public void TreemapIsProportionalAndInside()
-    {
-        var bounds = new Treemap.Rect(0, 0, 400, 200);
-        double[] values = [50, 30, 15, 5, 0];
-        var rects = Treemap.Layout(values, bounds);
-        var area = bounds.Width * bounds.Height;
-        for (var i = 0; i < 4; i++)
-        {
-            Assert.Equal(values[i] / 100 * area, rects[i].Width * rects[i].Height, 3);
-            Assert.True(rects[i].X >= 0 && rects[i].Y >= 0 && rects[i].X + rects[i].Width <= 400.001 && rects[i].Y + rects[i].Height <= 200.001);
-        }
-        Assert.Equal(default, rects[4]);
     }
 
     [Fact]

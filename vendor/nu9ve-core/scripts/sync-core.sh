@@ -167,7 +167,8 @@ sync_commit() {
     staging="$(make_staging)"
     trap 'rm -rf -- "${staging:-}"' EXIT
     mkdir -p -- "${staging}/copy"
-    git -C "${source_repo}" archive --format=tar "${full}" -- "${paths[@]}" | tar -x -C "${staging}/copy"
+    # git archive applies core.autocrlf: without this, Git on Windows would pin CRLF bytes.
+    git -C "${source_repo}" -c core.autocrlf=false -c core.eol=lf archive --format=tar "${full}" -- "${paths[@]}" | tar -x -C "${staging}/copy"
     publish "${staging}/copy" "commit=${full}" "date=${date}"
     echo "Pinned nu9ve/core@${full:0:12} (${date}) into vendor/nu9ve-core: ${#paths[@]} paths."
 }
@@ -193,6 +194,22 @@ sync_from() {
     echo "Copied ${#paths[@]} paths from a working tree. This copy is dirty: --check fails until you pin a commit."
 }
 
+# True when a file that fails its manifest matches it once its CRs are gone. Hashes, not grep:
+# Git for Windows' grep reports '\r' in LF files when its output goes to a pipe.
+crlf_converted() {
+    local line hash f actual stripped
+    while IFS= read -r line; do
+        hash="${line%% *}"
+        f="${line:$((${#hash} + 2))}"
+        [[ -f "${vendor}/${f}" ]] || continue
+        actual="$(sha256 < "${vendor}/${f}")"
+        [[ "${actual%% *}" == "${hash}" ]] && continue
+        stripped="$(LC_ALL=C tr -d '\r' < "${vendor}/${f}" | sha256)"
+        [[ "${stripped%% *}" == "${hash}" ]] && return 0
+    done < "${vendor}/${manifest}"
+    return 1
+}
+
 verify_integrity() {
     [[ -f "${vendor}/${manifest}" && -f "${vendor}/${source_file}" ]] || die "vendor/nu9ve-core has no pinned copy. Run sync-core.sh."
     if grep -q '^dirty=' "${vendor}/${source_file}"; then
@@ -200,7 +217,7 @@ verify_integrity() {
     fi
     if ! (cd -- "${vendor}" && sha256 --check --quiet "${manifest}"); then
         # Git on Windows (core.autocrlf=true) checks text out with CRLF: same content, other bytes.
-        if [[ -n "$(cd -- "${vendor}" && grep -rlI $'\r' . 2>/dev/null | head -n 1)" ]]; then
+        if crlf_converted; then
             die "vendor/nu9ve-core has CRLF line endings: Git converted it on checkout. Add 'vendor/nu9ve-core/** -text' to the app's .gitattributes, then delete vendor/nu9ve-core and restore it with 'git checkout -- vendor/nu9ve-core'."
         fi
         die "vendor/nu9ve-core differs from its manifest. Do not edit it: change nu9ve/core and sync."

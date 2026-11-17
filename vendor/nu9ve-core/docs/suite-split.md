@@ -57,8 +57,8 @@ El paquete tiene `MediaMenuCore` (sin interfaz) y la app. Nada se muda tal cual;
 
 | Proyecto | Destino | Condición |
 | --- | --- | --- |
-| `Nu9ve.Core` (tema, shell, atajos, ventana, instalador) | `core/windows/` | Con una máquina con Windows, y de preferencia cuando nove lo adopte |
-| `Nu9ve.WinUI` (pinceles, controles con skin, cromo DWM) | `core/windows/` | Igual |
+| `Nu9ve.Core` (tema, shell, atajos, ventana, instalador) | `core/windows/` | **Mudado el 2026-11-16**, sin la identidad de nüün, que quedó en `Nuun.Core/Theme/NuunTheme.cs` |
+| `Nu9ve.WinUI` (pinceles, controles con skin, cromo DWM) | `core/windows/` | **Mudado el 2026-11-16** |
 | `Nuun`, `Nuun.Core`, `Nuun.Core.Tests`, `Nuun.Setup`, `Package` | Se quedan | La app de nüün, su cliente del motor y su instalador. `Nuun.Setup` es la base propuesta para los Setup de nove y curado: se generaliza cuando el segundo lo adopte |
 
 ## 6. Scripts

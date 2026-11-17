@@ -17,6 +17,8 @@ config.local.json
 # Windows build products
 native/windows/**/bin/
 native/windows/**/obj/
+# Build output of the pinned Windows base (nu9ve/core windows/Directory.Build.props).
+vendor/.nu9ve-core-build/
 
 # Rust engine build products
 engine/target/

@@ -4,12 +4,11 @@ Cliente WinUI 3 de nüün y la primera base reutilizable de la suite para Window
 
 | Proyecto | Contenido | Depende de |
 | --- | --- | --- |
-| `Nu9ve.Core` | Base de la suite sin UI: `ThemeRoles` (port de `ThemeColor.swift`), skins y sus medidas, `SurfaceChrome`, preferencias en el formato común, reglas de atajos, encaje de ventana, treemap, argumentos y formas de instalador | — |
-| `Nu9ve.WinUI` | Base WinUI de la suite: `ThemeService`, `NuSurface`/`NuButton`/`NuToggle`, `SkinCaption`, `WindowChrome`, `Storage`, constructores `UI.*` | `Nu9ve.Core`, Windows App SDK |
-| `Nuun.Core` | Lo propio de nüün: transporte JSON con `media rpc-serve`, DTOs, maqueta (`Fixtures/*.json` con la forma real de `snapshot` y `recipe`), catálogo de atajos, modos de ventana | `Nu9ve.Core` |
+| `Nu9ve.Core`, `Nu9ve.WinUI` | La base de Windows de la suite, desde la copia fijada en [`vendor/nu9ve-core/windows`](../../vendor/nu9ve-core/windows/README.md). No se edita aquí: el cambio va a `nu9ve/core` y se sincroniza. Compila en `vendor/.nu9ve-core-build/` | Windows App SDK |
+| `Nuun.Core` | Lo propio de nüün: su identidad de tema (`Theme/NuunTheme.cs`: ámbar, presets suizos, Cristal y Gótico, textos de Apariencia), transporte JSON con `media rpc-serve`, DTOs, maqueta (`Fixtures/*.json` con la forma real de `snapshot` y `recipe`), catálogo de atajos, modos de ventana | `Nu9ve.Core` |
 | `Nuun` | La ventana: Inicio, Ingreso (Entrada → Flujo → Resultado), Flujos, Biblioteca, Ajustes, Acerca de | todo lo anterior |
-| `Nuun.Setup` | `NuunSetup.exe`: instalador con identidad (forma de SD, skins, `PackageManager`, `--quiet`) | `Nu9ve.WinUI` |
-| `Nuun.Core.Tests` | 58 pruebas: matriz de contraste, contraste por superficie, vectores compartidos, preferencias, atajos, ventana, transporte, maqueta, instalador, contrato con el motor de Rust | `Nuun.Core` |
+| `Nuun.Setup` | `NuunSetup.exe`: instalador con identidad (forma de SD, skins, `PackageManager`, `--quiet`) | `Nu9ve.WinUI`, `Nuun.Core` |
+| `Nuun.Core.Tests` | 36 pruebas: la identidad de tema de nüün (su ámbar, presets en cada skin y superficie), atajos, ventana, transporte, maqueta y contrato con el motor de Rust. La matriz de contraste, los vectores y el instalador se prueban en `nu9ve/core` (`windows/Nu9ve.Core.Tests`) | `Nuun.Core` |
 | `Package` | Plantilla del manifiesto MSIX (`app.nu9ve.media`, la misma identidad que en Mac) | — |
 
 Mismo stack y versiones que nove (`.NET 10`, Windows App SDK 1.8.260921001, xUnit 2.9.3); no se añadió ningún paquete nuevo.
@@ -26,7 +25,7 @@ Con `NUUN_QA_ROOT` las preferencias de la ventana van bajo esa raíz y cada ejec
 
 Motor real (sólo lectura de `snapshot` y `recipe`, si hay Python): `NUUN_PYTHON` y `NUUN_ENGINE` (ruta a `nu9ve.py`). Planear y aplicar responden `not_on_windows`. Motor de Rust: si `engine\target\debug\nuun-engine.exe` existe al compilar, se copia junto a la app y responde lo ya portado (hoy `recipe`); el resto sigue en maqueta. Ver [engine](../../engine/README.md).
 
-Regenerar los vectores de tema compartidos, a propósito: `$env:NU9VE_WRITE_THEME_VECTORS = "1"; dotnet test native\windows\Nuun.Core.Tests`.
+Los vectores de tema compartidos se regeneran en `nu9ve/core` ([windows/README](../../vendor/nu9ve-core/windows/README.md)), no aquí.
 
 ## QA visual
 
