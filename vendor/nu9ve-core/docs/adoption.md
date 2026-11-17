@@ -54,19 +54,19 @@ Leído en el código el 2026-11-16: nüün `7737e2f`, Clipper `41084ccb`, nove `
 
 | Regla | nüün (Python y `nuun-engine`) | Clipper (Python y `clipper-core`) | nove |
 | --- | --- | --- | --- |
-| 1 Transporte | Sí: líneas (`rpc-serve`) y una vez (`rpc`). Una línea de más se lee entera antes de rechazarla | Sí: líneas (`serve`), con `nu9ve-engine` en Rust | Sí: marcos por stdio, socket y pipe; una vez (`call`) |
-| 2 Petición e id | Sí: el `id` se lee antes que `method` y sólo vale entero, cadena o `null`; los enteros de más de 64 bits vuelven exactos (Rust con `raw_value`, sin `arbitrary_precision`); `params` que no es objeto es `invalid_params` | Sí | No: `request_id`, `protocol` |
-| 3 Sobre | Sí en `rpc-serve`; `rpc` de Python sin `id` | Sí | Paso 1 implementado: los clientes leen el sobre viejo y v1. El motor emite el sobre viejo. |
+| 1 Transporte | Sí: líneas (`rpc-serve`) y una vez (`rpc`). Los dos motores descartan líneas de más con lectura acotada a 1 MiB. Rust usa el servidor de `nu9ve-engine` | Sí: líneas (`serve`), con `nu9ve-engine` en Rust | Sí: marcos por stdio, socket y pipe; una vez (`call`) |
+| 2 Petición e id | Sí: el `id` se lee antes que `method` y sólo vale entero, cadena o `null`. Los dos motores devuelven ids de 350 dígitos exactos en ambos modos (Rust con `raw_value`, sin `arbitrary_precision`). `params` se omite o es un objeto | Sí | No: `request_id`, `protocol` |
+| 3 Sobre | Sí en los dos modos. Python conserva `command` en los éxitos de `rpc` | Sí | Paso 1 implementado: los clientes leen el sobre viejo y v1. El motor emite el sobre viejo. |
 | 4 `engine_info` | Sí en los dos: `contract`, `protocol` (`nuun-media/1`), `engine`, `version`, `capabilities`, `ported` y `native`, más sus `writes` | Los dos motores incluyen `contract`, `version`, `capabilities` y `queue_views`. Al cliente le falta validar `contract` | No: `hello` |
-| 5 `not_ported` | Parcial: sin `reason` | Sí | No aplica |
+| 5 `not_ported` | Sí: Rust incluye `reason`, entre ellos `method_unavailable` y `platform_unavailable` | Sí | No aplica |
 | 6 Grandes, progreso, escrituras | Progreso por sondeo; escrituras sólo en una vez, sin clave | Sí: `data` ya serializado, `request_id`, `write_status` | Parcial: claves e `idempotency_key` sí; una respuesta de más de 1 MiB se pierde |
 | 7 Códigos | Sí: `invalid_request`, `invalid_params`, `unknown_method` antes que `read_only` e `internal_error` (antes `operation_failed`), en Python y Rust a la vez | Sí | Parcial: `invalid_json`, `frame_size` |
 | 8 Ciclo de vida | Sí | Sí | Sí: `--parent-pid`, `engine_shutdown` |
 | 9 Seguridad | Sí (stdio) | Sí (stdio) | Sí: socket `0600` con uid del par; pipe con DACL y PID |
 | 10 Sombra | Sí: compara tipos y el registro guarda sólo rutas, códigos, `reason` y tiempos. Quita `not_ported` de `data` antes de comparar (respuesta parcial) | Sí | No aplica: sin oráculo |
-| Casos de motor (§11) | 20 de 20 en los dos (`7737e2f`): `tests/test_engine_examples.py`, `engine_examples_v1` en Rust y `scripts/engine-examples.py` | 20 de 20 en los dos, en su CI | Sin medir |
+| Casos de motor (§11) | 20 de 20 en ambos motores (`d329092` en `n-creator-utils`). Gate de macOS con Rust 1.99.1, 23 diferenciales y sombra sobre el catálogo del dorado sin diferencias nuevas. Windows queda en CI | 20 de 20 en los dos, en su CI | Sin medir |
 
-**nove (2026-11-16).** Contrato y ejemplos fijados desde `nu9ve/core@9df396d` en `8a7efd6`; lectores de Swift, C#, host del broker y `pipe-call` en `83fd776`. Las pruebas de ambos sobres pasan en Rust y Swift en Mac. El gate completo sigue abierto por fallos previos de Clippy y de tres pruebas Swift. Falta compilar y ejecutar las pruebas C# y comprobar los clientes Rust sobre named pipe en Windows. Quedan los pasos 2 a 4 de la [§12.3](../contracts/nu9ve-engine-v1.md#123-nove-transición-con-los-dos-sobres).
+**nove (2026-11-16).** Contrato y ejemplos fijados desde `nu9ve/core@9df396d` en `8a7efd6`; lectores de Swift, C#, host del broker y `pipe-call` en `83fd776`. Las pruebas de ambos sobres pasan en Rust y Swift en Mac. Desde `42719f6`, Clippy 1.89 pasa y `.github/workflows/engine.yml` corre el gate de Mac; **Pasos 2 y 3 hechos** (`6ceb214` a `8fb870f`): el motor responde v1 a quien manda `id` y el sobre viejo a quien manda `request_id`, y Swift, el cliente del broker y MCP, `pipe-call` y C# envían `id`. El motor pasa los 20 casos de los ejemplos en modo de marcos. `8fb870f` arregla en un commit aparte las tres pruebas Swift previas (esquema 27, `calendarDefaultZone` opcional) y el formato. El gate de Mac pasa entero con Rust 1.89: fmt, clippy, pruebas, build de release, replay offline, 29 pruebas Swift, `swift format lint --strict` y `sync-core.sh --check`. Falta compilar y probar C# y los clientes por named pipe en Windows. El paso 4, retirar el sobre viejo, llega con la primera versión de nove que publique estos clientes con C# probado en Windows ([§12.3](../contracts/nu9ve-engine-v1.md#123-nove-transición-con-los-dos-sobres)).
 
 ## nu9ve-fs-v1
 
