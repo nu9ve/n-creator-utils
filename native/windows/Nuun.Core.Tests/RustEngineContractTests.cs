@@ -69,13 +69,15 @@ public class RustEngineContractTests
     }
 
     [RustEngineFact]
-    public async Task SnapshotNamesWhatIsNotPortedYet()
+    public async Task SnapshotAnswersAFreshCatalogWithoutErrors()
     {
         var (process, connection) = EngineProcess.StartRust(RustEngineFactAttribute.Binary!, Path.Combine(Path.GetTempPath(), "nuun-snapshot-" + Guid.NewGuid().ToString("N")[..8]));
         await using var owner = new ProcessOwner(process);
         await using var _ = connection;
         var data = await connection.CallAsync("snapshot", new System.Text.Json.Nodes.JsonObject { ["cards"] = false });
-        Assert.StartsWith("not_ported", data!["errors"]!["capabilities"]!.GetValue<string>());
+        // `capabilities` is ported since 2026-11-12: a fresh catalog answers with no errors.
+        Assert.Empty(data!["errors"]!.AsObject());
+        Assert.NotNull(data["capabilities"]);
         Assert.Equal("hermosillo", data["defaults"]!["city"]!.GetValue<string>());
         Assert.Null(data["source_cards"]);
     }

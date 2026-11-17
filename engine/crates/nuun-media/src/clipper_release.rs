@@ -31,7 +31,8 @@ impl Guard {
         Self::acquire_inner(state, PathBuf::from(home), None)
     }
 
-    #[cfg(test)]
+    // Only Unix tests take the Clipper guard on a fixture home.
+    #[cfg(all(test, unix))]
     pub(crate) fn acquire_at(state: &Path, home: PathBuf) -> Result<Self> {
         let projects = home.join("Downloads/clipper-projects");
         Self::acquire_inner(state, home, Some(projects))

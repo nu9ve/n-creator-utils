@@ -62,7 +62,7 @@ impl Integrations {
     }
 
     /// A configured Clipper and projects folder, without Stalker (fixture tests).
-    #[cfg(test)]
+    #[cfg(all(test, unix))]
     pub(crate) fn fixture(clipper: &str, base: PathBuf) -> Self {
         Self {
             clipper_configured: clipper.into(),

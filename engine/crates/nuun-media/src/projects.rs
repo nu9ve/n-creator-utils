@@ -288,9 +288,15 @@ pub fn delivery_states(
                             && json!(info.mtime_ns) == saved["mtime_ns"]
                             && json!(info.inode) == saved["inode"]
                         {
+                            // Catalog paths are relative with `/` on every system, as in Python.
                             moved = candidate
                                 .strip_prefix(&root)
-                                .map(|p| p.display().to_string())
+                                .map(|p| {
+                                    p.components()
+                                        .map(|c| c.as_os_str().to_string_lossy())
+                                        .collect::<Vec<_>>()
+                                        .join("/")
+                                })
                                 .unwrap_or_default();
                             break;
                         }

@@ -1736,7 +1736,7 @@ mod tests {
                 let path = entry.path();
                 if path.is_dir() {
                     walk(&path, suffix, n);
-                } else if path.to_string_lossy().ends_with(suffix) {
+                } else if path.to_string_lossy().replace('\\', "/").ends_with(suffix) {
                     *n += 1;
                 }
             }

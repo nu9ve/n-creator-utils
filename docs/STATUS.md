@@ -11,6 +11,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | App instalada | `~/Applications/nuun.app`, **0.2.0 / `43a7ad4eb289`** (16 nov), build de depuración con firma ad-hoc verificada. Build anterior `e4e62bf7efac` en `app-backups/2600b4af.app`. |
 | Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE): Python **408** (4 omitidas), Rust **187** (164 + 23 diferenciales), Swift **29**. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
 | Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
+| Motor en Windows | 16 nov, Windows 11 con Rust 1.99.1: compila, **140 pruebas** (15 omitidas: diferenciales y doradas, sin Python en el PC), fmt y clippy limpios. Pruebas C# del cliente **36 de 36** contra el binario real. [Detalle](#el-motor-vuelve-a-compilar-y-pasar-en-windows--2026-11-16) |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
 
 ## Por área
@@ -49,6 +50,10 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
 Esta página no autoriza operaciones sobre media real. Las pruebas automáticas usan fixtures temporales; cada corrida física es un plan revisado que el usuario pide.
 
 ## Entregas recientes
+
+### El motor vuelve a compilar y pasar en Windows · 2026-11-16
+
+Desde el 11 nov el motor sólo se había compilado en la Mac. Al retomar la fase A en el PC hicieron falta 18 crates fijadas en `Cargo.lock` que no estaban en la caché (`jiff`, `rustix`, `iana-time-zone`…; se descargaron con permiso del usuario, sin cambiar versiones). Aparecieron cinco fallos sólo de Windows, ya corregidos: (1) **del motor**: el final movido a publicados devolvía `current_path` con `\` ([projects.rs](../engine/crates/nuun-media/src/projects.rs)); ahora usa `/` como Python y el resto del catálogo; (2) el ayudante `count` de las pruebas de `transfer` comparaba con `/`; (3–4) clippy: `Guard::acquire_at` e `Integrations::fixture` sólo los usan pruebas de Unix y pasan a `cfg(all(test, unix))`; (5) la prueba C# de `snapshot` esperaba `capabilities` sin portar (se portó el 12 nov). Evidencia: `cargo test`, `fmt --check`, `clippy --all-targets -D warnings` y `dotnet test native\windows\Nuun.Core.Tests` en Windows 11. Sin probar en la Mac tras el cambio: el `/` es el mismo resultado que antes allí.
 
 ### nu9ve-engine-v1 en los dos motores · 2026-11-16
 
