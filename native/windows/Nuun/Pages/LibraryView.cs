@@ -21,7 +21,7 @@ public static class LibraryView
         foreach (var (id, label) in new[] { ("projects", "Proyectos"), ("disks", "Discos"), ("activity", "Actividad") })
             tabs.Children.Add(UI.Toggle(label, tab == id, () => { tab = id; shell.Navigate("library"); }));
         column.Children.Add(tabs);
-        column.Children.Add(tab switch { "disks" => Disks(state, shell), "activity" => Activity(state), _ => Projects(state) });
+        column.Children.Add(tab switch { "disks" => Disks(state, shell), "activity" => Activity(state, shell), _ => Projects(state) });
         return PageScaffold.Build(column);
     }
 
@@ -46,8 +46,8 @@ public static class LibraryView
     {
         if (state.LiveVolumes is null && state.LiveCards is null) return null;
         var column = UI.Column(8,
-            UI.Text("Leído por el motor de Rust en este equipo · sólo lectura", TextRole.Heading, 15),
-            UI.Text("Todavía no se puede respaldar desde Windows: estas tarjetas no entran al Ingreso de la maqueta.", TextRole.Muted, 12));
+            UI.Text("Leído por el motor de Rust en este equipo", TextRole.Heading, 15),
+            UI.Text("Estas tarjetas y destinos son los que usa Ingreso para planear y respaldar.", TextRole.Muted, 12));
         var volumes = state.LiveVolumes ?? [];
         column.Children.Add(UI.Text(volumes.Count == 0
             ? "Destinos registrados: ninguno. Con un destino en línea, el motor lee la familia de cada tarjeta."
@@ -179,14 +179,25 @@ public static class LibraryView
         return canvas;
     }
 
-    static UIElement Activity(AppState state)
+    /// <summary>A paused or interrupted job continues from its journal; the copies already verified are not read again.</summary>
+    static UIElement ResumeButton(AppState state, MainWindow shell, Core.Engine.JobSummary job)
+    {
+        if (state.Engine.IsFixture || !job.Resumable) return new Border();
+        var button = UI.Button("Reanudar", () => { shell.Navigate("ingest"); _ = state.ResumeAsync(job.Id); }, glyph: "");
+        button.IsEnabled = !state.Busy;
+        AutomationProperties.SetName(button, $"Reanudar job {job.Id}");
+        return button;
+    }
+
+    static UIElement Activity(AppState state, MainWindow shell)
     {
         var list = UI.Column(6);
         foreach (var job in state.Snapshot.Jobs)
             list.Children.Add(UI.Surface(SurfaceKind.Panel, UI.Columns(
                 (UI.Row(10, UI.Icon(job.NeedsAttention ? "" : "", 16, job.NeedsAttention ? "warning" : "success"),
                     UI.Column(0, UI.Text(job.Title), UI.Text(Presentation.JobState(job.State), TextRole.Muted, 12))), new GridLength(1, GridUnitType.Star)),
-                (UI.Text(job.Id, TextRole.Mono), GridLength.Auto)), 12));
+                (UI.Text(job.Id, TextRole.Mono), GridLength.Auto),
+                (ResumeButton(state, shell, job), GridLength.Auto)), 12));
         return list;
     }
 }

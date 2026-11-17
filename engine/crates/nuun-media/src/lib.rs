@@ -19,7 +19,7 @@ mod editorial;
 pub mod handoff;
 mod handycam;
 pub mod integrations;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", windows))]
 mod interrupt;
 pub mod layout;
 #[cfg(target_os = "macos")]

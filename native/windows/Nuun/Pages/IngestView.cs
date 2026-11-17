@@ -50,7 +50,7 @@ public sealed class IngestView
             case "ingest.next": state.Go(state.Step == IngestStep.Entry ? IngestStep.Flow : IngestStep.Result); return true;
             case "ingest.review": _ = state.ReviewAsync(); return true;
             case "ingest.apply": if (state.Step == IngestStep.Flow) _ = state.ApplyAsync(); return true;
-            case "ingest.eject": state.Report("Expulsar no está disponible en la maqueta: Windows aún no tiene el adaptador de volúmenes"); return true;
+            case "ingest.eject": state.Report("Expulsar desde nüün en Windows llega en el paso 5 de la fase A; usa «Quitar hardware de forma segura»."); return true;
             default: return false;
         }
     }
@@ -111,8 +111,15 @@ public sealed class IngestView
             toggle.Click += (_, _) => state.ChooseSource(card);
             sources.Children.Add(toggle);
         }
-        var other = UI.Button("Otra carpeta…", () => state.Report("Maqueta: el selector de carpeta del sistema llega con el adaptador de Windows"), glyph: "");
-        column.Children.Add(UI.Section("Fuente", sources, other));
+        if (state.Source is { Folder: true } folder)
+        {
+            var chosen = new NuToggle { Card = true, IsChecked = true, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, 0, 8, 8),
+                Content = UI.Column(6, UI.Row(8, UI.Icon("\uE8B7", 18, "accentText"), UI.Text(folder.Name, TextRole.Body)),
+                    UI.Text(folder.Path, TextRole.Muted, 12), UI.Colored("Carpeta: se respalda y se conserva", "accentText", 12)) };
+            AutomationProperties.SetName(chosen, $"Fuente carpeta {folder.Name}");
+            sources.Children.Add(chosen);
+        }
+        column.Children.Add(UI.Section("Fuente", sources, OtherFolder()));
 
         var project = new TextBox { Text = state.Project, PlaceholderText = "Proyecto del lote", MaxWidth = 360, HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(project, "Proyecto del lote");
@@ -122,6 +129,7 @@ public sealed class IngestView
             recent.Children.Add(UI.Toggle(p.Name, p.Name == state.Project, () => { state.Project = p.Name; project.Text = p.Name; }));
         column.Children.Add(UI.Section("Proyecto", project, recent,
             UI.Text("El proyecto del lote rellena sólo las unidades sin proyecto propio.", TextRole.Muted, 12)));
+        if (!state.Engine.IsFixture) column.Children.Add(Destinations());
 
         if (state.Source is { } source)
         {
@@ -159,9 +167,84 @@ public sealed class IngestView
             column.Children.Add(UI.Surface(SurfaceKind.Panel, UI.Column(6, UI.Text("Contenido", TextRole.Heading, 15), content)));
         }
         var footer = PageScaffold.Footer(
-            state.Source is null ? "Elige una fuente para continuar." : $"{state.Source.Name} → {state.Project}. Revisar no copia nada.",
+            state.Source is null ? "Elige una fuente para continuar." : $"{state.Source.Name} → {(state.Project.Trim().Length > 0 ? state.Project.Trim() : "proyecto general")}. Revisar no copia nada.",
             UI.Button("Revisar plan", () => _ = state.ReviewAsync(), prominent: true, glyph: "", shortcut: "ingest.review"));
         return (column, footer);
+    }
+
+    /// <summary>
+    /// «Otra carpeta…»: the system picker, or a typed path (Narrator and UI Automation reach both). A folder is
+    /// backed up and kept; only the root of a mounted card is ever released.
+    /// </summary>
+    UIElement OtherFolder()
+    {
+        if (state.Engine.IsFixture)
+            return UI.Button("Otra carpeta…", () => state.Report("Maqueta: elegir una carpeta necesita el motor de Rust junto a la app"), glyph: "\uE8B7");
+        var path = new TextBox { PlaceholderText = "D:\\fotos\\viaje", Width = 320, Text = state.Source is { Folder: true } f ? f.Path : "" };
+        AutomationProperties.SetName(path, "Carpeta de origen");
+        return UI.Row(8, path,
+            UI.Button("Elegir…", () => _ = PickFolderAsync(path), glyph: "\uE8B7"),
+            UI.Button("Usar carpeta", () => state.UseFolder(path.Text)));
+    }
+
+    async Task PickFolderAsync(TextBox target)
+    {
+        var picker = new Windows.Storage.Pickers.FolderPicker { SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder };
+        picker.FileTypeFilter.Add("*");
+        // Unpackaged WinUI: the picker needs its owner window.
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(shell));
+        if (await picker.PickSingleFolderAsync() is { } folder) { target.Text = folder.Path; state.UseFolder(folder.Path); }
+    }
+
+    /// <summary>
+    /// Registered destinations online now, as the engine read them. Without a work disk the plan is archive-only, which
+    /// the person confirms for this operation; it never becomes the default (ingest-flow-v1).
+    /// </summary>
+    UIElement Destinations()
+    {
+        var archives = state.OnlineDestinations(VolumeRole.Archive);
+        var works = state.OnlineDestinations(VolumeRole.Work);
+        if (archives.Count == 0)
+            return UI.Section("Destinos", UI.Colored("No hay un destino de archivo en línea. Regístralo o conéctalo en Biblioteca → Discos.", "warning", 13),
+                UI.Button("Ir a Discos", () => shell.Navigate("library"), glyph: "\uEDA2"));
+
+        var archive = new ComboBox { MinWidth = 240 };
+        foreach (var v in archives) archive.Items.Add(v.Name);
+        archive.SelectedItem = state.Archive;
+        AutomationProperties.SetName(archive, "Destino de archivo");
+        archive.SelectionChanged += (_, _) => state.ChangePlanOptions(() => state.Archive = archive.SelectedItem as string);
+
+        const string none = "Sin copia para editar";
+        var work = new ComboBox { MinWidth = 240 };
+        foreach (var v in works) work.Items.Add(v.Name);
+        work.Items.Add(none);
+        work.SelectedItem = state.Work ?? none;
+        AutomationProperties.SetName(work, "Destino de trabajo");
+        work.SelectionChanged += (_, _) => state.ChangePlanOptions(() => state.Work = work.SelectedItem is string w && w != none ? w : null);
+
+        var column = UI.Column(8,
+            UI.Row(10, UI.Text("Respaldo", TextRole.Body), archive),
+            UI.Row(10, UI.Text("Para editar", TextRole.Body), work));
+        if (state.Work is null)
+        {
+            var confirm = new CheckBox { Content = "Sólo respaldo en esta operación", IsChecked = state.ConfirmArchiveOnly };
+            AutomationProperties.SetName(confirm, "Confirmar sólo respaldo en esta operación");
+            // Checked/Unchecked: also raised by the keyboard, Narrator and UI Automation (Click is not).
+            confirm.Checked += (_, _) => state.ChangePlanOptions(() => state.ConfirmArchiveOnly = true);
+            confirm.Unchecked += (_, _) => state.ChangePlanOptions(() => state.ConfirmArchiveOnly = false);
+            column.Children.Add(confirm);
+            column.Children.Add(UI.Text(works.Count == 0 && state.LiveVolumes?.Any(v => v.Role == VolumeRole.Work) == true
+                ? "La copia para editar queda pendiente: se entrega después desde el archivo."
+                : "Sin disco de trabajo registrado: esta operación no hace copia para editar.", TextRole.Muted, 12));
+        }
+        var folder = state.Source?.Folder == true;
+        var cleanup = new CheckBox { Content = "Liberar la tarjeta tras verificar todos los destinos", IsChecked = state.Cleanup && !folder, IsEnabled = !folder };
+        AutomationProperties.SetName(cleanup, "Liberar la tarjeta tras verificar");
+        cleanup.Checked += (_, _) => state.ChangePlanOptions(() => state.Cleanup = true);
+        cleanup.Unchecked += (_, _) => state.ChangePlanOptions(() => state.Cleanup = false);
+        column.Children.Add(cleanup);
+        if (folder) column.Children.Add(UI.Text("Una carpeta se respalda y se conserva: sólo se libera la raíz de una tarjeta montada.", TextRole.Muted, 12));
+        return UI.Section("Destinos", column);
     }
 
     // ---------- Flujo ----------
@@ -174,10 +257,20 @@ public sealed class IngestView
         {
             Header = UI.Text("Destinos y opciones"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Background = ThemeServiceBrush("surface"),
-            Content = UI.Column(8,
-                Destination("MEDIA-DEMO", "Respaldo (archivo) · obligatorio", true),
-                Destination("ESSD-DEMO", "Copia para editar · verificada antes de limpiar", true),
-                UI.Text("Limpieza: después de verificar todos los destinos requeridos, según la política del plan.", TextRole.Muted, 12)),
+            Content = state.Engine.IsFixture
+                ? UI.Column(8,
+                    Destination("MEDIA-DEMO", "Respaldo (archivo) · obligatorio", true),
+                    Destination("ESSD-DEMO", "Copia para editar · verificada antes de limpiar", true),
+                    UI.Text("Limpieza: después de verificar todos los destinos requeridos, según la política del plan.", TextRole.Muted, 12))
+                : UI.Column(8,
+                    Destination(state.Archive ?? "—", "Respaldo (archivo) · obligatorio", true),
+                    state.Work is { } w
+                        ? Destination(w, "Copia para editar · verificada antes de limpiar", true)
+                        : UI.Text(plan.Steps.Count > 1 ? plan.Steps[1] : "Sin copia para editar", TextRole.Muted, 12),
+                    UI.Text(plan.ReleasesSource
+                        ? "Limpieza: después de verificar todos los destinos requeridos, según la política del plan."
+                        : "El origen se conserva: este plan no limpia nada.", TextRole.Muted, 12),
+                    UI.Text("Cambiar destinos u opciones invalida este plan: vuelve a Entrada.", TextRole.Muted, 12)),
         };
         column.Children.Add(destinations);
 
@@ -239,24 +332,27 @@ public sealed class IngestView
             Header = UI.Text("Detalle"), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Background = ThemeServiceBrush("surface"), Content = log,
         };
-        var pause = UI.Text("Cancelar conserva lo ya copiado y verificado; nada se limpia sin verificar.", TextRole.Muted, 12);
+        var pause = UI.Text("Pausar conserva lo ya copiado y verificado; nada se limpia sin verificar.", TextRole.Muted, 12);
         pause.HorizontalAlignment = HorizontalAlignment.Center;
-        doneActions = UI.Row(8,
-            UI.Button("Nueva ingesta", () => state.NewIngest(), prominent: true, shortcut: "ingest.new"),
-            UI.Button("Ver biblioteca", () => shell.Navigate("library")));
+        doneActions = UI.Row(8);
+        if (state.PausedJob is { } paused)
+            doneActions.Children.Add(UI.Button("Reanudar", () => _ = state.ResumeAsync(paused), prominent: true, glyph: "\uE768"));
+        doneActions.Children.Add(UI.Button("Nueva ingesta", () => state.NewIngest(), prominent: state.PausedJob is null, shortcut: "ingest.new"));
+        doneActions.Children.Add(UI.Button("Ver biblioteca", () => shell.Navigate("library")));
         doneActions.HorizontalAlignment = HorizontalAlignment.Center;
         var column = UI.Column(14, verb, file, animation, bar, numbers, pause, doneActions, detail);
         column.Margin = new Thickness(0, 24, 0, 0);
         var footer = state.Busy ? PageScaffold.Footer("Puedes navegar mientras tanto; sólo esta ingesta queda bloqueada.",
-            UI.Button("Cancelar", state.Cancel, destructive: true)) : null;
+            UI.Button(state.Engine.IsFixture ? "Cancelar" : "Pausar", state.Cancel, destructive: true)) : null;
         return (column, footer);
     }
 
     public void UpdateProgress()
     {
         if (state.Progress is not { } progress || verb is null) return;
-        verb.Text = progress.Finished ? "Listo: respaldo verificado" : $"{progress.Verb}";
-        file!.Text = progress.CurrentFile is null ? $"{progress.FilesDone} de {progress.FilesTotal} archivos" : $"{progress.CurrentFile}  ·  {progress.From} → {progress.To}";
+        verb.Text = progress.Verb.Length > 0 ? progress.Verb : progress.Finished ? "Listo: respaldo verificado" : "Preparando";
+        file!.Text = progress.CurrentFile is null || progress.Finished ? $"{progress.FilesDone} de {progress.FilesTotal} archivos"
+            : progress.From is null ? progress.CurrentFile : $"{progress.CurrentFile}  ·  {progress.From} → {progress.To}";
         bar!.Value = progress.Fraction;
         AutomationProperties.SetName(bar, $"Progreso total {progress.Fraction:P0}");
         numbers!.Text = $"{progress.Fraction:P0} · {Presentation.Bytes(progress.OverallDone)} de {Presentation.Bytes(progress.OverallTotal)} copiados y verificados · {progress.FilesDone}/{progress.FilesTotal} archivos";

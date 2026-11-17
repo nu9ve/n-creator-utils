@@ -12,8 +12,9 @@
 //!   camera indexes are never removed (the job waits for the camera's format).
 //!
 //! Stalker release after ingest and published finals cleanup require Clipper exclusion on Unix.
-//! On macOS, SIGINT stops a one-shot worker at a checkpoint and records `paused`. After an abrupt
-//! process exit, the journal still lets the client resume from the last recorded state.
+//! On macOS SIGINT, and on Windows the `NUUN_CANCEL_EVENT` named event, stop a one-shot worker at a checkpoint
+//! and record `paused`. After an abrupt process exit, the journal still lets the client resume from the last
+//! recorded state.
 
 use crate::catalog::{Catalog, WritableCatalog};
 use crate::layout::sony_index_member;
@@ -1652,7 +1653,7 @@ pub fn apply_reviewed(
     plan: &Value,
     reviewed_digest: &str,
 ) -> Result<Value> {
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", windows))]
     let _cancel = crate::interrupt::Cancel::install()?;
     apply_cancellable(home, backend, plan, reviewed_digest)
 }
@@ -1664,7 +1665,7 @@ pub(crate) fn apply_cancellable(
     reviewed_digest: &str,
 ) -> Result<Value> {
     apply(home, backend, plan, reviewed_digest, &|_, _| {
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", windows))]
         require(
             !crate::interrupt::cancelled(),
             "cancelled",

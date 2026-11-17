@@ -173,8 +173,29 @@ public static class EngineProcess
 /// </summary>
 public static class EngineWrites
 {
-    public static async Task<JsonNode?> CallOnceAsync(string binary, string? stateDirectory, string method, JsonObject parameters,
-        CancellationToken cancellation = default)
+    public static Task<JsonNode?> CallOnceAsync(string binary, string? stateDirectory, string method, JsonObject parameters,
+        CancellationToken cancellation = default) => RunAsync(binary, stateDirectory, method, parameters, null, cancellation);
+
+    /// <summary>Environment variable with the event a worker polls at each recoverable point (engine `interrupt.rs`).</summary>
+    public const string CancelEventVariable = "NUUN_CANCEL_EVENT";
+
+    /// <summary>
+    /// A long write (`apply`, `resume`) in its own worker that can be cancelled without killing it: cancelling signals
+    /// a named event (`Local\nuun-cancel-…`, the way nove signals its host) and the engine stops at the next
+    /// recoverable point, records the job `paused` and answers `cancelled`. The call always waits for that answer, so
+    /// the job is never left looking active by a killed process.
+    /// </summary>
+    public static async Task<JsonNode?> CallCancellableAsync(string binary, string? stateDirectory, string method, JsonObject parameters,
+        CancellationToken cancellation)
+    {
+        var name = $@"Local\nuun-cancel-{Guid.NewGuid():N}";
+        using var cancelEvent = new EventWaitHandle(false, EventResetMode.ManualReset, name);
+        using var registration = cancellation.Register(() => cancelEvent.Set());
+        return await RunAsync(binary, stateDirectory, method, parameters, name, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    static async Task<JsonNode?> RunAsync(string binary, string? stateDirectory, string method, JsonObject parameters, string? cancelEvent,
+        CancellationToken cancellation)
     {
         var start = new ProcessStartInfo(binary)
         {
@@ -186,6 +207,7 @@ public static class EngineWrites
         };
         if (stateDirectory is not null) { start.ArgumentList.Add("--state-dir"); start.ArgumentList.Add(stateDirectory); }
         start.ArgumentList.Add("rpc");
+        if (cancelEvent is not null) start.Environment[CancelEventVariable] = cancelEvent;
         using var process = Process.Start(start) ?? throw new EngineFailure("runtime_missing", "No se pudo iniciar el motor de Rust");
         var request = new JsonObject { ["id"] = 1, ["method"] = method, ["params"] = parameters };
         var bytes = new UTF8Encoding(false).GetBytes(request.ToJsonString());
@@ -223,6 +245,16 @@ public static class EngineWrites
         "job_busy" => "Otra operación de media está en curso. Intenta de nuevo al terminar.",
         "volume_offline" => "Esa carpeta no está disponible. ¿El disco está conectado?",
         "volume_identity_unavailable" => "Windows no dijo en qué disco físico está ese volumen; nüün no registra un destino sin saberlo.",
+        "confirmation_required" => "Sin copia para editar, confirma «sólo respaldo» para esta operación.",
+        "work_required" => "Elige un disco de trabajo o confirma «sólo respaldo».",
+        "same_physical_disk" => "Archivo y trabajo están en el mismo disco físico: no serían dos copias independientes.",
+        "overlapping_roots" => "La fuente y un destino se solapan: elige otra carpeta.",
+        "source_on_work_disk" => "Esa carpeta ya está en el disco de trabajo: elige sólo respaldo.",
+        "card_root_required" => "Sólo se libera la raíz de una tarjeta montada; una carpeta se respalda sin limpiar.",
+        "insufficient_space" => failure.Message.Replace("Insufficient free space on", "No hay espacio suficiente en"),
+        "destination_conflict" => "En el destino hay un archivo distinto con el mismo nombre; nada se reemplaza.",
+        "plan_changed" or "source_changed" => "La fuente cambió desde la revisión: vuelve a revisar el plan.",
+        "cancelled" => "En pausa en un punto recuperable: lo copiado queda verificado y nada se limpió.",
         "not_ported" => "Esta versión del motor todavía no hace esto en este sistema.",
         _ => failure.Message,
     };

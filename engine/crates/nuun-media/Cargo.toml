@@ -24,6 +24,10 @@ regex.workspace = true
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true
 
+# Cooperative cancellation of one-shot workers through a named event (interrupt.rs), as nove signals its host.
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 

@@ -52,6 +52,11 @@ public static class Presentation
         "camera_action_required" => "Formatear en la cámara y volver a conectar",
         "completed" => "Completado",
         "running" => "En curso",
+        "source_retained" => "Respaldo verificado · origen conservado",
+        "paused" => "En pausa · se puede reanudar",
+        "failed" => "Se detuvo con error · revisar y reanudar",
+        "copying" or "backup_verified" or "cleaning_source" => "Interrumpido · se puede reanudar",
+        "planned" => "Planeado, sin empezar",
         _ => code,
     };
 

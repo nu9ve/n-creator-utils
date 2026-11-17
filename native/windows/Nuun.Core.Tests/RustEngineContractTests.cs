@@ -63,9 +63,11 @@ public class RustEngineContractTests
         Assert.False(mixed.IsFixture);
         Assert.True(mixed.RealSnapshot);
         // With real data on screen a simulated plan would look like a backup that never happened.
+        // This reader has no worker to plan with: the person sees `not_ported`, never the maqueta's plan.
         var card = new SourceCard("E:\\", "CARD", "sony", "sony_format_in_camera", 0, 0, null);
-        var failure = await Assert.ThrowsAsync<EngineFailure>(() => mixed.PlanAsync(card, "proyecto"));
-        Assert.Equal("not_on_windows", failure.Code);
+        var failure = await Assert.ThrowsAsync<EngineFailure>(() =>
+            mixed.PlanAsync(new PlanRequest(card, "proyecto", "MEDIA", null, true, null, false)));
+        Assert.Equal("not_ported", failure.Code);
     }
 
     [RustEngineFact]

@@ -49,7 +49,37 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
     public PlanPreview? Plan { get; private set; }
     public ActionProgress? Progress { get; private set; }
     public bool Busy { get; private set; }
+    /// <summary>The job the last run left paused or interrupted: Resultado offers «Reanudar».</summary>
+    public string? PausedJob { get; private set; }
     CancellationTokenSource? applying;
+
+    // ----- Destinations for the plan (real engine only; the maqueta shows its demo disks) -----
+    /// <summary>Registered archive destination chosen for the plan (its name, as the engine's `archive` parameter).</summary>
+    public string? Archive { get; set; }
+    /// <summary>Work destination for the copy for editing; null means archive-only for this operation.</summary>
+    public string? Work { get; set; }
+    /// <summary>Archive-only is confirmed per operation, never a default (ingest-flow-v1).</summary>
+    public bool ConfirmArchiveOnly { get; set; }
+    /// <summary>Release the card after every required destination is verified. Never for a chosen folder.</summary>
+    public bool Cleanup { get; set; } = true;
+
+    /// <summary>Registered destinations online now, by role, as the engine read them.</summary>
+    public IReadOnlyList<Volume> OnlineDestinations(VolumeRole role) =>
+        (LiveVolumes ?? []).Where(v => v.Role == role && v.Online).ToList();
+
+    void ChooseDefaultDestinations()
+    {
+        var archives = OnlineDestinations(VolumeRole.Archive);
+        if (Archive is null || archives.All(v => v.Name != Archive)) Archive = archives.FirstOrDefault()?.Name;
+        var works = OnlineDestinations(VolumeRole.Work);
+        if (Work is not null && works.All(v => v.Name != Work)) Work = null;
+    }
+
+    /// <summary>
+    /// Without a work copy now, a registered work disk keeps it `pending` (delivered later from the archive); with none
+    /// registered it is `skipped`. The plan shows which.
+    /// </summary>
+    string? PendingWork => Work is null ? (LiveVolumes ?? []).FirstOrDefault(v => v.Role == VolumeRole.Work)?.Name : null;
 
     public async Task StartAsync()
     {
@@ -75,7 +105,9 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
                 // QA keeps the catalog under its own root; otherwise the engine's default (%LOCALAPPDATA%/n-creator-utils/media).
                 StateDirectory = Environment.GetEnvironmentVariable("NUUN_QA_ROOT") is { Length: > 0 } qa ? Path.Combine(qa, "state") : null;
                 var (process, connection) = EngineProcess.StartRust(rust, StateDirectory);
-                Engine = new MethodByMethodEngine(new RpcEngine(connection, new ProcessOwner(process)), new FixtureEngine());
+                // Writes (plan_document, apply, resume) each run in their own `rpc` worker of the same binary and catalog.
+                Engine = new MethodByMethodEngine(new RpcEngine(connection, new ProcessOwner(process), new EngineWorker(rust, StateDirectory)),
+                    new FixtureEngine());
             }
             catch (Exception error) when (error is EngineFailure or System.ComponentModel.Win32Exception)
             {
@@ -83,6 +115,9 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
             }
         }
         await RefreshAsync();
+        // «proyecto-demo» belongs to the maqueta. With real data the batch starts without a project (the engine's
+        // general project) unless the card remembers its last one.
+        if (!Engine.IsFixture && Project == "proyecto-demo") { Project = Source?.LastProject ?? ""; Changed(nameof(Source)); }
     }
 
     public async Task RefreshAsync()
@@ -95,6 +130,7 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
             {
                 LiveVolumes = await mixed.PrimaryOnlyAsync(e => e.VolumesAsync());
                 LiveCards = await mixed.PrimaryOnlyAsync(e => e.SourceCardsAsync());
+                ChooseDefaultDestinations();
             }
             Source ??= Snapshot.Cards.FirstOrDefault();
             Changed(nameof(Snapshot));
@@ -105,10 +141,29 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
     public void Report(string message) { Error = message; Changed(nameof(Error)); }
     public void ClearError() { Error = null; Changed(nameof(Error)); }
 
+    /// <summary>«Otra carpeta…»: a folder is backed up and never cleaned (only a mounted card is released).</summary>
+    public void UseFolder(string path)
+    {
+        if (Busy || string.IsNullOrWhiteSpace(path)) return;
+        var full = path.Trim();
+        if (!Directory.Exists(full)) { Report("Esa carpeta no existe o no está disponible."); return; }
+        ChooseSource(SourceCard.FromFolder(full));
+    }
+
+    /// <summary>Choosing destinations or options invalidates a reviewed plan, like choosing another source.</summary>
+    public void ChangePlanOptions(Action change)
+    {
+        if (Busy) return;
+        change();
+        Plan = null;
+        Changed(nameof(Source));
+    }
+
     public void ChooseSource(SourceCard card)
     {
         if (Busy) return;
         Source = card;
+        ConfirmArchiveOnly = false;
         // Changing what is planned invalidates a reviewed plan (nuun-window.md).
         Plan = null;
         Discovery = null;
@@ -145,42 +200,102 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
     public async Task ReviewAsync()
     {
         if (Source is null || Busy) return;
+        if (!Engine.IsFixture && Archive is null)
+        {
+            Report("Registra y conecta un destino de archivo (Biblioteca → Discos) antes de planear.");
+            return;
+        }
+        var request = Engine.IsFixture
+            ? new PlanRequest(Source, Project, "MEDIA-DEMO", "ESSD-DEMO", false, null, true)
+            : new PlanRequest(Source, Project, Archive, Work, ConfirmArchiveOnly, PendingWork, Cleanup && !Source.Folder);
         try
         {
-            Plan = await Engine.PlanAsync(Source, Project);
+            Plan = await Engine.PlanAsync(request);
+            ClearError();
             Step = IngestStep.Flow;
             Changed(nameof(Step));
         }
-        catch (EngineFailure failure) { Report(failure.Message); }
+        catch (EngineFailure failure) { Report(EngineWrites.Explain(failure)); }
     }
 
-    public async Task ApplyAsync()
+    public Task ApplyAsync() => Plan is { } plan ? RunAsync(plan.Id, plan.Files, (p, c) => Engine.ApplyAsync(plan, p, c)) : Task.CompletedTask;
+
+    /// <summary>Continues a paused or interrupted job from its journal; the copies already verified are not read again.</summary>
+    public Task ResumeAsync(string jobId) => RunAsync(jobId, 0, (p, c) => Engine.ResumeAsync(jobId, p, c));
+
+    async Task RunAsync(string jobId, int files, Func<IProgress<ActionProgress>, CancellationToken, Task> run)
     {
-        if (Plan is null || Busy) return;
+        if (Busy) return;
         Busy = true;
-        applying = new CancellationTokenSource();
-        Progress = new ActionProgress("Preparando", 0, 1, 0, Plan.Files, null, null, null, [], false);
+        PausedJob = null;
+        ClearError();
+        var cancellation = new CancellationTokenSource();
+        applying = cancellation;
+        Progress = new ActionProgress("Preparando", 0, 1, 0, files, null, null, null, [], false);
         Step = IngestStep.Result;
         Changed(nameof(Step));
+        var finished = false;
+        ActionProgress Stopped(string verb) =>
+            (Progress ?? new ActionProgress("", 0, 1, 0, 0, null, null, null, [], false)) with { Verb = verb, Finished = true };
         try
         {
-            await Engine.ApplyAsync(Plan, new Progress<ActionProgress>(p => { Progress = p; Changed(nameof(Progress)); }), applying.Token);
+            // Progress<T> posts to the UI thread: a late poll never replaces the final report.
+            await run(new Progress<ActionProgress>(p =>
+            {
+                if (finished && !p.Finished) return;
+                // While pausing, the copy in hand still advances: keep saying what was asked.
+                Progress = !p.Finished && cancellation.IsCancellationRequested ? p with { Verb = "Pausando en un punto recuperable…" } : p;
+                Changed(nameof(Progress));
+            }), cancellation.Token);
+            finished = true;
+            if (!Engine.IsFixture) Plan = null;
+        }
+        catch (EngineFailure failure) when (failure.Code == "cancelled")
+        {
+            finished = true;
+            PausedJob = jobId;
+            Progress = Stopped("En pausa: lo copiado queda verificado, nada se limpió");
+            Changed(nameof(Progress));
         }
         catch (OperationCanceledException)
         {
-            Progress = Progress! with { Verb = "Cancelado: lo copiado queda verificado, nada se limpió", Finished = true };
+            // Only the maqueta cancels by token: it never wrote anything.
+            finished = true;
+            Progress = Stopped("Cancelado (maqueta): nada se copió ni se limpió");
             Changed(nameof(Progress));
         }
-        catch (EngineFailure failure) { Report(failure.Message); }
-        finally { Busy = false; Changed(nameof(Busy)); }
+        catch (EngineFailure failure)
+        {
+            finished = true;
+            if (!Engine.IsFixture) PausedJob = jobId;
+            Progress = Stopped("Se detuvo: nada se limpió sin verificar");
+            Changed(nameof(Progress));
+            Report(EngineWrites.Explain(failure));
+        }
+        finally
+        {
+            Busy = false;
+            applying = null;
+            cancellation.Dispose();
+            Changed(nameof(Busy));
+        }
+        if (!Engine.IsFixture) await RefreshAsync();
     }
 
-    public void Cancel() => applying?.Cancel();
+    /// <summary>Asks the engine to pause at the next recoverable point; the copies already verified stay.</summary>
+    public void Cancel()
+    {
+        if (applying is not { IsCancellationRequested: false } running) return;
+        running.Cancel();
+        if (Progress is { } p) { Progress = p with { Verb = "Pausando en un punto recuperable…" }; Changed(nameof(Progress)); }
+    }
 
     public void NewIngest()
     {
         if (Busy) return;
-        Plan = null; Progress = null; Step = IngestStep.Entry;
+        Plan = null; Progress = null; PausedJob = null; Step = IngestStep.Entry;
+        // Archive-only is confirmed per operation (ingest-flow-v1): a new ingest asks again.
+        ConfirmArchiveOnly = false;
         Changed(nameof(Step));
     }
 }

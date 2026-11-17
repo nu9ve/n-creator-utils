@@ -33,9 +33,10 @@ public sealed class FixtureEngine(TimeSpan? step = null) : IMediaEngine
     public async Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default) =>
         (await SnapshotAsync(cancellation).ConfigureAwait(false)).Cards;
 
-    public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default)
+    public Task<PlanPreview> PlanAsync(PlanRequest request, CancellationToken cancellation = default)
     {
-        var name = string.IsNullOrWhiteSpace(project) ? "proyecto-demo" : project.Trim();
+        var source = request.Source;
+        var name = string.IsNullOrWhiteSpace(request.Project) ? "proyecto-demo" : request.Project.Trim();
         // Same plan the Mac README screenshot shows (fixture data): one clip and the camera's support files.
         var sony = source.Family == "sony";
         PlanItem[] items = sony
@@ -80,12 +81,25 @@ public sealed class FixtureEngine(TimeSpan? step = null) : IMediaEngine
         progress.Report(new("Listo", total, total, files, plan.Files, null, null, null, [.. log], true));
     }
 
+    public Task ResumeAsync(string jobId, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
+        throw new EngineFailure("not_ported", "La maqueta no guarda jobs que reanudar");
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
-/// <summary>The real engine over `media rpc-serve`. Only `snapshot` and `recipe` are wired on Windows today.</summary>
-public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner = null) : IMediaEngine
+/// <summary>Where one-shot writes run: the Rust binary and its catalog (`--state-dir`).</summary>
+public sealed record EngineWorker(string Binary, string? StateDirectory);
+
+/// <summary>
+/// The real engine. Reads go through the persistent `rpc-serve` connection; `plan_document`, `apply` and `resume`
+/// each run in their own `rpc` worker (as the Mac app does), so a write never shares a process with the reader.
+/// Without a <paramref name="worker"/> (the Python reader on Windows) planning answers `not_ported`.
+/// </summary>
+public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner = null, EngineWorker? worker = null) : IMediaEngine
 {
+    /// <summary>How often the Result view reads the job while a worker copies.</summary>
+    public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(500);
+
     public bool IsFixture => false;
 
     public async Task<Snapshot> SnapshotAsync(CancellationToken cancellation = default) =>
@@ -100,13 +114,60 @@ public sealed class RpcEngine(RpcConnection connection, IAsyncDisposable? owner 
     public async Task<IReadOnlyList<SourceCard>> SourceCardsAsync(CancellationToken cancellation = default) =>
         (await connection.CallAsync("source_cards", null, cancellation).ConfigureAwait(false) as JsonArray ?? []).Where(n => n is not null).Select(n => SourceCard.Parse(n!)).ToList();
 
-    // Planning and applying go through `plan_document`/`apply` with the reviewed digest, as on Mac. Not wired
-    // on Windows: the volume layer (media/volumes.py) is macOS-specific (diskutil/DiskArbitration).
-    public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default) =>
-        throw new EngineFailure("not_on_windows", "Planear desde Windows necesita el adaptador de volúmenes de Windows");
+    EngineWorker Worker => worker ?? throw new EngineFailure("not_ported", "Este motor no planea ni respalda en Windows");
 
-    public Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
-        throw new EngineFailure("not_on_windows", "Aplicar desde Windows necesita el adaptador de volúmenes de Windows");
+    /// <summary>`plan_document`: the engine builds, checks and stores the reviewed plan; nothing is copied.</summary>
+    public async Task<PlanPreview> PlanAsync(PlanRequest request, CancellationToken cancellation = default)
+    {
+        var w = Worker;
+        var document = await EngineWrites.CallOnceAsync(w.Binary, w.StateDirectory, "plan_document", request.Parameters(), cancellation)
+            .ConfigureAwait(false);
+        if (document is not JsonValue value || !value.TryGetValue<string>(out var text))
+            throw new EngineFailure("invalid_response", "plan_document no devolvió el documento");
+        return PlanPreview.FromDocument(text, request.Archive, request.Work);
+    }
+
+    /// <summary>`apply` with the exact reviewed document and digest.</summary>
+    public Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default)
+    {
+        if (plan.Document is null || plan.Digest is null)
+            throw new EngineFailure("invalid_plan", "Ese plan no viene del motor: no se aplica");
+        return RunJobAsync("apply", new JsonObject { ["plan"] = plan.Document, ["digest"] = plan.Digest }, plan.Id, progress, cancellation);
+    }
+
+    public Task ResumeAsync(string jobId, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
+        RunJobAsync("resume", new JsonObject { ["job_id"] = jobId }, jobId, progress, cancellation);
+
+    async Task RunJobAsync(string method, JsonObject parameters, string jobId, IProgress<ActionProgress> progress, CancellationToken cancellation)
+    {
+        var w = Worker;
+        using var stopWatching = new CancellationTokenSource();
+        // The worker writes the job's progress to the catalog; the persistent reader shows it (Mac: `job` every second).
+        var watching = Task.Run(async () =>
+        {
+            while (!stopWatching.IsCancellationRequested)
+            {
+                await Task.Delay(PollInterval, stopWatching.Token).ConfigureAwait(false);
+                try
+                {
+                    var job = await connection.CallAsync("job", new JsonObject { ["job_id"] = jobId }, stopWatching.Token).ConfigureAwait(false);
+                    if (job?["progress"] is JsonObject && !stopWatching.IsCancellationRequested) progress.Report(ActionProgress.FromJob(job, false));
+                }
+                catch (EngineFailure) { } // Not created yet, or the reader restarted: the next read tries again.
+            }
+        });
+        JsonNode? result;
+        try
+        {
+            result = await EngineWrites.CallCancellableAsync(w.Binary, w.StateDirectory, method, parameters, cancellation).ConfigureAwait(false);
+        }
+        finally
+        {
+            stopWatching.Cancel();
+            try { await watching.ConfigureAwait(false); } catch (OperationCanceledException) { }
+        }
+        progress.Report(ActionProgress.FromJob(result, true));
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -139,7 +200,7 @@ public sealed class MethodByMethodEngine(IMediaEngine primary, IMediaEngine fall
             lock (answeredByPrimary) answeredByPrimary.Add(method);
             return value;
         }
-        catch (EngineFailure failure) when (failure.Code is "not_ported" or "not_on_windows")
+        catch (EngineFailure failure) when (failure.Code is "not_ported")
         {
             return await call(fallback).ConfigureAwait(false);
         }
@@ -154,15 +215,18 @@ public sealed class MethodByMethodEngine(IMediaEngine primary, IMediaEngine fall
     public async Task<T?> PrimaryOnlyAsync<T>(Func<IMediaEngine, Task<T>> call) where T : class
     {
         try { return await call(primary).ConfigureAwait(false); }
-        catch (EngineFailure failure) when (failure.Code is "not_ported" or "not_on_windows") { return null; }
+        catch (EngineFailure failure) when (failure.Code is "not_ported") { return null; }
     }
     // A simulated plan of a real card would look like a backup that never happened: with a real snapshot, plan and
     // apply go to the primary engine only and its `not_ported` reaches the person.
-    public Task<PlanPreview> PlanAsync(SourceCard source, string project, CancellationToken cancellation = default) =>
-        RealSnapshot ? primary.PlanAsync(source, project, cancellation) : Try("plan", e => e.PlanAsync(source, project, cancellation));
+    public Task<PlanPreview> PlanAsync(PlanRequest request, CancellationToken cancellation = default) =>
+        RealSnapshot ? primary.PlanAsync(request, cancellation) : Try("plan", e => e.PlanAsync(request, cancellation));
     public Task ApplyAsync(PlanPreview plan, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
         RealSnapshot ? primary.ApplyAsync(plan, progress, cancellation)
             : Try("apply", async e => { await e.ApplyAsync(plan, progress, cancellation).ConfigureAwait(false); return true; });
+    /// <summary>Only the primary engine keeps jobs: resuming never falls back to the maqueta.</summary>
+    public Task ResumeAsync(string jobId, IProgress<ActionProgress> progress, CancellationToken cancellation = default) =>
+        primary.ResumeAsync(jobId, progress, cancellation);
 
     public async ValueTask DisposeAsync()
     {
