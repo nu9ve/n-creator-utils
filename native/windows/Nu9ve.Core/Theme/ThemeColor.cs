@@ -2,8 +2,7 @@ using System.Globalization;
 
 namespace Nu9ve.Theme;
 
-// nu9ve-theme-v1 §3 · origen: n-creator-utils native/MediaMenu/Sources/MediaMenuCore/ThemeColor.swift
-// (ThemeColor), que a su vez viene de soundshop Appearance.swift. Port literal: mismas fórmulas,
+// nu9ve-theme-v1 §3 · par de Nu9veTheme ThemeColor.swift (nu9ve/core). Port literal: mismas fórmulas,
 // mismo orden de operaciones y mismo redondeo de hex (al más cercano, lejos de cero, como Swift),
 // para que los vectores compartidos den el mismo hex en Swift y en C#.
 /// <summary>Opaque, normalized sRGB. Pure so the palette can be tested without WinUI.</summary>

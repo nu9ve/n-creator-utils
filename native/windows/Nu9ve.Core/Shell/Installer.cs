@@ -37,7 +37,7 @@ public static class InstallerExit
 
 /// <summary>
 /// Window outlines for suite Setups (a shaped, layered-free window via SetWindowRgn). Each app picks its own
-/// shape from its identity; nüün's is the SD card of its icon: a rectangle with the top-left corner cut.
+/// shape from its identity; <see cref="SdCard"/> is an SD card: a rectangle with the top-left corner cut.
 /// Points are in device pixels, clockwise from the top-left, for CreatePolygonRgn.
 /// </summary>
 public static class WindowShapes

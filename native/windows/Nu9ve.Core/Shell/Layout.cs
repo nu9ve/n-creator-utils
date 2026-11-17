@@ -3,7 +3,7 @@ namespace Nu9ve.Shell;
 /// <summary>Layout rules shared by every Windows app of the suite.</summary>
 public static class Layout
 {
-    /// <summary>Page gutter by width (windows-app-v1 §2, the Windows Settings pattern; origin nove MainWindow.GutterFor).</summary>
+    /// <summary>Page gutter by width (windows-app-v1 §2, the Windows Settings pattern).</summary>
     public static double Gutter(double width) => width < 640 ? 16 : width < 1008 ? 24 : 32;
 
     /// <summary>Clamp a remembered frame inside the work area of an available monitor (windows-app-v1 §2).</summary>
@@ -17,7 +17,7 @@ public static class Layout
     }
 }
 
-/// <summary>Squarified treemap. Origin: MediaMenuCore Treemap.swift, same order and rule.</summary>
+/// <summary>Squarified treemap. Same order and rule as the Mac app's treemap.</summary>
 public static class Treemap
 {
     public readonly record struct Rect(double X, double Y, double Width, double Height);

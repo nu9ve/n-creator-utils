@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Nu9ve.Shell;
 using Nuun.Core.Shell;
+using Nuun.Core.Theme;
 using Nu9ve.Theme;
 using Nu9ve.WinUI.Controls;
 using Nu9ve.WinUI;
@@ -32,7 +33,7 @@ public static class SettingsView
 
         // Color: presets, hex and HSV.
         var presets = UI.Row(8);
-        foreach (var preset in ThemePreset.All)
+        foreach (var preset in NuunTheme.Presets)
         {
             var swatch = new Border { Width = 18, Height = 18, CornerRadius = new CornerRadius(9), Background = ThemeService.NewBrush(preset.Color) };
             var toggle = UI.Toggle(preset.Name(), prefs.Seed.ToHex() == preset.Hex, () => theme.Update(theme.Preferences with { Base = preset.Hex }));

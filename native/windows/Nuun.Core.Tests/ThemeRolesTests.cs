@@ -1,4 +1,5 @@
 using Nu9ve.Theme;
+using Nuun.Core.Theme;
 using Xunit;
 
 namespace Nuun.Core.Tests;
@@ -12,7 +13,7 @@ public class ThemeRolesTests
             foreach (var saturation in new[] { 0, 0.3, 0.64, 1.0 })
                 foreach (var brightness in new[] { 0.15, 0.5, 0.8, 1.0 })
                     yield return (hue, saturation, brightness);
-        foreach (var preset in ThemePreset.All) yield return preset.Color.Hsv;
+        foreach (var preset in NuunTheme.Presets) yield return preset.Color.Hsv;
     }
 
     public static TheoryData<ThemeSkin, bool> SkinsAndModes()
@@ -47,13 +48,13 @@ public class ThemeRolesTests
     [Fact]
     public void DefaultSeedKeepsItsLook()
     {
-        var light = ThemeRoles.Default(dark: false);
+        var light = NuunTheme.DefaultRoles(dark: false);
         Assert.Equal("#FFBB5C", light.Seed.ToHex());
         Assert.Equal(light.Seed.Mixed(ThemeColor.White, 0.80), light.Canvas);
         Assert.Equal(light.Seed.Mixed(ThemeColor.Black, 0.86), light.Ink);
         Assert.Equal(light.Seed.Mixed(ThemeColor.Black, 0.48), light.AccentText);
         Assert.Equal(ThemeColor.Black, light.OnAccent);
-        Assert.Equal(ThemeRoles.Default(dark: true).Seed, ThemeRoles.Default(dark: true).AccentText);
+        Assert.Equal(NuunTheme.DefaultRoles(dark: true).Seed, NuunTheme.DefaultRoles(dark: true).AccentText);
     }
 
     [Fact]
@@ -67,18 +68,18 @@ public class ThemeRolesTests
     [Fact]
     public void PresetsRoundTripThroughHsv()
     {
-        foreach (var preset in ThemePreset.All)
+        foreach (var preset in NuunTheme.Presets)
         {
             var (h, s, v) = preset.Color.Hsv;
             Assert.Equal(preset.Hex, ThemeColor.FromHsv(h, s, v).ToHex());
         }
-        Assert.Equal(ThemePreset.All.Count, ThemePreset.All.Select(p => p.Id).Distinct().Count());
+        Assert.Equal(NuunTheme.Presets.Count, NuunTheme.Presets.Select(p => p.Id).Distinct().Count());
     }
 
     [Fact]
     public void PeriodSkinsKeepTheirEraAndGlassFollowsTheUser()
     {
-        ThemeRoles R(ThemeSkin skin, bool dark) => new(skin, dark, ThemeRoles.DefaultHue, ThemeRoles.DefaultSaturation, 1);
+        ThemeRoles R(ThemeSkin skin, bool dark) => new(skin, dark, NuunTheme.DefaultHue, NuunTheme.DefaultSaturation, 1);
         Assert.False(R(ThemeSkin.ClassicMac, true).Dark);
         Assert.False(R(ThemeSkin.Win9x, true).Dark);
         Assert.True(R(ThemeSkin.Gothic, false).Dark);
@@ -162,8 +163,8 @@ public class SurfaceChromeTests
         Assert.Equal(0, win.Radius);
         var pressed = SurfaceChrome.For(ThemeRoles.From(ThemeSkin.Win9x, false, ThemeColor.Hex("#FFBB5C")), SurfaceKind.ControlPressed);
         Assert.Equal(1, pressed.PressOffset);
-        var glass = SurfaceChrome.For(ThemeRoles.Default(), SurfaceKind.PillSelected);
+        var glass = SurfaceChrome.For(NuunTheme.DefaultRoles(), SurfaceKind.PillSelected);
         Assert.Equal(999, glass.Radius);
-        Assert.Equal(ThemeRoles.Default().AccentSoft, glass.Fill);
+        Assert.Equal(NuunTheme.DefaultRoles().AccentSoft, glass.Fill);
     }
 }

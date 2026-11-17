@@ -46,7 +46,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        Nu9ve.WinUI.ThemeService.Current.Install(Resources);
+        Nu9ve.WinUI.ThemeService.Current.Install(Resources, Nuun.Core.Theme.NuunTheme.Defaults);
         window = new SetupWindow(Program.Arguments);
         window.Activate();
     }

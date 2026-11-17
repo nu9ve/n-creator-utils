@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Nu9ve.Theme;
 using Nu9ve.WinUI;
+using Nuun.Core.Theme;
 
 namespace Nuun;
 
@@ -24,7 +25,7 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         // Theme brushes exist before the window resolves them. Application.Resources is not ready in the constructor.
-        ThemeService.Current.Install(Resources);
+        ThemeService.Current.Install(Resources, NuunTheme.Defaults);
         if (Storage.IsQa && ThemeSkinInfo.FromId(Program.RequestedSkin) is { } skin)
             ThemeService.Current.Update(ThemeService.Current.Preferences with { Skin = skin });
         window = new MainWindow();

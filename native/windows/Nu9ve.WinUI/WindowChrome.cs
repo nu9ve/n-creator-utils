@@ -39,8 +39,8 @@ public static partial class WindowChrome
     }
 
     /// <summary>
-    /// The caption buttons are drawn by Windows and do not follow the content on their own (origin: nove
-    /// Settings.ApplyTheme). On Windows 9x's gradient and on dark skins the glyphs go white.
+    /// The caption buttons are drawn by Windows and do not follow the content on their own
+    /// (windows-app-v1 §1). On Windows 9x's gradient and on dark skins the glyphs go white.
     /// </summary>
     public static void TintCaptionButtons(AppWindowTitleBar bar, ThemeRoles roles, bool highContrast)
     {

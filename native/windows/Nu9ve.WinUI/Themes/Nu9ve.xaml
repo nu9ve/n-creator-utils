@@ -4,7 +4,7 @@
     xmlns:nu="using:Nu9ve.WinUI.Controls">
     <!-- nu9ve-theme-v1 en WinUI. Los colores NO viven aquí: ThemeService los calcula con
          Nu9ve.Theme.ThemeRoles (puro, probado) y los escribe como pinceles Nu* compartidos.
-         Aquí sólo hay medidas (tokens de espacio, origen: nove Themes/Harbor.xaml) y las
+         Aquí sólo hay medidas (tokens de espacio de windows-app-v1 §2) y las
          plantillas de los controles con skin. Ninguna vista pregunta qué skin está activo. -->
 
     <x:Double x:Key="Space4">4</x:Double>

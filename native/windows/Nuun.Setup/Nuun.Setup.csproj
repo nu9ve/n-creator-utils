@@ -24,6 +24,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Nu9ve.WinUI\Nu9ve.WinUI.csproj" />
+    <!-- La identidad de tema de nüün (NuunTheme): el Setup se ve como la app. -->
+    <ProjectReference Include="..\Nuun.Core\Nuun.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\nuun.ico" CopyToOutputDirectory="PreserveNewest" />

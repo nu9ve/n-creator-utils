@@ -22,8 +22,11 @@ public sealed class ThemeService
     readonly Dictionary<string, SolidColorBrush> brushes = [];
     Microsoft.UI.Dispatching.DispatcherQueue? dispatcher;
 
-    public ThemePreferences Preferences { get; private set; } = ThemePreferences.Default;
-    public ThemeRoles Roles { get; private set; } = ThemeRoles.Default();
+    // Neutral grey until Install gives the app's defaults; no window reads them before that.
+    public ThemePreferences Defaults { get; private set; } = ThemePreferences.For("#808080");
+    public ThemePreferences Preferences { get; private set; } = ThemePreferences.For("#808080");
+    public ThemeRoles Roles { get; private set; } = ThemePreferences.For("#808080").Roles(false);
+    Func<ThemePreferences, bool, ThemeRoles>? appRoles;
     public bool HighContrast { get; private set; }
     /// <summary>«Efectos de animación» of Windows (Reducir movimiento): decorative motion stops when off.</summary>
     public bool AnimationsEnabled => ui.AnimationsEnabled;
@@ -49,7 +52,7 @@ public sealed class ThemeService
         ("SolidBackgroundFillColorBaseBrush", "canvas"), ("ContentDialogBackground", "surface"),
         ("ControlFillColorInputActiveBrush", "raised"), ("TextControlBackgroundFocused", "raised"),
         // Control-specific keys: overriding the base accent alone does not reach them (they resolve inside
-        // XamlControlsResources), so the ones nüün uses are named here.
+        // XamlControlsResources), so the ones the suite's apps use are named here.
         ("SliderTrackValueFill", "accent"), ("SliderTrackValueFillPointerOver", "accent"), ("SliderTrackValueFillPressed", "accent"),
         ("SliderThumbBackground", "accent"), ("SliderThumbBackgroundPointerOver", "accent"), ("SliderThumbBackgroundPressed", "accent"),
         ("TextControlBorderBrushFocused", "accentText"), ("ToggleSwitchFillOn", "accent"), ("ToggleSwitchFillOnPointerOver", "accent"),
@@ -74,12 +77,18 @@ public sealed class ThemeService
     /// <summary>A new brush for a one-off color (a surface's fill or edge). Shared roles use <see cref="Brush"/>.</summary>
     public static SolidColorBrush NewBrush(ThemeColor color, double opacity = 1) => new(Color(color, opacity));
 
-    /// <summary>Before any window: registers the brushes and loads the saved choice.</summary>
-    public void Install(ResourceDictionary resources)
+    /// <summary>
+    /// Before any window: registers the brushes and loads the saved choice. <paramref name="defaults"/> are the app's
+    /// base color and original skin (nu9ve-theme-v1 §7). <paramref name="roles"/> lets an app whose original is not in
+    /// the catalog compute its own (with <see cref="ThemeSurfaces"/>); without it, roles come from the catalog skin.
+    /// </summary>
+    public void Install(ResourceDictionary resources, ThemePreferences defaults, Func<ThemePreferences, bool, ThemeRoles>? roles = null)
     {
         foreach (var (name, brush) in brushes) resources[$"Nu.{name}"] = brush;
         foreach (var (key, role) in SystemKeys) resources[key] = brushes[role];
-        Preferences = ThemePreferences.Parse(Storage.Read("theme.json"));
+        Defaults = defaults;
+        appRoles = roles;
+        Preferences = ThemePreferences.Parse(Storage.Read("theme.json"), defaults);
         HighContrast = accessibility.HighContrast;
         Recompute();
     }
@@ -123,11 +132,11 @@ public sealed class ThemeService
         Changed?.Invoke(skinChanged);
     }
 
-    public void Reset() => Update(ThemePreferences.Default);
+    public void Reset() => Update(Defaults);
 
     void Recompute()
     {
-        Roles = Preferences.Roles(SystemDark);
+        Roles = appRoles?.Invoke(Preferences, SystemDark) ?? Preferences.Roles(SystemDark);
         if (HighContrast)
         {
             ApplyHighContrast();
@@ -166,9 +175,9 @@ public sealed class ThemeService
 
 /// <summary>
 /// Where a window keeps its own preferences (windows-app-v1 §9–§10). The app names its folder and its QA
-/// variable once at start (`Storage.Configure("nuun", "NUUN_QA_ROOT", development)`): with the variable set,
+/// variable once at start (`Storage.Configure("app", "APP_QA_ROOT", development)`): with the variable set,
 /// everything goes under that QA root; otherwise Debug and Release use separate folders under
-/// %LOCALAPPDATA%\&lt;app&gt;. An app's own data (the media catalog, nove's library) is not here: it belongs to its engine.
+/// %LOCALAPPDATA%\&lt;app&gt;. An app's own data (a catalog, a library) is not here: it belongs to its engine.
 /// </summary>
 public static class Storage
 {

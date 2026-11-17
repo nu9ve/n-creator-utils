@@ -1,21 +1,42 @@
 namespace Nu9ve.Theme;
 
+/// <summary>Where a skin sits in an app's set (nu9ve-theme-v1 §5, «Juego de skins por app»).</summary>
+public enum ThemeSkinPart
+{
+    /// <summary>The app's identity skin, its default. Each app draws its own.</summary>
+    Original,
+    /// <summary>The one skin the app sets against its original. Each app chooses its own.</summary>
+    Contrast,
+    /// <summary>Macintosh, Windows 9x and Terminal: the same in every app. This library is their source.</summary>
+    Common,
+    /// <summary>Optional catalog skins an app may add; never replace the three parts above.</summary>
+    Extra,
+}
+
 /// <summary>
-/// nu9ve-theme-v1 §5: the skins nüün offers. Cristal is the everyday look; the rest are optional
-/// period skins. Identifiers are stable and match the Mac app (`glass`, `classicMac`, …).
+/// Skins this library can draw, with their window metrics (nu9ve-theme-v1 §5). Par de Nu9veTheme ThemeSkin.swift.
+/// The three commons are the shared «nu9ve skin». <c>Glass</c> and <c>Gothic</c> are catalog skins; an app uses one
+/// as its original or contrast only if it chooses to. An app's own original that is not in the catalog builds its
+/// roles with <see cref="ThemeSurfaces"/>. Identifiers are stable and match the Mac (`glass`, `classicMac`, …).
 /// </summary>
 public enum ThemeSkin { Glass, ClassicMac, Win9x, Terminal, Gothic }
 
 /// <summary>How the skin dresses a Windows window (windows-app-v1 §3).</summary>
 public enum WindowBackdrop { Mica, Solid }
 
-// nu9ve-theme-v1 §5 · origen: MediaMenuCore ThemeColor.swift (ThemeSkin). Medidas iguales (±1 por plataforma).
+// nu9ve-theme-v1 §5 · medidas iguales a Nu9veTheme ThemeSkin.swift (±1 por plataforma).
 // Divergencia Windows (windows-app-v1 §3): no hay ventana cuadrada propia ni controles × − + a la
 // izquierda; la ventana y sus botones son del sistema y quedan a la derecha. Un skin de época sólo
 // pide esquinas cuadradas a DWM y dibuja su franja de título detrás de la TitleBar del sistema.
 public static class ThemeSkinInfo
 {
     public static readonly IReadOnlyList<ThemeSkin> All = Enum.GetValues<ThemeSkin>();
+
+    /// <summary>The three skins every app offers, in the order Appearance lists them.</summary>
+    public static readonly IReadOnlyList<ThemeSkin> Commons = [ThemeSkin.ClassicMac, ThemeSkin.Win9x, ThemeSkin.Terminal];
+
+    /// <summary>True for the three commons; the others are catalog skins an app may pick.</summary>
+    public static bool IsCommon(this ThemeSkin skin) => Commons.Contains(skin);
 
     public static string Id(this ThemeSkin skin) => skin switch
     {
@@ -44,23 +65,6 @@ public static class ThemeSkinInfo
         ThemeSkin.Win9x => "Windows 9x",
         ThemeSkin.Gothic => english ? "Gothic" : "Gótico",
         _ => english ? "Glass" : "Cristal",
-    };
-
-    public static string Summary(this ThemeSkin skin, bool english = false) => skin switch
-    {
-        ThemeSkin.Terminal => english ? "Phosphor, monospaced type and scanlines. Your base color is the signal." : "Fósforo, letra monoespaciada y líneas de barrido. Tu color base es la señal.",
-        ThemeSkin.ClassicMac => english ? "1 bit, stripes and boxes: a Macintosh II with a color card." : "1 bit, rayas y cajas: un Macintosh II con tarjeta de color.",
-        ThemeSkin.Win9x => english ? "Grey bevels and a gradient caption." : "Biseles grises y título con degradado.",
-        ThemeSkin.Gothic => english ? "Night, double frame and ornament. The opposite of the Swiss grid." : "Noche, marco doble y ornamento. Lo contrario de la retícula suiza.",
-        _ => english ? "Native and calm. The everyday one." : "Nativo y tranquilo. El de todos los días.",
-    };
-
-    /// <summary>Which part of the skin set it is (nu9ve-theme-v1 §5, «Juego de skins por app»).</summary>
-    public static string Part(this ThemeSkin skin) => skin switch
-    {
-        ThemeSkin.Glass => "original",
-        ThemeSkin.Gothic => "contrast",
-        _ => "common",
     };
 
     /// <summary>Period skins keep the look of their era whatever the user's mode.</summary>

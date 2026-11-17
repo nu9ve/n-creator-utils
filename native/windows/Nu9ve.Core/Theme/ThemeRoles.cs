@@ -1,18 +1,17 @@
 namespace Nu9ve.Theme;
 
-// nu9ve-theme-v1 §2 y §3 · origen: n-creator-utils native/MediaMenu/Sources/MediaMenuCore/ThemeColor.swift
-// (ThemeRoles). Port literal de la receta de superficies por skin y de los mínimos de texto.
-// Divergencia: ninguna en el cálculo. La forma de la ventana en Windows vive en ThemeSkinInfo
+// nu9ve-theme-v1 §2 y §3 · par de Nu9veTheme ThemeRoles.swift y ThemeSurfaces.swift (nu9ve/core).
+// Port literal de la receta de superficies por skin y de los mínimos de texto; los vectores de
+// data/theme-vectors-v1.json lo comprueban. La forma de la ventana en Windows vive en ThemeSkinInfo
 // (windows-app-v1 §3): la ventana sigue siendo del sistema, con sus botones a la derecha.
 /// <summary>
-/// nüün's roles from one HSV seed. Surfaces keep the original blend recipe; text roles are nudged
-/// only when they would fall below the contract's minimums, so a seed that already reads well looks
-/// exactly as before.
+/// Common roles from one seed and a skin. Surfaces keep the blend recipe; text roles are nudged only
+/// when they would fall below the contract's minimums, so a seed that already reads well looks exactly
+/// as before. The seed is the app's: its default and presets are part of its identity (§7), so this
+/// library has no default color of its own.
 /// </summary>
 public sealed record ThemeRoles
 {
-    public const double DefaultHue = 95.0 / (163.0 * 6.0);
-    public const double DefaultSaturation = 163.0 / 255.0;
 
     public bool Dark { get; }
     public ThemeSkin Skin { get; }
@@ -38,9 +37,6 @@ public sealed record ThemeRoles
     /// <summary>Background of a warning banner; ink stays at 7:1 and warning at 4.5:1 on it.</summary>
     public ThemeColor WarningSoft { get; }
 
-    public static ThemeRoles Default(bool dark = false) =>
-        new(ThemeSkin.Glass, dark, DefaultHue, DefaultSaturation, 1);
-
     public static ThemeRoles From(ThemeSkin skin, bool dark, ThemeColor seed)
     {
         var hsv = seed.Hsv;
@@ -49,56 +45,29 @@ public sealed record ThemeRoles
 
     /// <summary><paramref name="requestedDark"/> is the user's mode; a skin with a period look of its own overrides it.</summary>
     public ThemeRoles(ThemeSkin skin, bool requestedDark, double hue, double saturation, double brightness)
+        : this(skin, skin.ForcedDark() ?? requestedDark, ThemeColor.FromHsv(hue, saturation, brightness))
     {
-        var seed = ThemeColor.FromHsv(hue, saturation, brightness);
-        var dark = skin.ForcedDark() ?? requestedDark;
-        var @base = dark ? ThemeColor.Black : ThemeColor.White;
-        ThemeColor Blend(double fraction) => seed.Mixed(@base, fraction);
-        Skin = skin;
+    }
+
+    ThemeRoles(ThemeSkin skin, bool dark, ThemeColor seed) : this(skin, dark, seed, ThemeSurfaces.For(skin, dark, seed))
+    {
+    }
+
+    /// <summary>
+    /// Roles on surfaces the app gives: an original or contrast outside the catalog (a paper tone, a sea).
+    /// <paramref name="metrics"/> is the catalog skin whose radii, lines and fonts it borrows; <paramref name="dark"/>
+    /// is taken as is. Text and state roles follow the same contrast rules as every skin.
+    /// </summary>
+    public ThemeRoles(ThemeSkin metrics, bool dark, ThemeColor seed, ThemeSurfaces surfaces)
+    {
+        Skin = metrics;
         Dark = dark;
         Seed = seed;
-        ThemeColor preferredInk;
-        switch (skin)
-        {
-            case ThemeSkin.ClassicMac:
-                // A Macintosh II with a color card: 1-bit paper and ink; color only in the accent.
-                Canvas = ThemeColor.White; Surface = ThemeColor.White; Raised = new(0.93, 0.93, 0.93); Line = ThemeColor.Black;
-                preferredInk = ThemeColor.Black;
-                break;
-            case ThemeSkin.Win9x:
-                // nu9ve-theme-v1 §5 · origen: ios-fractos FractosDesign ThemeChrome.swift `Win9x` (face/highlight/shadow).
-                Canvas = new(192 / 255.0, 192 / 255.0, 192 / 255.0); Surface = new(223 / 255.0, 223 / 255.0, 223 / 255.0);
-                Raised = ThemeColor.White; Line = new(128 / 255.0, 128 / 255.0, 128 / 255.0);
-                preferredInk = ThemeColor.Black;
-                break;
-            case ThemeSkin.Terminal:
-            {
-                // Base oscura propia; la señal conserva el matiz del color base y sube de luz para leerse.
-                Canvas = ThemeColor.Hex("#050806").Mixed(seed, 0.05);
-                Surface = ThemeColor.Hex("#0B100C").Mixed(seed, 0.06);
-                Raised = ThemeColor.Hex("#121912").Mixed(seed, 0.08);
-                var hsv = seed.Hsv;
-                var phosphor = ThemeColor.FromHsv(hsv.Hue, Math.Min(hsv.Saturation, 0.55), 1);
-                Line = Canvas.Mixed(phosphor, 0.5);
-                preferredInk = phosphor.Mixed(ThemeColor.White, 0.15);
-                break;
-            }
-            case ThemeSkin.Gothic:
-                // origen: curado src/lib/theme.ts STYLES.gothic.dark (chrome/sheet/text), tinted 4 % by the seed.
-                Canvas = ThemeColor.Hex("#09070A").Mixed(seed, 0.04);
-                Surface = ThemeColor.Hex("#141015").Mixed(seed, 0.04);
-                Raised = ThemeColor.Hex("#1E181F").Mixed(seed, 0.05);
-                Line = Canvas.Mixed(seed, 0.45);
-                preferredInk = ThemeColor.Hex("#F0E8E6");
-                break;
-            default:
-                Canvas = Blend(dark ? 0.91 : 0.80);
-                Surface = Blend(dark ? 0.85 : 0.94);
-                Raised = Blend(0.88);
-                Line = Blend(dark ? 0.64 : 0.57);
-                preferredInk = dark ? new ThemeColor(0.95, 0.95, 0.95) : seed.Mixed(ThemeColor.Black, 0.86);
-                break;
-        }
+        Canvas = surfaces.Canvas;
+        Surface = surfaces.Surface;
+        Raised = surfaces.Raised;
+        Line = surfaces.Line;
+        var preferredInk = surfaces.PreferredInk;
         ThemeColor[] backgrounds = [Canvas, Surface, Raised];
         var ink = preferredInk.Readable(backgrounds, 7);
         Ink = ink;
@@ -151,5 +120,61 @@ public sealed record ThemeRoles
     {
         ThemeColor[] white = [ThemeColor.White];
         return (Seed.Mixed(ThemeColor.Black, 0.55).Readable(white, 4.5), Seed.Mixed(ThemeColor.Black, 0.15).Readable(white, 4.5));
+    }
+}
+
+/// <summary>
+/// The four surfaces and the ink a skin prefers before the contrast rules (nu9ve-theme-v1 §3). An app whose
+/// original is not in the catalog builds its own and passes it to <see cref="ThemeRoles(ThemeSkin, bool, ThemeColor, ThemeSurfaces)"/>.
+/// </summary>
+public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeColor Raised, ThemeColor Line, ThemeColor PreferredInk)
+{
+    /// <summary>A catalog skin's surfaces for this seed; <paramref name="dark"/> is already resolved.</summary>
+    public static ThemeSurfaces For(ThemeSkin skin, bool dark, ThemeColor seed)
+    {
+        var @base = dark ? ThemeColor.Black : ThemeColor.White;
+        ThemeColor Blend(double fraction) => seed.Mixed(@base, fraction);
+        ThemeColor canvas, surface, raised, line, preferredInk;
+        switch (skin)
+        {
+            case ThemeSkin.ClassicMac:
+                // A Macintosh II with a color card: 1-bit paper and ink; color only in the accent.
+                canvas = ThemeColor.White; surface = ThemeColor.White; raised = new(0.93, 0.93, 0.93); line = ThemeColor.Black;
+                preferredInk = ThemeColor.Black;
+                break;
+            case ThemeSkin.Win9x:
+                canvas = new(192 / 255.0, 192 / 255.0, 192 / 255.0); surface = new(223 / 255.0, 223 / 255.0, 223 / 255.0);
+                raised = ThemeColor.White; line = new(128 / 255.0, 128 / 255.0, 128 / 255.0);
+                preferredInk = ThemeColor.Black;
+                break;
+            case ThemeSkin.Terminal:
+            {
+                // Base oscura propia; la señal conserva el matiz del color base y sube de luz para leerse.
+                canvas = ThemeColor.Hex("#050806").Mixed(seed, 0.05);
+                surface = ThemeColor.Hex("#0B100C").Mixed(seed, 0.06);
+                raised = ThemeColor.Hex("#121912").Mixed(seed, 0.08);
+                var hsv = seed.Hsv;
+                var phosphor = ThemeColor.FromHsv(hsv.Hue, Math.Min(hsv.Saturation, 0.55), 1);
+                line = canvas.Mixed(phosphor, 0.5);
+                preferredInk = phosphor.Mixed(ThemeColor.White, 0.15);
+                break;
+            }
+            case ThemeSkin.Gothic:
+                // Night, double frame and ornament, tinted 4 % by the seed.
+                canvas = ThemeColor.Hex("#09070A").Mixed(seed, 0.04);
+                surface = ThemeColor.Hex("#141015").Mixed(seed, 0.04);
+                raised = ThemeColor.Hex("#1E181F").Mixed(seed, 0.05);
+                line = canvas.Mixed(seed, 0.45);
+                preferredInk = ThemeColor.Hex("#F0E8E6");
+                break;
+            default:
+                canvas = Blend(dark ? 0.91 : 0.80);
+                surface = Blend(dark ? 0.85 : 0.94);
+                raised = Blend(0.88);
+                line = Blend(dark ? 0.64 : 0.57);
+                preferredInk = dark ? new ThemeColor(0.95, 0.95, 0.95) : seed.Mixed(ThemeColor.Black, 0.86);
+                break;
+        }
+        return new(canvas, surface, raised, line, preferredInk);
     }
 }

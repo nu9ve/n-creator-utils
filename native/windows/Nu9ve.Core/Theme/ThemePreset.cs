@@ -1,25 +1,12 @@
 namespace Nu9ve.Theme;
 
-// nu9ve-theme-v1 §7 · origen: MediaMenuCore ThemeColor.swift (ThemePreset). Colores sólo: la cruz y las
-// marcas de navajas no se usan.
-/// <summary>nüün's Swiss presets.</summary>
+// nu9ve-theme-v1 §7 · par de Nu9veTheme ThemePreset.swift (nu9ve/core).
+/// <summary>
+/// An opaque color with a stable preset identifier. The presets are part of an app's identity
+/// (nu9ve-theme-v1 §7): each app declares its own list and names. This library only gives the type,
+/// so no app's colors become everyone's. <see cref="Hex"/> must be an opaque sRGB color (#RRGGBB).
+/// </summary>
 public sealed record ThemePreset(string Id, string Hex)
 {
-    public static readonly IReadOnlyList<ThemePreset> All =
-    [
-        new("amber", "#FFBB5C"),
-        new("knife", "#D52B1E"),
-        new("steel", "#8A99A8"),
-        new("glacier", "#7CC6E6"),
-    ];
-
     public ThemeColor Color => ThemeColor.Hex(Hex);
-
-    public string Name(bool english = false) => Id switch
-    {
-        "knife" => english ? "Knife" : "Navaja",
-        "steel" => english ? "Steel" : "Acero",
-        "glacier" => english ? "Glacier" : "Glaciar",
-        _ => english ? "Amber" : "Ámbar",
-    };
 }

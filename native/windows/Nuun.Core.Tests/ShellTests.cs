@@ -1,6 +1,7 @@
 using Nu9ve.Shell;
 using Nuun.Core.Shell;
 using Nu9ve.Theme;
+using Nuun.Core.Theme;
 using Xunit;
 
 namespace Nuun.Core.Tests;
@@ -10,7 +11,7 @@ public class ThemePreferencesTests
     [Fact]
     public void UnknownFieldsFallBackOneByOne()
     {
-        var parsed = ThemePreferences.Parse("""{"version":1,"skin":"dither","base":"#D52B1E","mode":"sepia","contrast":"high","texture":"plasma","typography":"mono"}""");
+        var parsed = ThemePreferences.Parse("""{"version":1,"skin":"dither","base":"#D52B1E","mode":"sepia","contrast":"high","texture":"plasma","typography":"mono"}""", NuunTheme.Defaults);
         Assert.Equal(ThemeSkin.Glass, parsed.Skin);            // retired skin → default
         Assert.Equal("#D52B1E", parsed.Base);                  // kept
         Assert.Equal(ThemeMode.System, parsed.Mode);           // unknown → default
@@ -22,17 +23,17 @@ public class ThemePreferencesTests
     [Fact]
     public void BrokenJsonIsTheDefaultAndRoundTripIsExact()
     {
-        Assert.Equal(ThemePreferences.Default, ThemePreferences.Parse("{not json"));
-        Assert.Equal(ThemePreferences.Default, ThemePreferences.Parse(null));
-        var choice = ThemePreferences.Default with { Skin = ThemeSkin.Win9x, Base = "#7CC6E6", Mode = ThemeMode.Dark, InterfaceSounds = true };
-        Assert.Equal(choice, ThemePreferences.Parse(choice.ToJson()));
+        Assert.Equal(NuunTheme.Defaults, ThemePreferences.Parse("{not json", NuunTheme.Defaults));
+        Assert.Equal(NuunTheme.Defaults, ThemePreferences.Parse(null, NuunTheme.Defaults));
+        var choice = NuunTheme.Defaults with { Skin = ThemeSkin.Win9x, Base = "#7CC6E6", Mode = ThemeMode.Dark, InterfaceSounds = true };
+        Assert.Equal(choice, ThemePreferences.Parse(choice.ToJson(), NuunTheme.Defaults));
         Assert.Contains("\"skin\": \"win9x\"", choice.ToJson());
     }
 
     [Fact]
     public void SystemModeFollowsTheSystemUnlessTheSkinFixesIt()
     {
-        var system = ThemePreferences.Default;
+        var system = NuunTheme.Defaults;
         Assert.True(system.Roles(systemDark: true).Dark);
         Assert.False(system.Roles(systemDark: false).Dark);
         Assert.False((system with { Skin = ThemeSkin.Win9x }).Roles(systemDark: true).Dark);

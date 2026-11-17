@@ -17,12 +17,12 @@ public readonly record struct Edge(ThemeColor TopLeft, ThemeColor BottomRight, d
 /// </summary>
 public sealed record SurfaceSpec(ThemeColor Fill, double FillOpacity, double Radius, IReadOnlyList<Edge> Edges, ThemeColor Foreground, bool Strong, double PressOffset);
 
-// nu9ve-theme-v1 §5 y §8 · origen: native/MediaMenu Appearance.swift CreatorButtonStyle y SkinChrome.swift
-// (Win9xBevel, borde de 1 bit, losa gótica, `[K]` terminal). Una sola decisión por skin, aquí, para que
+// nu9ve-theme-v1 §5 y §8 · origen: el estilo de botón y el cromo de skin de la primera app de Mac
+// (bisel Win9x, borde de 1 bit, losa gótica, `[K]` terminal). Una sola decisión por skin, aquí, para que
 // ninguna vista de Windows pregunte qué skin está activo (§1).
 public static class SurfaceChrome
 {
-    // Windows 9x bevel colors (Fractos ThemeChrome `Win9x`): highlight, light shadow, dark shadow.
+    // Windows 9x bevel colors: highlight, light shadow, dark shadow.
     static readonly ThemeColor Highlight = ThemeColor.White;
     static readonly ThemeColor LightShadow = new(128 / 255.0, 128 / 255.0, 128 / 255.0);
     static readonly ThemeColor DarkShadow = new(10 / 255.0, 10 / 255.0, 10 / 255.0);
