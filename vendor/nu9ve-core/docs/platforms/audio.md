@@ -50,11 +50,61 @@ Lo que **no** se comparte todavía:
 
 - Sin dependencias de UI ni de procesos. Los stems son la excepción, y solo como adaptador de procesos externos.
 - Funciones deterministas con vectores de prueba en `data/`, como los de tema: un archivo de entrada y su LUFS, BPM o clave esperados, comprobado por cada app que lo use.
-- Licencias aptas para un binario cerrado, porque SoundBender puede venderse: `cargo-deny` en el gate. symphonia es MPL-2.0 y es compatible.
+- Licencias aptas para un binario cerrado, porque SoundBender puede venderse: `cargo-deny` en el gate. symphonia es MPL-2.0, que el `deny.toml` de `rust/` no admite: está por decidir (§5).
 - Las mismas prácticas de Rust que [motor en Rust §6](https://github.com/nu9ve/n-creator-utils/blob/master/docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps): `edition = "2024"`, `clippy -D warnings`, dependencias fijadas y anotadas.
 
-## 5. Preguntas para el usuario
+## 5. curado y SoundBender, pieza por pieza
+
+Medido el 2026-11-16, con el código de curado (`crates/audio-engine`, `9516f85`) y el motor en Rust de SoundBender (`engine/soundbender-core`, fase 1 de su [decisión 036](../../../soundshop/docs/decisions/036-rust-engine-benchmark.md)). Es lo único que hoy existe dos veces en Rust.
+
+| Pieza | curado | SoundBender | ¿Mismo algoritmo? | Qué va al core |
+| --- | --- | --- | --- | --- |
+| LUFS integrado | `loudness.rs`: ponderación K diseñada con biquads RBJ, cualquier frecuencia de muestreo, sin corto plazo | `loudness.rs`: coeficientes de BS.1770 a 48 kHz, integrado y máximo de corto plazo | **No, y no coinciden** (ver abajo) | `nu9ve-loudness::lufs`, partiendo del de SoundBender |
+| True peak | Detector 4× con sinc de 12 taps en `limiter.rs` | No tiene (está en su hoja de ruta) | — | `nu9ve-loudness::true_peak`, partiendo del de curado |
+| Limitador | En tiempo real, enlazado, true peak, 1,5 ms de anticipación, sin asignaciones | Dos fuera de línea: el del master (pico de muestra, 5 ms) y la protección de salida (64 muestras) | No: sirven a cosas distintas | Ninguno por ahora. El de curado es candidato para el plugin de SoundBender; los de SoundBender quedan fijados por sus dorados |
+| Filtros | `Biquad`, `BiquadCoef` (RBJ) y `Svf` en `dsp.rs` | Filtros de los efectos de pista, en Swift | Sin comparar | `nu9ve-dsp`, cuando SoundBender porte sus efectos |
+| Sin asignaciones en tiempo real | `allocation_tests.rs`: asignador que cuenta y `malloc_logger` en macOS, que también ve C++ | Lo necesita su plugin (fase 3) | — | `nu9ve-rt`, con el plugin |
+| Decodificar | `decode.rs` con symphonia | AVFoundation, en Swift | — | `nu9ve-audio-io`. Antes hay que resolver la licencia (ver abajo) |
+| Remuestrear y estirar | `resample.rs` (lectura fraccionaria para reproducir) y `pitch.rs` (signalsmith-stretch, MIT) | `TempoStretch` propio, en Swift | No | Nada todavía |
+| BPM y clave | `beat.rs`, `music.rs` | `Tempo.swift`, `ChromaAnalysis.swift` | Sin comparar | `nu9ve-music`, comparando las dos con los mismos vectores antes de elegir |
+| Salida a dispositivo | `output.rs` con cpal | AVAudioEngine | — | `nu9ve-rt` si la Windows de SoundBender la necesita; el plugin no |
+
+### LUFS: curado lee bajo
+
+Con el mismo audio, los 23 dorados de SoundBender (`Tests/Goldens`), curado da **entre 0,04 y 0,29 LU menos** que SoundBender. La tolerancia entre motores es de 0,01. La causa está en el filtro de estante: curado lo diseña con la fórmula RBJ a partir de 1681,97 Hz, 3,9998 dB y Q 0,7072, y eso no reproduce el filtro de la norma.
+
+| Frecuencia | Respuesta de BS.1770 a 48 kHz | La de curado | Diferencia |
+| --- | --- | --- | --- |
+| 110 Hz | −0,940 dB | −0,983 dB | −0,04 |
+| 1 kHz | +0,698 dB | +0,438 dB | **−0,26** |
+| 1,76 kHz | +2,650 dB | +2,175 dB | **−0,48** |
+| 10 kHz | +4,042 dB | +3,998 dB | −0,04 |
+
+- **Consecuencia:** la señal de prueba 1 de EBU Tech 3341 (1 kHz a −23 dBFS en estéreo) debería leer −23,0 LUFS. Con SoundBender da −23,0; con curado, unos −23,26. Queda fuera de la tolerancia de ±0,1 de la norma.
+- **Por qué no se notaba:** su prueba acepta ±0,3 LU.
+- **Qué cambia en curado:** usa LUFS para igualar el nivel entre pistas, así que el error se cancela en parte. Pero depende del espectro, y dos temas con distinto brillo quedan desiguales en hasta 0,4 dB.
+
+**Propuesta para `nu9ve-loudness`:**
+1. Partir de `loudness.rs` de SoundBender.
+2. Para otras frecuencias de muestreo, calcular los coeficientes con la derivación de libebur128. A 48 kHz debe reproducir los de la norma.
+3. Vectores en `data/audio/`:
+   - los 23 dorados de SoundBender con su LUFS integrado y de corto plazo;
+   - los casos de EBU Tech 3341 y 3342 que se puedan generar.
+4. Sumar el true peak de curado.
+5. Cuando exista el crate, curado lo adopta: sus niveles se mueven entre 0,04 y 0,3 LU, y conviene decirlo en su CHANGELOG.
+
+### Licencia de la decodificación
+
+- La §4 dice que symphonia (MPL-2.0) es compatible, pero el `deny.toml` de `rust/` no admite MPL.
+- SoundBender puede venderse cerrado y curado depende de symphonia.
+- Hay que decidir una de dos cosas:
+  - admitir MPL-2.0 solo para decodificar, porque es copyleft por archivo y permite un binario cerrado si no se modifican esos archivos;
+  - o dejar la decodificación fuera del core.
+
+## 6. Preguntas para el usuario
 
 1. ~~El nombre del repo común~~: **`nu9ve/core`** (2026-11-16, [suite-sharing §8](../suite-sharing.md#8-lo-que-decide-el-usuario)). Las capas van en su `rust/` y cada app las copia en `vendor/nu9ve-core/`.
 2. Si curado acepta pasar su `audio-engine` a consumir estas capas cuando se muden, o si las capas nacen copiando de curado y curado sincroniza después.
 3. Si Clipper quiere su normalización y su análisis de intros en Rust compartido o se quedan en Python.
+4. Si `nu9ve-loudness` nace del LUFS de SoundBender y curado acepta que sus niveles cambien (§5).
+5. Si se admite MPL-2.0 para la decodificación (§5).

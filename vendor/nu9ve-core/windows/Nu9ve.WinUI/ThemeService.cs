@@ -59,6 +59,11 @@ public sealed class ThemeService
         ("AccentButtonBackground", "accent"), ("AccentButtonBackgroundPointerOver", "accent"), ("AccentButtonBackgroundPressed", "accent"),
         ("AccentButtonForeground", "onAccent"), ("AccentButtonForegroundPointerOver", "onAccent"), ("AccentButtonForegroundPressed", "onAccent"),
         ("ProgressBarForeground", "info"), ("ExpanderHeaderBackground", "surface"), ("ExpanderContentBackground", "surface"),
+        // Checked toggles, the selected tab's pill and the navigation indicator: without these they keep the accent
+        // the Fluent dictionary was loaded with, whatever base color the user picks.
+        ("ToggleButtonBackgroundChecked", "accent"), ("ToggleButtonBackgroundCheckedPointerOver", "accent"), ("ToggleButtonBackgroundCheckedPressed", "accent"),
+        ("ToggleButtonForegroundChecked", "onAccent"), ("ToggleButtonForegroundCheckedPointerOver", "onAccent"), ("ToggleButtonForegroundCheckedPressed", "onAccent"),
+        ("ToggleButtonBorderBrushChecked", "accent"), ("SelectorBarItemPillFill", "accent"), ("NavigationViewSelectionIndicatorForeground", "accent"),
     ];
 
     ThemeService()
@@ -81,14 +86,16 @@ public sealed class ThemeService
     /// Before any window: registers the brushes and loads the saved choice. <paramref name="defaults"/> are the app's
     /// base color and original skin (nu9ve-theme-v1 §7). <paramref name="roles"/> lets an app whose original is not in
     /// the catalog compute its own (with <see cref="ThemeSurfaces"/>); without it, roles come from the catalog skin.
+    /// <paramref name="appSkins"/> are the ids of the app's own skins, kept in <see cref="ThemePreferences.AppSkin"/>.
     /// </summary>
-    public void Install(ResourceDictionary resources, ThemePreferences defaults, Func<ThemePreferences, bool, ThemeRoles>? roles = null)
+    public void Install(ResourceDictionary resources, ThemePreferences defaults, Func<ThemePreferences, bool, ThemeRoles>? roles = null,
+        IReadOnlyCollection<string>? appSkins = null)
     {
         foreach (var (name, brush) in brushes) resources[$"Nu.{name}"] = brush;
         foreach (var (key, role) in SystemKeys) resources[key] = brushes[role];
         Defaults = defaults;
         appRoles = roles;
-        Preferences = ThemePreferences.Parse(Storage.Read("theme.json"), defaults);
+        Preferences = ThemePreferences.Parse(Storage.Read("theme.json"), defaults, appSkins);
         HighContrast = accessibility.HighContrast;
         Recompute();
     }
@@ -125,7 +132,7 @@ public sealed class ThemeService
 
     public void Update(ThemePreferences preferences)
     {
-        var skinChanged = preferences.Skin != Preferences.Skin;
+        var skinChanged = preferences.Skin != Preferences.Skin || preferences.AppSkin != Preferences.AppSkin;
         Preferences = preferences;
         Storage.Write("theme.json", preferences.ToJson());
         Recompute();
@@ -145,7 +152,7 @@ public sealed class ThemeService
         foreach (var (name, color) in Roles.ByName()) brushes[name].Color = Color(color);
         brushes["line"].Color = Color(Roles.Line, Roles.LineOpacity);
         // Cristal lets Mica through a tinted canvas; period skins are solid (windows-app-v1 §3).
-        var tinted = Roles.Skin.Backdrop() == WindowBackdrop.Mica && TransparencyEnabled;
+        var tinted = Roles.Backdrop == WindowBackdrop.Mica && TransparencyEnabled;
         brushes["backdrop"].Color = Color(Roles.Canvas, tinted ? 0.82 : 1);
     }
 

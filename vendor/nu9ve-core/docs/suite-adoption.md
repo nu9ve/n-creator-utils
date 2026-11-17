@@ -13,10 +13,10 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | [`nu9ve-fs-v1`](../contracts/nu9ve-fs-v1.md) y `rust/nu9ve-fs` | 2026-11-16 | nüün (`nu9ve-volumes`) y Clipper (`fsio.rs` y `store.rs`); curado después |
 | [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) (propuesta), sus [ejemplos](../data/engine-examples-v1.json) y `scripts/engine-examples.py` | 2026-11-16 | Clipper y nüün pasan los 20 casos en sus dos motores. nove, pasos 1 a 3 en Mac; falta probarlo en Windows ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) |
 | [`nu9ve-engine`](../rust/nu9ve-engine/): servidor de líneas y marcos con lectura acotada, ids exactos y `engine_info` | 2026-11-16 | Clipper (`clipper-core serve`), app de origen, y nüün (`nuun-engine rpc-serve`) |
-| `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app | 2026-11-16 | CI de aquí. Falta compararlo con `check_suite_boundary.sh` de nüün |
+| `scripts/check-boundary.sh`: nada en `rust/`, `swift/` o `windows/` nombra una app; con carpetas como argumento, revisa las de una app | 2026-11-16 | Gate de aquí y de nüün (sus `nu9ve-*` que aún no se mudan), que dejó su `check_suite_boundary.sh` |
 | Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
 | [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
-| [`Nu9ve.Core` y `Nu9ve.WinUI` en `windows/`](../windows/README.md), sin la identidad de nüün y con sus pruebas | 2026-11-16 | nüün en Windows (app de origen). nove, después |
+| [`Nu9ve.Core` y `Nu9ve.WinUI` en `windows/`](../windows/README.md), sin la identidad de nüün y con sus pruebas; skins propios de una app | 2026-11-16 | nüün en Windows (app de origen, `e765bfe`) y nove (`cee0684`: Puerto, Carta náutica y los comunes) |
 
 ## Decisiones tomadas para lo que sigue
 
@@ -57,7 +57,6 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | --- | --- |
 | `data/sound/` y el motor de sonido de Swift (`FractosSoundV2`) | Cerrar la pregunta de niveles del [contrato de sonido](../contracts/nu9ve-sound-v1.md) en la Mac con el repo de la web; después, cuando una segunda app de Mac lo adopte |
 | `nu9ve-ipc`, `nu9ve-mcp` | Que nüün porte su MCP a Rust: entonces hay dos copias (nove `core/src/pipe.rs`, `mcp.rs`) |
-| `sync-core.ps1` | Decidir si hace falta: el script de bash corre en Git Bash, que viene con Git para Windows |
 | `ShortcutCatalog` y ayuda contextual (SoundBender) | Una segunda app que implemente el [contrato de interacción](../contracts/nu9ve-interaction-v1.md) |
 | Paleta y dither en TypeScript (curado, web de Fractos) | Decidir si `nu9ve/core` tendrá una carpeta de TypeScript; hoy no |
 | `nu9ve-jobs`: supervisar un proceso (grupo propio, NDJSON, cancelar, timeout, publicar) | Que un segundo motor de Rust lo necesite: curado (`stems.rs`) o nüün. Antes, separar en Clipper lo genérico de su cola ([inventario](#clipper)) |
@@ -65,7 +64,34 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 <a id="3-cómo-empieza-cada-app"></a>
 ## Cada app
 
-Cada app sigue lo suyo en **sesiones de su propio repo**: adoptar una pieza, sincronizar su copia, arreglar su gate. La sesión del core hace lo común: contratos, piezas compartidas, este plan y la adopción ([cómo se trabaja](../README.md#cómo-se-trabaja)). La última columna dice dónde retoma una sesión de esa app.
+Cada app sigue lo suyo en **sesiones de su propio repo**: adoptar una pieza, sincronizar su copia, arreglar su gate. La sesión del core hace lo común: contratos, piezas compartidas, este plan y la adopción ([cómo se trabaja](../README.md#cómo-se-trabaja)). La última columna dice dónde retoma una sesión de esa app. **Antes del siguiente paso, cada sesión revisa su fila en [CI sólo a mano](#ci-sólo-a-mano).**
+
+<a id="ci-sólo-a-mano"></a>
+### CI sólo a mano
+
+Decisión del usuario, 2026-11-16 ([AGENTS](../AGENTS.md#sesiones-que-trabajan-en-la-suite)): los workflows de GitHub ya no corren en cada push, porque los runners de macOS (10 minutos por minuto) y Windows (2) agotaban la cuota y GitHub empezó a cobrar. La sesión de cada repo que falta lo hace en un commit propio, lo sube y marca aquí su fila:
+
+1. En cada archivo de `.github/workflows/`, el bloque `on:` queda sólo en `workflow_dispatch`, con esta línea encima: `# Sólo a mano (Actions › Run workflow): un push no gasta minutos de GitHub. Decisión del usuario, 2026-11-16.`
+   ```yaml
+   on:
+     workflow_dispatch:
+   ```
+2. Los gates locales (`validate.sh`, `sync-core.sh --check`, pruebas) no cambian: se corren antes de cada commit.
+3. Si la documentación del repo dice que el CI corre en cada push, se corrige en el mismo commit.
+
+| Repo | Estado | Commit |
+| --- | --- | --- |
+| core | Hecho | `1b7c2f4` |
+| nüün (`n-creator-utils`) | Hecho | `a718489` |
+| nove | Hecho | `896bc5d` |
+| Clipper | Falta | — |
+| curado | Falta | — |
+| kyu | Falta | — |
+| SoundBender (`soundshop`) | Falta | — |
+| Fractos (`ios-fractos`) | Falta | — |
+| neuf, Stalker | Revisar si tienen workflows | — |
+
+Si el usuario quiere el corte también fuera de los repos: *Settings › Actions › General* en cada repo, o un tope de gasto de Actions en 0 USD en *Settings › Billing*. Eso lo hace él; ninguna sesión toca la configuración de GitHub.
 
 | App | Copia fijada | Siguiente paso de la suite en su repo | Qué aporta a la suite | Dónde retoma |
 | --- | --- | --- | --- | --- |
@@ -73,7 +99,7 @@ Cada app sigue lo suyo en **sesiones de su propio repo**: adoptar una pieza, sin
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | Arreglar las pruebas de su contrato de la web (`sync-contracts.sh` con `nu9ve.xyz`). Más adelante, que su motor de sonido se mude al core | `NuMacShell`, el motor de sonido | [MONOREPO](../../../nu9ve/ios-fractos/docs/MONOREPO.md) y [SUITE-DESKTOP](../../../nu9ve/ios-fractos/docs/SUITE-DESKTOP.md) |
 | **Clipper** | Contratos de JSON, MCP, archivos y motor; vectores y ejemplos; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-engine`; este plan; `--check` en su CI | Separar lo genérico de su supervisor de procesos, como base de `nu9ve-jobs` | Servidor de líneas, supervisor de procesos, semántica de Python | [Roadmap del motor](../../clipper/docs/2026-11-13-clipper-core-roadmap.md) |
 | **curado** | Contratos de Mac, Windows, tema e interacción, y vectores de tema; `bun run core:check` | `nu9ve-fs` en su exportación; corregir el contraste de superficies elevadas y estados que encontró | Capas de audio y supervisión de stems | [STATUS](../../curado/docs/STATUS.md) |
-| **nove** | Contratos de Mac, Windows, tema, interacción, MCP, avisos y motor; vectores y ejemplos | En Windows: C#, named pipe, la 0.12.0.53 y retirar el sobre viejo | IPC enmarcado con ACL y MCP con niveles | [Seguir en Windows](../../nove/docs/windows-next.md) |
+| **nove** | Contratos de Mac, Windows, tema, interacción, MCP, avisos y motor; vectores y ejemplos; `windows` | El tema en la app de Mac (Puerto, Carta náutica y los comunes, como en Windows); en Windows, revisar a mano la ventana del broker y el alto contraste | IPC enmarcado con ACL y MCP con niveles | [Seguir en Windows](../../nove/docs/windows-next.md) |
 | **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, vectores de tema y `swift`; `--check` en `validate.sh` | Ventana cuadrada de época para los comunes; después, medidas y tipografía de cada skin | `ShortcutCatalog`; segundo usuario de loudness | [Ventana y skins de la suite](../../soundshop/docs/plans/suite-shell.md) |
 | **kyu** | Contratos de Mac, tema e interacción, vectores de tema y `swift`; `--check` en `validate.sh` | `NuMacShell` en lugar de su ventana y cromo | Segunda verificación de los vectores en Swift; la regla de `slug()` | [STATUS](../../kyu/docs/STATUS.md) |
 | **neuf** | Sin copia todavía | Primera copia fijada (`macos-app-v1`, `nu9ve-theme-v1`); después `NuMacShell` | — | [STATUS](../../neuf/docs/STATUS.md) |
@@ -176,13 +202,16 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez disponible.
 
 1. **Windows:**
-   - nove, según su [guía para seguir en Windows](../../nove/docs/windows-next.md): C#, named pipe e instalar la 0.12.0.53. Con eso, el paso 4 de su transición: retirar el sobre viejo.
-   - ~~Mudar `Nu9ve.Core` y `Nu9ve.WinUI` de nüün a `windows/`~~: hecho el 2026-11-16. Sigue que nove adopte el tema con «Puerto» como original.
+   - ~~nove: C#, named pipe, instalar y retirar el sobre viejo~~: hecho el 2026-11-16 (0.12.0.54 instalada, sólo v1).
+   - ~~Mudar `Nu9ve.Core` y `Nu9ve.WinUI` de nüün a `windows/`~~: hecho el 2026-11-16, y nove ya lo usa con Puerto como original.
+   - nove: revisar a mano la ventana del broker y el alto contraste con el tema, e instalar una versión que lo traiga.
    - La fase A de nüün en Windows ([qué se muda §5](suite-split.md#5-c-nativewindows)).
-2. **Ver en verde el CI de GitHub** (pestaña Actions) de core, nüün, Clipper y nove, sobre todo los jobs de Linux y Windows: ninguna sesión los ha visto correr.
+   - Sin versión de PowerShell de `sync-core.sh` (decisión del usuario, 2026-11-16): en Windows se corre el de bash en Git Bash, que viene con Git.
+2. **CI de GitHub sólo a mano** desde el 2026-11-16 (core, nüün y nove; falta en Clipper, curado, kyu, SoundBender y Fractos): cada sesión corre las pruebas en local y el CI se lanza a mano antes de una release. Ninguna sesión lo ha visto en verde.
 3. **`NuMacShell` y `Nu9veTheme` en las demás apps de Mac:**
    - nüün, después de su semana de uso diario;
    - SoundBender, que sube a macOS 15;
+   - nove: el tema de la suite en su app de Mac (Puerto, Carta náutica y los comunes, como en Windows), en una sesión de nove en la Mac;
    - primera copia fijada en neuf y Stalker.
 4. Guía de prácticas comunes (`docs/practices.md`).
 5. Lo que espera su condición:
@@ -191,4 +220,4 @@ Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez d
    - `nu9ve-volumes`, cuando se decida la identidad portable;
    - `nu9ve-py`;
    - el sonido de Fractos.
-6. Comparar `scripts/check-boundary.sh` con `check_suite_boundary.sh` de nüün y dejar uno.
+6. ~~Comparar `scripts/check-boundary.sh` con `check_suite_boundary.sh` de nüün y dejar uno~~: hecho el 2026-11-16, queda el del core; nüün lo corre desde su copia sobre sus `nu9ve-*`.

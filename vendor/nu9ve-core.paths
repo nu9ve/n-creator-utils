@@ -21,3 +21,6 @@ swift
 windows/Directory.Build.props
 windows/Nu9ve.Core
 windows/Nu9ve.WinUI
+
+# El chequeo de frontera: lo corre el gate sobre engine/crates/nu9ve-*.
+scripts/check-boundary.sh

@@ -30,7 +30,7 @@ public static partial class WindowChrome
         var roles = theme.Roles;
         root.RequestedTheme = theme.ElementTheme;
         // Mica only where Cristal asks for it and transparency effects are on; otherwise a solid canvas.
-        var mica = roles.Skin.Backdrop() == WindowBackdrop.Mica && theme.TransparencyEnabled && !theme.HighContrast;
+        var mica = roles.Backdrop == WindowBackdrop.Mica && theme.TransparencyEnabled && !theme.HighContrast;
         if (mica && window.SystemBackdrop is not MicaBackdrop) window.SystemBackdrop = new MicaBackdrop();
         else if (!mica && window.SystemBackdrop is not null) window.SystemBackdrop = null;
         var corner = roles.Skin.RoundedWindow() ? DwmwcpDefault : DwmwcpDoNotRound;

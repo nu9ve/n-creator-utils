@@ -36,6 +36,8 @@ public sealed record ThemeRoles
     public ThemeColor Info { get; }
     /// <summary>Background of a warning banner; ink stays at 7:1 and warning at 4.5:1 on it.</summary>
     public ThemeColor WarningSoft { get; }
+    /// <summary>Mica or a solid canvas (windows-app-v1 §3): the skin's, unless the app's own surfaces say otherwise.</summary>
+    public WindowBackdrop Backdrop { get; }
 
     public static ThemeRoles From(ThemeSkin skin, bool dark, ThemeColor seed)
     {
@@ -63,6 +65,7 @@ public sealed record ThemeRoles
         Skin = metrics;
         Dark = dark;
         Seed = seed;
+        Backdrop = surfaces.Backdrop ?? metrics.Backdrop();
         Canvas = surfaces.Canvas;
         Surface = surfaces.Surface;
         Raised = surfaces.Raised;
@@ -126,8 +129,10 @@ public sealed record ThemeRoles
 /// <summary>
 /// The four surfaces and the ink a skin prefers before the contrast rules (nu9ve-theme-v1 §3). An app whose
 /// original is not in the catalog builds its own and passes it to <see cref="ThemeRoles(ThemeSkin, bool, ThemeColor, ThemeSurfaces)"/>.
+/// <paramref name="Backdrop"/> lets those surfaces choose Mica or a solid window whatever skin lends the metrics;
+/// null keeps the skin's.
 /// </summary>
-public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeColor Raised, ThemeColor Line, ThemeColor PreferredInk)
+public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeColor Raised, ThemeColor Line, ThemeColor PreferredInk, WindowBackdrop? Backdrop = null)
 {
     /// <summary>A catalog skin's surfaces for this seed; <paramref name="dark"/> is already resolved.</summary>
     public static ThemeSurfaces For(ThemeSkin skin, bool dark, ThemeColor seed)
