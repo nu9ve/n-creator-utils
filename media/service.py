@@ -29,7 +29,7 @@ METHODS = frozenset({
     'register_volume', 'relayout', 'release_plans', 'relink_release', 'rename_project', 'resolve', 'restore',
     'resume', 'retitle_capture', 'retitle_operations', 'review_release', 'save_capture_tag', 'save_capture_tags',
     'save_profile', 'set_finals_folder', 'set_project_state', 'set_publication', 'set_work_state', 'snapshot',
-    'source_cards', 'sources', 'storage_add_folder', 'storage_compare', 'storage_overview', 'storage_progress',
+    'source_cards', 'sources', 'storage_add_folder', 'storage_collections', 'storage_compare', 'storage_overview', 'storage_progress',
     'storage_remove_folder', 'storage_scan', 'storage_tree', 'suggest', 'touch_project', 'transcripts_backup',
     'volumes',
 })

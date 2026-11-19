@@ -3,6 +3,7 @@
 
 #[cfg(target_os = "macos")]
 mod ableton;
+pub mod agent_storage;
 pub mod captures;
 pub mod catalog;
 pub mod clipper;

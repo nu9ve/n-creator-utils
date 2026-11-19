@@ -94,7 +94,24 @@ Un nombre como `Caches` o `node_modules` sólo produce una sugerencia; nada se r
 
 El uso real del sistema de archivos menos lo recorrido se muestra como **«Sin contar»**: sistema, instantáneas, purgable o carpetas fuera de alcance. Mejor un hueco explícito que un total que no cuadra.
 
-## Vista
+## Colecciones
+
+Carpetas que no son media pero ocupan disco. La primera es **Agentes**: `~/.claude`, `~/.codex` y `~/Library/Application Support/Claude` (nove: A49 en `docs/decisions.md` y §3 de `docs/data-hub.md`). nüün sólo mide su espacio. Leer el contenido de las sesiones es trabajo de nove.
+
+`storage_collections` (lectura, sin parámetros) lo calcula en el momento con [Python](../../media/agent_storage.py) y con [Rust](../../engine/crates/nuun-media/src/agent_storage.rs), y ambos dan el mismo JSON. No usa el índice de discos y no guarda nada. Por MCP es `media_storage_collections`.
+
+- **Sólo metadatos.** Lista carpetas y hace `lstat` para obtener tamaño, bloques y fechas. No abre ningún archivo, no sigue enlaces, no sale del dispositivo de la raíz y cuenta una sola vez cada hard link.
+- **Sólo nombres de primer nivel**, como `projects`, `sessions` o `Cache`. Los nombres más profundos llevan rutas de repos e ids de sesión, así que se suman a su parte. Los nombres que casan con un patrón se agrupan bajo el patrón: los `*.tmp-*` con id son una sola línea.
+- **Clase por nombre de primer nivel**, según una tabla fija por raíz:
+  - `history`: sesiones, historial de hilos y lo creado en ellas.
+  - `state`: ajustes, plugins y almacenamiento de la app.
+  - `cache`: regenerable.
+  - `logs`.
+  - `other`: lo que no reconoce. Nunca se supone regenerable.
+- **Crecimiento semanal:** los bytes de cada archivo cuentan en la semana (lunes, UTC) en que apareció, según `st_birthtime` en macOS y mtime en otros sistemas. Da 8 semanas completas y la actual, con el promedio de las últimas 4 en total y en `history`. Es una estimación: una sesión que crece después cuenta en su semana de creación, y lo borrado no se ve. La serie real se forma al muestrear esta respuesta con el tiempo, y eso lo hace nove.
+- **Liberar:** `release.candidates` suma la clase `cache`, con `automatic: false` y `needs: reviewed_plan`. Nunca hay una acción directa. El plan revisado para retirar cachés queda para después, como el resto de [Acciones](#acciones). Las cachés de una app abierta pueden volver a crecer enseguida.
+- **Sandbox:** la app de Mac corre el motor con su `HOME` de contenedor, así que esas raíces salen `missing` hasta que se le dé acceso. La lectura real usa la CLI o el motor fuera del sandbox.
+
 
 ```text
 ┌ Discos ───────────────────────────────────────────────────────────┐
@@ -161,11 +178,15 @@ Con la misma envoltura JSON para CLI y app. Las lecturas van por el lector persi
 | `storage_compare` | Índice | Hash incremental contra el respaldo; no modifica nada |
 | `storage_add_folder`, `storage_remove_folder` | Catálogo e índice | Comparten `storage.lock` con escaneo y comparación. Olvidar una carpeta retira sus filas derivadas y su registro; conserva sus archivos. |
 
-MCP expone `media_storage_overview` y `media_storage_tree`, de sólo lectura.
+| `storage_collections` | Lectura | [Colecciones](#colecciones) fuera de los discos (Agentes), sólo metadatos |
+
+MCP expone `media_storage_overview`, `media_storage_tree` y `media_storage_collections`, de sólo lectura.
 
 ## Pruebas y aceptación
 
 [`tests/test_media_storage.py`](../../tests/test_media_storage.py) usa directorios temporales e identidades de fixture; nunca discos personales. Cubre, entre otros: el escaneo no abre archivos; enlaces sin seguir y hard links contados una vez; cancelar o perder el disco conserva el índice anterior; hashes reutilizados hasta que cambia tamaño o fecha; copias renombradas reconocidas e impostores del mismo tamaño rechazados; un archivo cambiado no se da por bueno; mismo disco físico no cuenta; recibos con nombres descompuestos; índice dañado reconstruido; sin espacio se detiene; y un respaldo alterado después de comparar hace fallar la liberación.
+
+[`tests/test_agent_storage.py`](../../tests/test_agent_storage.py) cubre las colecciones con un `HOME` de fixture: clases y bytes, hard link contado una vez, enlace sin seguir, ningún archivo abierto (`open` prohibido durante la lectura), ningún nombre profundo ni contenido en la respuesta, raíz ausente o carpeta ilegible, temporales agrupados, semanas, y Rust igual a Python.
 
 **Aceptación física:** una corrida explícita en ESSD debe cuadrar con `df`, y lo no explicado debe aparecer en «Sin contar». Pendiente medir el HDD MEDIA502, que fija el presupuesto de rendimiento.
 

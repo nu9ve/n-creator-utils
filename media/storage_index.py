@@ -715,6 +715,9 @@ def tree(catalog, db, target, path='', limit=200):
 
 
 def call(catalog, backend, method, params, cancel=None):
+    if method == 'storage_collections':
+        from .agent_storage import call as collections
+        return collections(params)
     try:
         if method == 'storage_scan':
             return scan(catalog, backend, params['target'], cancel)

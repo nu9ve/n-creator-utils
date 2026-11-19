@@ -15,7 +15,7 @@ use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 
 /// media/cli.py `READ_METHODS` and `READ_WHEN_EMPTY`; tests/test_engine_boundary.py keeps them equal.
-const READ_METHODS: [&str; 29] = [
+const READ_METHODS: [&str; 30] = [
     "project_preview",
     "closure_overview",
     "closure_candidates",
@@ -45,10 +45,11 @@ const READ_METHODS: [&str; 29] = [
     "storage_overview",
     "storage_progress",
     "storage_tree",
+    "storage_collections",
 ];
 /// Every method Python's `Service.call` answers (media/service.py `METHODS`; tests/test_engine_boundary.py keeps
 /// them equal). A method in neither this list nor `NATIVE` is `unknown_method`, before any mode check (§7).
-const ORACLE_METHODS: [&str; 92] = [
+const ORACLE_METHODS: [&str; 93] = [
     "action_progress",
     "apply",
     "apply_release",
@@ -131,6 +132,7 @@ const ORACLE_METHODS: [&str; 92] = [
     "source_cards",
     "sources",
     "storage_add_folder",
+    "storage_collections",
     "storage_compare",
     "storage_overview",
     "storage_progress",
@@ -161,7 +163,7 @@ const READ_WHEN_EMPTY: [&str; 2] = ["defaults", "integration_settings"];
 const MAX_ONCE_BYTES: usize = 16 * 1024 * 1024;
 
 /// Methods this engine answers on every platform. Everything else in READ_METHODS is `not_ported`.
-const PORTABLE: [&str; 25] = [
+const PORTABLE: [&str; 26] = [
     "recipe",
     "snapshot",
     "engine_info",
@@ -187,6 +189,7 @@ const PORTABLE: [&str; 25] = [
     "storage_progress",
     "storage_tree",
     "missions_review",
+    "storage_collections",
 ];
 /// Reads that need this platform's volume backend (`platform_backend`: Windows in Rust; macOS still Python).
 const VOLUME_READS: [&str; 7] = [
@@ -657,6 +660,7 @@ impl Engine {
                 nuun_media::mission_review::review(&self.catalog()?, platform, params)
             }
             "storage_progress" => nuun_media::storage::progress_method(&self.home()),
+            "storage_collections" => nuun_media::agent_storage::call(params),
             "storage_tree" => nuun_media::storage::tree(
                 &self.catalog()?,
                 &self.home(),
