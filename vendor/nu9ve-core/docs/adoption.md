@@ -189,7 +189,7 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado en una Mac** (2026-11-22, core fijado en `2d45333`): `device.json` con `0600` y `host_check`, con el nombre provisional del contrato (`Mac 5577`); la persona todavía no eligió nombre. Pasa la referencia del core. Cambios locales en `n-creator-utils`, sin commit |
+| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado en una Mac** (2026-11-22, `c85b881`): `device.json` con `0600` y `host_check`, con el nombre provisional del contrato (`Mac 5577`); la persona todavía no eligió nombre. Pasa la referencia del core |
 | nove, Atlas, Clipper | Lo leen para decir en qué máquina vieron un disco | Sin empezar |
 
 ## nu9ve-volume-v1
@@ -198,9 +198,9 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **Primer corte** (2026-11-22, core en `2d45333`, cambios locales en `n-creator-utils` sin commit; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). Los dos marcadores y los dos índices pasan las referencias del core, revisado aquí sobre los discos. «Adoptar este disco…» en Ajustes → Discos: probado por el motor con los dos discos físicos y un catálogo local vacío; snapshot de MEDIA502 verificado por SHA-256; hashes y fechas de los archivos iguales antes y después. **Falta:** aceptación en ventana, prueba en otra Mac, cotejo de MEDIA502 en Windows, commit, y mudar `nu9ve-volumes` al core. El índice de MEDIA502 pesa 5,2 MiB del tope de 8 MiB (§8) |
-| Atlas | Raíces por volumen en `config/atlas.json`; su carpeta en los discos de trabajo (ESSD, XSSD) | Sin empezar. Hoy usa `/Volumes/ESSD/…` |
-| nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión) | Sin empezar |
+| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **Primer corte** (2026-11-22, `n-creator-utils` `c85b881`, core fijado después en `4c40464` con `e5f98fd`; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). Los dos marcadores y los dos índices pasan las referencias del core, revisado aquí sobre los discos. «Adoptar este disco…» en Ajustes → Discos: probado por el motor con los dos discos físicos y un catálogo local vacío; snapshot de MEDIA502 verificado por SHA-256; hashes y fechas de los archivos iguales antes y después. **Falta:** aceptación en ventana, prueba en otra Mac, cotejo de MEDIA502 en Windows y mudar `nu9ve-volumes` al core. El índice de MEDIA502 pesa 5,2 MiB del tope de 8 MiB (§8) |
+| Atlas | **Sólo lo urgente** (decisión del usuario, 2026-11-22): raíces por volumen en `config/atlas.json`, para que deje de crecer atado a una ruta; su carpeta en los discos de trabajo (ESSD, XSSD). Sus flujos pasan a nove | Sin empezar. Hoy usa `/Volumes/ESSD/…` |
+| nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión). **La prioridad de F0**, a la par de asentar en nove los flujos de Atlas | Sin empezar |
 | Clipper | Su carpeta en los discos de trabajo | Sin empezar |
 
 ## nu9ve-artifact-v1

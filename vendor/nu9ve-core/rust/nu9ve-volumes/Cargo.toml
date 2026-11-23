@@ -1,0 +1,38 @@
+[package]
+name = "nu9ve-volumes"
+description = "Volume identity, mounts, free space and the suite's volume marker (nu9ve-volume-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Errores de la suite (`code` y `message`).
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# Creación y publicación duraderas, sincronización y lectura de verificación (nu9ve-fs-v1).
+nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
+# El marcador y los índices de nu9ve-volume-v1 se leen como JSON en todos los sistemas.
+serde_json = "=1.0.154"
+
+[target.'cfg(windows)'.dependencies]
+# Identidad del volumen: GetVolumeInformationW, extents del disco y propiedades del dispositivo.
+windows-sys = { version = "=0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_System_IO", "Win32_Security", "Win32_System_Threading"] }
+
+[target.'cfg(unix)'.dependencies]
+# statfs, statvfs y stat del sistema.
+libc = "=0.2.191"
+
+# La identidad en macOS sale de `diskutil … -plist`, leído como lo lee plistlib de Python (macos.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+quick-xml = "=0.42.0"
+
+[dev-dependencies]
+# Directorios aislados con limpieza automática para las pruebas.
+tempfile = "=3.27.0"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

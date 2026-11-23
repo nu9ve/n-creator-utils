@@ -69,7 +69,7 @@ Primero se copia con comentario de origen y se extrae a crate común al llegar a
 | --- | --- | --- |
 | `nu9ve-ipc`: JSON enmarcado por named pipe (ACL del SID, `FIRST_PIPE_INSTANCE`, PID del servidor) y socket Unix `0700` | nove `core` | nüün cuando su motor sea de larga vida (bandeja, segundo plano) |
 | `nu9ve-mcp`: servidor stdio con niveles, anotaciones, `_untrusted`, salida acotada, diálogo nativo, permiso por sesión ([nu9ve-mcp-v1](../../vendor/nu9ve-core/contracts/nu9ve-mcp-v1.md)) | nove `core/src/mcp.rs`, `agent.rs` | nüün, curado, kyu |
-| `nu9ve-volumes`: identidad de volumen por serial (`GetVolumeInformationW`), letras, espacio libre (`GetDiskFreeSpaceExW`), equivalentes en Mac (`statfs`, DiskArbitration) | curado `identity.rs`/`relink.rs` (Windows); nüün `volumes.py` (Mac) | nüün (tarjetas y destinos), curado (USB de rekordbox), kyu |
+| `nu9ve-volumes`: identidad de volumen por serial (`GetVolumeInformationW`), letras, espacio libre (`GetDiskFreeSpaceExW`), equivalentes en Mac (`statfs`, DiskArbitration). **Mudado a nu9ve/core el 2026-11-22** (`rust/nu9ve-volumes`, con el marcador de `nu9ve-volume-v1`); nüün lo usa desde `vendor/nu9ve-core/` | curado `identity.rs`/`relink.rs` (Windows); nüün `volumes.py` (Mac) | nüün (tarjetas y destinos), curado (USB de rekordbox), kyu |
 | `nu9ve-journal`: escritura `.partial` → verificar → renombrar sin reemplazar, `fsync` completo, lock de escritor único, diario de operaciones | nüün `transfer.py`/`catalog.py`; nove (lock de raíz, `fs2`) | nüün, kyu (entrega de fotos), Clipper si migra |
 | `nu9ve-json`: JSON canónico y digest, sobre `{code, message}` de errores | nüün `common.py` (`canonical`, `digest`); nove | Todas |
 

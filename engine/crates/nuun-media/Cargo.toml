@@ -9,7 +9,7 @@ publish.workspace = true
 
 [dependencies]
 nu9ve-json.workspace = true
-nu9ve-volumes = { path = "../nu9ve-volumes" }
+nu9ve-volumes.workspace = true
 nuun-recipe = { path = "../nuun-recipe" }
 nu9ve-time = { path = "../nu9ve-time" }
 sha2.workspace = true

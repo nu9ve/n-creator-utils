@@ -13,6 +13,10 @@ rust/nu9ve-fs
 # Servidor NDJSON del motor (contrato nu9ve-engine-v1).
 rust/nu9ve-engine
 
+# Identidad de volúmenes y el marcador de la suite (nu9ve-volume-v1). Mudado de engine/crates/nu9ve-volumes
+# el 2026-11-22; sus pruebas leen data/.
+rust/nu9ve-volumes
+
 # Los roles de tema de la app de macOS.
 swift
 

@@ -429,7 +429,6 @@ dependencies = [
  "nu9ve-json",
  "quick-xml",
  "serde_json",
- "tempfile",
  "windows-sys",
 ]
 

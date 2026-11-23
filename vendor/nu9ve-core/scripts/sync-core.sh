@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 #
-# Pins the parts of nu9ve/core that an app uses into <app>/vendor/nu9ve-core/.
-# The app lists them, one path per line, in vendor/nu9ve-core.paths.
+# Pins the parts of nu9ve/core (or nu9ve/inner-core) that an app uses into <app>/vendor/nu9ve-core/
+# (or vendor/nu9ve-inner-core/). The app lists them, one path per line, in vendor/nu9ve-core.paths
+# (or vendor/nu9ve-inner-core.paths).
 #
-#   sync-core.sh [<commit>]        copy those paths from a commit of nu9ve/core (default: HEAD)
+#   sync-core.sh [<commit>]        copy those paths from a commit of the repo (default: HEAD)
 #   sync-core.sh --from <folder>   copy from a working tree to try a change; --check rejects it
-#   sync-core.sh --check           the copy matches its manifest; warns if nu9ve/core moved on
-#   sync-core.sh --strict          --check, and fails if nu9ve/core moved on
+#   sync-core.sh --check           the copy matches its manifest; warns if the repo moved on
+#   sync-core.sh --strict          --check, and fails if the repo moved on
 #
-# Options: --app <folder>     the app checkout (default: the git checkout around the current folder)
-#          --source <folder>  the nu9ve/core checkout (default: $NU9VE_CORE_REPO, <app>/../core, ~/code/ai/core)
+# Options: --repo <core|inner-core>  which repo (default: core)
+#          --app <folder>     the app checkout (default: the git checkout around the current folder)
+#          --source <folder>  the repo's checkout (default for core: $NU9VE_CORE_REPO, <app>/../core,
+#                             ~/code/ai/core; for inner-core: $NU9VE_INNER_CORE_REPO, <app>/../inner-core,
+#                             ~/code/ai/inner-core)
 #
-# --check needs no nu9ve/core checkout, so a clean CI runner can use it.
-# The script copies itself into every pin, so an app runs vendor/nu9ve-core/scripts/sync-core.sh.
-# Written for the bash 3.2 that ships with macOS.
+# --check needs no checkout of the repo, so a clean CI runner can use it.
+# A core pin carries this script, so an app runs vendor/nu9ve-core/scripts/sync-core.sh, also with
+# --repo inner-core: an inner-core pin does not carry it. Written for the bash 3.2 that ships with macOS.
 
 set -Eeuo pipefail
 
@@ -27,7 +31,7 @@ die() {
 }
 
 usage() {
-    sed -n '3,16p' "$0" | sed -E 's/^# ?//' >&2
+    sed -n '3,20p' "$0" | sed -E 's/^# ?//' >&2
     exit 64
 }
 
@@ -35,7 +39,9 @@ mode="sync"
 commit=""
 from=""
 app=""
-source_repo="${NU9VE_CORE_REPO:-}"
+repo="core"
+source_repo=""
+source_given=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --check) mode="check" ;;
@@ -54,6 +60,12 @@ while [[ $# -gt 0 ]]; do
         --source)
             [[ $# -ge 2 ]] || usage
             source_repo="$2"
+            source_given=1
+            shift
+            ;;
+        --repo)
+            [[ $# -ge 2 ]] || usage
+            repo="$2"
             shift
             ;;
         -*) usage ;;
@@ -69,15 +81,32 @@ done
 if [[ -z "${app}" ]]; then
     app="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 fi
+case "${repo}" in
+    core) env_repo="${NU9VE_CORE_REPO:-}" ;;
+    inner-core) env_repo="${NU9VE_INNER_CORE_REPO:-}" ;;
+    *) usage ;;
+esac
+label="nu9ve/${repo}"
+dir_name="nu9ve-${repo}"
 app="$(cd -- "${app}" && pwd)" || die "no app folder at ${app}"
-vendor="${app}/vendor/nu9ve-core"
-paths_file="${app}/vendor/nu9ve-core.paths"
-# Without --source or NU9VE_CORE_REPO: a sibling checkout, then the suite's usual one. A folder
-# counts only if it is nu9ve/core (it carries this script), not an app's own core/.
+vendor="${app}/vendor/${dir_name}"
+paths_file="${app}/vendor/${dir_name}.paths"
+
+# A checkout is the repo when its HEAD carries .nu9ve-repo with the repo's name. nu9ve/core is also
+# recognized the old way, by carrying this script, so an app's own core/ is never taken for it.
+is_repo() {
+    [[ "$(git -C "$1" show "HEAD:.nu9ve-repo" 2>/dev/null | head -n 1)" == "${label}" ]] && return 0
+    [[ "${repo}" == core ]] && git -C "$1" cat-file -e "HEAD:${self_path}" 2>/dev/null
+}
+
+# Without --source or the variable: a sibling checkout, then the suite's usual one.
+if [[ -z "${source_given}" ]]; then
+    source_repo="${env_repo}"
+fi
 if [[ -z "${source_repo}" ]]; then
-    source_repo="${app}/../core"
-    for candidate in "${app}/../core" "${HOME:-/nonexistent}/code/ai/core"; do
-        if git -C "${candidate}" cat-file -e "HEAD:${self_path}" 2>/dev/null; then
+    source_repo="${app}/../${repo}"
+    for candidate in "${app}/../${repo}" "${HOME:-/nonexistent}/code/ai/${repo}"; do
+        if is_repo "${candidate}"; then
             source_repo="${candidate}"
             break
         fi
@@ -92,12 +121,12 @@ sha256() {
     fi
 }
 
-# The declared paths plus the script itself, normalized and sorted.
+# The declared paths (plus this script, for a core pin), normalized and sorted.
 wanted_paths() {
-    [[ -f "${paths_file}" ]] || die "no ${paths_file}. List there the files or folders of nu9ve/core this app uses, one per line."
+    [[ -f "${paths_file}" ]] || die "no ${paths_file}. List there the files or folders of ${label} this app uses, one per line."
     {
         sed -E -e 's/#.*//' -e 's/^[[:space:]]+//' -e 's/[[:space:]]+$//' -e 's#^\./##' -e 's#/+$##' "${paths_file}"
-        echo "${self_path}"
+        if [[ "${repo}" == core ]]; then echo "${self_path}"; fi
     } | grep -v '^$' | LC_ALL=C sort -u
 }
 
@@ -107,7 +136,7 @@ load_paths() {
     local p
     while IFS= read -r p; do
         case "${p}" in
-            /* | .. | ../* | */.. | */../*) die "${p}: paths are relative to nu9ve/core and stay inside it" ;;
+            /* | .. | ../* | */.. | */../*) die "${p}: paths are relative to ${label} and stay inside it" ;;
         esac
         paths+=("${p}")
     done < <(wanted_paths)
@@ -122,10 +151,10 @@ pinned_commit() {
 }
 
 make_staging() {
-    mktemp -d "${TMPDIR:-/tmp}/nu9ve-core.XXXXXX"
+    mktemp -d "${TMPDIR:-/tmp}/${dir_name}.XXXXXX"
 }
 
-# Writes the manifest and SOURCE into the staging folder and replaces vendor/nu9ve-core with it.
+# Writes the manifest and SOURCE into the staging folder and replaces the vendor folder with it.
 publish() {
     local staging="$1"
     shift
@@ -138,14 +167,14 @@ publish() {
     ) > "${staging}/../${manifest}.$$"
     mv -- "${staging}/../${manifest}.$$" "${staging}/${manifest}"
     {
-        echo "# Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar."
-        echo "repo=nu9ve/core"
+        echo "# Copia fijada de ${label}. No se edita: el cambio va a ${label} y se vuelve a sincronizar."
+        echo "repo=${label}"
         for f in "$@"; do echo "${f}"; done
         for p in "${paths[@]}"; do echo "path=${p}"; done
     } > "${staging}/${source_file}"
 
     case "${vendor}" in
-        */vendor/nu9ve-core) ;;
+        */vendor/nu9ve-core | */vendor/nu9ve-inner-core) ;;
         *) die "refusing to replace ${vendor}" ;;
     esac
     mkdir -p -- "${app}/vendor"
@@ -156,13 +185,15 @@ publish() {
 }
 
 sync_commit() {
-    source_available || die "no nu9ve/core checkout at ${source_repo}. Use --source or NU9VE_CORE_REPO."
+    local variable="NU9VE_CORE_REPO"
+    [[ "${repo}" == inner-core ]] && variable="NU9VE_INNER_CORE_REPO"
+    source_available || die "no ${label} checkout at ${source_repo}. Use --source or ${variable}."
     local rev full date p
     rev="${commit:-HEAD}"
     full="$(git -C "${source_repo}" rev-parse --verify --quiet "${rev}^{commit}")" || die "${rev} is not a commit of ${source_repo}"
     date="$(git -C "${source_repo}" log -1 --format=%cs "${full}")"
     for p in "${paths[@]}"; do
-        git -C "${source_repo}" cat-file -e "${full}:${p}" 2>/dev/null || die "${p} does not exist in nu9ve/core@${full:0:12}"
+        git -C "${source_repo}" cat-file -e "${full}:${p}" 2>/dev/null || die "${p} does not exist in ${label}@${full:0:12}"
     done
     staging="$(make_staging)"
     trap 'rm -rf -- "${staging:-}"' EXIT
@@ -170,13 +201,13 @@ sync_commit() {
     # git archive applies core.autocrlf: without this, Git on Windows would pin CRLF bytes.
     git -C "${source_repo}" -c core.autocrlf=false -c core.eol=lf archive --format=tar "${full}" -- "${paths[@]}" | tar -x -C "${staging}/copy"
     publish "${staging}/copy" "commit=${full}" "date=${date}"
-    echo "Pinned nu9ve/core@${full:0:12} (${date}) into vendor/nu9ve-core: ${#paths[@]} paths."
+    echo "Pinned ${label}@${full:0:12} (${date}) into vendor/${dir_name}: ${#paths[@]} paths."
 }
 
 sync_from() {
     local src base p f
     src="$(cd -- "${from}" && pwd)" || die "no folder at ${from}"
-    git -C "${src}" rev-parse --git-dir >/dev/null 2>&1 || die "${src} is not a nu9ve/core checkout"
+    git -C "${src}" rev-parse --git-dir >/dev/null 2>&1 || die "${src} is not a ${label} checkout"
     base="$(git -C "${src}" rev-parse --verify --quiet HEAD || echo none)"
     staging="$(make_staging)"
     trap 'rm -rf -- "${staging:-}"' EXIT
@@ -211,23 +242,26 @@ crlf_converted() {
 }
 
 verify_integrity() {
-    [[ -f "${vendor}/${manifest}" && -f "${vendor}/${source_file}" ]] || die "vendor/nu9ve-core has no pinned copy. Run sync-core.sh."
+    [[ -f "${vendor}/${manifest}" && -f "${vendor}/${source_file}" ]] || die "vendor/${dir_name} has no pinned copy. Run sync-core.sh."
     if grep -q '^dirty=' "${vendor}/${source_file}"; then
-        die "vendor/nu9ve-core came from a working tree (--from). Pin a commit: sync-core.sh <commit>."
+        die "vendor/${dir_name} came from a working tree (--from). Pin a commit: sync-core.sh <commit>."
+    fi
+    if ! grep -qx "repo=${label}" "${vendor}/${source_file}"; then
+        die "vendor/${dir_name} is not a pin of ${label}. Run sync-core.sh."
     fi
     if ! (cd -- "${vendor}" && sha256 --check --quiet "${manifest}"); then
         # Git on Windows (core.autocrlf=true) checks text out with CRLF: same content, other bytes.
         if crlf_converted; then
-            die "vendor/nu9ve-core has CRLF line endings: Git converted it on checkout. Add 'vendor/nu9ve-core/** -text' to the app's .gitattributes, then delete vendor/nu9ve-core and restore it with 'git checkout -- vendor/nu9ve-core'."
+            die "vendor/${dir_name} has CRLF line endings: Git converted it on checkout. Add 'vendor/${dir_name}/** -text' to the app's .gitattributes, then delete vendor/${dir_name} and restore it with 'git checkout -- vendor/${dir_name}'."
         fi
-        die "vendor/nu9ve-core differs from its manifest. Do not edit it: change nu9ve/core and sync."
+        die "vendor/${dir_name} differs from its manifest. Do not edit it: change ${label} and sync."
     fi
     # Every file must be declared, or an unreviewed file could slip in.
     local declared present
     declared="$(sed -E 's/^[0-9a-f]+ [ *]//' "${vendor}/${manifest}" | LC_ALL=C sort)"
     present="$(cd -- "${vendor}" && find . -type f ! -name "${manifest}" ! -name "${source_file}" | sed 's#^\./##' | LC_ALL=C sort)"
     if [[ "${declared}" != "${present}" ]]; then
-        echo "sync-core: vendor/nu9ve-core has files outside its manifest:" >&2
+        echo "sync-core: vendor/${dir_name} has files outside its manifest:" >&2
         diff <(echo "${declared}") <(echo "${present}") >&2 || true
         exit 1
     fi
@@ -235,7 +269,7 @@ verify_integrity() {
     local pinned_paths
     pinned_paths="$(sed -n 's/^path=//p' "${vendor}/${source_file}")"
     if [[ "${pinned_paths}" != "$(printf '%s\n' "${paths[@]}")" ]]; then
-        echo "sync-core: vendor/nu9ve-core.paths changed after the last pin. Run sync-core.sh." >&2
+        echo "sync-core: vendor/${dir_name}.paths changed after the last pin. Run sync-core.sh." >&2
         diff <(echo "${pinned_paths}") <(printf '%s\n' "${paths[@]}") >&2 || true
         exit 1
     fi
@@ -246,9 +280,9 @@ check_freshness() {
     pinned="$(pinned_commit)"
     if ! source_available; then
         if [[ "${strict}" == "strict" ]]; then
-            die "--strict needs a nu9ve/core checkout to compare against (--source or NU9VE_CORE_REPO)."
+            die "--strict needs a ${label} checkout to compare against (--source or its variable)."
         fi
-        echo "nu9ve/core pinned at ${pinned:0:12}; no checkout to compare against."
+        echo "${label} pinned at ${pinned:0:12}; no checkout to compare against."
         return 0
     fi
     if ! git -C "${source_repo}" cat-file -e "${pinned}^{commit}" 2>/dev/null; then
@@ -257,10 +291,10 @@ check_freshness() {
         return 0
     fi
     if git -C "${source_repo}" diff --quiet "${pinned}" HEAD -- "${paths[@]}"; then
-        echo "nu9ve/core pinned at ${pinned:0:12} is current."
+        echo "${label} pinned at ${pinned:0:12} is current."
         return 0
     fi
-    echo "sync-core: nu9ve/core changed what this app uses after ${pinned:0:12}. Review and run sync-core.sh:" >&2
+    echo "sync-core: ${label} changed what this app uses after ${pinned:0:12}. Review and run sync-core.sh:" >&2
     git -C "${source_repo}" diff --stat "${pinned}" HEAD -- "${paths[@]}" >&2
     [[ "${strict}" == "strict" ]] && exit 1
     return 0

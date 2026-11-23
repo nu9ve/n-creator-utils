@@ -49,7 +49,7 @@ Lo compartido que sí es negocio o toca datos de personas:
 - telemetría, cobros y actualizaciones con canal privado;
 - conectores con servicios propios o de clientes.
 
-Se consume igual que `nu9ve/core`: copia fijada en `vendor/` con su propia lista de rutas y el mismo script. Mientras todo sea privado, puede vivir en `nu9ve/core`, en carpetas marcadas, y separarse cuando el core se abra. Su primer contenido concreto (cliente de la nube, cuenta y dispositivos) está propuesto en [varias máquinas, discos y nube §9](suite-devices.md#9-público-y-privado-qué-va-dónde), que recomienda un repo propio desde el principio en lugar de carpetas marcadas, para no tener que limpiar la historia al abrir el core.
+Se consume igual que `nu9ve/core`: copia fijada en `vendor/` con su propia lista de rutas y el mismo script. Mientras todo sea privado, puede vivir en `nu9ve/core`, en carpetas marcadas, y separarse cuando el core se abra. Su primer contenido concreto (cliente de la nube, cuenta y dispositivos) está propuesto en [varias máquinas, discos y nube §9](suite-devices.md#9-público-y-privado-qué-va-dónde), que recomienda un repo propio desde el principio en lugar de carpetas marcadas, para no tener que limpiar la historia al abrir el core. El usuario lo decidió así el 2026-11-22: [`nu9ve/inner-core`](https://github.com/nu9ve/inner-core).
 
 ### Cada app
 
@@ -83,6 +83,6 @@ El motor de dominio y la interfaz de cada app son su producto: el editor espectr
 Ninguna urge. Se responden cuando el negocio de cada app esté más claro.
 
 1. ¿Se abre `nu9ve/core` algún día? Si sí, ¿con MIT, Apache-2.0 o las dos?
-2. ¿El inner core es un repo propio o, mientras todo sea privado, carpetas marcadas dentro de `nu9ve/core`? ¿Cómo se llama?
+2. ~~¿El inner core es un repo propio o carpetas marcadas? ¿Cómo se llama?~~ **Decidido (el usuario, 2026-11-22):** repo propio, `nu9ve/inner-core`, en `~/code/ai/inner-core`. Cómo lo usan las apps: [apps con y sin la parte privada](suite-modules.md).
 3. ¿Qué modelo sigue cada app? Para SoundBender la propuesta es open core.
 4. ¿Se admite MPL-2.0 como excepción por crate (symphonia), o la decodificación queda en cada app con la API del sistema?

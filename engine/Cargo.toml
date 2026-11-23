@@ -4,7 +4,7 @@
 # Convenciones de la suite (las de nove y curado): edition 2024, fmt + clippy -D warnings, pruebas con raíces
 # temporales y nunca discos personales, dependencias fijadas y anotadas con su razón.
 [workspace]
-members = ["crates/nu9ve-volumes", "crates/nuun-recipe", "crates/nu9ve-time", "crates/nuun-media", "nuun-engine"]
+members = ["crates/nuun-recipe", "crates/nu9ve-time", "crates/nuun-media", "nuun-engine"]
 resolver = "2"
 
 [workspace.package]
@@ -17,6 +17,8 @@ publish = false
 # `nu9ve-json` vive en nu9ve/core y llega por su copia fijada (vendor/nu9ve-core/rust/nu9ve-json, sync-core.sh).
 [workspace.dependencies]
 nu9ve-json = { path = "../vendor/nu9ve-core/rust/nu9ve-json" }
+# `nu9ve-volumes` se mudó a nu9ve/core el 2026-11-22 (rust/nu9ve-volumes); llega por la misma copia fijada.
+nu9ve-volumes = { path = "../vendor/nu9ve-core/rust/nu9ve-volumes" }
 # Las mismas versiones que nove/core y curado (ya en la caché local; ninguna descarga nueva).
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

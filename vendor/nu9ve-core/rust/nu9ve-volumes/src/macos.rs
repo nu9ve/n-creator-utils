@@ -33,7 +33,7 @@ pub fn disk_usage(path: &Path) -> std::io::Result<(u64, u64, u64)> {
     if unsafe { libc::statvfs(c.as_ptr(), &mut s) } != 0 {
         return Err(std::io::Error::last_os_error());
     }
-    let frsize = s.f_frsize as u64;
+    let frsize = s.f_frsize;
     let total = s.f_blocks as u64 * frsize;
     let free = s.f_bavail as u64 * frsize;
     let used = (s.f_blocks as u64).saturating_sub(s.f_bfree as u64) * frsize;

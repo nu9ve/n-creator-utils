@@ -14,6 +14,7 @@
 | Decidir qué código de audio se comparte | [Audio en la suite](platforms/audio.md) (propuesta) |
 | Decidir qué se comparte de Metal y la GPU | [GPU en la suite](platforms/gpu.md) (propuesta) |
 | Decidir qué se abre y qué queda privado | [Licencias](licensing.md) (propuesta, sin decidir) |
+| Hacer que una app use lo privado (`nu9ve/inner-core`) sin dejar de compilar y funcionar sola | [Apps con y sin la parte privada](suite-modules.md) (propuesta) |
 | Trabajar con varias máquinas y discos, y decidir cómo entran la cuenta de Fractos, la nube y el MCP | [Varias máquinas, discos y nube](suite-devices.md) (propuesta, con preguntas abiertas) |
 | Decidir cómo sería tu navegador diario y qué capa le pone la suite | [Navegador, versión 2](suite-browser-v2.md) (propuesta); el inventario y los contratos siguen en la [versión 1](suite-browser.md) |
 | Leer la auditoría del 2026-11-10 y sus briefs | [Auditoría Fable](audits/fable-audit-2026-11-10.md), [briefs](audits/session-briefs-2026-11-10.md) |

@@ -93,6 +93,15 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
   Se pasará a un dataset por proyecto, no por archivo; el detalle por archivo
   sigue en el snapshot. No cambia el contrato. [PLAN](../PLAN.md#p3--robustez-y-distribución).
 
+- **`nu9ve-volumes` en el core** (2026-11-22, U2): el crate vive en
+  [nu9ve/core `rust/nu9ve-volumes`](../vendor/nu9ve-core/rust/README.md#volúmenes),
+  con el módulo `marker` (§1, §2, §3, §5 y §8 de `nu9ve-volume-v1`, probado
+  contra los ejemplos del contrato con 1.99.1 y 1.89). nüün lo fija en
+  `9711564`, borró `engine/crates/nu9ve-volumes` y `suite_volume.rs` usa esas
+  reglas: el marcador rechaza ahora también un `previous_volume_id` igual al
+  propio, como la referencia. `nu9ve-time` se queda aquí hasta que otra app lo
+  necesite.
+
 ### Pendientes físicos de F0
 
 Los corre el usuario. Ninguno escribe en el disco salvo donde se dice.

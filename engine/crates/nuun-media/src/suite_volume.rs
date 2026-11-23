@@ -1,17 +1,19 @@
 //! F0 volume markers, local sightings and portable, read-only adoption.
 use crate::catalog::Catalog;
-use crate::suite_device::{self, OS, name, os, time, uuid};
+use crate::suite_device::{self, OS, name};
 use crate::tree::Root;
 use crate::volumes::{Backend, normalize};
 use nu9ve_json::{Error, Result, require};
 use nu9ve_volumes::fs;
+use nu9ve_volumes::marker::{self as rules, Observation};
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 mod index;
 
-const MARKER: &str = ".nu9ve/volume.json";
+const MARKER: &str = rules::MARKER_PATH;
 const INDEX: &str = ".nu9ve/apps/nuun/index.json";
 
 fn document(root: &Root, path: &str, limit: usize, code: &'static str) -> Result<Option<Value>> {
@@ -36,62 +38,46 @@ fn document(root: &Root, path: &str, limit: usize, code: &'static str) -> Result
 }
 
 fn role(value: &Value) -> bool {
-    matches!(value.as_str(), Some("archive" | "work" | "other"))
+    value
+        .as_str()
+        .is_some_and(|role| rules::ROLES.contains(&role))
 }
 
-fn marker(root: &Root) -> Result<Option<Value>> {
-    let Some(value) = document(root, MARKER, 16 * 1024, "invalid_marker")? else {
+/// The marker's bytes, read with its size cap through the root's path checks.
+fn marker_bytes(root: &Root) -> Result<Option<Vec<u8>>> {
+    let Some(file) = root
+        .open_read(MARKER)
+        .map_err(|e| Error::new("invalid_marker", e.message))?
+    else {
         return Ok(None);
     };
-    require(
-        value["contract"] == "nu9ve-volume/1"
-            && uuid(&value["volume_id"])
-            && role(&value["role"])
-            && name(&value["label"], 64)
-            && time(&value["registered_at"])
-            && uuid(&value["registered_by"]["device_id"])
-            && value["registered_by"]["app"].as_str().is_some_and(app_name)
-            && os(&value["fs"]["os"])
-            && matches!(
-                value["fs"]["kind"].as_str(),
-                Some("apfs" | "hfsplus" | "exfat" | "fat32" | "ntfs" | "ext4" | "other")
-            )
-            && name(&value["fs"]["serial"], 128)
-            && value.get("role_changed_at").is_none_or(time)
-            && value.get("previous_volume_id").is_none_or(uuid),
-        "invalid_marker",
-        "Invalid .nu9ve/volume.json",
-    )?;
-    Ok(Some(value))
+    let mut bytes = Vec::new();
+    file.take(rules::MARKER_LIMIT as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| Error::new("invalid_marker", e.to_string()))?;
+    Ok(Some(bytes))
 }
 
-fn app_name(s: &str) -> bool {
-    s.len() <= 32
-        && s.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
-        && s.bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+/// nu9ve-volume-v1 §1, with the suite's rules (`nu9ve_volumes::marker`).
+fn marker(root: &Root) -> Result<Option<Value>> {
+    let Some(bytes) = marker_bytes(root)? else {
+        return Ok(None);
+    };
+    rules::parse_marker(&bytes).map(Some).map_err(|problem| {
+        Error::new(
+            "invalid_marker",
+            format!("Invalid .nu9ve/volume.json ({problem})"),
+        )
+    })
 }
 
 fn factor(info: &Value) -> Value {
-    let kind = match info["filesystem"]
-        .as_str()
-        .unwrap_or_default()
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "apfs" => "apfs",
-        "hfs" | "hfs+" | "hfsplus" => "hfsplus",
-        "exfat" => "exfat",
-        "msdos" | "fat32" => "fat32",
-        "ntfs" => "ntfs",
-        "ext4" => "ext4",
-        _ => "other",
-    };
+    let kind = rules::fs_kind(info["filesystem"].as_str().unwrap_or_default());
     let serial = if OS == "windows" {
         info["device"]
             .as_u64()
             .and_then(|num| u32::try_from(num).ok())
-            .map(|num| format!("{:04X}-{:04X}", num >> 16, num & 0xffff))
+            .map(rules::windows_serial)
     } else {
         info["volume_uuid"]
             .as_str()
@@ -111,15 +97,15 @@ fn mounted(backend: &dyn Backend, path: &Path) -> Result<(Root, Value)> {
     Ok((Root::open(path)?, info))
 }
 
-fn duplicate(backend: &dyn Backend, root: &Root, volume: &Value) -> bool {
-    backend.mounted_roots().iter().any(|path| {
-        normalize(path) != normalize(&root.path)
-            && Root::open(path)
-                .and_then(|r| marker(&r))
-                .ok()
-                .flatten()
-                .is_some_and(|other| other["volume_id"] == volume["volume_id"])
-    })
+/// The `volume_id`s of the other mounted volumes (§5, `duplicate`).
+fn others(backend: &dyn Backend, root: &Root) -> Vec<String> {
+    backend
+        .mounted_roots()
+        .iter()
+        .filter(|path| normalize(path) != normalize(&root.path))
+        .filter_map(|path| Root::open(path).and_then(|r| marker(&r)).ok().flatten())
+        .filter_map(|other| other["volume_id"].as_str().map(str::to_owned))
+        .collect()
 }
 
 fn sighting_path(volume: &Value) -> String {
@@ -148,22 +134,22 @@ fn observed(
     volume: &Value,
     known: Option<&Value>,
 ) -> &'static str {
-    if duplicate(backend, root, volume) {
-        return "duplicate";
-    }
     let current = factor(info);
-    if current["serial"].is_null() {
-        return "unverified";
-    }
-    let expected = known
-        .and_then(|s| s.get("serial"))
-        .filter(|s| !s.is_null())
-        .or_else(|| (volume["fs"]["os"] == OS).then_some(&volume["fs"]["serial"]));
-    if expected.is_some_and(|serial| *serial != current["serial"]) {
-        "suspect"
-    } else {
-        "ok"
-    }
+    let remembered: BTreeMap<String, String> = known
+        .and_then(|s| s["serial"].as_str())
+        .map(|serial| (OS.to_owned(), serial.to_owned()))
+        .into_iter()
+        .collect();
+    // The marker was already read and validated; the shared rules decide from the same bytes.
+    let bytes = nu9ve_json::canonical(volume);
+    rules::state(&Observation {
+        readable: true,
+        marker: Some(&bytes),
+        serial: current["serial"].as_str(),
+        os: OS,
+        other_mounted: &others(backend, root),
+        remembered: &remembered,
+    })
 }
 
 fn record(home: &Path, volume: &Value, info: &Value, known: Option<&Value>) -> Result<()> {

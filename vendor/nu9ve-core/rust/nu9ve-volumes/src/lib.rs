@@ -1,4 +1,4 @@
-//! Volumes for the suite's engines.
+//! Volumes for the suite's engines, and the suite's volume marker ([`marker`], nu9ve-volume-v1).
 //!
 //! rust-engine.md §6 · origin of the Windows half: the suite's Tauri app (its disk identity and relink)
 //! (volume serial through `GetVolumeInformationW`, space available to the user through `GetDiskFreeSpaceExW`,
@@ -17,6 +17,7 @@
 pub mod fs;
 #[cfg(target_os = "macos")]
 pub mod macos;
+pub mod marker;
 
 use nu9ve_json::{Error, Result};
 use std::path::{Path, PathBuf};

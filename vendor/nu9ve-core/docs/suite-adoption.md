@@ -55,7 +55,7 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | Pieza | Destino | De dónde | Condición |
 | --- | --- | --- | --- |
 | `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `engine/soundbender-core` | **Construido el 2026-11-17** (LUFS y true peak; el limitador no entra, [audio §5](platforms/audio.md#5-curado-y-soundbender-pieza-por-pieza)). SoundBender lo usa desde el 2026-11-17 (`soundshop` `3df4dfb`) y Clipper desde el 2026-11-22 para medir el master (`0bdd1f74`). Falta que curado lo adopte. **Condición cumplida el 2026-11-16:** SoundBender decidió que su motor portable es Rust (su decisión 036, `3271f4d`) y ya portó LUFS y los limitadores con los mismos bits que Swift. Hay dos implementaciones en Rust, ya comparadas con las mismas señales (los 23 dorados de SoundBender): el LUFS de curado lee entre 0,04 y 0,29 LU bajo la norma, así que el crate parte del de SoundBender y suma el true peak de curado ([audio §5](platforms/audio.md#5-curado-y-soundbender-pieza-por-pieza)) |
-| `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | Decidir antes la identidad portable de un disco ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)), porque cambia su API |
+| `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | **Mudado** el 2026-11-22 con el marcador de `nu9ve-volume-v1` ([CHANGELOG](../CHANGELOG.md)) |
 | Guía de prácticas comunes | `docs/practices.md` | Lo que ya repiten cinco apps: QA aislada por variable de entorno, instalar en la carpeta de apps del usuario con respaldo del anterior, gate con `sync-core.sh --check`, CHANGELOG por pieza | Escribirla con lo que ya hacen nüün, nove, curado, kyu y SoundBender, sin inventar reglas nuevas |
 | `nu9ve-py`: semántica de CPython (`repr`, `round`, `json.dumps` con indentación, cadenas, `pathlib`, `datetime`) | `rust/` | Clipper `py.rs`, `pyval.rs`, `paths.rs`; nüün `nu9ve-time` | Mientras nüün y Clipper porten desde Python. Vectores generados por CPython |
 
@@ -119,6 +119,41 @@ Si el usuario quiere el corte también fuera de los repos: *Settings › Actions
 | **Stalker** | Contratos de Mac, interacción, avisos y archivos y `swift` (`2f67cc8`); `--check` en `scripts/check.sh`. Usa `AboutView` y `AppIdentity` | ~~Menú, Acerca de, `Info.plist` y modo QA~~ (`d5c48d7`). Sigue: la señal de grabación como contrato y la ruta de notarización | La señal de grabación (`sessionID` y epoch, propuesta en [navegador §7](suite-browser.md#7-contratos-nuevos)) y el reloj de sesión | [Stalker en la suite](../../stalker/docs/2026-11-18-suite-y-prioridades.md) |
 
 El primer paso de una app sin copia no mueve código: declarar en `vendor/nu9ve-core.paths` lo que ya sigue, fijarlo, poner `--check` en su gate y apuntar sus enlaces a la copia.
+
+<a id="sesiones-de-unificación"></a>
+## Sesiones de unificación
+
+Propuestas el 2026-11-22, tras revisar todos los repos el mismo día. Son sesiones **aquí, en el core**, que dejan una pieza lista para que las apps la tomen en sus propias sesiones. El orden es el recomendado; cada una es un cambio propio, con su prueba y su línea en el CHANGELOG.
+
+| # | Sesión | Qué deja | Quién la toma después | Condición |
+| --- | --- | --- | --- | --- |
+| U1 | **Hecho el 2026-11-22.** `sync-core.sh` para dos repos ([apps con y sin la parte privada §5](suite-modules.md#5-cómo-se-fija-inner-core)) | El script reconoce `nu9ve/core` y `nu9ve/inner-core` por `.nu9ve-repo`, con `--repo`, sin cambiar nada para quien no lo pasa; pruebas nuevas en `test-sync-core.sh` | Toda app que fije `inner-core` y el propio `inner-core`, que fija el core | Ninguna |
+| U2 | **Hecho el 2026-11-22.** Mudar `nu9ve-volumes` con `nu9ve-volume-v1` | El crate en `rust/`, con el marcador, los estados y el sobre del índice ([rust/README](../rust/README.md#volúmenes)); validar el índice como catálogo sigue en la app | nüün primero (la hace su sesión, que ya tiene el código); después nove, Atlas y Clipper para leer marcadores | El F0 de nüün, ya en `c85b881` |
+| U3 | Color en los skins de época ([tema](../contracts/nu9ve-theme-v1.md)) | Una opción «Época: Original o Con tu color» para Macintosh y Windows 9x, que acepta tu color y tu modo sin cambiar las medidas; por omisión, como hoy. En `Nu9veTheme`, `Nu9ve.Core` y vectores nuevos | Todas las apps con esos skins, al volver a fijar | Que el usuario apruebe la propuesta |
+| U4 | `Nu9veVision` en `swift/` | Detección con Apple Vision (caras, cabezas, personas, máscara de segmentación), con caché rápida y precisa y un formato de resultado común | video y Clipper | Leer bien las dos copias ([mapa](suite.md#lo-que-ya-se-repite-y-podría-compartirse)) y que sus sesiones acepten |
+| U5 | `Nu9veScore` en `swift/` | El compositor procedural, desde `ClipperScore`, con lo que sumó la copia de video | Clipper (app de origen) y video | Que la sesión de Clipper lo acepte mientras cierra su migración |
+| U6 | `nu9ve-music` en `rust/` | BPM, grid y clave, con vectores ([audio](platforms/audio.md)) | curado y SoundBender | Comparar antes las dos implementaciones, como se hizo con `nu9ve-loudness` |
+| U7 | F1 de [varias máquinas](suite-devices.md#10-fases) | `nu9ve-exchange-v1`, el agente `nu9ve` (identidad, emparejado, carpeta, avistamientos, pedidos) y su canal propio entre máquinas | nove, nüün | Pregunta 9 (quién instala el agente) y probar `nu9ve mcp` con un cliente real |
+| U8 | Guía de prácticas (`docs/practices.md`, Ola 2) | Lo que ya repiten cinco apps: QA aislada, instalación con respaldo, gate con `--check`, CHANGELOG | Todas | Ninguna |
+
+**En las apps, a la par:** la prioridad es **nove como base de los flujos de Atlas** (misiones, tandas, baches, tramos, tráfico), para que en el corto plazo nove haga todo eso nativo y en red con nüün. Atlas sólo hace lo urgente de F0 y queda como laboratorio (decisión del usuario, 2026-11-22; ya estaba en nove A49).
+
+### Copias fijadas al 2026-11-22
+
+Leído en cada repo el 2026-11-22, con el core en `4c40464`. Volver a fijar es un cambio propio en cada app, cuando le convenga.
+
+| App | Core fijado | Estado del repo |
+| --- | --- | --- |
+| nüün | `4c40464` (al día) | Limpio. F0 en `c85b881` |
+| curado | `1114e02` | 61 archivos sin commit: está mudando su lectura MIDI a `nu9ve-midi` |
+| Clipper | `c1c8444` | Un archivo sin commit; cerrando su migración |
+| nove | `39c1b9b` | Limpio. Su `--check` ya avisa que el core cambió |
+| SoundBender | `bcd8d43` | Un commit sin subir |
+| kyu, Fractos (`ios-fractos`) | `9cd8a82` | Limpios |
+| Stalker | `2f67cc8` | Limpio |
+| neuf | `a70b717` | Un archivo sin commit; en pausa hasta que Clipper cierre |
+| Atlas, video | Sin copia | Atlas activo (tráfico por tramo, `d09d5b3`); video activo |
+| Web de Fractos (`nu9ve.xyz`) | Sin copia | Tres commits sin subir y 20 archivos sin commit en `develop` |
 
 ## Inventario por app
 
