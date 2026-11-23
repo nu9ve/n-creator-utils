@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-22, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-23, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -113,7 +113,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ## Suite: de F0 a F1
 
-Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [en STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22). Esto es lo que falta, en orden. **Sin código todavía en F1.**
+Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [en STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22). Esto es lo que falta, en orden. F1 empezó el 2026-11-23 con el agente.
 
 ### Cerrar F0
 
@@ -126,19 +126,19 @@ Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [e
 2. **Otra Mac y Windows**: los [pasos exactos](docs/STATUS.md#pendientes-físicos-de-f0) los corre el usuario.
 3. Pulir la ventana de adopción: decir qué hará F1 con lo adoptado. La fecha local ya está.
 
-### F1 · Registrarse en la suite y servir `data_catalog`
+### F1 · Agente, registro, `data_catalog` y leases
 
-Hoy el motor sólo habla por stdio con la app (`rpc-serve`), y por [`nu9ve-registry-v1` §3](vendor/nu9ve-core/contracts/nu9ve-registry-v1.md#3-transporte) **no se registra** hasta servir un socket o un pipe. Lo que le falta:
+**Hecho el 2026-11-23** ([STATUS](docs/STATUS.md#suite-f1-con-el-agente--2026-11-23)): core en `1d11d30`, agente en
+Ajustes (`nu9ve agent state` e `install --by nuun`), `device.json` del agente, socket registrable con `data_catalog`
+y `data_export`, colecciones por dispositivo y «Trabajar aquí». Lo que sigue, en orden:
 
-1. **Un canal propio por proceso**, además de stdio, con las reglas de [`nu9ve-engine-v1` §9](vendor/nu9ve-core/contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario):
-   - socket Unix en una carpeta privada del estado (`<estado>/runtime/ipc`, carpeta `0700`, socket `0600`), nunca TCP ni `localhost`;
-   - en cada conexión, el uid del par con `getpeereid` y un plazo de E/S (2 s, como nove). Los límites de §1 antes de leer;
-   - modo **marcos, un marco por conexión**, que ya tiene `nu9ve-engine` (`serve_frames`). Sólo lecturas: `engine_info`, `data_catalog` y, más adelante, las herramientas MCP de sólo lectura. Nada que copie, limpie o libere entra por ahí;
-   - en Windows, un named pipe con nombre nuevo en cada arranque, DACL del usuario, `FILE_FLAG_FIRST_PIPE_INSTANCE` y `PIPE_REJECT_REMOTE_CLIENTS`, publicado en `runtime/ipc-pipe.json`.
-2. **Quién lo sirve.** El lector persistente que ya abre la app (`rpc-serve`) es el candidato: vive lo mismo que la app y ya tiene el catálogo abierto en sólo lectura. Un daemon aparte queda fuera, como dice `AGENTS.md`.
-3. **El registro** (`nu9ve-ipc`, ya en el core): escribir `~/Library/Application Support/nu9ve/engines/nuun.json` al abrir el socket, con `pid` y `process_start_us` leídos del sistema y `capabilities: ["data_catalog_v1"]`. Borrarlo al cerrar. Con `NU9VE_ENGINES_DIR` en pruebas y QA, y nunca con `NU9VE_SANDBOX` ni con una raíz de QA.
-4. **`data_catalog`**: el mismo generador que el índice del disco (proyectos, raíces con `volume_id`, datasets por proyecto y carpeta), paginado con `cursor` y `limit` sobre el catálogo local, más las colecciones de `storage_collections` (`~/.claude`, `~/.codex`) como `files`/`personal`. Lo `personal` va sólo con su forma salvo que la persona lo pida ([data §6](vendor/nu9ve-core/contracts/nu9ve-data-v1.md#6-privacidad)). Pruebas con los vectores de `data/data-examples-v1.json` y la referencia de Python del core.
-5. **Pruebas:** un cliente de otro usuario rechazado, un socket con permisos de grupo rechazado por el cliente, un registro viejo (pid reutilizado) ignorado, y `nu9ve mcp` leyendo el catálogo de nüün en QA.
+1. Aceptación en ventana (Ajustes → Suite, Proyectos → «Trabajar aquí») en el sandbox con un agente de QA, e
+   instalar la build.
+2. F0 en la M4 ([pasos](docs/STATUS.md#pendientes-físicos-de-f0)), y después emparejar M1 y M4.
+3. La colección Agentes (`~/.claude`, `~/.codex`) en `data_catalog` como `files`/`personal`, y una colección viva
+   por dispositivo para respaldarla en MEDIA (la clave conocida `conversaciones` la acepta la persona).
+4. Windows: named pipe con las reglas de motor §9 para registrarse.
+5. Leer el estado de lease al abrir un proyecto y dejarlo en sólo lectura cuando otra máquina es la dueña.
 
 ### F1 · Diarios de decisiones ([§6.4](vendor/nu9ve-core/docs/suite-devices.md#nüün-en-dos-macs))
 

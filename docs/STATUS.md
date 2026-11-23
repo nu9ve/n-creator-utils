@@ -1,6 +1,6 @@
 # Estado vigente
 
-Actualizado: 2026-11-22, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
+Actualizado: 2026-11-23, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
 
 Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área** (estado, evidencia, pendiente) y se agrega, como mucho, una entrada corta en «Entregas recientes». Cuando esa sección pase de ~5 entradas, las más viejas se mueven a la bitácora de `releases/`.
 
@@ -9,7 +9,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | Qué | Valor |
 | --- | --- |
 | App instalada | `~/Applications/nuun.app`, **0.2.0 / `52799d3152fa`** (17 nov, desde `fd61a8c`), build de depuración con firma ad-hoc verificada (app y `nuun-engine`), mínimo macOS 15. El motor empaquetado responde `nu9ve-engine/1` y su `snapshot` del catálogo diario devolvió 47 jobs. Build anterior `43a7ad4eb289` en `app-backups/d84f22cf.app`. |
-| Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE): Python **409**, Rust **187** (164 + 23 diferenciales), Swift **29** (17 nov, antes de instalar). Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
+| Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE) (`1d11d30`): Python **415**, Rust **195** (172 + 23 diferenciales), Swift **32** (23 nov, F1; sin instalar). `tests/suite_lease.rs` necesita antes `cargo build -p nu9ve-mcp --bin nu9ve`. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
 | Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
 | Motor en Windows | 16 nov, Windows 11 con Rust 1.99.1: compila, **141 pruebas** (15 omitidas: diferenciales y doradas, sin Python en el PC), fmt y clippy limpios. Pruebas C# del cliente **38 de 38** contra el binario real. [Compilación](#el-motor-vuelve-a-compilar-y-pasar-en-windows--2026-11-16) · [ingreso en la ventana](#ingreso-desde-la-ventana-de-windows--2026-11-16) |
 | Instalar | `scripts/install_media_app.py`; se niega si la app está abierta (correcto: no se cierra por el usuario) |
@@ -115,6 +115,49 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
   propio, como la referencia. `nu9ve-time` se queda aquí hasta que otra app lo
   necesite.
 
+## Suite F1 con el agente · 2026-11-23
+
+Seis pasos, un commit cada uno, todos con pruebas en carpetas de QA (`NU9VE_AGENT_DIR`, `NU9VE_DEVICE_FILE`,
+`NU9VE_ENGINES_DIR`, `NU9VE_VOLUMES_DIR`, `HOME` temporal). No se tocó el agente instalado en la M1 (0.2.2,
+`installed_by: installer`), su `device.json`, el llavero ni los LaunchAgents. Sin instalar la app ni aceptar en
+ventana todavía.
+
+1. **Core en `1d11d30`** (`ce7e781`): la copia suma `rust/nu9ve-mcp`, `nu9ve-ipc`, `nu9ve-device` y
+   `nu9ve-exchange`. Gate: `sync-core.sh --check`, `check-boundary.sh`, cargo 161, Swift 29, Python 415, dorado.
+2. **Agente en Ajustes** (`9930fd5`): el bundle lleva `Resources/backend/nu9ve` (compilado con
+   `engine/Cargo.lock`, `cargo build -p nu9ve-mcp --bin nu9ve`). Al arrancar y al abrir Ajustes, `nu9ve agent
+   state`; Ajustes → Suite muestra `absent`, `installed`, `running` u `outdated` y ofrece «Instalar el agente»,
+   «Actualizar» (`agent install --by nuun`, sólo al pulsarlo) o «Arrancar» (`launchctl kickstart` del arranque
+   instalado). Nunca `serve`. Prueba Swift con el binario real en QA: `absent` → instalar → `installed`, `keep`.
+3. **`device.json` del agente** (`680554f`): con un `agent.json` válido (reglas de `nu9ve_mcp::agent`), nüün lee y
+   renombra el mismo archivo pero no lo crea (`agent_device`) ni reemplaza uno copiado (`copied_device`). Sin agente
+   lo sigue creando. Unitarias y `tests/suite_agent.rs` por `rpc`.
+4. **Transporte registrable** (`0c21510`): mientras corre `rpc-serve`, un socket Unix en marcos con las reglas de
+   motor §9 sirve `data_catalog` y `data_export`, registrado como `nuun` (`nuun-suite/1`). Bajo QA sólo con
+   `NU9VE_ENGINES_DIR`. El catálogo sale del catálogo local y del último índice publicado de cada disco (ahora
+   también en `suite-volumes/<volume_id>-index.json`), con raíces por `volume_id`, y de las colecciones vivas.
+   `data_export` responde `too_large` con disco y ruta, o `not_found`: nunca bytes. Validadores del core:
+   `data-examples.py --server` 11/11 y `export-examples.py --server` 8/8 (con `suite-frames`). A mano en QA,
+   `nu9ve agent publish` escribió `catalog/nuun.json` leyendo este registro, y el registro se borró al cerrar.
+5. **Colecciones por dispositivo** (`8ae733a`): una colección viva nueva va a `<carpeta>/<device_id>/…`; una que ya
+   está en el catálogo conserva su carpeta. Sin identidad, no hay colección nueva. Python y el dorado sin cambios.
+6. **«Trabajar aquí»** (`918a53f`): `suite_lease` llama `lease_take`, `lease_release` y `leases` del motor `suite`.
+   En Proyectos, con el agente corriendo, el menú ofrece «Trabajar aquí» o «Dejar de trabajar aquí» y el resumen
+   dice quién trabaja el proyecto. `tests/suite_lease.rs` con `nu9ve agent serve` real en QA.
+
+Pendiente: Windows (sin named pipe, no se registra), la colección Agentes (`storage_collections`) en
+`data_catalog`, el rechazo de un cliente de otro usuario (sin probar: hace falta otro usuario), aceptación en
+ventana, y [notas para el core](#notas-para-la-sesión-del-core-f1).
+
+### Notas para la sesión del core (F1)
+
+- El motor `suite` de `nu9ve agent serve` no comprueba el uid del par en cada conexión (`agent/suite.rs`,
+  `start`), como pide motor §9; el socket es `0600` en una carpeta `0700`, así que hoy no se nota.
+- `ask_to_stop` busca el socket del agente dentro de su carpeta (`path.starts_with(dir)`), pero cuando la ruta es
+  larga el socket va en `$TMPDIR/nu9ve-<hash>/suite.sock`: ahí `install` no le pediría parar por el motor.
+- Intermitente previo, no de F1: `nuun-media integrations::tests::failures_stay_local_and_carry_pythons_messages`
+  falló 1 de 8 corridas bajo carga (el Clipper falso agota sus 3 s).
+
 ### Pendientes físicos de F0
 
 Los corre el usuario. Ninguno escribe en el disco salvo donde se dice.
@@ -130,13 +173,26 @@ Los corre el usuario. Ninguno escribe en el disco salvo donde se dice.
 6. Mismo comando con `"method":"suite_observe_volume"`: `current_fs.serial` debe ser lo que dio `vol`. Recuerda ese serial en `$TEMP/nuun-f0/suite-volumes/`, lo único que escribe y fuera del disco. Repetirlo debe dar `ok` otra vez.
 7. Anotar aquí el serial, el estado y si el disco se montó con otro nombre.
 
-**Otra Mac (M4)** (adopción en una máquina sin el catálogo de la M1):
+**Otra Mac (M4)** (adopción en una máquina sin el catálogo de la M1). Nada escribe en los discos:
 
-1. En la M4, `git pull` de `n-creator-utils` y build con `scripts/install_media_app.py` (o con `scripts/sandbox.py open --app` si no se quiere tocar la nüün de la M4).
-2. Abrir Ajustes → Discos. Sin `device.json`, el nombre aparece vacío. Escribir «M4» y pulsar «Guardar nombre»: crea `~/Library/Application Support/nu9ve/device.json` con un `device_id` distinto de `5577236d…`.
-3. Conectar MEDIA502 y luego ESSD. «Adoptar este disco…» con cada raíz. Esperado: los mismos conteos que arriba, snapshot verificado en MEDIA502 y estado `ok` (mismo sistema que el que registró, mismo serial).
-4. Antes y después: `shasum -a 256 /Volumes/MEDIA502/.nu9ve/volume.json /Volumes/MEDIA502/.nu9ve/apps/nuun/index.json` (y lo mismo en ESSD). Deben ser iguales.
-5. Anotar aquí la versión de macOS, el nombre con que montó cada disco y cualquier aviso.
+1. En la M4, `git pull` de `n-creator-utils` y build con `scripts/install_media_app.py` (o
+   `scripts/sandbox.py open --app` para no tocar la nüün de la M4). El bundle trae `backend/nu9ve`.
+2. Ajustes → Suite: anotar el estado del agente. Si dice «no está instalado», decidir:
+   - **Sin agente** (F0 tal cual): Ajustes → Discos, escribir «M4» y «Guardar nombre». nüün crea
+     `~/Library/Application Support/nu9ve/device.json` con un `device_id` distinto de `5577236d…`.
+   - **Con agente**: «Instalar el agente» (instala `nu9ve` con su LaunchAgent `xyz.nu9ve.agent`). El agente crea
+     `device.json`; nüün sólo lo nombra («M4» en Ajustes → Discos). Si el agente no corre, «Arrancar».
+3. `cat ~/Library/Application\ Support/nu9ve/device.json`: `device_id` nuevo, `name` «M4», permisos `0600`.
+4. Antes de adoptar: `shasum -a 256 /Volumes/MEDIA502/.nu9ve/volume.json /Volumes/MEDIA502/.nu9ve/apps/nuun/index.json`
+   (y lo mismo en ESSD).
+5. Conectar MEDIA502 y luego ESSD. Ajustes → Discos → «Adoptar este disco…» con cada raíz. Esperado:
+   - MEDIA502: 7 666 archivos en 27 grupos, 23 proyectos, snapshot del catálogo verificado, estado `ok`;
+   - ESSD: 1 960 archivos en 3 grupos, 3 proyectos, sin snapshot;
+   - mismo sistema que el que registró y mismo serial, así que `ok` y no `suspect`.
+6. Repetir el `shasum` del paso 4: debe ser igual.
+7. Con el agente corriendo, opcional: `~/Library/Application\ Support/nu9ve/agent/nu9ve agent status` muestra la
+   huella de la M4, que se compara con la de la M1 para emparejarlas (lo decide la persona).
+8. Anotar aquí la versión de macOS, el estado del agente, el nombre con que montó cada disco y cualquier aviso.
 
 
 ## Límites conocidos (vigentes)
