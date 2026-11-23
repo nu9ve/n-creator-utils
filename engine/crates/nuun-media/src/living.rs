@@ -182,6 +182,46 @@ pub fn device_folder(
     Ok(params)
 }
 
+/// `include`: only these first-level names (`*` globs) of the source are part of the collection, as an agent's
+/// history inside its folder. Inside them, links and special files are skipped and counted, never followed.
+fn include_of(params: &Value) -> Result<Option<Vec<String>>> {
+    let Some(value) = params.get("include").filter(|v| !v.is_null()) else {
+        return Ok(None);
+    };
+    let patterns: Option<Vec<String>> = value
+        .as_array()
+        .filter(|a| !a.is_empty() && a.len() <= 32)
+        .and_then(|a| {
+            a.iter()
+                .map(|p| {
+                    p.as_str()
+                        .filter(|s| !s.is_empty() && s.len() <= 128 && !s.contains('/'))
+                        .map(str::to_owned)
+                })
+                .collect()
+        });
+    patterns.map(Some).ok_or_else(|| {
+        Error::new(
+            "invalid_request",
+            "'include' takes 1 to 32 first-level names",
+        )
+    })
+}
+
+/// The first-level entries of a source with their kind, without following links, sorted by name.
+fn top_level(root: &Path) -> Result<Vec<(String, nu9ve_volumes::EntryKind)>> {
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(root).map_err(|e| nu9ve_volumes::fs::io_error(e, root))? {
+        let entry = entry.map_err(|e| nu9ve_volumes::fs::io_error(e, root))?;
+        let Ok(name) = entry.file_name().into_string() else {
+            continue;
+        };
+        out.push((name, nu9ve_volumes::stamp(&entry.path())?.kind));
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(out)
+}
+
 pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     require(
         params.as_object().is_some_and(|p| {
@@ -193,6 +233,7 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
                     "name",
                     "progress_id",
                     "batch_managed",
+                    "include",
                 ]
                 .contains(&k.as_str())
             })
@@ -203,6 +244,7 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
     let root = source(required(params, "source")?)?;
     let folder = required(params, "folder")?;
     folder_ok(folder)?;
+    let include = include_of(params)?;
     let catalog = Catalog::open(home)?;
     let record = catalog.volume(required(params, "archive")?)?;
     require(
@@ -245,7 +287,13 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
     let target = Root::open(archive)?;
     let (mut new, mut changed, mut present) = (Vec::new(), Vec::new(), BTreeSet::new());
     let (mut same, mut same_bytes, mut bytes) = (0, 0, 0);
-    crate::coverage::walk(&origin, "", |path, size| {
+    let mut skipped_links = 0usize;
+    let mut visit = |path: String, size: Option<u64>| -> Result<()> {
+        if size.is_none() && include.is_some() {
+            // A collection of some entries (an agent's history) skips links inside them instead of failing.
+            skipped_links += 1;
+            return Ok(());
+        }
         require(
             size.is_some(),
             "unsafe_file",
@@ -289,7 +337,30 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
             progress.report()?;
         }
         Ok(())
-    })?;
+    };
+    match &include {
+        None => crate::coverage::walk(&origin, "", &mut visit)?,
+        Some(patterns) => {
+            for (name, kind) in top_level(&root)? {
+                if !patterns
+                    .iter()
+                    .any(|p| crate::agent_storage::glob(p, &name))
+                {
+                    continue;
+                }
+                match kind {
+                    nu9ve_volumes::EntryKind::Dir => {
+                        crate::coverage::walk(&origin, &name, &mut visit)?
+                    }
+                    nu9ve_volumes::EntryKind::File => {
+                        let size = origin.stat(&name)?.map(|s| s.size);
+                        visit(name, size)?;
+                    }
+                    _ => visit(name, None)?,
+                }
+            }
+        }
+    }
     let gone: Vec<_> = known
         .keys()
         .filter(|path| !present.contains(*path))
@@ -309,6 +380,10 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
         "gone_from_source":gone.iter().take(1000).collect::<Vec<_>>(),"gone_count":gone.len(),"bytes":bytes,
         "free":info["free"],"ableton":external(&root,&crate::reads::living_collections(&catalog)?,&cid)?,
         "state":"review","done":{}});
+    if let Some(patterns) = &include {
+        value["include"] = json!(patterns);
+        value["skipped_links"] = json!(skipped_links);
+    }
     if params["batch_managed"] == true {
         if value["new"].as_array().is_some_and(Vec::is_empty)
             && value["changed"].as_array().is_some_and(Vec::is_empty)

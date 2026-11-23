@@ -147,8 +147,13 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 23] = [
+const NATIVE: [&str; 28] = [
     "suite_device",
+    "conversations_settings",
+    "conversations_status",
+    "conversations_backup_plan",
+    "conversations_backup_apply",
+    "conversations_run",
     "volume_apps",
     "work_copies",
     "work_copy_plan",
@@ -291,6 +296,8 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
 fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
     writes.push("suite_device");
+    // Only the catalog: which conversations may leave, to which disk, and when (the person's decision).
+    writes.push("conversations_settings");
     // «Trabajar aquí» through the suite agent; without it the answer says so and nothing changes.
     writes.push("suite_lease");
     if has_backend {
@@ -326,6 +333,9 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
                 "dng_apply",
                 "living_plan",
                 "living_apply",
+                "conversations_backup_plan",
+                "conversations_backup_apply",
+                "conversations_run",
                 "collection_release_plan",
                 "collection_release_apply",
             ]);
@@ -343,6 +353,33 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
         }
     }
     writes
+}
+
+/// This device's id for a new per-device folder, or why there is none (the error travels inside, so a collection
+/// already in the catalog still plans without it).
+fn this_device(isolated: bool) -> Result<std::result::Result<String, Error>> {
+    let device = nuun_media::suite_device::current(isolated, &json!({}))?;
+    Ok(match device["state"].as_str() {
+        Some("ok") => Ok(device["device"]["device_id"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned()),
+        _ => Err(Error::new(
+            "device_unavailable",
+            device["message"]
+                .as_str()
+                .unwrap_or("A device identity is required for a new collection"),
+        )),
+    })
+}
+
+/// The person's home folder, where the agents keep their history (`HOME`, `USERPROFILE` on Windows).
+fn user_home() -> Result<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .ok_or_else(|| Error::new("internal_error", "No home folder"))
 }
 
 /// This platform's volume backend, or `not_ported` so the client can ask the Python engine instead.
@@ -367,8 +404,9 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 19] = [
+const ONCE_READS: [&str; 20] = [
     "suite_adopt_volume",
+    "conversations_status",
     "volume_apps",
     "work_copies",
     "missions_archived_review",
@@ -714,22 +752,42 @@ impl Engine {
             #[cfg(target_os = "macos")]
             "living_plan" => {
                 // A new collection keeps one folder per device; the device is created if this machine has none.
-                let device = nuun_media::suite_device::current(isolated, &json!({}))?;
-                let device = match device["state"].as_str() {
-                    Some("ok") => Ok(device["device"]["device_id"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_owned()),
-                    _ => Err(Error::new(
-                        "device_unavailable",
-                        device["message"]
-                            .as_str()
-                            .unwrap_or("A device identity is required for a new collection"),
-                    )),
-                };
-                let params = nuun_media::living::device_folder(&self.home(), params, device)?;
+                let params = nuun_media::living::device_folder(
+                    &self.home(),
+                    params,
+                    this_device(isolated)?,
+                )?;
                 nuun_media::living::plan(&self.home(), write_backend(platform)?, &params)
             }
+            "conversations_settings" => nuun_media::conversations::settings(&self.home(), params),
+            "conversations_status" => {
+                nuun_media::conversations::status(&self.home(), &user_home()?)
+            }
+            #[cfg(target_os = "macos")]
+            "conversations_backup_plan" => nuun_media::conversations::backup_plan(
+                &self.home(),
+                write_backend(platform)?,
+                &user_home()?,
+                this_device(isolated)?,
+                params,
+            ),
+            #[cfg(target_os = "macos")]
+            "conversations_backup_apply" => nuun_media::conversations::backup_apply(
+                &self.home(),
+                write_backend(platform)?,
+                isolated,
+                &user_home()?,
+                params,
+            ),
+            #[cfg(target_os = "macos")]
+            "conversations_run" => nuun_media::conversations::run(
+                &self.home(),
+                write_backend(platform)?,
+                isolated,
+                &user_home()?,
+                this_device(isolated)?,
+                params,
+            ),
             #[cfg(target_os = "macos")]
             "living_apply" => {
                 nuun_media::living::apply(&self.home(), write_backend(platform)?, params)

@@ -148,7 +148,7 @@ const ROOTS: [(&str, &str, &[&str], Rules); 3] = [
 ];
 
 /// `fnmatch.fnmatchcase` for the patterns above, which only use `*`.
-fn glob(pattern: &str, name: &str) -> bool {
+pub(crate) fn glob(pattern: &str, name: &str) -> bool {
     let (p, n) = (pattern.as_bytes(), name.as_bytes());
     let (mut i, mut j, mut star, mut mark) = (0, 0, None, 0);
     while j < n.len() {

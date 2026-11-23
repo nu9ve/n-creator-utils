@@ -20,6 +20,8 @@ Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, f
 
 [Copias entre discos de trabajo](suite-work-copy-v1.md), 2026-11-23, propuesta: copia verificada XSSD → ESSD con fechas, recibo `nuun-work-copy/1` en los dos discos y copias exactas de los índices de las demás apps en la carpeta de nüün, para que nove registre el destino sin hashear. [Diseño de los cuatro flujos](../features/suite-disks-flows.md).
 
+[Conversaciones por dispositivo](suite-conversations-v1.md), 2026-11-23, propuesta: historial de Claude Code, Codex y Claude (app) en `004_datos/conversaciones/<colección>/<device_id>/` de un MEDIA, con recibo por respaldo y copia de trabajo opcional para nove; sólo con decisión explícita por colección.
+
 ## Lectura vigente · 2026-11-06
 
 Clipper ya ofrece retiro editorial con desregistro en CLI/TUI; nüün conserva editables y observa deps frescos, sin invocar automáticamente retire. Atlas amplió su propuesta a A1–A10 (6 noviembre), todavía sin implementación nüün. Las filas y pedidos antiguos conservan su fecha: contrastar los «Pendiente» con los cierres posteriores antes de abrir trabajo nuevo. Prioridad operativa actual en [PLAN](../../PLAN.md); no confundir adopción en fixtures con aceptación física.

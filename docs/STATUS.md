@@ -176,6 +176,19 @@ conversaciones por dispositivo, sugerencias al conectar, otras Macs por el agent
    los dos discos. Pruebas con discos de mentira (marcadores y seriales de fixture, `HOME` y catálogo temporales):
    copia con fechas conservadas, interrupción y reanudación, adopción de lo idéntico, conflicto, rol `archive`,
    rutas reservadas y disco cambiado entre revisión y copia. Sin ventana todavía; sin prueba física.
+2. **Conversaciones por dispositivo** ([contrato](contracts/suite-conversations-v1.md)): `conversations_settings`
+   (decisión explícita por colección y, aparte, para la copia de trabajo, con fecha), `conversations_status`,
+   `conversations_backup_plan`/`_apply` y `conversations_run` (`now`, o `due` sólo en modo automático). Respaldo como
+   colección viva con `include` (sólo historial; enlaces saltados y contados) en
+   `004_datos/conversaciones/<colección>/<device_id>/`, recibo `nuun-conversations-backup/1` y copia de trabajo
+   verificada `nuun-conversations-working/1`. Pruebas: 2 unitarias con un `HOME` de mentira (credenciales, ajustes,
+   cachés y SQLite de Codex no salen; versión al crecer una sesión; nada a un `archive` como copia de trabajo).
+3. **QA de punta a punta** (2026-11-23, raíz de QA propia con `NU9VE_*`, `HOME` y catálogo aislados; imágenes
+   dispersas QA-MEDIA exFAT, QA-ESSD HFS+ y QA-XSSD exFAT montadas): `suite_register_volume` en las dos de trabajo;
+   `volume_apps` leyó el índice de nove; `work_copy_plan`/`_apply` copiaron 2 archivos con SHA-256 y fecha iguales,
+   el recibo es el mismo en los dos discos y la copia exacta de `inplace-v1.json` coincide; ESSD sin
+   `.nu9ve/apps/nove`. Respaldo de `claude-code` y `codex` a QA-MEDIA con su copia de trabajo en QA-ESSD; sin
+   credenciales ni cachés; `due` pasó a falso. El sandbox de otra sesión (5 imágenes montadas) no se tocó.
 
 ### Notas para la sesión del core (F1)
 

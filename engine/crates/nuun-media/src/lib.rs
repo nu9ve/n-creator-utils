@@ -11,6 +11,7 @@ mod clipper_release;
 pub mod closeout;
 #[cfg(target_os = "macos")]
 pub mod collection_release;
+pub mod conversations;
 pub mod coverage;
 pub mod delivery;
 pub mod devices;

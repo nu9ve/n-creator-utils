@@ -22,6 +22,8 @@ Actualizado: 2026-11-23. Pedido del usuario del mismo día: con dos Macs (la M4 
 
 ## 2. Respaldo de conversaciones por dispositivo
 
+**Hecho en el motor** ([contrato y formatos para nove](../contracts/suite-conversations-v1.md)): `conversations_settings`, `conversations_status`, `conversations_backup_plan`, `conversations_backup_apply` y `conversations_run`; `living_plan` gana `include`.
+
 Colecciones conocidas, cada una con sólo su **historial** (la clase `history` de `storage_collections`). Nunca credenciales, ajustes, cachés ni registros:
 
 | Colección | Raíz | Entra |
