@@ -97,7 +97,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ## P3 · robustez y distribución
 
-- **Identidad portable F0:** registro, publicación y adopción de sólo lectura comprobados con MEDIA502 y ESSD. Próximos gates: otra Mac y Windows. La extracción de `nu9ve-volumes` al core va en un cambio de suite propio. [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
+- **Identidad portable F0:** registro, publicación y adopción de sólo lectura, aceptados en ventana con MEDIA502 y ESSD; `nu9ve-volumes` ya vive en nu9ve/core. Falta: el índice por proyecto, la otra Mac y Windows ([F0 → F1](#suite-de-f0-a-f1)). [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
 - Digest de plan autenticado o reverificación en `apply`; owner/lease de jobs.
 - Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
@@ -110,6 +110,47 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
   4. Firma e instalación del MSIX y del Setup en una máquina limpia.
 - **Motor en Rust: adoptado por el usuario el 2026-11-09.** [Análisis](docs/platforms/rust-engine.md). Razones: distribución sin Python, un motor para Windows y Mac, piezas compartidas con nove y curado. **No** la velocidad de verificación (medido: SHA-256 a 1,67 GB/s en Rust y .NET; el disco manda). Python es el oráculo hasta la paridad de cada método. Orden de trabajo en [Motor en Rust · ruta](#motor-en-rust--ruta).
 - **MCP** ([contrato v1](vendor/nu9ve-core/contracts/nu9ve-mcp-v1.md)): que `media mcp` pida al lector persistente en vez de abrir el catálogo, `serverInfo` `nuun`, campos `_untrusted`, `show_in_app` para un proyecto o un plan revisado y `docs/mcp.md`. Nunca copiar, limpiar ni liberar por MCP.
+
+## Suite: de F0 a F1
+
+Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [en STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22). Esto es lo que falta, en orden. **Sin código todavía en F1.**
+
+### Cerrar F0
+
+1. **Índice por proyecto** (decisión del usuario, 2026-11-22; [decisión abierta 4 de `nu9ve-volume-v1` §13](vendor/nu9ve-core/contracts/nu9ve-volume-v1.md#13-decisiones-abiertas)). Hoy `index.json` lleva un dataset por archivo: MEDIA502 tiene 7 666 de unos 698 B, 5,1 MiB de 8, con el disco al 57 %. Sin cambios, el tope llega hacia las 12 000 entradas y el disco lleno serían unas 13 400. Con otra ráfaga como la del 8 nov (3 622) se pasa. El cambio:
+   - un dataset por **proyecto × carpeta de primer nivel** (`001_raw/…`, `005_produccion/…`) y modalidad, con `size.items` y `size.bytes` sumados, `updated_at` el más reciente y `state` el peor de sus archivos. Lo que no tiene proyecto va a un dataset por carpeta;
+   - el detalle por archivo (hash, ruta, verificación) sigue en el snapshot del catálogo de `.ncreator/catalog-backups/`, que la adopción ya comprueba por SHA-256;
+   - no cambia el contrato: `nu9ve-data-v1` no dice que un dataset sea un archivo. Lo que sí sube es el `contract` interno de nüün en el índice, para que un lector viejo lo reconozca;
+   - medir antes y después: MEDIA502 debería bajar a decenas de KB y crecer con los proyectos, no con los archivos;
+   - la adopción sigue leyendo conteos y proyectos igual; «Adoptar este disco…» muestra datasets y archivos por separado.
+2. **Otra Mac y Windows**: los [pasos exactos](docs/STATUS.md#pendientes-físicos-de-f0) los corre el usuario.
+3. Pulir la ventana de adopción: fecha local en lugar de ISO UTC, y decir qué hará F1 con lo adoptado.
+
+### F1 · Registrarse en la suite y servir `data_catalog`
+
+Hoy el motor sólo habla por stdio con la app (`rpc-serve`), y por [`nu9ve-registry-v1` §3](vendor/nu9ve-core/contracts/nu9ve-registry-v1.md#3-transporte) **no se registra** hasta servir un socket o un pipe. Lo que le falta:
+
+1. **Un canal propio por proceso**, además de stdio, con las reglas de [`nu9ve-engine-v1` §9](vendor/nu9ve-core/contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario):
+   - socket Unix en una carpeta privada del estado (`<estado>/runtime/ipc`, carpeta `0700`, socket `0600`), nunca TCP ni `localhost`;
+   - en cada conexión, el uid del par con `getpeereid` y un plazo de E/S (2 s, como nove). Los límites de §1 antes de leer;
+   - modo **marcos, un marco por conexión**, que ya tiene `nu9ve-engine` (`serve_frames`). Sólo lecturas: `engine_info`, `data_catalog` y, más adelante, las herramientas MCP de sólo lectura. Nada que copie, limpie o libere entra por ahí;
+   - en Windows, un named pipe con nombre nuevo en cada arranque, DACL del usuario, `FILE_FLAG_FIRST_PIPE_INSTANCE` y `PIPE_REJECT_REMOTE_CLIENTS`, publicado en `runtime/ipc-pipe.json`.
+2. **Quién lo sirve.** El lector persistente que ya abre la app (`rpc-serve`) es el candidato: vive lo mismo que la app y ya tiene el catálogo abierto en sólo lectura. Un daemon aparte queda fuera, como dice `AGENTS.md`.
+3. **El registro** (`nu9ve-ipc`, ya en el core): escribir `~/Library/Application Support/nu9ve/engines/nuun.json` al abrir el socket, con `pid` y `process_start_us` leídos del sistema y `capabilities: ["data_catalog_v1"]`. Borrarlo al cerrar. Con `NU9VE_ENGINES_DIR` en pruebas y QA, y nunca con `NU9VE_SANDBOX` ni con una raíz de QA.
+4. **`data_catalog`**: el mismo generador que el índice del disco (proyectos, raíces con `volume_id`, datasets por proyecto y carpeta), paginado con `cursor` y `limit` sobre el catálogo local, más las colecciones de `storage_collections` (`~/.claude`, `~/.codex`) como `files`/`personal`. Lo `personal` va sólo con su forma salvo que la persona lo pida ([data §6](vendor/nu9ve-core/contracts/nu9ve-data-v1.md#6-privacidad)). Pruebas con los vectores de `data/data-examples-v1.json` y la referencia de Python del core.
+5. **Pruebas:** un cliente de otro usuario rechazado, un socket con permisos de grupo rechazado por el cliente, un registro viejo (pid reutilizado) ignorado, y `nu9ve mcp` leyendo el catálogo de nüün en QA.
+
+### F1 · Diarios de decisiones ([§6.4](vendor/nu9ve-core/docs/suite-devices.md#nüün-en-dos-macs))
+
+Cada Mac escribe lo que decide y nüün junta los diarios de todas; el catálogo SQLite pasa a ser una caché que se reconstruye. Cómo serían:
+
+- **Dónde:** `devices/<device_id>/nuun/decisions.ndjson` en la carpeta de intercambio (`nu9ve-exchange-v1`, todavía sin contrato). Lo escribe sólo la Mac dueña de ese `device_id`, sólo añadiendo líneas; las demás lo leen.
+- **Una línea por decisión:** `{"seq":N,"device_id":…,"at":"…Z","kind":…,"key":…,"field":…,"value":…,"prev":<seq o null>}`. `seq` es el contador de esa Mac, sin huecos, y `prev` la última decisión que esa Mac vio sobre la misma clave y campo. Con eso se distingue «cambió después de ver lo otro» de «cambiaron a la vez».
+- **Qué entra:** crear un proyecto (clave común de [data §2](vendor/nu9ve-core/contracts/nu9ve-data-v1.md#2-clave-de-proyecto-común)), renombrarlo, asignar o quitar un asset, cerrar, publicar y los recibos nuevos por su ruta en el disco. **No entra** nada que libere o borre: eso se sigue decidiendo con los recibos verificados de los discos conectados. Un diario atrasado nunca autoriza borrar.
+- **Unir:** lo que se suma (asignar, añadir un recibo, crear con una clave nueva) se une sin preguntar. Dos valores para el mismo campo cuyos `prev` no se ven entre sí son un conflicto: nüün lo muestra con las dos Macs y sus fechas, y la persona elige. La elección es otra decisión en el diario de quien eligió.
+- **Reconstruir:** el catálogo local se puede rehacer con los índices de los discos más los diarios. Se prueba borrando el catálogo de QA y comparando el resultado con el original.
+- **Migrar:** el catálogo actual de la M1 se publica una vez como decisiones con `seq` desde 1, marcadas como importadas; la M4 empieza vacía y adopta.
+- **Antes de construirlo:** que el core cierre `nu9ve-exchange-v1` y el transporte (Syncthing de andamio), y que la [pregunta 9](vendor/nu9ve-core/docs/suite-devices.md#12-preguntas-para-el-usuario) (quién corre el agente) esté decidida.
 
 ## Auditoría del 2026-11-10 (propuestas, sin priorizar aquí)
 
