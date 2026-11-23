@@ -1007,3 +1007,4 @@
 "El agente instalado ya está al día" = "The installed agent is already up to date";
 "Agente %@ instalado" = "Agent %@ installed";
 "macOS no pudo arrancar el agente" = "macOS could not start the agent";
+"Lo crea el agente de la suite." = "The suite agent creates it.";

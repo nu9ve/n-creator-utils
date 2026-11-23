@@ -187,10 +187,41 @@ fn read(root: &Root, file: &str) -> Result<Option<Value>> {
     Ok(Some(device))
 }
 
+/// nu9ve-agent-v1 with nu9ve-device-v1 §9.2: once the suite agent is installed, `device.json` is its own. nüün
+/// reads it and renames it (the same file, §3), but never creates it nor replaces a copied one: the agent does.
+/// Under QA (`isolated`) only an agent folder given by `NU9VE_AGENT_DIR` counts, never this Mac's.
+fn agent_present(isolated: bool) -> bool {
+    if isolated && std::env::var_os("NU9VE_AGENT_DIR").is_none() {
+        return false;
+    }
+    nu9ve_mcp::agent::agent_dir().is_some_and(|dir| agent_json_ok(&dir))
+}
+
+/// The agent's `agent.json` in `dir` is valid (agent §2), with the agent's own rules.
+fn agent_json_ok(dir: &Path) -> bool {
+    use nu9ve_mcp::agent::install::{MAX_AGENT_JSON, agent_problem};
+    let mut bytes = Vec::new();
+    std::fs::File::open(dir.join("agent.json"))
+        .and_then(|file| file.take(MAX_AGENT_JSON as u64 + 1).read_to_end(&mut bytes))
+        .is_ok()
+        && agent_problem(&bytes).is_none()
+}
+
+#[cfg(test)]
 fn load(
     path: &Path,
     platform: Option<&str>,
     chosen_name: Option<&str>,
+) -> Result<(Value, Option<Value>)> {
+    load_with(path, platform, chosen_name, true)
+}
+
+/// `create`: false when the agent owns the file (`agent_present`).
+fn load_with(
+    path: &Path,
+    platform: Option<&str>,
+    chosen_name: Option<&str>,
+    create: bool,
 ) -> Result<(Value, Option<Value>)> {
     let parent = path
         .parent()
@@ -231,6 +262,16 @@ fn load(
                 .is_some_and(|known| *known != hash(&old["device_id"], id))
         })
     });
+    require(
+        create || existing.is_some(),
+        "agent_device",
+        "The suite agent creates this device's device.json",
+    )?;
+    require(
+        create || !copied,
+        "copied_device",
+        "device.json was copied from another machine; the suite agent replaces it",
+    )?;
     let mut device = if !copied && let Some(old) = &existing {
         if chosen_name.is_none() {
             return Ok((old.clone(), None));
@@ -310,10 +351,11 @@ pub fn current(isolated: bool, params: &Value) -> Result<Value> {
             if peek && !path.exists() {
                 return Err(Error::new("missing", "No device.json yet"));
             }
-            load(
+            load_with(
                 &path,
                 platform_id().as_deref().filter(|s| !s.is_empty()),
                 chosen.and_then(Value::as_str),
+                !agent_present(isolated),
             )
         });
     Ok(match outcome {
@@ -371,5 +413,54 @@ mod tests {
             "invalid_device"
         );
         assert_eq!(std::fs::read(&path).unwrap(), invalid);
+    }
+
+    #[test]
+    fn with_the_agent_nuun_reads_and_renames_but_never_creates_nor_replaces() {
+        let folder = tempfile::tempdir().unwrap();
+        let path = folder
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("nu9ve/device.json");
+        assert_eq!(
+            load_with(&path, Some("here"), None, false)
+                .unwrap_err()
+                .code,
+            "agent_device"
+        );
+        assert!(!path.exists());
+        // The agent wrote it (the same file and format, M1): nüün uses it as it is.
+        let (device, _) = load(&path, Some("here"), None).unwrap();
+        let (seen, _) = load_with(&path, Some("here"), None, false).unwrap();
+        assert_eq!(seen, device);
+        let (renamed, _) = load_with(&path, Some("here"), Some("M4"), false).unwrap();
+        assert_eq!(
+            (renamed["device_id"].clone(), renamed["name"].clone()),
+            (device["device_id"].clone(), json!("M4"))
+        );
+        // Copied from another machine: left for the agent, untouched.
+        let before = std::fs::read(&path).unwrap();
+        assert_eq!(
+            load_with(&path, Some("elsewhere"), None, false)
+                .unwrap_err()
+                .code,
+            "copied_device"
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+    }
+
+    #[test]
+    fn the_agent_is_present_only_with_a_valid_agent_json() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(!agent_json_ok(dir.path()));
+        std::fs::write(dir.path().join("agent.json"), b"{}").unwrap();
+        assert!(!agent_json_ok(dir.path()));
+        std::fs::write(
+            dir.path().join("agent.json"),
+            br#"{"contract":"nu9ve-agent/1","version":"0.2.2","build":"public","installed_at":"2026-11-22T22:00:00Z","installed_by":"nuun","binary":"nu9ve"}"#,
+        )
+        .unwrap();
+        assert!(agent_json_ok(dir.path()));
     }
 }

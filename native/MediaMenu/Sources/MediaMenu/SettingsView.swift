@@ -88,7 +88,9 @@ struct SettingsView: View {
                 Button("Guardar nombre") { model.renameSuiteDevice(deviceName) }
                     .disabled(model.busy || deviceName.trimmingCharacters(in: .whitespaces).isEmpty || deviceName == model.suiteDeviceName)
             }
-            Text(model.suiteDeviceName.isEmpty ? "Se crea al registrar el primer disco en la suite." : "Así lo ve la suite en los discos que registra esta máquina.")
+            // With the agent installed, device.json is its own: nüün reads and renames it, never creates it (device §9.2).
+            Text(!model.suiteDeviceName.isEmpty ? "Así lo ve la suite en los discos que registra esta máquina."
+                 : ["absent", "unavailable"].contains(model.suiteAgent.state) ? "Se crea al registrar el primer disco en la suite." : "Lo crea el agente de la suite.")
                 .font(.caption).foregroundStyle(.secondary)
             ForEach(model.volumes, id: \.["id"].string) { value in
                 HStack(alignment: .top) {
