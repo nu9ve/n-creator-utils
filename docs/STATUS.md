@@ -18,7 +18,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Área | Estado | Evidencia física | Pendiente |
 | --- | --- | --- | --- |
-| **Identidad portable F0** | Motor Rust y Ajustes → Discos: marcador, segundo factor, índice y adopción en sólo lectura. | Ambos discos registrados y leídos con un estado local vacío. MEDIA502: 7 666 entradas y snapshot verificado. ESSD: 1 960 entradas. [Evidencia](#identidad-portable-f0--2026-11-22) | Aceptación en ventana, otra Mac y Windows. |
+| **Identidad portable F0** | Motor Rust y Ajustes → Discos: marcador, segundo factor, índice y adopción en sólo lectura. | Ambos discos registrados y leídos con un estado local vacío, también en ventana. MEDIA502: 7 666 entradas y snapshot verificado. ESSD: 1 960 entradas. [Evidencia](#identidad-portable-f0--2026-11-22) | Otra Mac y Windows ([pasos](#pendientes-físicos-de-f0)). Índice resumido por proyecto (decidido). |
 | **Ingreso de cámara** (Entrada → Flujo → Resultado) | En uso. Flujo identifica fuente y alcance individual/lote, y permite escribir el proyecto donde se prepara el plan. El detalle y los controles de un único resultado quedan visibles al lado o encima de la vista previa. | Varios ingresos reales a MEDIA502 + ESSD desde la app. La conversión Handycam y la expulsión se probaron en la build instalada. | Plan, progreso, pausa y reanudación comprobados en ventana con imágenes. Pendiente medir la latencia del popup. |
 | **Sony α6400** | En uso. Retira clips verificados, conserva índices y observa el formato al reconectar. Corregida la lectura final de entradas retiradas que siguen listadas | Job físico `17e70e69`: 21 archivos en MEDIA502 y 4 en ESSD cotejados con sus recibos por SHA-256. Doce retiros journalizados y nueve archivos de cámara intactos. [Detalle](#lectura-final-sony--2026-11-13) | La limpieza del clip real de prueba pasó con Rust. El retiro persistió tras remontar sin formatear. Falta observar el cierre por formato |
 | **Stalker** | En uso: bandeja, bundles completos, liberación local con relink/ACK de Clipper | Ingresos reales completos | Casos `recording`/`finalizing`/`recovery` reales; [pedidos](contracts/README.md#pendientes-para-n-creator-utils) |
@@ -63,6 +63,58 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
   que rechazó el Stalker instalado. La corrida con el `TMPDIR` habitual
   resuelto pasó. El pin apunta al commit upstream de F0. El gate avisa
   de un commit local posterior de MIDI que todavía no está en el remoto.
+- **Nombre del dispositivo** (2026-11-22): esta Mac es la **M1**. `device.json`
+  pasó de «Mac 5577» a «M1» con el mismo `device_id` (`5577236d…`),
+  `created_at` y `host_check`, permisos `0600`. Ajustes → Discos muestra y
+  cambia el nombre. Lo lee con `suite_device` `peek`, que no crea el archivo:
+  sin dispositivo dice que se crea al registrar el primer disco.
+- **Aceptación en ventana** (2026-11-22, build de esta rama, entorno de
+  `scripts/sandbox.py` con catálogo nuevo y `physical-volumes.json` que sólo
+  admite MEDIA502 y ESSD por su `VolumeUUID`). Ajustes → Discos → «Adoptar
+  este disco…», raíz elegida en el panel Abrir:
+  - MEDIA502: «Disco adoptado en sólo lectura · 7 666 entradas · 23
+    proyectos · Índice del 2026-11-23T00:56:50Z · Snapshot del catálogo
+    verificado».
+  - ESSD: «1 960 entradas · 3 proyectos · Índice del 2026-11-23T00:57:02Z ·
+    Sin snapshot del catálogo».
+  - SHA-256 y fechas de `.nu9ve/` de los dos discos y del snapshot de
+    MEDIA502 con su recibo, iguales antes y después; ningún archivo nuevo en
+    los discos ni `suite-volumes/` en el estado de prueba.
+  - Por pulir: la fecha sale en ISO UTC y no en hora local; el panel no
+    explica qué hacer después (importar al catálogo llega con F1).
+- **Gate al cerrar** (2026-11-22, `c85b881`): `cargo fmt --check`, Clippy
+  `-D warnings`, `cargo test` y `-- --ignored` con 1.99.1, `check-boundary.sh`,
+  `swift test` (29), `engine_golden.py --check`, `sync-core.sh --check` y
+  `--strict`. Python: 413 de 415; fallan los dos de `test_media_closure`
+  porque el `clipper-core` local ya no porta `catalog_delivery`. No depende
+  de F0 y en un checkout sin las CLIs de Clipper se omiten.
+- **Tope del índice** (decisión del usuario, 2026-11-22): el índice de
+  MEDIA502 pesa 5,1 MiB de 8 MiB (7 666 entradas de ~698 B, disco al 57 %).
+  Se pasará a un dataset por proyecto, no por archivo; el detalle por archivo
+  sigue en el snapshot. No cambia el contrato. [PLAN](../PLAN.md#p3--robustez-y-distribución).
+
+### Pendientes físicos de F0
+
+Los corre el usuario. Ninguno escribe en el disco salvo donde se dice.
+
+**MEDIA502 en Windows** (cotejo del segundo factor, `nu9ve-volume-v1` §3 y §13.1):
+
+1. En el PC, con el repo al día y el motor compilado (`cd engine && cargo build -p nuun-engine`, en Git Bash).
+2. Conectar MEDIA502 y anotar la letra (p. ej. `E:`).
+3. En PowerShell: `vol E:`. Anotar el número de serie, `XXXX-XXXX`.
+4. En Git Bash, con un estado aparte para no tocar el catálogo del PC:
+   `NU9VE_MEDIA_HOME="$TEMP/nuun-f0" NU9VE_DEVICE_FILE="$TEMP/nuun-f0/device.json" engine/target/debug/nuun-engine rpc <<< '{"id":1,"method":"suite_adopt_volume","params":{"root":"E:\"}}'`
+5. Esperado: `state` `ok`, `dataset_count` 7 666, 23 proyectos, el snapshot `verified` y la raíz `disk` en `ok`. Como `fs.os` del marcador es `macos`, el serial de Windows no se compara con el de la Mac (§5.6).
+6. Mismo comando con `"method":"suite_observe_volume"`: `current_fs.serial` debe ser lo que dio `vol`. Recuerda ese serial en `$TEMP/nuun-f0/suite-volumes/`, lo único que escribe y fuera del disco. Repetirlo debe dar `ok` otra vez.
+7. Anotar aquí el serial, el estado y si el disco se montó con otro nombre.
+
+**Otra Mac (M4)** (adopción en una máquina sin el catálogo de la M1):
+
+1. En la M4, `git pull` de `n-creator-utils` y build con `scripts/install_media_app.py` (o con `scripts/sandbox.py open --app` si no se quiere tocar la nüün de la M4).
+2. Abrir Ajustes → Discos. Sin `device.json`, el nombre aparece vacío. Escribir «M4» y pulsar «Guardar nombre»: crea `~/Library/Application Support/nu9ve/device.json` con un `device_id` distinto de `5577236d…`.
+3. Conectar MEDIA502 y luego ESSD. «Adoptar este disco…» con cada raíz. Esperado: los mismos conteos que arriba, snapshot verificado en MEDIA502 y estado `ok` (mismo sistema que el que registró, mismo serial).
+4. Antes y después: `shasum -a 256 /Volumes/MEDIA502/.nu9ve/volume.json /Volumes/MEDIA502/.nu9ve/apps/nuun/index.json` (y lo mismo en ESSD). Deben ser iguales.
+5. Anotar aquí la versión de macOS, el nombre con que montó cada disco y cualquier aviso.
 
 
 ## Límites conocidos (vigentes)

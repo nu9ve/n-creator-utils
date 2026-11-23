@@ -14,7 +14,7 @@ Usar `nuun-engine rpc` con el sobre `{id, method, params}`.
 
 | Método | Parámetros |
 | --- | --- |
-| `suite_device` | Opcional `name` para nombrar o confirmar el dispositivo |
+| `suite_device` | Opcional `name` para nombrar o confirmar el dispositivo; `peek: true` lo lee sin crear `device.json` (Ajustes → Discos) |
 | `suite_register_volume` | `root` absoluta del volumen, `label`, `role` (`archive`, `work`, `other`) |
 | `suite_observe_volume` | `root` absoluta. Registra avistamientos compatibles en el estado local |
 | `suite_resolve_volume` | `root`, `volume_id` y `serial` observados, `decision` (`same` o `copy`) |

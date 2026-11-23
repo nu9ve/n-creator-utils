@@ -297,6 +297,8 @@ pub fn current(isolated: bool, params: &Value) -> Result<Value> {
         "invalid_params",
         "Use a device name of 1–64 characters",
     )?;
+    // `peek` shows the name without creating device.json: the first registration creates it (device §9.2).
+    let peek = chosen.is_none() && params.get("peek") == Some(&json!(true));
     let outcome = device_file(isolated)
         .ok_or_else(|| {
             Error::new(
@@ -305,6 +307,9 @@ pub fn current(isolated: bool, params: &Value) -> Result<Value> {
             )
         })
         .and_then(|path| {
+            if peek && !path.exists() {
+                return Err(Error::new("missing", "No device.json yet"));
+            }
             load(
                 &path,
                 platform_id().as_deref().filter(|s| !s.is_empty()),

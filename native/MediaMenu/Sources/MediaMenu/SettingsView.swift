@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var clipperProfile = ""
     @State private var work = ""
     @State private var archive = ""
+    @State private var deviceName = ""
     private let sections: [(String, LocalizedStringKey, String)] = [("profiles", "Perfiles", "person.crop.square"), ("disks", "Discos", "externaldrive"),
         ("ingest", "Ingreso", "sdcard"), ("capture", "Capturas", "record.circle"), ("appearance", "Apariencia", "paintpalette"),
         ("language", "Idioma", "globe"), ("runtime", "Diagnóstico", "stethoscope")]
@@ -77,6 +78,14 @@ struct SettingsView: View {
             Label("Discos registrados", systemImage: "externaldrive").font(.title3.weight(.semibold))
             HStack { Button("Añadir disco de respaldo…") { model.registerVolume(role: "archive") }; Button("Añadir SSD para editar…") { model.registerVolume(role: "work") }; Button("Actualizar estado") { Task { await model.refresh() } } }
             Button("Adoptar este disco…") { model.adoptSuiteVolume() }.disabled(model.busy)
+            HStack {
+                Text("Nombre de este dispositivo")
+                TextField("M1, M4…", text: $deviceName).frame(maxWidth: 180)
+                Button("Guardar nombre") { model.renameSuiteDevice(deviceName) }
+                    .disabled(model.busy || deviceName.trimmingCharacters(in: .whitespaces).isEmpty || deviceName == model.suiteDeviceName)
+            }
+            Text(model.suiteDeviceName.isEmpty ? "Se crea al registrar el primer disco en la suite." : "Así lo ve la suite en los discos que registra esta máquina.")
+                .font(.caption).foregroundStyle(.secondary)
             ForEach(model.volumes, id: \.["id"].string) { value in
                 HStack(alignment: .top) {
                     Image(systemName: value["online"].bool ? "externaldrive.fill.badge.checkmark" : "externaldrive.badge.xmark").foregroundStyle(value["online"].bool ? palette.success : palette.muted)
@@ -92,7 +101,7 @@ struct SettingsView: View {
             }
             Button("Respaldar catálogo y perfiles") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
             Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
-        }
+        }.task { await model.loadSuiteDevice(); deviceName = model.suiteDeviceName }
     }
     var captures: some View {
         VStack(alignment: .leading, spacing: 14) {

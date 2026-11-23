@@ -272,6 +272,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var busy: Bool { activeScope != nil }
     var ingestLocked: Bool { activeScope == .ingest }
     var message = String(localized: "Listo")
+    var suiteDeviceName = ""
     var error = ""
     var python = ""
     var script = ""
@@ -728,6 +729,27 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
         }
     }
+    /// This machine's name in the suite (`device.json`). Empty until the first registration creates it.
+    func loadSuiteDevice() async {
+        guard let client else { return }
+        let result = try? await client.call("suite_device", ["peek": .bool(true)])
+        suiteDeviceName = result?["state"].string == "ok" ? result?["device"]["name"].string ?? "" : ""
+    }
+
+    func renameSuiteDevice(_ name: String) {
+        let chosen = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !chosen.isEmpty else { return }
+        operation(String(localized: "Guardando el nombre de este dispositivo"), scope: .settings) {
+            guard let client = self.client else { return }
+            let device = try await client.call("suite_device", ["name": .string(chosen)])
+            guard device["state"].string == "ok" else {
+                throw BackendFailure(code: "device_unavailable", message: device["message"].string)
+            }
+            self.suiteDeviceName = device["device"]["name"].string
+            self.message = String(localized: "Este dispositivo se llama \(self.suiteDeviceName)")
+        }
+    }
+
     func registerSuiteVolume(_ volume: JSONValue) {
         let root = volume["root"]
         operation(String(localized: "Registrando disco en la suite"), scope: .settings) {
@@ -758,6 +780,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             self.message = result["state"].string == "unverified"
                 ? String(localized: "Identidad del disco sin segundo factor")
                 : String(localized: "Identidad de disco verificada")
+            await self.loadSuiteDevice()
         }
     }
 
