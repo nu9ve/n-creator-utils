@@ -141,6 +141,17 @@ y `data_export`, colecciones por dispositivo y «Trabajar aquí». Lo que sigue,
 5. Windows: named pipe con las reglas de motor §9 para registrarse.
 6. Leer el estado de lease al abrir un proyecto y dejarlo en sólo lectura cuando otra máquina es la dueña.
 
+### Recorrido de misiones entre la M1 y la M4 (pedido del usuario, 2026-11-23)
+
+Guardar las misiones en la M1 (MEDIA + ESSD), llevar el ESSD a la M4, copiar al XSSD, procesar ahí con Atlas, devolver lo procesado al ESSD y analizarlo en nove en la M1. [Flujos](docs/features/suite-disks-flows.md). Lo que ya hay y lo que falta, en orden:
+
+1. **Ya hay:** el ingreso de dron deja la misión en MEDIA y en el ESSD. `work_copy` copia verificado entre dos discos de trabajo de la misma Mac, con recibo en los dos. Fuera del sandbox no hay otra guarda que el marcador y el rol. Nunca se corrió con discos reales.
+2. **Instalar en la M4 y primera corrida física**: build e instalación ([pasos de la otra Mac](docs/STATUS.md#pendientes-físicos-de-f0)), registrar el XSSD como `work` y copiar una carpeta chica ESSD → XSSD y de vuelta. Es el gate para usarlo con una misión entera.
+3. **«Copiar proyecto…»**: la hoja hoy ofrece sólo las carpetas que declaran otras apps, o una a mano. Falta elegir un proyecto o una misión de nüün y que los `paths` salgan del catálogo (y de `clipper.inspect` si es un proyecto de Clipper).
+4. **Volver con lo procesado**: hoy un archivo que ya está en el destino con otro contenido bloquea el plan (`destination_conflict`). Para ir y volver hace falta «actualizar»: reemplazar sólo después de verificar y dejar la versión anterior, como la copia de trabajo de las conversaciones. Falta también sugerir «cambió desde la última copia» con los recibos. Hoy sólo se sugiere lo que falta en el otro disco, y sólo si la app lo declara en su índice. Atlas no publica índice en el XSSD.
+5. **nove registra desde el recibo** (sesión de nove, A70–A76): sin eso, nove vuelve a hashear lo que llega al ESSD.
+6. Opcional: emparejar M1 y M4 para «Trabajar aquí» (F1, paso 3).
+
 ### F1 · Diarios de decisiones ([§6.4](vendor/nu9ve-core/docs/suite-devices.md#nüün-en-dos-macs))
 
 Cada Mac escribe lo que decide y nüün junta los diarios de todas; el catálogo SQLite pasa a ser una caché que se reconstruye. Cómo serían:
@@ -164,6 +175,10 @@ Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/core
 La §12.1 de `nu9ve-engine-v1` está implementada en los dos motores y Rust usa el servidor de líneas compartido. [Evidencia del gate y de la sombra sobre el dorado](docs/STATUS.md#nu9ve-engine-v1-en-los-dos-motores--2026-11-16).
 
 Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
+
+## Prioridad baja · capturas del producto
+
+Decidido por el usuario el 2026-11-23: no se actualizan las capturas hasta la revisión completa de UX y UI, cuando las pantallas ya queden como van a ser. Entonces se sigue el [flujo de capturas](docs/development.md#capturas-del-producto). Las pantallas nuevas desde las últimas son Inicio → «Discos conectados», la hoja «Copiar al otro disco…» y Ajustes → Conversaciones.
 
 ## Prioridad baja · nombre interno
 

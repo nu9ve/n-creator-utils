@@ -18,7 +18,7 @@ Actualizado: 2026-11-23. Pedido del usuario del mismo día: con dos Macs (la M4 
 - La copia conserva rutas y fechas, se verifica leyendo del dispositivo y se renombra sin reemplazar; lo idéntico se adopta y lo distinto bloquea el plan.
 - nüün lee los índices de las demás apps del origen para decir qué datasets y proyectos toca, y guarda copias exactas de los archivos de esas apps **en su propia carpeta** del destino (`.nu9ve/apps/nuun/copies/<id>/source/<app>/…`).
 - **Sí, la copia lleva un recibo de nüün** (`nuun-work-copy/1`, en los dos discos): disco, carpetas y hash de cada archivo de origen y destino, el manifiesto y los índices de origen. Con él nove registra el destino sin hashear (contrato, «Qué hace con esto otra app»).
-- **Ventana:** Discos → «Copiar al otro disco…» y la sugerencia en Inicio. **Falta:** el proyecto de Clipper con sus dependencias (`paths` desde `clipper.inspect`) y resumir lo copiado en el índice de nüün del destino.
+- **Ventana:** Discos → «Copiar al otro disco…» y la sugerencia en Inicio. **Falta:** elegir un proyecto o una misión de nüün (y un proyecto de Clipper con sus dependencias, `paths` desde `clipper.inspect`), «actualizar» lo que ya está en el destino con otro contenido en vez de bloquear, y resumir lo copiado en el índice de nüün del destino. El orden para el recorrido M1 → M4 → M1 está en el [PLAN](../../PLAN.md#recorrido-de-misiones-entre-la-m1-y-la-m4-pedido-del-usuario-2026-11-23).
 
 ## 2. Respaldo de conversaciones por dispositivo
 
