@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<rect width="960" height="540" fill="#101418"/>
+<g font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-weight="600">
+<text x="48" y="76" font-size="30" fill="#e8edf2">DSM de Atlas · minutos</text>
+<rect x="258" y="150" width="2" height="280" fill="#2a3138"/>
+<text x="48" y="224" font-size="22" fill="#8a96a3">OpenMVS</text>
+<rect id="series:openmvs" x="260" y="170" width="500" height="90" fill="#e0795b"/>
+<text x="776" y="224" font-size="22" fill="#e8edf2">641 min</text>
+<text x="48" y="374" font-size="22" fill="#8a96a3">Propio v2</text>
+<rect id="series:propio-v2" x="260" y="320" width="8" height="90" fill="#5bc0a8"/>
+<text x="284" y="374" font-size="22" fill="#e8edf2">10.5 min</text>
+<text id="label:speedup" x="48" y="488" font-size="30" fill="#f2c14e">61× más rápido</text>
+</g>
+</svg>

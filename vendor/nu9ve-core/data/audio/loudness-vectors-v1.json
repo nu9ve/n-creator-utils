@@ -1,0 +1,2971 @@
+{
+  "piece": "nu9ve-loudness",
+  "version": 1,
+  "written_by": "scripts/loudness-vectors.py",
+  "goldens": {
+    "source": "SoundBender Tests/Goldens at soundshop c448639, rendered by its swift-accelerate engine; LUFS rounded to 1e-4 by its manifest",
+    "folder": "loudness-goldens",
+    "format": "float32 little endian, planar (all of channel 0, then channel 1), no header",
+    "sample_rate": 48000,
+    "tolerance_lu": 0.01,
+    "cases": [
+      {
+        "name": "gain-band",
+        "file": "gain-band.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "9b7f0cb6ae978de8fcbab13d36674a4b7d8fdfa1c5efec6b67adb97a8d0976bc",
+        "integrated_lufs": -12.8393,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "erase-box",
+        "file": "erase-box.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "dbd89cca7ed9add11a8e60c888d5cfaf046d0d172c678a003a0e988b6e1131b0",
+        "integrated_lufs": -15.6626,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "blur",
+        "file": "blur.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "e2418a797f784e39cc8cafca5ecfcbff8ed2ae52b9942fe7e19df625fb8bd0c6",
+        "integrated_lufs": -16.4591,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "spectral-delay",
+        "file": "spectral-delay.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "c9d6251a464ad40b2d64d5aff31c307364aa0277499c1ea55e5e39d046b8501c",
+        "integrated_lufs": -13.2145,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "erase-stroke-local",
+        "file": "erase-stroke-local.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "672aba6bbd0ef85d4e470181755daa21c16b3e8ffc832cef6c1c40b251b4fdda",
+        "integrated_lufs": -15.3431,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "erase-stroke-fft8192",
+        "file": "erase-stroke-fft8192.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "807d341d7d6e9eb46f425b8f8b51c76d17acc62d9ae4cc9c53b3676406dd9f68",
+        "integrated_lufs": -16.6854,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "paint-texture",
+        "file": "paint-texture.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "d0b4b2a87ee1cf18ebadc69bbf8b08667f09025db7f63351c3cde8a7f16989f3",
+        "integrated_lufs": -13.1982,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "brush-pluck",
+        "file": "brush-pluck.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "1f494ae3920fea7537fbf596ba989eaa259b49437ecb62660cf672bb9e63e636",
+        "integrated_lufs": -31.3431,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "brush-808",
+        "file": "brush-808.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "81a44ad45645042aa9c92733c0293e1ec632e58ef0d84163c477301320f6cc91",
+        "integrated_lufs": -30.8835,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "brush-click",
+        "file": "brush-click.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "187f38996e3521664ce263cc1a5b3f59ce1a954503537cada2dae67814f3ccb1",
+        "integrated_lufs": -39.4893,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "brush-supersaw-stereo",
+        "file": "brush-supersaw-stereo.f32",
+        "channels": 2,
+        "frames": 24000,
+        "sha256": "fcd93355fdb5faa3cf5b716a7b8afeb18b150dc77026465c1c03dc43e9338f5f",
+        "integrated_lufs": -21.7323,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "brush-patch",
+        "file": "brush-patch.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "14847129d49722218b05359359317d5cdd5d50062e4bd802c0aa2995e267b8c9",
+        "integrated_lufs": -21.5157,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "carve-pluck",
+        "file": "carve-pluck.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "3097c31bc9ecd14535c502baaf853a033d44d5f83b4b14b5e2c2b56e513b8b87",
+        "integrated_lufs": -16.29,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "time-cut",
+        "file": "time-cut.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "eda829eb70c9fe803e9016efc265838009892a32245b444b62dd704e5291258b",
+        "integrated_lufs": -15.4683,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "trim-peaks",
+        "file": "trim-peaks.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "4b748b45fab1952d4f409557f8735a396dd7e89712479e0f628a7e9f3e05e79c",
+        "integrated_lufs": -8.4878,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "smooth-peaks",
+        "file": "smooth-peaks.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "8f88adfbb5c10a049090ab873f5fed508bd3a39ddce301d31d179ff2c6ddb8ad",
+        "integrated_lufs": -7.533,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "region-paste-octave",
+        "file": "region-paste-octave.f32",
+        "channels": 1,
+        "frames": 24000,
+        "sha256": "134b478b6276c22b0d38311e1fdd271e48998b772506d4942ece8bd672c1fec4",
+        "integrated_lufs": -12.9813,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "tempo-stretch",
+        "file": "tempo-stretch.f32",
+        "channels": 2,
+        "frames": 43636,
+        "sha256": "1c538df254384b4a3ed11c6fd23e1664cd51d5313b5f5890acd1110f5743d03d",
+        "integrated_lufs": -12.7135,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "track-effects",
+        "file": "track-effects.f32",
+        "channels": 2,
+        "frames": 48000,
+        "sha256": "b1955c636be5bc3841dc31aed2174d69556cc53d37367c542a94c358b0d206f2",
+        "integrated_lufs": -10.1277,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "dynamics",
+        "file": "dynamics.f32",
+        "channels": 2,
+        "frames": 48000,
+        "sha256": "6b098c76efef1215bbbd0c0c0bd11b49dc5334a7aeebf827bd8ef166a8b81d82",
+        "integrated_lufs": -17.8253,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "peak-limiter",
+        "file": "peak-limiter.f32",
+        "channels": 2,
+        "frames": 48000,
+        "sha256": "23e59f05004760bbb0af90be3974af1d72499d5361bdcba93cca2b0e4cee2ab9",
+        "integrated_lufs": -6.717,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "safety-limiter",
+        "file": "safety-limiter.f32",
+        "channels": 2,
+        "frames": 48000,
+        "sha256": "a7dd0c56c6229c35c3be2bc2b6be9ae3087d70606c367278dd867dc2578bd783",
+        "integrated_lufs": -6.482,
+        "short_term_max_lufs": null
+      },
+      {
+        "name": "mix-master",
+        "file": "mix-master.f32",
+        "channels": 2,
+        "frames": 48000,
+        "sha256": "13db529fadcc12e548d0c7b3dacd8c9c98d45d42e25d77c6fedcab820985b3fa",
+        "integrated_lufs": -15.3827,
+        "short_term_max_lufs": null
+      }
+    ]
+  },
+  "ebu": {
+    "source": "EBU Tech 3341 (2023) table 1 and EBU Tech 3342 (2023) table 1",
+    "signals": {
+      "sine_segments": "Planar channels of a sine at hz, phase 0 at the first sample and running on across segments; each segment lasts round(end · rate) − round(start · rate) samples, its amplitude per channel is 10^(dbfs/20) (peak level), or silence when dbfs is null. weights are the BS.1770 channel weights.",
+      "sine_ratio": "amplitude · sin(2π n / rate_divisor + phase_degrees), equal in every channel, with a raised-cosine fade in and out of fade_ms.",
+      "oversampled_burst": "At oversampling · rate: a sine of rate/base_divisor and base_amplitude; at the zero crossing nearest the middle, one period of rate/burst_divisor and burst_amplitude, then the base sine again from phase 0; a raised-cosine fade of fade_ms. Low-passed with a Hann-windowed sinc of lowpass_taps taps cut at rate/2 with unity gain at DC, then one sample in oversampling kept, starting at offset."
+    },
+    "tolerance": "The expected value may be off by up to `below` under it and `above` over it.",
+    "cases": [
+      {
+        "name": "tech3341-1",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0,
+          "short_term_max_lufs": -23.0,
+          "integrated_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-2",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -33.0,
+                -33.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -33.0,
+          "short_term_max_lufs": -33.0,
+          "integrated_lufs": -33.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-3",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -36.0,
+                -36.0
+              ]
+            },
+            {
+              "seconds": 60.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -36.0,
+                -36.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "integrated_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-4",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -72.0,
+                -72.0
+              ]
+            },
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -36.0,
+                -36.0
+              ]
+            },
+            {
+              "seconds": 60.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -36.0,
+                -36.0
+              ]
+            },
+            {
+              "seconds": 10.0,
+              "dbfs": [
+                -72.0,
+                -72.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "integrated_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-5",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -26.0,
+                -26.0
+              ]
+            },
+            {
+              "seconds": 20.1,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -26.0,
+                -26.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "integrated_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-6",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0,
+            1.0,
+            1.41,
+            1.41
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -28.0,
+                -28.0,
+                -24.0,
+                -30.0,
+                -30.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "integrated_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-9",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.34,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 1.66,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 1.34,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 1.66,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 1.34,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 1.66,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 1.34,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 1.66,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 1.34,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 1.66,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        },
+        "note": "The standard asks for S = −23.0 constant after 3 s; a file meter checks its maximum."
+      },
+      {
+        "name": "tech3341-10-00",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.0,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-01",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.15,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-02",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.3,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-03",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.45,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-04",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.6,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-05",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.75,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-06",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.9,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-07",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.05,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-08",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.2,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-09",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.35,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-10",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.5,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-11",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.65,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-12",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.8,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-13",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 1.95,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-14",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.1,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-15",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.25,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-16",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.4,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-17",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.55,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-18",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.7,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-10-19",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 2.85,
+              "dbfs": null
+            },
+            {
+              "seconds": 3.0,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "short_term_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-12",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            },
+            {
+              "seconds": 0.18,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 0.22,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        },
+        "note": "The standard asks for M = −23.0 constant after 1 s; a file meter checks its maximum."
+      },
+      {
+        "name": "tech3341-13-00",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.0,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-01",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.02,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-02",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.04,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-03",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.06,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-04",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.08,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-05",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.1,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-06",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.12,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-07",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.14,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-08",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.16,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-09",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.18,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-10",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.2,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-11",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.22,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-12",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.24,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-13",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.26,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-14",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.28,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-15",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.3,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-16",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.32,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-17",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.34,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-18",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.36,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-13-19",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 0.38,
+              "dbfs": null
+            },
+            {
+              "seconds": 0.4,
+              "dbfs": [
+                -23.0,
+                -23.0
+              ]
+            },
+            {
+              "seconds": 1.0,
+              "dbfs": null
+            }
+          ]
+        },
+        "expect": {
+          "momentary_max_lufs": -23.0
+        },
+        "tolerance": {
+          "below": 0.1,
+          "above": 0.1
+        }
+      },
+      {
+        "name": "tech3341-15",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_ratio",
+          "rate_divisor": 4,
+          "amplitude": 0.5,
+          "phase_degrees": 0.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": -6.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-16",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_ratio",
+          "rate_divisor": 4,
+          "amplitude": 0.5,
+          "phase_degrees": 45.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": -6.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-17",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_ratio",
+          "rate_divisor": 6,
+          "amplitude": 0.5,
+          "phase_degrees": 60.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": -6.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-18",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_ratio",
+          "rate_divisor": 8,
+          "amplitude": 0.5,
+          "phase_degrees": 67.5,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": -6.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-19",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_ratio",
+          "rate_divisor": 4,
+          "amplitude": 1.41,
+          "phase_degrees": 45.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": 3.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-20",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "oversampled_burst",
+          "oversampling": 4,
+          "base_divisor": 6,
+          "base_amplitude": 0.5,
+          "burst_divisor": 4,
+          "burst_amplitude": 1.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "lowpass_taps": 255,
+          "offset": 0,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": 0.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-21",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "oversampled_burst",
+          "oversampling": 4,
+          "base_divisor": 6,
+          "base_amplitude": 0.5,
+          "burst_divisor": 4,
+          "burst_amplitude": 1.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "lowpass_taps": 255,
+          "offset": 1,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": 0.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-22",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "oversampled_burst",
+          "oversampling": 4,
+          "base_divisor": 6,
+          "base_amplitude": 0.5,
+          "burst_divisor": 4,
+          "burst_amplitude": 1.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "lowpass_taps": 255,
+          "offset": 2,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": 0.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3341-23",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "oversampled_burst",
+          "oversampling": 4,
+          "base_divisor": 6,
+          "base_amplitude": 0.5,
+          "burst_divisor": 4,
+          "burst_amplitude": 1.0,
+          "seconds": 1.0,
+          "fade_ms": 10.0,
+          "lowpass_taps": 255,
+          "offset": 3,
+          "channels": 2
+        },
+        "expect": {
+          "true_peak_dbtp": 0.0
+        },
+        "tolerance": {
+          "below": 0.4,
+          "above": 0.2
+        }
+      },
+      {
+        "name": "tech3342-1",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -30.0,
+                -30.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "loudness_range_lu": 10.0
+        },
+        "tolerance": {
+          "below": 1.0,
+          "above": 1.0
+        }
+      },
+      {
+        "name": "tech3342-2",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -15.0,
+                -15.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "loudness_range_lu": 5.0
+        },
+        "tolerance": {
+          "below": 1.0,
+          "above": 1.0
+        }
+      },
+      {
+        "name": "tech3342-3",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -40.0,
+                -40.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "loudness_range_lu": 20.0
+        },
+        "tolerance": {
+          "below": 1.0,
+          "above": 1.0
+        }
+      },
+      {
+        "name": "tech3342-4",
+        "sample_rates": [
+          44100,
+          48000,
+          96000
+        ],
+        "signal": {
+          "kind": "sine_segments",
+          "hz": 1000.0,
+          "weights": [
+            1.0,
+            1.0
+          ],
+          "segments": [
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -50.0,
+                -50.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -35.0,
+                -35.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -20.0,
+                -20.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -35.0,
+                -35.0
+              ]
+            },
+            {
+              "seconds": 20.0,
+              "dbfs": [
+                -50.0,
+                -50.0
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "loudness_range_lu": 15.0
+        },
+        "tolerance": {
+          "below": 1.0,
+          "above": 1.0
+        }
+      }
+    ]
+  }
+}

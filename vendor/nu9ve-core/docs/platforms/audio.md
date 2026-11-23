@@ -1,6 +1,6 @@
 # Audio en la suite nu9ve
 
-Estado: **propuesta** del 2026-11-16, pedida por el usuario al revisar SoundBender. Nada de esto está construido. Leído en el código de cada repo el 2026-11-16. Diseño del lado de SoundBender: `soundbender/docs/plans/portable-engine.md` y su decisión 034. [Mapa de la suite](../suite.md) · [Cómo se comparte](../suite-sharing.md) · [Motor en Rust](https://github.com/nu9ve/n-creator-utils/blob/master/docs/platforms/rust-engine.md) · [Sonido de tema v1](../../contracts/nu9ve-sound-v1.md).
+Estado: **propuesta** del 2026-11-16, pedida por el usuario al revisar SoundBender. Construido: `nu9ve-loudness` (2026-11-17, [rust/](../../rust/README.md#loudness)); lo demás no. Leído en el código de cada repo el 2026-11-16. Diseño del lado de SoundBender: `soundbender/docs/plans/portable-engine.md` y su decisión 034. [Mapa de la suite](../suite.md) · [Cómo se comparte](../suite-sharing.md) · [Motor en Rust](https://github.com/nu9ve/n-creator-utils/blob/master/docs/platforms/rust-engine.md) · [Sonido de tema v1](../../contracts/nu9ve-sound-v1.md).
 
 Responde a esta pregunta: ¿conviene un solo motor de audio para todas las apps, o utilidades compartidas con lo propio de cada app?
 
@@ -34,7 +34,7 @@ Repeticiones de hoy:
 | --- | --- | --- | --- |
 | `nu9ve-audio-io` | WAV de 16, 24 y 32 bits con dither, metadatos BPM y clave, decodificación, resample | curado, SoundBender, Clipper | Al existir `nu9ve/core` |
 | `nu9ve-dsp` | FFT y STFT por bloques con halos, ventanas, filtros, interpolación | SoundBender, curado | Cuando lo use una tercera app |
-| `nu9ve-loudness` | LUFS integrado y de corto plazo, true peak, limitador | curado, SoundBender (Clipper normaliza con FFmpeg) | Al existir `nu9ve/core`; los números deben coincidir |
+| `nu9ve-loudness` | LUFS integrado y de corto plazo, true peak. Sin limitador: cada app conserva el suyo (§5) | curado, SoundBender (Clipper normaliza con FFmpeg) | Al existir `nu9ve/core`; los números deben coincidir |
 | `nu9ve-music` | Beats y downbeats, BPM, clave, escalas, afinaciones, acordes por grados | curado, SoundBender, Clipper (Python) | Al existir `nu9ve/core` |
 | `nu9ve-rt` | Colas sin bloqueo, rampas, comprobación de no-asignación, salida a dispositivo | curado; el plugin de SoundBender | Con el plugin |
 | `nu9ve-stems` | Adaptador de Demucs: proceso aislado y cancelable, manifiesto, publicación atómica | curado, SoundBender, nüün | Ya hay tres copias |
@@ -93,6 +93,8 @@ Con el mismo audio, los 23 dorados de SoundBender (`Tests/Goldens`), curado da *
 4. Sumar el true peak de curado.
 5. Cuando exista el crate, curado lo adopta: sus niveles se mueven entre 0,04 y 0,3 LU, y conviene decirlo en su CHANGELOG.
 
+**Hecho el 2026-11-17, pasos 1 a 4:** [`rust/nu9ve-loudness`](../../rust/nu9ve-loudness/). El integrado da los mismos bits que el de SoundBender en los 23 dorados. Pasan los casos generables de Tech 3341 y 3342 a 44,1, 48 y 96 kHz; el true peak tiene el margen más justo, −0,19 dB frente a −0,4. Lo que se sumó al plan: el rango de 3342 (lo piden sus señales) y el máximo momentáneo. Los máximos se miden cada 10 ms. Falta el paso 5, que es de curado ([adopción](../adoption.md#nu9ve-loudness)).
+
 ### Licencia de la decodificación
 
 - La §4 dice que symphonia (MPL-2.0) es compatible, pero el `deny.toml` de `rust/` no admite MPL.
@@ -100,6 +102,7 @@ Con el mismo audio, los 23 dorados de SoundBender (`Tests/Goldens`), curado da *
 - Hay que decidir una de dos cosas:
   - admitir MPL-2.0 solo para decodificar, porque es copyleft por archivo y permite un binario cerrado si no se modifican esos archivos;
   - o dejar la decodificación fuera del core.
+- La política general está en [licencias §2](../licensing.md#2-qué-pide-cada-licencia-de-terceros): MPL-2.0 solo como excepción por crate.
 
 ## 6. Preguntas para el usuario
 
@@ -108,3 +111,6 @@ Con el mismo audio, los 23 dorados de SoundBender (`Tests/Goldens`), curado da *
 3. Si Clipper quiere su normalización y su análisis de intros en Rust compartido o se quedan en Python.
 4. Si `nu9ve-loudness` nace del LUFS de SoundBender y curado acepta que sus niveles cambien (§5).
 5. Si se admite MPL-2.0 para la decodificación (§5).
+6. Si la entrega de SoundBender se mide en dBTP (por ejemplo, techo de −1 dBTP con el true peak del crate) y qué pasa con su protección actual de −0,3 dBFS de muestra. Es decisión de producto.
+7. Si el `deny.toml` de `rust/` lleva `allow-wildcard-paths = true` para los crates que las apps usan por ruta. Sin eso, cada app repite `version = "=x.y.z"` a mano: SoundBender lo hizo con `nu9ve-loudness`.
+8. Si una app que fija `nu9ve-loudness` debe fijar también `data/audio` para correr los vectores, o le basta con sus propios dorados. SoundBender hoy no los fija.

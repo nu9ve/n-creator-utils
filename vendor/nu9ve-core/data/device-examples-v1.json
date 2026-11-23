@@ -1,0 +1,259 @@
+{
+  "contract": "contracts/nu9ve-device-v1.md",
+  "regenerate": "python3 -I scripts/device-examples.py",
+  "note": "locations: §1; files: problem null means valid (§2); default_names: §2; host_check: §5; states: what a reader gets (§4, §5), platform_id null means it cannot be read, text null means no file.",
+  "locations": [
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "file": "/Users/ana/Library/Application Support/nu9ve/device.json"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "file": "C:\\Users\\ana\\AppData\\Local\\nu9ve\\device.json"
+    },
+    {
+      "platform": "linux",
+      "env": {
+        "HOME": "/home/ana"
+      },
+      "file": "/home/ana/.local/share/nu9ve/device.json"
+    },
+    {
+      "platform": "linux",
+      "env": {
+        "HOME": "/home/ana",
+        "XDG_DATA_HOME": "/data/ana"
+      },
+      "file": "/data/ana/nu9ve/device.json"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_DEVICE_FILE": "/tmp/qa/device.json"
+      },
+      "file": "/tmp/qa/device.json"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_DEVICE_FILE": "qa/device.json"
+      },
+      "file": null
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local",
+        "NU9VE_DEVICE_FILE": "D:\\qa\\device.json"
+      },
+      "file": "D:\\qa\\device.json"
+    },
+    {
+      "platform": "windows",
+      "env": {},
+      "file": null
+    }
+  ],
+  "files": [
+    {
+      "name": "a Mac with host_check",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": null
+    },
+    {
+      "name": "without host_check",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\"}",
+      "problem": null
+    },
+    {
+      "name": "a copy that was detected",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"9a1e7c55-3d2b-4f60-a1b2-c3d4e5f60718\",\"name\":\"M4 (nueva)\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"c4dc2bec6490a5f0a7ecc60195646c72bdf6f39e524c28e87a14daacd8b88504\",\"previous_device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\"}",
+      "problem": null
+    },
+    {
+      "name": "name with accents and spaces",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"Mac de diseño\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": null
+    },
+    {
+      "name": "unknown fields are ignored",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\",\"key\":{\"algorithm\":\"ed25519\"}}",
+      "problem": null
+    },
+    {
+      "name": "Windows",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"PC\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"windows\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": null
+    },
+    {
+      "name": "missing name",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "device_id not a UUID 4",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-1c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_device_id"
+    },
+    {
+      "name": "device_id in upper case",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6F0C2A4E-9B1D-4C3A-8E5F-0A1B2C3D4E5F\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_device_id"
+    },
+    {
+      "name": "empty name",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_name"
+    },
+    {
+      "name": "name with a control character",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\\n\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_name"
+    },
+    {
+      "name": "name longer than 64",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_name"
+    },
+    {
+      "name": "time without Z",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00+00:00\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "unknown os",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"ios\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bad_os"
+    },
+    {
+      "name": "other contract",
+      "text": "{\"contract\":\"nu9ve-device/2\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "unknown_contract"
+    },
+    {
+      "name": "host_check not hex",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"xyz\"}",
+      "problem": "bad_host_check"
+    },
+    {
+      "name": "previous is itself",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\",\"previous_device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\"}",
+      "problem": "bad_previous_device_id"
+    },
+    {
+      "name": "number as name",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":4,\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "not an object",
+      "text": "[]",
+      "problem": "not_object"
+    },
+    {
+      "name": "not JSON",
+      "text": "{\"contract\":",
+      "problem": "not_json"
+    },
+    {
+      "name": "NaN is not JSON",
+      "text": "{\"contract\":NaN}",
+      "problem": "not_json"
+    },
+    {
+      "name": "larger than 4 KiB",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\",\"padding\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "problem": "too_large"
+    },
+    {
+      "name": "starts with a BOM",
+      "text": "﻿{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "problem": "bom"
+    }
+  ],
+  "default_names": [
+    {
+      "os": "macos",
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "name": "Mac 6f0c"
+    },
+    {
+      "os": "windows",
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "name": "PC 6f0c"
+    },
+    {
+      "os": "linux",
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "name": "Linux 6f0c"
+    }
+  ],
+  "host_check": [
+    {
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "platform_id": "8B3F0C2D-1A4E-5F60-9C7B-2D3E4F5A6B7C",
+      "host_check": "6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891"
+    },
+    {
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "platform_id": "0D1C2B3A-4F5E-6D7C-8B9A-A1B2C3D4E5F6",
+      "host_check": "844b293ef393ffe0752c8a680a8baf35be4a1af4ecd98dbc2496addfa9f65b33"
+    },
+    {
+      "device_id": "9a1e7c55-3d2b-4f60-a1b2-c3d4e5f60718",
+      "platform_id": "8B3F0C2D-1A4E-5F60-9C7B-2D3E4F5A6B7C",
+      "host_check": "c4dc2bec6490a5f0a7ecc60195646c72bdf6f39e524c28e87a14daacd8b88504"
+    },
+    {
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "platform_id": "5c2e9a1f-0b3d-4e6f-8a7b-9c0d1e2f3a4b",
+      "host_check": "a90876cd1870e11cb5b5f2e2a419e3fe48f490ccae92417296ac21242d4df6cf"
+    }
+  ],
+  "states": [
+    {
+      "name": "same machine",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "platform_id": "8B3F0C2D-1A4E-5F60-9C7B-2D3E4F5A6B7C",
+      "state": "ok"
+    },
+    {
+      "name": "copied to another machine",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "platform_id": "0D1C2B3A-4F5E-6D7C-8B9A-A1B2C3D4E5F6",
+      "state": "copied"
+    },
+    {
+      "name": "platform id unreadable",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "platform_id": null,
+      "state": "ok"
+    },
+    {
+      "name": "no host_check: nothing to compare",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"macos\"}",
+      "platform_id": "0D1C2B3A-4F5E-6D7C-8B9A-A1B2C3D4E5F6",
+      "state": "ok"
+    },
+    {
+      "name": "no file",
+      "text": null,
+      "platform_id": "8B3F0C2D-1A4E-5F60-9C7B-2D3E4F5A6B7C",
+      "state": "none"
+    },
+    {
+      "name": "invalid file",
+      "text": "{\"contract\":\"nu9ve-device/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"name\":\"M4\",\"created_at\":\"2026-11-22T20:00:00Z\",\"os\":\"ios\",\"host_check\":\"6e0681845d3151b47c524b96d7aadfc74fb3c85552780254e47d5d657472c891\"}",
+      "platform_id": "8B3F0C2D-1A4E-5F60-9C7B-2D3E4F5A6B7C",
+      "state": "none"
+    }
+  ]
+}

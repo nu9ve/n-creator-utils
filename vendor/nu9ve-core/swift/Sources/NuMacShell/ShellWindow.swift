@@ -55,11 +55,14 @@ public final class ShellWindow: NSWindow {
     /// Whether people can change its size. Set before the first corner style.
     public var isUserResizable = true
 
-    /// Square corners and no system title bar, for themes that draw their own.
+    /// Square corners and no system title bar, for themes that draw their own. The frame stays
+    /// where it was: AppKit would keep the content rect instead, moving and resizing the window.
     public var usesSquareCorners = false {
         didSet {
             guard usesSquareCorners != oldValue else { return }
+            let frame = frame
             applyCornerStyle()
+            if self.frame != frame, !styleMask.contains(.fullScreen) { setFrame(frame, display: true) }
         }
     }
 
@@ -352,6 +355,12 @@ public final class ShellWindowHost {
         windows[id]
     }
 
+    /// Shows the window `id`, creating it the first time with `content` as its root.
+    ///
+    /// When the window later gains or loses its title bar (`usesSquareCorners`, a bar change
+    /// through `WindowChromeBridge`) or enters fullscreen, AppKit rebuilds its frame view and the
+    /// root appears again: its `.task` and `.onAppear` run again and the running `.task` is
+    /// cancelled. Start work that must run once per launch outside the view, guarded by a flag.
     public func present<Content: View>(
         id: String,
         title: String,

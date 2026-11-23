@@ -20,19 +20,35 @@ let package = Package(
     ],
     products: [
         .library(name: "NuMacShell", targets: ["NuMacShell"]),
-        .library(name: "Nu9veTheme", targets: ["Nu9veTheme"])
+        .library(name: "Nu9veTheme", targets: ["Nu9veTheme"]),
+        .library(name: "Nu9veEngine", targets: ["Nu9veEngine"])
     ],
     targets: [
         // macOS-only code, compiled empty elsewhere. Knows no app: each passes its own names.
+        // Nu9veTheme gives the period bar the three commons and their measures.
         .target(
             name: "NuMacShell",
+            dependencies: ["Nu9veTheme"],
             swiftSettings: strictSettings
         ),
         .target(name: "Nu9veTheme", swiftSettings: strictSettings),
+        // The nu9ve-engine-v1 client: Foundation and Synchronization only.
+        .target(name: "Nu9veEngine", swiftSettings: strictSettings),
+        // A test engine the client's tests launch. Not a product.
+        .executableTarget(
+            name: "Nu9veEngineFixture",
+            dependencies: ["Nu9veEngine"],
+            swiftSettings: strictSettings
+        ),
         .testTarget(name: "Nu9veThemeTests", dependencies: ["Nu9veTheme"], swiftSettings: strictSettings),
         .testTarget(
             name: "NuMacShellTests",
-            dependencies: ["NuMacShell"],
+            dependencies: ["NuMacShell", "Nu9veTheme"],
+            swiftSettings: strictSettings
+        ),
+        .testTarget(
+            name: "Nu9veEngineTests",
+            dependencies: ["Nu9veEngine", "Nu9veEngineFixture"],
             swiftSettings: strictSettings
         )
     ]

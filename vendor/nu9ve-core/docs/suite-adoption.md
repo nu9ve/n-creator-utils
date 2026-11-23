@@ -17,6 +17,13 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 | Vectores de tema probados en Swift (15 roles), C# (nüün) y TypeScript (curado, `accent` y `onAccent`) | 2026-11-16 | `Nu9veTheme`, nüün y Kyū |
 | [`Nu9veTheme` en `swift/`](../swift/README.md): roles, `readable`, presets y skins | 2026-11-16 | Nüün (app de origen) y Kyū, ambos con mínimo macOS 15 |
 | [`Nu9ve.Core` y `Nu9ve.WinUI` en `windows/`](../windows/README.md), sin la identidad de nüün y con sus pruebas; skins propios de una app | 2026-11-16 | nüün en Windows (app de origen, `d0cb27c`) y nove (`cee0684`: Puerto, Carta náutica y los comunes) |
+| [`nu9ve-loudness`](../rust/nu9ve-loudness/) (LUFS y true peak) y sus vectores de audio | 2026-11-17 | SoundBender (`3df4dfb`, fijado en `bcd8d43`, que ya trae la versión el doble de rápida) y Clipper (mastering del master, `0bdd1f74`, fijado en `08744e3`). Falta curado |
+| `PeriodWindowBar` en `NuMacShell`: la barra de época de los comunes | 2026-11-18 | SoundBender (`2ab211d`). Kyū y nüün siguen con su copia |
+| [`nu9ve-registry-v1`](../contracts/nu9ve-registry-v1.md), [`nu9ve-data-v1`](../contracts/nu9ve-data-v1.md), `rust/nu9ve-ipc` y `rust/nu9ve-mcp` con el binario `nu9ve` | 2026-11-19 | nove se registra con `nu9ve-ipc` y sirve `data_catalog` y `mcp_tools` (`d430c04`, `c7d223e`, `036315d`; su A53, A55 y A56). Ninguna app usa todavía `nu9ve mcp` con un cliente real |
+| [`nu9ve-artifact-v1`](../contracts/nu9ve-artifact-v1.md) y `rust/nu9ve-artifact` | 2026-11-19 | nove exporta (`2f5468d`, su A57) y Clipper importa como overlay (`0e3056f2`) |
+| [`nu9ve-bench-v1`](../contracts/nu9ve-bench-v1.md), `rust/nu9ve-bench`, el ayudante `scripts/nu9ve_bench.py` y el traductor de Atlas | 2026-11-21 | Clipper, primer usuario: fijado en `6284877` (`ad80ef2a`); su M0 escribe la línea base Python ↔ Rust del motor en el registro (`835f4fc5`, 26 corridas). Falta la fuente «Benchmarks» de nove (su S10) |
+
+| [`nu9ve-device-v1`](../contracts/nu9ve-device-v1.md), [`nu9ve-volume-v1`](../contracts/nu9ve-volume-v1.md) y la versión menor de [`nu9ve-data-v1`](../contracts/nu9ve-data-v1.md) (raíces en un disco, clave `conversaciones`), con ejemplos y validadores | 2026-11-22 | Nadie todavía. Es el paso del core en F0 de [varias máquinas](suite-devices.md#10-fases); siguen nüün, después Atlas, nove y Clipper |
 
 ## Decisiones tomadas para lo que sigue
 
@@ -40,26 +47,31 @@ Plan vivo desde el 2026-11-16. Ordena en olas las piezas que se repiten entre ap
 
 | Pieza | Destino | De dónde | Primeros usuarios |
 | --- | --- | --- | --- |
-| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): Clipper valida `contract` en su cliente; nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper ya sirve los campos de v1; nüün sigue y nove lo adopta en cuatro pasos. Las decisiones 1 a 3 ya están tomadas: nüün cambia códigos y su sombra en el mismo paso |
+| Adoptar [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): ~~Clipper valida `contract` en su cliente~~ (hecho, `39c6db70`); nüün corrige `id`, códigos y `reason` en Python y Rust a la vez; nove hace que sus clientes lean los dos sobres ([§12](../contracts/nu9ve-engine-v1.md#12-diferencias-por-app-y-camino-a-v1)) | Cada app, en su repo | El contrato y sus ejemplos, ya aquí | Clipper ya sirve los campos de v1; nüün sigue y nove lo adopta en cuatro pasos. Las decisiones 1 a 3 ya están tomadas: nüün cambia códigos y su sombra en el mismo paso |
 
 ### Ola 2 · con dos usuarios a la vista
 
 | Pieza | Destino | De dónde | Condición |
 | --- | --- | --- | --- |
-| `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `engine/soundbender-core` | **Condición cumplida el 2026-11-16:** SoundBender decidió que su motor portable es Rust (su decisión 036, `3271f4d`) y ya portó LUFS y los limitadores con los mismos bits que Swift. Hay dos implementaciones en Rust: falta compararlas con las mismas señales ([audio en la suite](platforms/audio.md)) |
+| `nu9ve-loudness` (LUFS, limitador) y vectores de audio | `rust/` y `data/audio/` | curado `audio-engine/loudness.rs`; SoundBender `engine/soundbender-core` | **Construido el 2026-11-17** (LUFS y true peak; el limitador no entra, [audio §5](platforms/audio.md#5-curado-y-soundbender-pieza-por-pieza)). SoundBender lo usa desde el 2026-11-17 (`soundshop` `3df4dfb`) y Clipper desde el 2026-11-22 para medir el master (`0bdd1f74`). Falta que curado lo adopte. **Condición cumplida el 2026-11-16:** SoundBender decidió que su motor portable es Rust (su decisión 036, `3271f4d`) y ya portó LUFS y los limitadores con los mismos bits que Swift. Hay dos implementaciones en Rust, ya comparadas con las mismas señales (los 23 dorados de SoundBender): el LUFS de curado lee entre 0,04 y 0,29 LU bajo la norma, así que el crate parte del de SoundBender y suma el true peak de curado ([audio §5](platforms/audio.md#5-curado-y-soundbender-pieza-por-pieza)) |
 | `nu9ve-volumes` | `rust/` | nüün; curado `identity.rs`/`relink.rs` como segundo | Decidir antes la identidad portable de un disco ([A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas)), porque cambia su API |
 | Guía de prácticas comunes | `docs/practices.md` | Lo que ya repiten cinco apps: QA aislada por variable de entorno, instalar en la carpeta de apps del usuario con respaldo del anterior, gate con `sync-core.sh --check`, CHANGELOG por pieza | Escribirla con lo que ya hacen nüün, nove, curado, kyu y SoundBender, sin inventar reglas nuevas |
 | `nu9ve-py`: semántica de CPython (`repr`, `round`, `json.dumps` con indentación, cadenas, `pathlib`, `datetime`) | `rust/` | Clipper `py.rs`, `pyval.rs`, `paths.rs`; nüün `nu9ve-time` | Mientras nüün y Clipper porten desde Python. Vectores generados por CPython |
+
+| Cliente Swift de [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md): proceso del motor, handshake con `contract`, peticiones emparejadas por `id`, plazos, caída y reinicio con backoff, `not_ported` | `swift/` | nüün `Protocol.swift` y su cliente; nove (Swift) | **Hecho el 2026-11-22** (`f813334`): `Nu9veEngine` en [`swift/`](../swift/README.md#nu9veengine-cliente-de-nu9ve-engine-v1), con leases de sesión ([motor §6.4](../contracts/nu9ve-engine-v1.md#64-leases-de-sesión), propuesta). Pasa los 20 casos contra su motor de prueba y contra `clipper-core serve`. Lo adopta neuf cuando Clipper cierre su migración; nüün y nove conservan los suyos |
 
 ### Ola 3 · con su condición
 
 | Pieza | Condición |
 | --- | --- |
 | `data/sound/` y el motor de sonido de Swift (`FractosSoundV2`) | Cerrar la pregunta de niveles del [contrato de sonido](../contracts/nu9ve-sound-v1.md) en la Mac con el repo de la web; después, cuando una segunda app de Mac lo adopte |
-| `nu9ve-ipc`, `nu9ve-mcp` | Que nüün porte su MCP a Rust: entonces hay dos copias (nove `core/src/pipe.rs`, `mcp.rs`) |
+| `nu9ve-ipc`, `nu9ve-mcp` | Que nüün porte su MCP a Rust: entonces hay dos copias (nove `core/src/pipe.rs`, `mcp.rs`). **Adelantada el 2026-11-19** por decisión del usuario: `nu9ve mcp` ([diseño](suite-mcp.md)) es el segundo usuario, al lado de nove, con el [registro de motores](../contracts/nu9ve-registry-v1.md) y el [catálogo de datos](../contracts/nu9ve-data-v1.md) |
 | `ShortcutCatalog` y ayuda contextual (SoundBender) | Una segunda app que implemente el [contrato de interacción](../contracts/nu9ve-interaction-v1.md) |
 | Paleta y dither en TypeScript (curado, web de Fractos) | Decidir si `nu9ve/core` tendrá una carpeta de TypeScript; hoy no |
+| GPU: `Nu9veMetal` en `swift/`, kernels WGSL comunes y evaluador de `motion: declared` ([propuesta](platforms/gpu.md)) | Que el usuario responda las preguntas de la [§8](platforms/gpu.md#8-preguntas-para-el-usuario). Después, en el orden de la [§7](platforms/gpu.md#7-orden-propuesto) |
 | `nu9ve-jobs`: supervisar un proceso (grupo propio, NDJSON, cancelar, timeout, publicar) | Que un segundo motor de Rust lo necesite: curado (`stems.rs`) o nüün. Antes, separar en Clipper lo genérico de su cola ([inventario](#clipper)) |
+| `nu9ve-algo`: grafos (Dijkstra, A*), rejilla espacial, kNN, punto en polígono y la ruta de inspección por baches | Nació genérico en nove (`crates/nu9ve-algo`, `1555bb7`, sin dependencias) y se muda cuando tenga un segundo usuario (su A49). Candidatos: Atlas, cuando porte su primera etapa a Rust (S9 de nove), o kyu |
+| `nu9ve_engine::respond` pública: atender un mensaje en el mismo proceso, sin socket | La pide SoundBender para el paso 2c de su API (renders puros por `soundbender-ffi`); mientras, usa `serve_lines` sobre un `Cursor`. Falta la propuesta en el core |
 
 <a id="3-cómo-empieza-cada-app"></a>
 ## Cada app
@@ -97,13 +109,13 @@ Si el usuario quiere el corte también fuera de los repos: *Settings › Actions
 | --- | --- | --- | --- | --- |
 | **nüün** (`n-creator-utils`) | `contracts`, `data`, `docs`, `rust/nu9ve-json`, `rust/nu9ve-fs`, `rust/nu9ve-engine`, `swift`, `windows`; `--check` en su gate | `NuMacShell` en lugar de su `ShellWindow`, `SkinChrome` y `AboutView`, después de la semana de uso diario. En Windows, su fase A | `nu9ve-json`, `nu9ve-volumes`, `nu9ve-time`, `Nu9ve.Core`/`Nu9ve.WinUI` | [STATUS](../../../nu9ve/n-creator-utils/docs/STATUS.md) y su PLAN |
 | **Fractos** (`ios-fractos`) | `swift` y los contratos de Mac, tema y sonido | Arreglar las pruebas de su contrato de la web (`sync-contracts.sh` con `nu9ve.xyz`). Más adelante, que su motor de sonido se mude al core | `NuMacShell`, el motor de sonido | [MONOREPO](../../../nu9ve/ios-fractos/docs/MONOREPO.md) y [SUITE-DESKTOP](../../../nu9ve/ios-fractos/docs/SUITE-DESKTOP.md) |
-| **Clipper** | Contratos de JSON, MCP, archivos y motor; vectores y ejemplos; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-engine`; este plan; `--check` en su CI | Separar lo genérico de su supervisor de procesos, como base de `nu9ve-jobs` | Servidor de líneas, supervisor de procesos, semántica de Python | [Roadmap del motor](../../clipper/docs/2026-11-13-clipper-core-roadmap.md) |
+| **Clipper** | Contratos de JSON, MCP, archivos, motor y artefactos; vectores y ejemplos; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-engine`, `nu9ve-artifact`; este plan; `--check` en su gate (`9ec01d5`) | ~~Separar lo genérico de su supervisor~~ (`jobkit`, `0e69ab68`) y ~~validar `contract`~~ (`39c6db70`). Sigue: cerrar su migración a Rust. Al 22 nov (`ac8ecbbd`, core fijado en `c1c8444`): integradas M0–M8 y las sesiones A, A2, B, C, C2 y F del cierre. El motor ejecuta el export con un plan por proyecto que lanza un host Python por bloque, mide y decide el mastering con `nu9ve-loudness` (también la canción de la intro), y lleva el Sync, las sesiones Stalker, templates, tema, escenas de teclas, el sonido de las escenas, el WAV de análisis y la validación de handoffs consultando a nüün (`nu9ve media` como worker); desde F2 (`e29d7dd8`), también todas las escrituras de M7. Faltan los retiros desde el 27–28 nov y M9. M8 ya da a Neuf las vistas como métodos del motor y `Nu9veEngine` el cliente Swift | Servidor de líneas, supervisor de procesos (`jobkit`), semántica de Python, sombra entre motores | [Plan de cierre](../../clipper/docs/2026-11-21-rust-migration-closure.md) y [roadmap del motor](../../clipper/docs/2026-11-13-clipper-core-roadmap.md) |
 | **curado** | Contratos de Mac, Windows, tema e interacción, y vectores de tema; `bun run core:check` | ~~`nu9ve-fs` en su exportación y el contraste de superficies elevadas~~ (`2fcc0c0`). Sigue: comparar su `loudness.rs` y `limiter.rs` con los de SoundBender para `nu9ve-loudness` | Capas de audio y supervisión de stems | [STATUS](../../curado/docs/STATUS.md) |
-| **nove** | Contratos de Mac, Windows, tema, interacción, MCP, avisos y motor; vectores y ejemplos; `windows` | El tema en la app de Mac (Puerto, Carta náutica y los comunes, como en Windows); en Windows, revisar a mano la ventana del broker y el alto contraste | IPC enmarcado con ACL y MCP con niveles | [Seguir en Windows](../../nove/docs/windows-next.md) |
-| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, vectores de tema y `swift`; `--check` en `validate.sh` | Paso 1 de la ventana hecho (`ShellWindowHost`, `1cf31e3`); sigue la ventana cuadrada de época para los comunes, después medidas y tipografía de cada skin. Su motor portable ya es Rust: segundo usuario de `nu9ve-loudness` | `ShortcutCatalog`; segundo usuario de loudness | [Ventana y skins de la suite](../../soundshop/docs/plans/suite-shell.md) |
+| **nove** | Contratos de Mac, Windows, tema, interacción, MCP, avisos, motor, registro, catálogo y artefactos; vectores, ejemplos y validadores; `rust/nu9ve-json`, `nu9ve-fs`, `nu9ve-ipc` y `nu9ve-artifact`; `swift` y `windows` (`39c1b9b`) | ~~El tema en la app de Mac~~ (`65a9e50`, su A46). Hecho el 2026-11-20: se registra en la suite, sirve `data_catalog` (también series y conversaciones de agentes, `personal`) y `mcp_tools`/`mcp_call`, y exporta artefactos. **Sigue:** recorrer con el usuario, en la app instalada, Atlas, Conversaciones, Explorador y Resultados; probar `nu9ve mcp` con un cliente real; en Windows, ponerse al día (va en datos 27 frente a 33) y revisar a mano la ventana del broker y el alto contraste | IPC enmarcado con ACL y MCP con niveles; primer motor en el registro; primer productor de artefactos; `nu9ve-algo` | [STATUS](../../nove/docs/STATUS.md) y [Seguir en Windows](../../nove/docs/windows-next.md) |
+| **SoundBender** (`soundshop`) | Contratos de Mac, tema, interacción y sonido, vectores de tema y `swift`; `--check` en `validate.sh` | Ventana: pasos 1 a 3 hechos (`1cf31e3`, `29b0e90` y `8a79f82`) y barra `PeriodWindowBar` de `NuMacShell` (`2ab211d`), sin probar a mano. Core fijado en `bcd8d43` con su LUFS medido contra Swift (`41ab675`, `16ac1c8`). Escena espacial 3D en Metal con su cálculo en Rust por `soundbender-ffi` (`62617a5`, `298a85f`) y presupuesto de memoria de la mitad de la RAM (`4045b8c`, su decisión 040), sin publicar. Motor portable en Rust (`engine/`): 14 de 23 dorados con los mismos bits o dentro de la tolerancia; usa `nu9ve-loudness` (`3df4dfb`). API de comandos de su decisión 037: pasos 2a y 2b hechos (`7f1e85a`, `dac529d` a `90e65d1`), 2b sin probar en la app. Desde el 2026-11-19, sin publicar: secciones y asas (su decisión 041), racks y pincel de patrón (042) y una escena que se lee como suena, con altura por tono, formas por sonido y análisis v3 en el motor (043, `19ef65c`). **Sigue:** pruebas a mano y publicar la v0.32; proponer aquí una `nu9ve_engine::respond` pública para el modo en proceso del paso 2c (renders puros), que ya empezó con la escena; después, medidas y tipografía de cada skin | `ShortcutCatalog`; segundo usuario de loudness; candidato a G1 y G7 de la [propuesta de GPU](platforms/gpu.md) | [Ventana y skins de la suite](../../soundshop/docs/plans/suite-shell.md) |
 | **kyu** | Contratos de Mac, tema e interacción, vectores de tema y `swift`; `--check` en `validate.sh` | ~~`NuMacShell` en lugar de su ventana y cromo~~ (`77a3449`). Sigue: sumar su columna en [adopción de Mac](adoption.md#macos-app-v1) | Segunda verificación de los vectores en Swift; la regla de `slug()` | [STATUS](../../kyu/docs/STATUS.md) |
-| **neuf** | Sin copia todavía | Primera copia fijada (`macos-app-v1`, `nu9ve-theme-v1`); después `NuMacShell` | — | [STATUS](../../neuf/docs/STATUS.md) |
-| **Stalker** | Sin copia todavía | Primera copia fijada (`macos-app-v1`); `NuMacShell` al tocar su interfaz | — | [README](../../stalker/README.md) |
+| **neuf** | Contratos de Mac y tema, vectores de tema y `swift` (`a70b717`) | ~~Primera copia fijada~~. Sigue: `NuMacShell` en lugar de su `MacAppShell`. Sus flujos esperan a que Clipper cierre su migración a Rust (decisión del usuario, 2026-11-21); después, el cliente Swift de `nu9ve-engine-v1` | — | [STATUS](../../neuf/docs/STATUS.md) |
+| **Stalker** | Contratos de Mac, interacción, avisos y archivos y `swift` (`2f67cc8`); `--check` en `scripts/check.sh`. Usa `AboutView` y `AppIdentity` | ~~Menú, Acerca de, `Info.plist` y modo QA~~ (`d5c48d7`). Sigue: la señal de grabación como contrato y la ruta de notarización | La señal de grabación (`sessionID` y epoch, propuesta en [navegador §7](suite-browser.md#7-contratos-nuevos)) y el reloj de sesión | [Stalker en la suite](../../stalker/docs/2026-11-18-suite-y-prioridades.md) |
 
 El primer paso de una app sin copia no mueve código: declarar en `vendor/nu9ve-core.paths` lo que ya sigue, fijarlo, poner `--check` en su gate y apuntar sus enlaces a la copia.
 
@@ -199,7 +211,7 @@ La revisión no encontró una implementación propia de Acerca de ni un serializ
 
 ## Orden
 
-Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez disponible.
+Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez disponible. El punto 3 y el 5, el 2026-11-20.
 
 1. **Windows:**
    - ~~nove: C#, named pipe, instalar y retirar el sobre viejo~~: hecho el 2026-11-16 (0.12.0.54 instalada, sólo v1).
@@ -211,13 +223,16 @@ Actualizado el 2026-11-16, con lo de arriba hecho y un PC con Windows otra vez d
 2. **CI de GitHub sólo a mano** desde el 2026-11-16 (core, nüün, nove, Clipper y SoundBender; kyu, Fractos, neuf y Stalker no tienen workflows; curado lo deja a mano al subir el suyo): cada sesión corre las pruebas en local y el CI se lanza a mano antes de una release. Ninguna sesión lo ha visto en verde.
 3. **`NuMacShell` y `Nu9veTheme` en las demás apps de Mac:**
    - nüün, después de su semana de uso diario;
-   - ~~Kyū~~ (`77a3449`); SoundBender, que ya hizo el paso 1 de su ventana;
-   - nove: el tema de la suite en su app de Mac (Puerto, Carta náutica y los comunes, como en Windows), en una sesión de nove en la Mac;
-   - primera copia fijada en neuf y Stalker.
+   - ~~Kyū~~ (`77a3449`); ~~SoundBender~~ (pasos 1 a 3 y `PeriodWindowBar`, sin probar a mano);
+   - ~~nove: el tema de la suite en su app de Mac~~ (`65a9e50`);
+   - ~~primera copia fijada en neuf~~ (`a70b717`) y en Stalker (`9777275`); sigue `NuMacShell` en neuf;
+   - volver a fijar nüün, Fractos y Kyū, que siguen en `9cd8a82`, sin `PeriodWindowBar`.
 4. Guía de prácticas comunes (`docs/practices.md`).
 5. Lo que espera su condición:
    - `nu9ve-jobs`, desde Clipper y curado;
-   - `nu9ve-loudness`: SoundBender ya decidió Rust, así que pasa a la ola 2 activa;
+   - ~~`nu9ve-loudness`~~: hecho el 2026-11-17 y usado por SoundBender; falta que curado lo adopte;
+   - `nu9ve_engine::respond`, para SoundBender;
+   - `nu9ve-algo`, desde nove;
    - `nu9ve-volumes`, cuando se decida la identidad portable;
    - `nu9ve-py`;
    - el sonido de Fractos.

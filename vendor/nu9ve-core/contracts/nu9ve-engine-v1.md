@@ -150,6 +150,18 @@ Un plazo vencido no dice si la petición se ejecutó. Clipper distingue si el me
 - **Debe** al cliente: tras un plazo vencido o una conexión caída **después** de enviar, no reintentar a ciegas ni ir al oráculo: preguntar el estado. Sólo una lectura, o un error que llegó antes de enviar, pasa al oráculo.
 - **Conviene** en una vez: la misma clave. nüün hoy no la lleva (§12).
 
+### 6.4 Leases de sesión
+
+Propuesta del 2026-11-22, tomada de las leases de reproducción de Clipper (M8, su `APP_SERVICES_CONTRACT.md`). Una *lease* es un método cuya respuesta dice «retenido»: el motor toma un recurso (candados de media, una fuente lista para reproducir) y lo mantiene mientras vive su proceso, después de responder.
+
+- **Debe:** el motor lista el método de lease y su método de liberación en `ported` o `native`, y la app documenta cuáles son. Clipper: `project_output_lease`, `group_output_lease`, `project_source_lease` y `group_source_lease`, que se liberan con `playback_lease_release`.
+- **Debe:** a lo sumo una lease activa por proceso. Pedir otra con una activa, o liberar sin ninguna, es un error del método con código de la app (Clipper `playback_lease_active`, `playback_lease_missing`).
+- **Debe:** la liberación es un método con `params` vacíos en el mismo proceso, que responde cuando el recurso ya se soltó. Cerrar stdin (EOF) o la salida del proceso también lo sueltan.
+- **Debe:** una lease que el motor no puede dar responde `not_ported` (§5) sin retener nada.
+- **Debe** al cliente: un proceso propio para cada lease, que no se comparte con las demás peticiones y no se reinicia. Si ese proceso muere, la lease se perdió y la app se entera; nunca se readquiere sin que la app lo pida. Cerrar sin liberar es cerrar stdin (§8).
+- **Conviene:** la adquisición y la liberación dicen su fase en `data` (Clipper `phase: "ready"` y `"released"`) y lo que la app necesita para verificar lo retenido (una `revision`).
+- Qué se retiene y cómo se llaman los métodos es de la app.
+
 ## 7. Códigos de error
 
 Un código es lo que el programa compara; por eso un error de transporte y uno del método no comparten nombre. Los de la tabla son de la suite; cada app suma los de su dominio (`project_not_found`, `queue_busy`, `read_only_volume`…).
@@ -172,7 +184,7 @@ Un código es lo que el programa compara; por eso un error de transporte y uno d
 | `cancelled` | Se canceló (§6.2) | nüün (cliente), Clipper (trabajos) |
 | `internal_error` | Falla que el motor no clasificó. El mensaje no lleva trazas. `operation_failed` no es un código de la suite (§13, decisión 1) | Clipper; nüün usa `operation_failed` |
 
-**Los produce el cliente,** nunca vienen del motor: `engine_missing` (no hay binario o runtime; nüün `runtime_missing`), `startup_failed`, `startup_timeout`, `incompatible_engine` (§4), `timeout`, `connection_lost` (nüün `reader_unavailable`, nove `ipc_closed`), `engine_unavailable` (socket o pipe que no contesta; nove `ipc_unavailable`), `peer_user` y `unsafe_endpoint` (§9). **Conviene** que cada cliente use estos nombres; uno que conserve los suyos documenta la equivalencia.
+**Los produce el cliente,** nunca vienen del motor: `engine_missing` (no hay binario o runtime; nüün `runtime_missing`), `startup_failed`, `startup_timeout`, `incompatible_engine` (§4), `timeout`, `connection_lost` (nüün `reader_unavailable`, nove `ipc_closed`), `engine_unavailable` (socket o pipe que no contesta; nove `ipc_unavailable`), `peer_user` y `unsafe_endpoint` (§9), `invalid_response` (el motor rompió el protocolo: un sobre inválido o un `id` que nadie pidió, §2.1; el cliente cierra ese proceso) y `lease_ended` (§6.4: liberar una lease que ya terminó). **Conviene** que cada cliente use estos nombres; uno que conserve los suyos documenta la equivalencia.
 
 ## 8. Ciclo de vida del proceso
 
@@ -284,6 +296,24 @@ nove no tiene oráculo ni sombra; adopta el transporte de marcos tal como está,
 4. **Se retira el sobre viejo** en la primera versión de nove en que todos sus clientes (Swift, C#, `broker_host.rs` y `pipe-call`) envían `id`. Va atado a ese hito, no a una fecha (§13).
 
 Los mensajes nativos de la extensión de Chrome no cambian: su formato lo fija Chrome.
+
+### 12.4 Cliente de Swift: `Nu9veEngine`
+
+Desde el 2026-11-22 el paquete de Swift del core trae el cliente de este contrato ([`swift/README.md`](../swift/README.md#nu9veengine-cliente-de-nu9ve-engine-v1)). Parte del `LineServer` de nüün (`Protocol.swift`): un proceso persistente por líneas que empareja por `id`. Suma lo que ese no tenía: ids exactos (lee el JSON con su propio lector, que guarda los números como texto), handshake con `contract` y `protocol`, plazo por petición, lectura acotada, reinicio con espera creciente, `not_ported` como resultado y las leases de la §6.4. De nove no toma nada: su transporte es de marcos por socket o pipe, que este cliente todavía no habla.
+
+| Regla | Cómo la cumple |
+| --- | --- |
+| Transporte (§1) | Líneas por stdin/stdout. Petición de más de 1 MiB: `request_too_large` sin enviarla. Respuesta de más de 16 MiB (configurable): se descarta hasta su `\n` y esa llamada falla con `response_too_large`; el proceso sigue |
+| id (§2.1) | Enteros desde 1. Compara tipo y dígitos; un `id` que nadie pidió, o un sobre inválido, es `invalid_response` y cierra el proceso. Un error con `id: null` (petición ilegible) responde a la más antigua, porque el motor responde en orden |
+| `engine_info` (§4) | Lo pide al arrancar, con plazo de 2 s; sin `contract` v1 o con otro `protocol`, `incompatible_engine` |
+| `not_ported` (§5) | Resultado `.notPorted(reason:)`, no error. Un método que no está en `ported` ni `native` da `method_unavailable` sin preguntar |
+| Escrituras (§6.3) | `idempotency_key` opcional; todo error de transporte dice si la petición llegó entera (`dispatched`) |
+| Ciclo de vida (§8) | Arranque perezoso; plazo vencido o caída cierran el proceso y fallan lo pendiente. El primer reinicio es inmediato y los siguientes esperan 10 s, el doble cada vez, hasta 320 s, con `engine_unavailable` y `retry_after_seconds` mientras tanto. Cierre: stdin, 0,5 s, `SIGTERM`, 0,5 s, `SIGKILL` |
+| Leases (§6.4) | `openLease(_:_:release:)`: un proceso propio, aviso si muere, `release()` y `close()` (EOF) |
+
+Lo prueban los 20 casos de motor de la §11, enviados crudos por el transporte del cliente a un motor de prueba del paquete y, con `NU9VE_ENGINE_LIVE_PROBE`, al motor real de una app; qué pasó dónde está en [adopción](../docs/adoption.md#nu9ve-engine-v1). No cubre: marcos (nove), el modo de una vez (nüün `rpc`), la lectura de los dos sobres de nove y la sombra, que siguen en cada app.
+
+**Neuf** es su primer usuario previsto: fija `swift` con su `sync-core.sh`, abre `clipper-core serve` con `expectedProtocol: "clipper-engine/1"` y llama a las vistas de M8 (`review_item`, `preview_item`, `effective_timeline`, `effective_transcript`, `project_summary`) sin Python; con `not_ported`, la app avisa o usa su respaldo.
 
 ## 13. Decisiones abiertas
 

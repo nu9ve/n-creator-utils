@@ -1,0 +1,70 @@
+{
+  "_fixture": "Copia recortada de ~/code/data/atlas/config/bench.json (2026-11-21), sólo las dos líneas base de poses, para probar scripts/bench-from-atlas.py. No se edita a mano.",
+  "baselines": [
+    {
+      "stage": "poses",
+      "dataset": "o1-subset-45m",
+      "engine": "odm-docker",
+      "date": "2026-11-13",
+      "machine": {
+        "chip": "Apple M1",
+        "memory_gb": 16,
+        "docker_memory_gb": 12
+      },
+      "params": {
+        "odm": "--end-with opensfm",
+        "max_concurrency": 2
+      },
+      "time_s": 1260,
+      "peak_memory_gb": null,
+      "disk_gb": 5.8,
+      "quality": {
+        "reconstructed_shots": 252,
+        "reprojection_error_px": 0.78,
+        "days_offset_max_m": 0.06
+      },
+      "notes": "Bitácora, Iteración 14: features 8 min, emparejamiento 4, reconstrucción 4, alineación a GPS e imágenes sin distorsión 4. Memoria no medida (baja). Disco: 4.1 GB son opensfm/undistorted."
+    },
+    {
+      "stage": "poses",
+      "dataset": "day-45m-all",
+      "engine": "odm-docker",
+      "date": "2026-11-17",
+      "machine": {
+        "chip": "Apple M1",
+        "memory_gb": 16,
+        "docker_memory_gb": 13.7
+      },
+      "params": {
+        "odm": "--end-with opensfm",
+        "max_concurrency": 2,
+        "feature_type": "DSPSIFT",
+        "feature_process_size": 2000
+      },
+      "time_s": 14295,
+      "peak_memory_gb": 10.1,
+      "disk_gb": 38,
+      "timings": {
+        "stage_copy_s": 420,
+        "features_s": 6120,
+        "matching_s": 2981,
+        "reconstruct_s": 3360,
+        "undistort_s": 1140
+      },
+      "quality": {
+        "reconstructed_shots": 1594,
+        "not_reconstructed": 3,
+        "partial_reconstructions": [
+          1466,
+          72,
+          39,
+          8,
+          5,
+          4
+        ],
+        "tilted_over_10deg": 41
+      },
+      "notes": "Bitácora, Iteración 22. Los 8 días del 4-11 nov en la reconstrucción principal (1,466); el 12 nov (zona nueva, 95-400 m de cualquier otro día) quedó 62 en la principal y 128 en 5 piezas alineadas por GPS; 40 de sus poses salen inclinadas > 10° (mosaic las excluye). Features limitadas por --max-concurrency 2. Disco: images 7.4 GB, features 2.2, undistorted/images 26, reconstruction*.json 1.1."
+    }
+  ]
+}

@@ -1,0 +1,390 @@
+{
+  "contract": "contracts/nu9ve-volume-v1.md",
+  "regenerate": "python3 -I scripts/volume-examples.py",
+  "note": "markers: problem null means valid (§1); registering: who may create a marker with a role (§2); states: what an observer gives a mounted volume (§5), serial null means the system gives none, remembered is what this observer keeps per system (§4); app_folders: §8; indexes: §8, checked as nu9ve-data-v1 catalogs.",
+  "markers": [
+    {
+      "name": "an archive registered by nüün on a Mac",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": null
+    },
+    {
+      "name": "a work disk registered by Atlas",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"work\",\"label\":\"XSSD\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"atlas\"},\"fs\":{\"os\":\"macos\",\"kind\":\"apfs\",\"serial\":\"4C1D8E2A-7B3F-4A60-9D1E-2F3A4B5C6D7E\"}}",
+      "problem": null
+    },
+    {
+      "name": "registered on Windows",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"windows\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": null
+    },
+    {
+      "name": "role changed by nüün",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"work\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"role_changed_at\":\"2026-11-23T10:00:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "a disk registered as a copy",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"7e4a1b9c-2d3f-4a5b-8c6d-0e1f2a3b4c5d\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"previous_volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\"}",
+      "problem": null
+    },
+    {
+      "name": "unknown fields are ignored",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"note\":\"SSD de 2 TB\"}",
+      "problem": null
+    },
+    {
+      "name": "volume_id not a UUID 4",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"MEDIA501\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_volume_id"
+    },
+    {
+      "name": "unknown role",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"backup\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_role"
+    },
+    {
+      "name": "empty label",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_label"
+    },
+    {
+      "name": "label longer than 64",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_label"
+    },
+    {
+      "name": "time with an offset",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T14:00:00-07:00\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "registered_by without device",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_registered_by"
+    },
+    {
+      "name": "registered_by with an upper-case app",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"Nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bad_registered_by"
+    },
+    {
+      "name": "unknown file system",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"zfs\",\"serial\":\"x\"}}",
+      "problem": "bad_fs"
+    },
+    {
+      "name": "empty serial",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"apfs\",\"serial\":\"\"}}",
+      "problem": "bad_fs"
+    },
+    {
+      "name": "fs from an unknown system",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"ios\",\"kind\":\"apfs\",\"serial\":\"x\"}}",
+      "problem": "bad_fs"
+    },
+    {
+      "name": "previous is itself",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"previous_volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\"}",
+      "problem": "bad_previous_volume_id"
+    },
+    {
+      "name": "role_changed_at not a time",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"role_changed_at\":\"ayer\"}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "missing fs",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"}}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "fs as a string",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":\"exfat\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "other contract",
+      "text": "{\"contract\":\"nu9ve-volume/2\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "unknown_contract"
+    },
+    {
+      "name": "not an object",
+      "text": "\"MEDIA501\"",
+      "problem": "not_object"
+    },
+    {
+      "name": "not JSON",
+      "text": "{",
+      "problem": "not_json"
+    },
+    {
+      "name": "larger than 16 KiB",
+      "text": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"},\"padding\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "problem": "too_large"
+    },
+    {
+      "name": "starts with a BOM",
+      "text": "﻿{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+      "problem": "bom"
+    }
+  ],
+  "registering": [
+    {
+      "app": "nuun",
+      "role": "archive",
+      "allowed": true
+    },
+    {
+      "app": "nuun",
+      "role": "work",
+      "allowed": true
+    },
+    {
+      "app": "nove",
+      "role": "work",
+      "allowed": true
+    },
+    {
+      "app": "clipper",
+      "role": "other",
+      "allowed": true
+    },
+    {
+      "app": "nove",
+      "role": "archive",
+      "allowed": false
+    },
+    {
+      "app": "atlas",
+      "role": "archive",
+      "allowed": false
+    },
+    {
+      "app": "nuun",
+      "role": "backup",
+      "allowed": false
+    }
+  ],
+  "states": [
+    {
+      "name": "same Mac, same serial",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "5A1C-93F2"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "ok"
+    },
+    {
+      "name": "another Mac, never seen, same serial",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "5A1C-93F2"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "ok"
+    },
+    {
+      "name": "files copied to a new disk: other serial on the same system",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "0B7E-11C4"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "suspect"
+    },
+    {
+      "name": "first time on Windows: other format, accepted and remembered",
+      "os": "windows",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "93F2-5A1C"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "ok"
+    },
+    {
+      "name": "Windows again, same serial it remembers",
+      "os": "windows",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "93F2-5A1C"
+      },
+      "other_mounted": [],
+      "remembered": {
+        "windows": "93F2-5A1C"
+      },
+      "state": "ok"
+    },
+    {
+      "name": "Windows again, another serial",
+      "os": "windows",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "0000-0001"
+      },
+      "other_mounted": [],
+      "remembered": {
+        "windows": "93F2-5A1C"
+      },
+      "state": "suspect"
+    },
+    {
+      "name": "the person said it is the same disk: remembered serial wins over the marker",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "0B7E-11C4"
+      },
+      "other_mounted": [],
+      "remembered": {
+        "macos": "0B7E-11C4"
+      },
+      "state": "ok"
+    },
+    {
+      "name": "no serial from the system",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": null
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "unverified"
+    },
+    {
+      "name": "two mounted with the same volume_id",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"archive\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "5A1C-93F2"
+      },
+      "other_mounted": [
+        "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f"
+      ],
+      "remembered": {},
+      "state": "duplicate"
+    },
+    {
+      "name": "no marker",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": null,
+        "serial": "5A1C-93F2"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "unmarked"
+    },
+    {
+      "name": "invalid marker",
+      "os": "macos",
+      "volume": {
+        "readable": true,
+        "marker": "{\"contract\":\"nu9ve-volume/1\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"role\":\"backup\",\"label\":\"MEDIA501\",\"registered_at\":\"2026-11-22T21:00:00Z\",\"registered_by\":{\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"app\":\"nuun\"},\"fs\":{\"os\":\"macos\",\"kind\":\"exfat\",\"serial\":\"5A1C-93F2\"}}",
+        "serial": "5A1C-93F2"
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "invalid"
+    },
+    {
+      "name": "HFS+ on Windows",
+      "os": "windows",
+      "volume": {
+        "readable": false,
+        "marker": null,
+        "serial": null
+      },
+      "other_mounted": [],
+      "remembered": {},
+      "state": "unreadable"
+    }
+  ],
+  "app_folders": [
+    {
+      "name": "nuun",
+      "listed": true
+    },
+    {
+      "name": "atlas",
+      "listed": true
+    },
+    {
+      "name": "my-app2",
+      "listed": true
+    },
+    {
+      "name": "Nuun",
+      "listed": false
+    },
+    {
+      "name": "2nove",
+      "listed": false
+    },
+    {
+      "name": ".tmp",
+      "listed": false
+    },
+    {
+      "name": "nuun.json",
+      "listed": false
+    }
+  ],
+  "indexes": [
+    {
+      "name": "nüün's index on MEDIA501",
+      "folder": "nuun",
+      "volume_id": "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f",
+      "text": "{\"contract\":\"nu9ve-data/1\",\"app\":\"nuun\",\"generated_at\":\"2026-11-22T21:05:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media501-2026\",\"label\":\"MEDIA501 · 2026\",\"state\":\"ok\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"volume_path\":\"2026\"}],\"datasets\":[{\"id\":\"project:subaereo:footage\",\"owner\":\"nuun\",\"title\":\"Subaéreo · tomas de dron\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media501-2026\",\"path\":\"subaereo\"},\"projects\":[{\"project_key\":\"subaereo\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T21:00:00Z\"}],\"next_cursor\":null}",
+      "problem": null
+    },
+    {
+      "name": "a root on another disk is just a root",
+      "folder": "nuun",
+      "volume_id": "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f",
+      "text": "{\"contract\":\"nu9ve-data/1\",\"app\":\"nuun\",\"generated_at\":\"2026-11-22T21:05:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media501-2026\",\"label\":\"MEDIA501 · 2026\",\"state\":\"ok\",\"volume_id\":\"7e4a1b9c-2d3f-4a5b-8c6d-0e1f2a3b4c5d\",\"volume_path\":\"2026\"}],\"datasets\":[{\"id\":\"project:subaereo:footage\",\"owner\":\"nuun\",\"title\":\"Subaéreo · tomas de dron\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media501-2026\",\"path\":\"subaereo\"},\"projects\":[{\"project_key\":\"subaereo\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T21:00:00Z\"}],\"next_cursor\":null}",
+      "problem": null
+    },
+    {
+      "name": "index of another app in this folder",
+      "folder": "nove",
+      "volume_id": "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f",
+      "text": "{\"contract\":\"nu9ve-data/1\",\"app\":\"nuun\",\"generated_at\":\"2026-11-22T21:05:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media501-2026\",\"label\":\"MEDIA501 · 2026\",\"state\":\"ok\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"volume_path\":\"2026\"}],\"datasets\":[{\"id\":\"project:subaereo:footage\",\"owner\":\"nuun\",\"title\":\"Subaéreo · tomas de dron\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media501-2026\",\"path\":\"subaereo\"},\"projects\":[{\"project_key\":\"subaereo\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T21:00:00Z\"}],\"next_cursor\":null}",
+      "problem": "app_mismatch"
+    },
+    {
+      "name": "an index is one document, not a page",
+      "folder": "nuun",
+      "volume_id": "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f",
+      "text": "{\"contract\":\"nu9ve-data/1\",\"app\":\"nuun\",\"generated_at\":\"2026-11-22T21:05:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media501-2026\",\"label\":\"MEDIA501 · 2026\",\"state\":\"ok\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\",\"volume_path\":\"2026\"}],\"datasets\":[{\"id\":\"project:subaereo:footage\",\"owner\":\"nuun\",\"title\":\"Subaéreo · tomas de dron\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media501-2026\",\"path\":\"subaereo\"},\"projects\":[{\"project_key\":\"subaereo\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T21:00:00Z\"}],\"next_cursor\":\"p2\"}",
+      "problem": "paged_index"
+    },
+    {
+      "name": "a root with volume_id but no volume_path",
+      "folder": "nuun",
+      "volume_id": "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f",
+      "text": "{\"contract\":\"nu9ve-data/1\",\"app\":\"nuun\",\"generated_at\":\"2026-11-22T21:05:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media501-2026\",\"label\":\"MEDIA501 · 2026\",\"state\":\"ok\",\"volume_id\":\"2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f\"}],\"datasets\":[{\"id\":\"project:subaereo:footage\",\"owner\":\"nuun\",\"title\":\"Subaéreo · tomas de dron\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media501-2026\",\"path\":\"subaereo\"},\"projects\":[{\"project_key\":\"subaereo\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T21:00:00Z\"}],\"next_cursor\":null}",
+      "problem": "bad_root"
+    }
+  ]
+}

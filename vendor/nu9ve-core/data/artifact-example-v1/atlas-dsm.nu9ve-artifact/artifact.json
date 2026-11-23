@@ -1,0 +1,229 @@
+{
+  "contract": "nu9ve-artifact/1",
+  "id": "bench-atlas-dsm-2026-11",
+  "producer": {
+    "app": "nove",
+    "version": "0.9.0"
+  },
+  "kind": "comparison",
+  "title": "DSM de Atlas: OpenMVS contra el motor propio v2 (ejemplo)",
+  "description": "Minutos de reloj del caso atlas-dsm. Ejemplo del contrato; las cifras vienen de nove docs/data-hub.md §9b.",
+  "created_at": "2026-11-19T18:00:00Z",
+  "privacy": "public",
+  "data": [
+    {
+      "path": "data/bench.csv",
+      "media_type": "text/csv",
+      "bytes": 99,
+      "sha256": "1cb20041b06ef34505136e6d356a6b0b80322baf6b7a258579121f404467b5c2",
+      "role": "primary"
+    },
+    {
+      "path": "data/bench.json",
+      "media_type": "application/json",
+      "bytes": 157,
+      "sha256": "2437336d52cb53f92fe807edf0015adfd6f8a86736b62e11eb23e618d8d49f2f",
+      "role": "support"
+    }
+  ],
+  "render": {
+    "width": 960,
+    "height": 540,
+    "theme": "dark",
+    "background": "#101418",
+    "files": [
+      {
+        "path": "render/chart.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      },
+      {
+        "path": "render/chart.svg",
+        "media_type": "image/svg+xml",
+        "bytes": 904,
+        "sha256": "8703798df16e40260b2735abdbbb1711572154e0d6fe31c7510368f2e8baad69"
+      }
+    ]
+  },
+  "recipe": {
+    "id": "chart.bar.compare",
+    "version": "1",
+    "params": {
+      "value": "minutes",
+      "label": "engine",
+      "order": "input",
+      "annotate": "speedup"
+    }
+  },
+  "lineage": {
+    "inputs": [
+      {
+        "owner": "nove",
+        "dataset": "bench:atlas-dsm",
+        "revision": "r-2026-11-19",
+        "hash": {
+          "algorithm": "sha256",
+          "value": "1cb20041b06ef34505136e6d356a6b0b80322baf6b7a258579121f404467b5c2"
+        },
+        "privacy": "public"
+      }
+    ],
+    "run": {
+      "id": "run-2026-11-19-0001",
+      "engine": "nove-engine",
+      "engine_version": "0.9.0"
+    }
+  },
+  "motion": {
+    "kind": "frames",
+    "fps": 12,
+    "loop": false,
+    "frames": [
+      {
+        "path": "frames/00000.png",
+        "media_type": "image/png",
+        "bytes": 1391,
+        "sha256": "c3c2a1911d8499927360ce4cd641ee19955bba82f3fc312bc912f2936579a804"
+      },
+      {
+        "path": "frames/00001.png",
+        "media_type": "image/png",
+        "bytes": 1427,
+        "sha256": "48b4486e7f6f9ac44b11e39501ce01e908c14f256657900b0f7532e8c4e058e4"
+      },
+      {
+        "path": "frames/00002.png",
+        "media_type": "image/png",
+        "bytes": 1446,
+        "sha256": "f1ce56a804e17389bc1c73e46024a8be17f90c1552af35cf7614448f32b6a704"
+      },
+      {
+        "path": "frames/00003.png",
+        "media_type": "image/png",
+        "bytes": 1463,
+        "sha256": "047a2c4ea3e36e7be49a01765eb2862c90395f92b04274f390c990c109d279de"
+      },
+      {
+        "path": "frames/00004.png",
+        "media_type": "image/png",
+        "bytes": 1483,
+        "sha256": "95d1e6726e98e0bb9b688caee881b8320e72a42796410e2c80962c70e29afa8d"
+      },
+      {
+        "path": "frames/00005.png",
+        "media_type": "image/png",
+        "bytes": 1504,
+        "sha256": "d65e415ed37ac34f2c19f33170378f00de40c8f820d7605c7f73f3df0cb424e2"
+      },
+      {
+        "path": "frames/00006.png",
+        "media_type": "image/png",
+        "bytes": 1507,
+        "sha256": "1d4ae5d9cfde81955eb30bfac37852329a0af12cdef317f19a6d93b31f335ea6"
+      },
+      {
+        "path": "frames/00007.png",
+        "media_type": "image/png",
+        "bytes": 1506,
+        "sha256": "d5c8152c9aa177190d20d0d5880de98b30c9dae1d18419e18dcc36b8e9ed4875"
+      },
+      {
+        "path": "frames/00008.png",
+        "media_type": "image/png",
+        "bytes": 1508,
+        "sha256": "18362be2d24486ffda94fa1c3fac2fbf396669b45b3c5fb08ed984bded101b5d"
+      },
+      {
+        "path": "frames/00009.png",
+        "media_type": "image/png",
+        "bytes": 1506,
+        "sha256": "54f2ddeb1bef1e12b4f43f18b7a95157170c91540f19116556ca46608b7bd5fd"
+      },
+      {
+        "path": "frames/00010.png",
+        "media_type": "image/png",
+        "bytes": 1505,
+        "sha256": "fb15c33b9bf44b3b63d2133f90bbc5d52ed56145007ff0addb3b84e008a1f49b"
+      },
+      {
+        "path": "frames/00011.png",
+        "media_type": "image/png",
+        "bytes": 1507,
+        "sha256": "971e9d4f04686e792da328cb63a66b82eb01b2b53f2b3d46471b10ac641380f9"
+      },
+      {
+        "path": "frames/00012.png",
+        "media_type": "image/png",
+        "bytes": 1507,
+        "sha256": "038642789bd7baa7a203f13ffbd482846e96ecdf8995e53e5efb03d1ac4877d1"
+      },
+      {
+        "path": "frames/00013.png",
+        "media_type": "image/png",
+        "bytes": 1505,
+        "sha256": "43a341ad69522769530078c1ed29e046ac08abd56ba8800c2b3c23d7b6141357"
+      },
+      {
+        "path": "frames/00014.png",
+        "media_type": "image/png",
+        "bytes": 1505,
+        "sha256": "f0ece14d725a4e234a9f4084b02d128acbe9401c66586d42ab68aae83d4a0a67"
+      },
+      {
+        "path": "frames/00015.png",
+        "media_type": "image/png",
+        "bytes": 1505,
+        "sha256": "07b693f6773081f5bf99f73ebcbc73840f9fec236855bb71d5dd26ead0fcc4a1"
+      },
+      {
+        "path": "frames/00016.png",
+        "media_type": "image/png",
+        "bytes": 1504,
+        "sha256": "d060ea52192a0d1a2a81bf95110cc0832a9231122019a133b07ee5ec6cc3b011"
+      },
+      {
+        "path": "frames/00017.png",
+        "media_type": "image/png",
+        "bytes": 1504,
+        "sha256": "6c5d5ee24c7afb36043c0c4566751fba106c3970192f428e8777d0bc566a29c5"
+      },
+      {
+        "path": "frames/00018.png",
+        "media_type": "image/png",
+        "bytes": 1504,
+        "sha256": "6c5d5ee24c7afb36043c0c4566751fba106c3970192f428e8777d0bc566a29c5"
+      },
+      {
+        "path": "frames/00019.png",
+        "media_type": "image/png",
+        "bytes": 1504,
+        "sha256": "6c5d5ee24c7afb36043c0c4566751fba106c3970192f428e8777d0bc566a29c5"
+      },
+      {
+        "path": "frames/00020.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      },
+      {
+        "path": "frames/00021.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      },
+      {
+        "path": "frames/00022.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      },
+      {
+        "path": "frames/00023.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      }
+    ]
+  }
+}

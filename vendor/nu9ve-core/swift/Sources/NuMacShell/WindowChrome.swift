@@ -25,6 +25,11 @@ public final class WindowShellState: ObservableObject {
 ///
 /// The bar lives in its own hosting view and does not inherit the SwiftUI
 /// environment: theme, stores and actions must arrive through its initializer.
+///
+/// Changing `usesSystemTitleBar` or `usesSquareCorners`, like entering fullscreen, makes
+/// AppKit rebuild the window's frame view and SwiftUI moves the content into it: the root
+/// view appears again and its `.task` and `.onAppear` run again, cancelling the running
+/// ones. Work that must happen once per launch starts outside the view, guarded by a flag.
 public struct WindowChromeBridge<Bar: View>: NSViewRepresentable {
     private let bar: Bar
     private let barHeight: CGFloat
@@ -154,9 +159,12 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
                     shell.isFullScreen = true
                 }
             },
-            center.addObserver(forName: NSWindow.willExitFullScreenNotification, object: window, queue: .main) { [weak self] _ in
+            // The toolbar comes back the moment the exit starts: waiting for the next turn of
+            // the loop leaves the row empty while the window shrinks.
+            center.addObserver(forName: NSWindow.willExitFullScreenNotification, object: window, queue: .main) { [weak self, weak window] _ in
                 MainActor.assumeIsolated {
                     shell.isFullScreen = false
+                    if let toolbar = window?.toolbar, self?.wantsToolbar == true { toolbar.isVisible = true }
                     self?.scheduleChrome()
                 }
             },
@@ -198,10 +206,14 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
         window.backgroundColor = NSColor(chrome.background)
         window.appearance = NSAppearance(named: chrome.isDark ? .darkAqua : .aqua)
         guard !window.styleMask.contains(.fullScreen) else { return }
-        (window as? ShellWindow)?.usesSquareCorners = chrome.usesSquareCorners
-        // A hidden toolbar would still take the clicks of the row, so it comes out.
-        let wantsToolbar = chrome.usesSystemTitleBar && chrome.showsToolbar
+        // Changing the title bar or the toolbar keeps the content rect, which would move and
+        // resize the window: the frame people left is the one that stays.
+        let frame = window.frame
+        // A hidden toolbar would still take the clicks of the row, so it comes out. A toolbar
+        // only sticks on a titled window: it leaves before the title bar and comes back after it.
         let toolbarForChrome = wantsToolbar ? toolbar : nil
+        if toolbarForChrome == nil, window.toolbar != nil { window.toolbar = nil }
+        (window as? ShellWindow)?.usesSquareCorners = chrome.usesSquareCorners
         if window.toolbar !== toolbarForChrome { window.toolbar = toolbarForChrome }
         if wantsToolbar {
             window.toolbarStyle = .unifiedCompact
@@ -210,6 +222,12 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
         for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
             window.standardWindowButton(button)?.isHidden = !chrome.usesSystemTitleBar
         }
+        if window.frame != frame { window.setFrame(frame, display: true) }
+    }
+
+    private var wantsToolbar: Bool {
+        guard let chrome else { return false }
+        return chrome.usesSystemTitleBar && chrome.showsToolbar
     }
 
     public func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {

@@ -1,5 +1,7 @@
 # Un navegador en la suite: propuesta
 
+> **Versión 2 (2026-11-21):** el usuario quiere un navegador diario propio. La conclusión nueva (base Chromium ajena con una capa nu9ve encima) está en [la versión 2](suite-browser-v2.md). De aquí siguen valiendo el inventario (§2), los contratos (§7) y las fuentes (§12).
+
 Estado: **propuesta para decidir, nada implementado** (2026-11-15). Responde a la pregunta del usuario: ¿tiene sentido que la suite tenga un navegador propio que ayude a grabar, que tenga shells mínimas con el estilo de nu9ve, fullscreen real y coordinación de lo que se navega (links compartidos, modo grabación de Stalker, señales para Clipper, MCP)? Y, de paso, ¿qué hacer ahora que Arc se acaba? ¿Hacer un fork de Chromium, usarlo como librería u otra cosa? ¿Rust en el núcleo y vistas nativas? Lo leído en los repos es del 2026-11-15. Los datos externos llevan su fuente en la [§12](#12-fuentes).
 
 ## 1. Respuesta corta

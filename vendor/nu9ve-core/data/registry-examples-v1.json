@@ -1,0 +1,333 @@
+{
+  "contract": "contracts/nu9ve-registry-v1.md",
+  "regenerate": "python3 -I scripts/registry-examples.py",
+  "note": "records: problem null means valid (§2, §3, §5); liveness: state against a process table (§4, §6); windows_start: §4 conversion; folders: §1; names: which files a client lists (§5).",
+  "folders": [
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "dir": "/Users/ana/Library/Application Support/nu9ve/engines"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "dir": "C:\\Users\\ana\\AppData\\Local\\nu9ve\\engines"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_ENGINES_DIR": "/tmp/qa/engines"
+      },
+      "dir": "/tmp/qa/engines"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_ENGINES_DIR": "qa/engines"
+      },
+      "dir": null
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local",
+        "NU9VE_ENGINES_DIR": "D:\\qa\\engines"
+      },
+      "dir": "D:\\qa\\engines"
+    },
+    {
+      "platform": "windows",
+      "env": {},
+      "dir": null
+    }
+  ],
+  "names": [
+    {
+      "file": "nove.json",
+      "listed": true
+    },
+    {
+      "file": "nuun.json",
+      "listed": true
+    },
+    {
+      "file": "my-app2.json",
+      "listed": true
+    },
+    {
+      "file": ".nove.json.3f2a.tmp",
+      "listed": false
+    },
+    {
+      "file": "nove.json.tmp",
+      "listed": false
+    },
+    {
+      "file": "Nove.json",
+      "listed": false
+    },
+    {
+      "file": "2nove.json",
+      "listed": false
+    },
+    {
+      "file": "nove",
+      "listed": false
+    }
+  ],
+  "records": [
+    {
+      "name": "unix socket",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": null
+    },
+    {
+      "name": "pipe, with an optional field the client ignores",
+      "file": "nuun.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nuun\",\"app_version\":\"1.4.0\",\"pid\":9001,\"process_start_us\":1795100700000001,\"transport\":{\"kind\":\"pipe\",\"name\":\"\\\\\\\\.\\\\pipe\\\\nuun-6f1c2a9e0b7d4c3a\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nuun-media/1\",\"engine\":\"rust\",\"version\":\"0.1.0\"},\"capabilities\":[\"data_catalog_v1\"],\"written_at\":\"2026-11-19T15:05:00Z\",\"library\":\"personal\"}",
+      "problem": null
+    },
+    {
+      "name": "no capabilities is valid",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": null
+    },
+    {
+      "name": "a field the client does not know is ignored",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\",\"future\":{\"x\":1}}",
+      "problem": null
+    },
+    {
+      "name": "file name and app differ",
+      "file": "clipper.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "app_mismatch"
+    },
+    {
+      "name": "another major version",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/2\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "unknown_contract"
+    },
+    {
+      "name": "missing process_start_us",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "pid as a string",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":\"4242\",\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "pid as a decimal",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242.0,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "pid 0",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":0,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_pid"
+    },
+    {
+      "name": "start beyond 2^53 - 1",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":9007199254740992,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_start"
+    },
+    {
+      "name": "upper-case app",
+      "file": "Nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"Nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_app"
+    },
+    {
+      "name": "written_at with an offset",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T09:04:05-06:00\"}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "engine without contract",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_engine"
+    },
+    {
+      "name": "capability without version suffix",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_capability"
+    },
+    {
+      "name": "relative socket path",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "bad_transport"
+    },
+    {
+      "name": "tcp is not a transport",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"tcp\",\"port\":7777},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "unknown_transport"
+    },
+    {
+      "name": "not an object",
+      "file": "nove.json",
+      "text": "[]",
+      "problem": "not_object"
+    },
+    {
+      "name": "NaN is not JSON",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":NaN,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "not_json"
+    },
+    {
+      "name": "over 16 KiB",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\",\"padding\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "problem": "too_large"
+    },
+    {
+      "name": "group-readable file",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "unsafe_permissions",
+      "stat": {
+        "kind": "file",
+        "owner": "self",
+        "mode": "0640"
+      }
+    },
+    {
+      "name": "symbolic link",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "unsafe_permissions",
+      "stat": {
+        "kind": "symlink",
+        "owner": "self",
+        "mode": "0600"
+      }
+    },
+    {
+      "name": "owned by another user",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": "unsafe_permissions",
+      "stat": {
+        "kind": "file",
+        "owner": "other",
+        "mode": "0600"
+      }
+    },
+    {
+      "name": "private file",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "problem": null,
+      "stat": {
+        "kind": "file",
+        "owner": "self",
+        "mode": "0600"
+      }
+    }
+  ],
+  "liveness": [
+    {
+      "name": "same pid, same start",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {
+        "4242": {
+          "user": "self",
+          "start_us": 1795100645123456
+        }
+      },
+      "state": "live"
+    },
+    {
+      "name": "no such process",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {},
+      "state": "stale"
+    },
+    {
+      "name": "pid reused: same pid, later start",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {
+        "4242": {
+          "user": "self",
+          "start_us": 1795200000000000
+        }
+      },
+      "state": "stale"
+    },
+    {
+      "name": "start differs by one microsecond",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {
+        "4242": {
+          "user": "self",
+          "start_us": 1795100645123457
+        }
+      },
+      "state": "stale"
+    },
+    {
+      "name": "pid of another user",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {
+        "4242": {
+          "user": "other",
+          "start_us": 1795100645123456
+        }
+      },
+      "state": "stale"
+    },
+    {
+      "name": "an invalid record is never live",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":0,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",
+      "processes": {
+        "4242": {
+          "user": "self",
+          "start_us": 1795100645123456
+        }
+      },
+      "state": "invalid"
+    }
+  ],
+  "windows_start": [
+    {
+      "filetime": 116444736000000000,
+      "process_start_us": 0
+    },
+    {
+      "filetime": 133761542451234567,
+      "process_start_us": 1731680645123456
+    },
+    {
+      "filetime": 133761542451234569,
+      "process_start_us": 1731680645123456
+    }
+  ]
+}

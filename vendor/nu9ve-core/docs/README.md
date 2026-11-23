@@ -12,7 +12,10 @@
 | Traducir una función del sistema entre macOS, Windows y Linux | [Integración con el sistema](platforms/os-integration.md) (propuesta) |
 | Planear Linux | [Linux en la suite](platforms/linux.md) (propuesta) |
 | Decidir qué código de audio se comparte | [Audio en la suite](platforms/audio.md) (propuesta) |
-| Decidir si la suite necesita un navegador | [Navegador en la suite](suite-browser.md) (propuesta) |
+| Decidir qué se comparte de Metal y la GPU | [GPU en la suite](platforms/gpu.md) (propuesta) |
+| Decidir qué se abre y qué queda privado | [Licencias](licensing.md) (propuesta, sin decidir) |
+| Trabajar con varias máquinas y discos, y decidir cómo entran la cuenta de Fractos, la nube y el MCP | [Varias máquinas, discos y nube](suite-devices.md) (propuesta, con preguntas abiertas) |
+| Decidir cómo sería tu navegador diario y qué capa le pone la suite | [Navegador, versión 2](suite-browser-v2.md) (propuesta); el inventario y los contratos siguen en la [versión 1](suite-browser.md) |
 | Leer la auditoría del 2026-11-10 y sus briefs | [Auditoría Fable](audits/fable-audit-2026-11-10.md), [briefs](audits/session-briefs-2026-11-10.md) |
 
 La auditoría y sus briefs son históricos: conservan su fecha y sus rutas de entonces (`nu9ve/suite`, `vendor/suite`).

@@ -37,7 +37,7 @@ fail() {
 }
 
 # Apple's modules the shared Swift may use. Add one here when a piece needs it.
-system_modules=" Foundation AppKit SwiftUI Combine Observation CoreGraphics CoreText QuartzCore os OSLog Dispatch Testing XCTest "
+system_modules=" Foundation AppKit SwiftUI Combine Observation CoreGraphics CoreText QuartzCore os OSLog Dispatch Synchronization Testing XCTest "
 
 if [[ $# -eq 0 && -d swift/Sources ]]; then
     own_modules=" "

@@ -1,0 +1,44 @@
+{
+  "bench_version": 1,
+  "stage": "poses",
+  "dataset": "day-45m-all",
+  "engine": "odm-docker",
+  "date": "2026-11-18",
+  "created_at": "2026-11-18T00:11:59",
+  "tag": null,
+  "source": "imported cost, measured quality",
+  "status": "ok",
+  "machine": {
+    "chip": "Apple M1",
+    "memory_gb": 16,
+    "docker_memory_gb": 13.7
+  },
+  "git": "e702ac2+dirty",
+  "params": {
+    "odm": "--end-with opensfm",
+    "max_concurrency": 2,
+    "feature_type": "DSPSIFT",
+    "feature_process_size": 2000
+  },
+  "time_s": 14295,
+  "peak_memory_gb": 10.1,
+  "disk_gb": 38,
+  "quality": {
+    "days_offset_m": {
+      "2026-11-04 vs 2026-11-05": {
+        "tiles": 0
+      },
+      "2026-11-04 vs 2026-11-06": {
+        "tiles": 30,
+        "median_e_m": 0.04,
+        "median_n_m": -0.01,
+        "offset_m": 0.04,
+        "tile_spread_m": 0.07,
+        "median_response": 0.197
+      }
+    },
+    "days_offset_max_m": 0.56
+  },
+  "notes": "Bitácora, Iteración 22. Los 8 días del 4-11 nov en la reconstrucción principal (1,466); el 12 nov (zona nueva, 95-400 m de cualquier otro día) quedó 62 en la principal y 128 en 5 piezas alineadas por GPS; 40 de sus poses salen inclinadas > 10° (mosaic las excluye). Features limitadas por --max-concurrency 2. Disco: images 7.4 GB, features 2.2, undistorted/images 26, reconstruction*.json 1.1.",
+  "quality_time_s": 282.1
+}
