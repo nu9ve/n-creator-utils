@@ -132,13 +132,14 @@ Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [e
 Ajustes (`nu9ve agent state` e `install --by nuun`), `device.json` del agente, socket registrable con `data_catalog`
 y `data_export`, colecciones por dispositivo y «Trabajar aquí». Lo que sigue, en orden:
 
-1. Aceptación en ventana (Ajustes → Suite, Proyectos → «Trabajar aquí») en el sandbox con un agente de QA, e
-   instalar la build.
-2. F0 en la M4 ([pasos](docs/STATUS.md#pendientes-físicos-de-f0)), y después emparejar M1 y M4.
-3. La colección Agentes (`~/.claude`, `~/.codex`) en `data_catalog` como `files`/`personal`, y una colección viva
+1. ~~Aceptación en ventana e instalar~~ **Hecho el 2026-11-23** (`79eb92ddcfa6`). Falta abrirla en uso diario.
+2. Claves de suite legibles para los proyectos: hoy la clave es el id local (un UUID), y `baches` en nove no
+   coincidiría con nüün ([data §2](vendor/nu9ve-core/contracts/nu9ve-data-v1.md#2-clave-de-proyecto-común)).
+3. F0 en la M4 ([pasos](docs/STATUS.md#pendientes-físicos-de-f0)), y después emparejar M1 y M4.
+4. La colección Agentes (`~/.claude`, `~/.codex`) en `data_catalog` como `files`/`personal`, y una colección viva
    por dispositivo para respaldarla en MEDIA (la clave conocida `conversaciones` la acepta la persona).
-4. Windows: named pipe con las reglas de motor §9 para registrarse.
-5. Leer el estado de lease al abrir un proyecto y dejarlo en sólo lectura cuando otra máquina es la dueña.
+5. Windows: named pipe con las reglas de motor §9 para registrarse.
+6. Leer el estado de lease al abrir un proyecto y dejarlo en sólo lectura cuando otra máquina es la dueña.
 
 ### F1 · Diarios de decisiones ([§6.4](vendor/nu9ve-core/docs/suite-devices.md#nüün-en-dos-macs))
 

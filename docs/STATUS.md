@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `52799d3152fa`** (17 nov, desde `fd61a8c`), build de depuración con firma ad-hoc verificada (app y `nuun-engine`), mínimo macOS 15. El motor empaquetado responde `nu9ve-engine/1` y su `snapshot` del catálogo diario devolvió 47 jobs. Build anterior `43a7ad4eb289` en `app-backups/d84f22cf.app`. |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `79eb92ddcfa6`** (23 nov, desde `45b47fd`, F1), firma ad-hoc verificada, mínimo macOS 15. Trae `backend/nuun-engine` y `backend/nu9ve` 0.2.2. `nu9ve agent state` de esa build en la M1: `running`, `keep` (el agente instalado es la misma versión), así que Ajustes → Suite no ofrece nada. Build anterior en `app-backups/e1444a6b.app`. Sin abrir tras instalar. |
 | Suites en macOS | Revisión de la copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE) (`1d11d30`): Python **415**, Rust **195** (172 + 23 diferenciales), Swift **32** (23 nov, F1; sin instalar). `tests/suite_lease.rs` necesita antes `cargo build -p nu9ve-mcp --bin nu9ve`. Dorado vigente con `TZ=America/Hermosillo` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
 | Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
 | Motor en Windows | 16 nov, Windows 11 con Rust 1.99.1: compila, **141 pruebas** (15 omitidas: diferenciales y doradas, sin Python en el PC), fmt y clippy limpios. Pruebas C# del cliente **38 de 38** contra el binario real. [Compilación](#el-motor-vuelve-a-compilar-y-pasar-en-windows--2026-11-16) · [ingreso en la ventana](#ingreso-desde-la-ventana-de-windows--2026-11-16) |
@@ -119,8 +119,8 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
 
 Seis pasos, un commit cada uno, todos con pruebas en carpetas de QA (`NU9VE_AGENT_DIR`, `NU9VE_DEVICE_FILE`,
 `NU9VE_ENGINES_DIR`, `NU9VE_VOLUMES_DIR`, `HOME` temporal). No se tocó el agente instalado en la M1 (0.2.2,
-`installed_by: installer`), su `device.json`, el llavero ni los LaunchAgents. Sin instalar la app ni aceptar en
-ventana todavía.
+`installed_by: installer`), su `device.json`, el llavero ni los LaunchAgents. Aceptado en ventana en el sandbox e
+instalado (abajo).
 
 1. **Core en `1d11d30`** (`ce7e781`): la copia suma `rust/nu9ve-mcp`, `nu9ve-ipc`, `nu9ve-device` y
    `nu9ve-exchange`. Gate: `sync-core.sh --check`, `check-boundary.sh`, cargo 161, Swift 29, Python 415, dorado.
@@ -144,6 +144,22 @@ ventana todavía.
 6. **«Trabajar aquí»** (`918a53f`): `suite_lease` llama `lease_take`, `lease_release` y `leases` del motor `suite`.
    En Proyectos, con el agente corriendo, el menú ofrece «Trabajar aquí» o «Dejar de trabajar aquí» y el resumen
    dice quién trabaja el proyecto. `tests/suite_lease.rs` con `nu9ve agent serve` real en QA.
+
+**Aceptación en ventana** (2026-11-23, sandbox con el agente de QA dentro de su `HOME`; `45b47fd`):
+- Ajustes → Suite: «The agent is not installed» → «Install the agent» → «installed but not running · 0.2.2»
+  (`agent.json` de QA con `installed_by: nuun`; `~/Library/LaunchAgents` con el mismo hash antes y después; el
+  agente de la M1 igual) → con `nu9ve agent serve` de QA, «The agent is running · 0.2.2».
+- Discos: el nombre sale del `device.json` que creó el agente («Mac 54dc»); «Guardar nombre» lo pasó a «M-QA» con el
+  mismo `device_id`, y `nu9ve agent status` lo vio.
+- Proyectos → «prueba» → «Work here»: el resumen dice «You work here» y `leases` del agente tiene `here: true`;
+  «Stop working here» lo quitó.
+- `nu9ve agent publish` escribió `catalog/nuun.json` de la nüün abierta (1 proyecto; 0 datasets porque los discos
+  de prueba no han publicado su índice).
+- Corregido en la misma entrega: el sandbox no fijaba las variables de QA del agente (instalar habría registrado
+  un LaunchAgent real), «Arrancar» aparecía con un agente de QA, y la app mandaba SIGTERM sin dar tiempo a
+  `rpc-serve` de borrar su registro (ahora cierra stdin y espera hasta 0,5 s; comprobado: el registro se va).
+- Observado: la clave de un proyecto es su id local en minúsculas, que en el catálogo es un UUID
+  (`43788647-…`), no una clave legible como `baches`. Elegir claves de suite legibles queda para F1 (data §2).
 
 Pendiente: Windows (sin named pipe, no se registra), la colección Agentes (`storage_collections`) en
 `data_catalog`, el rechazo de un cliente de otro usuario (sin probar: hace falta otro usuario), aceptación en
