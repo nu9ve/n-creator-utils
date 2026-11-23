@@ -41,6 +41,8 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 
 ## 3. Sugerencias al conectar
 
+**Hecho en el motor:** `suite_suggestions` y `suggestions_dismiss` (`{key, dismissed}`), por `rpc`. Falta mostrarlas en la ventana al montar un disco.
+
 `suite_suggestions` (lectura) mira los discos montados y la configuración y devuelve sólo lo que tiene algo que hacer:
 
 | Flujo | Cuándo aparece |
@@ -60,9 +62,11 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 
 ## Decisiones del usuario
 
-1. **Carpeta de las conversaciones en MEDIA:** `004_datos/conversaciones/<colección>/<device_id>/` (propuesta; al lado de `004_datos/clipper/transcripts`).
-2. **Qué entra:** sólo historial (tabla de arriba). Abierto: las bases vivas de Codex (`thread_history*.sqlite`, 1,6 GiB en la M1) quedan **fuera** por omisión porque Codex las escribe mientras corre; entrarían copiando un snapshot (`VACUUM INTO`) o con Codex cerrado.
-3. **Cuándo:** «Sugerir cada 7 días» por omisión; «Automático» sólo si lo eliges.
-4. **Copia de trabajo:** a qué disco o carpeta (p. ej. ESSD `004_datos/conversaciones`), y si va con cada respaldo.
-5. **Copias de MEDIA a un disco de trabajo** no entran en `work_copy` (son «Entregar trabajo»). Abierto si quieres un solo botón para las dos.
-6. **Recibo también en el origen** de una copia entre discos: elegido sí (el origen sabe adónde fue). Dímelo si prefieres sólo el destino.
+**Decididas (el usuario, 2026-11-23),** tal como se propusieron:
+
+1. **Carpeta de las conversaciones en MEDIA:** `004_datos/conversaciones/<colección>/<device_id>/`, al lado de `004_datos/clipper/transcripts`.
+2. **Qué entra:** sólo historial (tabla de arriba). Las bases vivas de Codex (`thread_history*.sqlite`, 1,6 GiB en la M1) quedan **fuera** porque Codex las escribe mientras corre. Si un día entran, será por un snapshot (`VACUUM INTO`).
+3. **Cuándo:** «Sugerir cada 7 días» por omisión; «Automático» sólo si la persona lo elige.
+4. **Copia de trabajo:** la persona elige disco o carpeta en Ajustes; no hay destino por omisión. Una vez elegida, va con cada respaldo.
+5. **Copias de MEDIA a un disco de trabajo** no entran en `work_copy`: son «Entregar trabajo».
+6. **Recibo también en el origen** de una copia entre discos: sí.

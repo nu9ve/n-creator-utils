@@ -9,6 +9,8 @@ Sesión en la M1. Core leído en `~/code/ai/core` (al día), nove en `~/code/ai/
 | `6a84113` | Copias verificadas entre discos de trabajo: `volume_apps`, `work_copy_plan`, `work_copy_apply`, `work_copies`; recibo `nuun-work-copy/1` ([contrato](contracts/suite-work-copy-v1.md)) |
 | `1c10586` | Conversaciones por dispositivo: `conversations_settings`, `_status`, `_backup_plan`, `_backup_apply`, `_run`; `living_plan` con `include` ([contrato](contracts/suite-conversations-v1.md)) |
 
+Después, en la misma sesión: `suite_suggestions` y `suggestions_dismiss` (sugerencias al conectar, diseño §3), y las seis decisiones anotadas como tomadas.
+
 ## Qué se verificó y cómo
 
 - `cargo test --workspace` (TMPDIR físico, `TZ=America/Hermosillo`), `fmt`, Clippy `-D warnings`, `check-boundary.sh`, `engine_golden.py --check`, `tests.test_agent_storage`. 5 pruebas nuevas con discos y `HOME` de mentira.
@@ -30,9 +32,9 @@ Sesión en la M1. Core leído en `~/code/ai/core` (al día), nove en `~/code/ai/
 
 ## Pendiente (siguiente sesión de nüün)
 
-- Paso 3: `suite_suggestions` y «no volver a preguntar» (diseño §3); la ventana para copiar entre discos y Ajustes → Conversaciones.
+- La ventana: mostrar `suite_suggestions` al montar un disco (una vez por evento), Discos → «Copiar al otro disco» y Ajustes → Conversaciones; lanzar `conversations_run {when: due}` con la app abierta.
 - Proyecto de Clipper con dependencias en `work_copy`; resumir copias en el índice de nüün; prueba física XSSD/ESSD.
 
 ## Decisiones del usuario
 
-Las seis de [diseño](features/suite-disks-flows.md#decisiones-del-usuario): carpeta base en MEDIA, SQLite de Codex fuera, «sugerir cada 7 días», destino de la copia de trabajo, MEDIA→trabajo fuera de `work_copy`, recibo también en el origen.
+**Tomadas por el usuario el 2026-11-23**, las seis como se propusieron ([diseño](features/suite-disks-flows.md#decisiones-del-usuario)): carpeta base en MEDIA, SQLite de Codex fuera, «sugerir cada 7 días», destino de la copia de trabajo a elegir en Ajustes, MEDIA→trabajo fuera de `work_copy`, recibo también en el origen.

@@ -189,6 +189,12 @@ conversaciones por dispositivo, sugerencias al conectar, otras Macs por el agent
    el recibo es el mismo en los dos discos y la copia exacta de `inplace-v1.json` coincide; ESSD sin
    `.nu9ve/apps/nove`. Respaldo de `claude-code` y `codex` a QA-MEDIA con su copia de trabajo en QA-ESSD; sin
    credenciales ni cachés; `due` pasó a falso. El sandbox de otra sesión (5 imágenes montadas) no se tocó.
+4. **Sugerencias al conectar** (diseño §3): `suite_suggestions` (lectura) propone `work_copy` cuando una raíz de
+   otra app en un disco de trabajo falta en el otro y ningún recibo la trajo, `conversations_backup` cuando una
+   colección decidida está vencida y su MEDIA está conectado, y `conversations_working` cuando la copia de trabajo
+   quedó atrás del último respaldo. Nunca en modo manual. `suggestions_dismiss` guarda «no volver a preguntar» por
+   disco y flujo. 2 unitarias. Sin ventana todavía.
+5. **Decisiones** (el usuario, 2026-11-23): las seis del diseño, como se propusieron.
 
 ### Notas para la sesión del core (F1)
 

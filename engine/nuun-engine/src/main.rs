@@ -147,8 +147,10 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 28] = [
+const NATIVE: [&str; 30] = [
     "suite_device",
+    "suite_suggestions",
+    "suggestions_dismiss",
     "conversations_settings",
     "conversations_status",
     "conversations_backup_plan",
@@ -298,6 +300,8 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
     writes.push("suite_device");
     // Only the catalog: which conversations may leave, to which disk, and when (the person's decision).
     writes.push("conversations_settings");
+    // «No volver a preguntar» for a disk and flow: only the catalog.
+    writes.push("suggestions_dismiss");
     // «Trabajar aquí» through the suite agent; without it the answer says so and nothing changes.
     writes.push("suite_lease");
     if has_backend {
@@ -404,8 +408,9 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 20] = [
+const ONCE_READS: [&str; 21] = [
     "suite_adopt_volume",
+    "suite_suggestions",
     "conversations_status",
     "volume_apps",
     "work_copies",
@@ -760,6 +765,12 @@ impl Engine {
                 nuun_media::living::plan(&self.home(), write_backend(platform)?, &params)
             }
             "conversations_settings" => nuun_media::conversations::settings(&self.home(), params),
+            "suite_suggestions" => nuun_media::suggestions::suggestions(
+                &self.home(),
+                backend(platform)?,
+                &user_home()?,
+            ),
+            "suggestions_dismiss" => nuun_media::suggestions::dismiss(&self.home(), params),
             "conversations_status" => {
                 nuun_media::conversations::status(&self.home(), &user_home()?)
             }

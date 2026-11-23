@@ -138,6 +138,7 @@ fn app_indexes(root: &Root, volume_id: &str) -> Result<Vec<Value>> {
                     .filter_map(|p| Some((p["project_key"].as_str()?, &p["title"])))
                     .collect();
                 let mut datasets = Vec::new();
+                let mut root_projects: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
                 for dataset in index["datasets"].as_array().into_iter().flatten() {
                     let location = &dataset["location"];
                     let Some(base) = roots.get(text(location, "root_id")) else {
@@ -150,6 +151,10 @@ fn app_indexes(root: &Root, volume_id: &str) -> Result<Vec<Value>> {
                         .flatten()
                         .filter_map(|p| p["project_key"].as_str())
                         .collect();
+                    root_projects
+                        .entry(base)
+                        .or_default()
+                        .extend(keys.iter().copied());
                     // From a personal dataset, the shape only (data §6): the index is on the disk by the person's
                     // decision, but a copy plan or a receipt is not that decision.
                     let personal =
@@ -171,6 +176,13 @@ fn app_indexes(root: &Root, volume_id: &str) -> Result<Vec<Value>> {
                         .map(|(k, t)| json!({"project_key":k,"title":t}))
                         .collect::<Vec<_>>()
                 );
+                entry["roots"] = json!(
+                    roots
+                        .iter()
+                        .map(|(id, path)| json!({"id":id,"volume_path":path}))
+                        .collect::<Vec<_>>()
+                );
+                entry["root_projects"] = json!(root_projects);
                 entry["dataset_count"] = json!(datasets.len());
                 datasets.truncate(SHOWN);
                 entry["datasets"] = json!(datasets);
@@ -199,6 +211,16 @@ fn app_files(root: &Root, app: &str) -> Result<Vec<(String, u64)>> {
         .collect();
     files.sort();
     Ok(files)
+}
+
+/// What each app's index says this disk holds (`volume_apps`'s `apps`), for the suggestions.
+pub(crate) fn app_indexes_of(root: &Root, volume_id: &str) -> Result<Vec<Value>> {
+    app_indexes(root, volume_id)
+}
+
+/// The work-copy receipts published on this disk (`volume_apps`'s `copies`).
+pub(crate) fn volume_apps_copies(root: &Root) -> Result<Vec<Value>> {
+    receipts(root)
 }
 
 /// `volume_apps`: a disk's marker, its state here and what each app's index says it holds. A read: it writes
