@@ -1,0 +1,7 @@
+{
+ "note": "SHA-256 of the samples (after the 44-byte header) that a Release build renders. Recorded on 2026-11-22 from the two engines Nu9veScore joined, built in Release from their own sources: v1.json with the first one, v2.json with the second. Debug builds round differently and are not compared. Checked by scripts/check-score.sh.",
+ "renders": [
+  {"manifest": "v1.json", "schema": "first-score-v1", "revision": 1, "samples_sha256": "7a98ca65d906adce3cc27ef7d54c6c04e7f960635a0119350a4d2f357d1cae50"},
+  {"manifest": "v2.json", "schema": "second-score-v1", "revision": 2, "samples_sha256": "f421c37860e1206e85fb9e8e4e2c32b7b0d90ee9a783a61fb3a4d8952e6601e9"}
+ ]
+}

@@ -66,7 +66,7 @@ Medido el 2026-11-16, con el código de curado (`crates/audio-engine`, `2fcc0c0`
 | Sin asignaciones en tiempo real | `allocation_tests.rs`: asignador que cuenta y `malloc_logger` en macOS, que también ve C++ | Lo necesita su plugin (fase 3) | — | `nu9ve-rt`, con el plugin |
 | Decodificar | `decode.rs` con symphonia | AVFoundation, en Swift | — | `nu9ve-audio-io`. Antes hay que resolver la licencia (ver abajo) |
 | Remuestrear y estirar | `resample.rs` (lectura fraccionaria para reproducir) y `pitch.rs` (signalsmith-stretch, MIT) | `TempoStretch` propio, en Swift | No | Nada todavía |
-| BPM y clave | `beat.rs`, `music.rs` | `Tempo.swift`, `ChromaAnalysis.swift` | Sin comparar | `nu9ve-music`, comparando las dos con los mismos vectores antes de elegir |
+| BPM y clave | `beat.rs`, `music.rs` | `Tempo.swift`, `ChromaAnalysis.swift` | **No.** Comparadas el 2026-11-22 con las mismas señales: curado acierta el tempo y el primer beat y rechaza el ruido; SoundBender lee 120 y 100 a la mitad y da un tempo con ruido. Las dos aciertan la clave, curado con mucha más confianza ([tabla](../../rust/nu9ve-music/README.md#de-dónde-sale)) | **`nu9ve-music`, desde curado** (hecho el 2026-11-22), con sus límites conocidos en los vectores |
 | Salida a dispositivo | `output.rs` con cpal | AVAudioEngine | — | `nu9ve-rt` si la Windows de SoundBender la necesita; el plugin no |
 
 ### LUFS: curado lee bajo

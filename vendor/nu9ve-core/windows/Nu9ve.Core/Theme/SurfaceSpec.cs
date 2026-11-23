@@ -22,14 +22,13 @@ public sealed record SurfaceSpec(ThemeColor Fill, double FillOpacity, double Rad
 // ninguna vista de Windows pregunte qué skin está activo (§1).
 public static class SurfaceChrome
 {
-    // Windows 9x bevel colors: highlight, light shadow, dark shadow.
-    static readonly ThemeColor Highlight = ThemeColor.White;
-    static readonly ThemeColor LightShadow = new(128 / 255.0, 128 / 255.0, 128 / 255.0);
+    // Windows 9x bevel: highlight (raised), light shadow (line), the inner face (surface) and a dark shadow. With the
+    // original era these are white, 128 gray and #DFDFDF, as before; a tinted era takes them from the user's color (§4 «Época»).
     static readonly ThemeColor DarkShadow = new(10 / 255.0, 10 / 255.0, 10 / 255.0);
 
-    static Edge[] Bevel(bool raised) => raised
-        ? [new(Highlight, DarkShadow, 1), new(ThemeColor.Hex("#DFDFDF"), LightShadow, 1)]
-        : [new(LightShadow, Highlight, 1), new(DarkShadow, ThemeColor.Hex("#DFDFDF"), 1)];
+    static Edge[] Bevel(ThemeRoles r, bool raised) => raised
+        ? [new(r.Raised, DarkShadow, 1), new(r.Surface, r.Line, 1)]
+        : [new(r.Line, r.Raised, 1), new(DarkShadow, r.Surface, 1)];
 
     /// <summary>A pressed fill differs from the accent, so its text is chosen again on it (caught by SurfaceChromeTests).</summary>
     static SurfaceSpec Pressed(ThemeColor fill, double radius, Edge[] edges) => new(fill, 1, radius, edges, fill.OnColor, true, 0);
@@ -59,9 +58,9 @@ public static class SurfaceChrome
                     SurfaceKind.Panel => new(r.Surface, 1, radius, [Edge.Line(r.Ink, 1)], r.Ink, false, 0),
                     SurfaceKind.Well => new(r.Raised, 1, radius, [Edge.Line(r.Ink, 1)], r.Ink, false, 0),
                     // Pressed inverts; the default button carries the period's heavy outer ring.
-                    SurfaceKind.ControlPressed or SurfaceKind.PrimaryPressed => new(r.Ink, 1, radius, [Edge.Line(r.Ink, 1)], ThemeColor.White, kind == SurfaceKind.PrimaryPressed, 0),
+                    SurfaceKind.ControlPressed or SurfaceKind.PrimaryPressed => new(r.Ink, 1, radius, [Edge.Line(r.Ink, 1)], r.Surface, kind == SurfaceKind.PrimaryPressed, 0),
                     SurfaceKind.Primary => new(r.Surface, 1, radius, [Edge.Line(r.Ink, 2), Edge.Line(r.Surface, 2), Edge.Line(r.Ink, 1)], r.AccentText, true, 0),
-                    SurfaceKind.PillSelected => new(r.Ink, 1, radius, [Edge.Line(r.Ink, 1)], ThemeColor.White, true, 0),
+                    SurfaceKind.PillSelected => new(r.Ink, 1, radius, [Edge.Line(r.Ink, 1)], r.Surface, true, 0),
                     SurfaceKind.Pill => new(r.Surface, 1, radius, [Edge.Line(r.Ink, 1)], r.Ink, false, 0),
                     SurfaceKind.Danger => new(r.Surface, 1, radius, [Edge.Line(r.Ink, 1)], r.Danger, false, 0),
                     _ => new(r.Surface, 1, radius, [Edge.Line(r.Ink, 1)], r.Ink, false, 0),
@@ -69,15 +68,15 @@ public static class SurfaceChrome
             case ThemeSkin.Win9x:
                 return kind switch
                 {
-                    SurfaceKind.Panel => new(r.Canvas, 1, 0, Bevel(true), r.Ink, false, 0),
-                    SurfaceKind.Well => new(ThemeColor.White, 1, 0, Bevel(false), r.Ink, false, 0),
+                    SurfaceKind.Panel => new(r.Canvas, 1, 0, Bevel(r, true), r.Ink, false, 0),
+                    SurfaceKind.Well => new(r.Raised, 1, 0, Bevel(r, false), r.Ink, false, 0),
                     SurfaceKind.ControlPressed or SurfaceKind.PrimaryPressed or SurfaceKind.PillSelected =>
                         new(kind == SurfaceKind.PillSelected ? r.Surface : r.Canvas, 1, 0,
-                            kind == SurfaceKind.PrimaryPressed ? [Edge.Line(ThemeColor.Black, 1), .. Bevel(false)] : Bevel(false),
+                            kind == SurfaceKind.PrimaryPressed ? [Edge.Line(r.Ink, 1), .. Bevel(r, false)] : Bevel(r, false),
                             r.Ink, kind != SurfaceKind.ControlPressed, kind == SurfaceKind.PillSelected ? 0 : 1),
-                    SurfaceKind.Primary => new(r.Canvas, 1, 0, [Edge.Line(ThemeColor.Black, 1), .. Bevel(true)], r.Ink, true, 0),
-                    SurfaceKind.Danger => new(r.Canvas, 1, 0, Bevel(true), r.Danger, false, 0),
-                    _ => new(r.Canvas, 1, 0, Bevel(true), r.Ink, false, 0),
+                    SurfaceKind.Primary => new(r.Canvas, 1, 0, [Edge.Line(r.Ink, 1), .. Bevel(r, true)], r.Ink, true, 0),
+                    SurfaceKind.Danger => new(r.Canvas, 1, 0, Bevel(r, true), r.Danger, false, 0),
+                    _ => new(r.Canvas, 1, 0, Bevel(r, true), r.Ink, false, 0),
                 };
             case ThemeSkin.Terminal:
                 return kind switch

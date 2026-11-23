@@ -225,12 +225,13 @@ public struct PeriodWindowControls: View {
                 .background(Win9xBevel.face)
                 .overlay(Win9xBevel())
         case .classicMac:
-            image.foregroundStyle(.black)
+            // Paper and ink from the palette: white and black in the original era (nu9ve-theme-v1 §4 «Época»).
+            image.foregroundStyle(colors.ink)
                 .frame(width: 13, height: 13)
-                .background(Color.white)
-                .overlay(Rectangle().strokeBorder(.black, lineWidth: 1))
+                .background(colors.surface)
+                .overlay(Rectangle().strokeBorder(colors.ink, lineWidth: 1))
                 .padding(.horizontal, 2)
-                .background(Color.white)
+                .background(colors.surface)
         }
     }
 }
@@ -250,8 +251,8 @@ public struct PeriodBarBackground: View {
         Group {
             switch era {
             case .classicMac:
-                ZStack { Color.white; ClassicPinstripes() }
-                    .overlay(alignment: .bottom) { Rectangle().fill(.black).frame(height: 1) }
+                ZStack { colors.surface; ClassicPinstripes(color: colors.ink) }
+                    .overlay(alignment: .bottom) { Rectangle().fill(colors.ink).frame(height: 1) }
             case .win9x:
                 LinearGradient(colors: colors.caption, startPoint: .leading, endPoint: .trailing)
             case .terminal:
@@ -318,8 +319,8 @@ public struct PeriodCaption: View {
             }
             .padding(.horizontal, PeriodEra.inset)
             if era == .classicMac {
-                Text(verbatim: title).font(.custom("Silom", size: 12)).foregroundStyle(.black).lineLimit(1)
-                    .padding(.horizontal, 8).background(Color.white)
+                Text(verbatim: title).font(.custom("Silom", size: 12)).foregroundStyle(colors.ink).lineLimit(1)
+                    .padding(.horizontal, 8).background(colors.surface)
                     .frame(maxWidth: 420)
                     .allowsHitTesting(false)
             }

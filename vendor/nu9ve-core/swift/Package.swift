@@ -21,7 +21,10 @@ let package = Package(
     products: [
         .library(name: "NuMacShell", targets: ["NuMacShell"]),
         .library(name: "Nu9veTheme", targets: ["Nu9veTheme"]),
-        .library(name: "Nu9veEngine", targets: ["Nu9veEngine"])
+        .library(name: "Nu9veFormat", targets: ["Nu9veFormat"]),
+        .library(name: "Nu9veEngine", targets: ["Nu9veEngine"]),
+        .library(name: "Nu9veVision", targets: ["Nu9veVision"]),
+        .library(name: "Nu9veScore", targets: ["Nu9veScore"])
     ],
     targets: [
         // macOS-only code, compiled empty elsewhere. Knows no app: each passes its own names.
@@ -32,8 +35,16 @@ let package = Package(
             swiftSettings: strictSettings
         ),
         .target(name: "Nu9veTheme", swiftSettings: strictSettings),
+        // nu9ve-controls-v1: values, steps, readouts, time codes and instants. Foundation only, no UI.
+        .target(name: "Nu9veFormat", swiftSettings: strictSettings),
         // The nu9ve-engine-v1 client: Foundation and Synchronization only.
         .target(name: "Nu9veEngine", swiftSettings: strictSettings),
+        // Apple Vision on one image: faces, bodies, heads from pose, person masks. Vision, CoreVideo, CoreGraphics.
+        .target(name: "Nu9veVision", swiftSettings: strictSettings),
+        // The offline music engine: synths, drums, world percussion, FX, buses and mastering, with revisions.
+        .target(name: "Nu9veScore", swiftSettings: strictSettings),
+        // A renderer the score tests and the comparison with the apps' engines use. Not a product.
+        .executableTarget(name: "Nu9veScoreFixture", dependencies: ["Nu9veScore"], swiftSettings: strictSettings),
         // A test engine the client's tests launch. Not a product.
         .executableTarget(
             name: "Nu9veEngineFixture",
@@ -41,11 +52,14 @@ let package = Package(
             swiftSettings: strictSettings
         ),
         .testTarget(name: "Nu9veThemeTests", dependencies: ["Nu9veTheme"], swiftSettings: strictSettings),
+        .testTarget(name: "Nu9veFormatTests", dependencies: ["Nu9veFormat"], swiftSettings: strictSettings),
         .testTarget(
             name: "NuMacShellTests",
             dependencies: ["NuMacShell", "Nu9veTheme"],
             swiftSettings: strictSettings
         ),
+        .testTarget(name: "Nu9veVisionTests", dependencies: ["Nu9veVision"], swiftSettings: strictSettings),
+        .testTarget(name: "Nu9veScoreTests", dependencies: ["Nu9veScore"], exclude: ["Fixtures"], swiftSettings: strictSettings),
         .testTarget(
             name: "Nu9veEngineTests",
             dependencies: ["Nu9veEngine", "Nu9veEngineFixture"],

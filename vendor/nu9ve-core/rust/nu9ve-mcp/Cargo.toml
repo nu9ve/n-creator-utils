@@ -1,0 +1,49 @@
+[package]
+name = "nu9ve-mcp"
+description = "MCP server of the suite: tools of every registered engine with its prefix, levels and session grants (nu9ve-mcp-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.2.2"
+license = "UNLICENSED"
+publish = false
+
+[[bin]]
+name = "nu9ve"
+path = "src/main.rs"
+
+[dependencies]
+# Registry, liveness and the framed socket client.
+nu9ve-ipc = { path = "../nu9ve-ipc", version = "=0.1.0" }
+# Error type and random idempotency keys.
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# JSON-RPC messages and engine replies.
+serde_json = "=1.0.154"
+# The agent serves the `suite` engine (nu9ve-engine-v1 frames); the tests' fake engines too.
+nu9ve-engine = { path = "../nu9ve-engine", version = "=0.1.0" }
+# The agent: the device identity (nu9ve-device-v1) and the exchange folder (nu9ve-exchange-v1).
+nu9ve-device = { path = "../nu9ve-device", version = "=0.1.0" }
+nu9ve-exchange = { path = "../nu9ve-exchange", version = "=0.1.0" }
+# The agent's own files are written atomically (nu9ve-fs-v1).
+nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
+# Volume markers and their serial, for the agent's sightings (nu9ve-volume-v1).
+nu9ve-volumes = { path = "../nu9ve-volumes", version = "=0.1.0" }
+# The device key in the keystore, as base64. MIT or Apache-2.0.
+base64 = "=0.22.1"
+
+[target.'cfg(unix)'.dependencies]
+# The service waits on kqueue (macOS) or polls, and stops on SIGTERM and SIGINT. MIT or Apache-2.0.
+libc = "=0.2.191"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# The device key in the macOS keychain (generic password). MIT or Apache-2.0.
+security-framework = "=3.7.0"
+
+[dev-dependencies]
+# Isolated registry folders and sockets.
+tempfile = "=3.27.0"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

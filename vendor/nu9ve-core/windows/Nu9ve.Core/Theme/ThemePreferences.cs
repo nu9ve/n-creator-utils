@@ -28,6 +28,9 @@ public sealed record ThemePreferences(
     /// </summary>
     public string? AppSkin { get; init; }
 
+    /// <summary>nu9ve-theme-v1 §4 «Época»: the period skins' palette. Saved as `era`; only Macintosh and Windows 9x use it.</summary>
+    public ThemeEra Era { get; init; } = ThemeEra.Original;
+
     /// <summary>The saved `skin` id: the app's own, or the catalog skin's.</summary>
     public string SkinId => AppSkin ?? Skin.Id();
 
@@ -45,7 +48,7 @@ public sealed record ThemePreferences(
 
     /// <summary>Roles for this choice. <paramref name="systemDark"/> answers «Sistema».</summary>
     public ThemeRoles Roles(bool systemDark) =>
-        ThemeRoles.From(Skin, Mode switch { ThemeMode.Dark => true, ThemeMode.Light => false, _ => systemDark }, Seed);
+        ThemeRoles.From(Skin, Mode switch { ThemeMode.Dark => true, ThemeMode.Light => false, _ => systemDark }, Seed, Era);
 
     static readonly string[] Textures = ["auto", "dither", "smooth", "flat"];
     static readonly string[] Typographies = ["auto", "display", "pixel", "mono", "system"];
@@ -68,7 +71,8 @@ public sealed record ThemePreferences(
         var typography = Text("typography") is { } y && Typographies.Contains(y) ? y : defaults.Typography;
         var sounds = obj["app"]?["interfaceSounds"] is JsonValue sv && sv.TryGetValue<bool>(out var b) ? b : defaults.InterfaceSounds;
         var skinId = Text("skin");
-        var parsed = new ThemePreferences(defaults.Skin, baseHex, mode, contrast, texture, typography, sounds) { AppSkin = defaults.AppSkin };
+        var era = ThemeEraInfo.FromId(Text("era")) ?? defaults.Era;
+        var parsed = new ThemePreferences(defaults.Skin, baseHex, mode, contrast, texture, typography, sounds) { AppSkin = defaults.AppSkin, Era = era };
         if (skinId is not null && appSkins is not null && appSkins.Contains(skinId))
             return parsed with { AppSkin = skinId };
         return ThemeSkinInfo.FromId(skinId) is { } catalog ? parsed.WithSkin(catalog) : parsed;
@@ -85,6 +89,7 @@ public sealed record ThemePreferences(
             ["contrast"] = Contrast.ToString().ToLowerInvariant(),
             ["texture"] = Texture,
             ["typography"] = Typography,
+            ["era"] = Era.Id(),
             ["app"] = new JsonObject { ["interfaceSounds"] = InterfaceSounds },
         };
         return obj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });

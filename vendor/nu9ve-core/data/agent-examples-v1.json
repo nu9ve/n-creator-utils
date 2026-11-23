@@ -1,0 +1,277 @@
+{
+  "contract": "contracts/nu9ve-agent-v1.md",
+  "regenerate": "python3 -I scripts/agent-examples.py",
+  "note": "folders: §1; files: agent.json, problem null means valid (§2); version_order: oldest first (§3); actions: what an installer carrying bundled does over installed (§3); states: what an app sees (§5).",
+  "folders": [
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "dir": "/Users/ana/Library/Application Support/nu9ve/agent"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "dir": "C:\\Users\\ana\\AppData\\Local\\nu9ve\\agent"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_AGENT_DIR": "/tmp/qa/agent"
+      },
+      "dir": "/tmp/qa/agent"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_AGENT_DIR": "qa/agent"
+      },
+      "dir": null
+    }
+  ],
+  "files": [
+    {
+      "name": "installed by nüün",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": null
+    },
+    {
+      "name": "installed by its own installer, cloud build, Windows",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"cloud\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"installer\",\"binary\":\"nu9ve.exe\"}",
+      "problem": null
+    },
+    {
+      "name": "unknown fields are ignored",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\",\"channel\":\"beta\"}",
+      "problem": null
+    },
+    {
+      "name": "version with a leading zero",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.03.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "bad_version"
+    },
+    {
+      "name": "version with two parts",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "bad_version"
+    },
+    {
+      "name": "unknown build",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"debug\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "bad_build"
+    },
+    {
+      "name": "installed_by with upper case",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"Nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "bad_installed_by"
+    },
+    {
+      "name": "binary from elsewhere",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"/usr/local/bin/nu9ve\"}",
+      "problem": "bad_binary"
+    },
+    {
+      "name": "missing build",
+      "text": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "other contract",
+      "text": "{\"contract\":\"nu9ve-agent/2\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "problem": "unknown_contract"
+    },
+    {
+      "name": "not JSON",
+      "text": "{",
+      "problem": "not_json"
+    }
+  ],
+  "version_order": [
+    "0.2.9",
+    "0.3.0",
+    "0.3.1",
+    "0.10.0",
+    "1.0.0"
+  ],
+  "actions": [
+    {
+      "name": "nothing installed",
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "installed": null,
+      "action": "install"
+    },
+    {
+      "name": "newer public over public",
+      "bundled": [
+        "0.4.0",
+        "public"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "offer_update"
+    },
+    {
+      "name": "0.10.0 over 0.9.0",
+      "bundled": [
+        "0.10.0",
+        "public"
+      ],
+      "installed": [
+        "0.9.0",
+        "public"
+      ],
+      "action": "offer_update"
+    },
+    {
+      "name": "same version and build",
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "keep"
+    },
+    {
+      "name": "older: never downgrade",
+      "bundled": [
+        "0.2.0",
+        "public"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "keep"
+    },
+    {
+      "name": "cloud over public of the same version",
+      "bundled": [
+        "0.3.0",
+        "cloud"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "offer_update"
+    },
+    {
+      "name": "newer cloud over public",
+      "bundled": [
+        "0.4.0",
+        "cloud"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "offer_update"
+    },
+    {
+      "name": "newer public over cloud: cloud updates itself",
+      "bundled": [
+        "0.9.0",
+        "public"
+      ],
+      "installed": [
+        "0.3.0",
+        "cloud"
+      ],
+      "action": "keep"
+    },
+    {
+      "name": "older cloud over public",
+      "bundled": [
+        "0.2.0",
+        "cloud"
+      ],
+      "installed": [
+        "0.3.0",
+        "public"
+      ],
+      "action": "keep"
+    }
+  ],
+  "states": [
+    {
+      "name": "no agent.json",
+      "agent_json": null,
+      "registry_live": false,
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "state": "absent"
+    },
+    {
+      "name": "invalid agent.json",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"debug\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": true,
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "state": "absent"
+    },
+    {
+      "name": "installed, not running",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": false,
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "state": "installed"
+    },
+    {
+      "name": "running",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": true,
+      "bundled": [
+        "0.3.0",
+        "public"
+      ],
+      "state": "running"
+    },
+    {
+      "name": "running, the app carries a newer one",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": true,
+      "bundled": [
+        "0.4.0",
+        "public"
+      ],
+      "state": "outdated"
+    },
+    {
+      "name": "running, the app carries an older one",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": true,
+      "bundled": [
+        "0.2.0",
+        "public"
+      ],
+      "state": "running"
+    },
+    {
+      "name": "an app that carries no agent",
+      "agent_json": "{\"contract\":\"nu9ve-agent/1\",\"version\":\"0.3.0\",\"build\":\"public\",\"installed_at\":\"2026-11-22T22:00:00Z\",\"installed_by\":\"nuun\",\"binary\":\"nu9ve\"}",
+      "registry_live": true,
+      "bundled": null,
+      "state": "running"
+    }
+  ]
+}

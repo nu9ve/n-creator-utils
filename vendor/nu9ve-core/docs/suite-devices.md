@@ -1,6 +1,6 @@
 # Varias máquinas, discos y nube en la suite
 
-Estado: **propuesta** (2026-11-22), pedida por el usuario desde una sesión del core. Ese mismo día el usuario respondió once preguntas y parte de una duodécima, marcadas como decididas en la [§12](#12-preguntas-para-el-usuario): **F0 ya no tiene bloqueos**, y F1 y F2 tienen su regla de privacidad, su ruta de login y su recuperación. Lo demás sigue abierto. **El paso del core en F0 está hecho** (2026-11-22): [`nu9ve-device-v1`](../contracts/nu9ve-device-v1.md), [`nu9ve-volume-v1`](../contracts/nu9ve-volume-v1.md) y la versión menor de [`nu9ve-data-v1`](../contracts/nu9ve-data-v1.md), con ejemplos y validadores. Siguen nüün, Atlas, nove y Clipper en sus repos. nüün tiene su primer corte (2026-11-22, sin commit): MEDIA502 y ESSD registrados, con su índice, y «adoptar este disco» probado por el motor ([adopción](adoption.md#nu9ve-volume-v1)). Parte de una revisión de la suite hecha el mismo día ([§2](#2-dónde-estamos-revisión-del-2026-11-22)). Relacionados: [licencias](licensing.md), [MCP de la suite](suite-mcp.md), [registro](../contracts/nu9ve-registry-v1.md), [catálogo de datos](../contracts/nu9ve-data-v1.md), [auditoría A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas).
+Estado: **propuesta** (2026-11-22), pedida por el usuario desde una sesión del core. Ese mismo día el usuario respondió once preguntas y parte de una duodécima, marcadas como decididas en la [§12](#12-preguntas-para-el-usuario): **F0 ya no tiene bloqueos**, y F1 y F2 tienen su regla de privacidad, su ruta de login y su recuperación. Lo demás sigue abierto. **El paso del core en F0 está hecho** (2026-11-22): [`nu9ve-device-v1`](../contracts/nu9ve-device-v1.md), [`nu9ve-volume-v1`](../contracts/nu9ve-volume-v1.md) y la versión menor de [`nu9ve-data-v1`](../contracts/nu9ve-data-v1.md), con ejemplos y validadores. Siguen nüün, Atlas, nove y Clipper en sus repos. **Los contratos de F1 también están** (2026-11-22): [`nu9ve-agent-v1`](../contracts/nu9ve-agent-v1.md) y [`nu9ve-exchange-v1`](../contracts/nu9ve-exchange-v1.md), y falta el código del agente. nüün tiene su primer corte (2026-11-22, sin commit): MEDIA502 y ESSD registrados, con su índice, y «adoptar este disco» probado por el motor ([adopción](adoption.md#nu9ve-volume-v1)). Parte de una revisión de la suite hecha el mismo día ([§2](#2-dónde-estamos-revisión-del-2026-11-22)). Relacionados: [licencias](licensing.md), [MCP de la suite](suite-mcp.md), [registro](../contracts/nu9ve-registry-v1.md), [catálogo de datos](../contracts/nu9ve-data-v1.md), [auditoría A3](audits/fable-audit-2026-11-10.md#a3--la-identidad-de-un-disco-no-viaja-entre-equipos-ni-entre-sistemas).
 
 El problema, en palabras del usuario: hay dos Macs lado a lado (la M1 y la M4) que pueden correr nüün, Atlas, nove y Clipper. A veces Atlas procesa misiones y baches en la M4 y los datos se analizan en nove en la M1. Un disco de archivo, MEDIA501, a veces está en una Mac y a veces en la otra, y en las dos se querría seguir el ingreso o los respaldos del perfil. Ya no queda claro qué disco tiene qué ni qué máquina tiene qué estado. El usuario quiere una nube común en el core privado, un MCP que habilite más capacidades cuando la nube esté activa, registrar dispositivos y que todo sea compatible con la cuenta de Fractos: la misma cuenta y el mismo método de pago para modelos y almacenamiento, con perfiles locales.
 
@@ -119,6 +119,8 @@ Cuenta (Fractos, quien paga)
 | **Raíz** | `root_id` de [data §3](../contracts/nu9ve-data-v1.md#3-respuesta), que gana un volumen | En cada app | Igual |
 
 Una cuenta paga y agrupa. Un perfil es «a nombre de quién» va el trabajo. Son cosas distintas: la misma persona puede tener dos perfiles creativos, y un perfil no paga.
+
+Con la nube aparece un nivel más, el **espacio**: de quién son los datos y quién paga lo que cuestan. Cada persona tiene su espacio personal, y puede ser miembro de espacios de equipo (§6.13).
 
 ## 6. Las piezas
 
@@ -272,7 +274,13 @@ Un proceso por máquina y por usuario: el mismo binario `nu9ve` de `nu9ve mcp`, 
 
 **Se registra como un motor más** ([registro](../contracts/nu9ve-registry-v1.md)), con capacidades `devices_v1` y `mcp_tools_v1`. Así `nu9ve mcp` ve sus herramientas sin código especial (§7), y nove puede mostrar «otras máquinas» pidiéndoselas por el mismo protocolo.
 
-Esto vuelve urgente la [decisión 4 del MCP](suite-mcp.md#9-decisiones-abiertas): un agente que corre siempre se instala aparte, no dentro del bundle de una app. Propuesta: un instalador propio pequeño, o nüün como primera app que lo trae, porque es la que vive en la barra de menús y la que conoce los discos (pregunta 9).
+**Decidido (el usuario, 2026-11-22, pregunta 9):** un solo agente instalado por máquina, que es suyo y no de una app.
+- **Quién puede instalarlo:** un instalador propio, o cualquier app de la suite que lo traiga dentro. **La primera es nüün.**
+- **Versiones:** gana la más nueva, y nunca se baja de versión. Una app que trae una más nueva la ofrece en Ajustes («Actualizar»), nunca en silencio.
+- **Las apps comprueban al arrancar** si el agente está vivo, por el registro de motores. Sin él funcionan igual, y ofrecen instalarlo una vez en Ajustes.
+- **Ninguna app arranca su propia copia,** así nunca hay dos identidades de dispositivo ni dos sesiones de la cuenta.
+
+Las reglas están en [`nu9ve-agent-v1`](../contracts/nu9ve-agent-v1.md).
 
 ### 6.7 Emparejar dispositivos
 
@@ -353,6 +361,32 @@ Las herramientas de la suite podrían disparar logros en Fractos: «primer respa
   - Lo que dé puntos, XP o dinero nunca se apoya sólo en lo que dice la máquina de la persona, porque eso se puede falsificar.
 - **Cuándo:** con la cuenta (F2), con el scope `activity:write`. El catálogo de logros lo decide Fractos.
 
+### 6.13 Espacios: lo personal y los equipos
+
+Pedido del usuario (2026-11-22): tener, por ejemplo, dos perfiles de trabajo con equipos distintos. Con cada equipo se comparte su nube, pero el equipo no puede ver ni editar lo personal. Los gastos van separados: lo de trabajo se cobra a ese equipo y lo personal a la persona. Más adelante, la persona puede analizar todo junto desde nove.
+
+| | Espacio personal | Espacio de equipo |
+| --- | --- | --- |
+| Qué es en Fractos | La cuenta de la persona | Una **organización** de Fractos, con sus miembros e invitaciones (web: `docs/plans/org-members-invites.md`) |
+| Quién paga | La persona, con su suscripción y su saldo | El equipo, con su plan Business y sus «capacidades resueltas» (web: `docs/domains/business/2026-business-plans-entitlements.md`) |
+| Almacenamiento | Su propio bucket y su propia cuota | Un bucket y una cuota del equipo, aparte |
+| Llave de cifrado | Sólo la de la persona | Una por equipo, cifrada para cada miembro. Quien sale del equipo deja de recibir las llaves nuevas |
+| Quién ve y edita | Sólo la persona | Los miembros, según su rol en la organización |
+
+Las reglas:
+
+- **Cada dato tiene un solo espacio.** Un proyecto, un dataset, un artefacto o un archivo de la carpeta de intercambio pertenece a uno, y se cifra con su llave. Moverlo a otro espacio es un acto explícito: se vuelve a cifrar y se registra quién lo movió.
+- **El equipo no puede ver lo personal, ni siquiera que existe.** Está en otro bucket, cifrado con otra llave. El servidor sólo sabe que la persona es miembro.
+- **Cada cosa que cuesta se cobra a un espacio,** y nunca se reparte después:
+  - almacenamiento y transferencia, al espacio del bucket;
+  - modelos, al espacio desde el que se pidió la llamada, que la app manda en cada petición;
+  - trabajo en otra máquina o en la nube, al espacio del proyecto.
+- **Los perfiles locales eligen su espacio por omisión.** Por ejemplo, el perfil de nüün de un trabajo apunta al espacio de ese equipo, y `e64` al personal. Un dispositivo puede tener los dos, porque la persona es una sola. Lo que se crea con un perfil nace en su espacio, y la app lo muestra.
+- **Juntar todo para analizarlo sólo ocurre en tus dispositivos.** Sólo tú tienes a la vez tu llave personal y las de tus equipos, así que nove puede mostrar tus gastos y tus proyectos de todos los espacios juntos en tu máquina. El servidor no puede hacer esa unión, y un compañero de equipo tampoco.
+- **Dentro de un equipo, `restricted` y `personal`** ([data §6](../contracts/nu9ve-data-v1.md#6-privacidad)) siguen valiendo. Que algo esté en el espacio del equipo no lo hace visible a un agente ni a otra salida.
+
+Esto es parte de F2 y F4, y su código va en `inner-core` (membresía, llaves por espacio y medición por espacio) y en la web de Fractos (organizaciones, buckets, planes y cobro). Lo local que lo hace posible ya existe o está planeado: los perfiles de nüün, la clave de proyecto y la clase de privacidad.
+
 ## 7. MCP: qué se habilita y cuándo
 
 Todo sale del agente como motor del registro (§6.6), así que el servidor sigue sin conocer apps ([MCP §1](suite-mcp.md#1-qué-es)).
@@ -417,6 +451,12 @@ Cada fase cabe en sesiones de su repo, sirve sola y no rompe a nadie.
 
 Para el problema de hoy bastan F0 y F1: dos Macs lado a lado no necesitan nube para dejar de confundirse.
 
+**Estado al 2026-11-22:**
+
+- **F0.** El core, hecho: `nu9ve-device-v1`, `nu9ve-volume-v1`, la versión menor de `nu9ve-data` y `nu9ve-volumes` mudado (U2). nüün, hecho en la M1 (marcador, segundo factor, su carpeta, «adoptar este disco», `device.json` llamado «M1»); falta la M4 y el cotejo en Windows. Sin empezar: Atlas (raíces por volumen), nove (raíces por volumen y «disco no conectado») y Clipper (su carpeta en los discos).
+- **F1.** El core, hecho en QA (U7a, U7b y U7c): `nu9ve-exchange-v1` con su versión menor (§7.1, `not_found`), el agente con identidad, emparejado, servicio de fondo, instalador, motor `suite` con las seis herramientas de F1 de la §7, pedidos, objetos, dueñas y `apps/<app>/`. **Instalado en la M1** con su LaunchAgent. **Sin verificar:** la M4, Windows y Syncthing entre las dos. **Falta en el core:** el canal propio entre agentes. **Falta en las apps:** que nüün traiga el agente y lo ofrezca; su diario de decisiones y los respaldos por dispositivo; un transporte registrable en nüün y Clipper; «otras máquinas» y el proyecto `conversaciones` en nove.
+- **F2 en adelante:** sin empezar. Esperan el OAuth de Fractos (§6.8) y las preguntas 5, 7, 12, 14, 15, 16 y 21 a 23.
+
 ## 11. Qué tener en cuenta
 
 - **El sandbox de macOS.** Una app con sandbox no escribe fuera de su contenedor sin un App Group (mismo Team ID) o sin que la persona elija la carpeta. La carpeta de la suite (`~/Library/Application Support/nu9ve/`) y el socket del agente tienen que poder alcanzarse desde las apps con sandbox. Hay que confirmarlo con lo que ya hace nove para registrarse (pasa `--suite-registry` desde su bundle) antes de fijar dónde viven `device.json` y la carpeta de intercambio. El agente, sin sandbox, puede ser el único que toca esas carpetas.
@@ -450,7 +490,7 @@ Las decididas el 2026-11-22 quedan tachadas, con la respuesta del usuario. Ningu
 
 **Máquinas y discos**
 
-9. ¿Quién instala el agente `nu9ve`: un instalador propio, o nüün como primera app que lo trae?
+9. ~~¿Quién instala el agente `nu9ve`?~~ **Decidido:** un solo agente por máquina, suyo. Lo instala un instalador propio o cualquier app que lo traiga, empezando por nüün. Gana la versión más nueva y nunca se baja de versión. Las apps comprueban y ofrecen en Ajustes, y ninguna corre su propia copia ([§6.6](#66-agente-de-la-suite--nu9ve-agent), [`nu9ve-agent-v1`](../contracts/nu9ve-agent-v1.md)).
 10. ~~¿Marcador `.nu9ve/volume.json`, segundo factor y que sólo nüün lo escriba?~~ **Decidido:** sí, pero en los discos de trabajo también escriben otras apps (nove, Clipper). Queda así: el marcador lo crea la primera app que registra el disco y nadie lo reescribe; el rol lo cambia nüün; cada app escribe en su carpeta; en MEDIA sólo escribe nüün ([§6.2](#62-identidad-de-volumen--nu9ve-volume-v1-contrato-nuevo-cierra-a3s6), [§6.4](#64-el-disco-como-mensajero-y-una-dueña-por-proyecto)).
 11. ~~¿Una Mac principal para el catálogo de nüün o dos que ingresan?~~ **Decidido:** las dos ingresan. El usuario lleva MEDIA y un disco de trabajo a la otra Mac, respalda, deja esa Mac lista para un proyecto, vuelve con MEDIA y sigue con otros, todo al día. También quiere ver o traer en la M1 lo procesado en la M4. No hace falta una Mac principal: basta una dueña por cosa, y casi siempre es el disco ([§6.4](#64-el-disco-como-mensajero-y-una-dueña-por-proyecto)).
 12. ¿Quieres lanzar trabajo en otra máquina (F3)? ¿Cuáles: tandas de Atlas, ODM, exports de Clipper?
@@ -465,6 +505,10 @@ Las decididas el 2026-11-22 quedan tachadas, con la respuesta del usuario. Ningu
 **Nombres**
 
 17. ¿Los dispositivos se llaman como tú los llamas hoy («M1», «M4», «PC»)?
+21. Espacios (§6.13): ¿un equipo de trabajo es siempre una organización de Fractos, o hace falta un espacio de equipo que no sea una organización pública?
+22. ¿Puede un miembro del equipo **usar** el saldo de modelos del equipo desde su máquina personal, o sólo desde dispositivos que el equipo aprobó?
+23. Cuando alguien sale de un equipo, ¿basta con que deje de recibir llaves nuevas, o hay que volver a cifrar lo que ya existía? Lo segundo es más seguro y mucho más caro.
+24. ~~¿El canal de red de Atlas (`atlas-needs-v2`, `serve --share`) queda como puente o pasa por el agente?~~ **Decidido (el usuario, 2026-11-23): ninguna de las dos.** Atlas es un laboratorio, y lo que hizo de red fue un extra que la suite no considera: ninguna app se conecta con Atlas. Una persona normal hace todo desde nove, que se encarga de los flujos de Atlas (misiones, tandas, baches, tramos, cobertura, tráfico, vegetación, faltantes para subaereo) y tiene que alcanzarlo y superarlo. Para el usuario, que ya tiene datos en Atlas, nove lleva **utilidades desechables de migración** que importan lo de Atlas (sus capas en `atlas-derived`, el estado humano de `atlas_state.sqlite3` y los juicios de etiquetado) y se borran cuando nove lo alcance. Mientras, Atlas sigue avanzando en análisis y etiquetado, y lo que descubra se porta a nove.
 18. ~~¿Qué clave lleva tu análisis personal de todas las máquinas?~~ **Decidido:** «mis conversaciones» o algo parecido, como valor común por omisión del flujo sugerido, listo para el caso del usuario. Clave `conversaciones`, título «Mis conversaciones» ([§6.5](#lo-personal-y-el-análisis-de-todas-tus-máquinas)).
 19. ~~¿Llave impresa o copia en Fractos?~~ **Decidido:** las dos, bien seguras y bien integradas. La copia en Fractos va protegida con una passkey, así que Fractos no puede leerla ([§6.9](#69-qué-guarda-la-nube)). De paso: Fractos es el «citybender», estas apps son sus herramientas de creador, y podrían disparar logros (§6.12).
 20. ~~¿Dos apps escriben la misma carpeta?~~ **Decidido:** no. Lo que pasa es la misma app en dos máquinas: configurar en una y exportar o procesar la cola en la otra, llevando el disco (más rápido que la red) o copiando por red. Es la etapa siguiente, pero hacia allá va el diseño ([§6.4](#una-app-en-dos-máquinas), F3a).

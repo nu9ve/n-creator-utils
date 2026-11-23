@@ -1,0 +1,466 @@
+{
+ "contract": "contracts/nu9ve-export-v1.md",
+ "regenerate": "python3 -I scripts/export-examples.py",
+ "note": "requests: data_export requests (§1) with the expected reply; valid and invalid: reply data (§2) for a request of `dataset` with max_bytes 64 MiB, what a client reads each as, or its problem; catalog: the catalog of the owner engine, as the agent publishes it (the personal dataset whole only if shared); answers: the objects.json entry the asked agent writes for a dataset request (§3), or null while it waits, given whether the catalog lists it, whether it is shared, what is offered for it and the owner engine's reply (null: not live).",
+ "requests": [
+  {
+   "name": "a dataset id",
+   "request": "{\"id\":1,\"method\":\"data_export\",\"params\":{\"dataset\":\"baches-2026-11\"}}",
+   "ok": true
+  },
+  {
+   "name": "with the 64 MiB limit",
+   "request": "{\"id\":2,\"method\":\"data_export\",\"params\":{\"dataset\":\"baches-2026-11\",\"max_bytes\":67108864}}",
+   "ok": true
+  },
+  {
+   "name": "an id the catalog does not have is answered, not an error",
+   "request": "{\"id\":3,\"method\":\"data_export\",\"params\":{\"dataset\":\"no-existe\"}}",
+   "ok": true
+  },
+  {
+   "name": "no dataset",
+   "request": "{\"id\":4,\"method\":\"data_export\",\"params\":{}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "owner:id is not an id of this engine",
+   "request": "{\"id\":5,\"method\":\"data_export\",\"params\":{\"dataset\":\"Una-App:baches\"}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "an unknown parameter",
+   "request": "{\"id\":6,\"method\":\"data_export\",\"params\":{\"dataset\":\"baches-2026-11\",\"format\":\"csv\"}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "max_bytes of zero",
+   "request": "{\"id\":7,\"method\":\"data_export\",\"params\":{\"dataset\":\"baches-2026-11\",\"max_bytes\":0}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "max_bytes as text",
+   "request": "{\"id\":8,\"method\":\"data_export\",\"params\":{\"dataset\":\"baches-2026-11\",\"max_bytes\":\"64\"}}",
+   "ok": false,
+   "code": "invalid_params"
+  }
+ ],
+ "valid": [
+  {
+   "name": "ready",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "reads_as": "ready"
+  },
+  {
+   "name": "ready, exactly 64 MiB",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":67108864,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "reads_as": "ready"
+  },
+  {
+   "name": "ready, a Windows path",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"C:\\\\Users\\\\ana\\\\AppData\\\\Local\\\\una-app\\\\baches.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "reads_as": "ready"
+  },
+  {
+   "name": "too_large on a disk",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":\"3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b\",\"path\":\"001_raw/dron/tanda-7\"}}",
+   "reads_as": "too_large"
+  },
+  {
+   "name": "too_large, size unknown, not on a disk",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"where\":{\"volume_id\":null,\"path\":\"/Users/ana/tandas/7\"}}",
+   "reads_as": "too_large"
+  },
+  {
+   "name": "pending",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"pending\"}",
+   "reads_as": "pending"
+  },
+  {
+   "name": "not_found",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"not_found\"}",
+   "reads_as": "not_found"
+  },
+  {
+   "name": "a status the client does not know is not_found",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"archived\"}",
+   "reads_as": "not_found"
+  }
+ ],
+ "invalid": [
+  {
+   "name": "another contract",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/2\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_contract"
+  },
+  {
+   "name": "another dataset",
+   "dataset": "otro",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "other_dataset"
+  },
+  {
+   "name": "no status",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_status"
+  },
+  {
+   "name": "a relative path",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"export/baches.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_path"
+  },
+  {
+   "name": "ready without a path",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_path"
+  },
+  {
+   "name": "over max_bytes",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":67108865,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "over_max_bytes"
+  },
+  {
+   "name": "negative bytes",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":-1,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_bytes"
+  },
+  {
+   "name": "bytes as text",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":\"20480\",\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_bytes"
+  },
+  {
+   "name": "a hash in upper case",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08\"}",
+   "problem": "bad_sha256"
+  },
+  {
+   "name": "a short hash",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a0\"}",
+   "problem": "bad_sha256"
+  },
+  {
+   "name": "ready without media_type",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_media_type"
+  },
+  {
+   "name": "a media type without a subtype",
+   "dataset": "baches-2026-11",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"geojson\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "problem": "bad_media_type"
+  },
+  {
+   "name": "too_large without where",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504}",
+   "problem": "bad_where"
+  },
+  {
+   "name": "too_large with .. on the disk",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":\"3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b\",\"path\":\"001_raw/../x\"}}",
+   "problem": "bad_where"
+  },
+  {
+   "name": "too_large, an absolute path on a disk",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":\"3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b\",\"path\":\"/001_raw\"}}",
+   "problem": "bad_where"
+  },
+  {
+   "name": "too_large, a relative path and no disk",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":null,\"path\":\"001_raw/dron/tanda-7\"}}",
+   "problem": "bad_where"
+  },
+  {
+   "name": "too_large, a volume_id that is not a UUID 4",
+   "dataset": "tanda-7",
+   "text": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"tanda-7\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":\"MEDIA501\",\"path\":\"001_raw/dron/tanda-7\"}}",
+   "problem": "bad_where"
+  }
+ ],
+ "catalog": "{\"contract\":\"nu9ve-data/1\",\"app\":\"una-app\",\"generated_at\":\"2026-11-22T18:00:00Z\",\"projects\":[{\"project_key\":\"subaereo\",\"title\":\"Subaéreo\",\"parent_key\":null,\"state\":\"active\"}],\"roots\":[{\"id\":\"media\",\"label\":\"MEDIA\",\"state\":\"ok\",\"volume_id\":\"3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b\",\"volume_path\":\"\"}],\"datasets\":[{\"id\":\"baches-2026-11\",\"owner\":\"una-app\",\"title\":\"Baches de noviembre\",\"modality\":\"geo_vector\",\"privacy\":\"public\",\"storage\":\"copied\",\"size\":{\"bytes\":20480,\"items\":312,\"unit\":\"features\"},\"axes\":{},\"projects\":[{\"project_key\":\"subaereo\",\"role\":\"output\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T17:58:00Z\"},{\"id\":\"tanda-7\",\"owner\":\"una-app\",\"title\":\"Tanda 7\",\"modality\":\"media\",\"privacy\":\"restricted\",\"storage\":\"in_place\",\"location\":{\"root_id\":\"media\",\"path\":\"001_raw/dron/tanda-7\"},\"size\":{\"bytes\":9126805504,\"items\":412,\"unit\":\"files\"},\"axes\":{},\"projects\":[{\"project_key\":\"subaereo\",\"role\":\"base\"}],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T17:58:00Z\"},{\"id\":\"notas\",\"owner\":\"una-app\",\"title\":\"Notas\",\"modality\":\"documents\",\"privacy\":\"personal\",\"storage\":\"copied\",\"size\":{\"bytes\":4096},\"axes\":{},\"projects\":[],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T17:58:00Z\"},{\"id\":\"sin-tamano\",\"owner\":\"una-app\",\"title\":\"Sin tamaño\",\"modality\":\"table\",\"privacy\":\"public\",\"storage\":\"copied\",\"axes\":{},\"projects\":[],\"state\":\"unverified\",\"updated_at\":\"2026-11-22T17:58:00Z\"}],\"next_cursor\":null}",
+ "answers": [
+  {
+   "name": "the engine exports it",
+   "request": {
+    "id": "r-1",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "entry": {
+    "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "bytes": 20480,
+    "media_type": "application/geo+json",
+    "request": "r-1"
+   }
+  },
+  {
+   "name": "the engine is not live: the request waits",
+   "request": {
+    "id": "r-2",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": null,
+   "entry": null
+  },
+  {
+   "name": "the engine is preparing it: the request waits",
+   "request": {
+    "id": "r-3",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"pending\"}",
+   "entry": null
+  },
+  {
+   "name": "an invalid reply: the request waits",
+   "request": {
+    "id": "r-4",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"x\"}",
+   "entry": null
+  },
+  {
+   "name": "the engine no longer has it",
+   "request": {
+    "id": "r-5",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"not_found\"}",
+   "entry": {
+    "request": "r-5",
+    "refused": "not_found"
+   }
+  },
+  {
+   "name": "the engine says it is too large",
+   "request": {
+    "id": "r-6",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:baches-2026-11"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"too_large\",\"bytes\":9126805504,\"where\":{\"volume_id\":\"3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b\",\"path\":\"001_raw/dron/tanda-7\"}}",
+   "entry": {
+    "request": "r-6",
+    "refused": "too_large",
+    "where": {
+     "volume_id": "3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b",
+     "path": "001_raw/dron/tanda-7"
+    }
+   }
+  },
+  {
+   "name": "the catalog says it is too large: the engine is not asked",
+   "request": {
+    "id": "r-7",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:tanda-7"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"baches-2026-11\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "entry": {
+    "request": "r-7",
+    "refused": "too_large",
+    "where": {
+     "volume_id": "3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b",
+     "path": "001_raw/dron/tanda-7"
+    }
+   }
+  },
+  {
+   "name": "no size in the catalog: the engine is asked",
+   "request": {
+    "id": "r-8",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:sin-tamano"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"sin-tamano\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "entry": {
+    "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "bytes": 20480,
+    "media_type": "application/geo+json",
+    "request": "r-8"
+   }
+  },
+  {
+   "name": "not in any catalog",
+   "request": {
+    "id": "r-9",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:otro"
+   },
+   "listed": false,
+   "shared": false,
+   "offered": null,
+   "engine": null,
+   "entry": {
+    "request": "r-9",
+    "refused": "not_found"
+   }
+  },
+  {
+   "name": "personal and not shared",
+   "request": {
+    "id": "r-10",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:notas"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"notas\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "entry": {
+    "request": "r-10",
+    "refused": "not_shared"
+   }
+  },
+  {
+   "name": "personal, not shared, even if offered",
+   "request": {
+    "id": "r-11",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:notas"
+   },
+   "listed": true,
+   "shared": false,
+   "offered": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 1024,
+    "media_type": "text/csv",
+    "where": {
+     "volume_id": null,
+     "path": "/Users/ana/notas.csv"
+    }
+   },
+   "engine": null,
+   "entry": {
+    "request": "r-11",
+    "refused": "not_shared"
+   }
+  },
+  {
+   "name": "personal and shared, offered",
+   "request": {
+    "id": "r-12",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:notas"
+   },
+   "listed": true,
+   "shared": true,
+   "offered": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 1024,
+    "media_type": "text/csv",
+    "where": {
+     "volume_id": null,
+     "path": "/Users/ana/notas.csv"
+    }
+   },
+   "engine": null,
+   "entry": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 1024,
+    "media_type": "text/csv",
+    "request": "r-12"
+   }
+  },
+  {
+   "name": "personal and shared, exported",
+   "request": {
+    "id": "r-13",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:notas"
+   },
+   "listed": true,
+   "shared": true,
+   "offered": null,
+   "engine": "{\"contract\":\"nu9ve-export/1\",\"dataset\":\"notas\",\"status\":\"ready\",\"path\":\"/Users/ana/Library/Caches/una-app/export/baches-2026-11.geojson\",\"bytes\":20480,\"media_type\":\"application/geo+json\",\"sha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+   "entry": {
+    "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "bytes": 20480,
+    "media_type": "application/geo+json",
+    "request": "r-13"
+   }
+  },
+  {
+   "name": "offered and in no catalog: the offer decides",
+   "request": {
+    "id": "r-14",
+    "to": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+    "dataset": "una-app:otro"
+   },
+   "listed": false,
+   "shared": false,
+   "offered": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 1024,
+    "media_type": "text/csv",
+    "where": {
+     "volume_id": null,
+     "path": "/Users/ana/notas.csv"
+    }
+   },
+   "engine": null,
+   "entry": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bytes": 1024,
+    "media_type": "text/csv",
+    "request": "r-14"
+   }
+  }
+ ]
+}

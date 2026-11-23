@@ -33,9 +33,10 @@ public struct ThemeRoles: Sendable, Equatable {
         self.init(skin: skin, dark: requested, base: .hsv(hue, saturation, brightness))
     }
 
-    public init(skin: ThemeSkin, dark requested: Bool, base: ThemeColor) {
-        let dark = skin.forcedDark ?? requested
-        self.init(dark: dark, base: base, surfaces: ThemeSurfaces(skin: skin, dark: dark, base: base))
+    /// `era` only changes Macintosh and Windows 9x (nu9ve-theme-v1 §4); `.original` is the period's palette.
+    public init(skin: ThemeSkin, dark requested: Bool, base: ThemeColor, era: ThemeEra = .original) {
+        let dark = skin.forcedDark(era: era) ?? requested
+        self.init(dark: dark, base: base, surfaces: ThemeSurfaces(skin: skin, dark: dark, base: base, era: era))
     }
 
     /// Resolve the same roles for a custom skin or contrast setting.

@@ -1,0 +1,23 @@
+[package]
+name = "nu9ve-device"
+description = "The machine's local identity: device.json, its host check and copy detection (nu9ve-device-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# UUID 4, SHA-256 hex and random bytes (nu9ve-json-v1).
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# device.json is published without replacing and rewritten atomically (nu9ve-fs-v1).
+nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
+# device.json is JSON.
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+# An isolated folder for the creation tests.
+tempfile = "=3.27.0"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

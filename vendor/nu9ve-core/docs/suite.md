@@ -58,6 +58,8 @@ En propuesta: un navegador diario sobre un Chromium ajeno (Helium o Brave) con u
 | [nu9ve-artifact-v1](../contracts/nu9ve-artifact-v1.md) | Paquete de gráfica o tabla con datos exactos, render, receta y linaje | Propuesta (2026-11-19); nove produce, Clipper consume |
 | [nu9ve-bench-v1](../contracts/nu9ve-bench-v1.md) | Registro de benchmarks: una corrida por línea, comparable entre motores, commits y máquinas | Propuesta (2026-11-21); la usa primero la M0 del cierre de Clipper |
 | [nu9ve-device-v1](../contracts/nu9ve-device-v1.md) | Identidad local de cada máquina, sin serial ni nombre del equipo | Propuesta (2026-11-22); F0 de [varias máquinas](suite-devices.md) |
+| [nu9ve-agent-v1](../contracts/nu9ve-agent-v1.md) | Un solo agente `nu9ve` por máquina: instalación, versiones, qué ve una app | Propuesta (2026-11-22); F1 |
+| [nu9ve-exchange-v1](../contracts/nu9ve-exchange-v1.md) | Carpeta de intercambio entre las máquinas de la persona, con registros firmados | Propuesta (2026-11-22); F1 |
 | [nu9ve-volume-v1](../contracts/nu9ve-volume-v1.md) | Marcador de disco con rol y segundo factor, estados al conectar, carpeta e índice de cada app | Propuesta (2026-11-22); cierra A3 cuando nüün la implemente |
 | [Contratos de media](https://github.com/nu9ve/n-creator-utils/blob/master/docs/contracts/README.md) | Ingreso, naming, biblioteca/handoff, cierre, Stalker, Atlas | Vigentes, con adopción por app en su índice |
 
@@ -100,10 +102,10 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 | TypeScript | Paleta pura, dither y pruebas de contraste | curado `theme.ts`, `dither.ts`; Fractos web `packages/styles` | 2 |
 | Rust / Swift / Python | Separación de stems con Demucs: proceso aislado y publicación de resultados | curado `stems.rs`, SoundBender `separate.py`, nüün `manager/` | 3 |
 | Rust / Swift | Loudness (LUFS), limitador, BPM y clave | curado `audio-engine`, SoundBender `SoundCore`; Clipper en Python | 2–3 ([audio en la suite](platforms/audio.md)) |
-| Todas | QA aislada por variable de entorno; instalar en la carpeta de apps del usuario con respaldo del anterior | nüün, nove, curado, kyu, SoundShop | 5 |
-| Swift (Mac) | Apple Vision: caras, cabezas por pose, personas por recuadro y máscara de segmentación, con caché rápida (previews) y precisa (masters) | video `native/fractos-vision`; Clipper `ClipperMacOSRender/SubjectDetection.swift` (sujeto y encuadre) | 2 (leído el 2026-11-22) |
-| Swift (Mac) | Compositor procedural (DSP, baterías, voces, efectos, manifiesto) | Clipper `ClipperMacOSRender/Sources/ClipperScore`; video `native/fractos-score`, copia declarada en su `provenance.json` (Clipper `6fa115b`, 2026-10-11) que ya divergió | 2 |
-| Rust | BPM, grid de beats y clave | curado `audio-engine`; SoundBender (análisis de la escena) | 2 ([audio](platforms/audio.md), `nu9ve-music`) |
+| Todas | QA aislada por variable de entorno; instalar en la carpeta de apps del usuario con respaldo del anterior | nüün, nove, curado, kyu, SoundShop | 5. Escritas, con sus diferencias, en [prácticas comunes](practices.md) (2026-11-22) |
+| Swift (Mac) | Apple Vision: caras, cabezas por pose, personas por recuadro y máscara de segmentación, con caché rápida (previews) y precisa (masters) | video `native/fractos-vision`; Clipper `ClipperMacOSRender/SubjectDetection.swift` (sujeto y encuadre) | 2 (leído el 2026-11-22). **Extraído** a [`Nu9veVision`](../swift/README.md) el mismo día; falta que las dos apps lo adopten |
+| Swift (Mac) | Compositor procedural (DSP, baterías, voces, efectos, manifiesto) | Clipper `ClipperMacOSRender/Sources/ClipperScore`; video `native/fractos-score`, copia declarada en su `provenance.json` (Clipper `6fa115b`, 2026-10-11) que ya divergió | 2. **Extraído** a [`Nu9veScore`](../swift/README.md) el 2026-11-22, con una revisión por motor; falta que las dos apps lo adopten |
+| Rust | BPM, grid de beats y clave | curado `audio-engine`; SoundBender `SoundCore` (`Tempo.swift`, `ChromaAnalysis.swift`) | 2. **Extraído** a [`nu9ve-music`](../rust/nu9ve-music/) el 2026-11-22, desde curado; falta que las dos apps lo adopten |
 
 **Primer candidato maduro:** `NuMacShell` + roles de tema en Swift (Acerca de, ventana, barra y paleta), con nüün, Fractos, SoundShop y kyu como consumidores. Vive en `nu9ve/core/swift/`, con copia fijada en cada app (decidido el 2026-11-16).
 

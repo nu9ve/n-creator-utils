@@ -67,6 +67,12 @@ public static class ThemeSkinInfo
         _ => english ? "Glass" : "Cristal",
     };
 
+    /// <summary>True for the skins whose palette the user can tint (nu9ve-theme-v1 §4 «Época»).</summary>
+    public static bool HasEra(this ThemeSkin skin) => skin is ThemeSkin.ClassicMac or ThemeSkin.Win9x;
+
+    /// <summary>The mode this skin fixes with that era, or null when it follows the user's. A tinted era follows the user.</summary>
+    public static bool? ForcedDark(this ThemeSkin skin, ThemeEra era) => era == ThemeEra.Tinted && skin.HasEra() ? null : skin.ForcedDark();
+
     /// <summary>Period skins keep the look of their era whatever the user's mode.</summary>
     public static bool? ForcedDark(this ThemeSkin skin) => skin switch
     {

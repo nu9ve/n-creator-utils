@@ -153,6 +153,7 @@ Ante `suspect` o `duplicate`, la app pregunta y la persona elige:
   - `generated_at` dice de cuándo es. Quien lo lee lo muestra con esa fecha, no como si fuera de ahora;
   - un dataset `personal` va entero sólo si la persona decidió guardarlo en ese disco (un respaldo es esa decisión). Si no, sólo con su forma ([data §6](nu9ve-data-v1.md#6-privacidad));
   - **Debe** al lector: leer con tope, validar como catálogo y descartar un índice cuyo `app` no es el de la carpeta (`app_mismatch`) o que no cumple `nu9ve-data-v1`. Un índice inválido no invalida el disco ni los índices de otras apps.
+  - **Conviene** que el índice crezca con los proyectos y las carpetas, no con los archivos. Para eso, un dataset por grupo (los mismos proyectos en la misma carpeta) que apunta a la carpeta común de sus archivos y lleva su número de archivos, sus bytes, su peor estado y, si todos están verificados, un `hash` con `of: manifest` sobre la lista ordenada de rutas y hashes. El hash de cada archivo queda en el formato propio de la app (para nüün, el snapshot del catálogo). Así lo hace nüün desde el 2026-11-22 (§13, decisión 4).
 - **Adoptar este disco en otra máquina** es leer sus índices (y, para nüün, su snapshot) y, si la persona lo pide, importarlos al catálogo local. Lo decide cada app.
 
 ## 9. Sistemas y discos que no se pueden escribir
@@ -181,6 +182,6 @@ Quién registra, observa o escribe su carpeta está en [adopción por app](../do
 ## 13. Decisiones abiertas
 
 1. **Serial de exFAT y FAT:** en macOS, exFAT confirmado con MEDIA502 (2026-11-22, §3). Falta FAT32 en la Mac y leer MEDIA502 en Windows. En Windows el serial tiene otro formato, así que no se compara con el de la Mac, sólo consigo mismo (§4).
-4. **Tope del índice:** el de nüün en MEDIA502 ya pesa 5,2 MiB de 8 MiB. Antes de que lo pase hay que decidir entre subir el tope, partir el índice en varios archivos o dejar en el índice sólo un resumen por proyecto.
+4. ~~**Tope del índice:**~~ **Cerrada el 2026-11-22:** el tope se queda en 8 MiB y el índice se resume por grupo (§8, «Conviene»). nüün lo hizo así en `01b4c20` (`nuun_index` versión 2, que todavía lee la 1): MEDIA502 pasó de 5,1 MiB con 7 666 datasets a 20 KB con 27 grupos y 23 proyectos, y ESSD de 1,4 MB a 2,7 KB. Los dos pasan la referencia del core, comprobado aquí sobre los discos. La regla no cambió.
 2. **Un disco con varias particiones:** cada partición es un volumen con su marcador. Si hace falta agrupar las particiones de un mismo disco físico, va en una versión menor.
 3. **Discos de red y carpetas en la nube** (un NAS, iCloud Drive) no son volúmenes de este contrato en v1.

@@ -39,19 +39,20 @@ public sealed record ThemeRoles
     /// <summary>Mica or a solid canvas (windows-app-v1 §3): the skin's, unless the app's own surfaces say otherwise.</summary>
     public WindowBackdrop Backdrop { get; }
 
-    public static ThemeRoles From(ThemeSkin skin, bool dark, ThemeColor seed)
+    /// <summary><paramref name="era"/> only changes Macintosh and Windows 9x (nu9ve-theme-v1 §4 «Época»).</summary>
+    public static ThemeRoles From(ThemeSkin skin, bool dark, ThemeColor seed, ThemeEra era = ThemeEra.Original)
     {
         var hsv = seed.Hsv;
-        return new ThemeRoles(skin, dark, hsv.Hue, hsv.Saturation, hsv.Value);
+        return new ThemeRoles(skin, dark, hsv.Hue, hsv.Saturation, hsv.Value, era);
     }
 
-    /// <summary><paramref name="requestedDark"/> is the user's mode; a skin with a period look of its own overrides it.</summary>
-    public ThemeRoles(ThemeSkin skin, bool requestedDark, double hue, double saturation, double brightness)
-        : this(skin, skin.ForcedDark() ?? requestedDark, ThemeColor.FromHsv(hue, saturation, brightness))
+    /// <summary><paramref name="requestedDark"/> is the user's mode; a skin with a period look of its own overrides it, unless its era is tinted.</summary>
+    public ThemeRoles(ThemeSkin skin, bool requestedDark, double hue, double saturation, double brightness, ThemeEra era = ThemeEra.Original)
+        : this(skin, skin.ForcedDark(era) ?? requestedDark, ThemeColor.FromHsv(hue, saturation, brightness), era)
     {
     }
 
-    ThemeRoles(ThemeSkin skin, bool dark, ThemeColor seed) : this(skin, dark, seed, ThemeSurfaces.For(skin, dark, seed))
+    ThemeRoles(ThemeSkin skin, bool dark, ThemeColor seed, ThemeEra era) : this(skin, dark, seed, ThemeSurfaces.For(skin, dark, seed, era))
     {
     }
 
@@ -134,9 +135,10 @@ public sealed record ThemeRoles
 /// </summary>
 public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeColor Raised, ThemeColor Line, ThemeColor PreferredInk, WindowBackdrop? Backdrop = null)
 {
-    /// <summary>A catalog skin's surfaces for this seed; <paramref name="dark"/> is already resolved.</summary>
-    public static ThemeSurfaces For(ThemeSkin skin, bool dark, ThemeColor seed)
+    /// <summary>A catalog skin's surfaces for this seed; <paramref name="dark"/> is already resolved. <paramref name="era"/> matters only for Macintosh and Windows 9x.</summary>
+    public static ThemeSurfaces For(ThemeSkin skin, bool dark, ThemeColor seed, ThemeEra era = ThemeEra.Original)
     {
+        if (era == ThemeEra.Tinted && skin.HasEra()) return Tinted(skin, dark, seed);
         var @base = dark ? ThemeColor.Black : ThemeColor.White;
         ThemeColor Blend(double fraction) => seed.Mixed(@base, fraction);
         ThemeColor canvas, surface, raised, line, preferredInk;
@@ -181,5 +183,27 @@ public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeC
                 break;
         }
         return new(canvas, surface, raised, line, preferredInk);
+    }
+
+    static ThemeColor Gray(double level) => new(level, level, level);
+
+    /// <summary>
+    /// nu9ve-theme-v1 §5, era «tinted»: the period's structure with the user's color and mode. Macintosh keeps paper, a solid
+    /// rule and ink; Windows 9x keeps its face, highlight and shadow. The same numbers as ThemeSurfaces.swift.
+    /// </summary>
+    static ThemeSurfaces Tinted(ThemeSkin skin, bool dark, ThemeColor seed)
+    {
+        if (skin == ThemeSkin.ClassicMac)
+        {
+            var paper = dark ? ThemeColor.Black : ThemeColor.White;
+            var ink = dark ? ThemeColor.White : ThemeColor.Black;
+            return new(seed.Mixed(paper, 0.90), seed.Mixed(paper, dark ? 0.84 : 0.96), seed.Mixed(paper, dark ? 0.76 : 0.84),
+                seed.Mixed(ink, 0.78), seed.Mixed(ink, dark ? 0.92 : 0.90));
+        }
+        // Windows 9x: raised is the bevel's highlight and line its light shadow, so they stay lighter and darker than the face.
+        if (dark)
+            return new(Gray(0.16).Mixed(seed, 0.16), Gray(0.20).Mixed(seed, 0.12), Gray(0.27).Mixed(seed, 0.08), Gray(0.06).Mixed(seed, 0.08), ThemeColor.White);
+        return new(Gray(200 / 255.0).Mixed(seed, 0.22), Gray(225 / 255.0).Mixed(seed, 0.16), ThemeColor.White.Mixed(seed, 0.06),
+            Gray(128 / 255.0).Mixed(seed, 0.28), ThemeColor.Black);
     }
 }

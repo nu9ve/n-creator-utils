@@ -1,0 +1,1888 @@
+{
+ "automation": [
+  {
+   "inst": 0,
+   "param": "cutoff",
+   "t": [
+    0,
+    2.5
+   ],
+   "v": [
+    0.4,
+    1
+   ]
+  }
+ ],
+ "buses": {
+  "hall": {
+   "rt60": 2.4
+  }
+ },
+ "delay_segments": [
+  [
+   0,
+   0.25,
+   0.375,
+   0.35,
+   3800
+  ]
+ ],
+ "duck": {
+  "depth_db": 9,
+  "rate": 20,
+  "values": [
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0
+  ]
+ },
+ "duration": 2.5,
+ "events": [
+  [
+   0.0,
+   0.45,
+   0,
+   48,
+   0.8,
+   -0.4
+  ],
+  [
+   0.04,
+   0.45,
+   1,
+   53,
+   0.8,
+   -0.2
+  ],
+  [
+   0.08,
+   0.45,
+   2,
+   58,
+   0.8,
+   0.0
+  ],
+  [
+   0.12,
+   0.45,
+   3,
+   63,
+   0.8,
+   0.2
+  ],
+  [
+   0.16,
+   0.45,
+   4,
+   68,
+   0.8,
+   0.4
+  ],
+  [
+   0.2,
+   0.45,
+   5,
+   49,
+   0.8,
+   -0.4
+  ],
+  [
+   0.24,
+   0.45,
+   6,
+   54,
+   0.8,
+   -0.2
+  ],
+  [
+   0.28,
+   0.45,
+   7,
+   59,
+   0.8,
+   0.0
+  ],
+  [
+   0.32,
+   0.45,
+   8,
+   64,
+   0.8,
+   0.2
+  ],
+  [
+   0.36,
+   0.45,
+   9,
+   69,
+   0.8,
+   0.4
+  ],
+  [
+   0.4,
+   0.45,
+   10,
+   50,
+   0.8,
+   -0.4
+  ],
+  [
+   0.44,
+   0.45,
+   11,
+   55,
+   0.8,
+   -0.2
+  ],
+  [
+   0.48,
+   0.45,
+   12,
+   60,
+   0.8,
+   0.0
+  ],
+  [
+   0.52,
+   0.45,
+   13,
+   65,
+   0.8,
+   0.2
+  ],
+  [
+   0.56,
+   0.45,
+   14,
+   70,
+   0.8,
+   0.4
+  ],
+  [
+   0.6,
+   0.45,
+   15,
+   51,
+   0.8,
+   -0.4
+  ],
+  [
+   0.64,
+   0.45,
+   16,
+   56,
+   0.8,
+   -0.2
+  ],
+  [
+   0.68,
+   0.45,
+   17,
+   61,
+   0.8,
+   0.0
+  ],
+  [
+   0.72,
+   0.45,
+   18,
+   66,
+   0.8,
+   0.2
+  ],
+  [
+   0.76,
+   0.45,
+   19,
+   71,
+   0.8,
+   0.4
+  ],
+  [
+   0.8,
+   0.45,
+   20,
+   52,
+   0.8,
+   -0.4
+  ],
+  [
+   0.84,
+   0.45,
+   21,
+   57,
+   0.8,
+   -0.2
+  ],
+  [
+   0.88,
+   0.45,
+   22,
+   62,
+   0.8,
+   0.0
+  ],
+  [
+   0.92,
+   0.45,
+   23,
+   67,
+   0.8,
+   0.2
+  ],
+  [
+   0.96,
+   0.45,
+   24,
+   48,
+   0.8,
+   0.4
+  ],
+  [
+   1.0,
+   0.45,
+   25,
+   53,
+   0.8,
+   -0.4
+  ],
+  [
+   1.04,
+   0.45,
+   26,
+   58,
+   0.8,
+   -0.2
+  ],
+  [
+   1.08,
+   0.45,
+   27,
+   63,
+   0.8,
+   0.0
+  ],
+  [
+   1.12,
+   0.45,
+   28,
+   68,
+   0.8,
+   0.2
+  ],
+  [
+   1.16,
+   0.45,
+   29,
+   49,
+   0.8,
+   0.4
+  ],
+  [
+   1.2,
+   0.45,
+   30,
+   54,
+   0.8,
+   -0.4
+  ],
+  [
+   1.24,
+   0.45,
+   31,
+   59,
+   0.8,
+   -0.2
+  ],
+  [
+   1.28,
+   0.45,
+   32,
+   64,
+   0.8,
+   0.0
+  ],
+  [
+   1.32,
+   0.45,
+   33,
+   69,
+   0.8,
+   0.2
+  ],
+  [
+   1.36,
+   0.45,
+   34,
+   50,
+   0.8,
+   0.4
+  ],
+  [
+   1.4,
+   0.45,
+   35,
+   55,
+   0.8,
+   -0.4
+  ],
+  [
+   1.44,
+   0.45,
+   36,
+   60,
+   0.8,
+   -0.2
+  ],
+  [
+   1.48,
+   0.45,
+   37,
+   65,
+   0.8,
+   0.0
+  ],
+  [
+   1.52,
+   0.45,
+   38,
+   70,
+   0.8,
+   0.2
+  ],
+  [
+   1.56,
+   0.45,
+   39,
+   51,
+   0.8,
+   0.4
+  ],
+  [
+   0.0,
+   0.45,
+   40,
+   56,
+   0.8,
+   -0.4
+  ],
+  [
+   0.04,
+   0.45,
+   41,
+   61,
+   0.8,
+   -0.2
+  ],
+  [
+   0.08,
+   0.45,
+   42,
+   66,
+   0.8,
+   0.0
+  ],
+  [
+   0.12,
+   0.45,
+   43,
+   71,
+   0.8,
+   0.2
+  ],
+  [
+   0.16,
+   0.45,
+   44,
+   52,
+   0.8,
+   0.4
+  ],
+  [
+   0.2,
+   0.45,
+   45,
+   57,
+   0.8,
+   -0.4
+  ],
+  [
+   0.24,
+   0.45,
+   46,
+   62,
+   0.8,
+   -0.2
+  ],
+  [
+   0.28,
+   0.45,
+   47,
+   67,
+   0.8,
+   0.0
+  ],
+  [
+   0.32,
+   0.45,
+   48,
+   48,
+   0.8,
+   0.2
+  ],
+  [
+   0.36,
+   0.45,
+   49,
+   53,
+   0.8,
+   0.4
+  ],
+  [
+   0.4,
+   0.45,
+   50,
+   58,
+   0.8,
+   -0.4
+  ],
+  [
+   0.44,
+   0.45,
+   51,
+   63,
+   0.8,
+   -0.2
+  ],
+  [
+   0.48,
+   0.45,
+   52,
+   68,
+   0.8,
+   0.0
+  ],
+  [
+   0.52,
+   0.45,
+   53,
+   49,
+   0.8,
+   0.2
+  ],
+  [
+   0.56,
+   0.45,
+   54,
+   54,
+   0.8,
+   0.4
+  ],
+  [
+   0.6,
+   0.45,
+   55,
+   59,
+   0.8,
+   -0.4
+  ],
+  [
+   0.64,
+   0.45,
+   56,
+   64,
+   0.8,
+   -0.2
+  ],
+  [
+   0.68,
+   0.45,
+   57,
+   69,
+   0.8,
+   0.0
+  ],
+  [
+   0.72,
+   0.45,
+   58,
+   50,
+   0.8,
+   0.2
+  ],
+  [
+   0.76,
+   0.45,
+   59,
+   55,
+   0.8,
+   0.4
+  ],
+  [
+   0.8,
+   0.45,
+   60,
+   60,
+   0.8,
+   -0.4
+  ],
+  [
+   0.84,
+   0.45,
+   61,
+   65,
+   0.8,
+   -0.2
+  ],
+  [
+   0.88,
+   0.45,
+   62,
+   70,
+   0.8,
+   0.0
+  ],
+  [
+   0.92,
+   0.45,
+   63,
+   51,
+   0.8,
+   0.2
+  ],
+  [
+   0.96,
+   0.45,
+   64,
+   56,
+   0.8,
+   0.4
+  ],
+  [
+   1.0,
+   0.45,
+   65,
+   61,
+   0.8,
+   -0.4
+  ],
+  [
+   1.04,
+   0.45,
+   66,
+   66,
+   0.8,
+   -0.2
+  ],
+  [
+   1.08,
+   0.45,
+   67,
+   71,
+   0.8,
+   0.0
+  ],
+  [
+   1.12,
+   0.45,
+   68,
+   52,
+   0.8,
+   0.2
+  ],
+  [
+   1.16,
+   0.45,
+   69,
+   57,
+   0.8,
+   0.4
+  ],
+  [
+   1.2,
+   0.45,
+   70,
+   62,
+   0.8,
+   -0.4
+  ],
+  [
+   1.24,
+   0.45,
+   71,
+   67,
+   0.8,
+   -0.2
+  ],
+  [
+   1.28,
+   0.45,
+   72,
+   48,
+   0.8,
+   0.0
+  ],
+  [
+   1.32,
+   0.45,
+   73,
+   53,
+   0.8,
+   0.2
+  ],
+  [
+   1.36,
+   0.45,
+   74,
+   58,
+   0.8,
+   0.4
+  ],
+  [
+   1.4,
+   0.45,
+   75,
+   63,
+   0.8,
+   -0.4
+  ],
+  [
+   1.44,
+   0.45,
+   76,
+   68,
+   0.8,
+   -0.2
+  ],
+  [
+   1.48,
+   0.45,
+   77,
+   49,
+   0.8,
+   0.0
+  ]
+ ],
+ "instruments": [
+  {
+   "gain_db": -6,
+   "id": "pad-1",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "wave": "saw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pad-1",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "wave": "tri"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pad-1",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "wave": "square"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pad-1",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "wave": "mix"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "stab-0",
+   "kind": "stab",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "keys-0",
+   "kind": "keys",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "modal-1",
+   "kind": "modal",
+   "pan": 0,
+   "params": {
+    "material": "glass"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pluck-0",
+   "kind": "pluck",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-1",
+   "insert": {
+    "drive": 0.6
+   },
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "round"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-1",
+   "insert": {
+    "drive": 0.6
+   },
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "sub"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-1",
+   "insert": {
+    "drive": 0.6
+   },
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "808"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-1",
+   "insert": {
+    "drive": 0.6
+   },
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "acid"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-1",
+   "insert": {
+    "drive": 0.6
+   },
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "reese"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "saw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "square"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "tri"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "sine"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "pulse"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "supersaw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "chip"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "flute"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "kick"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "snare"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "clap"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "brush"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "rimshot"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "rim"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "hat"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "ohat"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "ride"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "crash"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "tom"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "conga"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "bongo"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "tambora"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "timbale"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "cowbell"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "metal"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "clave"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "shaker"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "guiro"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "tick"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "glitch"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "drone",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "air",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "hiss",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "crackle",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "grains",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "data",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "riser"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "downlifter"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "impact"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "swell"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "rattle"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "snap"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "gsnare"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "membrane-1",
+   "kind": "membrane",
+   "pan": 0,
+   "params": {
+    "mode": "huehuetl"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "membrane-1",
+   "kind": "membrane",
+   "pan": 0,
+   "params": {
+    "mode": "teponaztli"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "bird-0",
+   "kind": "bird",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "conch-0",
+   "kind": "conch",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "whistle-0",
+   "kind": "whistle",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "fm-0",
+   "kind": "fm",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "piano-0",
+   "kind": "piano",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "strings-0",
+   "kind": "strings",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "brass-0",
+   "kind": "brass",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "growl-0",
+   "kind": "growl",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "logdrum-0",
+   "kind": "logdrum",
+   "pan": 0,
+   "params": {},
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "guitar-1",
+   "kind": "guitar",
+   "pan": 0,
+   "params": {
+    "articulation": "open"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "guitar-1",
+   "kind": "guitar",
+   "pan": 0,
+   "params": {
+    "articulation": "mute"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "cloud",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "texture-3",
+   "kind": "texture",
+   "pan": 0,
+   "params": {
+    "density": 40,
+    "kind": "insects",
+    "notes": [
+     60,
+     64,
+     67
+    ]
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "texture"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "subdrop"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "reverse"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "shepard"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "fx-1",
+   "kind": "fx",
+   "pan": 0,
+   "params": {
+    "kind": "scratch"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "fx"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-7",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "lfo2_pan": 0.3,
+    "lfo2_pitch": 20,
+    "lfo2_rate": 0.5,
+    "lfo_rate": 3,
+    "lfo_shape": "sh",
+    "pwm": 0.2,
+    "wave": "square"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-4",
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "lfo_depth": 0.5,
+    "lfo_rate": 2,
+    "lfo_shape": "tri",
+    "mode": "acid"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-1",
+   "insert": {
+    "drive": 1.2,
+    "highpass": 120,
+    "lowpass": 4200,
+    "presence": 0.4,
+    "scoop": 0.5
+   },
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "wave": "saw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  }
+ ],
+ "master": {
+  "ceiling_db": -1,
+  "drum_clip": 0.8,
+  "gain_db": -6,
+  "glue_ratio": 1.8,
+  "glue_threshold_db": -20,
+  "high_shelf_db": 1,
+  "low_shelf_db": 1,
+  "soft_clip": 0.3,
+  "tape": 0.5
+ },
+ "sample_rate": 48000,
+ "schema": "second-score-v1",
+ "seed": 7,
+ "tension": {
+  "t": [
+   0,
+   1.2,
+   2.5
+  ],
+  "v": [
+   0.2,
+   0.6,
+   1
+  ]
+ }
+}

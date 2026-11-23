@@ -14,10 +14,14 @@ public struct ThemeSurfaces: Sendable {
         self.preferredInk = preferredInk
     }
 
-    /// `dark` is the resolved mode for this skin.
-    public init(skin: ThemeSkin, dark: Bool, base seed: ThemeColor) {
+    /// `dark` is the resolved mode for this skin. `era` matters only for Macintosh and Windows 9x.
+    public init(skin: ThemeSkin, dark: Bool, base seed: ThemeColor, era: ThemeEra = .original) {
         let base = dark ? ThemeColor.black : ThemeColor.white
         func blend(_ fraction: Double) -> ThemeColor { seed.mixed(with: base, amount: fraction) }
+        if era == .tinted, skin.hasEra {
+            self = Self.tinted(skin: skin, dark: dark, seed: seed)
+            return
+        }
         switch skin {
         case .glass:
             canvas = blend(dark ? 0.91 : 0.80)
@@ -48,5 +52,26 @@ public struct ThemeSurfaces: Sendable {
             line = canvas.mixed(with: seed, amount: 0.45)
             preferredInk = ThemeColor(hex: "#F0E8E6")!
         }
+    }
+
+    /// nu9ve-theme-v1 §5, era `tinted`: the period's structure with the user's color and mode.
+    /// Macintosh keeps paper, a solid rule and ink; Windows 9x keeps its face, highlight and shadow.
+    private static func tinted(skin: ThemeSkin, dark: Bool, seed: ThemeColor) -> Self {
+        if skin == .classicMac {
+            let paper = dark ? ThemeColor.black : ThemeColor.white
+            let ink = dark ? ThemeColor.white : ThemeColor.black
+            return Self(canvas: seed.mixed(with: paper, amount: 0.90), surface: seed.mixed(with: paper, amount: dark ? 0.84 : 0.96),
+                        raised: seed.mixed(with: paper, amount: dark ? 0.76 : 0.84), line: seed.mixed(with: ink, amount: 0.78),
+                        preferredInk: seed.mixed(with: ink, amount: dark ? 0.92 : 0.90))
+        }
+        // Windows 9x: raised is the bevel's highlight and line its light shadow, so they stay lighter and darker than the face.
+        if dark {
+            return Self(canvas: ThemeColor.gray(0.16).mixed(with: seed, amount: 0.16), surface: ThemeColor.gray(0.20).mixed(with: seed, amount: 0.12),
+                        raised: ThemeColor.gray(0.27).mixed(with: seed, amount: 0.08), line: ThemeColor.gray(0.06).mixed(with: seed, amount: 0.08),
+                        preferredInk: .white)
+        }
+        return Self(canvas: ThemeColor.gray(200 / 255).mixed(with: seed, amount: 0.22), surface: ThemeColor.gray(225 / 255).mixed(with: seed, amount: 0.16),
+                    raised: ThemeColor.white.mixed(with: seed, amount: 0.06), line: ThemeColor.gray(128 / 255).mixed(with: seed, amount: 0.28),
+                    preferredInk: .black)
     }
 }

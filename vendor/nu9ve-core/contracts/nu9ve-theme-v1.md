@@ -76,7 +76,7 @@ Una sola implementación por plataforma, pura y probada:
 
 - **Debe:** luminancia relativa WCAG (sRGB lineal, coeficientes 0.2126/0.7152/0.0722) y la razón `(L1 + 0.05) / (L2 + 0.05)`.
 - **Debe:** probar la matriz completa: skins × al menos 10 colores × 3 modos × 3 contrastes. Los colores incluyen gris, amarillo puro, un casi negro, un casi blanco y los presets de la app (curado ya lo hace con 5×10×3×3).
-- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift, C# y TypeScript, para que las implementaciones den el mismo color. Existe desde 2026-11-09: [`theme-vectors-v1.json`](../data/theme-vectors-v1.json), 110 casos (5 skins × 2 modos × 11 bases), generado y verificado por el port de C# (`native/windows`, `ThemeVectorsTests`). Swift también los comprueba en `ThemeVectorsTests.swift`; la matriz de contraste se conserva en `ThemeRolesTests.swift`. Los estilos propios pueden usar las bases en su matriz de contraste y comparar los roles independientes del skin (`accent` y `onAccent`).
+- **Conviene:** compartir vectores de prueba (base y opciones de entrada, hex esperado por rol) entre Swift, C# y TypeScript, para que las implementaciones den el mismo color. Existe desde 2026-11-09: [`theme-vectors-v1.json`](../data/theme-vectors-v1.json), 110 casos (5 skins × 2 modos × 11 bases), generado y verificado por el port de C# (`native/windows`, `ThemeVectorsTests`). La época `tinted` (§5) tiene los suyos desde el 2026-11-22: [`theme-era-vectors-v1.json`](../data/theme-era-vectors-v1.json), 44 casos, generados por Swift (`ThemeEraTests`) y por comprobar en C# (`ThemeEraVectorsTests`) en Windows. Swift también los comprueba en `ThemeVectorsTests.swift`; la matriz de contraste se conserva en `ThemeRolesTests.swift`. Los estilos propios pueden usar las bases en su matriz de contraste y comparar los roles independientes del skin (`accent` y `onAccent`).
 
 ## 4. Lo que el usuario configura
 
@@ -85,6 +85,7 @@ Una sola implementación por plataforma, pura y probada:
 | Opción | Valores | Por defecto |
 | --- | --- | --- |
 | Skin | Los de la [§5](#5-catálogo-de-skins) que la app soporte | El de su identidad |
+| Época | Original, Con tu color. Sólo con Macintosh y Windows 9x ([§5](#época-de-los-skins-de-época)) | Original |
 | Color | Presets de la app, selector HSV y hex | El de su identidad |
 | Modo | Claro, Oscuro, Sistema | El de su identidad; Sistema si no hay razón para otro |
 | Contraste | Neutro, Tonal, Alto | Neutro |
@@ -108,6 +109,7 @@ Una sola implementación por plataforma, pura y probada:
   "contrast": "neutral",
   "texture": "auto",
   "typography": "auto",
+  "era": "original",
   "app": { "waveform": "bands" }
 }
 ```
@@ -130,7 +132,22 @@ Un skin es un conjunto de medidas, no una paleta. Medidas en pt (Swift) y px (we
 
 Solo en Fractos: `neon`, `parchment` y `ledger`; `terminal` es uno de los comunes y le falta a las demás apps. El material que Fractos llama `chrome` es el `y2k` de esta tabla, y Fractos no tiene `pixel`, `dither` ni `minimal`: su tema Pixel usa `classicMac` (leído en `ios-fractos`: `docs/DESIGN_SYSTEM.md` el 2026-11-10; unificar los nombres es un pendiente). `win9x` y `classicMac` (el Macintosh de `pixel`) también están en nüün desde 2026-11-07, copiados de `ThemeMaterial` y `ThemedWindowBar`. Otra app puede adoptar uno de estos materiales solo si sigue la especificación de Fractos.
 
-**Skins opcionales.** Una app puede ofrecer skins de época como extra para quien quiera personalizar su espacio. El skin por defecto sigue siendo el sobrio (Cristal), y elegir otro siempre es reversible desde Apariencia. Un skin de época **puede** fijar su modo (Macintosh y Windows 9x claros, Gótico oscuro). En ese caso Apariencia lo dice y conserva la preferencia de modo del usuario para cuando vuelva a otro skin.
+**Skins opcionales.** Una app puede ofrecer skins de época como extra para quien quiera personalizar su espacio. El skin por defecto sigue siendo el sobrio (Cristal), y elegir otro siempre es reversible desde Apariencia. Un skin de época **puede** fijar su modo (Macintosh y Windows 9x claros en su época original, Gótico oscuro). En ese caso Apariencia lo dice y conserva la preferencia de modo del usuario para cuando vuelva a otro skin.
+
+<a id="época-de-los-skins-de-época"></a>
+**Época de los skins de época** (2026-11-22, pedido del usuario). Macintosh y Windows 9x tienen dos paletas, y la persona elige en Apariencia → Época:
+
+| Época | Macintosh | Windows 9x |
+| --- | --- | --- |
+| `original` (por omisión) | 1 bit: papel blanco, tinta y reglas negras, el color sólo en el acento. Siempre claro | La plata clásica, con su bisel. Siempre claro |
+| `tinted` · Con tu color | El papel, las reglas y la tinta salen del color de la persona, como en un Macintosh II con tarjeta de color. Sigue el modo de la persona, también oscuro | La cara, el brillo y la sombra del bisel salen del color de la persona, como los esquemas de apariencia de Windows 98. Sigue el modo de la persona |
+
+- **Debe:** la época cambia sólo la paleta. Radios, bordes, grosores, texturas, tipografía, barra y controles de ventana son los mismos.
+- **Debe:** `original` es exactamente la paleta de siempre: elegirla, o no tener `era` guardado, da los mismos colores que antes de existir la opción ([`theme-vectors-v1.json`](../data/theme-vectors-v1.json) no cambia).
+- **Debe:** con `tinted` valen todos los mínimos de la §2, con cualquier color y en los dos modos; si el color no los da, `readable` ajusta el texto (§3). Windows 9x conserva el orden del bisel: el brillo (`raised`) más claro que la cara (`canvas`) y la sombra (`line`) más oscura.
+- **Debe:** la receta de `tinted` es una sola y vive en el módulo de tema (`Nu9veTheme` `ThemeSurfaces`, `Nu9ve.Core` `ThemeSurfaces.Tinted`). Sus vectores están en [`theme-era-vectors-v1.json`](../data/theme-era-vectors-v1.json): Macintosh y Windows 9x × 2 modos × las 11 bases.
+- **Debe:** lo que hoy dibuja blanco o negro fijo en esos skins (barra de época, cromo de controles, bisel) lo toma de los roles: `surface` por papel, `ink` por tinta, `raised` y `line` por el brillo y la sombra. Con `original` son blanco, negro, blanco y gris 128, como antes.
+- Los demás skins no tienen época: Terminal y Gótico ya toman el color de la persona, y Cristal lo usa en todo. Apariencia oculta la opción con ellos (§4).
 
 ### Juego de skins por app
 
@@ -276,3 +293,5 @@ Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-theme
 ## Cambios
 
 Regla nueva o más estricta: añadirla, actualizar su tabla en [adopción por app](../docs/adoption.md#nu9ve-theme-v1) y avisar en cada app afectada. Cambiar la medida de un skin la cambia en todas las apps que lo soportan.
+
+- **2026-11-22:** opción **Época** (§4 y [§5](#época-de-los-skins-de-época)) para Macintosh y Windows 9x: `original`, por omisión e igual que antes, o `tinted`, con el color y el modo de la persona. Campo `era` en el formato guardado; un valor desconocido toma el de la app. No rompe nada: sin `era`, todo se ve como antes.

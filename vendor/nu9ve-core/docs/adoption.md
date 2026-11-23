@@ -73,6 +73,26 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 - **nüün:** catálogo a partir de su menú, badges con capa de modificador, línea de ayuda en el footer del Ingreso y ⌘/. En Windows (maqueta, 2026-11-09) ya hay catálogo con pruebas de duplicados y de teclas del sistema, aceleradores y tooltips generados desde él, `AccessKey` en la navegación y panel Ctrl+/; es la referencia para portar el catálogo a la app de Mac.
 - **kyu y neuf:** el recorrido completo por teclado de la §10, porque son las apps de edición más densas.
 
+## nu9ve-controls-v1
+
+[Controles por tipo de dato v1](../contracts/nu9ve-controls-v1.md)
+
+Leído en el código el 2026-11-22, sin probar a mano, con los commits de [controles comunes §1](suite-ui.md#1-qué-se-leyó); el detalle por archivo está en su [§2](suite-ui.md#2-inventario-por-tipo-de-interacción). «—» es que la app no tiene ese tipo de dato. Ninguna app usa todavía controles del core: no existen.
+
+| Regla | nüün | nove | curado | SoundBender | kyu | neuf | Stalker | Fractos (Mac) | Atlas |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 Tema y skins | Sí | Sí | Sí | Sí | Sí: foto sobre gris neutro | No: estilos del sistema | — (sigue al sistema) | Sí | Parcial: colores propios en CSS |
+| 3 Números | — | Parcial: valores exactos y `∅` sí; `NumberBox` y `Slider` sin las reglas de la §3.2 | Parcial: el fino va con ⇧ y pasa a ⌥ | Parcial: perilla sin flechas, Inicio ni rueda; deshacer sin revisar | Parcial: `ParamSpec` del motor y una entrada de deshacer sí; sin fino ni flechas propias | Básico | — | — | — |
+| 4 Fechas y tiempo | Parcial: fecha en la zona de quien mira sí; rangos — | Sí: zona, bordes, horario del motor y huecos | Sin revisar | Parcial: regla de tiempo sí; código de tiempo sin revisar | Sin revisar | Parcial: código de tiempo y dos relojes sí; la barra de posición es la del sistema | Básico | Parcial: mes por teclado sí; rango no | Sin revisar |
+| 5 Textos largos | — | Sin revisar | — | — | — | Parcial: sin búsqueda | — | Parcial: editor sí; sin ⌘F | — |
+| 6 Listas y selección | Sí: dos vacíos | Sí: `DataTable` | Sí: problemas como filtros | Sin revisar | Sí | Sin revisar | — | Sin revisar | Parcial |
+| 7 Mapas, imágenes y medios | Sí: Quick Look | Sí: lienzo sin red | Sí: forma de onda | Sí | Parcial: lienzo sí; teclas de zoom sin revisar | Sin revisar | — | Parcial: sin red sin revisar | No: Leaflet de un CDN |
+| 8 Voz, seguimiento y gestos | — | — | Sí: seguimiento | Parcial: háptica | Parcial: pellizco | — | — | — | — |
+| 9 Estados | Sí: vacíos y desconectado | Parcial: avisos en Windows; sin conexión sin revisar | Sí: faltan y sin conexión | Sin revisar | Sí: fuera de línea | Sin revisar | Parcial: «no disponible» | Parcial: vacío, aviso y cargando; sin conexión no | Sin revisar |
+| 10 Accesibilidad | Parcial | Parcial | Parcial: la más anotada | Parcial: acción ajustable | No: 9 anotaciones | Parcial | No: 1 anotación | Parcial | No |
+
+Clipper es una TUI: cumple la §5 (buscar en la transcripción) a su manera, y el resto no aplica. video no tiene interfaz interactiva.
+
 ## nu9ve-engine-v1
 
 [Protocolo de un motor detrás de una app v1](../contracts/nu9ve-engine-v1.md)
@@ -183,13 +203,54 @@ nove lo sirve desde el 2026-11-20; nadie más todavía.
 
 Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisiones), decisión 3): raíces con `volume_id` y `volume_path`, y la clave conocida `conversaciones`. Los validadores de referencia (`scripts/data-examples.py`) y de `nu9ve-mcp` ya los aceptan; ninguna app los usa todavía.
 
+## nu9ve-music
+
+[`rust/nu9ve-music`](../rust/nu9ve-music/), desde el 2026-11-22. Nadie lo usa todavía.
+
+| App | Qué usaría | Estado |
+| --- | --- | --- |
+| curado | Todo: es la app de origen (`audio-engine/src/beat.rs` y `music.rs`) | Sin empezar: cambiar sus dos archivos por el crate, en un cambio propio, con su `ANALYSIS_VERSION` igual (3) para no volver a analizar la biblioteca |
+| SoundBender | BPM, primer beat y clave, en su motor en Rust, en lugar de `TempoAnalysis` y `ChromaAnalysis` de Swift | Sin empezar. Su análisis da otros números ([comparación](../rust/nu9ve-music/README.md#de-dónde-sale)): conviene volver a analizar al adoptarlo |
+| Clipper | El análisis de intros, hoy en Python | Sin empezar |
+
+## nu9ve-agent-v1
+
+[Agente de la suite v1](../contracts/nu9ve-agent-v1.md), propuesta del 2026-11-22 (F1). El agente está completo en el core desde U7c; ninguna app lo trae todavía.
+
+| App | Papel | Estado |
+| --- | --- | --- |
+| core | El agente: `nu9ve agent` en el binario `nu9ve` (U7b y U7c) | **Hecho en QA** (2026-11-22, [órdenes](../rust/nu9ve-mcp/README.md#nu9ve-agent)): identidad y clave en el llavero, carpeta, publicar, leer y emparejar (U7b); `serve` con un solo agente por máquina, kqueue y cierre ordenado; `install`, `uninstall` y `state` con la tabla de §3 y el LaunchAgent `xyz.nu9ve.agent`; el motor `suite` con sus seis herramientas (U7c). Probado con dos máquinas de QA y con `nu9ve mcp`. **Instalado en la M1** (2026-11-22, por decisión del usuario): `nu9ve agent install` desde `61e8c49`, con el LaunchAgent `xyz.nu9ve.agent` cargado, la clave en el llavero y el `device.json` «M1» que ya había creado nüün (mismo `device_id`, huella `87e6 7b6a 0478 68e2 …`). Comprobado: `state` da `running`, el motor `suite` está en `engines/` y `nu9ve mcp` lista sus cuatro herramientas de lectura; launchd lo reinicia tras un `kill -9` y no tras un `SIGTERM` (salida 0, registro borrado). Carpeta de intercambio `~/nu9ve`. **Simulado con una M4 de QA** contra ese agente real: todos los flujos de F1, y después se deshizo todo (CHANGELOG, 0.2.1). **Cada actualización pide permiso del llavero** mientras el binario no esté firmado. **Sin verificar:** Windows entero (la tarea programada, el llavero, el pipe del motor y el cierre sin `SIGTERM`), y la etiqueta `xyz.nu9ve.agent` contra el identificador de firma (§8.3) |
+| nüün | Primera app que lo trae y lo ofrece en Ajustes (decisión del usuario) | Sin empezar. Le toca: fijar `rust/nu9ve-mcp` (o llevar el binario `nu9ve` en su bundle), llamar `nu9ve agent state` al arrancar y al abrir Ajustes, ofrecer «Instalar el agente» o «Actualizar» con `nu9ve agent install --by nuun`, y dejar de crear `device.json` cuando el agente esté (hoy lo crea ella, [dispositivo](#nu9ve-device-v1)) |
+| nove, Clipper y las demás | Comprobar al arrancar y ofrecerlo; usar sus capacidades | Sin empezar. Con `nu9ve agent state` (o `nu9ve_mcp::agent::install::state_of` en Rust) y los métodos del motor `suite` (`devices`, `where`…) |
+
+## nu9ve-exchange-v1
+
+[Carpeta de intercambio v1](../contracts/nu9ve-exchange-v1.md), propuesta del 2026-11-22 (F1), con la versión menor de U7c (§7.1 y `not_found`). La escribe y la lee sólo el agente; las apps la ven a través de él.
+
+| App | Qué aporta o usa | Estado |
+| --- | --- | --- |
+| core | El agente que escribe y lee (U7b y U7c) | **Completo en QA** (2026-11-22): los siete `kind`, cada uno con su firma y su estado; lo personal va con su forma salvo lo compartido; pedidos de hasta 64 MiB con `too_large`, `not_found` y `not_shared` (versión menor del 2026-11-22, con [exportar](#nu9ve-export-v1)); dueñas entregadas sin relojes (§7.1); `apps/<app>/` con `.json` y `.ndjson` línea a línea. Probado con dos máquinas de QA en una carpeta temporal. **Sin verificar:** con Syncthing entre la M1 y la M4 reales; el canal propio entre agentes no existe todavía |
+| nüün | Su catálogo (necesita un transporte registrable, [registro](#nu9ve-registry-v1)), su diario de decisiones en `apps/nuun/` con `app_append`, y «Trabajar aquí» con `lease_take` | Sin empezar |
+| nove | «Otras máquinas» (`devices`, `where`), «disponible en todas mis máquinas» (`share` y `offer`) y el proyecto `conversaciones` | Sin empezar. Ya sirve su catálogo, así que el agente lo publica en cuanto corra en la M1 |
+
+## nu9ve-export-v1
+
+[Exportar un dataset v1](../contracts/nu9ve-export-v1.md), propuesta del 2026-11-22 (F1). Lo llama sólo el agente, para responder el pedido de un dataset de otra máquina.
+
+| App | Qué aporta o usa | Estado |
+| --- | --- | --- |
+| core | El agente que lo pide al motor dueño (§3), `not_shared` para lo personal sin compartir, y `shared`, `share` y `unshare` en el motor `suite` (§5) | **Hecho en QA** (2026-11-22, `nu9ve` 0.2.2): probado con un motor falso que sirve `data_catalog` y `data_export` y dos máquinas de QA, también por `nu9ve mcp` (`tests/agent.rs`, `tests/suite_engine.rs`). **Sin verificar:** con un motor real de una app y entre la M1 y la M4 reales |
+| nüün | `data_export` de lo pequeño que procesa (resúmenes de una tanda), y `too_large` con el disco para el raw | Sin empezar. Necesita antes un transporte registrable para su `data_catalog` ([registro](#nu9ve-registry-v1)) |
+| nove | `data_export` de sus tablas y capas (GeoJSON de baches, series), y «disponible en todas mis máquinas» con `share`, `unshare` y `shared`, ofreciendo sola lo compartido (§5) | Sin empezar. Ya sirve su catálogo, así que le falta sólo el método y la marca en su interfaz |
+| Clipper | `data_export` de sus transcripts | Sin empezar |
+
 ## nu9ve-device-v1
 
 [Identidad de dispositivo v1](../contracts/nu9ve-device-v1.md), propuesta del 2026-11-22 (F0 de [varias máquinas](suite-devices.md)). nüün lo crea desde el 2026-11-22.
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado en una Mac** (2026-11-22, `c85b881`): `device.json` con `0600` y `host_check`, con el nombre provisional del contrato (`Mac 5577`); la persona todavía no eligió nombre. Pasa la referencia del core |
+| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado y nombrado en la M1** (2026-11-22, `n-creator-utils` `c85b881` y `0212b02`): `device.json` con `0600` y `host_check`; la persona lo llamó «M1» (antes «Mac 5577», mismo `device_id`). Ajustes → Discos muestra y cambia el nombre, y lo lee sin crear el archivo (`suite_device` con `peek`). Pasa la referencia del core. Falta crearlo en la M4 |
 | nove, Atlas, Clipper | Lo leen para decir en qué máquina vieron un disco | Sin empezar |
 
 ## nu9ve-volume-v1
@@ -198,7 +259,7 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **Primer corte** (2026-11-22, `n-creator-utils` `c85b881`, core fijado después en `4c40464` con `e5f98fd`; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). Los dos marcadores y los dos índices pasan las referencias del core, revisado aquí sobre los discos. «Adoptar este disco…» en Ajustes → Discos: probado por el motor con los dos discos físicos y un catálogo local vacío; snapshot de MEDIA502 verificado por SHA-256; hashes y fechas de los archivos iguales antes y después. **Falta:** aceptación en ventana, prueba en otra Mac, cotejo de MEDIA502 en Windows y mudar `nu9ve-volumes` al core. El índice de MEDIA502 pesa 5,2 MiB del tope de 8 MiB (§8) |
+| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **F0 en la M1** (2026-11-22; `n-creator-utils` `c85b881`, `0212b02` y `7d7eb7b`, core fijado en `9711564`; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). **Aceptado en ventana:** «Adoptar este disco…» con los dos discos en un entorno con catálogo vacío; snapshot de MEDIA502 verificado; hashes y fechas iguales antes y después. **`nu9ve-volumes` mudado** al core (U2): nüün borró su copia y toma del módulo `marker` las reglas del marcador y de los estados. **Tope del índice, decidido por el usuario y hecho** (`01b4c20`): un dataset por proyectos × carpeta de primer nivel, con hash de manifiesto; MEDIA502 baja de 5,1 MiB a 20 KB (7 666 archivos en 27 grupos) y ESSD a 2,7 KB. Pasan `index_problem` de la referencia. No cambia el contrato (§13.4 se puede cerrar). **Falta:** prueba en la M4 y cotejo de MEDIA502 en Windows, con pasos en su STATUS |
 | Atlas | **Sólo lo urgente** (decisión del usuario, 2026-11-22): raíces por volumen en `config/atlas.json`, para que deje de crecer atado a una ruta; su carpeta en los discos de trabajo (ESSD, XSSD). Sus flujos pasan a nove | Sin empezar. Hoy usa `/Volumes/ESSD/…` |
 | nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión). **La prioridad de F0**, a la par de asentar en nove los flujos de Atlas | Sin empezar |
 | Clipper | Su carpeta en los discos de trabajo | Sin empezar |
@@ -285,6 +346,8 @@ Primeros pasos sugeridos:
 ## nu9ve-theme-v1
 
 [Tema visual de las apps de nu9ve v1](../contracts/nu9ve-theme-v1.md)
+
+**Época** ([§5](../contracts/nu9ve-theme-v1.md#época-de-los-skins-de-época), 2026-11-22): `Nu9veTheme` (Swift) y `Nu9ve.Core` (C#) la traen desde el core, y `PeriodWindowBar` de `NuMacShell` toma papel y tinta de los roles. Ninguna app la ofrece todavía en Apariencia: cada una la suma al volver a fijar el core. C# sin compilar ni probar todavía (hace falta el PC con Windows).
 
 Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar. La columna de Fractos se releyó el 2026-11-10 en `ios-fractos` (`f1a7bcb`, app de Mac y `FractosDesign`), también sin verla.
 

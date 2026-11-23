@@ -23,6 +23,10 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public static let commons: [ThemeSkin] = [.classicMac, .win9x, .terminal]
     /// True for the three commons; the others are catalog skins an app may pick.
     public var isCommon: Bool { Self.commons.contains(self) }
+    /// True for the skins whose palette the user can tint (nu9ve-theme-v1 §4 «Época»).
+    public var hasEra: Bool { self == .classicMac || self == .win9x }
+    /// The mode this skin fixes with that era, or nil when it follows the user's. A tinted era follows the user.
+    public func forcedDark(era: ThemeEra) -> Bool? { era == .tinted && hasEra ? nil : forcedDark }
     /// Period skins keep the look of their era whatever the user's mode.
     public var forcedDark: Bool? {
         switch self {

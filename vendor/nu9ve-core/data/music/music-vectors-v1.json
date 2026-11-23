@@ -1,0 +1,204 @@
+{
+ "note": "Signals with a known tempo, grid and key for nu9ve-music, as recipes: each implementation synthesizes them (48 kHz, mono copied to both channels, deterministic xorshift64* noise seeded per signal) as rust/nu9ve-music/tests/vectors.rs does, and compares. 'truth' is what the signal is; 'known' lists where this crate is known to miss it today, with what it answers, so a fix shows up as a change here.",
+ "sample_rate": 48000,
+ "tolerance": {
+  "bpm": 0.05,
+  "seconds": 0.004
+ },
+ "signals": [
+  {
+   "name": "four-120",
+   "style": "four",
+   "bpm": 120,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 120,
+    "beat": 0.0,
+    "downbeat": 0.0
+   }
+  },
+  {
+   "name": "four-128",
+   "style": "four",
+   "bpm": 128,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 128,
+    "beat": 0.0,
+    "downbeat": 0.0
+   },
+   "known": {
+    "bpm": 128,
+    "beat": 0.0,
+    "downbeat": 0.4679,
+    "why": "downbeat one beat late: the accented first beat is at 0"
+   }
+  },
+  {
+   "name": "four-140",
+   "style": "four",
+   "bpm": 140,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 140,
+    "beat": 0.0,
+    "downbeat": 0.0
+   },
+   "known": {
+    "bpm": 140,
+    "beat": 0.0,
+    "downbeat": 0.4277,
+    "why": "downbeat one beat late"
+   }
+  },
+  {
+   "name": "four-100-late",
+   "style": "four",
+   "bpm": 100,
+   "start": 0.37,
+   "seconds": 30,
+   "truth": {
+    "bpm": 100,
+    "beat": 0.37,
+    "downbeat": 0.37
+   },
+   "known": {
+    "bpm": 100,
+    "beat": 0.37,
+    "downbeat": 0.9705,
+    "why": "downbeat one beat late"
+   }
+  },
+  {
+   "name": "hiphop-90",
+   "style": "hiphop",
+   "bpm": 90,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 90,
+    "beat": 0.0
+   }
+  },
+  {
+   "name": "hiphop-70",
+   "style": "hiphop",
+   "bpm": 70,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 70,
+    "beat": 0.0
+   },
+   "known": {
+    "bpm": 140,
+    "beat": 0.0,
+    "why": "double tempo: hats on the eighths read as beats"
+   }
+  },
+  {
+   "name": "dnb-174",
+   "style": "dnb",
+   "bpm": 174,
+   "start": 0.0,
+   "seconds": 30,
+   "truth": {
+    "bpm": 174,
+    "beat": 0.0
+   },
+   "known": {
+    "bpm": 130.5,
+    "why": "neither 174 nor half, 87: the broken kick pattern is not resolved"
+   }
+  },
+  {
+   "name": "noise",
+   "style": "noise",
+   "seconds": 30,
+   "truth": {
+    "bpm": null
+   }
+  },
+  {
+   "name": "key-c-major",
+   "style": "chords",
+   "tonic": 0,
+   "minor": false,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     0,
+     false
+    ]
+   }
+  },
+  {
+   "name": "key-a-minor",
+   "style": "chords",
+   "tonic": 9,
+   "minor": true,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     9,
+     true
+    ]
+   }
+  },
+  {
+   "name": "key-fs-major",
+   "style": "chords",
+   "tonic": 6,
+   "minor": false,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     6,
+     false
+    ]
+   }
+  },
+  {
+   "name": "key-eb-minor",
+   "style": "chords",
+   "tonic": 3,
+   "minor": true,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     3,
+     true
+    ]
+   }
+  },
+  {
+   "name": "key-g-major",
+   "style": "chords",
+   "tonic": 7,
+   "minor": false,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     7,
+     false
+    ]
+   }
+  },
+  {
+   "name": "key-d-minor",
+   "style": "chords",
+   "tonic": 2,
+   "minor": true,
+   "seconds": 24,
+   "truth": {
+    "key": [
+     2,
+     true
+    ]
+   }
+  }
+ ]
+}

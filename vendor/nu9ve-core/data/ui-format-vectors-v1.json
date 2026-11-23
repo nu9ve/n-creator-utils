@@ -1,0 +1,2771 @@
+{
+  "bytes" : [
+    {
+      "bytes" : 0,
+      "decimalSeparator" : ",",
+      "text" : "0 B"
+    },
+    {
+      "bytes" : 0,
+      "decimalSeparator" : ".",
+      "text" : "0 B"
+    },
+    {
+      "bytes" : 1,
+      "decimalSeparator" : ",",
+      "text" : "1 B"
+    },
+    {
+      "bytes" : 1,
+      "decimalSeparator" : ".",
+      "text" : "1 B"
+    },
+    {
+      "bytes" : 999,
+      "decimalSeparator" : ",",
+      "text" : "999 B"
+    },
+    {
+      "bytes" : 999,
+      "decimalSeparator" : ".",
+      "text" : "999 B"
+    },
+    {
+      "bytes" : 1000,
+      "decimalSeparator" : ",",
+      "text" : "1,0 KB"
+    },
+    {
+      "bytes" : 1000,
+      "decimalSeparator" : ".",
+      "text" : "1.0 KB"
+    },
+    {
+      "bytes" : 1049,
+      "decimalSeparator" : ",",
+      "text" : "1,0 KB"
+    },
+    {
+      "bytes" : 1049,
+      "decimalSeparator" : ".",
+      "text" : "1.0 KB"
+    },
+    {
+      "bytes" : 1050,
+      "decimalSeparator" : ",",
+      "text" : "1,1 KB"
+    },
+    {
+      "bytes" : 1050,
+      "decimalSeparator" : ".",
+      "text" : "1.1 KB"
+    },
+    {
+      "bytes" : 9949,
+      "decimalSeparator" : ",",
+      "text" : "9,9 KB"
+    },
+    {
+      "bytes" : 9949,
+      "decimalSeparator" : ".",
+      "text" : "9.9 KB"
+    },
+    {
+      "bytes" : 9950,
+      "decimalSeparator" : ",",
+      "text" : "10 KB"
+    },
+    {
+      "bytes" : 9950,
+      "decimalSeparator" : ".",
+      "text" : "10 KB"
+    },
+    {
+      "bytes" : 99499,
+      "decimalSeparator" : ",",
+      "text" : "99 KB"
+    },
+    {
+      "bytes" : 99499,
+      "decimalSeparator" : ".",
+      "text" : "99 KB"
+    },
+    {
+      "bytes" : 999499,
+      "decimalSeparator" : ",",
+      "text" : "999 KB"
+    },
+    {
+      "bytes" : 999499,
+      "decimalSeparator" : ".",
+      "text" : "999 KB"
+    },
+    {
+      "bytes" : 999500,
+      "decimalSeparator" : ",",
+      "text" : "1,0 MB"
+    },
+    {
+      "bytes" : 999500,
+      "decimalSeparator" : ".",
+      "text" : "1.0 MB"
+    },
+    {
+      "bytes" : 999950000,
+      "decimalSeparator" : ",",
+      "text" : "1,0 GB"
+    },
+    {
+      "bytes" : 999950000,
+      "decimalSeparator" : ".",
+      "text" : "1.0 GB"
+    },
+    {
+      "bytes" : 1200000000,
+      "decimalSeparator" : ",",
+      "text" : "1,2 GB"
+    },
+    {
+      "bytes" : 1200000000,
+      "decimalSeparator" : ".",
+      "text" : "1.2 GB"
+    },
+    {
+      "bytes" : 120000000000,
+      "decimalSeparator" : ",",
+      "text" : "120 GB"
+    },
+    {
+      "bytes" : 120000000000,
+      "decimalSeparator" : ".",
+      "text" : "120 GB"
+    },
+    {
+      "bytes" : 4000000000000,
+      "decimalSeparator" : ",",
+      "text" : "4,0 TB"
+    },
+    {
+      "bytes" : 4000000000000,
+      "decimalSeparator" : ".",
+      "text" : "4.0 TB"
+    },
+    {
+      "bytes" : -2048,
+      "decimalSeparator" : ",",
+      "text" : "−2,0 KB"
+    },
+    {
+      "bytes" : -2048,
+      "decimalSeparator" : ".",
+      "text" : "−2.0 KB"
+    }
+  ],
+  "contract" : "nu9ve-controls-v1 §3 §4",
+  "instants" : [
+    {
+      "raw" : "2026-11-22T18:30:00Z",
+      "seconds" : 1795372200,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-11-22 11:30",
+        "Europe/Madrid" : "2026-11-22 19:30",
+        "UTC" : "2026-11-22 18:30"
+      }
+    },
+    {
+      "raw" : "2026-11-22T18:30:00.123456+00:00",
+      "seconds" : 1795372200.123456,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-11-22 11:30",
+        "Europe/Madrid" : "2026-11-22 19:30",
+        "UTC" : "2026-11-22 18:30"
+      }
+    },
+    {
+      "raw" : "2026-11-22T11:30-07:00",
+      "seconds" : 1795372200,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-11-22 11:30",
+        "Europe/Madrid" : "2026-11-22 19:30",
+        "UTC" : "2026-11-22 18:30"
+      }
+    },
+    {
+      "raw" : "2026-11-22 18:30:05Z",
+      "seconds" : 1795372205,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-11-22 11:30",
+        "Europe/Madrid" : "2026-11-22 19:30",
+        "UTC" : "2026-11-22 18:30"
+      }
+    },
+    {
+      "raw" : "2026-11-22T18:30:00+0530",
+      "seconds" : 1795352400,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-11-22 06:00",
+        "Europe/Madrid" : "2026-11-22 14:00",
+        "UTC" : "2026-11-22 13:00"
+      }
+    },
+    {
+      "raw" : "2024-02-29T23:59:59Z",
+      "seconds" : 1709251199,
+      "wallClock" : {
+        "America/Hermosillo" : "2024-02-29 16:59",
+        "Europe/Madrid" : "2024-03-01 00:59",
+        "UTC" : "2024-02-29 23:59"
+      }
+    },
+    {
+      "raw" : "2026-03-29T00:59:00Z",
+      "seconds" : 1774745940,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-03-28 17:59",
+        "Europe/Madrid" : "2026-03-29 01:59",
+        "UTC" : "2026-03-29 00:59"
+      }
+    },
+    {
+      "raw" : "2026-03-29T01:00:00Z",
+      "seconds" : 1774746000,
+      "wallClock" : {
+        "America/Hermosillo" : "2026-03-28 18:00",
+        "Europe/Madrid" : "2026-03-29 03:00",
+        "UTC" : "2026-03-29 01:00"
+      }
+    },
+    {
+      "raw" : "1969-12-31T23:59:59Z",
+      "seconds" : -1,
+      "wallClock" : {
+        "America/Hermosillo" : "1969-12-31 16:59",
+        "Europe/Madrid" : "1970-01-01 00:59",
+        "UTC" : "1969-12-31 23:59"
+      }
+    },
+    {
+      "raw" : "2000-01-01T00:00:00.5Z",
+      "seconds" : 946684800.5,
+      "wallClock" : {
+        "America/Hermosillo" : "1999-12-31 17:00",
+        "Europe/Madrid" : "2000-01-01 01:00",
+        "UTC" : "2000-01-01 00:00"
+      }
+    },
+    {
+      "raw" : "2026-11-22"
+    },
+    {
+      "raw" : "2026-11-22T18:30:00"
+    },
+    {
+      "raw" : "2025-02-29T00:00:00Z"
+    },
+    {
+      "raw" : "2026-13-01T00:00Z"
+    },
+    {
+      "raw" : "2026-11-22T24:00Z"
+    },
+    {
+      "raw" : "2026-11-22T18:30:00.Z"
+    },
+    {
+      "raw" : "2026-11-22T18:30:00.1234567890Z"
+    },
+    {
+      "raw" : ""
+    },
+    {
+      "raw" : "mañana"
+    },
+    {
+      "raw" : "2026-11-22T18:30:00Z "
+    }
+  ],
+  "note" : "Generated by Nu9veFormat (NU9VE_WRITE_UI_VECTORS=1 swift test). Numbers compare with a relative tolerance of 1e-9; text, exactly. Values that are not finite go as the strings NaN, Infinity and -Infinity.",
+  "numbers" : [
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 1,
+      "text" : "−6,0 dB",
+      "unit" : "dB",
+      "value" : -6
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 1,
+      "text" : "−6.0 dB",
+      "unit" : "dB",
+      "value" : -6
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 0,
+      "text" : "440 Hz",
+      "unit" : "Hz",
+      "value" : 440
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 0,
+      "text" : "440 Hz",
+      "unit" : "Hz",
+      "value" : 440
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 0,
+      "text" : "5600 K",
+      "unit" : "K",
+      "value" : 5600
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 0,
+      "text" : "5600 K",
+      "unit" : "K",
+      "value" : 5600
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 2,
+      "text" : "1,25×",
+      "unit" : "×",
+      "value" : 1.25
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 2,
+      "text" : "1.25×",
+      "unit" : "×",
+      "value" : 1.25
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 0,
+      "text" : "50%",
+      "unit" : "%",
+      "value" : 50
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 0,
+      "text" : "50%",
+      "unit" : "%",
+      "value" : 50
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 1,
+      "text" : "0,0 dB",
+      "unit" : "dB",
+      "value" : -0.04
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 1,
+      "text" : "0.0 dB",
+      "unit" : "dB",
+      "value" : -0.04
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 1,
+      "text" : "−0,1 dB",
+      "unit" : "dB",
+      "value" : -0.05
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 1,
+      "text" : "−0.1 dB",
+      "unit" : "dB",
+      "value" : -0.05
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 2,
+      "text" : "0,13",
+      "unit" : "",
+      "value" : 0.125
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 2,
+      "text" : "0.13",
+      "unit" : "",
+      "value" : 0.125
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 0,
+      "text" : "3",
+      "unit" : "",
+      "value" : 2.5
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 0,
+      "text" : "3",
+      "unit" : "",
+      "value" : 2.5
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 0,
+      "text" : "−3",
+      "unit" : "",
+      "value" : -2.5
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 0,
+      "text" : "−3",
+      "unit" : "",
+      "value" : -2.5
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 3,
+      "text" : "1234567,891 m",
+      "unit" : "m",
+      "value" : 1234567.891
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 3,
+      "text" : "1234567.891 m",
+      "unit" : "m",
+      "value" : 1234567.891
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 3,
+      "text" : "0,000 s",
+      "unit" : "s",
+      "value" : 0
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 3,
+      "text" : "0.000 s",
+      "unit" : "s",
+      "value" : 0
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 1,
+      "text" : "—",
+      "unit" : "dB",
+      "value" : "Infinity"
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 1,
+      "text" : "—",
+      "unit" : "dB",
+      "value" : "Infinity"
+    },
+    {
+      "decimalSeparator" : ",",
+      "fractionDigits" : 1,
+      "text" : "21,5°",
+      "unit" : "°",
+      "value" : 21.5
+    },
+    {
+      "decimalSeparator" : ".",
+      "fractionDigits" : 1,
+      "text" : "21.5°",
+      "unit" : "°",
+      "value" : 21.5
+    }
+  ],
+  "params" : [
+    {
+      "cases" : [
+        {
+          "input" : -24,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : -24,
+          "number" : -24,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : -24,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : -24,
+          "kind" : "fine",
+          "number" : -23.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -24,
+          "kind" : "fine",
+          "number" : -24,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -24,
+          "kind" : "normal",
+          "number" : -23.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -24,
+          "kind" : "normal",
+          "number" : -24,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -24,
+          "kind" : "large",
+          "number" : -22,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -24,
+          "kind" : "large",
+          "number" : -24,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : -24,
+          "op" : "text",
+          "text" : "−24,0 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : -24,
+          "op" : "text",
+          "text" : "−24.0 dB"
+        },
+        {
+          "input" : -6,
+          "number" : 0.375,
+          "op" : "position"
+        },
+        {
+          "input" : -6,
+          "number" : -6,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : -6,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : -6,
+          "kind" : "fine",
+          "number" : -5.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -6,
+          "kind" : "fine",
+          "number" : -6.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -6,
+          "kind" : "normal",
+          "number" : -5.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -6,
+          "kind" : "normal",
+          "number" : -6.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -6,
+          "kind" : "large",
+          "number" : -4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -6,
+          "kind" : "large",
+          "number" : -8,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : -6,
+          "op" : "text",
+          "text" : "−6,0 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : -6,
+          "op" : "text",
+          "text" : "−6.0 dB"
+        },
+        {
+          "input" : -0.24,
+          "number" : 0.49500000000000005,
+          "op" : "position"
+        },
+        {
+          "input" : -0.24,
+          "number" : 0,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : -0.24,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : -0.24,
+          "kind" : "fine",
+          "number" : -0.19,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -0.24,
+          "kind" : "fine",
+          "number" : -0.29,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -0.24,
+          "kind" : "normal",
+          "number" : 0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -0.24,
+          "kind" : "normal",
+          "number" : -0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : -0.24,
+          "kind" : "large",
+          "number" : 2,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : -0.24,
+          "kind" : "large",
+          "number" : -2,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : -0.24,
+          "op" : "text",
+          "text" : "−0,2 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : -0.24,
+          "op" : "text",
+          "text" : "−0.2 dB"
+        },
+        {
+          "input" : 0,
+          "number" : 0.5,
+          "op" : "position"
+        },
+        {
+          "input" : 0,
+          "number" : 0,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : 0,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "fine",
+          "number" : 0.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "fine",
+          "number" : -0.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "normal",
+          "number" : 0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "normal",
+          "number" : -0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "large",
+          "number" : 2,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "large",
+          "number" : -2,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 0,
+          "op" : "text",
+          "text" : "0,0 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 0,
+          "op" : "text",
+          "text" : "0.0 dB"
+        },
+        {
+          "input" : 0.26,
+          "number" : 0.5054166666666667,
+          "op" : "position"
+        },
+        {
+          "input" : 0.26,
+          "number" : 0.5,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 0.26,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 0.26,
+          "kind" : "fine",
+          "number" : 0.31,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.26,
+          "kind" : "fine",
+          "number" : 0.21000000000000002,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0.26,
+          "kind" : "normal",
+          "number" : 1,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.26,
+          "kind" : "normal",
+          "number" : 0,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0.26,
+          "kind" : "large",
+          "number" : 2.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.26,
+          "kind" : "large",
+          "number" : -1.5,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 0.26,
+          "op" : "text",
+          "text" : "0,3 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 0.26,
+          "op" : "text",
+          "text" : "0.3 dB"
+        },
+        {
+          "input" : 3.75,
+          "number" : 0.578125,
+          "op" : "position"
+        },
+        {
+          "input" : 3.75,
+          "number" : 4,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 3.75,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 3.75,
+          "kind" : "fine",
+          "number" : 3.8,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.75,
+          "kind" : "fine",
+          "number" : 3.7,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 3.75,
+          "kind" : "normal",
+          "number" : 4.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.75,
+          "kind" : "normal",
+          "number" : 3.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 3.75,
+          "kind" : "large",
+          "number" : 6,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.75,
+          "kind" : "large",
+          "number" : 2,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 3.75,
+          "op" : "text",
+          "text" : "3,8 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 3.75,
+          "op" : "text",
+          "text" : "3.8 dB"
+        },
+        {
+          "input" : 24,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 24,
+          "number" : 24,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 24,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 24,
+          "kind" : "fine",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 24,
+          "kind" : "fine",
+          "number" : 23.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 24,
+          "kind" : "normal",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 24,
+          "kind" : "normal",
+          "number" : 23.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 24,
+          "kind" : "large",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 24,
+          "kind" : "large",
+          "number" : 22,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 24,
+          "op" : "text",
+          "text" : "24,0 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 24,
+          "op" : "text",
+          "text" : "24.0 dB"
+        },
+        {
+          "input" : 30,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 30,
+          "number" : 24,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 30,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 30,
+          "kind" : "fine",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 30,
+          "kind" : "fine",
+          "number" : 23.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 30,
+          "kind" : "normal",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 30,
+          "kind" : "normal",
+          "number" : 23.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 30,
+          "kind" : "large",
+          "number" : 24,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 30,
+          "kind" : "large",
+          "number" : 22,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 30,
+          "op" : "text",
+          "text" : "24,0 dB"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 30,
+          "op" : "text",
+          "text" : "24.0 dB"
+        },
+        {
+          "input" : "NaN",
+          "number" : 0.5,
+          "op" : "position"
+        },
+        {
+          "input" : "NaN",
+          "number" : 0,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : "NaN",
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : "NaN",
+          "kind" : "fine",
+          "number" : 0.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : "NaN",
+          "kind" : "fine",
+          "number" : -0.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : "NaN",
+          "kind" : "normal",
+          "number" : 0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : "NaN",
+          "kind" : "normal",
+          "number" : -0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : "NaN",
+          "kind" : "large",
+          "number" : 2,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : "NaN",
+          "kind" : "large",
+          "number" : -2,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : "NaN",
+          "op" : "text",
+          "text" : "—"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : "NaN",
+          "op" : "text",
+          "text" : "—"
+        },
+        {
+          "input" : 0,
+          "number" : -24,
+          "op" : "value"
+        },
+        {
+          "input" : 0.25,
+          "number" : -12,
+          "op" : "value"
+        },
+        {
+          "input" : 0.5,
+          "number" : 0,
+          "op" : "value"
+        },
+        {
+          "input" : 1,
+          "number" : 24,
+          "op" : "value"
+        },
+        {
+          "input" : -1,
+          "number" : -24,
+          "op" : "value"
+        },
+        {
+          "input" : 2,
+          "number" : 24,
+          "op" : "value"
+        }
+      ],
+      "spec" : {
+        "defaultValue" : 0,
+        "fractionDigits" : 1,
+        "id" : "gain",
+        "largeSteps" : 4,
+        "max" : 24,
+        "min" : -24,
+        "origin" : 0,
+        "scale" : "linear",
+        "step" : 0.5,
+        "unit" : "dB"
+      }
+    },
+    {
+      "cases" : [
+        {
+          "input" : 20,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : 20,
+          "number" : 20,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 20,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 20,
+          "kind" : "fine",
+          "number" : 20.138633377036083,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20,
+          "kind" : "fine",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 20,
+          "kind" : "normal",
+          "number" : 21.430386104752127,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20,
+          "kind" : "normal",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 20,
+          "kind" : "large",
+          "number" : 26.36513477112814,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20,
+          "kind" : "large",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 20,
+          "op" : "text",
+          "text" : "20 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 20,
+          "op" : "text",
+          "text" : "20 Hz"
+        },
+        {
+          "input" : 440,
+          "number" : 0.44747422694073546,
+          "op" : "position"
+        },
+        {
+          "input" : 440,
+          "number" : 440,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 440,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 440,
+          "kind" : "fine",
+          "number" : 443.049934294794,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 440,
+          "kind" : "fine",
+          "number" : 436.971061305211,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 440,
+          "kind" : "normal",
+          "number" : 471.468494304547,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 440,
+          "kind" : "normal",
+          "number" : 410.6318923506762,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 440,
+          "kind" : "large",
+          "number" : 580.0329649648193,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 440,
+          "kind" : "large",
+          "number" : 333.774133012841,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 440,
+          "op" : "text",
+          "text" : "440 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 440,
+          "op" : "text",
+          "text" : "440 Hz"
+        },
+        {
+          "input" : 1000,
+          "number" : 0.5663233347786729,
+          "op" : "position"
+        },
+        {
+          "input" : 1000,
+          "number" : 1000,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : 1000,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 1000,
+          "kind" : "fine",
+          "number" : 1006.931668851804,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1000,
+          "kind" : "fine",
+          "number" : 993.1160484209336,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1000,
+          "kind" : "normal",
+          "number" : 1071.5193052376064,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1000,
+          "kind" : "normal",
+          "number" : 933.254300796991,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1000,
+          "kind" : "large",
+          "number" : 1318.2567385564073,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1000,
+          "kind" : "large",
+          "number" : 758.5775750291834,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 1000,
+          "op" : "text",
+          "text" : "1000 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 1000,
+          "op" : "text",
+          "text" : "1000 Hz"
+        },
+        {
+          "input" : 19999,
+          "number" : 0.9999927615776729,
+          "op" : "position"
+        },
+        {
+          "input" : 19999,
+          "number" : 19999,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 19999,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 19999,
+          "kind" : "fine",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 19999,
+          "kind" : "fine",
+          "number" : 19861.32785237026,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 19999,
+          "kind" : "normal",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 19999,
+          "kind" : "normal",
+          "number" : 18664.152761639027,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 19999,
+          "kind" : "large",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 19999,
+          "kind" : "large",
+          "number" : 15170.792923008647,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 19999,
+          "op" : "text",
+          "text" : "19999 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 19999,
+          "op" : "text",
+          "text" : "19999 Hz"
+        },
+        {
+          "input" : 20000,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 20000,
+          "number" : 20000,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 20000,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 20000,
+          "kind" : "fine",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20000,
+          "kind" : "fine",
+          "number" : 19862.320968418677,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 20000,
+          "kind" : "normal",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20000,
+          "kind" : "normal",
+          "number" : 18665.086015939818,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 20000,
+          "kind" : "large",
+          "number" : 20000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 20000,
+          "kind" : "large",
+          "number" : 15171.551500583671,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 20000,
+          "op" : "text",
+          "text" : "20000 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 20000,
+          "op" : "text",
+          "text" : "20000 Hz"
+        },
+        {
+          "input" : 5,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : 5,
+          "number" : 20,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 5,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 5,
+          "kind" : "fine",
+          "number" : 20.138633377036083,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5,
+          "kind" : "fine",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 5,
+          "kind" : "normal",
+          "number" : 21.430386104752127,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5,
+          "kind" : "normal",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 5,
+          "kind" : "large",
+          "number" : 26.36513477112814,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5,
+          "kind" : "large",
+          "number" : 20,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 5,
+          "op" : "text",
+          "text" : "20 Hz"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 5,
+          "op" : "text",
+          "text" : "20 Hz"
+        },
+        {
+          "input" : 0,
+          "number" : 20,
+          "op" : "value"
+        },
+        {
+          "input" : 0.5,
+          "number" : 632.4555320336758,
+          "op" : "value"
+        },
+        {
+          "input" : 1,
+          "number" : 20000,
+          "op" : "value"
+        }
+      ],
+      "spec" : {
+        "defaultValue" : 1000,
+        "fractionDigits" : 0,
+        "id" : "frequency",
+        "largeSteps" : 4,
+        "max" : 20000,
+        "min" : 20,
+        "origin" : 20,
+        "scale" : "log",
+        "step" : 0.01,
+        "unit" : "Hz"
+      }
+    },
+    {
+      "cases" : [
+        {
+          "input" : 2000,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : 2000,
+          "number" : 2000,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 2000,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 2000,
+          "kind" : "fine",
+          "number" : 2006.448123937362,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 2000,
+          "kind" : "fine",
+          "number" : 2000,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 2000,
+          "kind" : "normal",
+          "number" : 2065.424839792886,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 2000,
+          "kind" : "normal",
+          "number" : 2000,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 2000,
+          "kind" : "large",
+          "number" : 2274.8229235120575,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 2000,
+          "kind" : "large",
+          "number" : 2000,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 2000,
+          "op" : "text",
+          "text" : "2000 K"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 2000,
+          "op" : "text",
+          "text" : "2000 K"
+        },
+        {
+          "input" : 5600,
+          "number" : 0.31986925659778026,
+          "op" : "position"
+        },
+        {
+          "input" : 5600,
+          "number" : 5600,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : 5600,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 5600,
+          "kind" : "fine",
+          "number" : 5618.054747024612,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5600,
+          "kind" : "fine",
+          "number" : 5582.00327553031,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 5600,
+          "kind" : "normal",
+          "number" : 5783.1895514200805,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5600,
+          "kind" : "normal",
+          "number" : 5422.613200063526,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 5600,
+          "kind" : "large",
+          "number" : 6369.504185833759,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 5600,
+          "kind" : "large",
+          "number" : 4923.460144628983,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 5600,
+          "op" : "text",
+          "text" : "5600 K"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 5600,
+          "op" : "text",
+          "text" : "5600 K"
+        },
+        {
+          "input" : 6500,
+          "number" : 0.36616976251014816,
+          "op" : "position"
+        },
+        {
+          "input" : 6500,
+          "number" : 6500,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 6500,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 6500,
+          "kind" : "fine",
+          "number" : 6520.956402796427,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 6500,
+          "kind" : "fine",
+          "number" : 6479.11094481197,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 6500,
+          "kind" : "normal",
+          "number" : 6712.630729326881,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 6500,
+          "kind" : "normal",
+          "number" : 6294.1046072165955,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 6500,
+          "kind" : "large",
+          "number" : 7393.174501414188,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 6500,
+          "kind" : "large",
+          "number" : 5714.730525015785,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 6500,
+          "op" : "text",
+          "text" : "6500 K"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 6500,
+          "op" : "text",
+          "text" : "6500 K"
+        },
+        {
+          "input" : 50000,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 50000,
+          "number" : 50000,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 50000,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 50000,
+          "kind" : "fine",
+          "number" : 50000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50000,
+          "kind" : "fine",
+          "number" : 49839.31496009206,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 50000,
+          "kind" : "normal",
+          "number" : 50000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50000,
+          "kind" : "normal",
+          "number" : 48416.18928628149,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 50000,
+          "kind" : "large",
+          "number" : 50000,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50000,
+          "kind" : "large",
+          "number" : 43959.46557704448,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 50000,
+          "op" : "text",
+          "text" : "50000 K"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 50000,
+          "op" : "text",
+          "text" : "50000 K"
+        },
+        {
+          "input" : 0,
+          "number" : 2000,
+          "op" : "value"
+        },
+        {
+          "input" : 0.3,
+          "number" : 5253.055608807534,
+          "op" : "value"
+        },
+        {
+          "input" : 1,
+          "number" : 50000,
+          "op" : "value"
+        }
+      ],
+      "spec" : {
+        "defaultValue" : 5600,
+        "fractionDigits" : 0,
+        "id" : "temperature",
+        "largeSteps" : 4,
+        "max" : 50000,
+        "min" : 2000,
+        "origin" : 2000,
+        "scale" : "log",
+        "step" : 0.01,
+        "unit" : "K"
+      }
+    },
+    {
+      "cases" : [
+        {
+          "input" : 0,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : 0,
+          "number" : 0,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 0,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "fine",
+          "number" : 0.1,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "fine",
+          "number" : 0,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "normal",
+          "number" : 1,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "normal",
+          "number" : 0,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0,
+          "kind" : "large",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0,
+          "kind" : "large",
+          "number" : 0,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 0,
+          "op" : "text",
+          "text" : "0%"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 0,
+          "op" : "text",
+          "text" : "0%"
+        },
+        {
+          "input" : 49.5,
+          "number" : 0.495,
+          "op" : "position"
+        },
+        {
+          "input" : 49.5,
+          "number" : 50,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 49.5,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 49.5,
+          "kind" : "fine",
+          "number" : 49.6,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 49.5,
+          "kind" : "fine",
+          "number" : 49.4,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 49.5,
+          "kind" : "normal",
+          "number" : 51,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 49.5,
+          "kind" : "normal",
+          "number" : 49,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 49.5,
+          "kind" : "large",
+          "number" : 54,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 49.5,
+          "kind" : "large",
+          "number" : 46,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 49.5,
+          "op" : "text",
+          "text" : "50%"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 49.5,
+          "op" : "text",
+          "text" : "50%"
+        },
+        {
+          "input" : 50,
+          "number" : 0.5,
+          "op" : "position"
+        },
+        {
+          "input" : 50,
+          "number" : 50,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : 50,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 50,
+          "kind" : "fine",
+          "number" : 50.1,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50,
+          "kind" : "fine",
+          "number" : 49.9,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 50,
+          "kind" : "normal",
+          "number" : 51,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50,
+          "kind" : "normal",
+          "number" : 49,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 50,
+          "kind" : "large",
+          "number" : 54,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 50,
+          "kind" : "large",
+          "number" : 46,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 50,
+          "op" : "text",
+          "text" : "50%"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 50,
+          "op" : "text",
+          "text" : "50%"
+        },
+        {
+          "input" : 99.6,
+          "number" : 0.996,
+          "op" : "position"
+        },
+        {
+          "input" : 99.6,
+          "number" : 100,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 99.6,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 99.6,
+          "kind" : "fine",
+          "number" : 99.69999999999999,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 99.6,
+          "kind" : "fine",
+          "number" : 99.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 99.6,
+          "kind" : "normal",
+          "number" : 100,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 99.6,
+          "kind" : "normal",
+          "number" : 99,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 99.6,
+          "kind" : "large",
+          "number" : 100,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 99.6,
+          "kind" : "large",
+          "number" : 96,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 99.6,
+          "op" : "text",
+          "text" : "100%"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 99.6,
+          "op" : "text",
+          "text" : "100%"
+        },
+        {
+          "input" : 100,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 100,
+          "number" : 100,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 100,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 100,
+          "kind" : "fine",
+          "number" : 100,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 100,
+          "kind" : "fine",
+          "number" : 99.9,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 100,
+          "kind" : "normal",
+          "number" : 100,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 100,
+          "kind" : "normal",
+          "number" : 99,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 100,
+          "kind" : "large",
+          "number" : 100,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 100,
+          "kind" : "large",
+          "number" : 96,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 100,
+          "op" : "text",
+          "text" : "100%"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 100,
+          "op" : "text",
+          "text" : "100%"
+        },
+        {
+          "input" : 0,
+          "number" : 0,
+          "op" : "value"
+        },
+        {
+          "input" : 0.505,
+          "number" : 50.5,
+          "op" : "value"
+        },
+        {
+          "input" : 1,
+          "number" : 100,
+          "op" : "value"
+        }
+      ],
+      "spec" : {
+        "defaultValue" : 50,
+        "fractionDigits" : 0,
+        "id" : "mix",
+        "largeSteps" : 4,
+        "max" : 100,
+        "min" : 0,
+        "origin" : 0,
+        "scale" : "linear",
+        "step" : 1,
+        "unit" : "%"
+      }
+    },
+    {
+      "cases" : [
+        {
+          "input" : 0.25,
+          "number" : 0,
+          "op" : "position"
+        },
+        {
+          "input" : 0.25,
+          "number" : 0.25,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 0.25,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 0.25,
+          "kind" : "fine",
+          "number" : 0.255,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.25,
+          "kind" : "fine",
+          "number" : 0.25,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0.25,
+          "kind" : "normal",
+          "number" : 0.3,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.25,
+          "kind" : "normal",
+          "number" : 0.25,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 0.25,
+          "kind" : "large",
+          "number" : 0.5,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 0.25,
+          "kind" : "large",
+          "number" : 0.25,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 0.25,
+          "op" : "text",
+          "text" : "0,25×"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 0.25,
+          "op" : "text",
+          "text" : "0.25×"
+        },
+        {
+          "input" : 1,
+          "number" : 0.2,
+          "op" : "position"
+        },
+        {
+          "input" : 1,
+          "number" : 1,
+          "op" : "snapped"
+        },
+        {
+          "flag" : true,
+          "input" : 1,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 1,
+          "kind" : "fine",
+          "number" : 1.005,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1,
+          "kind" : "fine",
+          "number" : 0.995,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1,
+          "kind" : "normal",
+          "number" : 1.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1,
+          "kind" : "normal",
+          "number" : 0.9500000000000001,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1,
+          "kind" : "large",
+          "number" : 1.25,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1,
+          "kind" : "large",
+          "number" : 0.75,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 1,
+          "op" : "text",
+          "text" : "1,00×"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 1,
+          "op" : "text",
+          "text" : "1.00×"
+        },
+        {
+          "input" : 1.125,
+          "number" : 0.23333333333333334,
+          "op" : "position"
+        },
+        {
+          "input" : 1.125,
+          "number" : 1.15,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 1.125,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 1.125,
+          "kind" : "fine",
+          "number" : 1.13,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1.125,
+          "kind" : "fine",
+          "number" : 1.12,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1.125,
+          "kind" : "normal",
+          "number" : 1.2000000000000002,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1.125,
+          "kind" : "normal",
+          "number" : 1.05,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 1.125,
+          "kind" : "large",
+          "number" : 1.4000000000000001,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 1.125,
+          "kind" : "large",
+          "number" : 0.9,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 1.125,
+          "op" : "text",
+          "text" : "1,13×"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 1.125,
+          "op" : "text",
+          "text" : "1.13×"
+        },
+        {
+          "input" : 3.99,
+          "number" : 0.9973333333333334,
+          "op" : "position"
+        },
+        {
+          "input" : 3.99,
+          "number" : 4,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 3.99,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 3.99,
+          "kind" : "fine",
+          "number" : 3.995,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.99,
+          "kind" : "fine",
+          "number" : 3.9850000000000003,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 3.99,
+          "kind" : "normal",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.99,
+          "kind" : "normal",
+          "number" : 3.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 3.99,
+          "kind" : "large",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 3.99,
+          "kind" : "large",
+          "number" : 3.75,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 3.99,
+          "op" : "text",
+          "text" : "3,99×"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 3.99,
+          "op" : "text",
+          "text" : "3.99×"
+        },
+        {
+          "input" : 4,
+          "number" : 1,
+          "op" : "position"
+        },
+        {
+          "input" : 4,
+          "number" : 4,
+          "op" : "snapped"
+        },
+        {
+          "flag" : false,
+          "input" : 4,
+          "op" : "isDefault"
+        },
+        {
+          "count" : 1,
+          "input" : 4,
+          "kind" : "fine",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 4,
+          "kind" : "fine",
+          "number" : 3.995,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 4,
+          "kind" : "normal",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 4,
+          "kind" : "normal",
+          "number" : 3.95,
+          "op" : "stepped"
+        },
+        {
+          "count" : 1,
+          "input" : 4,
+          "kind" : "large",
+          "number" : 4,
+          "op" : "stepped"
+        },
+        {
+          "count" : -1,
+          "input" : 4,
+          "kind" : "large",
+          "number" : 3.75,
+          "op" : "stepped"
+        },
+        {
+          "decimalSeparator" : ",",
+          "input" : 4,
+          "op" : "text",
+          "text" : "4,00×"
+        },
+        {
+          "decimalSeparator" : ".",
+          "input" : 4,
+          "op" : "text",
+          "text" : "4.00×"
+        },
+        {
+          "input" : 0,
+          "number" : 0.25,
+          "op" : "value"
+        },
+        {
+          "input" : 0.2,
+          "number" : 1,
+          "op" : "value"
+        },
+        {
+          "input" : 1,
+          "number" : 4,
+          "op" : "value"
+        }
+      ],
+      "spec" : {
+        "defaultValue" : 1,
+        "fractionDigits" : 2,
+        "id" : "rate",
+        "largeSteps" : 5,
+        "max" : 4,
+        "min" : 0.25,
+        "origin" : 0.25,
+        "scale" : "linear",
+        "step" : 0.05,
+        "unit" : "×"
+      }
+    }
+  ],
+  "timecodes" : [
+    {
+      "seconds" : 0,
+      "text" : "0:00.00"
+    },
+    {
+      "seconds" : 0.004,
+      "text" : "0:00.00"
+    },
+    {
+      "seconds" : 0.005,
+      "text" : "0:00.01"
+    },
+    {
+      "seconds" : 1.5,
+      "text" : "0:01.50"
+    },
+    {
+      "seconds" : 59.994,
+      "text" : "0:59.99"
+    },
+    {
+      "seconds" : 59.995,
+      "text" : "1:00.00"
+    },
+    {
+      "seconds" : 61.25,
+      "text" : "1:01.25"
+    },
+    {
+      "seconds" : 3599.99,
+      "text" : "59:59.99"
+    },
+    {
+      "seconds" : 3600,
+      "text" : "1:00:00.00"
+    },
+    {
+      "seconds" : 3725.5,
+      "text" : "1:02:05.50"
+    },
+    {
+      "seconds" : 36000.01,
+      "text" : "10:00:00.01"
+    },
+    {
+      "seconds" : -1.5,
+      "text" : "−0:01.50"
+    },
+    {
+      "seconds" : -0.001,
+      "text" : "0:00.00"
+    },
+    {
+      "seconds" : "NaN",
+      "text" : "--:--.--"
+    },
+    {
+      "seconds" : "Infinity",
+      "text" : "--:--.--"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : 0,
+      "text" : "0:00:00:00"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : 1,
+      "text" : "0:00:01:00"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : 1.039,
+      "text" : "0:00:01:00"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : 1.04,
+      "text" : "0:00:01:01"
+    },
+    {
+      "framesPerSecond" : 30,
+      "seconds" : 59.999,
+      "text" : "0:00:59:29"
+    },
+    {
+      "framesPerSecond" : 24,
+      "seconds" : 3600.5,
+      "text" : "1:00:00:12"
+    },
+    {
+      "framesPerSecond" : 120,
+      "seconds" : 10,
+      "text" : "0:00:10:000"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : -2,
+      "text" : "−0:00:02:00"
+    },
+    {
+      "framesPerSecond" : 0,
+      "seconds" : 1,
+      "text" : "--:--:--:--"
+    },
+    {
+      "framesPerSecond" : 25,
+      "seconds" : "NaN",
+      "text" : "--:--:--:--"
+    }
+  ]
+}

@@ -80,6 +80,18 @@ impl RpcError {
             ..Self::new("not_ported", message)
         }
     }
+
+    /// The error as the client will see it: its `code` and `message`.
+    pub fn error(&self) -> &nu9ve_json::Error {
+        &self.error
+    }
+}
+
+/// `code: message`, for a caller that runs a method in process instead of over the transport.
+impl std::fmt::Display for RpcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.error.code, self.error.message)
+    }
 }
 
 pub type Result = std::result::Result<Reply, RpcError>;

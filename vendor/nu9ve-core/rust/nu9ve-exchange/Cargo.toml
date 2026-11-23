@@ -1,0 +1,23 @@
+[package]
+name = "nu9ve-exchange"
+description = "The exchange folder between a person's machines: signed records, trust by pairing, reader states (nu9ve-exchange-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Canonical bytes (what is signed), SHA-256 hex and random bytes for new keys (nu9ve-json-v1).
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# Ed25519 signatures of every record, verified strictly. dalek-cryptography, BSD-3-Clause.
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std", "zeroize", "fast"] }
+# Signatures and public keys travel as standard base64. MIT or Apache-2.0.
+base64 = "=0.22.1"
+# Key fingerprints: SHA-256 of the public key. RustCrypto, MIT or Apache-2.0.
+sha2 = "=0.10.9"
+# Records are JSON.
+serde_json = "=1.0.154"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

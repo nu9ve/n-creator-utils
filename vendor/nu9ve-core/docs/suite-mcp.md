@@ -50,7 +50,7 @@ Para que el servidor no conozca apps, el **motor** publica su catálogo de herra
 → {"id":2,"ok":true,"data":{…}}
 ```
 
-- **Nombre:** `<app>_<name>`, con `<app>` del registro. Si la herramienta ya empieza por `<app>_` (`nove_status`), no se repite. El resultado cumple `^[a-z0-9_]{1,64}$`; una herramienta que no cabe se omite y se cuenta en `suite_engines`.
+- **Nombre:** `<app>_<name>`, con `<app>` del registro. Si la herramienta ya empieza por `<app>_` (`nove_status`), no se repite. El resultado cumple `^[a-z0-9_]{1,64}$`; una herramienta que no cabe se omite y se cuenta en `suite_engines`. Sólo el motor registrado como `suite` (el agente, [`nu9ve-agent-v1` §5](../contracts/nu9ve-agent-v1.md#5-cómo-lo-ve-una-app)) da nombres que empiezan por `suite_`; de otro motor se omiten. Ningún motor puede dar `suite_engines`, `suite_data_catalog` ni `suite_projects`, que son del servidor.
 - **Nivel:** `level` es `read`, `show`, `edit` o `act` ([MCP v1 §2](../contracts/nu9ve-mcp-v1.md#2-cuatro-niveles-de-herramientas)). Las `annotations` las pone el servidor según el nivel, no el motor. Un nivel desconocido omite la herramienta.
 - **Sin `--allow-actions`,** `tools/list` lleva sólo `read` y `show`, y un `mcp_call` de otro nivel ni se envía.
 - **`instructions`** de cada app se juntan en las del servidor, bajo su nombre, después de las de la suite.
@@ -110,7 +110,7 @@ Más, como pide [MCP v1 §6](../contracts/nu9ve-mcp-v1.md#6-validación), una pr
 1. **Decidido (el usuario, 2026-11-19): las herramientas salen del motor** (`mcp_tools`, §4), no del reenvío al MCP de cada app.
 2. **Decidido (el usuario, 2026-11-19): primer corte de código** en el core: `nu9ve-ipc` con socket Unix y registro, `nu9ve-mcp` con el bucle y las herramientas de la suite, binario `nu9ve`, pruebas con dos motores falsos.
 3. **Decidido (el usuario, 2026-11-19): de lo `personal`, sólo su forma** ([`nu9ve-data-v1` §6](../contracts/nu9ve-data-v1.md#6-privacidad)).
-4. **Abierta: quién instala `nu9ve`.** Dentro del bundle de cada app que lo traiga (gana el más nuevo) o como instalación propia. Se decide al primer usuario real. La propuesta de [varias máquinas, discos y nube §6.6](suite-devices.md#66-agente-de-la-suite--nu9ve-agent) haría de este binario también un agente que corre siempre, lo que inclina la balanza hacia una instalación propia.
+4. ~~**Abierta: quién instala `nu9ve`.**~~ **Decidido (el usuario, 2026-11-22):** se instala una vez por máquina como agente propio ([`nu9ve-agent-v1`](../contracts/nu9ve-agent-v1.md)), desde un instalador o desde la app que lo traiga, empezando por nüün. Gana la versión más nueva. `nu9ve mcp` es el mismo binario. La propuesta de [varias máquinas, discos y nube §6.6](suite-devices.md#66-agente-de-la-suite--nu9ve-agent) haría de este binario también un agente que corre siempre, lo que inclina la balanza hacia una instalación propia.
 
 ## 10. Primer corte (2026-11-19)
 

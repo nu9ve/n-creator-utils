@@ -17,6 +17,13 @@ rust/nu9ve-engine
 # el 2026-11-22; sus pruebas leen data/.
 rust/nu9ve-volumes
 
+# El binario `nu9ve` (agente y MCP de la suite, nu9ve-agent-v1). nüün lo lleva en su bundle para
+# `nu9ve agent state` e `install --by nuun`; nunca corre su propio `serve`. Con sus dependencias.
+rust/nu9ve-mcp
+rust/nu9ve-ipc
+rust/nu9ve-device
+rust/nu9ve-exchange
+
 # Los roles de tema de la app de macOS.
 swift
 

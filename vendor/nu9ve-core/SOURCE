@@ -1,13 +1,17 @@
 # Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
 repo=nu9ve/core
-commit=97115645af71930b9128225fe74935cd8c755075
-date=2026-11-22
+commit=1d11d307f1cc7c731e9ab6a35592190609e48ac1
+date=2026-11-23
 path=contracts
 path=data
 path=docs
+path=rust/nu9ve-device
 path=rust/nu9ve-engine
+path=rust/nu9ve-exchange
 path=rust/nu9ve-fs
+path=rust/nu9ve-ipc
 path=rust/nu9ve-json
+path=rust/nu9ve-mcp
 path=rust/nu9ve-volumes
 path=scripts/check-boundary.sh
 path=scripts/sync-core.sh
