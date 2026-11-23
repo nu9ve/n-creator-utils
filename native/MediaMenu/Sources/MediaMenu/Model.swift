@@ -135,6 +135,14 @@ enum OperationScope { case ingest, library, space, settings, source }
 
 @MainActor @Observable final class Model {
     var route: Route = .home
+    /// What is worth suggesting for the connected disks (`suite_suggestions`), and the ones «Ahora no» hid until the
+    /// next disk arrives (docs/features/suite-disks-flows.md §3).
+    var suiteSuggestions: [JSONValue] = []
+    var hiddenSuggestions: Set<String> = []
+    /// The copy between work disks being prepared, when its sheet is open.
+    var workCopyRequest: WorkCopyRequest?
+    var conversations: JSONValue?
+    var conversationsRunning = false
     var librarySection: LibrarySection = .projects
     var presentation: WindowMode = .full
     var profiles: [JSONValue] = []
@@ -1414,7 +1422,11 @@ enum OperationScope { case ingest, library, space, settings, source }
             guard !Task.isCancelled else { return }
             if route == .library && librarySection == .disks { await loadStorage() }
             // No registered destination online: mounts stay silent (no popup, no content hints).
-            guard volumes.contains(where: { $0["online"].bool }) else { cardSuggestions = []; notifiedCards = []; statusChanged?(); return }
+            guard volumes.contains(where: { $0["online"].bool }) else {
+                cardSuggestions = []; notifiedCards = []; statusChanged?()
+                await loadSuiteSuggestions(arrival: arrival != nil)
+                return
+            }
             let shown = sourceCards.map { $0["path"].string }
             // A mount event notifies once per insertion; it never replaces work in progress.
             cardSuggestions = shown
@@ -1435,6 +1447,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             statusChanged?()
             sonyCheckPending = true
             await reconcileMountedSonyCards()
+            await loadSuiteSuggestions(arrival: arrival != nil)
         }
     }
 }

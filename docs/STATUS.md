@@ -195,6 +195,20 @@ conversaciones por dispositivo, sugerencias al conectar, otras Macs por el agent
    quedó atrás del último respaldo. Nunca en modo manual. `suggestions_dismiss` guarda «no volver a preguntar» por
    disco y flujo. 2 unitarias. Sin ventana todavía.
 5. **Decisiones** (el usuario, 2026-11-23): las seis del diseño, como se propusieron.
+6. **Ventana** (Swift): Inicio → «Discos conectados» muestra las sugerencias con «Ahora no» (hasta el siguiente disco
+   que llegue) y «No volver a preguntar»; Discos → «Copiar al otro disco…» abre la hoja de copia (raíces de otras
+   apps del origen, «Otra carpeta…», plan revisado, «Copiar y verificar», recibo); Ajustes → Conversaciones (disco de
+   respaldo, colecciones con confirmación explícita, cuándo, copia de trabajo, «Respaldar ahora»). En modo automático
+   la app respalda lo vencido al llegar un disco, con la app abierta (sin LaunchAgent). Swift 32/32; 62 cadenas
+   nuevas en inglés (siguen faltando 56 de antes, de F0 y otras).
+   **Aceptación en ventana** (2026-11-23, app de desarrollo en el sandbox con discos de mentira QA-MEDIA, QA-ESSD y
+   QA-XSSD y `HOME` de prueba): Inicio mostró las dos sugerencias; «Revisar copia…» → plan de 2 archivos (42 KB,
+   proyecto subaereo, índices de nove) → «Copiar y verificar» → recibo en los dos discos, y la sugerencia
+   desapareció. Ajustes → Conversaciones: activar Codex pidió confirmación; «Respaldar ahora» escribió
+   `004_datos/conversaciones/{claude-code,codex}/<device_id>/` y quitó «Toca respaldar»; Inicio quedó «Todo al
+   día». Corregido en la misma entrega: «Cerrar» de la hoja cerraba la ventana entera (usaba `dismiss` dentro de un
+   `skinSheet`), y faltaba un indicador mientras se leen los índices. ESSD y MEDIA502 reales estaban conectados: el
+   motor del sandbox los rechaza (`outside_sandbox`) antes de leer su marcador. No se instaló la app.
 
 ### Notas para la sesión del core (F1)
 

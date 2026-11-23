@@ -309,6 +309,8 @@ public final class BackendClient: @unchecked Sendable {
         let rustOnly = method.hasPrefix("suite_") || method.hasPrefix("save_all_") || method == "clipper_project_status"
             || method.hasPrefix("clipper_restore_")
             || method.hasPrefix("missions_archived_")
+            || method.hasPrefix("work_copy") || method == "volume_apps" || method.hasPrefix("conversations_")
+            || method == "suggestions_dismiss"
             || method == "living_plan" && params["batch_managed"] == .bool(true)
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {

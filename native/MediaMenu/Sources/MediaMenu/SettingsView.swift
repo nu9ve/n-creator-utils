@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var deviceName = ""
     private let sections: [(String, LocalizedStringKey, String)] = [("profiles", "Perfiles", "person.crop.square"), ("disks", "Discos", "externaldrive"),
         ("suite", "Suite", "point.3.connected.trianglepath.dotted"),
+        ("conversations", "Conversaciones", "bubble.left.and.text.bubble.right"),
         ("ingest", "Ingreso", "sdcard"), ("capture", "Capturas", "record.circle"), ("appearance", "Apariencia", "paintpalette"),
         ("language", "Idioma", "globe"), ("runtime", "Diagnóstico", "stethoscope")]
     var body: some View {
@@ -38,6 +39,7 @@ struct SettingsView: View {
                     case "profiles": profiles
                     case "disks": disks
                     case "suite": suite
+                    case "conversations": ConversationsSettings(model: model)
                     case "ingest": IngestSettings(model: model)
                     case "appearance": AppearanceSettings()
                     case "capture": captures

@@ -32,7 +32,7 @@ Después, en la misma sesión: `suite_suggestions` y `suggestions_dismiss` (suge
 
 ## Pendiente (siguiente sesión de nüün)
 
-- La ventana: mostrar `suite_suggestions` al montar un disco (una vez por evento), Discos → «Copiar al otro disco» y Ajustes → Conversaciones; lanzar `conversations_run {when: due}` con la app abierta.
+- Hecho después: la ventana (sugerencias en Inicio, «Copiar al otro disco…», Ajustes → Conversaciones, respaldo automático con la app abierta), aceptada en el sandbox. Falta instalarla y usarla con los discos reales.
 - Proyecto de Clipper con dependencias en `work_copy`; resumir copias en el índice de nüün; prueba física XSSD/ESSD.
 
 ## Decisiones del usuario

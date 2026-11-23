@@ -290,6 +290,8 @@ struct DisksView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             PageHeader(title: "Discos", subtitle: "Qué ocupa cada disco y qué ya tiene copia. Esta vista sólo lee: no borra ni mueve nada.") {
+                Button("Copiar al otro disco…", systemImage: "externaldrive.badge.plus") { model.openWorkCopy() }
+                    .help("Copia verificada entre dos discos de trabajo, con recibo. No borra nada.")
                 Button("Añadir carpeta…", systemImage: "folder.badge.plus") { model.addStorageFolder() }
             }
             ErrorBanner(model: model)

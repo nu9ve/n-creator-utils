@@ -18,7 +18,7 @@ Actualizado: 2026-11-23. Pedido del usuario del mismo día: con dos Macs (la M4 
 - La copia conserva rutas y fechas, se verifica leyendo del dispositivo y se renombra sin reemplazar; lo idéntico se adopta y lo distinto bloquea el plan.
 - nüün lee los índices de las demás apps del origen para decir qué datasets y proyectos toca, y guarda copias exactas de los archivos de esas apps **en su propia carpeta** del destino (`.nu9ve/apps/nuun/copies/<id>/source/<app>/…`).
 - **Sí, la copia lleva un recibo de nüün** (`nuun-work-copy/1`, en los dos discos): disco, carpetas y hash de cada archivo de origen y destino, el manifiesto y los índices de origen. Con él nove registra el destino sin hashear (contrato, «Qué hace con esto otra app»).
-- **Falta:** la ventana (Discos → elegir carpeta o proyecto → «Copiar a ESSD»), el proyecto de Clipper con sus dependencias (`paths` desde `clipper.inspect`) y resumir lo copiado en el índice de nüün del destino.
+- **Ventana:** Discos → «Copiar al otro disco…» y la sugerencia en Inicio. **Falta:** el proyecto de Clipper con sus dependencias (`paths` desde `clipper.inspect`) y resumir lo copiado en el índice de nüün del destino.
 
 ## 2. Respaldo de conversaciones por dispositivo
 
@@ -41,7 +41,7 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 
 ## 3. Sugerencias al conectar
 
-**Hecho en el motor:** `suite_suggestions` y `suggestions_dismiss` (`{key, dismissed}`), por `rpc`. Falta mostrarlas en la ventana al montar un disco.
+**Hecho en el motor:** `suite_suggestions` y `suggestions_dismiss` (`{key, dismissed}`), por `rpc`. En la ventana, Inicio → «Discos conectados», con «Ahora no» y «No volver a preguntar».
 
 `suite_suggestions` (lectura) mira los discos montados y la configuración y devuelve sólo lo que tiene algo que hacer:
 

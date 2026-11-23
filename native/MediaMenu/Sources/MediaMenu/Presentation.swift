@@ -23,6 +23,7 @@ struct WindowRoot: View {
             .skinSheet(isPresented: $model.showRelease) { ReleaseSheet(model: model) }
             .skinSheet(isPresented: $model.showClosure) { ProjectClosureSheet(model: model) }
             .skinSheet(isPresented: $model.showSaveAll) { SaveAllSheet(model: model) }
+            .skinSheet(item: $model.workCopyRequest) { WorkCopySheet(model: model, request: $0) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(CreatorAppearance())

@@ -27,6 +27,7 @@ struct InboxView: View {
                 }
                 HomeSaveAllHeader(model: model)
                 ErrorBanner(model: model)
+                SuiteSuggestionsSection(model: model)
                 if !model.sourceCards.isEmpty {
                     SectionTitle("Tarjetas conectadas")
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 12, alignment: .top)], alignment: .leading, spacing: 12) {
@@ -49,7 +50,7 @@ struct InboxView: View {
                         }
                     }
                 }
-                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty &&
+                if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty && model.visibleSuiteSuggestions.isEmpty &&
                     model.pendingMissionExports.isEmpty && pendingWork == 0 &&
                     !(model.finals?["groups"].array.contains { $0["pending"].double > 0 || $0["waiting"].double > 0 } ?? false) &&
                     archived.isEmpty && model.suggestedProjectClosures.isEmpty &&
