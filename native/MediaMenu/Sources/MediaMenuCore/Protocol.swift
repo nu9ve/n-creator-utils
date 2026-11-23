@@ -106,6 +106,8 @@ public enum EngineEnvironment {
             env["HOME"] = root + "/home"
             env["CLIPPER_PROJECTS_ROOT"] = root + "/home/Downloads/clipper-projects"
         }
+        // The version in the engine's suite record (nu9ve-registry-v1 §2): the app's, as its «Acerca de».
+        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String { env["NUUN_APP_VERSION"] = version }
         return env
     }()
 }

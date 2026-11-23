@@ -598,7 +598,9 @@ dependencies = [
 name = "nuun-engine"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nu9ve-engine",
+ "nu9ve-ipc",
  "nu9ve-json",
  "nuun-media",
  "nuun-recipe",

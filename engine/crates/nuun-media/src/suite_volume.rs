@@ -11,7 +11,10 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+mod catalog;
 mod index;
+
+pub use catalog::{data_catalog, data_export};
 
 const MARKER: &str = rules::MARKER_PATH;
 const INDEX: &str = ".nu9ve/apps/nuun/index.json";
@@ -433,6 +436,12 @@ pub fn publish(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
         "Marker changed before publishing",
     )?;
     root.write_bytes(INDEX, &bytes, true)?;
+    // The same index, kept here: what `data_catalog` describes of this disk while it is not mounted.
+    Root::open(home)?.write_bytes(
+        &catalog::local_index(volume["volume_id"].as_str().unwrap()),
+        &bytes,
+        true,
+    )?;
     record(home, &volume, &info, known.as_ref())?;
     Ok(
         json!({"state":state, "path":INDEX, "generated_at":value["generated_at"],

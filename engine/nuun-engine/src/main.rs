@@ -1,4 +1,4 @@
-//! `nuun-engine [--state-dir DIR] rpc-serve | rpc | --version`
+//! `nuun-engine [--state-dir DIR] rpc-serve | rpc | suite-frames | --version`
 //!
 //! The same boundary as `python -S nu9ve.py media [--state-dir DIR] rpc-serve` (media/cli.py `serve_reads`):
 //! one JSON request per line `{id, method, params}`, one line back `{id, ok: true, data}` or
@@ -13,6 +13,8 @@ use serde_json::{Value, json, value::RawValue};
 use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
+
+mod suite;
 
 /// media/cli.py `READ_METHODS` and `READ_WHEN_EMPTY`; tests/test_engine_boundary.py keeps them equal.
 const READ_METHODS: [&str; 30] = [
@@ -394,6 +396,13 @@ impl Engine {
             .unwrap_or_else(nuun_media::catalog::default_home)
     }
 
+    /// QA: a `--state-dir` or the sandbox never write the person's shared suite files.
+    fn isolated(&self) -> bool {
+        self.state_dir.is_some()
+            || std::env::var_os("NU9VE_SANDBOX").is_some()
+            || std::env::var_os("NU9VE_MEDIA_HOME").is_some()
+    }
+
     /// The catalog of `--state-dir`, or of the default home; read only, empty when it does not exist.
     fn catalog(&self) -> Result<nuun_media::catalog::Catalog> {
         nuun_media::catalog::Catalog::open(&self.home())
@@ -402,9 +411,7 @@ impl Engine {
     fn call(&self, method: &str, params: &Value) -> Result<Value> {
         let platform = platform_backend(&self.home());
         let platform = platform.as_deref();
-        let isolated = self.state_dir.is_some()
-            || std::env::var_os("NU9VE_SANDBOX").is_some()
-            || std::env::var_os("NU9VE_MEDIA_HOME").is_some();
+        let isolated = self.isolated();
         match method {
             "suite_device" => nuun_media::suite_device::current(isolated, params),
             "suite_register_volume" => nuun_media::suite_volume::register(
@@ -1016,10 +1023,27 @@ fn main() {
     }
     let engine = Engine { state_dir };
     let code = match command.as_deref() {
-        Some("rpc-serve") => match engine.serve(io::stdin().lock(), io::stdout().lock()) {
+        Some("rpc-serve") => {
+            // While the app reads, the suite finds nüün on its own socket (data_catalog, data_export).
+            let served = suite::start(engine.home(), engine.isolated());
+            let result = engine.serve(io::stdin().lock(), io::stdout().lock());
+            // `exit` skips destructors: the record goes first, only if it is still this engine's.
+            if let Some(served) = served {
+                served.stop();
+            }
+            match result {
+                Ok(()) => 0,
+                Err(error) => {
+                    eprintln!("rpc-serve: {error}");
+                    1
+                }
+            }
+        }
+        // The suite methods in frames on stdio, for the core's example checks (`--server`).
+        Some("suite-frames") => match suite::serve_stdio(&engine.home()) {
             Ok(()) => 0,
             Err(error) => {
-                eprintln!("rpc-serve: {error}");
+                eprintln!("suite-frames: {error}");
                 1
             }
         },
@@ -1036,7 +1060,9 @@ fn main() {
             i32::from(reply.envelope["ok"] != json!(true))
         }
         _ => {
-            eprintln!("usage: nuun-engine [--state-dir DIR] rpc-serve | rpc | --version");
+            eprintln!(
+                "usage: nuun-engine [--state-dir DIR] rpc-serve | rpc | suite-frames | --version"
+            );
             2
         }
     };

@@ -16,6 +16,12 @@ nuun-media = { path = "../crates/nuun-media" }
 # `raw_value`: the digits of an integer id beyond 64 bits (nu9ve-engine-v1 §2.1), without `arbitrary_precision`,
 # which would change what `nu9ve-json` reads (nu9ve-json-v1 §8). It only adds `RawValue`; `Value` reads the same.
 serde_json = { workspace = true, features = ["raw_value"] }
+# The suite transport (nu9ve-registry-v1): the engine record, liveness and the current uid.
+nu9ve-ipc = { path = "../../vendor/nu9ve-core/rust/nu9ve-ipc", version = "=0.1.0" }
+
+# The peer uid of each suite connection (`getpeereid`, nu9ve-engine-v1 §9).
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [lints]
 workspace = true
