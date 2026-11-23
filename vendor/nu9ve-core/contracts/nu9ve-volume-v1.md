@@ -66,7 +66,7 @@ El segundo factor es lo que el **sistema** dice del volumen, no lo que dice el m
 | Linux | `UUID` de `blkid` | `UUID` de `blkid` (`XXXX-XXXX`) | `UUID` de `blkid` |
 
 - **Debe:** si el sistema no da serial, el observador no puede comprobar el segundo factor y el estado es `unverified` (§5), nunca `ok`.
-- Que exFAT y FAT den en macOS una clave derivada del serial está **por verificar** con el primer disco real (§13).
+- exFAT en macOS, **comprobado** el 2026-11-22 por nüün con MEDIA502: Disk Arbitration y `diskutil info -plist` dan la misma clave, que se mantiene al volver a montar y cambia al cambiar el serial (probado en una imagen desechable). FAT32 y el cotejo con Windows siguen pendientes (§13).
 
 ## 4. Lo que recuerda cada observador
 
@@ -180,6 +180,7 @@ Quién registra, observa o escribe su carpeta está en [adopción por app](../do
 
 ## 13. Decisiones abiertas
 
-1. **Serial de exFAT y FAT en macOS:** confirmar con MEDIA502 que Disk Arbitration da una clave estable derivada del serial del volumen, y si coincide con algo que Windows pueda leer. Si no hay clave, esos discos quedan `unverified` en la Mac.
+1. **Serial de exFAT y FAT:** en macOS, exFAT confirmado con MEDIA502 (2026-11-22, §3). Falta FAT32 en la Mac y leer MEDIA502 en Windows. En Windows el serial tiene otro formato, así que no se compara con el de la Mac, sólo consigo mismo (§4).
+4. **Tope del índice:** el de nüün en MEDIA502 ya pesa 5,2 MiB de 8 MiB. Antes de que lo pase hay que decidir entre subir el tope, partir el índice en varios archivos o dejar en el índice sólo un resumen por proyecto.
 2. **Un disco con varias particiones:** cada partición es un volumen con su marcador. Si hace falta agrupar las particiones de un mismo disco físico, va en una versión menor.
 3. **Discos de red y carpetas en la nube** (un NAS, iCloud Drive) no son volúmenes de este contrato en v1.

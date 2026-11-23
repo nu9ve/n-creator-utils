@@ -15,7 +15,7 @@ Revisar el código al actualizar; esta tabla no sustituye el estado de cada app.
 | 1 Barra de título | Sí | Sí | Sí: cada material salvo cristal dibuja su barra y sus controles; arrastre con ratón real sin probar | No: Configuración es un `NSWindow` con título y sin toolbar; el panel de la barra de menús no tiene barra. Falta decidir si se declara utilidad sin barra propia |
 | 2 Ventana | Sí | Parcial: la pantalla completa recorre clases privadas | Sí, con desvío declarado: `ShellWindow` en vez de `Window`, por las esquinas cuadradas | Sí en código (build 9): mínimo 560×520 y marco recordado con `setFrameAutosaveName`; sin probar tras relanzar |
 | 3 Temas | Sí | Sí | Sí; contraste probado sólo en los temas por defecto | No aplica: sigue al sistema (ver tema) |
-| 4 Menús | Sí | Parcial: menú manual sin Servicios, Ocultar otras, Mostrar todo ni Zoom | Parcial: la Ayuda abre la web; interfaz sólo en español; ⇧⌘Q cierra la sesión de la app y es un atajo del sistema | Parcial (build 9): menú principal oculto (`LSUIElement`) con Stalker, Edición y Ventana, visto en la app instalada; ⌘V dentro del campo de proyecto sin probar a mano. `CFBundleDevelopmentRegion` y `CFBundleLocalizations` (`es`). Sin menú Ayuda |
+| 4 Menús | Sí | Parcial: menú manual sin Servicios, Ocultar otras, Mostrar todo ni Zoom | Parcial: la Ayuda abre la web; interfaz con español base e inglés parcial; menús nativos por revisar; ⇧⌘Q cierra la sesión de la app y es un atajo del sistema | Parcial (build 9): menú principal oculto (`LSUIElement`) con Stalker, Edición y Ventana, visto en la app instalada; ⌘V dentro del campo de proyecto sin probar a mano. `CFBundleDevelopmentRegion` y `CFBundleLocalizations` (`es`). Sin menú Ayuda |
 | 5 Acerca de | Sí | Sí (2026-11-07): ventana propia con tema y skin, versión copiable, enlaces y `NSHumanReadableCopyright` | Sí, con sello de build (`Nu9veBuildID`) | Sí (build 9): `AboutView`/`AppIdentity` de `NuMacShell` con colores del sistema, sello `Nu9veBuildID`, abierta en la app instalada. Sin prueba que compare la versión del código con el `Info.plist`: la lee del bundle |
 | 6 Documentos | Sí | No aplica | No aplica | No aplica |
 | 7 Ajustes | Sí | Sí | Sí: tema, paleta, material, logo, sonido y háptica; sin sincronizar con la cuenta | Sí (build 9): ⌘, en el menú principal y en el del clic derecho. Un solo formulario: «recordar la sección» no aplica |
@@ -128,6 +128,12 @@ Leído en el código el 2026-11-16: nüün `4f6b07c`, Clipper `41084ccb`, nove `
 | SoundBender | **Fija el crate** (`soundshop` `9eb4ceb` y `3df4dfb`, core `d3fed8e`); su `loudness.rs`, origen del LUFS del crate, se borró. En Swift sigue `LoudnessMeter`, cada 100 ms y solo a 48 kHz | Con sus 23 dorados: integrado a 5e-5 LU o menos del manifiesto. No fija `data/audio` | Ningún dorado dura 3 s, así que el máximo de corto plazo (aquí cada 10 ms) no está comparado con Swift. El true peak aún no lo usa: lo que falta para el medidor y el limitador está en su `portable-engine.md`. **Más lento que Swift en `d3fed8e`:** 95 ms frente a 64 de `LoudnessMeter` en 3 min estéreo a 48 kHz (su cuarta medición, 2026-11-18). Medido por partes, no era la rejilla de 10 ms sino los filtros, un canal tras otro. El crate de hoy tarda la mitad con los mismos bits ([CHANGELOG](../CHANGELOG.md), 2026-11-18, `f332b48`). SoundBender lo tomó al fijar `bcd8d43` y repitió su medición: 35 ms (`41ab675`, `16ac1c8`, su quinta medición) |
 | Clipper | Mide con FFmpeg (`ebur128`) en `master_audio.py` | No | Consumidor de medidas, no implementación ([plan](suite-adoption.md)) |
 
+## nu9ve-midi
+
+| App | Implementación | Verificación |
+| --- | --- | --- |
+| curado | El lector local es el origen de [`nu9ve-midi`](../rust/nu9ve-midi/). Pendiente fijar el crate y el perfil físico v1 y migrar el preset a sus IDs. | La extracción reproduce los 18 gestos de la captura CoreMIDI. Quedan escucha y reconexión en la app. |
+
 ## nu9ve-mcp-v1
 
 [Servidores MCP de las apps de nu9ve v1](../contracts/nu9ve-mcp-v1.md)
@@ -179,11 +185,11 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 ## nu9ve-device-v1
 
-[Identidad de dispositivo v1](../contracts/nu9ve-device-v1.md), propuesta del 2026-11-22 (F0 de [varias máquinas](suite-devices.md)). Nadie lo crea todavía.
+[Identidad de dispositivo v1](../contracts/nu9ve-device-v1.md), propuesta del 2026-11-22 (F0 de [varias máquinas](suite-devices.md)). nüün lo crea desde el 2026-11-22.
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | Sin empezar |
+| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado en una Mac** (2026-11-22, core fijado en `2d45333`): `device.json` con `0600` y `host_check`, con el nombre provisional del contrato (`Mac 5577`); la persona todavía no eligió nombre. Pasa la referencia del core. Cambios locales en `n-creator-utils`, sin commit |
 | nove, Atlas, Clipper | Lo leen para decir en qué máquina vieron un disco | Sin empezar |
 
 ## nu9ve-volume-v1
@@ -192,7 +198,7 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | Sin empezar. Hoy escribe un snapshot del catálogo en MEDIA502 fuera de `.nu9ve/` |
+| nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **Primer corte** (2026-11-22, core en `2d45333`, cambios locales en `n-creator-utils` sin commit; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). Los dos marcadores y los dos índices pasan las referencias del core, revisado aquí sobre los discos. «Adoptar este disco…» en Ajustes → Discos: probado por el motor con los dos discos físicos y un catálogo local vacío; snapshot de MEDIA502 verificado por SHA-256; hashes y fechas de los archivos iguales antes y después. **Falta:** aceptación en ventana, prueba en otra Mac, cotejo de MEDIA502 en Windows, commit, y mudar `nu9ve-volumes` al core. El índice de MEDIA502 pesa 5,2 MiB del tope de 8 MiB (§8) |
 | Atlas | Raíces por volumen en `config/atlas.json`; su carpeta en los discos de trabajo (ESSD, XSSD) | Sin empezar. Hoy usa `/Volumes/ESSD/…` |
 | nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión) | Sin empezar |
 | Clipper | Su carpeta en los discos de trabajo | Sin empezar |
@@ -287,10 +293,10 @@ Leído en el código el 2026-11-06, sin revisión visual. Revisar al actualizar.
 | 2 Roles | Parcial: roles propios | Parcial: roles propios | Parcial: roles propios | Sí, 15 roles desde `Nu9veTheme`; falta `secondary` | Sí, 15 roles desde `Nu9veTheme`, más `secondary` y el entorno fotográfico neutro | Sí en Windows: 15 roles desde `Nu9ve.Core`; Mac sigue con colores fijos | No: colores del sistema | No aplica: sistema |
 | 3 Contraste | Parcial: `mutedInk` y pruebas en Claro, Oscuro y Matrix; sin matriz | Sí, con matriz y los 110 vectores para `accent` y `onAccent` (TypeScript, 2026-11-16) | Sí, sin matriz | Sí, matriz y [110 vectores fijados](../data/theme-vectors-v1.json) con `Nu9veTheme` | Sí, matriz y los 110 vectores con `Nu9veTheme` (Gótico se prueba en la biblioteca) | Sí en Windows: matriz de sus cinco skins con sus presets y 108 colores | Parcial: texto sobre acento | No aplica |
 | 4 Apariencia | Parcial: tema, paleta, material, logo, sonido y háptica; claves propias, no el formato común | Sí, el más completo | Parcial: preset, superficie, brillo | Parcial: presets, HSV y modo | Sí: skin, modo, color, contraste, textura y tipografía con migración | Parcial en Windows: skin, color (presets y hex) y modo en el formato común, con migración del modo | Parcial: modo | No aplica |
-| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Sí: `dither`, `pixel`, `gothic`, `y2k`, `minimal` | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Sí: washi, Macintosh, Windows 9x, Terminal, Neón, Cristal, Grano y Mínimo | Sí en Windows: Puerto, Carta náutica, Macintosh, Windows 9x y Terminal | No | No aplica |
+| 5 Skins | Sí: nueve materiales (`glass`, `classicMac`, `win9x`, `terminal`, `neon`, `gothic`, `parchment`, `ledger`, `chrome`) | Parcial: cinco estilos propios, incluidos Grano (`curado`), Pixel, Gótico, Cromo y Mínimo. Macintosh, Windows 9x y Terminal pendientes | No: uno | Sí: `glass`, `classicMac`, `win9x`, `terminal`, `gothic` | Sí: washi, Macintosh, Windows 9x, Terminal, Neón, Cristal, Grano y Mínimo | Sí en Windows: Puerto, Carta náutica, Macintosh, Windows 9x y Terminal | No | No aplica |
 | 7 Identidad | Sí | Parcial: falta lo de barrio | Sí | Parcial: presets suizos | Sí | Sí en Windows: Puerto y sus tres direcciones | No | No aplica |
 | 8 Todas las ventanas | Sí en código (Mac): `ThemedWindowContent` da barra y atmósfera a Ajustes y Acerca de | Sin revisar | Sin revisar | Sí (2026-11-07): principal, Ajustes y Acerca de en los 5 skins | Sin revisar | Sin revisar | Sin revisar | No aplica |
-| 9 Idioma | No en Mac: sólo español, sin catálogo de textos; iOS con catálogo incompleto | Parcial: mensajes nativos en español | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
+| 9 Idioma | No en Mac: sólo español, sin catálogo de textos; iOS con catálogo incompleto | Parcial: selector persistente en el WebView, español base e inglés para parte de React. Faltan mensajes y menús nativos, textos dinámicos y recorrido bilingüe | No | Sí | No | Sin revisar | Sin revisar | Sin revisar |
 
 Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pasos sugeridos:
 
@@ -303,7 +309,7 @@ Una app adopta el contrato añadiéndose aquí con lo que le falta. Primeros pas
 - **neuf:** elegir su dirección de cine.
 - **SoundShop:** añadir i18n.
 
-- **curado (2026-11-16):** `bun test src/lib/theme.test.ts` comprueba los hex de `accent` y `onAccent` en los 110 casos fijados y añade sus 11 bases a la matriz de los cinco estilos propios. La comparación de los demás hex queda pendiente de adoptar las paletas comunes.
+- **curado (revisado el 2026-11-22, core `2d45333`):** `bun test src/lib/theme.test.ts` comprueba `accent` y `onAccent` en los 110 casos y añade sus 11 bases a la matriz de los cinco estilos propios. La ruta propuesta es portar los roles a TypeScript con los mismos vectores, mantener la barra nativa de Tauri y aplicar la apariencia a la ventana y el acento al auxiliar Metal. Faltan los demás roles, los skins comunes y su verificación por sistema. La preferencia sigue en Theme v2 de curado. [Detalle](../../curado/docs/SUITE.md)
 
 ## windows-app-v1
 

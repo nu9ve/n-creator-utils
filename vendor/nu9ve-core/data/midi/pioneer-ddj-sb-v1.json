@@ -1,0 +1,1436 @@
+{
+  "schemaVersion": 1,
+  "id": "pioneer-ddj-sb",
+  "name": "DDJ-SB",
+  "vendor": "Pioneer DJ",
+  "ports": [
+    "DDJ-SB"
+  ],
+  "evidence": "DDJ-SB captured with midi_probe on Windows 11 (WinMM, 2026-11-17) and macOS (CoreMIDI, 2026-11-22). Verified addresses were observed in hardware captures. Unverified addresses were inferred or transcribed and still need confirmation.",
+  "notes": [
+    "Faders, knobs, EQ and filters are 14-bit: CC n carries the high 7 bits and CC n + 0x20 the low 7.",
+    "Buttons send Note On 0x7F when pressed and Note On 0x00 when released.",
+    "Jogs send offset-64 steps. Touching the top sends note 0x35; turning it sends CC 0x23, the side CC 0x21.",
+    "Both tempo faders on the unit tested move by themselves (steps of 48 to 64 out of 16383, about once a second), hence the dead band.",
+    "SHIFT is handled by the controller: pads send other notes while it is held.",
+    "Browse rotation is CC 0x40. Pressing Browse on the Mac sent note 0x41 on channel 7. The Windows capture also recorded 0x65 in the center section; its gesture needs to be checked again.",
+    "The full CoreMIDI session also reported channel 2 note 0x47 without an identified gesture.",
+    "Master and headphone level are analog, on the audio interface, and send no MIDI.",
+    "The FX buttons are numbered here by unit and position."
+  ],
+  "controls": [
+    {
+      "id": "deck-1-play-pause",
+      "label": "Deck 1 play/pause",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-cue",
+      "label": "Deck 1 cue",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-sync",
+      "label": "Deck 1 sync",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x58",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift",
+      "label": "Deck 1 shift",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x3F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-headphone-cue",
+      "label": "Deck 1 headphone cue",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x54",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-vinyl",
+      "label": "Deck 1 vinyl",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x17",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-key-lock",
+      "label": "Deck 1 key lock",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-pad-mode-hot-cue",
+      "label": "Deck 1 pad mode hot cue",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-pad-mode-auto-loop",
+      "label": "Deck 1 pad mode auto loop",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-pad-mode-manual-loop",
+      "label": "Deck 1 pad mode manual loop",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x20",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-pad-mode-sampler",
+      "label": "Deck 1 pad mode sampler",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x22",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-jog-touch",
+      "label": "Deck 1 jog touch",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x35",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-jog-top",
+      "label": "Deck 1 jog top",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x23",
+      "mode": {
+        "type": "relative",
+        "encoding": "offset64"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-jog-side",
+      "label": "Deck 1 jog side",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x21",
+      "mode": {
+        "type": "relative",
+        "encoding": "offset64"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-channel-fader",
+      "label": "Deck 1 channel fader",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x13",
+      "lsb": "0x33",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-tempo",
+      "label": "Deck 1 tempo",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x00",
+      "lsb": "0x20",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "deadband": 0.008
+    },
+    {
+      "id": "deck-1-eq-high",
+      "label": "Deck 1 EQ high",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x07",
+      "lsb": "0x27",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-eq-mid",
+      "label": "Deck 1 EQ mid",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x0B",
+      "lsb": "0x2B",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-eq-low",
+      "label": "Deck 1 EQ low",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x0F",
+      "lsb": "0x2F",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-unidentified-cc-0x05",
+      "label": "Deck 1 unidentified CC 0x05",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x05",
+      "lsb": "0x25",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "identified": false
+    },
+    {
+      "id": "deck-2-play-pause",
+      "label": "Deck 2 play/pause",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x0B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-cue",
+      "label": "Deck 2 cue",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x0C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-sync",
+      "label": "Deck 2 sync",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x58",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift",
+      "label": "Deck 2 shift",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x3F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-headphone-cue",
+      "label": "Deck 2 headphone cue",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x54",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-vinyl",
+      "label": "Deck 2 vinyl",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x17",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-key-lock",
+      "label": "Deck 2 key lock",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x1A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-pad-mode-hot-cue",
+      "label": "Deck 2 pad mode hot cue",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x1B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-pad-mode-auto-loop",
+      "label": "Deck 2 pad mode auto loop",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x1E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-pad-mode-manual-loop",
+      "label": "Deck 2 pad mode manual loop",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x20",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-pad-mode-sampler",
+      "label": "Deck 2 pad mode sampler",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x22",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-jog-touch",
+      "label": "Deck 2 jog touch",
+      "kind": "note",
+      "channel": 2,
+      "number": "0x35",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-jog-top",
+      "label": "Deck 2 jog top",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x23",
+      "mode": {
+        "type": "relative",
+        "encoding": "offset64"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-jog-side",
+      "label": "Deck 2 jog side",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x21",
+      "mode": {
+        "type": "relative",
+        "encoding": "offset64"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-channel-fader",
+      "label": "Deck 2 channel fader",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x13",
+      "lsb": "0x33",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-tempo",
+      "label": "Deck 2 tempo",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x00",
+      "lsb": "0x20",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "deadband": 0.008
+    },
+    {
+      "id": "deck-2-eq-high",
+      "label": "Deck 2 EQ high",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x07",
+      "lsb": "0x27",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-eq-mid",
+      "label": "Deck 2 EQ mid",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x0B",
+      "lsb": "0x2B",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-eq-low",
+      "label": "Deck 2 EQ low",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x0F",
+      "lsb": "0x2F",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-unidentified-cc-0x05",
+      "label": "Deck 2 unidentified CC 0x05",
+      "kind": "cc",
+      "channel": 2,
+      "number": "0x05",
+      "lsb": "0x25",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "identified": false
+    },
+    {
+      "id": "deck-1-hot-cue-pad-1",
+      "label": "Deck 1 hot cue pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x00",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-hot-cue-pad-1",
+      "label": "Deck 1 SHIFT hot cue pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x08",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-auto-loop-pad-1",
+      "label": "Deck 1 auto loop pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x10",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-auto-loop-pad-1",
+      "label": "Deck 1 SHIFT auto loop pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x18",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-sampler-pad-1",
+      "label": "Deck 1 sampler pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x30",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-sampler-pad-1",
+      "label": "Deck 1 SHIFT sampler pad 1",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x38",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-hot-cue-pad-2",
+      "label": "Deck 1 hot cue pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x01",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-hot-cue-pad-2",
+      "label": "Deck 1 SHIFT hot cue pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x09",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-auto-loop-pad-2",
+      "label": "Deck 1 auto loop pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x11",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-auto-loop-pad-2",
+      "label": "Deck 1 SHIFT auto loop pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x19",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-sampler-pad-2",
+      "label": "Deck 1 sampler pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x31",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-shift-sampler-pad-2",
+      "label": "Deck 1 SHIFT sampler pad 2",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x39",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-hot-cue-pad-3",
+      "label": "Deck 1 hot cue pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x02",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-hot-cue-pad-3",
+      "label": "Deck 1 SHIFT hot cue pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x0A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-auto-loop-pad-3",
+      "label": "Deck 1 auto loop pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x12",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-auto-loop-pad-3",
+      "label": "Deck 1 SHIFT auto loop pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x1A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-sampler-pad-3",
+      "label": "Deck 1 sampler pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x32",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-shift-sampler-pad-3",
+      "label": "Deck 1 SHIFT sampler pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x3A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-hot-cue-pad-4",
+      "label": "Deck 1 hot cue pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x03",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-shift-hot-cue-pad-4",
+      "label": "Deck 1 SHIFT hot cue pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x0B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-auto-loop-pad-4",
+      "label": "Deck 1 auto loop pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x13",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-shift-auto-loop-pad-4",
+      "label": "Deck 1 SHIFT auto loop pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x1B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-sampler-pad-4",
+      "label": "Deck 1 sampler pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x33",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-shift-sampler-pad-4",
+      "label": "Deck 1 SHIFT sampler pad 4",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x3B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-manual-loop-pad-1",
+      "label": "Deck 1 manual loop loop in",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x20",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-manual-loop-pad-2",
+      "label": "Deck 1 manual loop loop out",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x21",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-manual-loop-pad-3",
+      "label": "Deck 1 manual loop reloop/exit",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x22",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-manual-loop-pad-4",
+      "label": "Deck 1 manual loop loop half",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x23",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-manual-loop-shift-pad-1",
+      "label": "Deck 1 manual loop SHIFT jump back",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x28",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-manual-loop-shift-pad-2",
+      "label": "Deck 1 manual loop SHIFT jump forward",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x29",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-1-manual-loop-shift-pad-3",
+      "label": "Deck 1 manual loop SHIFT pad 3",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x2A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-manual-loop-shift-pad-4",
+      "label": "Deck 1 manual loop SHIFT loop double",
+      "kind": "note",
+      "channel": 8,
+      "number": "0x2B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-hot-cue-pad-1",
+      "label": "Deck 2 hot cue pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x00",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-shift-hot-cue-pad-1",
+      "label": "Deck 2 SHIFT hot cue pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x08",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-auto-loop-pad-1",
+      "label": "Deck 2 auto loop pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x10",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-shift-auto-loop-pad-1",
+      "label": "Deck 2 SHIFT auto loop pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x18",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-sampler-pad-1",
+      "label": "Deck 2 sampler pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x30",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-shift-sampler-pad-1",
+      "label": "Deck 2 SHIFT sampler pad 1",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x38",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-hot-cue-pad-2",
+      "label": "Deck 2 hot cue pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x01",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-hot-cue-pad-2",
+      "label": "Deck 2 SHIFT hot cue pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x09",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-auto-loop-pad-2",
+      "label": "Deck 2 auto loop pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x11",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-auto-loop-pad-2",
+      "label": "Deck 2 SHIFT auto loop pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x19",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-sampler-pad-2",
+      "label": "Deck 2 sampler pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x31",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-shift-sampler-pad-2",
+      "label": "Deck 2 SHIFT sampler pad 2",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x39",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-hot-cue-pad-3",
+      "label": "Deck 2 hot cue pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x02",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-hot-cue-pad-3",
+      "label": "Deck 2 SHIFT hot cue pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x0A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-auto-loop-pad-3",
+      "label": "Deck 2 auto loop pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x12",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-auto-loop-pad-3",
+      "label": "Deck 2 SHIFT auto loop pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x1A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-sampler-pad-3",
+      "label": "Deck 2 sampler pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x32",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-shift-sampler-pad-3",
+      "label": "Deck 2 SHIFT sampler pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x3A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-hot-cue-pad-4",
+      "label": "Deck 2 hot cue pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x03",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-hot-cue-pad-4",
+      "label": "Deck 2 SHIFT hot cue pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x0B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-auto-loop-pad-4",
+      "label": "Deck 2 auto loop pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x13",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-auto-loop-pad-4",
+      "label": "Deck 2 SHIFT auto loop pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x1B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-sampler-pad-4",
+      "label": "Deck 2 sampler pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x33",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-shift-sampler-pad-4",
+      "label": "Deck 2 SHIFT sampler pad 4",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x3B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-manual-loop-pad-1",
+      "label": "Deck 2 manual loop loop in",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x20",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-manual-loop-pad-2",
+      "label": "Deck 2 manual loop loop out",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x21",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-manual-loop-pad-3",
+      "label": "Deck 2 manual loop reloop/exit",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x22",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-manual-loop-pad-4",
+      "label": "Deck 2 manual loop loop half",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x23",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-manual-loop-shift-pad-1",
+      "label": "Deck 2 manual loop SHIFT jump back",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x28",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-manual-loop-shift-pad-2",
+      "label": "Deck 2 manual loop SHIFT jump forward",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x29",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-manual-loop-shift-pad-3",
+      "label": "Deck 2 manual loop SHIFT pad 3",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x2A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false
+    },
+    {
+      "id": "deck-2-manual-loop-shift-pad-4",
+      "label": "Deck 2 manual loop SHIFT loop double",
+      "kind": "note",
+      "channel": 9,
+      "number": "0x2B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-1-filter",
+      "label": "Deck 1 filter",
+      "kind": "cc",
+      "channel": 7,
+      "number": "0x17",
+      "lsb": "0x37",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "deck-2-filter",
+      "label": "Deck 2 filter",
+      "kind": "cc",
+      "channel": 7,
+      "number": "0x18",
+      "lsb": "0x38",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "crossfader",
+      "label": "Crossfader",
+      "kind": "cc",
+      "channel": 7,
+      "number": "0x1F",
+      "lsb": "0x3F",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "headphones-mix",
+      "label": "Headphones mix",
+      "kind": "cc",
+      "channel": 7,
+      "number": "0x05",
+      "lsb": "0x25",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "browse-turn",
+      "label": "Browse",
+      "kind": "cc",
+      "channel": 7,
+      "number": "0x40",
+      "mode": {
+        "type": "relative",
+        "encoding": "twosComplement"
+      },
+      "verified": true
+    },
+    {
+      "id": "browse-press",
+      "label": "Browse press",
+      "kind": "note",
+      "channel": 7,
+      "number": "0x41",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "evidence": "CoreMIDI, 2026-11-22. Captured while pressing Browse."
+    },
+    {
+      "id": "center-unidentified-note-65",
+      "label": "Unidentified center note 0x65",
+      "kind": "note",
+      "channel": 7,
+      "number": "0x65",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "evidence": "WinMM, 2026-11-17. The physical gesture remains unidentified.",
+      "identified": false
+    },
+    {
+      "id": "load-deck-1",
+      "label": "Load deck 1",
+      "kind": "note",
+      "channel": 7,
+      "number": "0x46",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "load-deck-2",
+      "label": "Load deck 2",
+      "kind": "note",
+      "channel": 7,
+      "number": "0x47",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx1-button-1",
+      "label": "FX1 button 1",
+      "kind": "note",
+      "channel": 5,
+      "number": "0x47",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx1-button-2",
+      "label": "FX1 button 2",
+      "kind": "note",
+      "channel": 5,
+      "number": "0x48",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx1-button-3",
+      "label": "FX1 button 3",
+      "kind": "note",
+      "channel": 5,
+      "number": "0x49",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx1-level",
+      "label": "FX1 level",
+      "kind": "cc",
+      "channel": 5,
+      "number": "0x02",
+      "lsb": "0x22",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx1-level-copy",
+      "label": "FX1 level (copy)",
+      "kind": "cc",
+      "channel": 5,
+      "number": "0x04",
+      "lsb": "0x24",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "mirrorOf": "fx1-level"
+    },
+    {
+      "id": "fx1-level-second-copy",
+      "label": "FX1 level (second copy)",
+      "kind": "cc",
+      "channel": 5,
+      "number": "0x06",
+      "lsb": "0x26",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "mirrorOf": "fx1-level"
+    },
+    {
+      "id": "fx2-button-1",
+      "label": "FX2 button 1",
+      "kind": "note",
+      "channel": 6,
+      "number": "0x47",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx2-button-2",
+      "label": "FX2 button 2",
+      "kind": "note",
+      "channel": 6,
+      "number": "0x48",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx2-button-3",
+      "label": "FX2 button 3",
+      "kind": "note",
+      "channel": 6,
+      "number": "0x49",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx2-level",
+      "label": "FX2 level",
+      "kind": "cc",
+      "channel": 6,
+      "number": "0x02",
+      "lsb": "0x22",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true
+    },
+    {
+      "id": "fx2-level-copy",
+      "label": "FX2 level (copy)",
+      "kind": "cc",
+      "channel": 6,
+      "number": "0x04",
+      "lsb": "0x24",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "mirrorOf": "fx2-level"
+    },
+    {
+      "id": "fx2-level-second-copy",
+      "label": "FX2 level (second copy)",
+      "kind": "cc",
+      "channel": 6,
+      "number": "0x06",
+      "lsb": "0x26",
+      "mode": {
+        "type": "absolute"
+      },
+      "verified": true,
+      "mirrorOf": "fx2-level"
+    }
+  ]
+}
