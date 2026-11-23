@@ -147,6 +147,41 @@ fn external(root: &Path, collections: &Value, cid: &str) -> Result<Value> {
     )
 }
 
+/// The archive folder of a collection planned on this device (nu9ve-suite-devices §6.5): a new collection keeps
+/// one folder per device, `<folder>/<device_id>/…`, so one archive gathers the copies of every machine without
+/// mixing them (nove reads each by its device). A collection already in the catalog keeps its folder as it is,
+/// flat or per device: changing it would copy everything again. A new one needs this device's identity.
+pub fn device_folder(
+    home: &Path,
+    params: &Value,
+    device: std::result::Result<String, Error>,
+) -> Result<Value> {
+    let mut params = params.clone();
+    let (Some(source), Some(archive), Some(folder)) = (
+        params["source"].as_str(),
+        params["archive"].as_str(),
+        params["folder"].as_str(),
+    ) else {
+        return Ok(params);
+    };
+    folder_ok(folder)?;
+    let catalog = Catalog::open(home)?;
+    let root = crate::planner::absolute_source(source)?;
+    let archive_id = text(&catalog.volume(archive)?, "id").to_owned();
+    let cid = uuid5(
+        &NAMESPACE_URL,
+        &format!("nu9ve-living:{}|{archive_id}|{folder}", root.display()),
+    );
+    if catalog.get(&format!("living-collection:{cid}"))?.is_some() {
+        return Ok(params);
+    }
+    let device = device?;
+    if folder.rsplit('/').next() != Some(device.as_str()) {
+        params["folder"] = json!(format!("{folder}/{device}"));
+    }
+    Ok(params)
+}
+
 pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     require(
         params.as_object().is_some_and(|p| {
@@ -569,6 +604,77 @@ fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_new_collection_keeps_one_folder_per_device_and_old_ones_keep_theirs() {
+        let s = crate::volumes::test_backend::setup();
+        Root::open(&s.card)
+            .unwrap()
+            .write_bytes("projects/a.jsonl", b"session", false)
+            .unwrap();
+        let m1 = "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f";
+        let asked = json!({"source":s.card,"archive":"MEDIA","folder":"agentes/claude-code"});
+        // No identity, no new collection: two machines must never write the same folder.
+        let missing = device_folder(
+            &s.home,
+            &asked,
+            Err(Error::new("device_unavailable", "none")),
+        );
+        assert_eq!(missing.unwrap_err().code, "device_unavailable");
+        let params = device_folder(&s.home, &asked, Ok(m1.into())).unwrap();
+        assert_eq!(params["folder"], format!("agentes/claude-code/{m1}"));
+        let reviewed = plan(&s.home, &s.backend, &params).unwrap();
+        apply(
+            &s.home,
+            &s.backend,
+            &json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]}),
+        )
+        .unwrap();
+        assert!(
+            s.archive
+                .join(format!("agentes/claude-code/{m1}/projects/a.jsonl"))
+                .is_file()
+        );
+        // Planned again with its stored folder, it stays where it is, with or without the identity.
+        let stored = json!({"source":s.card,"archive":"MEDIA","folder":params["folder"]});
+        assert_eq!(
+            device_folder(&s.home, &stored, Ok(m1.into())).unwrap(),
+            stored
+        );
+        assert_eq!(
+            device_folder(
+                &s.home,
+                &stored,
+                Err(Error::new("device_unavailable", "none"))
+            )
+            .unwrap(),
+            stored
+        );
+    }
+
+    #[test]
+    fn a_collection_already_backed_up_flat_is_not_moved() {
+        let s = crate::volumes::test_backend::setup();
+        Root::open(&s.card)
+            .unwrap()
+            .write_bytes("one.wav", b"x", false)
+            .unwrap();
+        let flat = json!({"source":s.card,"archive":"MEDIA","folder":"Music/backup"});
+        let reviewed = plan(&s.home, &s.backend, &flat).unwrap();
+        apply(
+            &s.home,
+            &s.backend,
+            &json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]}),
+        )
+        .unwrap();
+        let again = device_folder(
+            &s.home,
+            &flat,
+            Ok("6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f".into()),
+        )
+        .unwrap();
+        assert_eq!(again, flat);
+    }
 
     #[test]
     fn versions_resume_after_rename_and_deleted_sources_stay_archived() {

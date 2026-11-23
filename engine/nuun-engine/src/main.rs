@@ -688,7 +688,22 @@ impl Engine {
             ),
             #[cfg(target_os = "macos")]
             "living_plan" => {
-                nuun_media::living::plan(&self.home(), write_backend(platform)?, params)
+                // A new collection keeps one folder per device; the device is created if this machine has none.
+                let device = nuun_media::suite_device::current(isolated, &json!({}))?;
+                let device = match device["state"].as_str() {
+                    Some("ok") => Ok(device["device"]["device_id"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_owned()),
+                    _ => Err(Error::new(
+                        "device_unavailable",
+                        device["message"]
+                            .as_str()
+                            .unwrap_or("A device identity is required for a new collection"),
+                    )),
+                };
+                let params = nuun_media::living::device_folder(&self.home(), params, device)?;
+                nuun_media::living::plan(&self.home(), write_backend(platform)?, &params)
             }
             #[cfg(target_os = "macos")]
             "living_apply" => {
