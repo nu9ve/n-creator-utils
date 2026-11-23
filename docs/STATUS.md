@@ -18,7 +18,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Área | Estado | Evidencia física | Pendiente |
 | --- | --- | --- | --- |
-| **Identidad portable F0** | Motor Rust y Ajustes → Discos: marcador, segundo factor, índice y adopción en sólo lectura. | Ambos discos registrados y leídos con un estado local vacío, también en ventana. MEDIA502: 7 666 entradas y snapshot verificado. ESSD: 1 960 entradas. [Evidencia](#identidad-portable-f0--2026-11-22) | Otra Mac y Windows ([pasos](#pendientes-físicos-de-f0)). Índice resumido por proyecto (decidido). |
+| **Identidad portable F0** | Motor Rust y Ajustes → Discos: marcador, segundo factor, índice y adopción en sólo lectura. | Ambos discos registrados y leídos con un estado local vacío, también en ventana. Índice resumido por proyecto: MEDIA502, 7 666 archivos en 27 grupos (20 KB, antes 5,1 MiB) y snapshot verificado; ESSD, 1 960 en 3 (2,7 KB). [Evidencia](#identidad-portable-f0--2026-11-22) | Otra Mac y Windows ([pasos](#pendientes-físicos-de-f0)). |
 | **Ingreso de cámara** (Entrada → Flujo → Resultado) | En uso. Flujo identifica fuente y alcance individual/lote, y permite escribir el proyecto donde se prepara el plan. El detalle y los controles de un único resultado quedan visibles al lado o encima de la vista previa. | Varios ingresos reales a MEDIA502 + ESSD desde la app. La conversión Handycam y la expulsión se probaron en la build instalada. | Plan, progreso, pausa y reanudación comprobados en ventana con imágenes. Pendiente medir la latencia del popup. |
 | **Sony α6400** | En uso. Retira clips verificados, conserva índices y observa el formato al reconectar. Corregida la lectura final de entradas retiradas que siguen listadas | Job físico `17e70e69`: 21 archivos en MEDIA502 y 4 en ESSD cotejados con sus recibos por SHA-256. Doce retiros journalizados y nueve archivos de cámara intactos. [Detalle](#lectura-final-sony--2026-11-13) | La limpieza del clip real de prueba pasó con Rust. El retiro persistió tras remontar sin formatear. Falta observar el cierre por formato |
 | **Stalker** | En uso: bandeja, bundles completos, liberación local con relink/ACK de Clipper | Ingresos reales completos | Casos `recording`/`finalizing`/`recovery` reales; [pedidos](contracts/README.md#pendientes-para-n-creator-utils) |
@@ -90,8 +90,21 @@ El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y relee
   de F0 y en un checkout sin las CLIs de Clipper se omiten.
 - **Tope del índice** (decisión del usuario, 2026-11-22): el índice de
   MEDIA502 pesa 5,1 MiB de 8 MiB (7 666 entradas de ~698 B, disco al 57 %).
-  Se pasará a un dataset por proyecto, no por archivo; el detalle por archivo
-  sigue en el snapshot. No cambia el contrato. [PLAN](../PLAN.md#p3--robustez-y-distribución).
+  Se pasa a un dataset por proyecto, no por archivo; el detalle por archivo
+  sigue en el snapshot. No cambia el contrato.
+- **Índice resumido** (2026-11-22, versión 2 de `nuun_index`): un dataset por
+  proyectos × carpeta de primer nivel, con la carpeta común de sus archivos,
+  `size.items` y `size.bytes`, el peor estado y un `hash` `of: "manifest"`
+  (SHA-256 de «ruta TAB sha256» ordenado) cuando todos están verificados. Un
+  archivo en la raíz del disco sigue con su propio dataset. Publicado en los
+  dos discos con copia previa de los índices viejos:
+  - MEDIA502: 5 349 748 B → 20 408 B; 7 666 archivos en 27 grupos (23 `ok`,
+    4 `changed`), 23 proyectos, snapshot verificado.
+  - ESSD: 1 402 703 B → 2 675 B; 1 960 archivos en 3 grupos.
+  - Los dos pasan `index_problem` de la referencia del core. Adoptados con
+    estado aparte: `ok`, raíz `ok`, mismos conteos de archivos y proyectos.
+  - La ventana de adopción muestra «N archivos en M grupos» y la fecha en hora
+    local. Sin repetir la aceptación en ventana tras este cambio de texto.
 
 - **`nu9ve-volumes` en el core** (2026-11-22, U2): el crate vive en
   [nu9ve/core `rust/nu9ve-volumes`](../vendor/nu9ve-core/rust/README.md#volúmenes),

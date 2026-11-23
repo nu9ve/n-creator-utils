@@ -436,7 +436,8 @@ pub fn publish(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Val
     record(home, &volume, &info, known.as_ref())?;
     Ok(
         json!({"state":state, "path":INDEX, "generated_at":value["generated_at"],
-        "dataset_count":value["datasets"].as_array().unwrap().len(), "bytes":bytes.len()}),
+        "dataset_count":value["datasets"].as_array().unwrap().len(),
+        "file_count":file_count(&value), "bytes":bytes.len()}),
     )
 }
 
@@ -494,6 +495,7 @@ pub fn adopt(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value
         .collect();
     let mut result = json!({"state":state,"marker":volume,"generated_at":value["generated_at"],
         "dataset_count":value["datasets"].as_array().unwrap().len(),
+        "file_count":file_count(&value),
         "project_count":value["projects"].as_array().unwrap().len(), "snapshot":snapshot,
         "receipts":value["nuun_receipts"],
         "roots":resolved_roots});
@@ -501,6 +503,16 @@ pub fn adopt(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value
         result["index"] = value;
     }
     Ok(result)
+}
+
+/// Files described by an index: one per dataset before version 2, the sum of `size.items` since.
+fn file_count(index: &Value) -> u64 {
+    index["datasets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["size"]["items"].as_u64().unwrap_or(1))
+        .sum()
 }
 
 fn resolve_path(root: &Root, entry: &Value) -> Option<PathBuf> {

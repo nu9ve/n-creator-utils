@@ -97,7 +97,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ## P3 · robustez y distribución
 
-- **Identidad portable F0:** registro, publicación y adopción de sólo lectura, aceptados en ventana con MEDIA502 y ESSD; `nu9ve-volumes` ya vive en nu9ve/core. Falta: el índice por proyecto, la otra Mac y Windows ([F0 → F1](#suite-de-f0-a-f1)). [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
+- **Identidad portable F0:** registro, publicación y adopción de sólo lectura, aceptados en ventana con MEDIA502 y ESSD; `nu9ve-volumes` ya vive en nu9ve/core. Falta: la otra Mac y Windows ([F0 → F1](#suite-de-f0-a-f1)). [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
 - Digest de plan autenticado o reverificación en `apply`; owner/lease de jobs.
 - Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
@@ -117,14 +117,14 @@ Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [e
 
 ### Cerrar F0
 
-1. **Índice por proyecto** (decisión del usuario, 2026-11-22; [decisión abierta 4 de `nu9ve-volume-v1` §13](vendor/nu9ve-core/contracts/nu9ve-volume-v1.md#13-decisiones-abiertas)). Hoy `index.json` lleva un dataset por archivo: MEDIA502 tiene 7 666 de unos 698 B, 5,1 MiB de 8, con el disco al 57 %. Sin cambios, el tope llega hacia las 12 000 entradas y el disco lleno serían unas 13 400. Con otra ráfaga como la del 8 nov (3 622) se pasa. El cambio:
+1. ~~**Índice por proyecto**~~ **Hecho el 2026-11-22**: MEDIA502 bajó de 5,1 MiB a 20 KB ([STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22)). Lo que se decidió (decisión del usuario, 2026-11-22; [decisión abierta 4 de `nu9ve-volume-v1` §13](vendor/nu9ve-core/contracts/nu9ve-volume-v1.md#13-decisiones-abiertas)). Hoy `index.json` lleva un dataset por archivo: MEDIA502 tiene 7 666 de unos 698 B, 5,1 MiB de 8, con el disco al 57 %. Sin cambios, el tope llega hacia las 12 000 entradas y el disco lleno serían unas 13 400. Con otra ráfaga como la del 8 nov (3 622) se pasa. El cambio:
    - un dataset por **proyecto × carpeta de primer nivel** (`001_raw/…`, `005_produccion/…`) y modalidad, con `size.items` y `size.bytes` sumados, `updated_at` el más reciente y `state` el peor de sus archivos. Lo que no tiene proyecto va a un dataset por carpeta;
    - el detalle por archivo (hash, ruta, verificación) sigue en el snapshot del catálogo de `.ncreator/catalog-backups/`, que la adopción ya comprueba por SHA-256;
    - no cambia el contrato: `nu9ve-data-v1` no dice que un dataset sea un archivo. Lo que sí sube es el `contract` interno de nüün en el índice, para que un lector viejo lo reconozca;
    - medir antes y después: MEDIA502 debería bajar a decenas de KB y crecer con los proyectos, no con los archivos;
    - la adopción sigue leyendo conteos y proyectos igual; «Adoptar este disco…» muestra datasets y archivos por separado.
 2. **Otra Mac y Windows**: los [pasos exactos](docs/STATUS.md#pendientes-físicos-de-f0) los corre el usuario.
-3. Pulir la ventana de adopción: fecha local en lugar de ISO UTC, y decir qué hará F1 con lo adoptado.
+3. Pulir la ventana de adopción: decir qué hará F1 con lo adoptado. La fecha local ya está.
 
 ### F1 · Registrarse en la suite y servir `data_catalog`
 

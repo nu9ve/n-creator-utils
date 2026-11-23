@@ -79,7 +79,9 @@ pub(super) fn build(
         [registration["id"].as_str().unwrap_or_default()],
     )?;
     let mut paths = HashSet::new();
+    let mut groups: BTreeMap<(Vec<String>, String), Group> = BTreeMap::new();
     let mut datasets = Vec::new();
+    let mut files = 0usize;
     for copy in copies {
         let Some(path) = copy["destination"].as_str().filter(|p| relative(p)) else {
             continue;
@@ -94,6 +96,7 @@ pub(super) fn build(
             Err(error) if error.code == "unsafe_file" => continue,
             Err(error) => return Err(error),
         };
+        files += 1;
         let checked = &copy["verified_at"];
         let verified = digest(&copy["sha256"]) && time(checked);
         let state = if !verified {
@@ -107,29 +110,20 @@ pub(super) fn build(
             copy["job_id"].as_str().unwrap_or_default().to_owned(),
             copy["path"].as_str().unwrap_or_default().to_owned(),
         );
-        let projects: Vec<Value> = links
-            .get(&key)
-            .into_iter()
-            .flatten()
-            .map(|project| {
-                used_projects.insert(project.clone());
-                json!({"project_key":project})
-            })
-            .collect();
-        let mut dataset = json!({
-            "id":format!("copy:{}", sha256_hex(format!("{id}\n{path}").as_bytes())),
-            "owner":"nuun","title":short(path.rsplit('/').next().unwrap(), "Archivo"),
-            "modality":"media","privacy":"personal","storage":"in_place",
-            "location":{"root_id":"disk","path":path}, "projects":projects, "state":state,
-            "updated_at":if time(checked) { checked.as_str().unwrap() } else { &now }
-        });
-        if stamp.size <= MAX_SAFE {
-            dataset["size"] = json!({"bytes":stamp.size, "items":1, "unit":"files"});
-        }
-        if verified {
-            dataset["hash"] = json!({"algorithm":"sha256","value":copy["sha256"],"of":"original","verified_at":checked});
-        }
-        datasets.push(dataset);
+        let keys: Vec<String> = links.get(&key).into_iter().flatten().cloned().collect();
+        used_projects.extend(keys.iter().cloned());
+        let Some((top, _)) = path.split_once('/') else {
+            // A file at the volume root has no folder to summarize: it keeps its own dataset.
+            datasets.push(file_dataset(
+                id, path, &keys, state, &copy, stamp.size, &now,
+            ));
+            continue;
+        };
+        let group = groups.entry((keys, top.to_owned())).or_default();
+        group.add(path, state, &copy, stamp.size);
+    }
+    for ((keys, top), group) in groups {
+        datasets.push(group.dataset(id, &keys, &top, &projects, &now));
     }
     projects.retain(|key, _| used_projects.contains(key));
     let mut value = json!({
@@ -137,7 +131,8 @@ pub(super) fn build(
         "projects":projects.into_values().collect::<Vec<_>>(),
         "roots":[{"id":"disk","label":marker["label"],"state":"ok","volume_id":id,"volume_path":""}],
         "datasets":datasets,"next_cursor":null,
-        "nuun_receipts":{"path":RECEIPTS,"count":json_files(root, RECEIPTS)?.len()}
+        "nuun_receipts":{"path":RECEIPTS,"count":json_files(root, RECEIPTS)?.len()},
+        "nuun_index":{"version":2,"granularity":"project_folder","files":files}
     });
     if registration["role"] == "archive" {
         for path in json_files(root, BACKUPS)?
@@ -156,6 +151,138 @@ pub(super) fn build(
         }
     }
     Ok(value)
+}
+
+/// The worse of two file states: a changed file outweighs an unverified one, which outweighs `ok`.
+fn worse<'a>(a: &'a str, b: &'a str) -> &'a str {
+    let rank = |s: &str| match s {
+        "changed" => 2,
+        "unverified" => 1,
+        _ => 0,
+    };
+    if rank(b) > rank(a) { b } else { a }
+}
+
+/// The files of one project set in one top-level folder (nu9ve-volume-v1 §13.4: the index summarizes by
+/// project, so it grows with projects and folders, not with files). Per-file hashes stay in the catalog snapshot.
+#[derive(Default)]
+struct Group {
+    /// Path and SHA-256 of each file, for the manifest hash.
+    files: Vec<(String, String)>,
+    common: Option<Vec<String>>,
+    bytes: u64,
+    state: &'static str,
+    all_verified: bool,
+    oldest_check: Option<String>,
+    newest_check: Option<String>,
+}
+
+impl Group {
+    fn add(&mut self, path: &str, state: &'static str, copy: &Value, size: u64) {
+        let first = self.files.is_empty();
+        let dir: Vec<String> = path.split('/').map(str::to_owned).collect();
+        let dir = &dir[..dir.len() - 1];
+        self.common = Some(match self.common.take() {
+            None => dir.to_vec(),
+            Some(common) => common
+                .into_iter()
+                .zip(dir)
+                .take_while(|(a, b)| a == *b)
+                .map(|(a, _)| a)
+                .collect(),
+        });
+        self.bytes = self.bytes.saturating_add(size);
+        self.state = if first {
+            state
+        } else {
+            worse(self.state, state)
+        };
+        let checked = copy["verified_at"]
+            .as_str()
+            .filter(|_| state != "unverified");
+        self.all_verified = (first || self.all_verified) && checked.is_some();
+        if let Some(checked) = checked {
+            if self.oldest_check.as_deref().is_none_or(|old| checked < old) {
+                self.oldest_check = Some(checked.to_owned());
+            }
+            if self.newest_check.as_deref().is_none_or(|new| checked > new) {
+                self.newest_check = Some(checked.to_owned());
+            }
+        }
+        let sha = copy["sha256"].as_str().unwrap_or_default().to_owned();
+        self.files.push((path.to_owned(), sha));
+    }
+
+    fn dataset(
+        mut self,
+        volume_id: &str,
+        keys: &[String],
+        top: &str,
+        projects: &BTreeMap<String, Value>,
+        now: &str,
+    ) -> Value {
+        let folder = self.common.take().unwrap_or_default().join("/");
+        let named: Vec<&str> = keys
+            .iter()
+            .filter_map(|k| projects.get(k).and_then(|p| p["title"].as_str()))
+            .collect();
+        let title = if named.is_empty() {
+            folder.clone()
+        } else {
+            format!("{} · {folder}", named.join(", "))
+        };
+        let id = sha256_hex(format!("{volume_id}\n{}\n{top}", keys.join(",")).as_bytes());
+        let mut dataset = json!({
+            "id":format!("group:{id}"), "owner":"nuun", "title":short(&title, "Carpeta"),
+            "modality":"media","privacy":"personal","storage":"in_place",
+            "location":{"root_id":"disk","path":folder},
+            "projects":keys.iter().map(|k| json!({"project_key":k})).collect::<Vec<_>>(),
+            "state":self.state,
+            "updated_at":self.newest_check.as_deref().unwrap_or(now),
+            "size":{"bytes":self.bytes.min(MAX_SAFE), "items":self.files.len(), "unit":"files"}
+        });
+        if self.all_verified
+            && let Some(oldest) = &self.oldest_check
+        {
+            self.files.sort();
+            let mut manifest = String::new();
+            for (path, sha) in &self.files {
+                manifest.push_str(&format!("{path}\t{sha}\n"));
+            }
+            dataset["hash"] = json!({"algorithm":"sha256","value":sha256_hex(manifest.as_bytes()),
+                "of":"manifest","verified_at":oldest});
+        }
+        dataset
+    }
+}
+
+/// One file as its own dataset: what every index held before version 2, and still a file at the volume root.
+fn file_dataset(
+    volume_id: &str,
+    path: &str,
+    keys: &[String],
+    state: &str,
+    copy: &Value,
+    size: u64,
+    now: &str,
+) -> Value {
+    let checked = &copy["verified_at"];
+    let mut dataset = json!({
+        "id":format!("copy:{}", sha256_hex(format!("{volume_id}\n{path}").as_bytes())),
+        "owner":"nuun","title":short(path.rsplit('/').next().unwrap(), "Archivo"),
+        "modality":"media","privacy":"personal","storage":"in_place",
+        "location":{"root_id":"disk","path":path},
+        "projects":keys.iter().map(|k| json!({"project_key":k})).collect::<Vec<_>>(),
+        "state":state,
+        "updated_at":if time(checked) { checked.as_str().unwrap() } else { now }
+    });
+    if size <= MAX_SAFE {
+        dataset["size"] = json!({"bytes":size, "items":1, "unit":"files"});
+    }
+    if state != "unverified" {
+        dataset["hash"] = json!({"algorithm":"sha256","value":copy["sha256"],"of":"original","verified_at":checked});
+    }
+    dataset
 }
 
 fn json_files(root: &Root, folder: &str) -> Result<Vec<String>> {
@@ -495,4 +622,84 @@ fn axes_valid(v: &Value) -> bool {
             namespaces(&e["namespaces"])
                 && e["namespaces"].as_array().is_some_and(|a| !a.is_empty())
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn copy(sha: &str, at: Option<&str>) -> Value {
+        json!({"sha256":sha, "verified_at":at})
+    }
+
+    #[test]
+    fn groups_summarize_by_project_and_folder() {
+        let (a, b) = ("a".repeat(64), "b".repeat(64));
+        let projects = BTreeMap::from([(
+            "p1".to_owned(),
+            json!({"title":"Subaéreo","project_key":"p1"}),
+        )]);
+        let keys = vec!["p1".to_owned()];
+        let mut group = Group::default();
+        group.add(
+            "001_raw/sony/2026/11/a.mp4",
+            "ok",
+            &copy(&a, Some("2026-11-17T13:57:32Z")),
+            10,
+        );
+        group.add(
+            "001_raw/sony/2026/10/b.mp4",
+            "ok",
+            &copy(&b, Some("2026-11-18T10:00:00Z")),
+            5,
+        );
+        let mut reversed = Group::default();
+        reversed.add(
+            "001_raw/sony/2026/10/b.mp4",
+            "ok",
+            &copy(&b, Some("2026-11-18T10:00:00Z")),
+            5,
+        );
+        reversed.add(
+            "001_raw/sony/2026/11/a.mp4",
+            "ok",
+            &copy(&a, Some("2026-11-17T13:57:32Z")),
+            10,
+        );
+        let now = "2026-11-22T00:00:00Z";
+        let id = "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e6f";
+        let dataset = group.dataset(id, &keys, "001_raw", &projects, now);
+        assert_eq!(dataset["location"]["path"], "001_raw/sony/2026");
+        assert_eq!(dataset["title"], "Subaéreo · 001_raw/sony/2026");
+        assert_eq!(
+            dataset["size"],
+            json!({"bytes":15,"items":2,"unit":"files"})
+        );
+        assert_eq!(dataset["state"], "ok");
+        assert_eq!(dataset["updated_at"], "2026-11-18T10:00:00Z");
+        assert_eq!(dataset["hash"]["of"], "manifest");
+        assert_eq!(dataset["hash"]["verified_at"], "2026-11-17T13:57:32Z");
+        // The manifest does not depend on the order the catalog returned the files.
+        let same = reversed.dataset(id, &keys, "001_raw", &projects, now);
+        assert_eq!(same["hash"], dataset["hash"]);
+        assert_eq!(same["id"], dataset["id"]);
+
+        // One unverified or changed file: no manifest hash, and the worst state wins.
+        let mut mixed = Group::default();
+        mixed.add("002_finales/x.mov", "changed", &copy(&a, Some(now)), 1);
+        mixed.add("002_finales/y.mov", "unverified", &copy("", None), 1);
+        mixed.add("002_finales/z.mov", "ok", &copy(&b, Some(now)), 1);
+        let unassigned = mixed.dataset(id, &[], "002_finales", &projects, now);
+        assert_eq!(unassigned["state"], "changed");
+        assert!(unassigned.get("hash").is_none());
+        assert_eq!(unassigned["title"], "002_finales");
+
+        let index = json!({"contract":"nu9ve-data/1","app":"nuun","generated_at":now,
+            "projects":[{"project_key":"p1","title":"Subaéreo","parent_key":null,"state":"active"}],
+            "roots":[{"id":"disk","label":"MEDIA","state":"ok","volume_id":id,"volume_path":""}],
+            "datasets":[dataset, unassigned,
+                file_dataset(id, "suelto.txt", &[], "ok", &copy(&a, Some(now)), 3, now)],
+            "next_cursor":null});
+        validate(&index).unwrap();
+    }
 }

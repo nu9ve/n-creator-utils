@@ -825,7 +825,7 @@ enum OperationScope { case ingest, library, space, settings, source }
             let result = try await self.client!.call("suite_publish_index", [
                 "root": volume["root"], "include_personal": .bool(true),
             ])
-            self.message = String(localized: "Índice publicado · \(Int(result["dataset_count"].double)) entradas")
+            self.message = String(localized: "Índice publicado · \(Int(result["file_count"].double)) archivos en \(Int(result["dataset_count"].double)) grupos")
         }
     }
 
@@ -852,9 +852,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     private func showSuiteAdoption(_ result: JSONValue) {
         let alert = NSAlert()
         let label = result["marker"]["label"].string
-        let count = Int(result["dataset_count"].double)
+        let files = Int(result["file_count"].double)
+        let groups = Int(result["dataset_count"].double)
         let projects = Int(result["project_count"].double)
-        let date = result["generated_at"].string
+        let date = Timestamps.label(result["generated_at"].string)
         alert.messageText = String(localized: "Disco adoptado en sólo lectura")
         let snapshot = result["snapshot"]["state"].string == "verified"
             ? String(localized: "Snapshot del catálogo verificado")
@@ -862,7 +863,7 @@ enum OperationScope { case ingest, library, space, settings, source }
         let warning = result["state"].string == "unverified"
             ? "\n" + String(localized: "Segundo factor sin verificar")
             : ""
-        alert.informativeText = String(localized: "\(label) · \(count) entradas · \(projects) proyectos\nÍndice del \(date)\n\(snapshot)") + warning
+        alert.informativeText = String(localized: "\(label) · \(files) archivos en \(groups) grupos · \(projects) proyectos\nÍndice del \(date)\n\(snapshot)") + warning
         alert.runModal()
         message = String(localized: "Adopción en sólo lectura · \(label)")
     }
