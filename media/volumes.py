@@ -1,4 +1,5 @@
 """Volume identity is independent of a display name or transient disk number."""
+import json
 import os
 from pathlib import Path
 import plistlib
@@ -7,7 +8,7 @@ import shutil
 import subprocess
 import sys
 
-from .common import MediaError, require
+from .common import MediaError, Tree, require
 
 
 SANDBOX_ENV = 'NU9VE_SANDBOX'
@@ -43,6 +44,56 @@ def sandbox_image(mount, info=None, *, state_dir=None):
         if root in path.parents and any(e.get('mount-point') == mount for e in image.get('system-entities', [])):
             return path
     return None
+
+
+def _suite_marker(root):
+    with Tree(root) as tree:
+        raw = tree.read_bytes('.nu9ve/volume.json', limit=16 * 1024)
+    if raw is None:
+        return None
+    try:
+        value = json.loads(raw.decode('utf-8'))
+        factor = value['fs']
+        if (value['contract'] != 'nu9ve-volume/1'
+                or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', value['volume_id'])
+                or factor['os'] not in ('macos', 'windows', 'linux')
+                or not isinstance(factor['serial'], str) or not 1 <= len(factor['serial']) <= 128):
+            raise ValueError('Invalid suite marker fields')
+    except (ValueError, TypeError, KeyError) as error:
+        raise MediaError('invalid_marker', 'Invalid suite volume marker') from error
+    return value
+
+
+def _check_suite_mount(backend, info):
+    # The daily Python transfer only needs the read guard. Rust owns registration and observation.
+    if not info['external']:
+        return
+    root = info['mount']
+    marker = _suite_marker(root)
+    if marker is None:
+        return
+    volume_id = marker['volume_id']
+    for mounted in backend.mounted_roots():
+        if mounted == root:
+            continue
+        try:
+            other = _suite_marker(mounted)
+        except (OSError, MediaError):
+            continue
+        require(other is None or other['volume_id'] != volume_id, 'duplicate',
+                'Two mounted volumes have the same suite marker')
+    expected = marker['fs']['serial'] if marker['fs']['os'] == 'macos' else None
+    if backend.state_dir:
+        try:
+            with Tree(backend.state_dir) as local:
+                raw = local.read_bytes(f'suite-volumes/{volume_id}-macos.json', limit=4096)
+        except FileNotFoundError:
+            raw = None
+        if raw:
+            expected = json.loads(raw.decode('utf-8')).get('serial') or expected
+    serial = info.get('volume_uuid')
+    require(not (serial and expected and serial.upper() != expected), 'suspect',
+            'The filesystem serial disagrees with the known suite volume')
 
 
 class VolumeBackend:
@@ -87,12 +138,14 @@ class VolumeBackend:
                 physical_disks = [data.get('ParentWholeDisk') or data.get('DeviceIdentifier')]
             require(all(physical_disks), 'volume_identity_unavailable', 'Physical disk identity missing')
             require(not external_required or external, 'external_required', 'Use a mounted external volume')
-            return {'mode': 'macos', 'volume_uuid': data['VolumeUUID'], 'disk_uuid': data.get('DiskUUID'),
+            info = {'mode': 'macos', 'volume_uuid': data['VolumeUUID'], 'disk_uuid': data.get('DiskUUID'),
                     'mount': mount, 'external': external, 'physical': ','.join(physical_disks), 'physical_disks': physical_disks,
                     'filesystem': data.get('FilesystemType', ''), 'block_size': data.get('VolumeAllocationBlockSize', 4096),
                     'root_inode': st.st_ino, 'device': st.st_dev, 'free': shutil.disk_usage(root).free,
                     'removable': image.name.upper().startswith('SD') if image else bool(data.get('RemovableMedia') or data.get('Removable')),
                     'disk_image': data.get('BusProtocol') == 'Disk Image' and image is None, **({'sandbox': True} if image else {})}
+            _check_suite_mount(self, info)
+            return info
         require(not external_required, 'unsupported_platform', 'External identity backend is currently macOS only')
         return {'mode': 'local', 'volume_uuid': str(st.st_dev), 'disk_uuid': None, 'mount': str(root),
                 'external': False, 'physical': str(st.st_dev), 'filesystem': 'local', 'block_size': 4096,

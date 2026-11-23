@@ -145,7 +145,13 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 12] = [
+const NATIVE: [&str; 18] = [
+    "suite_device",
+    "suite_register_volume",
+    "suite_resolve_volume",
+    "suite_observe_volume",
+    "suite_publish_index",
+    "suite_adopt_volume",
     "clipper_project_status",
     "clipper_restore_apply",
     "clipper_restore_plan",
@@ -277,6 +283,15 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
 
 fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
+    writes.push("suite_device");
+    if has_backend {
+        writes.extend([
+            "suite_register_volume",
+            "suite_resolve_volume",
+            "suite_observe_volume",
+            "suite_publish_index",
+        ]);
+    }
     if has_backend {
         writes.push("coverage");
     }
@@ -341,7 +356,8 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 16] = [
+const ONCE_READS: [&str; 17] = [
+    "suite_adopt_volume",
     "missions_archived_review",
     "clipper_restore_plan",
     "save_all_work_plan",
@@ -386,7 +402,32 @@ impl Engine {
     fn call(&self, method: &str, params: &Value) -> Result<Value> {
         let platform = platform_backend(&self.home());
         let platform = platform.as_deref();
+        let isolated = self.state_dir.is_some()
+            || std::env::var_os("NU9VE_SANDBOX").is_some()
+            || std::env::var_os("NU9VE_MEDIA_HOME").is_some();
         match method {
+            "suite_device" => nuun_media::suite_device::current(isolated, params),
+            "suite_register_volume" => nuun_media::suite_volume::register(
+                &self.home(),
+                backend(platform)?,
+                isolated,
+                params,
+            ),
+            "suite_resolve_volume" => nuun_media::suite_volume::resolve(
+                &self.home(),
+                backend(platform)?,
+                isolated,
+                params,
+            ),
+            "suite_observe_volume" => {
+                nuun_media::suite_volume::observe(&self.home(), backend(platform)?, params)
+            }
+            "suite_publish_index" => {
+                nuun_media::suite_volume::publish(&self.home(), backend(platform)?, params)
+            }
+            "suite_adopt_volume" => {
+                nuun_media::suite_volume::adopt(&self.home(), backend(platform)?, params)
+            }
             "missions_archived_apply" => {
                 nuun_media::missions::archived_apply(&self.home(), write_backend(platform)?, params)
             }

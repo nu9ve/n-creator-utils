@@ -19,6 +19,10 @@ pub trait Backend: Sync {
     fn mounted_roots(&self) -> Vec<PathBuf>;
     /// The identity of the volume at `root` (the `info` dictionary of Python's `describe`).
     fn describe(&self, root: &Path, external_required: bool) -> Result<Value>;
+    /// Suite observation can report that a readable volume has no filesystem serial.
+    fn describe_suite(&self, root: &Path) -> Result<Value> {
+        self.describe(root, true)
+    }
     /// `(used, capacity)` bytes, like `shutil.disk_usage`.
     fn usage(&self, root: &Path) -> Option<(u64, u64)>;
     /// Python `fast_check(root, token)`: the volume described in `token` is still the one at `root`. By default a
@@ -67,11 +71,14 @@ pub fn normalize(root: &Path) -> String {
 pub fn platform_backend(_home: &Path) -> Option<Box<dyn Backend>> {
     #[cfg(windows)]
     {
-        Some(Box::new(WindowsBackend))
+        Some(Box::new(WindowsBackend {
+            home: _home.to_path_buf(),
+        }))
     }
     #[cfg(target_os = "macos")]
     {
         Some(Box::new(MacBackend {
+            home: _home.to_path_buf(),
             sandbox: std::env::var_os("NU9VE_SANDBOX")
                 .and_then(|root| sandbox_root_of(Path::new(&root), _home)),
         }))
@@ -97,6 +104,7 @@ pub fn platform_backend_name() -> Option<&'static str> {
 /// what `df -P` prints, `diskutil info -plist`, `statvfs`), so a volume Python registered is online here as is.
 #[cfg(target_os = "macos")]
 pub struct MacBackend {
+    home: PathBuf,
     sandbox: Option<PathBuf>,
 }
 
@@ -211,6 +219,60 @@ impl Backend for MacBackend {
     }
 
     fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
+        let info = self.describe_mount(root, external_required, false)?;
+        crate::suite_volume::check_mount(&self.home, self, &info)?;
+        Ok(info)
+    }
+
+    fn describe_suite(&self, root: &Path) -> Result<Value> {
+        self.describe_mount(root, true, true)
+    }
+
+    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+        nu9ve_volumes::macos::disk_usage(root)
+            .ok()
+            .map(|(total, used, _)| (used, total))
+    }
+
+    /// Python `fast_check`: the root still has the device and inode of the token, without asking diskutil.
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        use std::os::unix::fs::MetadataExt;
+        let st = std::fs::symlink_metadata(root)
+            .map_err(|_| Error::new("volume_replaced", "Volume disconnected or root changed"))?;
+        require(
+            token["device"] == json!(st.dev() as i32) && token["root_inode"] == json!(st.ino()),
+            "volume_replaced",
+            "Volume disconnected or root changed",
+        )?;
+        Ok(token.clone())
+    }
+
+    fn eject(&self, root: &Path, expected: &Value) -> Result<()> {
+        use nu9ve_volumes::macos::{Failure, eject};
+        let current = self.describe(root, true)?;
+        validate_card(root, &current)?;
+        require(
+            &card_identity(&current) == expected,
+            "volume_replaced",
+            "Card identity changed; select it again",
+        )?;
+        eject(current["mount"].as_str().unwrap_or_default()).map_err(|error| match error {
+            Failure::Timeout => Error::new(
+                "eject_uncertain",
+                "Eject did not answer; refresh mounts before removing the card",
+            ),
+            Failure::Status => Error::new(
+                "eject_failed",
+                "Could not eject card; close files and retry",
+            ),
+            Failure::Other(message) => Error::new("internal_error", message),
+        })
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl MacBackend {
+    fn describe_mount(&self, root: &Path, external_required: bool, suite: bool) -> Result<Value> {
         use nu9ve_volumes::macos::{Failure, disk_usage, diskutil, mount_point};
         use std::os::unix::fs::MetadataExt;
         let root = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
@@ -245,7 +307,7 @@ impl Backend for MacBackend {
         };
         let mount = data["MountPoint"].clone();
         require(
-            truthy(&mount) && truthy(&data["VolumeUUID"]),
+            truthy(&mount) && (suite || truthy(&data["VolumeUUID"])),
             "volume_identity_unavailable",
             "Missing mounted volume identity",
         )?;
@@ -331,54 +393,18 @@ impl Backend for MacBackend {
             if image.is_some() {
                 info["sandbox"] = json!(true);
             }
+            if suite {
+                info["label"] = data["VolumeName"].clone();
+            }
             info
-        })
-    }
-
-    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
-        nu9ve_volumes::macos::disk_usage(root)
-            .ok()
-            .map(|(total, used, _)| (used, total))
-    }
-
-    /// Python `fast_check`: the root still has the device and inode of the token, without asking diskutil.
-    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
-        use std::os::unix::fs::MetadataExt;
-        let st = std::fs::symlink_metadata(root)
-            .map_err(|_| Error::new("volume_replaced", "Volume disconnected or root changed"))?;
-        require(
-            token["device"] == json!(st.dev() as i32) && token["root_inode"] == json!(st.ino()),
-            "volume_replaced",
-            "Volume disconnected or root changed",
-        )?;
-        Ok(token.clone())
-    }
-
-    fn eject(&self, root: &Path, expected: &Value) -> Result<()> {
-        use nu9ve_volumes::macos::{Failure, eject};
-        let current = self.describe(root, true)?;
-        validate_card(root, &current)?;
-        require(
-            &card_identity(&current) == expected,
-            "volume_replaced",
-            "Card identity changed; select it again",
-        )?;
-        eject(current["mount"].as_str().unwrap_or_default()).map_err(|error| match error {
-            Failure::Timeout => Error::new(
-                "eject_uncertain",
-                "Eject did not answer; refresh mounts before removing the card",
-            ),
-            Failure::Status => Error::new(
-                "eject_failed",
-                "Could not eject card; close files and retry",
-            ),
-            Failure::Other(message) => Error::new("internal_error", message),
         })
     }
 }
 
 /// The real backend on Windows. It compiles everywhere; only `platform_backend` decides where it is used.
-pub struct WindowsBackend;
+pub struct WindowsBackend {
+    home: PathBuf,
+}
 
 impl Backend for WindowsBackend {
     fn mounted_roots(&self) -> Vec<PathBuf> {
@@ -396,6 +422,38 @@ impl Backend for WindowsBackend {
     }
 
     fn describe(&self, root: &Path, external_required: bool) -> Result<Value> {
+        let info = self.describe_mount(root, external_required)?;
+        crate::suite_volume::check_mount(&self.home, self, &info)?;
+        Ok(info)
+    }
+
+    fn describe_suite(&self, root: &Path) -> Result<Value> {
+        self.describe_mount(root, true)
+    }
+
+    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
+        nu9ve_volumes::describe(root)
+            .ok()
+            .map(|i| (i.total.saturating_sub(i.total_free), i.total))
+    }
+
+    /// The root folder is still there with the same file index: a quick look between files, as Python stats the
+    /// root against its token. A full `check` runs at the start and before receipts and cleanup.
+    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
+        let same = nu9ve_volumes::fs::stamp_opt(root)?.is_some_and(|s| {
+            s.kind == nu9ve_volumes::EntryKind::Dir && Some(s.inode) == token["root_inode"].as_u64()
+        });
+        require(
+            same,
+            "volume_replaced",
+            "Volume disconnected or root changed",
+        )?;
+        Ok(token.clone())
+    }
+}
+
+impl WindowsBackend {
+    fn describe_mount(&self, root: &Path, external_required: bool) -> Result<Value> {
         require(
             root.is_dir() && !root.is_symlink(),
             "volume_offline",
@@ -432,26 +490,6 @@ impl Backend for WindowsBackend {
             "label": info.label,
             "bus": info.bus.id(),
         }))
-    }
-
-    fn usage(&self, root: &Path) -> Option<(u64, u64)> {
-        nu9ve_volumes::describe(root)
-            .ok()
-            .map(|i| (i.total.saturating_sub(i.total_free), i.total))
-    }
-
-    /// The root folder is still there with the same file index: a quick look between files, as Python stats the
-    /// root against its token. A full `check` runs at the start and before receipts and cleanup.
-    fn fast_check(&self, root: &Path, token: &Value) -> Result<Value> {
-        let same = nu9ve_volumes::fs::stamp_opt(root)?.is_some_and(|s| {
-            s.kind == nu9ve_volumes::EntryKind::Dir && Some(s.inode) == token["root_inode"].as_u64()
-        });
-        require(
-            same,
-            "volume_replaced",
-            "Volume disconnected or root changed",
-        )?;
-        Ok(token.clone())
     }
 }
 
@@ -1459,19 +1497,23 @@ mod tests {
         let root = target.display().to_string();
         let refused = register_volume(
             &home,
-            &WindowsBackend,
+            &WindowsBackend { home: home.clone() },
             &json!({"name": "LOCAL", "role": "work", "root": root}),
         )
         .unwrap_err();
         assert_eq!(refused.code, "external_required");
         let record = register_volume(
             &home,
-            &WindowsBackend,
+            &WindowsBackend { home: home.clone() },
             &json!({"name": "LOCAL", "role": "work", "root": root, "allow_local": true}),
         )
         .unwrap();
         assert_eq!(record["identity"]["mode"], "windows");
-        let listed = volumes(&Catalog::open(&home).unwrap(), &WindowsBackend).unwrap();
+        let listed = volumes(
+            &Catalog::open(&home).unwrap(),
+            &WindowsBackend { home: home.clone() },
+        )
+        .unwrap();
         assert_eq!(listed[0]["online"], true);
     }
 
@@ -1480,7 +1522,10 @@ mod tests {
     fn the_system_volume_has_a_windows_identity_and_is_not_a_card() {
         let folder = tempfile::tempdir().unwrap();
         let root = nu9ve_volumes::drive_root_of(folder.path()).unwrap();
-        let info = WindowsBackend.describe(&root, false).unwrap();
+        let backend = WindowsBackend {
+            home: folder.path().to_owned(),
+        };
+        let info = backend.describe(&root, false).unwrap();
         assert_eq!(info["mode"], "windows");
         assert!(
             info["volume_uuid"]
@@ -1492,12 +1537,12 @@ mod tests {
         assert_eq!(validate_card(&root, &info).unwrap_err().code, "not_a_card");
         // Registered as a destination, it is online with the same identity and offline once replaced.
         let record = json!({"name": "SYS", "root": root.display().to_string(), "identity": info});
-        assert!(online(&WindowsBackend, &record).is_some());
+        assert!(online(&backend, &record).is_some());
         let mut replaced = record.clone();
         replaced["identity"]["volume_uuid"] =
             json!("\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\");
         assert_eq!(
-            check(&WindowsBackend, &replaced).unwrap_err().code,
+            check(&backend, &replaced).unwrap_err().code,
             "volume_replaced"
         );
     }

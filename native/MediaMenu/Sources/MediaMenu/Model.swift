@@ -728,6 +728,122 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
         }
     }
+    func registerSuiteVolume(_ volume: JSONValue) {
+        let root = volume["root"]
+        operation(String(localized: "Registrando disco en la suite"), scope: .settings) {
+            guard let client = self.client else { return }
+            let result: JSONValue
+            do {
+                result = try await client.call("suite_register_volume", [
+                    "root": root, "role": volume["role"], "label": volume["name"],
+                ])
+            } catch let failure as BackendFailure where ["suspect", "duplicate"].contains(failure.code) {
+                let observed = try await client.call("suite_observe_volume", ["root": root])
+                guard let decision = self.reviewSuiteVolume(observed) else {
+                    self.message = String(localized: "Identidad del disco pendiente de revisar")
+                    return
+                }
+                result = try await client.call("suite_resolve_volume", [
+                    "root": root, "volume_id": observed["marker"]["volume_id"],
+                    "serial": observed["current_fs"]["serial"], "decision": .string(decision),
+                ])
+            }
+            let suggested = result["suggested_device_name"].string
+            if !suggested.isEmpty, let chosen = self.confirmSuiteDeviceName(suggested) {
+                let device = try await client.call("suite_device", ["name": .string(chosen)])
+                guard device["state"].string == "ok" else {
+                    throw BackendFailure(code: "device_unavailable", message: device["message"].string)
+                }
+            }
+            self.message = result["state"].string == "unverified"
+                ? String(localized: "Identidad del disco sin segundo factor")
+                : String(localized: "Identidad de disco verificada")
+        }
+    }
+
+    private func reviewSuiteVolume(_ observed: JSONValue) -> String? {
+        let suspect = observed["state"].string == "suspect"
+        guard suspect || observed["state"].string == "duplicate" else { return nil }
+        let alert = NSAlert()
+        alert.messageText = suspect ? String(localized: "Cambió el serial del disco") : String(localized: "Dos discos tienen la misma identidad")
+        let currentSerial = observed["current_fs"]["serial"].string
+        alert.informativeText = String(localized: "Serial actual · \(currentSerial)")
+        alert.addButton(withTitle: String(localized: "Cancelar"))
+        alert.addButton(withTitle: String(localized: "Registrar como copia"))
+        if suspect { alert.addButton(withTitle: String(localized: "Es el mismo disco")) }
+        switch alert.runModal() {
+        case .alertSecondButtonReturn: return "copy"
+        case .alertThirdButtonReturn: return "same"
+        default: return nil
+        }
+    }
+
+    private func confirmSuiteDeviceName(_ suggestion: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Nombre de este dispositivo")
+        alert.informativeText = String(localized: "Se encontró una identidad copiada de otra máquina. Confirma o cambia el nombre de ésta.")
+        let name = NSTextField(string: suggestion)
+        name.frame.size.width = 260
+        alert.accessoryView = name
+        alert.addButton(withTitle: String(localized: "Guardar nombre"))
+        alert.addButton(withTitle: String(localized: "Más tarde"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        return name.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func publishSuiteIndex(_ volume: JSONValue) {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Publicar el índice en el disco")
+        alert.informativeText = String(localized: "El índice incluirá nombres y rutas relativas de las copias catalogadas en este disco, junto con los proyectos asociados.")
+        alert.addButton(withTitle: String(localized: "Publicar"))
+        alert.addButton(withTitle: String(localized: "Cancelar"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        operation(String(localized: "Publicando índice portátil"), scope: .settings) {
+            let result = try await self.client!.call("suite_publish_index", [
+                "root": volume["root"], "include_personal": .bool(true),
+            ])
+            self.message = String(localized: "Índice publicado · \(Int(result["dataset_count"].double)) entradas")
+        }
+    }
+
+    func adoptSuiteVolume() {
+        pickURL(message: String(localized: "Elige la raíz del disco que quieres consultar")) { url in
+            guard !self.busy, let client = self.client else { return }
+            self.activeScope = .settings
+            self.error = ""
+            self.message = String(localized: "Leyendo índice portátil")
+            self.statusChanged?()
+            Task {
+                defer { self.activeScope = nil; self.statusChanged?() }
+                do {
+                    let result = try await client.call("suite_adopt_volume", ["root": .string(url.path)])
+                    self.showSuiteAdoption(result)
+                } catch {
+                    self.error = error.localizedDescription
+                    self.message = String(localized: "No se pudo adoptar el disco")
+                }
+            }
+        }
+    }
+
+    private func showSuiteAdoption(_ result: JSONValue) {
+        let alert = NSAlert()
+        let label = result["marker"]["label"].string
+        let count = Int(result["dataset_count"].double)
+        let projects = Int(result["project_count"].double)
+        let date = result["generated_at"].string
+        alert.messageText = String(localized: "Disco adoptado en sólo lectura")
+        let snapshot = result["snapshot"]["state"].string == "verified"
+            ? String(localized: "Snapshot del catálogo verificado")
+            : String(localized: "Sin snapshot del catálogo")
+        let warning = result["state"].string == "unverified"
+            ? "\n" + String(localized: "Segundo factor sin verificar")
+            : ""
+        alert.informativeText = String(localized: "\(label) · \(count) entradas · \(projects) proyectos\nÍndice del \(date)\n\(snapshot)") + warning
+        alert.runModal()
+        message = String(localized: "Adopción en sólo lectura · \(label)")
+    }
+
     func volume(_ key: String) -> JSONValue? { volumes.first { $0["id"].string == key || $0["name"].string == key } }
     var sourceKey: String { source + "|" + sourceKind + "|" + archive }
     var contentLoaded: Bool { !source.isEmpty && loadedSourceKey == sourceKey }

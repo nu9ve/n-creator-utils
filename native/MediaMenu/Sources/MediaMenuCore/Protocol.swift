@@ -291,7 +291,7 @@ public final class BackendClient: @unchecked Sendable {
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string(method), "params": .object(params)]))
         let epoch = currentEpoch()
-        let rustOnly = method.hasPrefix("save_all_") || method == "clipper_project_status"
+        let rustOnly = method.hasPrefix("suite_") || method.hasPrefix("save_all_") || method == "clipper_project_status"
             || method.hasPrefix("clipper_restore_")
             || method.hasPrefix("missions_archived_")
             || method == "living_plan" && params["batch_managed"] == .bool(true)

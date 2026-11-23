@@ -16,6 +16,8 @@ Contrato aditivo de [cierre de proyectos](project-closeout-v1.md): decisiones, f
 
 [Ingreso directo](ingest-flow-v1.md), 2026-11-05: tres pantallas, soporte sin proyecto editorial, una autorización del plan y progreso global.
 
+[Identidad portable y adopción F0](suite-volume-f0.md): marcador compartido, índice transportable y lectura de discos registrados desde otra instalación.
+
 ## Lectura vigente · 2026-11-06
 
 Clipper ya ofrece retiro editorial con desregistro en CLI/TUI; nüün conserva editables y observa deps frescos, sin invocar automáticamente retire. Atlas amplió su propuesta a A1–A10 (6 noviembre), todavía sin implementación nüün. Las filas y pedidos antiguos conservan su fecha: contrastar los «Pendiente» con los cierres posteriores antes de abrir trabajo nuevo. Prioridad operativa actual en [PLAN](../../PLAN.md); no confundir adopción en fixtures con aceptación física.

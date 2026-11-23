@@ -1,6 +1,6 @@
 # Estado vigente
 
-Actualizado: 2026-11-19, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
+Actualizado: 2026-11-22, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
 
 Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área** (estado, evidencia, pendiente) y se agrega, como mucho, una entrada corta en «Entregas recientes». Cuando esa sección pase de ~5 entradas, las más viejas se mueven a la bitácora de `releases/`.
 
@@ -18,6 +18,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Área | Estado | Evidencia física | Pendiente |
 | --- | --- | --- | --- |
+| **Identidad portable F0** | Motor Rust y Ajustes → Discos: marcador, segundo factor, índice y adopción en sólo lectura. | Ambos discos registrados y leídos con un estado local vacío. MEDIA502: 7 666 entradas y snapshot verificado. ESSD: 1 960 entradas. [Evidencia](#identidad-portable-f0--2026-11-22) | Aceptación en ventana, otra Mac y Windows. |
 | **Ingreso de cámara** (Entrada → Flujo → Resultado) | En uso. Flujo identifica fuente y alcance individual/lote, y permite escribir el proyecto donde se prepara el plan. El detalle y los controles de un único resultado quedan visibles al lado o encima de la vista previa. | Varios ingresos reales a MEDIA502 + ESSD desde la app. La conversión Handycam y la expulsión se probaron en la build instalada. | Plan, progreso, pausa y reanudación comprobados en ventana con imágenes. Pendiente medir la latencia del popup. |
 | **Sony α6400** | En uso. Retira clips verificados, conserva índices y observa el formato al reconectar. Corregida la lectura final de entradas retiradas que siguen listadas | Job físico `17e70e69`: 21 archivos en MEDIA502 y 4 en ESSD cotejados con sus recibos por SHA-256. Doce retiros journalizados y nueve archivos de cámara intactos. [Detalle](#lectura-final-sony--2026-11-13) | La limpieza del clip real de prueba pasó con Rust. El retiro persistió tras remontar sin formatear. Falta observar el cierre por formato |
 | **Stalker** | En uso: bandeja, bundles completos, liberación local con relink/ACK de Clipper | Ingresos reales completos | Casos `recording`/`finalizing`/`recovery` reales; [pedidos](contracts/README.md#pendientes-para-n-creator-utils) |
@@ -37,6 +38,32 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 | **Windows (cliente)** | Cliente WinUI 3 en [`native/windows`](../native/windows/README.md): shell con `TitleBar`, cinco skins, Inicio, Ingreso (Entrada → Flujo → Resultado), Flujos, Biblioteca, Ajustes, Acerca de, compacto/completo. Base reutilizable `Nu9ve.Core` + `Nu9ve.WinUI`, desde el 2026-11-16 en `nu9ve/core` y aquí como copia fijada; la identidad de tema de nüün vive en `Nuun.Core/Theme/NuunTheme.cs`. Setup con forma de SD. Con el motor de Rust muestra los datos reales del PC (`snapshot`, destinos, tarjetas montadas, contenido con dispositivo por EXIF), registra destinos y **hace el ingreso**: tarjeta u «Otra carpeta…», destinos reales, sólo respaldo confirmado por operación, `plan_document` → revisión → `apply` con progreso del motor → pausa cooperativa → `resume` (en Resultado y en Biblioteca → Actividad). `--maqueta` para demos y QA | 16 nov, Windows 11: 38 pruebas C# (dos de ingreso con el binario real). Recorrido por UI Automation en raíz de QA con carpetas locales: pausa y reanudación, y corte del trabajador con reanudación desde Actividad tras reabrir la app; 6 de 6 copias con el mismo SHA-256. [Detalle](#ingreso-desde-la-ventana-de-windows--2026-11-16). 9–10 nov: capturas de los cinco skins y registro de destino. MSIX **sin firmar**; Setup probado en demostración | Paso 4: SD y disco USB reales (exFAT, lector). Paso 5: expulsar, limpieza de cámara, progreso en la barra de tareas y aviso al terminar. Firma e instalación; alto contraste, escala y Narrador a mano. [Guía](../vendor/nu9ve-core/docs/platforms/windows.md) (su §1 todavía dice que nüün no lee discos) |
 
 El motor usa `nu9ve-fs` desde su copia fijada para sincronizar, publicar y releer archivos. En macOS pasaron 161 pruebas de Rust y 23 diferenciales contra Python. [Contrato de archivos](../vendor/nu9ve-core/contracts/nu9ve-fs-v1.md).
+
+## Identidad portable F0 · 2026-11-22
+
+- Core fijado en `2d453339c711`. Se creó la identidad compartida de esta Mac
+  con el nombre provisional del contrato y permisos `0600`. MEDIA502 quedó
+  registrado como `archive` y ESSD como `work`; cada uno lleva
+  `.nu9ve/volume.json` y `.nu9ve/apps/nuun/index.json`.
+- Disk Arbitration y `diskutil info -plist` dieron en MEDIA502 el mismo
+  `VolumeUUID` exFAT, `26B381C0-74B3-3F56-B1A3-35533249F725`. En una imagen
+  exFAT desechable el UUID se mantuvo en dos montajes y cambió al modificar
+  sólo el serial y sus checksums de arranque. Queda pendiente cotejar
+  MEDIA502 en Windows, cuyo segundo factor usa el formato `XXXX-XXXX`.
+- La adopción de los discos fue una operación física explícita con un estado
+  local inexistente. Ambos índices pasaron los validadores de core y se
+  resolvieron por `volume_id`. Se conservaron SHA-256 y fecha de modificación
+  de marcadores, índices y del snapshot de MEDIA502 con su recibo. El snapshot
+  es del 17 nov. MEDIA502 y ESSD reportaron 50 y 29 recibos, respectivamente.
+  [Contrato](contracts/suite-volume-f0.md).
+- Validación local con `unittest discover -s tests` (415 casos, 4 omitidos),
+  `cargo test --workspace -- --include-ignored` (191), `cargo fmt --check`,
+  Clippy con `-D warnings`, `swift test` (29), validadores de core y
+  `sync-core.sh --check`. El primer intento de Python usó un temporal
+  que rechazó el Stalker instalado. La corrida con el `TMPDIR` habitual
+  resuelto pasó. El pin apunta al commit upstream de F0. El gate avisa
+  de un commit local posterior de MIDI que todavía no está en el remoto.
+
 
 ## Límites conocidos (vigentes)
 

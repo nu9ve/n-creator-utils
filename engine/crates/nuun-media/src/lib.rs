@@ -200,3 +200,6 @@ mod mission_tests {
         assert_eq!(line["sha256"]["dng"].as_str().unwrap().len(), 64);
     }
 }
+
+pub mod suite_device;
+pub mod suite_volume;

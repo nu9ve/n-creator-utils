@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-16, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-22, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -97,6 +97,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ## P3 · robustez y distribución
 
+- **Identidad portable F0:** registro, publicación y adopción de sólo lectura comprobados con MEDIA502 y ESSD. Próximos gates: otra Mac y Windows. La extracción de `nu9ve-volumes` al core va en un cambio de suite propio. [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
 - Digest de plan autenticado o reverificación en `apply`; owner/lease de jobs.
 - Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
@@ -120,7 +121,7 @@ Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/core
 
 La §12.1 de `nu9ve-engine-v1` está implementada en los dos motores y Rust usa el servidor de líneas compartido. [Evidencia del gate y de la sombra sobre el dorado](docs/STATUS.md#nu9ve-engine-v1-en-los-dos-motores--2026-11-16).
 
-Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar, identidad de volumen portable. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
+Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
 
 ## Prioridad baja · nombre interno
 
