@@ -207,3 +207,111 @@ pub fn start(home: PathBuf, isolated: bool) -> Option<Served> {
 pub fn start(_: PathBuf, _: bool) -> Option<Served> {
     None
 }
+
+/// The live `suite` engine (the agent, agent §5) with the exchange methods, or why there is none.
+fn agent(isolated: bool) -> std::result::Result<nu9ve_ipc::Record, &'static str> {
+    let dir = registry(isolated).ok_or("absent")?;
+    match nu9ve_ipc::read_entry(&dir, "suite") {
+        Ok(Some(nu9ve_ipc::Entry {
+            state: nu9ve_ipc::State::Live(record),
+            ..
+        })) if record.has_capability("exchange_v1") => Ok(record),
+        Ok(Some(nu9ve_ipc::Entry {
+            state: nu9ve_ipc::State::Live(_),
+            ..
+        })) => Err("unsupported"),
+        _ => Err("absent"),
+    }
+}
+
+fn agent_error(e: nu9ve_json::Error) -> nu9ve_json::Error {
+    nu9ve_json::Error::new(
+        if e.code.is_empty() {
+            "agent_failed"
+        } else {
+            &e.code
+        },
+        format!("The suite agent: {}", e.message),
+    )
+}
+
+/// «Trabajar aquí» (`take`), «Dejar de trabajar aquí» (`release`) or who works on it now (`state`) for one
+/// nüün project, through the agent's `lease_take`, `lease_release` and `leases` (exchange §7.1). Without the
+/// agent nothing changes: the answer says so and nüün works the same (agent §5).
+pub fn lease(isolated: bool, params: &Value) -> nu9ve_json::Result<Value> {
+    use nu9ve_json::{Error, require};
+    use serde_json::json;
+    let p = params.as_object().cloned().unwrap_or_default();
+    require(
+        p.keys().all(|k| k == "action" || k == "project_key"),
+        "invalid_params",
+        "Only action and project_key are accepted",
+    )?;
+    let action = p.get("action").and_then(Value::as_str).unwrap_or_default();
+    require(
+        ["take", "release", "state"].contains(&action),
+        "invalid_params",
+        "action is take, release or state",
+    )?;
+    // `state` without a key: every nüün project that some machine works on (one call for the projects list).
+    let key = match p.get("project_key") {
+        None if action == "state" => None,
+        given => Some(
+            given
+                .and_then(Value::as_str)
+                .filter(|k| {
+                    (1..=64).contains(&k.len())
+                        && k.bytes()
+                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                })
+                .ok_or_else(|| {
+                    Error::new("invalid_params", "project_key must match ^[a-z0-9-]{1,64}$")
+                })?,
+        ),
+    };
+    let record = match agent(isolated) {
+        Ok(record) => record,
+        Err(why) => return Ok(json!({"agent": why, "project_key": key, "holders": []})),
+    };
+    let timeout = nu9ve_ipc::DEFAULT_TIMEOUT;
+    // The record says how to reach it; the engine says what it is (registry §6).
+    let info =
+        nu9ve_ipc::request(&record, "engine_info", None, None, timeout).map_err(agent_error)?;
+    require(
+        info["protocol"] == "nu9ve-suite/1",
+        "agent_unsupported",
+        "The registered suite engine speaks another protocol",
+    )?;
+    let args = json!({"app": APP, "project_key": key});
+    let changed = match action {
+        "take" => Some(
+            nu9ve_ipc::request(&record, "lease_take", Some(args), None, timeout)
+                .map_err(agent_error)?,
+        ),
+        "release" => Some(
+            nu9ve_ipc::request(&record, "lease_release", Some(args), None, timeout)
+                .map_err(agent_error)?,
+        ),
+        _ => None,
+    };
+    let leases = nu9ve_ipc::request(&record, "leases", Some(json!({})), None, timeout)
+        .map_err(agent_error)?;
+    // Other machines' names are their data, shown as such (`_untrusted`, agent §5).
+    let holders: Vec<Value> = leases["leases"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["app"] == APP && key.is_none_or(|k| l["project_key"] == k))
+        .map(|l| {
+            json!({"project_key": l["project_key"], "here": l["here"], "device_id": l["device_id"], "device_name": l["device_name"],
+                "device_name_untrusted": l["device_name_untrusted"], "since": l["since"],
+                "conflict": l["conflict"], "handing_over": l["handing_over"]})
+        })
+        .collect();
+    let mut answer = json!({"agent": "running", "project_key": key,
+        "here": holders.iter().any(|h| h["here"] == true), "holders": holders});
+    if let Some(changed) = changed {
+        answer["changed"] = changed;
+    }
+    Ok(answer)
+}

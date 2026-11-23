@@ -147,8 +147,9 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 18] = [
+const NATIVE: [&str; 19] = [
     "suite_device",
+    "suite_lease",
     "suite_register_volume",
     "suite_resolve_volume",
     "suite_observe_volume",
@@ -286,6 +287,8 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
 fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
     writes.push("suite_device");
+    // «Trabajar aquí» through the suite agent; without it the answer says so and nothing changes.
+    writes.push("suite_lease");
     if has_backend {
         writes.extend([
             "suite_register_volume",
@@ -414,6 +417,7 @@ impl Engine {
         let isolated = self.isolated();
         match method {
             "suite_device" => nuun_media::suite_device::current(isolated, params),
+            "suite_lease" => suite::lease(isolated, params),
             "suite_register_volume" => nuun_media::suite_volume::register(
                 &self.home(),
                 backend(platform)?,

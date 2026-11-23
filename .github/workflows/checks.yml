@@ -56,6 +56,8 @@ jobs:
         run: |
           cargo fmt --check
           cargo clippy --all-targets -- -D warnings
+          # tests/suite_lease.rs runs the suite agent's binary in QA folders.
+          cargo build -p nu9ve-mcp --bin nu9ve
           cargo test
       - name: Differential against the Python golden (TZ fixed as the generator)
         working-directory: engine

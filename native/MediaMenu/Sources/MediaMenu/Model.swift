@@ -275,6 +275,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var suiteDeviceName = ""
     /// The suite agent (nu9ve-agent-v1 §5), as `nu9ve agent state` sees it.
     var suiteAgent = SuiteAgentStatus.unavailable
+    /// The nüün projects some machine works on, by project key (exchange §7.1), as the agent last said.
+    var projectLeases: [String: JSONValue] = [:]
     var error = ""
     var python = ""
     var script = ""
@@ -768,6 +770,35 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
             try await Task.sleep(for: .seconds(1))
             await self.loadSuiteAgent()
+        }
+    }
+
+    /// The suite key of a nüün project: its local id, lowercased (the same one `data_catalog` lists).
+    static func projectKey(_ item: JSONValue) -> String { item["project_id"].string.lowercased() }
+
+    /// Who works on each nüün project now, through the agent. Without the agent there is nothing to show.
+    func loadProjectLeases() async {
+        guard suiteAgent.isRunning,
+              let result = try? await oneShot("suite_lease", ["action": .string("state")]),
+              result["agent"].string == "running" else { projectLeases = [:]; return }
+        var leases: [String: JSONValue] = [:]
+        for holder in result["holders"].array where holder["here"].bool || leases[holder["project_key"].string] == nil {
+            leases[holder["project_key"].string] = holder
+        }
+        projectLeases = leases
+    }
+
+    /// «Trabajar aquí» (`take`) or «Dejar de trabajar aquí» (`release`): the agent's lease_take or lease_release.
+    func setProjectLease(_ item: JSONValue, take: Bool) {
+        let key = Self.projectKey(item)
+        guard !key.isEmpty else { return }
+        operation(take ? String(localized: "Tomando el proyecto en esta máquina") : String(localized: "Soltando el proyecto"), scope: .settings) {
+            let result = try await self.oneShot("suite_lease", ["action": .string(take ? "take" : "release"), "project_key": .string(key)])
+            guard result["agent"].string == "running" else {
+                throw BackendFailure(code: "agent_absent", message: String(localized: "El agente de la suite no corre en esta máquina"))
+            }
+            await self.loadProjectLeases()
+            self.message = take ? String(localized: "Trabajas en este proyecto aquí") : String(localized: "Dejaste de trabajar aquí en este proyecto")
         }
     }
 

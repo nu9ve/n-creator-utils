@@ -1008,3 +1008,13 @@
 "Agente %@ instalado" = "Agent %@ installed";
 "macOS no pudo arrancar el agente" = "macOS could not start the agent";
 "Lo crea el agente de la suite." = "The suite agent creates it.";
+"Trabajar aquí" = "Work here";
+"Dejar de trabajar aquí" = "Stop working here";
+"Tomando el proyecto en esta máquina" = "Taking the project on this machine";
+"Soltando el proyecto" = "Releasing the project";
+"El agente de la suite no corre en esta máquina" = "The suite agent is not running on this machine";
+"Trabajas en este proyecto aquí" = "You work on this project here";
+"Dejaste de trabajar aquí en este proyecto" = "You stopped working on this project here";
+"Otra máquina también dice trabajar en él" = "Another machine also says it works on it";
+"Trabajas aquí" = "You work here";
+"Se trabaja en %@" = "Worked on at %@";

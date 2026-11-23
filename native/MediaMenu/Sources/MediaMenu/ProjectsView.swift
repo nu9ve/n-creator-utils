@@ -58,6 +58,7 @@ struct ProjectsView: View {
             }
         }
         .padding(.horizontal, 20).padding(.top, 14)
+        .task { await model.loadSuiteAgent(); await model.loadProjectLeases() }
     }
 }
 
@@ -69,6 +70,7 @@ struct ProjectRow: View {
     @State private var newName = ""
     @Environment(\.creatorPalette) private var palette
     private var title: String { item["project"].string }
+    private var lease: JSONValue { model.projectLeases[Model.projectKey(item)] ?? .null }
     private var pendingSessions: Int { Int(item["pending_sessions"].double) }
     private var kinds: [(symbol: String, label: String, count: Int)] {
         [("record.circle", "Stalker", "stalker_session"), ("camera", String(localized: "Capturas"), "camera_bundle"), ("doc", String(localized: "Archivos"), "file"), ("film", String(localized: "Entregas"), "delivery")]
@@ -83,6 +85,8 @@ struct ProjectRow: View {
         var parts: [String] = []
         if !item["profile"].string.isEmpty { parts.append(model.profileName(item["profile"].string)) }
         if item["assets"].double > 0 { parts.append(String(localized: "Respaldados: \(Int(item["assets"].double))")) }
+        if lease["here"].bool { parts.append(lease["conflict"].bool ? String(localized: "Otra máquina también dice trabajar en él") : String(localized: "Trabajas aquí")) }
+        else if lease != .null { parts.append(String(localized: "Se trabaja en \(lease["device_name_untrusted"].string)")) }
         if pendingSessions > 0 { parts.append(String(localized: "Sesiones por respaldar: \(pendingSessions)")) }
         if item["work_pending"].double > 0 { parts.append(String(localized: "Copias pendientes: \(Int(item["work_pending"].double))")) }
         if item["open_jobs"].double > 0 { parts.append(String(localized: "Operaciones abiertas: \(Int(item["open_jobs"].double))")) }
@@ -125,6 +129,15 @@ struct ProjectRow: View {
                             Button("Respaldar transcripciones", systemImage: "text.quote") { model.backupTranscripts(item) }
                                 .disabled(model.busy || model.archive.isEmpty)
                             linkMenu
+                        }
+                        if model.suiteAgent.isRunning {
+                            Divider()
+                            // exchange §7.1: one machine works on a project at a time; the other sees it read only.
+                            if lease["here"].bool {
+                                Button("Dejar de trabajar aquí", systemImage: "laptopcomputer.slash") { model.setProjectLease(item, take: false) }.disabled(model.busy)
+                            } else {
+                                Button("Trabajar aquí", systemImage: "laptopcomputer") { model.setProjectLease(item, take: true) }.disabled(model.busy)
+                            }
                         }
                         Divider()
                         if item["state"].string == "active" {
