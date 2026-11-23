@@ -124,6 +124,108 @@ fn work_copies(home: &Path, backend: &dyn Backend) -> Result<Vec<Value>> {
     Ok(out)
 }
 
+/// Two modification times that a copy keeps: equal, within what the coarsest filesystem keeps (HFS+ keeps
+/// seconds, FAT two of them).
+fn same_time(a: &Value, b: &Value) -> bool {
+    match (a.as_i64(), b.as_i64()) {
+        (Some(a), Some(b)) => (a - b).abs() < 2_000_000_000,
+        _ => false,
+    }
+}
+
+/// Copied before between two connected work disks and changed since on one of them: what was processed there
+/// (new files under the copied folders, or files that changed). Known from the receipts on the disk, by size and
+/// date only, so it works without the other app publishing an index. Only copies without `into`.
+fn changed_since_copy(disks: &[Disk]) -> Vec<Value> {
+    let mut out = Vec::new();
+    for from in disks {
+        let from_id = text(&from.marker, "volume_id");
+        let receipts = work_copy::full_receipts(&from.root);
+        for to in disks {
+            let to_id = text(&to.marker, "volume_id");
+            if to_id == from_id {
+                continue;
+            }
+            let between: Vec<&Value> = receipts
+                .iter()
+                .filter(|r| {
+                    r["destination"]["into"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .is_empty()
+                })
+                .filter(|r| {
+                    let (s, d) = (&r["source"]["volume_id"], &r["destination"]["volume_id"]);
+                    (s == from_id && d == to_id) || (s == to_id && d == from_id)
+                })
+                .collect();
+            if between.is_empty() {
+                continue;
+            }
+            // What each file of `from` was at its last copy, in either direction (receipts are oldest first).
+            let mut known: std::collections::HashMap<String, (u64, Value)> = Default::default();
+            let mut roots: Vec<String> = Vec::new();
+            for receipt in &between {
+                let here = if receipt["destination"]["volume_id"] == from_id {
+                    "path"
+                } else {
+                    "source_path"
+                };
+                for file in receipt["files"].as_array().into_iter().flatten() {
+                    known.insert(
+                        text(file, here).to_owned(),
+                        (
+                            file["size"].as_u64().unwrap_or_default(),
+                            file["mtime_ns"].clone(),
+                        ),
+                    );
+                }
+                for path in receipt["source"]["paths"].as_array().into_iter().flatten() {
+                    let path = path.as_str().unwrap_or_default().to_owned();
+                    if !roots.iter().any(|r| within(&path, r)) {
+                        roots.retain(|r| !within(r, &path));
+                        roots.push(path);
+                    }
+                }
+            }
+            roots.sort();
+            let mut changed = Vec::new();
+            let (mut files, mut bytes) = (0usize, 0u64);
+            for root in roots {
+                let Ok(found) = work_copy::files_under(&from.root, &root) else {
+                    continue;
+                };
+                let (mut n, mut b, mut new) = (0usize, 0u64, 0usize);
+                for (path, stamp) in found {
+                    let mtime = crate::tree::stamp_json(&stamp)["mtime_ns"].clone();
+                    match known.get(&path) {
+                        Some((size, at)) if *size == stamp.size && same_time(at, &mtime) => {
+                            continue;
+                        }
+                        None => new += 1,
+                        Some(_) => {}
+                    }
+                    n += 1;
+                    b += stamp.size;
+                }
+                if n > 0 {
+                    files += n;
+                    bytes += b;
+                    changed.push(json!({"path":root,"files":n,"new":new,"bytes":b}));
+                }
+            }
+            if !changed.is_empty() {
+                changed.truncate(LISTED);
+                out.push(json!({"key":format!("work_copy_changed:{from_id}:{to_id}"),"flow":"work_copy_changed",
+                    "source":{"volume_id":from_id,"label":from.marker["label"],"root":volumes::normalize(&from.path)},
+                    "destination":{"volume_id":to_id,"label":to.marker["label"],"root":volumes::normalize(&to.path)},
+                    "count":files,"bytes":bytes,"paths":changed,"update":true}));
+            }
+        }
+    }
+    out
+}
+
 /// The decided conversations that are due, with their archive connected; and a working copy left behind.
 fn conversations_due(home: &Path, backend: &dyn Backend, user_home: &Path) -> Result<Vec<Value>> {
     let status = conversations::status(home, user_home)?;
@@ -196,6 +298,7 @@ fn conversations_due(home: &Path, backend: &dyn Backend, user_home: &Path) -> Re
 pub fn suggestions(home: &Path, backend: &dyn Backend, user_home: &Path) -> Result<Value> {
     let silenced = dismissed(&Catalog::open(home)?)?;
     let mut all = work_copies(home, backend)?;
+    all.extend(changed_since_copy(&work_disks(home, backend)));
     all.extend(conversations_due(home, backend, user_home)?);
     let (kept, hidden): (Vec<Value>, Vec<Value>) = all
         .into_iter()

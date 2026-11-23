@@ -1024,7 +1024,13 @@
 "%@ tiene trabajo que no está en %@" = "%@ has work that is not on %@";
 "%@ · decidido el %@" = "%@ · decided on %@";
 "%lld archivos · %@ por copiar · %lld ya están iguales" = "%lld files · %@ to copy · %lld already identical";
-"%lld copiados · %lld ya estaban iguales" = "%lld copied · %lld were already identical";
+"%lld copiados · %lld actualizados · %lld ya estaban iguales" = "%lld copied · %lld updated · %lld were already identical";
+"%@ tiene trabajo nuevo o cambiado desde la última copia con %@" = "%@ has new or changed work since the last copy with %@";
+"%lld cambiaron y se actualizan; su versión anterior queda en la carpeta de nüün del destino." = "%lld changed and will be updated; their previous version stays in nüün's folder on the destination.";
+"Actualizar lo que cambió" = "Update what changed";
+"Hay archivos distintos con el mismo nombre en el destino. Marca «Actualizar lo que cambió» para reemplazarlos guardando su versión anterior, o elige otra carpeta." = "The destination has different files with the same names. Check “Update what changed” to replace them and keep their previous version, or choose another folder.";
+"Proyectos de nüün en este disco · índice del %@" = "nüün projects on this disk · index of %@";
+"Si un archivo ya está en el destino con otro contenido, lo reemplaza después de verificar la copia y guarda la versión anterior en la carpeta de nüün de ese disco. Sin esto, el plan se detiene." = "If a file is already on the destination with different contents, it is replaced after the copy is verified, and the previous version is kept in nüün's folder on that disk. Without this, the plan stops.";
 "A pedido" = "On request";
 "Actualizar copia" = "Update copy";
 "Ahora no" = "Not now";

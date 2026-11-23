@@ -8,6 +8,8 @@ struct WorkCopyRequest: Identifiable {
     var source: String
     var destination: String
     var paths: [String] = []
+    /// Replace what changed on the destination, keeping its previous version in nüün's folder there.
+    var update = false
 }
 
 // MARK: Model
@@ -41,7 +43,8 @@ extension Model {
         if let suggestion {
             workCopyRequest = WorkCopyRequest(source: suggestion["source"]["root"].string,
                                               destination: suggestion["destination"]["root"].string,
-                                              paths: suggestion["paths"].array.map { $0["path"].string })
+                                              paths: suggestion["paths"].array.map { $0["path"].string },
+                                              update: suggestion["update"].bool)
         } else {
             workCopyRequest = WorkCopyRequest(source: "", destination: "")
         }
@@ -109,7 +112,7 @@ struct SuiteSuggestionCard: View {
                     .help("Para este disco y este flujo. Se puede volver a activar.")
                 Spacer()
                 Button(action) {
-                    if suggestion["flow"].string == "work_copy" { model.openWorkCopy(suggestion) }
+                    if suggestion["flow"].string.hasPrefix("work_copy") { model.openWorkCopy(suggestion) }
                     else { Task { await model.runConversations(when: "now") } }
                 }
                 .buttonStyle(CreatorButtonStyle(prominent: true))
@@ -120,6 +123,7 @@ struct SuiteSuggestionCard: View {
     private var symbol: String {
         switch suggestion["flow"].string {
         case "work_copy": "externaldrive.badge.plus"
+        case "work_copy_changed": "arrow.triangle.2.circlepath"
         default: "bubble.left.and.text.bubble.right"
         }
     }
@@ -127,6 +131,8 @@ struct SuiteSuggestionCard: View {
         switch suggestion["flow"].string {
         case "work_copy":
             String(localized: "\(suggestion["source"]["label"].string) tiene trabajo que no está en \(suggestion["destination"]["label"].string)")
+        case "work_copy_changed":
+            String(localized: "\(suggestion["source"]["label"].string) tiene trabajo nuevo o cambiado desde la última copia con \(suggestion["destination"]["label"].string)")
         case "conversations_backup":
             String(localized: "Conversaciones sin respaldar en \(suggestion["archive"]["name"].string)")
         default:
@@ -138,13 +144,16 @@ struct SuiteSuggestionCard: View {
         case "work_copy":
             suggestion["paths"].array.prefix(3).map { "\($0["path"].string) (\($0["app"].string))" }.joined(separator: " · ")
                 + (suggestion["count"].double > 3 ? " …" : "")
+        case "work_copy_changed":
+            String(localized: "\(Int(suggestion["count"].double)) archivos · \(bytesLabel(suggestion["bytes"].double))") + " · "
+                + suggestion["paths"].array.prefix(3).map(\.["path"].string).joined(separator: " · ")
         default:
             suggestion["collections"].array.map(\.["title"].string).joined(separator: ", ")
         }
     }
     private var action: LocalizedStringKey {
         switch suggestion["flow"].string {
-        case "work_copy": "Revisar copia…"
+        case "work_copy", "work_copy_changed": "Revisar copia…"
         case "conversations_backup": "Respaldar ahora"
         default: "Actualizar copia"
         }
@@ -214,8 +223,24 @@ struct WorkCopySheet: View {
     private func candidates(_ apps: JSONValue) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Qué copiar").font(.headline)
+            let projects = projectsOf(apps)
+            if !projects.isEmpty {
+                Text("Proyectos de nüün en este disco · índice del \(projects[0].indexed)").font(.caption).foregroundStyle(.secondary)
+                ForEach(projects, id: \.key) { project in
+                    Toggle(isOn: Binding(get: { project.paths.allSatisfy(chosen.contains) }, set: { on in
+                        if on { chosen.formUnion(project.paths) } else { chosen.subtract(project.paths) }
+                        plan = nil
+                    })) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(project.title).font(.callout)
+                            Text("\(project.paths.joined(separator: " · ")) · \(bytesLabel(project.bytes))").font(.caption).foregroundStyle(.secondary)
+                                .lineLimit(2).truncationMode(.middle)
+                        }
+                    }.toggleStyle(.checkbox).disabled(inFlight)
+                }
+            }
             let roots = rootsOf(apps)
-            if roots.isEmpty {
+            if roots.isEmpty && projects.isEmpty {
                 Text("Las apps de este disco no declaran carpetas en su índice. Puedes elegir una carpeta a mano.").font(.caption).foregroundStyle(.secondary)
             }
             ForEach(roots, id: \.path) { root in
@@ -229,7 +254,7 @@ struct WorkCopySheet: View {
                     }
                 }.toggleStyle(.checkbox).disabled(inFlight)
             }
-            ForEach(chosen.filter { path in !roots.contains { $0.path == path } }.sorted(), id: \.self) { path in
+            ForEach(chosen.filter { path in !roots.contains { $0.path == path } && !projects.contains { $0.paths.contains(path) } }.sorted(), id: \.self) { path in
                 HStack { Image(systemName: "folder"); Text(path).font(.callout); Spacer()
                     Button("Quitar") { chosen.remove(path); plan = nil }.buttonStyle(.borderless) }
             }
@@ -241,7 +266,35 @@ struct WorkCopySheet: View {
                     chosen.insert(String(path.dropFirst(base.count + 1))); plan = nil
                 }
             }.disabled(inFlight || request.source.isEmpty)
+            Toggle(isOn: Binding(get: { request.update }, set: { request.update = $0; plan = nil })) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Actualizar lo que cambió")
+                    Text("Si un archivo ya está en el destino con otro contenido, lo reemplaza después de verificar la copia y guarda la versión anterior en la carpeta de nüün de ese disco. Sin esto, el plan se detiene.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }.toggleStyle(.checkbox).disabled(inFlight)
         }
+    }
+    private struct Project { let key: String; let title: String; let paths: [String]; let bytes: Double; let indexed: String }
+    /// nüün's own index on the disk (published from the Mac that has the catalog): its projects and their folders,
+    /// so another Mac can copy a project in progress without that catalog.
+    private func projectsOf(_ apps: JSONValue) -> [Project] {
+        guard let nuun = apps["apps"].array.first(where: { $0["app"].string == "nuun" && $0["index"].string == "ok" }) else { return [] }
+        let titles = Dictionary(nuun["projects"].array.map { ($0["project_key"].string, $0["title"].string) }, uniquingKeysWith: { a, _ in a })
+        var folders: [String: [String: Double]] = [:]
+        for dataset in nuun["datasets"].array {
+            for key in dataset["projects"].array.map(\.string) { folders[key, default: [:]][dataset["path"].string, default: 0] += dataset["size"]["bytes"].double }
+        }
+        return folders.map { key, found in
+            let paths = Self.outermost(Array(found.keys))
+            return Project(key: key, title: titles[key] ?? key, paths: paths, bytes: found.values.reduce(0, +),
+                           indexed: String(nuun["generated_at"].string.prefix(10)))
+        }.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+    /// The paths not inside another one of them (a plan refuses overlapping paths).
+    static func outermost(_ paths: [String]) -> [String] {
+        let all = Set(paths.filter { !$0.isEmpty })
+        return all.filter { path in !all.contains { $0 != path && path.hasPrefix($0 + "/") } }.sorted()
     }
     private struct Root { let path: String; let note: String }
     private func rootsOf(_ apps: JSONValue) -> [Root] {
@@ -259,7 +312,11 @@ struct WorkCopySheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Plan revisado").font(.headline)
             Text("\(Int(plan["file_count"].double)) archivos · \(bytesLabel(plan["bytes"].double)) por copiar · \(Int(plan["adopt"]["files"].double)) ya están iguales")
-            let projects = plan["context"]["projects"].array.map(\.string)
+            if plan["replace"]["files"].double > 0 {
+                Text("\(Int(plan["replace"]["files"].double)) cambiaron y se actualizan; su versión anterior queda en la carpeta de nüün del destino.")
+                    .font(.caption).foregroundStyle(palette.warning)
+            }
+            let projects = plan["context"]["projects"].array.map { plan["context"]["titles"][$0.string].string.isEmpty ? $0.string : plan["context"]["titles"][$0.string].string }
             if !projects.isEmpty { Text("Proyectos: \(projects.joined(separator: ", "))").font(.caption) }
             let carried = Set(plan["carried"].array.map(\.["app"].string)).sorted()
             if !carried.isEmpty {
@@ -271,7 +328,7 @@ struct WorkCopySheet: View {
     private func result(_ done: JSONValue) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Label("Copia verificada", systemImage: "checkmark.seal.fill").foregroundStyle(palette.success).font(.headline)
-            Text("\(Int(done["receipt"]["copied"].double)) copiados · \(Int(done["receipt"]["adopted"].double)) ya estaban iguales")
+            Text("\(Int(done["receipt"]["copied"].double)) copiados · \(Int(done["receipt"]["replaced"].double)) actualizados · \(Int(done["receipt"]["adopted"].double)) ya estaban iguales")
             Text("Recibo en los dos discos: \(done["receipt"]["path"].string)").font(.caption).textSelection(.enabled)
         }.modifier(Panel())
     }
@@ -286,7 +343,10 @@ struct WorkCopySheet: View {
             defer { inFlight = false }
             do {
                 plan = try await model.oneShot("work_copy_plan", ["source": .string(request.source), "destination": .string(request.destination),
-                                                                  "paths": .array(chosen.sorted().map(JSONValue.string))])
+                                                                  "paths": .array(Self.outermost(Array(chosen)).map(JSONValue.string)),
+                                                                  "update": .bool(request.update)])
+            } catch let failure as BackendFailure where failure.code == "destination_conflict" {
+                self.failure = String(localized: "Hay archivos distintos con el mismo nombre en el destino. Marca «Actualizar lo que cambió» para reemplazarlos guardando su versión anterior, o elige otra carpeta.")
             } catch { failure = error.localizedDescription }
         }
     }

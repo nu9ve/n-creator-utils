@@ -209,6 +209,18 @@ conversaciones por dispositivo, sugerencias al conectar, otras Macs por el agent
    día». Corregido en la misma entrega: «Cerrar» de la hoja cerraba la ventana entera (usaba `dismiss` dentro de un
    `skinSheet`), y faltaba un indicador mientras se leen los índices. ESSD y MEDIA502 reales estaban conectados: el
    motor del sandbox los rechaza (`outside_sandbox`) antes de leer su marcador. No se instaló la app.
+7. **Copiar proyecto y volver con lo procesado** (2026-11-23, para el [recorrido M1 → M4 →
+   M1](../PLAN.md#recorrido-de-misiones-entre-la-m1-y-la-m4-pedido-del-usuario-2026-11-23)): la hoja lista los
+   proyectos de nüün del índice publicado en el disco de origen; `work_copy_plan` acepta `update` (lo distinto se
+   reemplaza tras verificar y la versión anterior queda en `.nu9ve/apps/nuun/copies/<id>/previous/`); la sugerencia
+   `work_copy_changed` se calcula con los recibos. Prueba unitaria de ida y vuelta, con corte justo después de apartar
+   la versión anterior. QA por `rpc` con QA-ESSD en HFS+ y QA-XSSD en exFAT: proyecto «Baches» (2 carpetas, 3
+   archivos) ESSD → XSSD con fechas conservadas y sin el otro proyecto; tras «procesar» en el XSSD (1 cambiado, 1
+   nuevo) se sugirió la vuelta; sin `update` dio `destination_conflict`; con `update` reemplazó 1, copió 1 y adoptó 1;
+   la versión anterior quedó apartada y no quedó sugerencia. En ventana: la tarjeta de vuelta → plan con «1 cambió y
+   se actualiza» → copia verificada → Inicio «Todo al día». No se vio la lista de proyectos en ventana: el selector de
+   disco es de otro proceso y no se puede manejar en segundo plano. Gate: Rust (152 en `nuun-media` y el resto),
+   fmt, clippy, frontera, dorado y Swift 32/32. Sin prueba física.
 
 ### Notas para la sesión del core (F1)
 
