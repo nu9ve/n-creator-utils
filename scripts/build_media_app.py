@@ -56,6 +56,14 @@ def main():
         shutil.copy2(repo / 'engine/target/release/nuun-engine', engine)
         engine.chmod(0o755)
         subprocess.run([str(engine), '--version'], check=True, capture_output=True)
+        # The suite agent's binary (nu9ve-agent-v1), from the pinned core and engine/Cargo.lock. The app only runs
+        # `nu9ve agent state` and, when the person asks in Settings, `agent install --by nuun`; never `serve`.
+        subprocess.run(['cargo', 'build', '--release', '--offline', '--manifest-path', str(repo / 'engine/Cargo.toml'),
+                        '-p', 'nu9ve-mcp', '--bin', 'nu9ve'], check=True)
+        agent = backend / 'nu9ve'
+        shutil.copy2(repo / 'engine/target/release/nu9ve', agent)
+        agent.chmod(0o755)
+        subprocess.run([str(agent), '--version'], check=True, capture_output=True)
     if args.runtime:
         runtime = Path(args.runtime).resolve()
         if not (runtime / 'bin/python3').exists(): parser.error('Runtime must contain bin/python3')
@@ -81,6 +89,7 @@ def main():
     if engine is not None:
         inputs.extend(p for p in (repo / 'engine').rglob('*') if 'target' not in p.relative_to(repo / 'engine').parts
                       and (p.suffix in {'.rs', '.json'} or p.name in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}))
+        inputs.extend(p for p in (repo / 'vendor/nu9ve-core/rust').rglob('*') if p.suffix == '.rs' or p.name == 'Cargo.toml')
     for path in sorted(inputs):
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
@@ -105,9 +114,10 @@ def main():
     if engine is not None:
         # A nested executable is signed on its own: the bundle is signed without --deep.
         subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(engine)], check=True)
+        subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(agent)], check=True)
     subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(output)], check=True)
     subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(output)], check=True)
-    print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'rust_engine': engine is not None,
+    print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'rust_engine': engine is not None, 'suite_agent': engine is not None,
                       'developer_id_signed': bool(args.identity),
                       'notarized': False, 'release_ready': False, 'remaining_gates': ['camera/device validation', 'GUI acceptance', 'notarization and Gatekeeper acceptance']}, indent=2))
 

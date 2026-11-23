@@ -988,3 +988,22 @@
 "Copia verificada. Falta confirmar la ruta en Clipper." = "Copy verified. Clipper path confirmation is pending.";
 "Termina o retira esas exportaciones en Clipper antes de liberar los raws." = "Finish or remove those exports in Clipper before freeing raw media.";
 "Ejemplos de rutas actualizadas" = "Examples of updated paths";
+
+/* Suite agent (nu9ve-agent-v1) */
+"Suite" = "Suite";
+"Agente de la suite" = "Suite agent";
+"Un solo agente por máquina guarda la identidad de este dispositivo y la comparte con tus otras máquinas. nüün funciona igual sin él." = "One agent per machine keeps this device's identity and shares it with your other machines. nüün works the same without it.";
+"El agente corre · %@" = "The agent is running · %@";
+"El agente está instalado pero no corre · %@" = "The agent is installed but not running · %@";
+"Hay una versión nueva del agente: %@ (instalada: %@)" = "A new agent version is available: %1$@ (installed: %2$@)";
+"El agente no está instalado en esta máquina" = "The agent is not installed on this machine";
+"No se pudo consultar el agente" = "Could not check the agent";
+"Instalar el agente" = "Install the agent";
+"Arrancar" = "Start";
+"Volver a consultar" = "Check again";
+"Instalar o actualizar sólo ocurre cuando lo pides aquí. nüün nunca arranca su propia copia del agente." = "Installing or updating only happens when you ask here. nüün never runs its own copy of the agent.";
+"Instalando el agente de la suite" = "Installing the suite agent";
+"Arrancando el agente de la suite" = "Starting the suite agent";
+"El agente instalado ya está al día" = "The installed agent is already up to date";
+"Agente %@ instalado" = "Agent %@ installed";
+"macOS no pudo arrancar el agente" = "macOS could not start the agent";

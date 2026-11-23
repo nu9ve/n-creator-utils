@@ -271,7 +271,7 @@ final class OnceMethods: @unchecked Sendable {
     }
 }
 
-private final class CollectedData: @unchecked Sendable {
+final class CollectedData: @unchecked Sendable {
     private let lock = NSLock()
     private var value = Data()
     func store(_ data: Data) { lock.lock(); value = data; lock.unlock() }

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var archive = ""
     @State private var deviceName = ""
     private let sections: [(String, LocalizedStringKey, String)] = [("profiles", "Perfiles", "person.crop.square"), ("disks", "Discos", "externaldrive"),
+        ("suite", "Suite", "point.3.connected.trianglepath.dotted"),
         ("ingest", "Ingreso", "sdcard"), ("capture", "Capturas", "record.circle"), ("appearance", "Apariencia", "paintpalette"),
         ("language", "Idioma", "globe"), ("runtime", "Diagnóstico", "stethoscope")]
     var body: some View {
@@ -36,6 +37,7 @@ struct SettingsView: View {
                     switch section {
                     case "profiles": profiles
                     case "disks": disks
+                    case "suite": suite
                     case "ingest": IngestSettings(model: model)
                     case "appearance": AppearanceSettings()
                     case "capture": captures
@@ -45,6 +47,8 @@ struct SettingsView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(20)
             }
         }
+        // nu9ve-agent-v1 §5: every time Settings opens, the agent's state again.
+        .task { await model.loadSuiteAgent() }
         .onAppear {
             guard id.isEmpty else { return }
             // Saving must not blank what the current profile already has.
@@ -102,6 +106,37 @@ struct SettingsView: View {
             Button("Respaldar catálogo y perfiles") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
             Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
         }.task { await model.loadSuiteDevice(); deviceName = model.suiteDeviceName }
+    }
+    /// The suite agent (nu9ve-agent-v1 §5). nüün works complete without it; with it, the suite sees this machine.
+    var suite: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Agente de la suite", systemImage: "point.3.connected.trianglepath.dotted").font(.title3.weight(.semibold))
+            Text("Un solo agente por máquina guarda la identidad de este dispositivo y la comparte con tus otras máquinas. nüün funciona igual sin él.")
+                .foregroundStyle(.secondary)
+            let agent = model.suiteAgent
+            HStack(spacing: 8) {
+                Image(systemName: agent.isRunning ? "checkmark.circle.fill" : "circle.dashed")
+                    .foregroundStyle(agent.isRunning ? palette.success : palette.muted)
+                switch agent.state {
+                case "running": Text("El agente corre · \(agent.installedVersion)")
+                case "installed": Text("El agente está instalado pero no corre · \(agent.installedVersion)")
+                case "outdated": Text("Hay una versión nueva del agente: \(agent.bundledVersion) (instalada: \(agent.installedVersion))")
+                case "absent": Text("El agente no está instalado en esta máquina")
+                default: Text("No se pudo consultar el agente")
+                }
+            }
+            HStack {
+                if agent.offersInstall { Button("Instalar el agente") { model.installSuiteAgent() } }
+                if agent.offersUpdate { Button("Actualizar") { model.installSuiteAgent() } }
+                if agent.state == "installed" { Button("Arrancar") { model.startSuiteAgent() } }
+                Button("Volver a consultar") { Task { await model.loadSuiteAgent() } }
+            }.disabled(model.busy)
+            if agent.state == "unavailable" && !agent.problem.isEmpty {
+                Text(agent.problem).font(.caption).foregroundStyle(palette.warning).textSelection(.enabled)
+            }
+            Text("Instalar o actualizar sólo ocurre cuando lo pides aquí. nüün nunca arranca su propia copia del agente.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
     var captures: some View {
         VStack(alignment: .leading, spacing: 14) {

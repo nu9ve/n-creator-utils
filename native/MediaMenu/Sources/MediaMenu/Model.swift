@@ -273,6 +273,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var ingestLocked: Bool { activeScope == .ingest }
     var message = String(localized: "Listo")
     var suiteDeviceName = ""
+    /// The suite agent (nu9ve-agent-v1 §5), as `nu9ve agent state` sees it.
+    var suiteAgent = SuiteAgentStatus.unavailable
     var error = ""
     var python = ""
     var script = ""
@@ -335,6 +337,8 @@ enum OperationScope { case ingest, library, space, settings, source }
         enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script)
         captureRoot = sandbox == nil ? prefs.string(forKey: "captureRoot") ?? "" : ""
         configure()
+        // nu9ve-agent-v1 §5: the agent's state at launch, a query that never installs nor starts anything.
+        Task { await self.loadSuiteAgent() }
     }
 
     // MARK: Backend
@@ -729,6 +733,44 @@ enum OperationScope { case ingest, library, space, settings, source }
             }
         }
     }
+    /// The bundled `nu9ve` binary, else the one built next to the checkout; "" when there is none.
+    var agentBinary: String { SuiteAgent.binary(resources: Bundle.main.resourceURL, script: script) }
+
+    /// `nu9ve agent state`, at launch and every time Settings opens (agent §5).
+    func loadSuiteAgent() async {
+        suiteAgent = await SuiteAgent.state(binary: agentBinary)
+    }
+
+    /// «Instalar el agente» or «Actualizar»: only because the person chose it here (agent §3).
+    func installSuiteAgent() {
+        let binary = agentBinary
+        operation(String(localized: "Instalando el agente de la suite"), scope: .settings) {
+            let result = try await SuiteAgent.install(binary: binary)
+            await self.loadSuiteAgent()
+            await self.loadSuiteDevice()
+            self.message = result["action"].string == "keep"
+                ? String(localized: "El agente instalado ya está al día")
+                : String(localized: "Agente \(result["version"].string) instalado")
+        }
+    }
+
+    /// «Arrancar»: the installed agent's own startup (`launchctl kickstart`), never a copy from this bundle.
+    /// In QA (`NU9VE_AGENT_DIR`) there is no startup to kick.
+    func startSuiteAgent() {
+        guard EngineEnvironment.values["NU9VE_AGENT_DIR"] == nil else { return }
+        operation(String(localized: "Arrancando el agente de la suite"), scope: .settings) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+            process.arguments = ["kickstart", "gui/\(getuid())/xyz.nu9ve.agent"]
+            try process.run(); process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                throw BackendFailure(code: "agent_start_failed", message: String(localized: "macOS no pudo arrancar el agente"))
+            }
+            try await Task.sleep(for: .seconds(1))
+            await self.loadSuiteAgent()
+        }
+    }
+
     /// This machine's name in the suite (`device.json`). Empty until the first registration creates it.
     func loadSuiteDevice() async {
         guard let client else { return }
