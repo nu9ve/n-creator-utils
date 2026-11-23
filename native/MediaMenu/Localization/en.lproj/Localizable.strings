@@ -1018,3 +1018,4 @@
 "Otra máquina también dice trabajar en él" = "Another machine also says it works on it";
 "Trabajas aquí" = "You work here";
 "Se trabaja en %@" = "Worked on at %@";
+"Agente de prueba: se arranca a mano con nu9ve agent serve." = "Test agent: start it by hand with nu9ve agent serve.";

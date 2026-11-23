@@ -758,8 +758,10 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     /// «Arrancar»: the installed agent's own startup (`launchctl kickstart`), never a copy from this bundle.
     /// In QA (`NU9VE_AGENT_DIR`) there is no startup to kick.
+    var agentIsQA: Bool { EngineEnvironment.values["NU9VE_AGENT_DIR"] != nil }
+
     func startSuiteAgent() {
-        guard EngineEnvironment.values["NU9VE_AGENT_DIR"] == nil else { return }
+        guard !agentIsQA else { return }
         operation(String(localized: "Arrancando el agente de la suite"), scope: .settings) {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/launchctl")

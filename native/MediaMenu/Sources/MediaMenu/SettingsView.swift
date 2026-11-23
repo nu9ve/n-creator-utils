@@ -130,11 +130,15 @@ struct SettingsView: View {
             HStack {
                 if agent.offersInstall { Button("Instalar el agente") { model.installSuiteAgent() } }
                 if agent.offersUpdate { Button("Actualizar") { model.installSuiteAgent() } }
-                if agent.state == "installed" { Button("Arrancar") { model.startSuiteAgent() } }
+                // In QA (`NU9VE_AGENT_DIR`) there is no system startup to kick: the agent is started by hand.
+                if agent.state == "installed" && !model.agentIsQA { Button("Arrancar") { model.startSuiteAgent() } }
                 Button("Volver a consultar") { Task { await model.loadSuiteAgent() } }
             }.disabled(model.busy)
             if agent.state == "unavailable" && !agent.problem.isEmpty {
                 Text(agent.problem).font(.caption).foregroundStyle(palette.warning).textSelection(.enabled)
+            }
+            if agent.state == "installed" && model.agentIsQA {
+                Text("Agente de prueba: se arranca a mano con nu9ve agent serve.").font(.caption).foregroundStyle(.secondary)
             }
             Text("Instalar o actualizar sólo ocurre cuando lo pides aquí. nüün nunca arranca su propia copia del agente.")
                 .font(.caption).foregroundStyle(.secondary)

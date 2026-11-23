@@ -48,8 +48,12 @@ def run(*args, **kwargs):
 
 
 def environment(root):
+    # The suite agent and its files are QA ones too (nu9ve-agent-v1 §1), the same paths the app uses here.
+    suite = root / 'home/Library/Application Support/nu9ve'
     return dict(os.environ, NU9VE_SANDBOX=str(root), NU9VE_MEDIA_HOME=str(root / 'state'), HOME=str(root / 'home'),
-                CLIPPER_PROJECTS_ROOT=str(root / 'home/Downloads/clipper-projects'))
+                CLIPPER_PROJECTS_ROOT=str(root / 'home/Downloads/clipper-projects'),
+                NU9VE_AGENT_DIR=str(suite / 'agent'), NU9VE_DEVICE_FILE=str(suite / 'device.json'),
+                NU9VE_ENGINES_DIR=str(suite / 'engines'), NU9VE_VOLUMES_DIR=str(suite / 'volumes'))
 
 
 ENGINE = REPO / 'engine/target/release/nuun-engine'
@@ -386,7 +390,8 @@ def main():
         return status(root)
     if args.command == 'env':
         env = environment(root)
-        for key in ('NU9VE_SANDBOX', 'NU9VE_MEDIA_HOME', 'HOME', 'CLIPPER_PROJECTS_ROOT'):
+        for key in ('NU9VE_SANDBOX', 'NU9VE_MEDIA_HOME', 'HOME', 'CLIPPER_PROJECTS_ROOT', 'NU9VE_AGENT_DIR',
+                    'NU9VE_DEVICE_FILE', 'NU9VE_ENGINES_DIR', 'NU9VE_VOLUMES_DIR'):
             print('export %s=%s' % (key, json.dumps(env[key])))
         return None
     if args.command == 'detach':

@@ -105,6 +105,13 @@ public enum EngineEnvironment {
         if let root = env["NU9VE_SANDBOX"], let home = env["NU9VE_MEDIA_HOME"], home.hasPrefix(root + "/") {
             env["HOME"] = root + "/home"
             env["CLIPPER_PROJECTS_ROOT"] = root + "/home/Downloads/clipper-projects"
+            // The suite agent and its files are QA ones too (nu9ve-agent-v1 §1): no LaunchAgent, no keychain, and
+            // nothing in this Mac's agent, device.json or engine registry.
+            let suite = root + "/home/Library/Application Support/nu9ve"
+            for (key, path) in [("NU9VE_AGENT_DIR", "/agent"), ("NU9VE_DEVICE_FILE", "/device.json"),
+                                ("NU9VE_ENGINES_DIR", "/engines"), ("NU9VE_VOLUMES_DIR", "/volumes")] where env[key] == nil {
+                env[key] = suite + path
+            }
         }
         // The version in the engine's suite record (nu9ve-registry-v1 §2): the app's, as its «Acerca de».
         if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String { env["NUUN_APP_VERSION"] = version }
@@ -136,7 +143,13 @@ final class LineServer: @unchecked Sendable {
         process = nil; input = nil; pending = [:]; buffer = Data()
         lock.unlock()
         try? handle?.close()
-        if let running, running.isRunning { running.terminate() }
+        // EOF first: the engine leaves in order and removes its suite record (nu9ve-registry-v1 §5). A child that
+        // is still there after half a second is terminated, as before.
+        if let running {
+            let deadline = Date().addingTimeInterval(0.5)
+            while running.isRunning && Date() < deadline { usleep(10_000) }
+            if running.isRunning { running.terminate() }
+        }
         for continuation in waiting.values {
             continuation.resume(throwing: BackendFailure(code: "reader_unavailable", message: "Lector reiniciado"))
         }
