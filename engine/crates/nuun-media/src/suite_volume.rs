@@ -198,6 +198,43 @@ fn selected(params: &Value) -> Result<PathBuf> {
     Ok(root)
 }
 
+/// A mounted volume whose marker this device may use (`ok` or `unverified`, §5): its open root, the system's
+/// description, the marker and the state. Operations between suite disks start here.
+pub(crate) fn usable(
+    home: &Path,
+    backend: &dyn Backend,
+    path: &Path,
+) -> Result<(Root, Value, Value, &'static str)> {
+    let (root, info) = mounted(backend, path)?;
+    let volume = marker(&root)?
+        .ok_or_else(|| Error::new("unmarked", "Register this volume with the suite first"))?;
+    let known = sighting(home, &volume)?;
+    let state = observed(backend, &root, &info, &volume, known.as_ref());
+    allowed(state)?;
+    Ok((root, info, volume, state))
+}
+
+/// An app's index on a volume (§8), read with its cap, or why it is not acceptable: the core's envelope rules
+/// (`index_problem`) and then the catalog's (`nu9ve-data-v1`). A bad index never invalidates the disk.
+pub(crate) fn app_index(root: &Root, app: &str) -> std::result::Result<Option<Value>, String> {
+    let Some(path) = rules::index_path(app) else {
+        return Err("bad_app".into());
+    };
+    let Some(file) = root.open_read(&path).map_err(|e| e.code.clone())? else {
+        return Ok(None);
+    };
+    let mut bytes = Vec::new();
+    file.take(index::LIMIT as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "unreadable".to_owned())?;
+    if let Some(problem) = rules::index_problem(app, &bytes) {
+        return Err(problem.into());
+    }
+    let value: Value = serde_json::from_slice(&bytes).map_err(|_| "not_json".to_owned())?;
+    index::validate_app(&value, app).map_err(|e| e.code)?;
+    Ok(Some(value))
+}
+
 /// Normal operations honor the marker on the mount even when their source or destination is a subfolder.
 pub(crate) fn check_mount(home: &Path, backend: &dyn Backend, info: &Value) -> Result<()> {
     let Some(path) = info["mount"].as_str().filter(|_| info["external"] == true) else {

@@ -387,10 +387,15 @@ fn list<'a>(value: &'a Value, field: &str) -> Result<&'a Vec<Value>> {
 }
 
 pub(super) fn validate(value: &Value) -> Result<()> {
+    validate_app(value, "nuun")
+}
+
+/// The same catalog rules for the index in any app's folder (§8): `app` must be the folder's.
+pub(super) fn validate_app(value: &Value, app: &str) -> Result<()> {
     require(
-        value["app"] == "nuun",
+        value["app"] == app,
         "app_mismatch",
-        "Index does not belong to nüün",
+        "Index does not belong to the app of its folder",
     )?;
     require(
         value["contract"] == "nu9ve-data/1"
@@ -461,7 +466,7 @@ pub(super) fn validate(value: &Value) -> Result<()> {
     }
     let mut datasets = HashSet::new();
     for dataset in list(value, "datasets")? {
-        validate_dataset(dataset, &roots, &keys)?;
+        validate_dataset(dataset, &roots, &keys, app)?;
         require(
             datasets.insert(dataset["id"].as_str().unwrap()),
             "invalid_index",
@@ -475,6 +480,7 @@ fn validate_dataset(
     dataset: &Value,
     roots: &HashSet<&str>,
     projects: &HashMap<&str, &Value>,
+    app: &str,
 ) -> Result<()> {
     let extensions_valid = dataset
         .get("description")
@@ -536,7 +542,7 @@ fn validate_dataset(
         dataset["id"]
             .as_str()
             .is_some_and(|s| identifier(s, 128, b"._:-", true))
-            && dataset["owner"] == "nuun"
+            && dataset["owner"] == app
             && text(&dataset["title"], 200)
             && text(&dataset["modality"], 32)
             && matches!(

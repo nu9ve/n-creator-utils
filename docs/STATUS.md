@@ -165,6 +165,18 @@ Pendiente: Windows (sin named pipe, no se registra), la colección Agentes (`sto
 `data_catalog`, el rechazo de un cliente de otro usuario (sin probar: hace falta otro usuario), aceptación en
 ventana, y [notas para el core](#notas-para-la-sesión-del-core-f1).
 
+## Discos de trabajo y conversaciones · 2026-11-23
+
+[Diseño](features/suite-disks-flows.md) de los cuatro flujos pedidos (copiar entre discos de trabajo, respaldo de
+conversaciones por dispositivo, sugerencias al conectar, otras Macs por el agente) y sus decisiones abiertas.
+
+1. **Copias entre discos de trabajo** ([contrato](contracts/suite-work-copy-v1.md)): `volume_apps`, `work_copy_plan`,
+   `work_copy_apply` y `work_copies` en el motor Rust, por `rpc`. Lee los índices de las demás apps del origen y
+   guarda copias exactas de sus archivos en `.nu9ve/apps/nuun/copies/<id>/` del destino; recibo `nuun-work-copy/1` en
+   los dos discos. Pruebas con discos de mentira (marcadores y seriales de fixture, `HOME` y catálogo temporales):
+   copia con fechas conservadas, interrupción y reanudación, adopción de lo idéntico, conflicto, rol `archive`,
+   rutas reservadas y disco cambiado entre revisión y copia. Sin ventana todavía; sin prueba física.
+
 ### Notas para la sesión del core (F1)
 
 - El motor `suite` de `nu9ve agent serve` no comprueba el uid del par en cada conexión (`agent/suite.rs`,

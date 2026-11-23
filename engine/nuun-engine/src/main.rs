@@ -147,8 +147,12 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 19] = [
+const NATIVE: [&str; 23] = [
     "suite_device",
+    "volume_apps",
+    "work_copies",
+    "work_copy_plan",
+    "work_copy_apply",
     "suite_lease",
     "suite_register_volume",
     "suite_resolve_volume",
@@ -308,6 +312,8 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
             "save_all_replan_dji",
         ]);
         writes.push("clipper_restore_apply");
+        // Copies between suite work disks (docs/contracts/suite-work-copy-v1.md).
+        writes.extend(["work_copy_plan", "work_copy_apply"]);
         writes.push("missions_archived_apply");
         if macos {
             writes.extend([
@@ -361,8 +367,10 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 17] = [
+const ONCE_READS: [&str; 19] = [
     "suite_adopt_volume",
+    "volume_apps",
+    "work_copies",
     "missions_archived_review",
     "clipper_restore_plan",
     "save_all_work_plan",
@@ -438,6 +446,19 @@ impl Engine {
             }
             "suite_adopt_volume" => {
                 nuun_media::suite_volume::adopt(&self.home(), backend(platform)?, params)
+            }
+            "volume_apps" => {
+                nuun_media::work_copy::volume_apps(&self.home(), backend(platform)?, params)
+            }
+            "work_copies" => nuun_media::work_copy::list(&self.home()),
+            "work_copy_plan" => nuun_media::work_copy::plan(
+                &self.home(),
+                write_backend(platform)?,
+                isolated,
+                params,
+            ),
+            "work_copy_apply" => {
+                nuun_media::work_copy::apply(&self.home(), write_backend(platform)?, params)
             }
             "missions_archived_apply" => {
                 nuun_media::missions::archived_apply(&self.home(), write_backend(platform)?, params)

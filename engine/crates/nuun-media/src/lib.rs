@@ -53,6 +53,7 @@ pub mod transfer;
 pub mod tree;
 pub mod units_map;
 pub mod volumes;
+pub mod work_copy;
 
 #[cfg(test)]
 mod mission_tests {

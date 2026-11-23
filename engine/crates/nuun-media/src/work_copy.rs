@@ -1,0 +1,937 @@
+//! Verified copies of processed work between two suite work disks (nu9ve-volume-v1 §7 and §8, suite-devices
+//! §6.4): «copiar al otro disco» a folder of atlas-derived, or a project's folders, from XSSD to ESSD.
+//!
+//! - Both disks are recognized by their marker (`ok` or `unverified`), never by their name, and must be `work` or
+//!   `other`: an archive is nüün's own flow (`deliver_work` copies from it, ingest writes to it).
+//! - The plan is reviewed (digest) before anything is written. Files keep their path inside the disk (or under
+//!   `into`), their modification time, and land as `.name.ncpartial`, are read back from the device, then renamed
+//!   without replacing anything ([`Transfer::copy_many`]). Identical files already there are adopted; a different
+//!   one blocks the plan. Nothing is ever deleted, on either disk.
+//! - nüün reads every app's index on the source (`.nu9ve/apps/*/index.json`) to say what the copy carries and of
+//!   which projects, and keeps byte-exact, verified copies of those apps' top-level files inside its own folder of
+//!   the destination, so the app can register the copy without hashing again. It never writes another app's
+//!   folder.
+//! - The receipt, `nuun-work-copy/1`, is published in `.nu9ve/apps/nuun/copies/<id>.json` on both disks and kept
+//!   in the local catalog. docs/contracts/suite-work-copy-v1.md is its contract.
+use crate::catalog::{Catalog, WritableCatalog, writer_lock};
+use crate::rules::relative;
+use crate::suite_volume;
+use crate::transfer::{Hook, Target, Transfer, hash_file};
+use crate::tree::{Root, stamp_json};
+use crate::volumes::{self, Backend};
+use nu9ve_json::{Error, Result, digest, require, sha256_hex, uid};
+use serde_json::{Map, Value, json};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+
+const SCHEMA: &str = "nuun-work-copy-plan/1";
+pub const RECEIPT: &str = "nuun-work-copy/1";
+pub const COPIES: &str = ".nu9ve/apps/nuun/copies";
+const APPS: &str = ".nu9ve/apps";
+/// Another app's top-level file kept with the copy: indexes and their own records, never bulk data.
+const APP_FILE_LIMIT: u64 = 16 * 1024 * 1024;
+const ROLES: [&str; 2] = ["work", "other"];
+const SHOWN: usize = 500;
+
+fn text<'a>(value: &'a Value, key: &str) -> &'a str {
+    value[key].as_str().unwrap_or_default()
+}
+
+fn absolute(params: &Value, key: &str) -> Result<PathBuf> {
+    let path = PathBuf::from(text(params, key));
+    require(
+        path.is_absolute(),
+        "invalid_params",
+        format!("'{key}' must be the absolute root of a mounted disk"),
+    )?;
+    Ok(path)
+}
+
+fn join(prefix: &str, path: &str) -> String {
+    if prefix.is_empty() {
+        path.to_owned()
+    } else if path.is_empty() {
+        prefix.to_owned()
+    } else {
+        format!("{prefix}/{path}")
+    }
+}
+
+/// `a` is `b` or inside it, by path components.
+fn within(a: &str, b: &str) -> bool {
+    b.is_empty() || a == b || a.starts_with(&format!("{b}/"))
+}
+
+/// A folder the suite or nüün keeps for itself: never copied as work.
+fn reserved(path: &str) -> bool {
+    matches!(
+        path.split('/').next(),
+        Some(".nu9ve" | ".ncreator" | "_nuun")
+    )
+}
+
+/// The synthetic destination record [`Transfer`] checks before every write: this mount, with the identity seen
+/// when the plan was reviewed.
+fn record(volume: &Value, root: &Path, identity: &Value) -> Value {
+    json!({"id":volume["volume_id"],"name":volume["label"],"root":volumes::normalize(root),
+        "role":volume["role"],"identity":identity})
+}
+
+/// What `rules::IDENTITY` compares (`volumes::check`), from a description.
+fn identity(info: &Value) -> Value {
+    let mut out = Map::new();
+    for key in ["mode", "volume_uuid", "disk_uuid", "root_inode", "external"] {
+        out.insert(key.into(), info[key].clone());
+    }
+    Value::Object(out)
+}
+
+/// A folder of the disk, or `None` when it is not there (a disk with no app folders is normal).
+fn folder(root: &Root, rel: &str) -> Result<Option<PathBuf>> {
+    match root.parent(&format!("{rel}/x"), false) {
+        Ok((dir, _)) => Ok(Some(dir)),
+        Err(error) if crate::tree::absent(&error) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+/// The apps whose folder is on this disk and what their index says lives here, resolved to disk paths.
+fn app_indexes(root: &Root, volume_id: &str) -> Result<Vec<Value>> {
+    let Some(dir) = folder(root, APPS)? else {
+        return Ok(Vec::new());
+    };
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Ok(Vec::new());
+    };
+    let mut names: Vec<String> = entries
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_ok_and(|t| t.is_dir()))
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter(|name| nu9ve_volumes::marker::app_name(name))
+        .collect();
+    names.sort();
+    let mut apps = Vec::new();
+    for app in names {
+        let files = app_files(root, &app)?;
+        let mut entry = json!({"app":app,"files":files.iter().map(|(name, size)| json!({"name":name,"bytes":size}))
+            .collect::<Vec<_>>()});
+        match suite_volume::app_index(root, &app) {
+            Ok(None) => entry["index"] = json!("absent"),
+            Err(problem) => {
+                entry["index"] = json!("invalid");
+                entry["problem"] = json!(problem);
+            }
+            Ok(Some(index)) => {
+                entry["index"] = json!("ok");
+                entry["generated_at"] = index["generated_at"].clone();
+                let roots: BTreeMap<&str, &str> = index["roots"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|r| r["volume_id"] == volume_id)
+                    .filter_map(|r| Some((r["id"].as_str()?, r["volume_path"].as_str()?)))
+                    .collect();
+                let titles: BTreeMap<&str, &Value> = index["projects"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|p| Some((p["project_key"].as_str()?, &p["title"])))
+                    .collect();
+                let mut datasets = Vec::new();
+                for dataset in index["datasets"].as_array().into_iter().flatten() {
+                    let location = &dataset["location"];
+                    let Some(base) = roots.get(text(location, "root_id")) else {
+                        continue;
+                    };
+                    let path = join(base, text(location, "path"));
+                    let keys: Vec<&str> = dataset["projects"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|p| p["project_key"].as_str())
+                        .collect();
+                    // From a personal dataset, the shape only (data §6): the index is on the disk by the person's
+                    // decision, but a copy plan or a receipt is not that decision.
+                    let personal =
+                        dataset["privacy"] != "public" && dataset["privacy"] != "restricted";
+                    let mut shown = json!({"id":dataset["id"],"path":path,"modality":dataset["modality"],
+                        "privacy":dataset["privacy"],"size":dataset["size"],"state":dataset["state"],
+                        "projects":keys});
+                    if !personal {
+                        shown["title"] = dataset["title"].clone();
+                    }
+                    if let Some(hash) = dataset.get("hash") {
+                        shown["hash"] = hash.clone();
+                    }
+                    datasets.push(shown);
+                }
+                entry["projects"] = json!(
+                    titles
+                        .iter()
+                        .map(|(k, t)| json!({"project_key":k,"title":t}))
+                        .collect::<Vec<_>>()
+                );
+                entry["dataset_count"] = json!(datasets.len());
+                datasets.truncate(SHOWN);
+                entry["datasets"] = json!(datasets);
+            }
+        }
+        apps.push(entry);
+    }
+    Ok(apps)
+}
+
+/// The regular files directly in an app's folder (its index and own records), with their size.
+fn app_files(root: &Root, app: &str) -> Result<Vec<(String, u64)>> {
+    let Some(dir) = folder(root, &format!("{APPS}/{app}"))? else {
+        return Ok(Vec::new());
+    };
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Ok(Vec::new());
+    };
+    let mut files: Vec<(String, u64)> = entries
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let meta = std::fs::symlink_metadata(entry.path()).ok()?;
+            let name = entry.file_name().into_string().ok()?;
+            (meta.is_file() && !name.starts_with('.')).then_some((name, meta.len()))
+        })
+        .collect();
+    files.sort();
+    Ok(files)
+}
+
+/// `volume_apps`: a disk's marker, its state here and what each app's index says it holds. A read: it writes
+/// nothing but this device's sighting of the disk, as every observation does (volume §4).
+pub fn volume_apps(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    let path = absolute(params, "root")?;
+    let (root, _, volume, state) = suite_volume::usable(home, backend, &path)?;
+    let apps = app_indexes(&root, text(&volume, "volume_id"))?;
+    let copies = receipts(&root)?;
+    Ok(json!({"state":state,"marker":volume,"apps":apps,"copies":copies}))
+}
+
+/// The work-copy receipts published on a disk, newest first (only their headline).
+fn receipts(root: &Root) -> Result<Vec<Value>> {
+    let Some(dir) = folder(root, COPIES)? else {
+        return Ok(Vec::new());
+    };
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Ok(Vec::new());
+    };
+    let mut out = Vec::new();
+    for entry in entries.filter_map(|entry| entry.ok()) {
+        let Some(name) = entry.file_name().into_string().ok() else {
+            continue;
+        };
+        let Some(id) = name.strip_suffix(".json") else {
+            continue;
+        };
+        let Ok(Some(bytes)) =
+            crate::tree::read_bytes(&root.path, &format!("{COPIES}/{name}"), 64 << 20)
+        else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_slice::<Value>(&bytes) else {
+            out.push(json!({"id":id,"problem":"not_json"}));
+            continue;
+        };
+        if value["contract"] != RECEIPT || value["id"] != id {
+            out.push(json!({"id":id,"problem":"not_a_receipt"}));
+            continue;
+        }
+        out.push(json!({"id":id,"completed_at":value["completed_at"],"source":value["source"],
+            "destination":value["destination"],"file_count":value["file_count"],"bytes":value["bytes"],
+            "manifest":value["manifest"],"projects":value["context"]["projects"]}));
+    }
+    out.sort_by(|a, b| text(b, "completed_at").cmp(text(a, "completed_at")));
+    Ok(out)
+}
+
+struct Side {
+    root: Root,
+    info: Value,
+    volume: Value,
+}
+
+fn side(home: &Path, backend: &dyn Backend, path: &Path, which: &str) -> Result<Side> {
+    let (root, info, volume, _) = suite_volume::usable(home, backend, path)?;
+    require(
+        ROLES.contains(&text(&volume, "role")),
+        "invalid_role",
+        format!("The {which} must be a work disk; an archive has its own flows"),
+    )?;
+    Ok(Side { root, info, volume })
+}
+
+fn check_paths(params: &Value) -> Result<(Vec<String>, String)> {
+    let allowed = ["source", "destination", "paths", "into", "progress_id"];
+    require(
+        params
+            .as_object()
+            .is_some_and(|p| p.keys().all(|k| allowed.contains(&k.as_str()))),
+        "invalid_params",
+        "Unknown parameters",
+    )?;
+    let paths: Vec<String> = params["paths"]
+        .as_array()
+        .filter(|a| !a.is_empty() && a.len() <= 64)
+        .ok_or_else(|| Error::new("invalid_params", "Choose 1 to 64 folders or files to copy"))?
+        .iter()
+        .map(|p| {
+            let path = relative(p.as_str().unwrap_or_default())?;
+            require(
+                !reserved(path),
+                "invalid_params",
+                "The suite's and nüün's own folders are not copied as work",
+            )?;
+            Ok(path.to_owned())
+        })
+        .collect::<Result<_>>()?;
+    for (i, a) in paths.iter().enumerate() {
+        for b in &paths[i + 1..] {
+            require(
+                !within(a, b) && !within(b, a),
+                "invalid_params",
+                format!("Overlapping paths: {a} and {b}"),
+            )?;
+        }
+    }
+    let into = match params.get("into") {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(s)) if s.is_empty() => String::new(),
+        Some(Value::String(s)) => {
+            relative(s)?;
+            require(
+                !reserved(s),
+                "invalid_params",
+                "Reserved destination folder",
+            )?;
+            s.clone()
+        }
+        _ => return Err(Error::new("invalid_params", "'into' must be a folder")),
+    };
+    Ok((paths, into))
+}
+
+fn hash_at(root: &Root, rel: &str) -> Result<Option<String>> {
+    let Some(file) = root.open_read(rel)? else {
+        return Ok(None);
+    };
+    let mut file = nu9ve_volumes::fs::verify_read(file);
+    Ok(Some(hash_file(&mut file, |_| {})?))
+}
+
+/// `work_copy_plan`: what would be copied from one work disk to another, reviewed before anything is written.
+pub fn plan(home: &Path, backend: &dyn Backend, isolated: bool, params: &Value) -> Result<Value> {
+    let (paths, into) = check_paths(params)?;
+    let source = side(home, backend, &absolute(params, "source")?, "source")?;
+    let dest = side(
+        home,
+        backend,
+        &absolute(params, "destination")?,
+        "destination",
+    )?;
+    require(
+        source.volume["volume_id"] != dest.volume["volume_id"],
+        "same_volume",
+        "Choose two different disks",
+    )?;
+    require(
+        volumes::independent(&source.info, &dest.info),
+        "same_physical_disk",
+        "Source and destination must be independent disks",
+    )?;
+    let writer = WritableCatalog::open(home)?;
+    let mut progress =
+        crate::delivery::ActionProgress::new(&writer, params["progress_id"].as_str(), "preparing");
+    progress.report()?;
+    let mut items = Vec::new();
+    let (mut bytes, mut adopt, mut adopt_bytes) = (0u64, 0usize, 0u64);
+    let mut conflicts = Vec::new();
+    for top in &paths {
+        // The kind of what was chosen, without following a link (the walk below never follows one either).
+        source.root.check()?;
+        let kind = nu9ve_volumes::stamp(&source.root.path.join(top))
+            .map_err(|_| Error::new("source_missing", format!("Not on the source disk: {top}")))?
+            .kind;
+        let mut found = Vec::new();
+        match kind {
+            nu9ve_volumes::EntryKind::Dir => {
+                crate::coverage::walk(&source.root, top, |path, size| {
+                    require(
+                        size.is_some(),
+                        "unsafe_file",
+                        format!("Links and special files are not followed: {path}"),
+                    )?;
+                    found.push(path);
+                    Ok(())
+                })?
+            }
+            nu9ve_volumes::EntryKind::File => found.push(top.clone()),
+            _ => {
+                return Err(Error::new(
+                    "unsafe_file",
+                    format!("Links and special files are not followed: {top}"),
+                ));
+            }
+        }
+        for path in found {
+            let stamp = source
+                .root
+                .stat(&path)?
+                .ok_or_else(|| Error::new("source_changed", format!("Source changed: {path}")))?;
+            let target = join(&into, &path);
+            let mut item = json!({"path":path,"target":target,"stamp":stamp_json(&stamp)});
+            if let Some(existing) = dest.root.stat(&target)? {
+                let same = existing.size == stamp.size
+                    && hash_at(&dest.root, &target)? == hash_at(&source.root, &path)?;
+                if same {
+                    item["existing"] = json!("identical");
+                    adopt += 1;
+                    adopt_bytes += stamp.size;
+                } else {
+                    conflicts.push(target.clone());
+                }
+            } else {
+                bytes += stamp.size;
+            }
+            items.push(item);
+            if items.len().is_multiple_of(2000) {
+                progress.stage = "listing_source";
+                progress.meter.files_done = items.len();
+                progress.report()?;
+            }
+        }
+    }
+    require(
+        conflicts.is_empty(),
+        "destination_conflict",
+        format!(
+            "{} different files already exist on the destination: {}",
+            conflicts.len(),
+            conflicts
+                .iter()
+                .take(10)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    )?;
+    require(
+        dest.info["free"].as_u64().is_none_or(|free| bytes <= free),
+        "insufficient_space",
+        format!("Not enough free space on the destination for {bytes} bytes"),
+    )?;
+    // What the apps of the source say these paths are, and their own files to carry with the copy.
+    let source_id = text(&source.volume, "volume_id").to_owned();
+    let apps = app_indexes(&source.root, &source_id)?;
+    let mut context = Vec::new();
+    let mut projects = BTreeSet::new();
+    let mut carried = Vec::new();
+    for app in &apps {
+        let touching: Vec<&Value> = app["datasets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|d| {
+                let path = text(d, "path");
+                paths.iter().any(|p| within(p, path) || within(path, p))
+            })
+            .collect();
+        if touching.is_empty() || app["app"] == "nuun" {
+            continue;
+        }
+        for dataset in &touching {
+            projects.extend(
+                dataset["projects"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|k| k.as_str().map(str::to_owned)),
+            );
+        }
+        let name = text(app, "app");
+        for file in app["files"].as_array().into_iter().flatten() {
+            let size = file["bytes"].as_u64().unwrap_or(u64::MAX);
+            if size > APP_FILE_LIMIT {
+                continue;
+            }
+            let rel = format!("{APPS}/{name}/{}", text(file, "name"));
+            let stamp = source
+                .root
+                .stat(&rel)?
+                .ok_or_else(|| Error::new("source_changed", format!("Source changed: {rel}")))?;
+            let sha = hash_at(&source.root, &rel)?
+                .ok_or_else(|| Error::new("source_changed", format!("Source changed: {rel}")))?;
+            carried.push(
+                json!({"app":name,"file":file["name"],"source":rel,"bytes":stamp.size,
+                "sha256":sha,"stamp":stamp_json(&stamp)}),
+            );
+        }
+        context.push(json!({"app":name,"generated_at":app["generated_at"],
+            "datasets":touching.into_iter().take(SHOWN).collect::<Vec<_>>()}));
+    }
+    let device = crate::suite_device::current(isolated, &json!({"peek":true}))?;
+    let id = uid()?;
+    let mut value = json!({"schema":SCHEMA,"id":id,"created_at":nu9ve_time::now_utc(),
+        "source":{"volume_id":source_id,"label":source.volume["label"],"root":volumes::normalize(&source.root.path),
+            "identity":identity(&source.info),"paths":paths},
+        "destination":{"volume_id":dest.volume["volume_id"],"label":dest.volume["label"],
+            "root":volumes::normalize(&dest.root.path),"identity":identity(&dest.info),"into":into},
+        "copied_by":{"device_id":device["device"]["device_id"],"app":"nuun"},
+        "files":items,"file_count":items.len(),"bytes":bytes,"adopt":{"files":adopt,"bytes":adopt_bytes},
+        "free":dest.info["free"],"context":{"projects":projects,"apps":context},"carried":carried,
+        "state":"review","done":{}});
+    value["digest"] = json!(digest(&value));
+    let _lock = writer_lock(home)?;
+    writer.set(&format!("work-copy-plan:{id}"), &value)?;
+    progress.stage = "complete";
+    progress.report()?;
+    Ok(value)
+}
+
+/// `work_copy_apply`: the reviewed plan, copied and verified file by file. Interrupted, the same call resumes:
+/// what was already copied is adopted after hashing it again.
+pub fn apply(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+    apply_with(home, backend, params, &|_, _| Ok(()))
+}
+
+fn reopen(home: &Path, backend: &dyn Backend, side: &Value, which: &str) -> Result<(Root, Value)> {
+    let path = PathBuf::from(text(side, "root"));
+    let (root, info, volume, _) = suite_volume::usable(home, backend, &path)?;
+    require(
+        volume["volume_id"] == side["volume_id"] && identity(&info) == side["identity"],
+        "volume_replaced",
+        format!("The {which} disk changed since the review"),
+    )?;
+    let record = record(&volume, &path, &side["identity"]);
+    Ok((root, record))
+}
+
+pub(crate) fn apply_with(
+    home: &Path,
+    backend: &dyn Backend,
+    params: &Value,
+    hook: Hook<'_>,
+) -> Result<Value> {
+    let id = text(params, "plan_id");
+    let key = format!("work-copy-plan:{id}");
+    let _lock = writer_lock(home)?;
+    let catalog = Catalog::open(home)?;
+    let mut value = catalog
+        .get(&key)?
+        .filter(|plan| plan["digest"] == params["digest"] && plan["schema"] == SCHEMA)
+        .ok_or_else(|| Error::new("plan_changed", "Use the recorded reviewed plan"))?;
+    if value["state"] == "completed" {
+        return Ok(value);
+    }
+    let (origin, source_record) = reopen(home, backend, &value["source"], "source")?;
+    let (target, dest_record) = reopen(home, backend, &value["destination"], "destination")?;
+    let writer = WritableCatalog::open(home)?;
+    value["state"] = json!("applying");
+    writer.set(&key, &value)?;
+    let files = value["files"].as_array().cloned().unwrap_or_default();
+    let carried = value["carried"].as_array().cloned().unwrap_or_default();
+    let mut progress = crate::delivery::ActionProgress::new(&writer, Some(id), "copying");
+    progress.meter.total = value["bytes"].as_u64().unwrap_or_default();
+    progress.meter.files_total = files.len() + carried.len();
+    let mut transfer = Transfer::new(home, &writer, backend, &|_, _| Ok(()));
+    let mut done_bytes = 0u64;
+    let label = text(&value["destination"], "label").to_owned();
+    let copies = format!("{COPIES}/{id}");
+    let jobs = files
+        .iter()
+        .map(|f| {
+            (
+                text(f, "path").to_owned(),
+                text(f, "target").to_owned(),
+                f["stamp"].clone(),
+                None,
+            )
+        })
+        .chain(carried.iter().map(|c| {
+            (
+                text(c, "source").to_owned(),
+                format!("{copies}/source/{}/{}", text(c, "app"), text(c, "file")),
+                c["stamp"].clone(),
+                Some(text(c, "sha256").to_owned()),
+            )
+        }));
+    for (path, dest, stamp, expected) in jobs {
+        relative(&path)?;
+        relative(&dest)?;
+        let size = stamp["size"].as_u64().unwrap_or_default();
+        if value["done"][&dest].is_object() {
+            done_bytes += size;
+            continue;
+        }
+        progress.meter.holding(&path, "", &label, "copy");
+        progress.report()?;
+        hook("before_copy", &json!({"path":path}))?;
+        let existed = target.stat(&dest)?.is_some();
+        let result = transfer.copy_many(
+            &origin,
+            &path,
+            &[Target {
+                root: &target,
+                rel: dest.clone(),
+                record: &dest_record,
+            }],
+            expected.as_deref(),
+            Some(&stamp),
+        )?;
+        let (sha, _) = &result[0];
+        value["done"][&dest] = json!({"sha256":sha,"state":if existed {"adopted"} else {"copied"}});
+        writer.set(&key, &value)?;
+        hook("after_copy", &json!({"path":path}))?;
+        done_bytes += size;
+        progress.meter.reach(done_bytes.min(progress.meter.total));
+        progress
+            .meter
+            .finished(if existed { "adopted" } else { "copied" }, &path, &label);
+    }
+    // The receipt: every destination file with the hash its verification read, and a manifest hash as the index's.
+    let mut listed = Vec::new();
+    let mut manifest: Vec<(String, String)> = Vec::new();
+    let (mut copied, mut adopted) = (0usize, 0usize);
+    for file in &files {
+        let dest = text(file, "target");
+        let done = &value["done"][dest];
+        let sha = text(done, "sha256").to_owned();
+        if done["state"] == "adopted" {
+            adopted += 1;
+        } else {
+            copied += 1;
+        }
+        manifest.push((dest.to_owned(), sha.clone()));
+        listed.push(
+            json!({"source_path":file["path"],"path":dest,"size":file["stamp"]["size"],
+            "mtime_ns":file["stamp"]["mtime_ns"],"sha256":sha}),
+        );
+    }
+    manifest.sort();
+    let lines: String = manifest
+        .iter()
+        .map(|(path, sha)| format!("{path}\t{sha}\n"))
+        .collect();
+    let completed = nu9ve_time::now_utc();
+    let carried_out: Vec<Value> = carried
+        .iter()
+        .map(|c| {
+            json!({"app":c["app"],"file":c["file"],"bytes":c["bytes"],"sha256":c["sha256"],
+            "copy":format!("{copies}/source/{}/{}", text(c, "app"), text(c, "file"))})
+        })
+        .collect();
+    let receipt = json!({"contract":RECEIPT,"id":id,"plan_digest":value["digest"],"copied_by":value["copied_by"],
+        "created_at":value["created_at"],"completed_at":completed,
+        "source":{"volume_id":value["source"]["volume_id"],"label":value["source"]["label"],
+            "paths":value["source"]["paths"]},
+        "destination":{"volume_id":value["destination"]["volume_id"],"label":value["destination"]["label"],
+            "into":value["destination"]["into"]},
+        "file_count":files.len(),"bytes":files.iter().map(|f| f["stamp"]["size"].as_u64().unwrap_or_default()).sum::<u64>(),
+        "copied":copied,"adopted":adopted,
+        "manifest":{"algorithm":"sha256","of":"manifest","value":sha256_hex(lines.as_bytes()),"verified_at":completed},
+        "files":listed,"source_indexes":carried_out,"context":value["context"]});
+    let bytes = nu9ve_json::canonical(&receipt);
+    let rel = format!("{COPIES}/{id}.json");
+    // On both disks, in nüün's own folder: the destination says where it came from; the source, where it went.
+    for (root, record) in [(&target, &dest_record), (&origin, &source_record)] {
+        volumes::check(backend, record)?;
+        if root.stat(&rel)?.is_none() {
+            root.write_bytes(&rel, &bytes, false)?;
+        }
+        require(
+            crate::tree::read_bytes(&root.path, &rel, bytes.len() + 1)?.as_deref()
+                == Some(&bytes[..]),
+            "checksum_mismatch",
+            format!(
+                "Could not read back the receipt on {}",
+                text(record, "name")
+            ),
+        )?;
+    }
+    value["state"] = json!("completed");
+    value["completed_at"] = json!(completed);
+    value["receipt"] = json!({"path":rel,"sha256":sha256_hex(&bytes),"copied":copied,"adopted":adopted,
+        "manifest":receipt["manifest"]});
+    let tx = writer
+        .db()
+        .unchecked_transaction()
+        .map_err(crate::catalog::sql)?;
+    writer.set(&key, &value)?;
+    writer.event(id, "work_copy_completed", &value["receipt"])?;
+    tx.commit().map_err(crate::catalog::sql)?;
+    progress.stage = "complete";
+    progress.meter.reach(progress.meter.total);
+    progress.report()?;
+    Ok(value)
+}
+
+/// `work_copies`: the plans and receipts kept in this catalog, newest first, without their file lists.
+pub fn list(home: &Path) -> Result<Value> {
+    let catalog = Catalog::open(home)?;
+    let rows = catalog.json_rows(
+        "SELECT value FROM metadata WHERE key LIKE 'work-copy-plan:%'",
+        [],
+    )?;
+    let mut out: Vec<Value> = rows
+        .into_iter()
+        .map(|plan: Value| {
+            json!({"id":plan["id"],"state":plan["state"],"created_at":plan["created_at"],
+                "completed_at":plan["completed_at"],"digest":plan["digest"],
+                "source":{"volume_id":plan["source"]["volume_id"],"label":plan["source"]["label"],"paths":plan["source"]["paths"]},
+                "destination":{"volume_id":plan["destination"]["volume_id"],"label":plan["destination"]["label"],"into":plan["destination"]["into"]},
+                "file_count":plan["file_count"],"bytes":plan["bytes"],"receipt":plan["receipt"]})
+        })
+        .collect();
+    out.sort_by(|a, b| text(b, "created_at").cmp(text(a, "created_at")));
+    Ok(json!({"copies":out}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::volumes::test_backend::Fixture;
+
+    const XSSD: &str = "1b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e01";
+    const ESSD: &str = "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e02";
+
+    struct Disks {
+        _temp: tempfile::TempDir,
+        home: PathBuf,
+        xssd: PathBuf,
+        essd: PathBuf,
+        backend: Fixture,
+    }
+
+    fn disk(backend: &mut Fixture, path: &Path, id: &str, role: &str, serial: &str) {
+        std::fs::create_dir_all(path).unwrap();
+        let marker = json!({"contract":"nu9ve-volume/1","volume_id":id,"role":role,"label":
+            path.file_name().unwrap().to_str().unwrap(),"registered_at":"2026-11-22T00:00:00Z",
+            "registered_by":{"app":"nove","device_id":id},
+            "fs":{"os":crate::suite_device::OS,"kind":"exfat","serial":serial}});
+        Root::open(path)
+            .unwrap()
+            .write_json(".nu9ve/volume.json", &marker)
+            .unwrap();
+        backend.roots.push(path.to_path_buf());
+        let overrides = if crate::suite_device::OS == "windows" {
+            json!({"device": u32::from_str_radix(&serial.replace('-', ""), 16).unwrap()})
+        } else {
+            json!({"volume_uuid": serial})
+        };
+        backend
+            .overrides
+            .insert(volumes::normalize(path), overrides);
+    }
+
+    fn disks() -> Disks {
+        let temp = tempfile::tempdir().unwrap();
+        let base = temp.path().canonicalize().unwrap();
+        let mut backend = Fixture::default();
+        let (xssd, essd) = (base.join("XSSD"), base.join("ESSD"));
+        disk(&mut backend, &xssd, XSSD, "work", "AAAA-0001");
+        disk(&mut backend, &essd, ESSD, "work", "AAAA-0002");
+        let x = Root::open(&xssd).unwrap();
+        x.write_bytes(
+            "atlas-derived/potholes/day/a.geojson",
+            b"{\"type\":\"FeatureCollection\"}",
+            false,
+        )
+        .unwrap();
+        x.write_bytes(
+            "atlas-derived/potholes/day/severity.json",
+            b"[1,2,3]",
+            false,
+        )
+        .unwrap();
+        x.write_bytes("atlas-derived/other/keep.txt", b"not copied", false)
+            .unwrap();
+        // Processed long ago: the copy keeps this time.
+        let old = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+        for name in ["a.geojson", "severity.json"] {
+            std::fs::File::options()
+                .write(true)
+                .open(xssd.join("atlas-derived/potholes/day").join(name))
+                .unwrap()
+                .set_modified(old)
+                .unwrap();
+        }
+        let index = json!({"contract":"nu9ve-data/1","app":"nove","generated_at":"2026-11-23T00:00:00Z",
+            "projects":[{"project_key":"subaereo","title":"Subaéreo","parent_key":null,"state":"active"}],
+            "roots":[{"id":"root-1","label":"atlas-derived","state":"ok","volume_id":XSSD,"volume_path":"atlas-derived"}],
+            "datasets":[{"id":"ds-1","owner":"nove","title":"Baches","modality":"geo_vector","privacy":"public",
+                "storage":"in_place","location":{"root_id":"root-1","path":"potholes/day/a.geojson"},
+                "projects":[{"project_key":"subaereo"}],"state":"unverified","updated_at":"2026-11-23T00:00:00Z"}],
+            "next_cursor":null});
+        x.write_json(".nu9ve/apps/nove/index.json", &index).unwrap();
+        x.write_bytes(
+            ".nu9ve/apps/nove/inplace-v1.json",
+            b"{\"contract\":\"nove-volume-index/1\"}",
+            false,
+        )
+        .unwrap();
+        Disks {
+            _temp: temp,
+            home: base.join("state"),
+            xssd,
+            essd,
+            backend,
+        }
+    }
+
+    fn ask(d: &Disks, paths: Value) -> Value {
+        json!({"source":d.xssd,"destination":d.essd,"paths":paths})
+    }
+
+    #[test]
+    fn other_apps_indexes_say_what_a_disk_holds() {
+        let d = disks();
+        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.xssd})).unwrap();
+        assert_eq!(seen["state"], "ok");
+        let nove = &seen["apps"][0];
+        assert_eq!(nove["app"], "nove");
+        assert_eq!(nove["index"], "ok");
+        assert_eq!(
+            nove["datasets"][0]["path"],
+            "atlas-derived/potholes/day/a.geojson"
+        );
+        assert_eq!(nove["datasets"][0]["title"], "Baches");
+        assert_eq!(nove["files"].as_array().unwrap().len(), 2);
+        // An index in the wrong folder is reported, never trusted, and the disk stays usable.
+        Root::open(&d.xssd)
+            .unwrap()
+            .write_bytes(
+                ".nu9ve/apps/atlas/index.json",
+                b"{\"app\":\"nove\",\"next_cursor\":null}",
+                false,
+            )
+            .unwrap();
+        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.xssd})).unwrap();
+        assert_eq!(seen["apps"][0]["app"], "atlas");
+        assert_eq!(seen["apps"][0]["problem"], "app_mismatch");
+    }
+
+    #[test]
+    fn a_folder_is_copied_verified_with_its_times_and_a_receipt_on_both_disks() {
+        let d = disks();
+        let reviewed = plan(
+            &d.home,
+            &d.backend,
+            true,
+            &ask(&d, json!(["atlas-derived/potholes"])),
+        )
+        .unwrap();
+        assert_eq!(reviewed["file_count"], 2);
+        assert_eq!(reviewed["context"]["projects"], json!(["subaereo"]));
+        assert_eq!(reviewed["carried"].as_array().unwrap().len(), 2);
+        let args = json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]});
+        // Interrupted after the first file: the same call resumes and adopts what was verified.
+        let error = apply_with(&d.home, &d.backend, &args, &|stage, _| {
+            require(stage != "after_copy", "interrupted", "fixture")
+        })
+        .unwrap_err();
+        assert_eq!(error.code, "interrupted");
+        let done = apply(&d.home, &d.backend, &args).unwrap();
+        assert_eq!(done["state"], "completed");
+        for name in ["a.geojson", "severity.json"] {
+            let rel = format!("atlas-derived/potholes/day/{name}");
+            assert_eq!(
+                std::fs::read(d.essd.join(&rel)).unwrap(),
+                std::fs::read(d.xssd.join(&rel)).unwrap()
+            );
+            let times = |p: &Path| std::fs::metadata(p.join(&rel)).unwrap().modified().unwrap();
+            assert_eq!(times(&d.essd), times(&d.xssd));
+        }
+        assert!(!d.essd.join("atlas-derived/other").exists());
+        // nüün never writes another app's folder; it keeps the source's files, byte for byte, in its own.
+        assert!(!d.essd.join(".nu9ve/apps/nove").exists());
+        let id = text(&reviewed, "id");
+        assert_eq!(
+            std::fs::read(
+                d.essd
+                    .join(format!("{COPIES}/{id}/source/nove/inplace-v1.json"))
+            )
+            .unwrap(),
+            std::fs::read(d.xssd.join(".nu9ve/apps/nove/inplace-v1.json")).unwrap()
+        );
+        let receipt: Value = serde_json::from_slice(
+            &std::fs::read(d.essd.join(format!("{COPIES}/{id}.json"))).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(receipt["contract"], RECEIPT);
+        assert_eq!(receipt["source"]["volume_id"], XSSD);
+        assert_eq!(receipt["destination"]["volume_id"], ESSD);
+        assert_eq!(
+            receipt["copied"].as_u64().unwrap() + receipt["adopted"].as_u64().unwrap(),
+            2
+        );
+        assert_eq!(receipt["files"][0]["sha256"].as_str().unwrap().len(), 64);
+        assert_eq!(
+            std::fs::read(d.xssd.join(format!("{COPIES}/{id}.json"))).unwrap(),
+            std::fs::read(d.essd.join(format!("{COPIES}/{id}.json"))).unwrap()
+        );
+        assert_eq!(apply(&d.home, &d.backend, &args).unwrap(), done);
+        let listed = volume_apps(&d.home, &d.backend, &json!({"root":d.essd})).unwrap();
+        assert_eq!(listed["copies"][0]["id"], reviewed["id"]);
+        assert_eq!(list(&d.home).unwrap()["copies"][0]["state"], "completed");
+        // Copying again: everything is already there and identical, so it is adopted, never replaced.
+        let again = plan(
+            &d.home,
+            &d.backend,
+            true,
+            &ask(&d, json!(["atlas-derived/potholes"])),
+        )
+        .unwrap();
+        assert_eq!(again["adopt"]["files"], 2);
+        assert_eq!(again["bytes"], 0);
+    }
+
+    #[test]
+    fn conflicts_archives_and_reserved_folders_block_the_plan() {
+        let mut d = disks();
+        Root::open(&d.essd)
+            .unwrap()
+            .write_bytes("atlas-derived/potholes/day/severity.json", b"[9]", false)
+            .unwrap();
+        let code = |d: &Disks, p: Value| plan(&d.home, &d.backend, true, &p).unwrap_err().code;
+        assert_eq!(
+            code(&d, ask(&d, json!(["atlas-derived/potholes"]))),
+            "destination_conflict"
+        );
+        assert_eq!(code(&d, ask(&d, json!([".nu9ve/apps"]))), "invalid_params");
+        assert_eq!(code(&d, ask(&d, json!(["a", "a/b"]))), "invalid_params");
+        assert_eq!(code(&d, ask(&d, json!(["../x"]))), "unsafe_path");
+        let same = json!({"source":d.xssd,"destination":d.xssd,"paths":["atlas-derived"]});
+        assert_eq!(code(&d, same), "same_volume");
+        let media = d.xssd.parent().unwrap().join("MEDIA");
+        disk(
+            &mut d.backend,
+            &media,
+            "3b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e03",
+            "archive",
+            "AAAA-0003",
+        );
+        let to_archive =
+            json!({"source":d.xssd,"destination":media,"paths":["atlas-derived/other"]});
+        assert_eq!(code(&d, to_archive), "invalid_role");
+        // A reviewed plan does not survive a disk swapped under the same mount.
+        let reviewed = plan(
+            &d.home,
+            &d.backend,
+            true,
+            &ask(&d, json!(["atlas-derived/other"])),
+        )
+        .unwrap();
+        d.backend
+            .overrides
+            .get_mut(&volumes::normalize(&d.essd))
+            .unwrap()["root_inode"] = json!(7);
+        let args = json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]});
+        assert_eq!(
+            apply(&d.home, &d.backend, &args).unwrap_err().code,
+            "volume_replaced"
+        );
+    }
+}
