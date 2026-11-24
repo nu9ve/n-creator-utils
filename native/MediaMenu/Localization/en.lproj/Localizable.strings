@@ -1089,3 +1089,14 @@
 "índice del %@" = "index of %@";
 "último respaldo %@" = "last backup %@";
 "Leyendo los índices del disco…" = "Reading the disk's indexes…";
+"Mantén conectados ambos discos hasta que aparezca el recibo." = "Keep both disks connected until the receipt appears.";
+"Copia entre discos de trabajo" = "Copy between work disks";
+"Incluye el historial de misiones y el mapa de fotos." = "Includes mission history and the photo map.";
+"Exportar historial a un SSD de trabajo" = "Export history to a work SSD";
+"Crea una copia verificable para consultar en otra Mac. Vuelve a exportar cuando quieras actualizarla." = "Create a verifiable copy to read on another Mac. Export again whenever you want to update it.";
+"Elegir SSD…" = "Choose SSD…";
+"Elige la raíz de un SSD de trabajo" = "Choose the root of a work SSD";
+"¿Exportar el historial a %@?" = "Export history to %@?";
+"Sí, exportar" = "Yes, export";
+"Los historiales elegidos son personales. Se copiarán en una carpeta de este dispositivo. Puedes actualizar la copia cuando lo decidas." = "The selected histories are personal. They will be copied into this device's folder. You can update the copy whenever you choose.";
+"Copia en %@ · %lld archivos copiados · %lld cambiaron durante la copia" = "Copy on %@ · %lld files copied · %lld changed during the copy";

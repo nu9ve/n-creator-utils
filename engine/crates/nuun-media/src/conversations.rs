@@ -411,6 +411,66 @@ fn device_of(isolated: bool) -> Value {
         )
 }
 
+/// Explicitly export selected histories to a portable work disk, independently of archive settings.
+pub fn export_working(
+    home: &Path,
+    backend: &dyn Backend,
+    isolated: bool,
+    user_home: &Path,
+    params: &Value,
+) -> Result<Value> {
+    require(
+        params["confirm_personal"] == true,
+        "confirmation_required",
+        "Confirm which history may be copied to this disk",
+    )?;
+    let target = Path::new(text(params, "destination"));
+    let selected = params["collections"]
+        .as_array()
+        .filter(|items| !items.is_empty() && items.len() <= KNOWN.len())
+        .ok_or_else(|| Error::new("invalid_params", "Choose the histories to export"))?;
+    let mut collections = BTreeMap::new();
+    for id in selected {
+        let collection = known(id.as_str().unwrap_or_default())?;
+        let source = source_of(user_home, collection);
+        require(
+            source.is_dir(),
+            "source_missing",
+            format!("{} is not on this Mac", collection.title),
+        )?;
+        collections.insert(collection.id, (collection, source));
+    }
+    let _lock = writer_lock(home)?;
+    let (root, _, marker, _) = crate::suite_volume::usable(home, backend, target)?;
+    require(
+        matches!(text(&marker, "role"), "work" | "other"),
+        "invalid_role",
+        "Choose a work disk to export conversations",
+    )?;
+    let device = device_of(isolated);
+    require(
+        !device.is_null(),
+        "device_unavailable",
+        "Register this Mac in the suite first",
+    )?;
+    let catalog = Catalog::open(home)?;
+    let settings = settings_of(&catalog)?;
+    let mut results = Vec::new();
+    for (collection, source) in collections.values() {
+        root.check()?;
+        let folder = format!(
+            "{}/{}/{}",
+            text(&settings, "base"),
+            collection.id,
+            text(&device, "device_id")
+        );
+        let mut result = working_copy(backend, source, collection, &root.path, &folder, &device)?;
+        result["collection"] = json!(collection.id);
+        results.push(result);
+    }
+    Ok(json!({"results":results}))
+}
+
 /// `conversations_backup_apply`: each reviewed plan copied and verified (`living_apply`), its receipt published
 /// next to the collection's manifest, then the working copy when it is decided.
 pub fn backup_apply(
@@ -457,14 +517,16 @@ pub fn backup_apply(
                 .strip_prefix(&format!("{}/", text(&settings, "base")))
                 .unwrap_or(&folder)
                 .to_owned();
-            entry["working"] = match working_copy(
-                backend,
-                &source_of(user_home, collection),
-                collection,
-                &target,
-                &format!("{}/{device_folder}", text(&settings, "base")),
-                &device,
-            ) {
+            entry["working"] = match writer_lock(home).and_then(|_lock| {
+                working_copy(
+                    backend,
+                    &source_of(user_home, collection),
+                    collection,
+                    &target,
+                    &format!("{}/{device_folder}", text(&settings, "base")),
+                    &device,
+                )
+            }) {
                 Ok(done) => done,
                 // The backup stands; the working copy says why it did not happen (its disk is not here…).
                 Err(error) => json!({"state":"failed","code":error.code,"message":error.message}),
@@ -563,16 +625,20 @@ fn working_target(backend: &dyn Backend, target: &Path, source: &Path) -> Result
 /// Copy one file to `rel` on `target`: a partial, flushed with the source's times, read back and hashed, then
 /// renamed over the previous working copy only once it is verified. Returns its SHA-256, or `None` when the
 /// source changed while it was read (the next run takes it).
-fn mirror_file(source: &Path, rel_src: &str, target: &Root, rel: &str) -> Result<Option<String>> {
-    let from = source.join(rel_src);
-    let before = nu9ve_volumes::stamp(&from)?;
+fn mirror_file(source: &Root, rel_src: &str, target: &Root, rel: &str) -> Result<Option<Value>> {
+    let Some(before) = source.stat(rel_src)? else {
+        return Ok(None);
+    };
+    let Some(input) = source.open_read(rel_src)? else {
+        return Ok(None);
+    };
+    let from = source.path.join(rel_src);
     let (dir, name) = target.parent(rel, true)?;
     let partial = dir.join(format!(".{name}.ncpartial"));
     if partial.exists() {
         std::fs::remove_file(&partial).map_err(|e| nu9ve_volumes::fs::io_error(e, &partial))?;
     }
-    let mut input =
-        std::fs::File::open(&from).map_err(|e| nu9ve_volumes::fs::io_error(e, &from))?;
+    let mut input = input.take(before.size);
     let mut output = nu9ve_volumes::fs::create_new(&partial)?;
     let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
     let mut block = vec![0u8; 1 << 20];
@@ -589,6 +655,7 @@ fn mirror_file(source: &Path, rel_src: &str, target: &Root, rel: &str) -> Result
             .map_err(|e| nu9ve_volumes::fs::io_error(e, &partial))?;
     }
     let meta = input
+        .get_ref()
         .metadata()
         .map_err(|e| nu9ve_volumes::fs::io_error(e, &from))?;
     let mut times = std::fs::FileTimes::new();
@@ -601,8 +668,10 @@ fn mirror_file(source: &Path, rel_src: &str, target: &Root, rel: &str) -> Result
     nu9ve_volumes::fs::full_sync(&output)?;
     drop(output);
     let sha = nu9ve_json::hex(&sha2::Digest::finalize(hasher));
-    let after = nu9ve_volumes::stamp(&from)?;
-    if after.size != before.size || after.mtime_ns != before.mtime_ns {
+    let unchanged = source
+        .stat(rel_src)?
+        .is_some_and(|after| stamp_json(&after) == stamp_json(&before));
+    if !unchanged || input.limit() != 0 {
         std::fs::remove_file(&partial).map_err(|e| nu9ve_volumes::fs::io_error(e, &partial))?;
         return Ok(None);
     }
@@ -616,7 +685,9 @@ fn mirror_file(source: &Path, rel_src: &str, target: &Root, rel: &str) -> Result
     )?;
     nu9ve_volumes::fs::replace(&partial, &dir.join(&name))?;
     target.sync_parent(rel)?;
-    Ok(Some(sha))
+    Ok(Some(
+        json!({"size": before.size, "mtime_ns": before.mtime_ns, "sha256": sha}),
+    ))
 }
 
 /// The verified mirror of a collection's history in `<target>/<folder>/` and its manifest
@@ -694,14 +765,11 @@ fn working_copy(
             files.insert(path, kept.clone());
             continue;
         }
-        match mirror_file(source, &path, &root, &rel)? {
-            Some(sha) => {
+        match mirror_file(&origin, &path, &root, &rel)? {
+            Some(verified) => {
                 copied += 1;
-                bytes += stamp["size"].as_u64().unwrap_or_default();
-                files.insert(
-                    path,
-                    json!({"size":stamp["size"],"mtime_ns":stamp["mtime_ns"],"sha256":sha}),
-                );
+                bytes += verified["size"].as_u64().unwrap_or_default();
+                files.insert(path, verified);
             }
             None => changed_during += 1,
         }

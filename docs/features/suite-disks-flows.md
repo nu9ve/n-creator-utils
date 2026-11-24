@@ -1,6 +1,6 @@
 # Discos de trabajo, conversaciones y sugerencias · diseño
 
-Actualizado: 2026-11-23. Pedido del usuario del mismo día: con dos Macs (la M4 procesa Atlas en XSSD; la M1 explora en nove con ESSD) y MEDIA501/502 de archivo, nüün copia entre discos, respalda las conversaciones por dispositivo y sugiere sólo cuando hay algo nuevo. Se apoya en el core: [volumen](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §7–§8, [datos](../../vendor/nu9ve-core/contracts/nu9ve-data-v1.md) §2.1 y §6, [agente](../../vendor/nu9ve-core/contracts/nu9ve-agent-v1.md), [intercambio](../../vendor/nu9ve-core/contracts/nu9ve-exchange-v1.md) y [varias máquinas](../../vendor/nu9ve-core/docs/suite-devices.md) §6.4–§6.5; y en nove A70–A76. Estado y evidencia en [STATUS](../STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23).
+Actualizado: 2026-11-24. En la M4, Atlas procesa en SUBSSD. En la M1, nove explora con ESSD y MEDIA501/502 sirve de archivo. nüün copia entre discos y respalda conversaciones por dispositivo. Se apoya en el core: [volumen](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §7–§8, [datos](../../vendor/nu9ve-core/contracts/nu9ve-data-v1.md) §2.1 y §6, [agente](../../vendor/nu9ve-core/contracts/nu9ve-agent-v1.md), [intercambio](../../vendor/nu9ve-core/contracts/nu9ve-exchange-v1.md) y [varias máquinas](../../vendor/nu9ve-core/docs/suite-devices.md) §6.4–§6.5; y en nove A70–A76. Estado y evidencia en [STATUS](../STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23).
 
 ## Principios
 
@@ -20,9 +20,17 @@ Actualizado: 2026-11-23. Pedido del usuario del mismo día: con dos Macs (la M4 
 - **Sí, la copia lleva un recibo de nüün** (`nuun-work-copy/1`, en los dos discos): disco, carpetas y hash de cada archivo de origen y destino, el manifiesto y los índices de origen. Con él nove registra el destino sin hashear (contrato, «Qué hace con esto otra app»).
 - **Ventana:** Discos → «Copiar al otro disco…» y la sugerencia en Inicio. La hoja lista los **proyectos de nüün** del disco de origen (de su índice publicado) además de las carpetas de las demás apps. **«Actualizar lo que cambió»** reemplaza lo distinto guardando la versión anterior en la carpeta de nüün del destino, y la sugerencia `work_copy_changed` propone la vuelta cuando lo copiado cambió en un disco. **Falta:** un proyecto de Clipper con sus dependencias (`paths` desde `clipper.inspect`) y resumir lo copiado en el índice de nüün del destino. El orden para el recorrido M1 → M4 → M1 está en el [PLAN](../../PLAN.md#recorrido-de-misiones-entre-la-m1-y-la-m4-pedido-del-usuario-2026-11-23).
 
+### Permiso, registro local y marcador portable
+
+- **Permiso de macOS** habilita a nüün para leer y escribir en el volumen según sus permisos.
+- **Añadir SSD para editar…** guarda el destino y prefijo en el catálogo de esta Mac. Con eso aparece como destino en Ajustes y en la vista Discos.
+- **Registrar en la suite** escribe `.nu9ve/volume.json` con identidad y rol portables. La copia entre discos lee ese marcador en ambas raíces montadas y funciona aunque el ESSD sólo esté registrado en el catálogo de la M1. **Adoptar este disco…** consulta el índice publicado, en sólo lectura para el volumen. La adopción no añade un destino al catálogo local.
+- En la M4, para copiar con el ESSD que ya trae su marcador, abrir **Discos → Copiar al otro disco…** y usar **Elegir disco…** para seleccionar ambas raíces en `/Volumes`. Si también se quiere usar el ESSD como destino de edición o verlo en el mapa de Discos, añadirlo como SSD para editar en esa Mac.
+- El índice del ESSD consultado el 24 nov ofrece `subaereo` por la ruta `001_proyectos/atlas-subaereo/misiones/2026/11`. La build de esa primera copia requería elegir `_missions/` y `_nuun/` manualmente. En el código actualizado, la hoja los incorpora al elegir la carpeta de proyecto indexada, según la receta. Los resultados bajo `atlas-derived/` se eligen por separado.
+
 ## 2. Respaldo de conversaciones por dispositivo
 
-**Hecho en el motor** ([contrato y formatos para nove](../contracts/suite-conversations-v1.md)): `conversations_settings`, `conversations_status`, `conversations_backup_plan`, `conversations_backup_apply` y `conversations_run`; `living_plan` gana `include`.
+**Hecho en el motor** ([contrato y formatos para nove](../contracts/suite-conversations-v1.md)): `conversations_settings`, `conversations_status`, `conversations_backup_plan`, `conversations_backup_apply`, `conversations_run` y `conversations_export_working`; `living_plan` acepta `include`.
 
 Colecciones conocidas, cada una con sólo su **historial** (la clase `history` de `storage_collections`). Nunca credenciales, ajustes, cachés ni registros:
 
@@ -39,6 +47,23 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 - **Cuándo:** «A pedido» siempre; «Sugerir cada N días» por omisión (N = 7); «Automático» sólo si la persona lo elige: con la app abierta y el disco conectado, respalda sin preguntar cuando toca.
 - **Para nove:** la carpeta `<device_id>` es la identidad de la máquina (UUID de `device.json`); `_nuun/manifest.json` lista cada archivo con tamaño y SHA-256; el recibo dice colección y nombre del dispositivo. El proyecto es la clave conocida `conversaciones`.
 
+### Reunir los historiales de M4 y M1 en ESSD
+
+La build instalada exige un destino de archivo accesible desde la Mac que contiene los historiales. Con MEDIA en la M4, elegir en Ajustes → Conversaciones las colecciones y SUBSSD como copia de trabajo, y ejecutar «Respaldar ahora». Con MEDIA y ambos SSD conectados, se puede elegir ESSD directamente como copia de trabajo. Si se pasa por SUBSSD, copiar a ESSD sólo `004_datos/conversaciones/<colección>/<id-M4>/` por cada colección autorizada. La M1 puede escribir su propia copia al mismo ESSD cuando respalde sus historiales a MEDIA. Las carpetas por dispositivo preservan ambas procedencias. Está pendiente validar el recorrido con discos reales y reunir ambos historiales en nove desde ese árbol.
+
+Sin MEDIA, **Ajustes → Conversaciones → Exportar historial a un SSD de trabajo** permite elegir las colecciones y confirmar el SSD. La exportación reutiliza el formato `nuun-conversations-working/1`, con carpeta por dispositivo y manifiesto SHA-256. Puede repetirse a pedido. Los archivos que cambian durante la lectura quedan para la próxima exportación. Para llevar la copia al ESSD, seleccionar las carpetas de ese dispositivo con «Copiar al otro disco…» y revisar «Actualizar lo que cambió» si ya hay una versión anterior. El flujo de respaldo a MEDIA conserva sus versiones de archivo.
+
+En la M1, el motor de nove permite resumir Claude Code y Codex apuntando al ESSD, sin abrir las carpetas activas. En este ejemplo `ID_M4` es la carpeta de dispositivo del export. La pantalla de Conversaciones aún requiere validar la incorporación de ambos dispositivos. El lector de Claude Desktop de nove todavía tiene el formato pendiente.
+
+```sh
+history_root=/Volumes/ESSD/004_datos/conversaciones
+device_id=ID_M4
+/Applications/Nove.app/Contents/Helpers/nove-engine conversations-summary \
+  --claude-projects "$history_root/claude-code/$device_id/projects" \
+  --codex-home "$history_root/codex/$device_id" \
+  --utc-offset-minutes -420 --counts-only
+```
+
 ## 3. Sugerencias al conectar
 
 **Hecho en el motor:** `suite_suggestions` y `suggestions_dismiss` (`{key, dismissed}`), por `rpc`. En la ventana, Inicio → «Discos conectados», con «Ahora no» y «No volver a preguntar».
@@ -48,11 +73,19 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 | Flujo | Cuándo aparece |
 | --- | --- |
 | `work_copy` | Dos discos de trabajo conectados y una raíz de otra app en uno (su `volume_path`) que no existe en el otro ni está en un recibo de copia hacia él |
+| `work_copy_changed` | Los dos discos comparten un recibo de nüün sin carpeta de destino adicional. Bajo una ruta de ese recibo aparecen archivos nuevos o cambian su tamaño o fecha desde la última copia. Detecta candidatos y abre la revisión, donde se verifican los archivos. |
 | `conversations_backup` | El disco de respaldo elegido está conectado y una colección decidida no se respalda desde hace N días (o nunca) |
-| `conversations_working` | El destino de la copia de trabajo está conectado y quedó atrás del último respaldo |
+| `conversations_working` | Fuera del modo «A pedido», el destino de trabajo está conectado y quedó atrás del último respaldo. La acción actual vuelve a ejecutar el flujo de respaldo y necesita que MEDIA esté disponible. |
 
 - Cada sugerencia tiene una clave estable (`flujo:volume_id[:…]`). «No volver a preguntar» la guarda en el catálogo local para ese disco y flujo (`suggestions_dismiss`). «Ahora no» la calla hasta el próximo evento: la app recuerda, en memoria, qué sugirió por montaje.
 - Las SD siguen con su ventana de ingreso de siempre; esto no la repite.
+
+### Pasada de UX pendiente
+
+1. **Una sola alta para el caso común.** Al elegir «Usar como disco de trabajo», integrar el alta local y la confirmación para escribir el marcador portable. Si ya existe un marcador compatible, reutilizarlo y ofrecer «Usar en esta Mac» junto al disco detectado. Mantener disponible la consulta del índice en sólo lectura. Mostrar en un solo lugar qué está montado, qué se puede consultar y qué está configurado como destino.
+2. **Sugerencia por proyecto y dirección.** Para la primera actualización, usar evidencia de que se trata del mismo proyecto y una relación explícita entre proyecto, par de discos y dirección, o un historial de copias. Para Atlas/Subaéreo, permitir elegir las entradas y las carpetas de resultados al establecer esa relación. Sugerir sólo cuando haya material pendiente, indicando proyecto, origen, destino, rutas y motivo. Discos con proyectos distintos pueden seguir sin sugerencias. El tipo de proyecto orienta qué carpetas revisar. Si hubo cambios en ambos discos, mostrar ambas direcciones y pedir revisión antes de reemplazar.
+3. **Sugerencias de conversaciones por destino y colección.** Mostrar el respaldo de archivo, el export de historial y la copia ya autorizada con acciones propias. Para sugerir una actualización entre SSD, exigir una elección previa de destino para esos historiales y evidencia de novedades para esa colección y dispositivo. La presencia de dos discos por sí sola no inicia ni propone transferencias personales.
+4. **Transferencias largas.** La hoja «Copiar al otro disco…» usa la vista compartida `ActionProgressView` mientras copia y verifica, y al terminar vuelve al recibo. Queda validar en ventana el cambio de fase con una copia de varios GB.
 
 ## 4. Otras Macs, por el agente
 

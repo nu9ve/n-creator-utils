@@ -2,6 +2,7 @@
 """Rebuild and install one canonical local development app, keeping the previous build."""
 import argparse
 import datetime
+import os
 from pathlib import Path
 import plistlib
 import shutil
@@ -66,11 +67,17 @@ def main():
     parser.add_argument('--python', default=sys.executable, help='External Python for this local development install')
     parser.add_argument('--destination', default=str(Path.home() / 'Applications/nuun.app'), help='ASCII filename makes nuun searchable; display name is nüün')
     parser.add_argument('--app', help='Install an already-built signed bundle; otherwise rebuild current source')
+    # A stable identity (a certificate name or its SHA-1) keeps macOS privacy permissions across rebuilds;
+    # ad-hoc signing changes the app's identity with every build, so macOS asks again.
+    parser.add_argument('--identity', default=os.environ.get('NU9VE_SIGN_IDENTITY'),
+                        help='Signing identity for the rebuild (default: $NU9VE_SIGN_IDENTITY, else ad-hoc)')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     app = Path(args.app).absolute() if args.app else repo / 'dist' / ('Nu9veMedia-local-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:6] + '.app')
     if not args.app:
-        subprocess.run([sys.executable, str(repo / 'scripts/build_media_app.py'), '--output', str(app), '--python', str(Path(args.python).absolute())], check=True)
+        build = [sys.executable, str(repo / 'scripts/build_media_app.py'), '--output', str(app), '--python', str(Path(args.python).absolute())]
+        if args.identity: build += ['--identity', args.identity]
+        subprocess.run(build, check=True)
     install(app, args.destination)
 
 

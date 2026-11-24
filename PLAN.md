@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-23, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-24, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -143,10 +143,10 @@ y `data_export`, colecciones por dispositivo y «Trabajar aquí». Lo que sigue,
 
 ### Recorrido de misiones entre la M1 y la M4 (pedido del usuario, 2026-11-23)
 
-Guardar las misiones en la M1 (MEDIA + ESSD), llevar el ESSD a la M4, copiar al XSSD, procesar ahí con Atlas, devolver lo procesado al ESSD y analizarlo en nove en la M1. [Flujos](docs/features/suite-disks-flows.md). Lo que ya hay y lo que falta, en orden:
+Guardar las misiones en la M1 (MEDIA + ESSD), llevar el ESSD a la M4, copiar al SUBSSD, procesar ahí con Atlas, devolver lo procesado al ESSD y analizarlo en nove en la M1. MEDIA se requiere para el ingreso de material nuevo. La copia entre discos de trabajo puede hacerse en la M4 mientras MEDIA sigue en la M1. [Flujos](docs/features/suite-disks-flows.md).
 
 1. **Ya hay:** el ingreso de dron deja la misión en MEDIA y en el ESSD. `work_copy` copia verificado entre dos discos de trabajo de la misma Mac, con recibo en los dos. Fuera del sandbox no hay otra guarda que el marcador y el rol. Nunca se corrió con discos reales.
-2. **Instalar en la M4 y primera corrida física**: build e instalación ([pasos de la otra Mac](docs/STATUS.md#pendientes-físicos-de-f0)), registrar el XSSD como `work` y copiar una carpeta chica ESSD → XSSD y de vuelta. Es el gate para usarlo con una misión entera.
+2. **Primera ida física hecha.** ESSD → SUBSSD completada y verificada en la M4, incluidos el historial y el mapa de fotos ([evidencia](docs/STATUS.md#pendientes-físicos-de-f0)). La hoja de copia ya incluye juntos los archivos de Atlas en el código. Pendiente validar esa selección en ventana y hacer la vuelta de resultados a la M1.
 3. ~~**Copiar proyecto**~~ **Hecho el 2026-11-23** ([STATUS](docs/STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23), punto 7): la hoja lista los proyectos de nüün del índice publicado en el disco, así funciona en la M4 sin el catálogo de la M1. Antes de llevar el ESSD, «Publicar índice» en Ajustes para que incluya las misiones recientes. Falta un proyecto de Clipper con sus dependencias (`clipper.inspect`).
 4. ~~**Volver con lo procesado**~~ **Hecho el 2026-11-23**: «Actualizar lo que cambió» (la versión anterior queda en la carpeta de nüün del destino) y la sugerencia `work_copy_changed` desde los recibos, sin necesitar un índice de Atlas. Sólo ve lo que cambia dentro de las carpetas copiadas: si Atlas escribe en otra carpeta, se elige a mano.
 5. **nove registra desde el recibo** (sesión de nove, A70–A76): sin eso, nove vuelve a hashear lo que llega al ESSD.
@@ -175,6 +175,11 @@ Decidido el 2026-11-11: lo compartido de la suite vivirá en un repo `nu9ve/core
 La §12.1 de `nu9ve-engine-v1` está implementada en los dos motores y Rust usa el servidor de líneas compartido. [Evidencia del gate y de la sombra sobre el dorado](docs/STATUS.md#nu9ve-engine-v1-en-los-dos-motores--2026-11-16).
 
 Decisiones que esperan: canal de firma y actualización, cuarentena o papelera al liberar. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
+
+## Pasada de UX · discos y conversaciones
+
+- Unificar el alta de disco y guiar el uso local de un disco portable detectado. Mostrar por qué aparece una actualización, con proyecto, dirección y cambios. [Criterios de UX](docs/features/suite-disks-flows.md#pasada-de-ux-pendiente).
+- Validar en ventana el export a pedido sin MEDIA y en nove el árbol de M4 y M1 en ESSD. Comprobar el progreso compartido en una copia larga. [Recorrido](docs/features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-essd).
 
 ## Prioridad baja · capturas del producto
 

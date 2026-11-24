@@ -172,9 +172,25 @@ struct WorkCopySheet: View {
     @State private var plan: JSONValue?
     @State private var done: JSONValue?
     @State private var inFlight = false
+    @State private var copying = false
     @State private var failure = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if copying {
+                ActionProgressView(title: "Copiando y verificando", note: "Mantén conectados ambos discos hasta que aparezca el recibo.",
+                                   state: .transfer(model.actionProgress, phase: String(localized: "Copia entre discos de trabajo")))
+            } else {
+                selection
+            }
+        }
+        .padding(20).frame(minWidth: 560, minHeight: 440)
+        .task {
+            chosen = Set(request.paths)
+            if !request.source.isEmpty { await loadApps() }
+        }
+    }
+    private var selection: some View {
+        Group {
             Label("Copiar al otro disco", systemImage: "externaldrive.badge.plus").font(.title3.weight(.semibold))
             Text("Copia verificada entre dos discos de trabajo: conserva rutas y fechas, deja un recibo en los dos discos y no borra nada.")
                 .font(.callout).foregroundStyle(.secondary)
@@ -203,11 +219,6 @@ struct WorkCopySheet: View {
                 }
             }
         }
-        .padding(20).frame(minWidth: 560, minHeight: 440)
-        .task {
-            chosen = Set(request.paths)
-            if !request.source.isEmpty { await loadApps() }
-        }
     }
     private func disk(_ label: LocalizedStringKey, path: String, set: @escaping (String) -> Void) -> some View {
         HStack {
@@ -235,6 +246,9 @@ struct WorkCopySheet: View {
                             Text(project.title).font(.callout)
                             Text("\(project.paths.joined(separator: " · ")) · \(bytesLabel(project.bytes))").font(.caption).foregroundStyle(.secondary)
                                 .lineLimit(2).truncationMode(.middle)
+                            if project.includesMissionMetadata {
+                                Text("Incluye el historial de misiones y el mapa de fotos.").font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                     }.toggleStyle(.checkbox).disabled(inFlight)
                 }
@@ -275,7 +289,17 @@ struct WorkCopySheet: View {
             }.toggleStyle(.checkbox).disabled(inFlight)
         }
     }
-    private struct Project { let key: String; let title: String; let paths: [String]; let bytes: Double; let indexed: String }
+    private struct Project {
+        let key: String
+        let title: String
+        let paths: [String]
+        let bytes: Double
+        let indexed: String
+        let includesMissionMetadata: Bool
+    }
+    private func nuunDatasets(_ apps: JSONValue) -> [JSONValue] {
+        apps["apps"].array.first { $0["app"].string == "nuun" && $0["index"].string == "ok" }?["datasets"].array ?? []
+    }
     /// nüün's own index on the disk (published from the Mac that has the catalog): its projects and their folders,
     /// so another Mac can copy a project in progress without that catalog.
     private func projectsOf(_ apps: JSONValue) -> [Project] {
@@ -288,8 +312,16 @@ struct WorkCopySheet: View {
         return folders.map { key, found in
             let paths = Self.outermost(Array(found.keys))
             return Project(key: key, title: titles[key] ?? key, paths: paths, bytes: found.values.reduce(0, +),
-                           indexed: String(nuun["generated_at"].string.prefix(10)))
+                           indexed: String(nuun["generated_at"].string.prefix(10)),
+                           includesMissionMetadata: !missionMetadata(for: Set(paths)).isEmpty)
         }.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+    private func missionMetadata(for paths: Set<String>) -> [String] {
+        guard let apps else { return [] }
+        return nuunDatasets(apps).filter { dataset in
+            let path = dataset["path"].string
+            return paths.contains { path == $0 || path.hasPrefix($0 + "/") }
+        }.flatMap { $0["work_copy_companions"].array.map(\.string) }
     }
     /// The paths not inside another one of them (a plan refuses overlapping paths).
     static func outermost(_ paths: [String]) -> [String] {
@@ -342,8 +374,9 @@ struct WorkCopySheet: View {
         Task {
             defer { inFlight = false }
             do {
+                let paths = Self.outermost(Array(chosen) + missionMetadata(for: chosen))
                 plan = try await model.oneShot("work_copy_plan", ["source": .string(request.source), "destination": .string(request.destination),
-                                                                  "paths": .array(Self.outermost(Array(chosen)).map(JSONValue.string)),
+                                                                  "paths": .array(paths.map(JSONValue.string)),
                                                                   "update": .bool(request.update)])
             } catch let failure as BackendFailure where failure.code == "destination_conflict" {
                 self.failure = String(localized: "Hay archivos distintos con el mismo nombre en el destino. Marca «Actualizar lo que cambió» para reemplazarlos guardando su versión anterior, o elige otra carpeta.")
@@ -351,9 +384,15 @@ struct WorkCopySheet: View {
         }
     }
     private func apply(_ plan: JSONValue) {
-        inFlight = true; failure = ""
+        inFlight = true; copying = true; failure = ""
         Task {
-            defer { inFlight = false }
+            let monitor = model.watchAction("work_copy", plan["id"])
+            defer {
+                monitor.cancel()
+                model.runningAction = ""
+                inFlight = false
+                copying = false
+            }
             do {
                 done = try await model.oneShot("work_copy_apply", ["plan_id": plan["id"], "digest": plan["digest"]])
                 await model.loadSuiteSuggestions(arrival: false)
@@ -370,6 +409,10 @@ struct ConversationsSettings: View {
     @Bindable var model: Model
     @State private var confirming: (id: String, title: String)?
     @State private var confirmWorking: URL?
+    @State private var exportCollections: Set<String> = []
+    @State private var exportDisk: URL?
+    @State private var exporting = false
+    @State private var exportResult = ""
     var body: some View {
         let status = model.conversations, settings = status?["settings"] ?? .null
         VStack(alignment: .leading, spacing: 12) {
@@ -423,6 +466,22 @@ struct ConversationsSettings: View {
                     .disabled(model.conversationsRunning || settings["archive"].string.isEmpty
                               || !(status?["collections"].array.contains { !$0["decided_at"].string.isEmpty } ?? false))
             }
+            Divider()
+            DisclosureGroup("Exportar historial a un SSD de trabajo") {
+                Text("Crea una copia verificable para consultar en otra Mac. Vuelve a exportar cuando quieras actualizarla.")
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach((status?["collections"].array ?? []).filter { $0["present"].bool }, id: \.["id"].string) { collection in
+                    let id = collection["id"].string
+                    Toggle(collection["title"].string, isOn: Binding(get: { exportCollections.contains(id) }, set: { enabled in
+                        if enabled { exportCollections.insert(id) } else { exportCollections.remove(id) }
+                    })).toggleStyle(.checkbox).disabled(exporting)
+                }
+                Button("Elegir SSD…") {
+                    pickURL(message: String(localized: "Elige la raíz de un SSD de trabajo"), directory: URL(fileURLWithPath: "/Volumes")) { exportDisk = $0 }
+                }.disabled(exportCollections.isEmpty || exporting || model.conversationsRunning)
+                if exporting { ProgressView().controlSize(.small) }
+                if !exportResult.isEmpty { Text(exportResult).font(.caption).textSelection(.enabled) }
+            }
         }
         .task { await model.loadConversations() }
         .confirmationDialog(confirming.map { String(localized: "¿Respaldar \($0.title) en \(settings["archive"].string)?") } ?? "",
@@ -442,6 +501,31 @@ struct ConversationsSettings: View {
             }
         } message: {
             Text("Una copia de tus conversaciones respaldadas quedará también ahí, para analizarlas. No va a un disco de respaldo.")
+        }
+        .confirmationDialog(String(localized: "¿Exportar el historial a \(exportDisk?.lastPathComponent ?? "")?"),
+                            isPresented: Binding(get: { exportDisk != nil }, set: { if !$0 { exportDisk = nil } })) {
+            Button("Sí, exportar") {
+                if let disk = exportDisk { export(to: disk) }
+                exportDisk = nil
+            }
+        } message: {
+            Text("Los historiales elegidos son personales. Se copiarán en una carpeta de este dispositivo. Puedes actualizar la copia cuando lo decidas.")
+        }
+    }
+    private func export(to disk: URL) {
+        exporting = true
+        exportResult = ""
+        let collections = exportCollections.sorted().map(JSONValue.string)
+        Task {
+            defer { exporting = false }
+            do {
+                let response = try await model.oneShot("conversations_export_working", ["destination": .string(disk.path),
+                    "collections": .array(collections), "confirm_personal": .bool(true)])
+                let results = response["results"].array
+                let copied = results.reduce(0) { $0 + Int($1["copied"].double) }
+                let changed = results.reduce(0) { $0 + Int($1["changed_during_copy"].double) }
+                exportResult = String(localized: "Copia en \(disk.lastPathComponent) · \(copied) archivos copiados · \(changed) cambiaron durante la copia")
+            } catch { exportResult = error.localizedDescription }
         }
     }
     private func row(_ collection: JSONValue) -> some View {

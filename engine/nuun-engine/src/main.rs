@@ -147,7 +147,7 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 30] = [
+const NATIVE: [&str; 31] = [
     "suite_device",
     "suite_suggestions",
     "suggestions_dismiss",
@@ -156,6 +156,7 @@ const NATIVE: [&str; 30] = [
     "conversations_backup_plan",
     "conversations_backup_apply",
     "conversations_run",
+    "conversations_export_working",
     "volume_apps",
     "work_copies",
     "work_copy_plan",
@@ -340,6 +341,7 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
                 "conversations_backup_plan",
                 "conversations_backup_apply",
                 "conversations_run",
+                "conversations_export_working",
                 "collection_release_plan",
                 "collection_release_apply",
             ]);
@@ -797,6 +799,14 @@ impl Engine {
                 isolated,
                 &user_home()?,
                 this_device(isolated)?,
+                params,
+            ),
+            #[cfg(target_os = "macos")]
+            "conversations_export_working" => nuun_media::conversations::export_working(
+                &self.home(),
+                write_backend(platform)?,
+                isolated,
+                &user_home()?,
                 params,
             ),
             #[cfg(target_os = "macos")]

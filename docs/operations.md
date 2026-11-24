@@ -108,6 +108,8 @@ Reconstruye Swift en release y empaqueta el motor Python actual; instala en `~/A
 
 Busca **nuun**; la app se presenta como **nüün**. El nombre de archivo ASCII y los keywords nuun/nun se registran al instalar; la aceptación real de alias/ranking en Spotlight/Raycast sigue pendiente (el índice local no devolvió metadata durante esta sesión). No se crean ejecutables duplicados para los alias. Abrir o reabrir conserva el modo visible; cerrar la ventana deja la menubar. **⌘I** cambia la misma ventana a compacto; expandir abre completo y «Elegir archivos» abre selección intermedia. Completo admite fullscreen. `--background` inicia sólo en menubar. [Estados y límites](features/nuun-window.md).
 
+**Firma estable.** Sin `--identity`, cada build se firma ad-hoc y macOS la trata como otra app: vuelve a pedir acceso a discos y carpetas. Con un certificado de tu equipo (Apple Development o Developer ID Application; `security find-identity -v -p codesigning` da su SHA-1) los permisos se conservan entre builds. Pásalo con `--identity` o deja `NU9VE_SIGN_IDENTITY` en tu shell. Si `~/Applications` no existía cuando abriste Raycast, reinícialo para que vea la app.
+
 La instalación es un snapshot: para incorporar cambios futuros vuelve a ejecutar el instalador. Ajustes → Diagnóstico muestra el build y las rutas del motor. Python externo, firma de desarrollo y ausencia de notarización siguen siendo límites de esta instalación local.
 
 En «Ingreso», elige fuente/proyecto/MEDIA y **Copiar también al SSD para editar**:

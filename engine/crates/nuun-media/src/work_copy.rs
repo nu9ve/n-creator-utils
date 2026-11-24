@@ -228,9 +228,37 @@ pub(crate) fn volume_apps_copies(root: &Root) -> Result<Vec<Value>> {
 pub fn volume_apps(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
     let path = absolute(params, "root")?;
     let (root, _, volume, state) = suite_volume::usable(home, backend, &path)?;
-    let apps = app_indexes(&root, text(&volume, "volume_id"))?;
+    let mut apps = app_indexes(&root, text(&volume, "volume_id"))?;
+    if let Some(nuun) = apps
+        .iter_mut()
+        .find(|app| app["app"] == "nuun" && app["index"] == "ok")
+        && let Some(datasets) = nuun["datasets"].as_array_mut()
+    {
+        let recipe = nuun_recipe::effective(Catalog::open(home)?.get("recipe")?.as_ref());
+        for dataset in datasets {
+            if let Some(paths) = mission_companions(text(dataset, "path"), &recipe) {
+                dataset["work_copy_companions"] = json!(paths);
+            }
+        }
+    }
     let copies = receipts(&root)?;
     Ok(json!({"state":state,"marker":volume,"apps":apps,"copies":copies}))
+}
+
+fn mission_companions(path: &str, recipe: &Value) -> Option<[String; 3]> {
+    let path = format!("/{path}/");
+    recipe["missions"].as_array()?.iter().find_map(|flow| {
+        let folder = relative(text(flow, "work_folder")).ok()?;
+        let mirror = relative(text(flow, "work_mirror")).ok()?;
+        let units = relative(text(flow, "units_map")).ok()?;
+        let (prefix, _) = path.split_once(&format!("/{folder}/"))?;
+        let prefix = prefix.trim_start_matches('/');
+        Some([
+            join(prefix, units),
+            join(prefix, &format!("{mirror}/history.json")),
+            join(prefix, &format!("{mirror}/changes.ndjson")),
+        ])
+    })
 }
 
 /// The work-copy receipts published on a disk, oldest first, whole (with their file lists).
@@ -615,11 +643,16 @@ pub(crate) fn apply_with(
     let files = value["files"].as_array().cloned().unwrap_or_default();
     let carried = value["carried"].as_array().cloned().unwrap_or_default();
     let mut progress = crate::delivery::ActionProgress::new(&writer, Some(id), "copying");
-    progress.meter.total = value["bytes"].as_u64().unwrap_or_default();
+    progress.meter.total = files
+        .iter()
+        .chain(&carried)
+        .filter_map(|item| item["stamp"]["size"].as_u64())
+        .sum();
     progress.meter.files_total = files.len() + carried.len();
     let mut transfer = Transfer::new(home, &writer, backend, &|_, _| Ok(()));
     let mut done_bytes = 0u64;
     let label = text(&value["destination"], "label").to_owned();
+    let source_label = text(&value["source"], "label").to_owned();
     let copies = format!("{COPIES}/{id}");
     let jobs = files
         .iter()
@@ -647,9 +680,11 @@ pub(crate) fn apply_with(
         let size = stamp["size"].as_u64().unwrap_or_default();
         if value["done"][&dest].is_object() {
             done_bytes += size;
+            progress.meter.reach(done_bytes);
+            progress.meter.files_done += 1;
             continue;
         }
-        progress.meter.holding(&path, "", &label, "copy");
+        progress.meter.holding(&path, &source_label, &label, "copy");
         progress.report()?;
         hook("before_copy", &json!({"path":path}))?;
         let mut kept = None;
@@ -973,6 +1008,21 @@ mod tests {
             .unwrap();
         assert_eq!(entry["previous"]["path"], kept.as_str());
         assert!(flows(&d).is_empty());
+    }
+
+    #[test]
+    fn indexed_mission_copies_include_atlas_history_and_photo_map() {
+        let recipe = nuun_recipe::template();
+        assert_eq!(
+            mission_companions("001_proyectos/atlas-subaereo/misiones/2026/11", &recipe),
+            Some([
+                "001_proyectos/atlas-subaereo/_nuun/units.ndjson".to_owned(),
+                "001_proyectos/atlas-subaereo/_missions/history.json".to_owned(),
+                "001_proyectos/atlas-subaereo/_missions/changes.ndjson".to_owned(),
+            ])
+        );
+        assert!(mission_companions("001_proyectos/atlas-derived", &recipe).is_none());
+        assert!(mission_companions("xatlas-subaereo/misiones/2026/11", &recipe).is_none());
     }
 
     #[test]

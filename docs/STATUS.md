@@ -1,6 +1,6 @@
 # Estado vigente
 
-Actualizado: 2026-11-23, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
+Actualizado: 2026-11-24, America/Hermosillo. **No es una release de producción.** Esta página dice qué funciona hoy, con qué evidencia y qué falta; la bitácora por entrega hasta el 8 nov está en [releases/status-log-2026-10-25_2026-11-08](releases/status-log-2026-10-25_2026-11-08.md). Prioridades en [PLAN](../PLAN.md), gates de distribución en [release](release.md).
 
 Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área** (estado, evidencia, pendiente) y se agrega, como mucho, una entrada corta en «Entregas recientes». Cuando esa sección pase de ~5 entradas, las más viejas se mueven a la bitácora de `releases/`.
 
@@ -266,6 +266,21 @@ Los corre el usuario. Ninguno escribe en el disco salvo donde se dice.
 7. Con el agente corriendo, opcional: `~/Library/Application\ Support/nu9ve/agent/nu9ve agent status` muestra la
    huella de la M4, que se compara con la de la M1 para emparejarlas (lo decide la persona).
 8. Anotar aquí la versión de macOS, el estado del agente, el nombre con que montó cada disco y cualquier aviso.
+
+**M4, paso 1 hecho (2026-11-24):** Mac mini M4, macOS 26.5.2. Build `85846cc19649` (la misma fuente que la M1) en
+`~/Applications/nuun.app`, firmada con el certificado Apple Development del equipo y hardened runtime;
+`codesign --verify --deep --strict` pasa, Gatekeeper la rechaza (esperado: no es Developer ID ni está notarizada).
+Python externo de miniforge; Rust 1.99.1. Por falta de espacio en el disco interno, `engine/target/release` y
+`.build/arm64-apple-macosx` apuntan a `/Volumes/SUBSSD/.dev-build/`. El XSSD se reformateó como **SUBSSD en APFS**
+(antes exFAT): sustituye al XSSD en el [recorrido M1 ↔ M4](../PLAN.md#recorrido-de-misiones-entre-la-m1-y-la-m4-pedido-del-usuario-2026-11-23).
+
+**Discos en la M4:** SUBSSD es el único destino en el catálogo local de la M4 (`work`, prefijo `001_proyectos`). ESSD y SUBSSD están montados con marcador `work`. El ESSD publica un índice de nüün con tres proyectos y se puede elegir en la hoja de copia. MEDIA sigue ausente. [Registro, copia y sugerencias](features/suite-disks-flows.md#permiso-registro-local-y-marcador-portable).
+
+**Primera copia física Subaéreo:** el usuario completó en ventana ESSD → SUBSSD (`029dc7b0-57a3-4e2f-ab3a-30914a4f9069`). Recibos idénticos en ambos discos. Una lectura independiente de SUBSSD verificó los 2.702 archivos (2.616 JPG, 86 DNG) y el hash del manifiesto. Se copiaron 672 y se adoptaron 2.030. Alcance `001_proyectos/atlas-subaereo/misiones/2026/11`. Atlas apunta a SUBSSD. La primera selección incluía la carpeta mensual del índice. El mapa y el historial quedaron fuera de ese plan. La copia complementaria `4776d90d-da50-466a-b55b-ed1dd6366945` trasladó `units.ndjson`, `history.json` y `changes.ndjson`. Se verificaron los tres hashes y las tres versiones conservadas, y el lector de Atlas confirmó que los 2.616 JPG tienen mapa y captura en el historial del SUBSSD. El código actualizado añade los tres archivos al elegir la carpeta de proyecto en la hoja de copia. De 21 exports candidatos en Descargas, 4 hashes ya están en el registro de ESSD y 17 requieren cotejo al incorporar con MEDIA.
+
+**Export físico de conversaciones sin MEDIA:** el motor nuevo exportó en la M4 a SUBSSD y copió a ESSD (`48c95987-2081-4e15-bb8a-525a1bb0377c`). Verificados en ESSD con lectura SHA-256 independiente contra los manifiestos: 1.941 archivos Claude Code, 573 Claude Desktop y 373 Codex, más tres manifiestos. Cero archivos cambiaron durante la lectura. Recibo idéntico en los dos discos. [Uso desde nüün y nove](features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-essd).
+
+**Build de desarrollo `a8b77aa47ce9`:** compilada y firmada con Apple Development en `dist/Nuun-m4-conversations-20261124-035131.app`, con el export a pedido y el progreso compartido en la hoja de copia. Verificación estricta de firma, compilación Swift release y seis pruebas enfocadas de Rust pasaron. El aviso de `rust-objcopy` por `libLLVM.dylib` ya aparece al compilar y no impidió producir los binarios. La app anterior sigue abierta. Pendiente instalar y validar las dos pantallas con datos de QA.
 
 
 ## Límites conocidos (vigentes)

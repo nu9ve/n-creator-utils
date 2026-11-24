@@ -68,9 +68,9 @@ Todo esto es `personal` ([data §6](../../vendor/nu9ve-core/contracts/nu9ve-data
 | `conversations_backup_plan` | Un plan revisado de colección viva por colección decidida (u opcional `collections`) |
 | `conversations_backup_apply` | `plans: [{plan_id, digest}]`: copia, recibo y, si está decidida, copia de trabajo (`working: false` la omite) |
 | `conversations_run` | `when: "now"` (el clic de la persona) o `"due"` (sólo con `mode: auto` y lo que toca): planea y aplica |
+| `conversations_export_working` | `destination` (raíz de un disco portable `work` u `other`), `collections` (ids elegidos) y `confirm_personal: true`. Escribe la copia de trabajo y su manifiesto por dispositivo a pedido, con conteo de archivos que cambiaron al leerlos. Funciona sin un destino `archive`. |
 
-## Pendiente
+## Estado en la ventana
 
-- Ajustes → Conversaciones en la ventana, y la sugerencia «sin respaldar desde hace N días» al conectar el disco.
-- Lanzar `conversations_run {when: "due"}` desde la app abierta cuando el disco está conectado (sin LaunchAgent).
+Ajustes → Conversaciones ofrece el respaldo y el export a pedido. La app abierta llama a `conversations_run {when: "due"}` si corresponde en modo automático para el respaldo. Los archivos que cambian durante el export a pedido se informan para la siguiente ejecución. [Recorrido para reunir historiales en ESSD](../features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-essd).
 - Las bases SQLite de Codex por snapshot ([decisión 2](../features/suite-disks-flows.md#decisiones-del-usuario)).
