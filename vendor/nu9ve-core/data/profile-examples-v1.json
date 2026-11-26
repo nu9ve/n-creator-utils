@@ -1,0 +1,750 @@
+{
+  "contract": "contracts/nu9ve-profile-v1.md",
+  "regenerate": "python3 -I scripts/profile-examples.py",
+  "note": "locations: §1; files: problem null means valid (§2, §3); sequences: changes in order (§5), start null means no file (a new document with device_id and updated_at 2026-11-25T20:00:00Z), error null means the change applied, result is the document after the last step; listings: profile ids of one app in order (§6).",
+  "locations": [
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "file": "/Users/ana/Library/Application Support/nu9ve/profiles.json"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "file": "C:\\Users\\ana\\AppData\\Local\\nu9ve\\profiles.json"
+    },
+    {
+      "platform": "linux",
+      "env": {
+        "HOME": "/home/ana"
+      },
+      "file": "/home/ana/.local/share/nu9ve/profiles.json"
+    },
+    {
+      "platform": "linux",
+      "env": {
+        "HOME": "/home/ana",
+        "XDG_DATA_HOME": "/data/ana"
+      },
+      "file": "/data/ana/nu9ve/profiles.json"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_PROFILES_FILE": "/tmp/qa/profiles.json"
+      },
+      "file": "/tmp/qa/profiles.json"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_PROFILES_FILE": "qa/profiles.json"
+      },
+      "file": null
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "NU9VE_PROFILES_FILE": "D:\\qa\\profiles.json"
+      },
+      "file": "D:\\qa\\profiles.json"
+    },
+    {
+      "platform": "windows",
+      "env": {},
+      "file": null
+    }
+  ],
+  "files": [
+    {
+      "name": "two profiles in two apps",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "no device yet",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":null,\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "empty",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "optional profile fields absent",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "optional entry fields absent",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"default\":false}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "a Windows library",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"C:\\\\Users\\\\papa\\\\AppData\\\\Local\\\\nove\\\\engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "unknown fields are ignored",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}},\"avatar\":{\"emoji\":\"e\"}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "a team with a space and an account link",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"team\",\"aliases\":[],\"default_space\":\"space-acme\",\"account_link\":\"fractos:acct-1\",\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": null
+    },
+    {
+      "name": "retired ids",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\",\"retired\":[\"old-1\"]}",
+      "problem": null
+    },
+    {
+      "name": "missing profiles",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "device_id absent (it is null when there is no device)",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "profiles is an object",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":{},\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "other contract",
+      "text": "{\"contract\":\"nu9ve-profile/2\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "unknown_contract"
+    },
+    {
+      "name": "device_id not a UUID 4",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"M4\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_device_id"
+    },
+    {
+      "name": "updated_at with an offset",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T13:30:00-06:00\"}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "more than 64 profiles",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"p0\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p1\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p2\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p3\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p4\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p5\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p6\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p7\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p8\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p9\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p10\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p11\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p12\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p13\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p14\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p15\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p16\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p17\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p18\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p19\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p20\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p21\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p22\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p23\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p24\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p25\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p26\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p27\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p28\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p29\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p30\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p31\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p32\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p33\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p34\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p35\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p36\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p37\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p38\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p39\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p40\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p41\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p42\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p43\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p44\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p45\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p46\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p47\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p48\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p49\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p50\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p51\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p52\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p53\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p54\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p55\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p56\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p57\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p58\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p59\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p60\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p61\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p62\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p63\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}},{\"profile_id\":\"p64\",\"display_name\":\"P\",\"kind\":\"person\",\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "too_many_profiles"
+    },
+    {
+      "name": "profile_id with upper case",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"E64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_profile_id"
+    },
+    {
+      "name": "profile_id starts with a hyphen",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"-e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_profile_id"
+    },
+    {
+      "name": "profile_id longer than 32",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_profile_id"
+    },
+    {
+      "name": "empty display_name",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_name"
+    },
+    {
+      "name": "unknown kind",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"family\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_kind"
+    },
+    {
+      "name": "created_at missing",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "aliases repeat",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"a\",\"a\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_alias"
+    },
+    {
+      "name": "alias with a control character",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"e\\n\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_alias"
+    },
+    {
+      "name": "empty default_space",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":\"\",\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_space"
+    },
+    {
+      "name": "account_link as a number",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":7,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "apps as a list",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":[]},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "app key with upper case",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"Nove\":{\"library\":\"/x\",\"default\":false}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_app"
+    },
+    {
+      "name": "more than 32 apps",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"app0\":{\"library\":\"/x\",\"default\":false},\"app1\":{\"library\":\"/x\",\"default\":false},\"app2\":{\"library\":\"/x\",\"default\":false},\"app3\":{\"library\":\"/x\",\"default\":false},\"app4\":{\"library\":\"/x\",\"default\":false},\"app5\":{\"library\":\"/x\",\"default\":false},\"app6\":{\"library\":\"/x\",\"default\":false},\"app7\":{\"library\":\"/x\",\"default\":false},\"app8\":{\"library\":\"/x\",\"default\":false},\"app9\":{\"library\":\"/x\",\"default\":false},\"app10\":{\"library\":\"/x\",\"default\":false},\"app11\":{\"library\":\"/x\",\"default\":false},\"app12\":{\"library\":\"/x\",\"default\":false},\"app13\":{\"library\":\"/x\",\"default\":false},\"app14\":{\"library\":\"/x\",\"default\":false},\"app15\":{\"library\":\"/x\",\"default\":false},\"app16\":{\"library\":\"/x\",\"default\":false},\"app17\":{\"library\":\"/x\",\"default\":false},\"app18\":{\"library\":\"/x\",\"default\":false},\"app19\":{\"library\":\"/x\",\"default\":false},\"app20\":{\"library\":\"/x\",\"default\":false},\"app21\":{\"library\":\"/x\",\"default\":false},\"app22\":{\"library\":\"/x\",\"default\":false},\"app23\":{\"library\":\"/x\",\"default\":false},\"app24\":{\"library\":\"/x\",\"default\":false},\"app25\":{\"library\":\"/x\",\"default\":false},\"app26\":{\"library\":\"/x\",\"default\":false},\"app27\":{\"library\":\"/x\",\"default\":false},\"app28\":{\"library\":\"/x\",\"default\":false},\"app29\":{\"library\":\"/x\",\"default\":false},\"app30\":{\"library\":\"/x\",\"default\":false},\"app31\":{\"library\":\"/x\",\"default\":false},\"app32\":{\"library\":\"/x\",\"default\":false}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "too_many_apps"
+    },
+    {
+      "name": "relative library",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"profiles/papa\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_library"
+    },
+    {
+      "name": "library missing",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "missing_field"
+    },
+    {
+      "name": "default as a string",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":\"no\",\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "wrong_type"
+    },
+    {
+      "name": "unknown ui",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"kiosk\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_ui"
+    },
+    {
+      "name": "last_used_at not a time",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"ayer\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bad_time"
+    },
+    {
+      "name": "the same profile_id twice",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"e64\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "duplicate_profile"
+    },
+    {
+      "name": "two defaults for one app",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":true,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "two_defaults"
+    },
+    {
+      "name": "a retired id still in use",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\",\"retired\":[\"papa\"]}",
+      "problem": "bad_retired"
+    },
+    {
+      "name": "not an object",
+      "text": "[]",
+      "problem": "not_object"
+    },
+    {
+      "name": "not JSON",
+      "text": "{\"contract\":",
+      "problem": "not_json"
+    },
+    {
+      "name": "NaN is not JSON",
+      "text": "{\"contract\":NaN}",
+      "problem": "not_json"
+    },
+    {
+      "name": "starts with a BOM",
+      "text": "﻿{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "problem": "bom"
+    },
+    {
+      "name": "larger than 64 KiB",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\",\"padding\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "problem": "too_large"
+    }
+  ],
+  "sequences": [
+    {
+      "name": "nove adopts the personal library as e64, nüün already had it",
+      "start": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null,\"pinned\":true}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "device_id": null,
+      "steps": [
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "e64",
+            "display_name": "Erik",
+            "kind": "person"
+          },
+          "now": "2026-11-25T20:00:00Z",
+          "error": "profile_exists"
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "e64",
+            "app": "nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/engine",
+            "default": true,
+            "ui": "full"
+          },
+          "now": "2026-11-25T20:00:01Z",
+          "error": null
+        }
+      ],
+      "result": {
+        "contract": "nu9ve-profile/1",
+        "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+        "profiles": [
+          {
+            "profile_id": "e64",
+            "display_name": "Erik",
+            "kind": "person",
+            "aliases": [
+              "erikiado64"
+            ],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T18:00:00Z",
+            "apps": {
+              "nuun": {
+                "library": "/Users/qa/Library/Application Support/nuun/profiles/e64",
+                "last_used_at": "2026-11-25T18:00:00Z",
+                "default": true,
+                "ui": null,
+                "pinned": true
+              },
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/engine",
+                "last_used_at": "2026-11-25T20:00:01Z",
+                "default": true,
+                "ui": "full"
+              }
+            }
+          }
+        ],
+        "updated_at": "2026-11-25T20:00:01Z"
+      }
+    },
+    {
+      "name": "first writer: no file, a new profile with its library",
+      "start": null,
+      "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+      "steps": [
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "papa",
+            "display_name": "Papá",
+            "kind": "viewer"
+          },
+          "now": "2026-11-25T20:00:00Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "papa",
+            "app": "nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine",
+            "ui": "simple"
+          },
+          "now": "2026-11-25T20:00:01Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "nadie",
+            "app": "nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine"
+          },
+          "now": "2026-11-25T20:00:02Z",
+          "error": "unknown_profile"
+        }
+      ],
+      "result": {
+        "contract": "nu9ve-profile/1",
+        "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+        "profiles": [
+          {
+            "profile_id": "papa",
+            "display_name": "Papá",
+            "kind": "viewer",
+            "aliases": [],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T20:00:00Z",
+            "apps": {
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine",
+                "last_used_at": "2026-11-25T20:00:01Z",
+                "default": false,
+                "ui": "simple"
+              }
+            }
+          }
+        ],
+        "updated_at": "2026-11-25T20:00:01Z"
+      }
+    },
+    {
+      "name": "a default moves; the other app is untouched",
+      "start": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "device_id": null,
+      "steps": [
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "papa",
+            "app": "nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine",
+            "default": true,
+            "ui": "simple"
+          },
+          "now": "2026-11-25T20:00:00Z",
+          "error": null
+        }
+      ],
+      "result": {
+        "contract": "nu9ve-profile/1",
+        "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+        "profiles": [
+          {
+            "profile_id": "e64",
+            "display_name": "Erik",
+            "kind": "person",
+            "aliases": [
+              "erikiado64"
+            ],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T18:00:00Z",
+            "apps": {
+              "nuun": {
+                "library": "/Users/qa/Library/Application Support/nuun/profiles/e64",
+                "last_used_at": "2026-11-25T18:00:00Z",
+                "default": true,
+                "ui": null
+              },
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/engine",
+                "last_used_at": "2026-11-25T19:30:00Z",
+                "default": false,
+                "ui": "full"
+              }
+            }
+          },
+          {
+            "profile_id": "papa",
+            "display_name": "Papá",
+            "kind": "viewer",
+            "aliases": [],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T19:00:00Z",
+            "apps": {
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine",
+                "last_used_at": "2026-11-25T20:00:00Z",
+                "default": true,
+                "ui": "simple"
+              }
+            }
+          }
+        ],
+        "updated_at": "2026-11-25T20:00:00Z"
+      }
+    },
+    {
+      "name": "delete only when no app uses it; the id is never reused",
+      "start": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "device_id": null,
+      "steps": [
+        {
+          "change": {
+            "op": "delete_profile",
+            "profile_id": "papa"
+          },
+          "now": "2026-11-25T20:00:00Z",
+          "error": "profile_in_use"
+        },
+        {
+          "change": {
+            "op": "remove_app_entry",
+            "profile_id": "papa",
+            "app": "nove"
+          },
+          "now": "2026-11-25T20:00:01Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "remove_app_entry",
+            "profile_id": "papa",
+            "app": "nove"
+          },
+          "now": "2026-11-25T20:00:02Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "delete_profile",
+            "profile_id": "papa"
+          },
+          "now": "2026-11-25T20:00:03Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "papa",
+            "display_name": "Otro",
+            "kind": "person"
+          },
+          "now": "2026-11-25T20:00:04Z",
+          "error": "profile_retired"
+        },
+        {
+          "change": {
+            "op": "delete_profile",
+            "profile_id": "papa"
+          },
+          "now": "2026-11-25T20:00:05Z",
+          "error": "unknown_profile"
+        }
+      ],
+      "result": {
+        "contract": "nu9ve-profile/1",
+        "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+        "profiles": [
+          {
+            "profile_id": "e64",
+            "display_name": "Erik",
+            "kind": "person",
+            "aliases": [
+              "erikiado64"
+            ],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T18:00:00Z",
+            "apps": {
+              "nuun": {
+                "library": "/Users/qa/Library/Application Support/nuun/profiles/e64",
+                "last_used_at": "2026-11-25T18:00:00Z",
+                "default": true,
+                "ui": null
+              },
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/engine",
+                "last_used_at": "2026-11-25T19:30:00Z",
+                "default": true,
+                "ui": "full"
+              }
+            }
+          }
+        ],
+        "updated_at": "2026-11-25T20:00:03Z",
+        "retired": [
+          "papa"
+        ]
+      }
+    },
+    {
+      "name": "updates and refusals",
+      "start": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "device_id": null,
+      "steps": [
+        {
+          "change": {
+            "op": "update_profile",
+            "profile_id": "papa",
+            "display_name": "Papá (Windows)",
+            "aliases": [
+              "papa-win"
+            ],
+            "default_space": "space-family"
+          },
+          "now": "2026-11-25T20:00:00Z",
+          "error": null
+        },
+        {
+          "change": {
+            "op": "update_profile",
+            "profile_id": "papa",
+            "kind": "robot"
+          },
+          "now": "2026-11-25T20:00:01Z",
+          "error": "bad_kind"
+        },
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "Team",
+            "display_name": "T",
+            "kind": "team"
+          },
+          "now": "2026-11-25T20:00:02Z",
+          "error": "bad_profile_id"
+        },
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "team",
+            "kind": "team"
+          },
+          "now": "2026-11-25T20:00:03Z",
+          "error": "bad_change"
+        },
+        {
+          "change": {
+            "op": "create_profile",
+            "profile_id": "team",
+            "display_name": "",
+            "kind": "team"
+          },
+          "now": "2026-11-25T20:00:04Z",
+          "error": "bad_name"
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "e64",
+            "app": "Nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/engine"
+          },
+          "now": "2026-11-25T20:00:05Z",
+          "error": "bad_app"
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "e64",
+            "app": "nove",
+            "library": "engine"
+          },
+          "now": "2026-11-25T20:00:06Z",
+          "error": "bad_library"
+        },
+        {
+          "change": {
+            "op": "upsert_app_entry",
+            "profile_id": "e64",
+            "app": "nove",
+            "library": "/Users/qa/Library/Application Support/nove-development/engine",
+            "ui": "tiny"
+          },
+          "now": "2026-11-25T20:00:07Z",
+          "error": "bad_ui"
+        },
+        {
+          "change": {
+            "op": "rename_everything",
+            "profile_id": "e64"
+          },
+          "now": "2026-11-25T20:00:08Z",
+          "error": "bad_change"
+        }
+      ],
+      "result": {
+        "contract": "nu9ve-profile/1",
+        "device_id": "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f",
+        "profiles": [
+          {
+            "profile_id": "e64",
+            "display_name": "Erik",
+            "kind": "person",
+            "aliases": [
+              "erikiado64"
+            ],
+            "default_space": null,
+            "account_link": null,
+            "created_at": "2026-11-25T18:00:00Z",
+            "apps": {
+              "nuun": {
+                "library": "/Users/qa/Library/Application Support/nuun/profiles/e64",
+                "last_used_at": "2026-11-25T18:00:00Z",
+                "default": true,
+                "ui": null
+              },
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/engine",
+                "last_used_at": "2026-11-25T19:30:00Z",
+                "default": true,
+                "ui": "full"
+              }
+            }
+          },
+          {
+            "profile_id": "papa",
+            "display_name": "Papá (Windows)",
+            "kind": "viewer",
+            "aliases": [
+              "papa-win"
+            ],
+            "default_space": "space-family",
+            "account_link": null,
+            "created_at": "2026-11-25T19:00:00Z",
+            "apps": {
+              "nove": {
+                "library": "/Users/qa/Library/Application Support/nove-development/profiles/papa/engine",
+                "last_used_at": "2026-11-25T19:10:00Z",
+                "default": false,
+                "ui": "simple"
+              }
+            }
+          }
+        ],
+        "updated_at": "2026-11-25T20:00:00Z"
+      }
+    }
+  ],
+  "listings": [
+    {
+      "app": "nove",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "profiles": [
+        "e64",
+        "papa"
+      ]
+    },
+    {
+      "app": "nuun",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "profiles": [
+        "e64"
+      ]
+    },
+    {
+      "app": "clipper",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":true,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "profiles": []
+    },
+    {
+      "app": "nove",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":false,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T19:10:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "profiles": [
+        "e64",
+        "papa"
+      ]
+    },
+    {
+      "app": "nove",
+      "text": "{\"contract\":\"nu9ve-profile/1\",\"device_id\":\"6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f\",\"profiles\":[{\"profile_id\":\"e64\",\"display_name\":\"Erik\",\"kind\":\"person\",\"aliases\":[\"erikiado64\"],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T18:00:00Z\",\"apps\":{\"nuun\":{\"library\":\"/Users/qa/Library/Application Support/nuun/profiles/e64\",\"last_used_at\":\"2026-11-25T18:00:00Z\",\"default\":true,\"ui\":null},\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/engine\",\"last_used_at\":\"2026-11-25T19:30:00Z\",\"default\":false,\"ui\":\"full\"}}},{\"profile_id\":\"papa\",\"display_name\":\"Papá\",\"kind\":\"viewer\",\"aliases\":[],\"default_space\":null,\"account_link\":null,\"created_at\":\"2026-11-25T19:00:00Z\",\"apps\":{\"nove\":{\"library\":\"/Users/qa/Library/Application Support/nove-development/profiles/papa/engine\",\"last_used_at\":\"2026-11-25T21:00:00Z\",\"default\":false,\"ui\":\"simple\"}}}],\"updated_at\":\"2026-11-25T19:30:00Z\"}",
+      "profiles": [
+        "papa",
+        "e64"
+      ]
+    }
+  ]
+}

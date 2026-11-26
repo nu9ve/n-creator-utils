@@ -1,0 +1,95 @@
+{
+  "contract": "nu9ve-artifact/1",
+  "id": "canvas-bench-2026-11-24",
+  "producer": {
+    "app": "nove",
+    "version": "0.9.0"
+  },
+  "kind": "canvas",
+  "title": "Benchmarks (ejemplo de Salidas)",
+  "created_at": "2026-11-24T18:00:00Z",
+  "privacy": "public",
+  "data": [
+    {
+      "path": "data/bench/chart.csv",
+      "media_type": "text/csv",
+      "bytes": 79,
+      "sha256": "e4c89c5697231d4a7a0cfa4b907800c17eba66cd6ba448cbd0ec0d72f831f562",
+      "role": "primary"
+    }
+  ],
+  "render": {
+    "width": 960,
+    "height": 540,
+    "theme": "dark",
+    "background": "#101418",
+    "files": [
+      {
+        "path": "pages/1-bench.png",
+        "media_type": "image/png",
+        "bytes": 1886,
+        "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+      },
+      {
+        "path": "document.pdf",
+        "media_type": "application/pdf",
+        "bytes": 654,
+        "sha256": "c3f75576d534c33260b9a8f48ed4ca6a8ce9ebbe7518fcc3338dad0c40b6e5d6"
+      }
+    ]
+  },
+  "documents": [
+    {
+      "path": "document.md",
+      "media_type": "text/markdown",
+      "bytes": 286,
+      "sha256": "5b8842545c56b7f06c33595486ab5e5b9be0f22af3b1fafc7df7aa4859bc2408"
+    },
+    {
+      "path": "document.docx",
+      "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "bytes": 1391,
+      "sha256": "8b9bf1bf2c4e5a2a3b7776d9bb1708da79c12ebca32c0f61fdb9b4c7263616f4"
+    },
+    {
+      "path": "frames/bench/chart.png",
+      "media_type": "image/png",
+      "bytes": 1886,
+      "sha256": "b02e26bbb7599d516f92c61dcc35b930bed65bb977645050943b1a7b7366ad0d"
+    },
+    {
+      "path": "media/swatch.png",
+      "media_type": "image/png",
+      "bytes": 852,
+      "sha256": "8b490cd3060cf14d42ab89d23949753466a6cd56b3f725152d11d5b4fd596c07"
+    }
+  ],
+  "recipe": {
+    "id": "nove.canvas",
+    "version": "1",
+    "params": {
+      "canvases": [
+        "bench"
+      ]
+    }
+  },
+  "lineage": {
+    "inputs": [
+      {
+        "owner": "nove",
+        "dataset": "bench:runs",
+        "revision": "3",
+        "hash": {
+          "algorithm": "sha256",
+          "value": "e4c89c5697231d4a7a0cfa4b907800c17eba66cd6ba448cbd0ec0d72f831f562"
+        },
+        "privacy": "public"
+      }
+    ],
+    "run": {
+      "id": "export-2026-11-24-0001",
+      "engine": "nove-engine",
+      "engine_version": "0.9.0"
+    }
+  }
+}

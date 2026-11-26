@@ -56,6 +56,7 @@ Un archivo por app: `<app>.json`, con `<app>` que cumple `^[a-z][a-z0-9-]{0,31}$
 - **Debe** al cliente: ignorar campos de primer nivel que no conoce; tratar como inválido (§5) un registro al que le falta uno de la tabla o lo trae de otro tipo.
 - **No debe:** secretos, tokens, la ruta de la biblioteca de la persona más allá de lo que exige el transporte, ni datos de sus proyectos. El registro dice que la app está abierta y cómo llamarla; nada más.
 - **Conviene:** `library` (cadena corta: `personal`, `development`) cuando la app tiene varias bibliotecas, para que la persona sepa cuál está abierta. No cambia cómo se le habla.
+- **Versión menor del 2026-11-25:** `profile_id` (opcional) es el perfil de [`nu9ve-profile-v1`](nu9ve-profile-v1.md#2-archivo) de la biblioteca que sirve el motor (`^[a-z0-9][a-z0-9-]{0,31}$`). Falta = el motor no tiene perfil. Un valor que no es una cadena con esa forma hace inválido el registro (`bad_profile_id`). Un cliente anterior lo ignora, como cualquier campo que no conoce. El registro dice el id, nunca la ruta de la biblioteca del perfil.
 
 ## 3. Transporte
 
@@ -113,7 +114,7 @@ Por cada `<app>.json`, uno de cuatro estados, que es lo que dicen las herramient
 | --- | --- |
 | `live` | Válido (§2, §3) y vivo (§4) |
 | `stale` | Válido, pero el proceso no existe, es de otro usuario o tiene otra hora de inicio |
-| `invalid` | No se pudo leer, pasa de 16 KiB, no es JSON, le falta un campo, el `app` no coincide con el archivo, `contract` o `transport.kind` desconocidos, o permisos inseguros |
+| `invalid` | No se pudo leer, pasa de 16 KiB, no es JSON, le falta un campo, el `app` no coincide con el archivo, `contract` o `transport.kind` desconocidos, `profile_id` mal formado, o permisos inseguros |
 | (ausente) | No hay archivo: la app nunca se abrió o salió en orden |
 
 - **Debe:** un `contract` con otro mayor (`nu9ve-registry/2`) es `invalid` para un cliente v1. Un motor v2 que quiera seguir visible para clientes v1 escribe v1.
@@ -121,7 +122,7 @@ Por cada `<app>.json`, uno de cuatro estados, que es lo que dicen las herramient
 
 ## 7. Ejemplos
 
-[`data/registry-examples-v1.json`](../data/registry-examples-v1.json): registros válidos e inválidos con su motivo, la vida contra una tabla de procesos (pid ausente, pid reutilizado, otro usuario) y la conversión de la hora de inicio en Windows. `python3 -I scripts/registry-examples.py --check` comprueba el archivo contra una implementación de referencia de §2 a §6.
+[`data/registry-examples-v1.json`](../data/registry-examples-v1.json): registros válidos e inválidos con su motivo (también con `profile_id`), la vida contra una tabla de procesos (pid ausente, pid reutilizado, otro usuario) y la conversión de la hora de inicio en Windows. `python3 -I scripts/registry-examples.py --check` comprueba el archivo contra una implementación de referencia de §2 a §6.
 
 ## 8. Adopción
 

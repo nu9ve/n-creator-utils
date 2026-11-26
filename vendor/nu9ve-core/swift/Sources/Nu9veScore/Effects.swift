@@ -389,6 +389,35 @@ struct Biquad {
         return f
     }
 
+    static func peaking(frequency: Float, gainDb: Float, q: Float, sampleRate: Float) -> Biquad {
+        let a = powf(10, gainDb / 40)
+        let w = twoPi * frequency / sampleRate
+        let alpha = sinf(w) / (2 * q)
+        let c = cosf(w)
+        let a0 = 1 + alpha / a
+        var f = Biquad()
+        f.b0 = (1 + alpha * a) / a0
+        f.b1 = -2 * c / a0
+        f.b2 = (1 - alpha * a) / a0
+        f.a1 = -2 * c / a0
+        f.a2 = (1 - alpha / a) / a0
+        return f
+    }
+
+    static func lowpass(frequency: Float, q: Float, sampleRate: Float) -> Biquad {
+        let w = twoPi * frequency / sampleRate
+        let alpha = sinf(w) / (2 * q)
+        let c = cosf(w)
+        let a0 = 1 + alpha
+        var f = Biquad()
+        f.b0 = (1 - c) / 2 / a0
+        f.b1 = (1 - c) / a0
+        f.b2 = (1 - c) / 2 / a0
+        f.a1 = -2 * c / a0
+        f.a2 = (1 - alpha) / a0
+        return f
+    }
+
     static func highpass(frequency: Float, q: Float, sampleRate: Float) -> Biquad {
         let w = twoPi * frequency / sampleRate
         let alpha = sinf(w) / (2 * q)
@@ -401,5 +430,67 @@ struct Biquad {
         f.a1 = -2 * c / a0
         f.a2 = (1 - alpha) / a0
         return f
+    }
+}
+
+/// Bus processing for one stem (``stem_fx`` in the manifest): high-pass, low
+/// shelf, one bell, high shelf, parallel saturation, mid/side width and mono
+/// below a crossover. A stem the manifest does not name passes untouched, so
+/// older manifests render sample for sample as before.
+struct StemFXSpec {
+    var highpass: Float = 0
+    var lowShelfDb: Float = 0, lowShelfHz: Float = 110
+    var bellDb: Float = 0, bellHz: Float = 350, bellQ: Float = 0.9
+    var highShelfDb: Float = 0, highShelfHz: Float = 8000
+    /// Parallel saturation: `drive` sets the curve, `drive_mix` how much of it joins.
+    var drive: Float = 0, driveMix: Float = 0
+    var width: Float = 1
+    var monoBelow: Float = 0
+    /// Bus level, dB (the rebalance between stems).
+    var gainDb: Float = 0
+}
+
+final class StemFX {
+    let spec: StemFXSpec
+    var hpL: Biquad?, hpR: Biquad?, lsL: Biquad?, lsR: Biquad?, bellL: Biquad?, bellR: Biquad?, hsL: Biquad?, hsR: Biquad?
+    var monoL: Biquad?, monoR: Biquad?
+
+    init(spec: StemFXSpec, sampleRate: Float) {
+        self.spec = spec
+        if spec.highpass > 0 { hpL = .highpass(frequency: spec.highpass, q: 0.7, sampleRate: sampleRate); hpR = hpL }
+        if spec.lowShelfDb != 0 { lsL = .lowShelf(frequency: spec.lowShelfHz, gainDb: spec.lowShelfDb, q: 0.7, sampleRate: sampleRate); lsR = lsL }
+        if spec.bellDb != 0 { bellL = .peaking(frequency: spec.bellHz, gainDb: spec.bellDb, q: spec.bellQ, sampleRate: sampleRate); bellR = bellL }
+        if spec.highShelfDb != 0 { hsL = .highShelf(frequency: spec.highShelfHz, gainDb: spec.highShelfDb, q: 0.7, sampleRate: sampleRate); hsR = hsL }
+        if spec.monoBelow > 0 { monoL = .lowpass(frequency: spec.monoBelow, q: 0.707, sampleRate: sampleRate); monoR = monoL }
+    }
+
+    func process(_ l: UnsafeMutablePointer<Float>, _ r: UnsafeMutablePointer<Float>, count: Int) {
+        let k = 1 + spec.drive * 5, mix = spec.driveMix, level = dbToGain(spec.gainDb)
+        for i in 0..<count {
+            var a = l[i], b = r[i]
+            if hpL != nil { a = hpL!.process(a); b = hpR!.process(b) }
+            if lsL != nil { a = lsL!.process(a); b = lsR!.process(b) }
+            if bellL != nil { a = bellL!.process(a); b = bellR!.process(b) }
+            if hsL != nil { a = hsL!.process(a); b = hsR!.process(b) }
+            if mix > 0 {
+                // Harmonics join underneath; the dry signal keeps its transients.
+                a += (tanhf(a * k) / k - a * 0.2) * mix
+                b += (tanhf(b * k) / k - b * 0.2) * mix
+            }
+            if monoL != nil {
+                // Exact for mono content: only the side signal below the crossover folds to the centre.
+                let lowA = monoL!.process(a), lowB = monoR!.process(b)
+                let low = (lowA + lowB) * 0.5
+                a = a - lowA + low
+                b = b - lowB + low
+            }
+            if spec.width != 1 {
+                let mid = (a + b) * 0.5, side = (a - b) * 0.5 * spec.width
+                a = mid + side
+                b = mid - side
+            }
+            l[i] = a * level
+            r[i] = b * level
+        }
     }
 }

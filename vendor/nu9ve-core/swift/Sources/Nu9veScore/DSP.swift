@@ -42,6 +42,15 @@ let twoPi: Float = 2 * .pi
     return (y >= 0 ? tanhf(y) : tanhf(y * 0.82) / 0.82) / k
 }
 
+/// Slow analog pitch drift in semitones for oscillator `k`: two incommensurate
+/// sines per voice, so unison partners wander apart and back (0 when cents is 0).
+@inline(__always) func analogDrift(_ t: Float, _ k: Int, cents: Float, phase: Float) -> Float {
+    if cents <= 0 { return 0 }
+    let a = sinf(twoPi * ((0.071 + 0.037 * Float(k)) * t + phase))
+    let b = sinf(twoPi * ((0.23 + 0.051 * Float(k)) * t + phase * 1.7))
+    return (0.7 * a + 0.3 * b) * cents / 100
+}
+
 struct Rng {
     var state: UInt32
     init(seed: UInt64) {
@@ -135,6 +144,39 @@ struct Osc {
         let tri = 1 - 4 * abs(phase - 0.5)
         advance(dt)
         return (floorf((tri * 0.5 + 0.5) * 15) / 15) * 2 - 1
+    }
+    /// Wavetable-style morph through sine → triangle → saw → square (position
+    /// 0…3), each corner band-limited like its own oscillator. One phase drives
+    /// them all, so a moving position sweeps the timbre without clicks.
+    @inline(__always) mutating func morph(_ dt: Float, position: Float) -> Float {
+        let p = min(3, max(0, position))
+        let value: Float
+        if p < 1 {
+            let sine = sinf(twoPi * phase), tri = 1 - 4 * abs(phase - 0.5)
+            value = sine + (tri - sine) * p
+        } else if p < 2 {
+            let tri = 1 - 4 * abs(phase - 0.5), saw = 2 * phase - 1 - polyBlep(phase, dt)
+            value = tri + (saw - tri) * (p - 1)
+        } else {
+            let saw = 2 * phase - 1 - polyBlep(phase, dt)
+            var square: Float = phase < 0.5 ? 1 : -1
+            square += polyBlep(phase, dt)
+            var shifted = phase - 0.5
+            if shifted < 0 { shifted += 1 }
+            square -= polyBlep(shifted, dt)
+            value = saw + (square * 0.8 - saw) * (p - 2)
+        }
+        advance(dt)
+        return value
+    }
+    /// One sample of a named wave (layers and unison voices).
+    @inline(__always) mutating func wave(_ name: String, _ dt: Float) -> Float {
+        switch name {
+        case "sine": return sine(dt)
+        case "tri": return triangle(dt)
+        case "square": return pulse(dt, width: 0.5)
+        default: return saw(dt)
+        }
     }
     @inline(__always) mutating func advance(_ dt: Float) {
         phase += dt

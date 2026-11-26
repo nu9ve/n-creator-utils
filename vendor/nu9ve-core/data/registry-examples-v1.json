@@ -107,6 +107,24 @@
       "problem": null
     },
     {
+      "name": "with the profile of its library",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\",\"profile_id\":\"e64\"}",
+      "problem": null
+    },
+    {
+      "name": "profile_id with upper case",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\",\"profile_id\":\"E64\"}",
+      "problem": "bad_profile_id"
+    },
+    {
+      "name": "profile_id as a list",
+      "file": "nove.json",
+      "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\",\"profile_id\":[]}",
+      "problem": "bad_profile_id"
+    },
+    {
       "name": "file name and app differ",
       "file": "clipper.json",
       "text": "{\"contract\":\"nu9ve-registry/1\",\"app\":\"nove\",\"app_version\":\"0.12.0\",\"pid\":4242,\"process_start_us\":1795100645123456,\"transport\":{\"kind\":\"unix\",\"path\":\"/Users/qa/Library/Application Support/nove-development/engine/runtime/ipc\"},\"engine\":{\"contract\":\"nu9ve-engine/1\",\"protocol\":\"nove/1\",\"engine\":\"rust\",\"version\":\"0.12.0\"},\"capabilities\":[\"data_catalog_v1\",\"mcp_tools_v1\"],\"written_at\":\"2026-11-19T15:04:05Z\"}",

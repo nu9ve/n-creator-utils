@@ -113,10 +113,12 @@ Cuenta (Fractos, quien paga)
 | Concepto | Identidad | Dónde vive | Sin cuenta |
 | --- | --- | --- | --- |
 | **Cuenta** | El principal estable de Fractos (UUID de `profiles`, según su documento de auth) | Fractos | No existe; todo funciona igual |
-| **Perfil** | La clave estable de nüün (`e64`, alias `erikiado64`) | En cada app que lo usa; vínculo con la cuenta y con el perfil público de Fractos opcional | Igual que hoy |
+| **Perfil** | La clave estable de nüün (`e64`, alias `erikiado64`) | El registro local `…/nu9ve/profiles.json` ([`nu9ve-profile-v1`](../contracts/nu9ve-profile-v1.md)) dice qué perfiles hay en la máquina y dónde vive su biblioteca en cada app; cada app guarda sus datos. Vínculo con la cuenta y con el perfil público de Fractos opcional | Igual que hoy |
 | **Dispositivo** | UUID 4 aleatorio, creado la primera vez; nombre que elige la persona («M4») | `…/nu9ve/device.json` en cada máquina (§6.1) | Existe igual, sin registrar |
 | **Volumen** | Marcador en el disco y un segundo factor del sistema (A3) | `.nu9ve/volume.json` en la raíz del disco (§6.2) | Existe igual |
 | **Raíz** | `root_id` de [data §3](../contracts/nu9ve-data-v1.md#3-respuesta), que gana un volumen | En cada app | Igual |
+
+**El registro local de perfiles** (2026-11-25, nove A98): `profiles.json`, junto a `device.json`, lista los perfiles de esta máquina (`profile_id` estable, nombre, tipo `person`, `team` o `viewer`, espacio por omisión y vínculo de cuenta opcionales) y, por app, dónde vive la biblioteca de ese perfil y cuándo se usó. Cada app escribe sólo su clave, con candado; nüün y nove leen todo. El [registro de motores](../contracts/nu9ve-registry-v1.md#2-archivo) dice el perfil de cada motor vivo. Las rutas no salen de la máquina. Contrato: [`nu9ve-profile-v1`](../contracts/nu9ve-profile-v1.md).
 
 Una cuenta paga y agrupa. Un perfil es «a nombre de quién» va el trabajo. Son cosas distintas: la misma persona puede tener dos perfiles creativos, y un perfil no paga.
 

@@ -51,3 +51,17 @@ private func render(_ data: Data, revision: ScoreRevision) throws -> Data {
     let quieter = manifest(#","level":{"rate":20,"values_db":[-12,-12,-12,-12,-12,-12,-12,-12]}"#)
     #expect(try render(manifest(), revision: .v1) != render(quieter, revision: .v1))
 }
+
+/// What came behind new parameters leaves a manifest that does not ask for it untouched.
+@Test func aNeutralStemChainLeavesTheRenderUntouched() throws {
+    let neutral = manifest(#","stem_fx":{"drums":{},"bass":{"width":1,"gain_db":0}},"space_duck":0"#)
+    #expect(try render(manifest(), revision: .v2) == render(neutral, revision: .v2))
+    let quieter = manifest(#","stem_fx":{"bass":{"gain_db":-6}}"#)
+    #expect(try render(manifest(), revision: .v2) != render(quieter, revision: .v2))
+}
+
+@Test func stemFXNamesAKnownStem() {
+    #expect(throws: ScoreError.self) {
+        try ScoreManifest.parse(manifest(#","stem_fx":{"vocals":{"gain_db":-3}}"#), schemas: ["test-score-v1"], defaultRevision: .v2)
+    }
+}

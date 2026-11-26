@@ -64,7 +64,7 @@ struct EventSpec {
 
 struct AutomationSpec {
     let instrument: Int
-    let parameter: String   // cutoff | gain | send:<bus>
+    let parameter: String   // cutoff | gain | morph | send:<bus>
     var lane: Lane
 }
 
@@ -114,6 +114,10 @@ public struct ScoreManifest {
     let drumClip: Float
     /// Tape stage 0..1: even-harmonic saturation, high-frequency loss, wow and flutter.
     let tape: Float
+    /// Bus EQ, saturation and image per stem (absent = untouched).
+    let stemFX: [String: StemFXSpec]
+    /// Reverb and delay returns duck under the kick (0..1, 0 = off), like the pump.
+    let spaceDuck: Float
 
     static let stems = ["drums", "bass", "harmony", "lead", "texture", "fx", "space"]
 
@@ -212,6 +216,19 @@ public struct ScoreManifest {
            times.count == values.count, !times.isEmpty {
             tension = Lane(times: times.map { $0.floatValue }, values: values.map { $0.floatValue })
         }
+        var stemFX: [String: StemFXSpec] = [:]
+        for (name, value) in root["stem_fx"] as? [String: [String: Any]] ?? [:] {
+            guard ScoreManifest.stems.contains(name) else { throw ScoreError(description: "stem_fx for unknown stem \(name)") }
+            var fx = StemFXSpec()
+            func f(_ key: String, _ fallback: Float) -> Float { Float(num(value, key, Double(fallback))) }
+            fx.highpass = f("highpass", 0)
+            fx.lowShelfDb = f("low_shelf_db", 0); fx.lowShelfHz = f("low_shelf_hz", fx.lowShelfHz)
+            fx.bellDb = f("bell_db", 0); fx.bellHz = f("bell_hz", fx.bellHz); fx.bellQ = f("bell_q", fx.bellQ)
+            fx.highShelfDb = f("high_shelf_db", 0); fx.highShelfHz = f("high_shelf_hz", fx.highShelfHz)
+            fx.drive = f("drive", 0); fx.driveMix = f("drive_mix", 0)
+            fx.width = f("width", 1); fx.monoBelow = f("mono_below", 0); fx.gainDb = f("gain_db", 0)
+            stemFX[name] = fx
+        }
         return ScoreManifest(
             schema: schema, revision: revision, sampleRate: Float(num(root, "sample_rate", 48000)), duration: num(root, "duration", 0),
             seed: UInt64(num(root, "seed", 0)), instruments: instruments, events: events, automation: automation,
@@ -220,6 +237,7 @@ public struct ScoreManifest {
             glueThresholdDb: Float(num(master, "glue_threshold_db", -18)), glueRatio: Float(num(master, "glue_ratio", 1.8)),
             ceilingDb: Float(num(master, "ceiling_db", -1)), tiltLowDb: Float(num(master, "low_shelf_db", 0)),
             tiltHighDb: Float(num(master, "high_shelf_db", 0)), tension: tension,
-            softClip: Float(num(master, "soft_clip", 0)), drumClip: Float(num(master, "drum_clip", 0)), tape: Float(num(master, "tape", 0)))
+            softClip: Float(num(master, "soft_clip", 0)), drumClip: Float(num(master, "drum_clip", 0)), tape: Float(num(master, "tape", 0)),
+            stemFX: stemFX, spaceDuck: Float(num(root, "space_duck", 0)))
     }
 }

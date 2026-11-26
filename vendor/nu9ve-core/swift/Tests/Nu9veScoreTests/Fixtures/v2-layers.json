@@ -1,0 +1,545 @@
+{
+ "automation": [
+  {
+   "inst": 0,
+   "param": "cutoff",
+   "t": [
+    0,
+    2.5
+   ],
+   "v": [
+    0.4,
+    1
+   ]
+  },
+  {
+   "inst": 0,
+   "param": "morph",
+   "t": [
+    0,
+    1.2,
+    2.5
+   ],
+   "v": [
+    0,
+    1.5,
+    0.5
+   ]
+  }
+ ],
+ "buses": {
+  "hall": {
+   "rt60": 2.4
+  }
+ },
+ "delay_segments": [
+  [
+   0,
+   0.25,
+   0.375,
+   0.35,
+   3800
+  ]
+ ],
+ "duck": {
+  "depth_db": 9,
+  "rate": 20,
+  "values": [
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0,
+   0,
+   0.5,
+   1,
+   0.5,
+   0
+  ]
+ },
+ "duration": 2.5,
+ "engine_revision": 2,
+ "events": [
+  [
+   0.0,
+   0.45,
+   0,
+   48,
+   0.8,
+   -0.4
+  ],
+  [
+   0.04,
+   0.45,
+   1,
+   53,
+   0.8,
+   -0.2
+  ],
+  [
+   0.08,
+   0.45,
+   2,
+   58,
+   0.8,
+   0.0
+  ],
+  [
+   0.12,
+   0.45,
+   3,
+   63,
+   0.8,
+   0.2
+  ],
+  [
+   0.16,
+   0.45,
+   4,
+   68,
+   0.8,
+   0.4
+  ],
+  [
+   0.2,
+   0.45,
+   5,
+   49,
+   0.8,
+   -0.4
+  ],
+  [
+   0.24,
+   0.45,
+   6,
+   54,
+   0.8,
+   -0.2
+  ],
+  [
+   0.28,
+   0.45,
+   7,
+   59,
+   0.8,
+   0.0
+  ],
+  [
+   0.32,
+   0.45,
+   8,
+   64,
+   0.8,
+   0.2
+  ],
+  [
+   0.36,
+   0.45,
+   9,
+   69,
+   0.8,
+   0.4
+  ],
+  [
+   0.4,
+   0.45,
+   10,
+   50,
+   0.8,
+   -0.4
+  ],
+  [
+   0.44,
+   0.45,
+   11,
+   55,
+   0.8,
+   -0.2
+  ],
+  [
+   0.48,
+   0.45,
+   12,
+   60,
+   0.8,
+   0.0
+  ],
+  [
+   0.52,
+   0.45,
+   13,
+   65,
+   0.8,
+   0.2
+  ],
+  [
+   0.0,
+   0.2,
+   11,
+   36,
+   0.9,
+   0
+  ],
+  [
+   0.5,
+   0.2,
+   11,
+   36,
+   0.9,
+   0
+  ],
+  [
+   1.0,
+   0.2,
+   11,
+   36,
+   0.9,
+   0
+  ],
+  [
+   1.5,
+   0.2,
+   11,
+   36,
+   0.9,
+   0
+  ],
+  [
+   2.0,
+   0.2,
+   11,
+   36,
+   0.9,
+   0
+  ]
+ ],
+ "instruments": [
+  {
+   "gain_db": -6,
+   "id": "pad-wt",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "lfo_rate": 0.8,
+    "morph": 0.5,
+    "morph_env": 1.2,
+    "morph_lfo": 0.6,
+    "wave": "wt"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pad-5",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "drift": 8,
+    "layer_mix": 0.35,
+    "layer_semi": 12,
+    "layer_wave": "square",
+    "wave": "saw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "pad-3",
+   "kind": "pad",
+   "pan": 0,
+   "params": {
+    "drift": 12,
+    "layer_wave": "sine",
+    "wave": "tri"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "harmony"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-7",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "drift": 6,
+    "layer_semi": -12,
+    "layer_wave": "sine",
+    "spread": 0.7,
+    "unison": 3,
+    "unison_cents": 14,
+    "wave": "saw"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-4",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "spread": 1,
+    "unison": 5,
+    "unison_cents": 20,
+    "wave": "square"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-4",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "layer_mix": 0.2,
+    "layer_wave": "tri",
+    "unison": 2,
+    "wave": "pulse"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "lead-3",
+   "kind": "lead",
+   "pan": 0,
+   "params": {
+    "drift": 10,
+    "layer_wave": "saw",
+    "wave": "tri"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "lead"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-4",
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "round",
+    "top": 0.5,
+    "top_drive": 0.8,
+    "top_hz": 650
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-4",
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "sub",
+    "top": 0.5,
+    "top_drive": 0.8,
+    "top_hz": 650
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-4",
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "808",
+    "top": 0.5,
+    "top_drive": 0.8,
+    "top_hz": 650
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "bass-4",
+   "kind": "bass",
+   "pan": 0,
+   "params": {
+    "mode": "reese",
+    "top": 0.5,
+    "top_drive": 0.8,
+    "top_hz": 650
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "bass"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "kick"
+   },
+   "pump_source": true,
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-1",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "kind": "jingle"
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  },
+  {
+   "gain_db": -6,
+   "id": "drum-3",
+   "kind": "drum",
+   "pan": 0,
+   "params": {
+    "decay": 1.6,
+    "kind": "jingle",
+    "tune": 1.1
+   },
+   "sends": {
+    "hall": 0.15,
+    "room": 0.2
+   },
+   "stem": "drums"
+  }
+ ],
+ "master": {
+  "ceiling_db": -1,
+  "gain_db": -6,
+  "glue_ratio": 1.8,
+  "glue_threshold_db": -20,
+  "high_shelf_db": 1,
+  "low_shelf_db": 1
+ },
+ "sample_rate": 48000,
+ "schema": "second-score-v1",
+ "seed": 7,
+ "space_duck": 0.5,
+ "stem_fx": {
+  "bass": {
+   "bell_db": -1.5,
+   "bell_hz": 260,
+   "drive": 0.5,
+   "drive_mix": 0.2,
+   "mono_below": 150
+  },
+  "drums": {
+   "bell_db": -2,
+   "bell_hz": 380,
+   "drive": 0.4,
+   "drive_mix": 0.3,
+   "gain_db": -1.5,
+   "high_shelf_db": 1.5,
+   "high_shelf_hz": 9000
+  },
+  "harmony": {
+   "bell_db": -2.5,
+   "bell_hz": 320,
+   "gain_db": 2,
+   "high_shelf_db": 2,
+   "high_shelf_hz": 7000,
+   "highpass": 140,
+   "width": 1.2
+  },
+  "lead": {
+   "bell_db": 1.8,
+   "bell_hz": 2800,
+   "bell_q": 1.2,
+   "gain_db": 1
+  },
+  "space": {
+   "bell_db": -2,
+   "bell_hz": 500,
+   "highpass": 220,
+   "low_shelf_db": -1,
+   "low_shelf_hz": 120
+  }
+ }
+}

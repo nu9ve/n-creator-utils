@@ -52,6 +52,7 @@ final class DrumVoice: Voice {
         case "timbale": seconds = 0.8 * decay
         case "cowbell": seconds = 0.5 * decay
         case "metal": seconds = 1.8 * decay
+        case "jingle": seconds = 0.32 * decay + 0.05
         default: seconds = 0.35 * decay + 0.05
         }
         length = Int(seconds * sampleRate)
@@ -107,6 +108,15 @@ final class DrumVoice: Voice {
             bp.set(cutoff: 2400, q: 0.9, sampleRate: sr)
         case "glitch":
             bp.set(cutoff: 600 + 6000 * rng.unit(), q: 3, sampleRate: sr)
+        case "jingle":
+            // Sleigh bells: a handful of small bells (inharmonic partials around
+            // 4–9 kHz), each struck a few ms apart as the strap shakes.
+            for k in 0..<6 {
+                let f = (4200 + 900 * Float(k) + 500 * rng.bipolar()) * tune
+                resonators.append(Resonator(frequency: f, decay: (0.05 + 0.04 * rng.unit()) * decay, amplitude: 0.5 + 0.5 * rng.unit(),
+                                            phase: rng.unit() * twoPi, sampleRate: sr))
+            }
+            hp.set(cutoff: 5200 * tune, q: 0.7, sampleRate: sr)
         default:
             break
         }
@@ -220,6 +230,16 @@ final class DrumVoice: Voice {
             case "clave":
                 phase += 2480 * tune / sr; if phase >= 1 { phase -= 1 }
                 s = sinf(twoPi * phase) * expf(-t / 0.028) * 0.55
+            case "jingle":
+                // Pellets rattle (filtered noise) while the bells ring in three strikes.
+                let rattle = hp.highpass(rng.bipolar()) * expf(-t / (0.03 * decay)) * 0.25
+                var ring: Float = 0
+                for k in 0..<resonators.count {
+                    let start = Float(k % 3) * 0.009
+                    let v = resonators[k].next()
+                    if t >= start { ring += v }
+                }
+                s = (rattle + ring * 0.12) * min(1, t / 0.002)
             case "shaker":
                 let env = min(1, t / 0.012) * expf(-t / (0.055 * decay))
                 s = bp.bandpass(rng.bipolar()) * env * 0.7

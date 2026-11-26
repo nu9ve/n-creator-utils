@@ -37,6 +37,16 @@ pub fn default_dir() -> Option<PathBuf> {
     }
 }
 
+/// nu9ve-profile-v1 §2: `^[a-z0-9][a-z0-9-]{0,31}$`.
+pub fn valid_profile_id(id: &str) -> bool {
+    let bytes = id.as_bytes();
+    (1..=32).contains(&bytes.len())
+        && (bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit())
+        && bytes
+            .iter()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || *b == b'-')
+}
+
 fn valid_app(app: &str) -> bool {
     let bytes = app.as_bytes();
     (1..=32).contains(&bytes.len())
@@ -117,6 +127,8 @@ pub struct Record {
     pub capabilities: Vec<String>,
     pub written_at: String,
     pub library: Option<String>,
+    /// The suite profile of the library this engine serves (nu9ve-profile-v1), when it has one.
+    pub profile_id: Option<String>,
 }
 
 impl Record {
@@ -151,6 +163,7 @@ impl Record {
             capabilities,
             written_at: crate::time::now_utc(),
             library: None,
+            profile_id: None,
         })
     }
 
@@ -181,6 +194,9 @@ impl Record {
         });
         if let Some(library) = &self.library {
             value["library"] = json!(library);
+        }
+        if let Some(profile_id) = &self.profile_id {
+            value["profile_id"] = json!(profile_id);
         }
         value
     }
@@ -284,6 +300,12 @@ pub fn parse(file_name: &str, bytes: &[u8]) -> Result<Record, &'static str> {
         },
         _ => return Err("unknown_transport"),
     };
+    // §2, minor version of 2026-11-25: optional, a profile id of nu9ve-profile-v1.
+    let profile_id = match map.get("profile_id") {
+        None => None,
+        Some(Value::String(id)) if valid_profile_id(id) => Some(id.clone()),
+        Some(_) => return Err("bad_profile_id"),
+    };
     Ok(Record {
         app,
         app_version: string(&map, "app_version"),
@@ -297,6 +319,7 @@ pub fn parse(file_name: &str, bytes: &[u8]) -> Result<Record, &'static str> {
             .get("library")
             .and_then(Value::as_str)
             .map(str::to_owned),
+        profile_id,
     })
 }
 

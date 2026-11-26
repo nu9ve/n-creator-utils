@@ -1,6 +1,6 @@
 # Registro de benchmarks v1
 
-Estado: **propuesta** (2026-11-21). Define cómo una app de la suite guarda lo que mide, para que las corridas se puedan comparar entre motores (Python ↔ Rust), commits, máquinas y apps, y para que nove las muestre como datos. Nace de nove [data-hub §9b](../../nove/docs/data-hub.md#9b-benchmarks-como-datos-pedido-del-usuario-2026-11-19-propuesta) (su S10) y de lo que ya miden Atlas (`atlas_vision/engines/bench.py`), Clipper (`scripts/tui_flow_bench.py`), nüün, curado y SoundBender (dorados). Su primer usuario es la M0 del [cierre de la migración de Clipper](../../clipper/docs/2026-11-21-rust-migration-closure.md#benchmark-de-referencia).
+Estado: **propuesta** (2026-11-21). Versiones menores: 2026-11-24 (§6.1, sólo calidad) y 2026-11-25 (§5.1 `resources` y §5.2 `soak`). Define cómo una app de la suite guarda lo que mide, para que las corridas se puedan comparar entre motores (Python ↔ Rust), commits, máquinas y apps, y para que nove las muestre como datos. Nace de nove [data-hub §9b](../../nove/docs/data-hub.md#9b-benchmarks-como-datos-pedido-del-usuario-2026-11-19-propuesta) (su S10) y de lo que ya miden Atlas (`atlas_vision/engines/bench.py`), Clipper (`scripts/tui_flow_bench.py`), nüün, curado y SoundBender (dorados). Su primer usuario es la M0 del [cierre de la migración de Clipper](../../clipper/docs/2026-11-21-rust-migration-closure.md#benchmark-de-referencia).
 
 Ejemplos: [`data/bench-examples-v1.json`](../data/bench-examples-v1.json). Referencia en Python: [`scripts/nu9ve_bench.py`](../scripts/nu9ve_bench.py). En Rust: [`rust/nu9ve-bench`](../rust/nu9ve-bench/).
 
@@ -84,7 +84,7 @@ Ejemplos: [`data/bench-examples-v1.json`](../data/bench-examples-v1.json). Refer
 
 | `status` | Cuándo | `metrics` |
 | --- | --- | --- |
-| `ok` | Se midió | Obligatorio, con `wall_ms` |
+| `ok` | Se midió | Obligatorio, con `wall_ms`; salvo una corrida de sólo calidad (§6.1) |
 | `failed` | El caso falló al medirse | Opcional (lo medido antes del fallo); `error` obligatorio |
 | `not_ported` | El motor respondió `not_ported` ([motor §5](nu9ve-engine-v1.md#5-not_ported)): la ruta no existe todavía | Ausente; `repeats` es 0 |
 | `skipped` | No se corrió (falta el disco, falta Docker) | Ausente; `repeats` es 0 |
@@ -135,6 +135,7 @@ Dos corridas con las mismas entradas (los mismos `sha256`) midieron lo mismo.
 | `peak_memory` | `{"bytes", "measure", "scope"}` | Pico de memoria de toda la corrida. `measure`: `rss`, `footprint` (macOS, lo que muestra el Monitor de Actividad) o `unknown`. `scope`: `process` (sólo el proceso medido) o `tree` (con sus hijos) |
 | `temp_disk_bytes` | `{"bytes"}` | Pico de disco temporal |
 | `throughput` | `{"value", "unit"}` | Rendimiento: `value` > 0 y `unit` corta (`frames/s`, `MB/s`, `photos/min`) |
+| `resources` | `{"interval_ms", "rss_bytes", "cpu_ms"}` | Memoria y CPU a lo largo de la corrida (§5.1, versión menor del 2026-11-25) |
 
 **Distribución.** `{"samples", "median", "p95", "min", "max"}`:
 
@@ -143,6 +144,32 @@ Dos corridas con las mismas entradas (los mismos `sha256`) midieron lo mismo.
 - `median`: con un número impar de muestras, la del medio de las ordenadas; con uno par, `(a + b) / 2` de las dos del medio, calculado en `f64`.
 - `p95`: rango más cercano: la muestra ordenada en la posición `k = (95 · n + 99) div 100` (el techo de `0,95 · n` en enteros, sin coma flotante), contando desde 1. Con menos de 20 muestras, es el máximo.
 - **Debe:** los cuatro resúmenes son los que salen de `samples` con esas reglas, exactos. El lector los recalcula y una corrida que no coincide es inválida.
+
+### 5.1 Recursos a lo largo de una corrida
+
+Versión menor del 2026-11-25 ([nove A96](../../nove/docs/decisions.md#a96--filtros-globales-mapa-de-calor-interactivo-comentarios-y-recursos-2026-11-25)). Un pico (`peak_memory`) no dice si la memoria crece sin parar: hace falta la serie.
+
+- **Debe:** `resources` es un objeto con exactamente `interval_ms`, `rss_bytes` y `cpu_ms`.
+  - `interval_ms`: entero ≥ 1, el intervalo nominal de muestreo. La primera muestra es al empezar y la última al terminar; el productor puede tomar otras fuera del intervalo (al acabar el calentamiento), así que el tiempo de cada muestra es aproximado.
+  - `rss_bytes`: memoria residente del proceso medido en cada muestra, enteros ≥ 0.
+  - `cpu_ms`: tiempo de CPU (usuario + sistema) **acumulado** desde que empezó el proceso, en milisegundos enteros; nunca baja de una muestra a la siguiente.
+  - Las dos listas tienen el mismo largo, de 1 a 10 000. La corrida sigue cabiendo en 64 KiB (§1): con más muestras, el productor se queda con una de cada dos (conservando la última) y duplica `interval_ms` hasta que quepan. Los ayudantes lo hacen con un tope de 2 000.
+- **Debe** al productor: muestrea un solo proceso (`scope` `process`, como `peak_memory`). En macOS, `proc_pid_rusage` (`ri_resident_size`; los tiempos en unidades de Mach, convertidas con `mach_timebase_info`); en Linux, `/proc/<pid>/statm` y `/proc/<pid>/stat`.
+- Cualquier categoría puede llevar `resources`; un soak (§5.2) la exige.
+
+### 5.2 Soak: memoria tras muchas iteraciones
+
+Versión menor del 2026-11-25. Una **corrida de resistencia** repite la misma operación N veces (2 000 peticiones a un motor, por ejemplo) para ver si la memoria crece con cada una: una fuga.
+
+- `category: "soak"`. La corrida es **una** repetición (`repeats` 1, `warmup` 0): `wall_ms` y `cpu_ms` de las iteraciones medidas, `peak_memory`, `resources` de toda la corrida (también el calentamiento) y, conviene, `throughput` en `iter/s`.
+- **Conviene** en `params`: `iterations`, `warmup_iterations` e `interval_ms`.
+- **Debe** en `quality`, cuando `status` es `ok`:
+  - `memory_slope_bytes_per_iter`: la pendiente de mínimos cuadrados de la memoria residente sobre el número de iteraciones terminadas, con las muestras desde el fin del calentamiento. Con `limit` (bytes por iteración, lo decide la app) y `op: "le"`; `pass` es el resultado. `reference: null`.
+  - `rss_end_minus_start_bytes`: residente al final menos residente al terminar el calentamiento, entero (puede ser negativo). `reference: null`, `pass: null`.
+- **Debe:** la pendiente se calcula con sumas en orden en `f64`: medias de x y de y; `Σ(x − x̄)(y − ȳ) / Σ(x − x̄)²`; nula con menos de dos muestras o todas en la misma iteración. El productor guarda con cada muestra cuántas iteraciones habían terminado; ese número no va en la corrida. Las dos referencias dan los mismos bits (`slopes` en los ejemplos).
+- Un soak `ok` sin `resources`, sin la pendiente con su límite y `le`, o sin el crecimiento entero es `bad_soak`. Un soak `failed` sólo necesita su `error` (`step_failed`, `sample_failed`).
+- Sólo agrega reglas a la categoría `soak`, que ninguna app usaba; `contract` sigue siendo `nu9ve-bench/1`. Un lector anterior reporta las corridas con `resources` como `bad_metrics` y las salta, sin invalidar el resto del registro.
+- **Medir:** `nu9ve_bench::measure::measure_soak` y `nu9ve_bench.py measure_soak` corren la operación en el proceso que mide y muestrean el proceso que se les diga (`pid`; por omisión, el propio). Para un motor en otro proceso, la operación es una petición y el `pid` el del motor.
 
 ## 6. Calidad
 
@@ -159,6 +186,15 @@ Dos corridas con las mismas entradas (los mismos `sha256`) midieron lo mismo.
 
 - **Debe:** con `limit`, `pass` es exactamente el resultado de aplicar `op`. Sin `limit`, `pass` lo pone el productor (una revisión a ojo) o es `null`.
 - **Conviene:** «los mismos bits» como `{"metric": "bytes_equal", "value": true, "limit": true, "op": "eq"}`, y una diferencia numérica como el máximo absoluto con su tolerancia y `le`.
+
+### 6.1 Corrida de sólo calidad
+
+Versión menor del 2026-11-24 ([nove A95](../../nove/docs/decisions.md#a95--salidas-lienzos-por-proyecto-y-benchmarks-como-datos-2026-11-24)). Hay mediciones sin tiempo: un hito de un modelo que sólo dice cuánto acierta (los AUC de `evolucion.json` de Atlas).
+
+- **Debe** al lector: una corrida `ok` sin `wall_ms` (o sin `metrics`) es válida cuando `category` es `quality` y `quality` es una lista no vacía. En cualquier otra categoría, o con `quality` vacía o ausente, sigue siendo `missing_metrics`.
+- **Conviene:** `repeats` y `warmup` en 0 y sin `metrics`. Si trae métricas, valen las reglas de §5.
+- Una comparación (§8) de dos corridas de sólo calidad es comparable con las mismas reglas, pero sin aceleración (`speedup: null`).
+- Sólo afloja una regla: `contract` sigue siendo `nu9ve-bench/1` y ninguna corrida que ya era válida deja de serlo. Un lector anterior reporta estas corridas como `missing_metrics` y las salta, sin invalidar el resto del registro.
 
 ## 7. Origen
 
@@ -177,7 +213,7 @@ Dos corridas con las mismas entradas (los mismos `sha256`) midieron lo mismo.
 Lo que hacen las vistas, para que todas cuenten igual:
 
 - **Comparables:** dos corridas `ok` con la misma `suite`, el mismo `case` y las mismas entradas.
-- **Aceleración** de `b` frente a `a`: `mediana(wall_ms de a) / mediana(wall_ms de b)`. Mayor que 1 es que `b` es más rápida.
+- **Aceleración** de `b` frente a `a`: `mediana(wall_ms de a) / mediana(wall_ms de b)`. Mayor que 1 es que `b` es más rápida. Nula si a alguna de las dos le falta `wall_ms` (§6.1) o la mediana de `b` es 0.
 - **Debe:** la comparación dice, junto al número, si las dos corridas tienen otra clave de máquina, otro `cache`, otros `params` o alguna `dirty`. No se esconde: se marca.
 - **Debe:** la línea base de una migración es una corrida `ok`, no `dirty`, de la ruta anterior (`engine` viejo), con las mismas entradas que la nueva.
 
@@ -194,7 +230,9 @@ Se traducen al registro con traductores de sólo lectura, sin cambiar el repo de
 
 | Formato | Traductor | Notas |
 | --- | --- | --- |
-| Atlas: `derived/bench/<stage>/<dataset>/*.json` y `config/bench.json#baselines` | [`scripts/bench-from-atlas.py`](../scripts/bench-from-atlas.py) | Una corrida por archivo de corrida y por línea base; `case` es `<stage>/<dataset>` y el dataset va en `params`, sin `inputs` (Atlas no guarda hashes). `time_s` a `wall_ms` con una muestra. Memoria: GB de 2^30 a bytes, con el `memory_measure` de Atlas y `scope: tree`, o `unknown`. Disco: GB de 10^9 a bytes. `quality` se aplana a una métrica por hoja numérica o booleana, con `reference: null` y sin umbral. `git` `abc1234+dirty` da `commit` y `dirty` |
+| Atlas: `derived/bench/<stage>/<dataset>/*.json` y `config/bench.json#baselines` | [`nu9ve_bench::atlas`](../rust/nu9ve-bench/src/atlas.rs) en Rust; [`scripts/bench-from-atlas.py`](../scripts/bench-from-atlas.py) como referencia, con los mismos `run_id` | Una corrida por archivo de corrida y por línea base; `case` es `<stage>/<dataset>` y el dataset va en `params`, sin `inputs` (Atlas no guarda hashes). `time_s` a `wall_ms` con una muestra. Memoria: GB de 2^30 a bytes, con el `memory_measure` de Atlas y `scope: tree`, o `unknown`. Disco: GB de 10^9 a bytes. `quality` se aplana a una métrica por hoja numérica o booleana, con `reference: null` y sin umbral. `git` `abc1234+dirty` da `commit` y `dirty` |
+| Atlas: `analysis/history/evolucion.json` | Los mismos | Un hito por corrida de sólo calidad (§6.1): `suite: atlas-quality`, `case: <tipo>/<clave>` (`evidence/…`, `gravity/…`), `category: quality`, `status: ok`, `repeats` 0, sin `metrics`. `params.iteration`; `note` con «qué cambió»; `quality` con `auc`, `auc_candidates`, `auc_flat`, `auc_curb`, `rho_bombs`, `judged` y `adopted` cuando no son nulas (`reference: null`, `pass: null`). La fecha es la del hito (`date`) o la de la bitácora (`log_date`); si ninguna, `at` es la fecha de modificación del archivo, como día. `origin`: `atlas analysis/history/evolucion.json#<tipo>/<clave>` |
+| Atlas: `derived/bench/*.ndjson` | Los mismos | Ya en este formato: se leen como un registro (§1) y ganan por `run_id` a lo traducido |
 | Clipper: `scripts/tui_flow_bench.py`, `docs/benchmarks/*.json` | Por escribir en la M0 de Clipper | La M0 escribe ya en este registro |
 | Dorados de nüün, curado y SoundBender | Por escribir | Su calidad es `bytes_equal` o el máximo absoluto con tolerancia |
 
@@ -210,7 +248,8 @@ nove lee los registros como fuente «Benchmarks» (su S10): una suite es un data
 - distribuciones con su mediana y su p95 esperados;
 - un registro con una línea a medio escribir, una inválida y un `run_id` repetido, con lo que debe leer el lector;
 - comparaciones con su aceleración y sus marcas;
-- la traducción de un fixture de Atlas.
+- la traducción de un fixture de Atlas;
+- pendientes de soak (`slopes`) y series largas reducidas a la mitad (`reductions`), que Rust reproduce bit a bit.
 
 `python3 -I scripts/bench-examples.py --check` comprueba el archivo contra la referencia de `scripts/nu9ve_bench.py`.
 
@@ -221,4 +260,5 @@ Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-bench
 ## 14. Decisiones abiertas
 
 1. **Memoria en Windows.** v1 escribe `peak_memory` sólo en macOS y Linux. En Windows sería `PeakWorkingSetSize` (`rss`) o `PeakPagefileUsage`; lo decide la primera app que mida allí.
-2. **Árbol de procesos.** `scope: tree` lo mide Atlas muestreando `ps` cada 250 ms. El crate y el ayudante de Python miden `process` con `wait4`, que es exacto pero no ve a los nietos. Si Clipper necesita el árbol (FFmpeg dentro del motor), se suma un muestreador.
+2. **Árbol de procesos.** `scope: tree` lo mide Atlas muestreando `ps` cada 250 ms. El crate y el ayudante de Python miden `process` con `wait4`, que es exacto pero no ve a los nietos. Si Clipper necesita el árbol (FFmpeg dentro del motor), se suma un muestreador. `resources` (§5.1) también mide un solo proceso.
+3. **`resources` en Windows.** Sin muestreo todavía (`process_sample` da nada): sería `GetProcessMemoryInfo` (`WorkingSetSize`) y `GetProcessTimes`; lo decide la primera app que haga un soak allí. Tampoco `phys_footprint` de macOS, que es lo que muestra el Monitor de Actividad: si una app lo necesita, otra métrica, no un cambio de `rss_bytes`.

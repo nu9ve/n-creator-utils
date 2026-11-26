@@ -1,0 +1,21 @@
+[package]
+name = "nu9ve-profiles"
+description = "The machine's local register of suite profiles and where each app keeps their library (nu9ve-profile-v1)"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# profiles.json is changed under a lock and replaced atomically (nu9ve-fs-v1).
+nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
+# profiles.json is JSON.
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+# Isolated folders for the file tests.
+tempfile = "=3.27.0"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

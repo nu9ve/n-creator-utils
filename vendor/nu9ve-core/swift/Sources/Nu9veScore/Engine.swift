@@ -154,6 +154,7 @@ final class InstrumentRuntime {
     var scoopL = SVF(), scoopR = SVF(), presL = SVF(), presR = SVF()
     var cutoffLane: Lane?
     var gainLane: Lane?
+    var morphLane: Lane?
     var sendLanes: [String: Lane] = [:]
     var lastActive = -1_000_000_000
     let stemIndex: Int
@@ -284,6 +285,7 @@ public final class ScoreEngine {
             let runtime = runtimes[automation.instrument]
             if automation.parameter == "cutoff" { runtime.cutoffLane = automation.lane }
             else if automation.parameter == "gain" { runtime.gainLane = automation.lane }
+            else if automation.parameter == "morph" { runtime.morphLane = automation.lane }
             else if automation.parameter.hasPrefix("send:") { runtime.sendLanes[String(automation.parameter.dropFirst(5))] = automation.lane }
         }
         let pumpTimes = manifest.events.filter { manifest.instruments[$0.instrument].pumpSource }.map { Float($0.start) }
@@ -327,6 +329,8 @@ public final class ScoreEngine {
         var highShelfL = Biquad.highShelf(frequency: 6500, gainDb: manifest.tiltHighDb, q: 0.7, sampleRate: sampleRate), highShelfR = highShelfL
         var tensionL = [SVF](repeating: SVF(), count: stemCount), tensionR = [SVF](repeating: SVF(), count: stemCount)
         var tensionLane = manifest.tension
+        let stemFX: [StemFX?] = ScoreManifest.stems.map { name in manifest.stemFX[name].map { StemFX(spec: $0, sampleRate: sampleRate) } }
+        let spaceStem = ScoreManifest.stems.firstIndex(of: "space")!
         let filtered = ["bass", "harmony", "lead", "texture"].compactMap { ScoreManifest.stems.firstIndex(of: $0) }
         var glue = GlueCompressor(thresholdDb: manifest.glueThresholdDb, ratio: manifest.glueRatio, attack: 0.02, release: 0.25, sampleRate: sampleRate)
         let limiter = Limiter(ceilingDb: manifest.ceilingDb, sampleRate: sampleRate)
@@ -421,6 +425,7 @@ public final class ScoreEngine {
                 var control = InstrumentControl()
                 control.time = time
                 if runtime.cutoffLane != nil { control.cutoff = runtime.cutoffLane!.value(at: time) }
+                if runtime.morphLane != nil { control.morph = runtime.morphLane!.value(at: time) }
                 if entry.voice.render(runtime.bufL, runtime.bufR, count, control) {
                     survivors.append(entry)
                 }
@@ -438,6 +443,7 @@ public final class ScoreEngine {
                 var control = InstrumentControl()
                 control.time = Float(Double(sample + offset) / sr)
                 if runtime.cutoffLane != nil { control.cutoff = runtime.cutoffLane!.value(at: time) }
+                if runtime.morphLane != nil { control.morph = runtime.morphLane!.value(at: time) }
                 if voice.render(runtime.bufL + offset, runtime.bufR + offset, count - offset, control) {
                     survivors.append((voice, event.instrument))
                 }
@@ -537,6 +543,17 @@ public final class ScoreEngine {
             }
             for (k, reverb) in reverbs.enumerated() {
                 reverb.process(inL: sendL[k], inR: sendR[k], outL: stemL[space], outR: stemR[space], count: count, sample: sample)
+            }
+            // Bus EQ, saturation and image, then the returns breathe with the kick.
+            for k in 0..<stemCount { stemFX[k]?.process(stemL[k], stemR[k], count: count) }
+            if manifest.spaceDuck > 0 && !pumpTimes.isEmpty {
+                for i in 0..<count {
+                    let t = time + Float(i) / sampleRate
+                    if let last = lastHit(pumpTimes, before: t) {
+                        let g = 1 - manifest.spaceDuck * (1 - smoothstep((t - last) / (manifest.pumpRelease * 1.6)))
+                        stemL[spaceStem][i] *= g; stemR[spaceStem][i] *= g
+                    }
+                }
             }
             // Tension filter: the music opens into drops and closes into builds.
             if tensionLane != nil {

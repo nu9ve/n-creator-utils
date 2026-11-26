@@ -156,5 +156,11 @@ fn a_written_record_reads_back() {
         return;
     };
     let text = me.to_json().to_string();
-    assert_eq!(parse("alpha.json", text.as_bytes()), Ok(me));
+    assert_eq!(parse("alpha.json", text.as_bytes()), Ok(me.clone()));
+    // Minor version of 2026-11-25: the profile goes and comes back.
+    let mut with_profile = me;
+    with_profile.profile_id = Some("e64".into());
+    let text = with_profile.to_json().to_string();
+    assert!(text.contains(r#""profile_id":"e64""#));
+    assert_eq!(parse("alpha.json", text.as_bytes()), Ok(with_profile));
 }

@@ -47,6 +47,7 @@ struct InstrumentControl {
     var cutoff: Float = 1      // multiplier
     var time: Float = 0        // absolute seconds of the block start
     var bpm: Float = 120
+    var morph: Float = 0       // added to a wavetable position (``morph`` lane)
 }
 
 // MARK: - pads and stabs
@@ -77,6 +78,15 @@ final class PadVoice: Voice {
     /// Modulation: LFO1 shape (filter); LFO2 drifts pitch (cents), pan and pulse width.
     let lfoShape: String, lfo2Rate: Float, lfo2Pitch: Float, lfo2Pan: Float, pwm: Float, lfoSeed: UInt64
     var hp = OnePole()
+    /// Layers (all off unless the manifest asks): a second oscillator `layer_semi`
+    /// away mixed under the unison stack before the filter, analog drift per
+    /// unison voice, and the wavetable position of `wave: "wt"` (0 sine … 3 square)
+    /// moved by the filter envelope, LFO1 and the instrument's ``morph`` lane.
+    let layerWave: String, layerSemi: Float, layerMix: Float
+    var layerOsc = Osc()
+    let drift: Float
+    let driftPhases: [Float]
+    let morph: Float, morphEnv: Float, morphLfo: Float
 
     override init(event: EventSpec, spec: InstrumentSpec, sampleRate: Float, seed: UInt64) {
         let p = spec.params
@@ -111,6 +121,11 @@ final class PadVoice: Voice {
         lfoShape = p.s("lfo_shape", "sine")
         lfo2Rate = p.f("lfo2_rate", 0); lfo2Pitch = p.f("lfo2_pitch", 0); lfo2Pan = p.f("lfo2_pan", 0); pwm = p.f("pwm", 0)
         lfoSeed = hash64(seed, UInt64(event.index), 91)
+        layerWave = p.s("layer_wave", ""); layerSemi = p.f("layer_semi", 12); layerMix = layerWave.isEmpty ? 0 : p.f("layer_mix", 0.3)
+        drift = p.f("drift", 0)
+        var d = Rng(seed: hash64(seed, UInt64(event.index), 0xD71F))
+        driftPhases = drift > 0 ? (0..<unison).map { _ in d.unit() } : []
+        morph = p.f("morph", 1.5); morphEnv = p.f("morph_env", 0); morphLfo = p.f("morph_lfo", 0)
         let vowel = p.s("vowel", "")
         formantMix = vowel.isEmpty ? 0 : p.f("vowel_mix", 0.85)
         super.init(event: event, spec: spec, sampleRate: sampleRate, seed: seed)
@@ -141,8 +156,13 @@ final class PadVoice: Voice {
             let semis = pitch() + vibrato * sinf(twoPi * 5.2 * t) + lfo2 * lfo2Pitch / 100
             let sway = lfo2 * lfo2Pan
             let base = midiToHz(semis)
-            for k in 0..<oscs.count { dts[k] = base * powf(2, detunes[k] / 12) / sampleRate }
+            for k in 0..<oscs.count {
+                let wander = drift > 0 ? analogDrift(t, k, cents: drift, phase: driftPhases[k]) : 0
+                dts[k] = base * powf(2, (detunes[k] + wander) / 12) / sampleRate
+            }
             subDt = base * 0.5 / sampleRate
+            let layerDt = base * powf(2, layerSemi / 12) / sampleRate
+            let position = wave == "wt" ? morph + morphEnv * fenv.value + morphLfo * lfo + control.morph : 0
             let envValue = fenv.value
             let track = powf(base / 261.6, keyTrack)
             let fc = cutoff * control.cutoff * track * powf(2, envAmount * envValue + lfoDepth * lfo) * (0.7 + 0.3 * velocity)
@@ -157,10 +177,16 @@ final class PadVoice: Voice {
                     case "tri": s = oscs[k].triangle(dts[k])
                     case "square": s = oscs[k].pulse(dts[k], width: 0.5 + pwm * lfo2)
                     case "mix": s = 0.6 * oscs[k].saw(dts[k]) + 0.4 * sinf(twoPi * oscs[k].phase)
+                    case "wt": s = oscs[k].morph(dts[k], position: position)
                     default: s = oscs[k].saw(dts[k])
                     }
                     sl += s * pans[k].0
                     sr += s * pans[k].1
+                }
+                if layerMix > 0 {
+                    // Centred: the stack keeps its width, the layer its weight.
+                    let s = layerOsc.wave(layerWave, layerDt) * layerMix * sqrtf(Float(oscs.count))
+                    sl += s * 0.707; sr += s * 0.707
                 }
                 let mono = (sl + sr) * 0.5
                 sl = mono + (sl - mono) * width
@@ -406,6 +432,11 @@ final class BassVoice: Voice {
     let detune: Float
     let lfoRate: Float
     var hp = SVF()
+    /// Two-band bass (`top` 0…1): a saturated saw band-passed around `top_hz`
+    /// rides over the clean low end, so the line reads on phone speakers
+    /// without widening or muddying the sub. Off by default.
+    let top: Float, topHz: Float, topDrive: Float
+    var topOsc = Osc(), topLow = SVF(), topHigh = SVF()
 
     override init(event: EventSpec, spec: InstrumentSpec, sampleRate: Float, seed: UInt64) {
         let p = spec.params
@@ -430,10 +461,13 @@ final class BassVoice: Voice {
         let release = p.f("release", mode == "808" ? 0.4 : 0.09)
         amp = ADSR(attack: p.f("attack", 0.003), decay: p.f("decay", mode == "808" ? 2.2 : 0.6),
                    sustain: p.f("sustain", mode == "808" ? 0.0 : 0.82), release: release, sampleRate: sampleRate)
+        top = p.f("top", 0); topHz = p.f("top_hz", 700); topDrive = p.f("top_drive", 0.7)
         super.init(event: event, spec: spec, sampleRate: sampleRate, seed: seed)
         var r = Rng(seed: hash64(seed, UInt64(event.index), 5))
         osc2.phase = r.unit(); osc3.phase = r.unit()
         hp.set(cutoff: 28, q: 0.7, sampleRate: sampleRate)
+        topLow.set(cutoff: topHz * 1.8, q: 0.7, sampleRate: sampleRate)
+        topHigh.set(cutoff: topHz * 0.45, q: 0.7, sampleRate: sampleRate)
     }
 
     override func render(_ l: UnsafeMutablePointer<Float>, _ r: UnsafeMutablePointer<Float>, _ count: Int, _ control: InstrumentControl) -> Bool {
@@ -473,6 +507,11 @@ final class BassVoice: Voice {
                     s = filter.process(0.55 * osc1.pulse(dt, width: 0.42) + 0.45 * osc2.saw(dt * 1.002), drive: drive)
                     s += 0.55 * sub.sine(dt)
                 }
+                if top > 0 {
+                    // Follows the note's own brightness: the 808's pitch drop and the filter envelope.
+                    let edge = topHigh.highpass(topLow.lowpass(saturate(topOsc.saw(dt), topDrive) * 2.2))
+                    s += edge * top * (0.55 + 0.45 * fenv)
+                }
                 s = hp.highpass(warm(s, drive * 0.5))
                 let a = amp.next() * 0.42 * (0.5 + 0.5 * velocity)
                 l[i + j] += s * a * panL * 1.414
@@ -500,6 +539,15 @@ final class LeadVoice: Voice {
     let detune: Float
     /// Filter LFO in octaves (lfo_depth), shaped and tempo-set by the manifest.
     let lfoRate: Float, lfoDepth: Float, lfoShape: String, lfoSeed: UInt64
+    /// Unison stack for saw/square/pulse (`unison` 2…7 voices `unison_cents` apart,
+    /// `spread` across the stereo field, one filter per side), a `layer_wave`
+    /// `layer_semi` away after the filter and analog `drift` in cents. All off by default.
+    let unison: Int, unisonCents: Float, spread: Float
+    var stack: [Osc] = []
+    var filterR = Ladder()
+    let layerWave: String, layerSemi: Float, layerMix: Float
+    var layerOsc = Osc()
+    let drift: Float, driftPhase: Float
 
     override init(event: EventSpec, spec: InstrumentSpec, sampleRate: Float, seed: UInt64) {
         let p = spec.params
@@ -517,6 +565,14 @@ final class LeadVoice: Voice {
         detune = p.f("detune", 0.0)
         lfoRate = p.f("lfo_rate", 0); lfoDepth = p.f("lfo_depth", 0); lfoShape = p.s("lfo_shape", "sine")
         lfoSeed = hash64(seed, UInt64(event.index), 93)
+        let stacked = ["saw", "square", "pulse"].contains(wave)
+        unison = stacked ? max(1, min(7, Int(p.f("unison", 1)))) : 1
+        unisonCents = p.f("unison_cents", 14); spread = p.f("spread", 0.7)
+        layerWave = p.s("layer_wave", ""); layerSemi = p.f("layer_semi", -12); layerMix = layerWave.isEmpty ? 0 : p.f("layer_mix", 0.3)
+        drift = p.f("drift", 0)
+        var d = Rng(seed: hash64(seed, UInt64(event.index), 0xD71E))
+        driftPhase = d.unit()
+        if unison > 1 { stack = (1..<unison).map { _ in Osc(phase: d.unit()) } }
         amp = ADSR(attack: p.f("attack", wave == "flute" ? 0.06 : 0.012), decay: p.f("decay", 0.4),
                    sustain: p.f("sustain", 0.75), release: p.f("release", 0.25), sampleRate: sampleRate)
         super.init(event: event, spec: spec, sampleRate: sampleRate, seed: seed)
@@ -529,11 +585,45 @@ final class LeadVoice: Voice {
             let block = min(16, count - i)
             let t = Float(elapsed) / sampleRate
             let vib = vibratoDepth * smoothstep((t - vibratoDelay) / 0.4) * sinf(twoPi * vibratoRate * t)
-            let f = midiToHz(pitch() + vib)
+            var semis = pitch() + vib
+            if drift > 0 { semis += analogDrift(control.time + Float(i) / sampleRate, 0, cents: drift, phase: driftPhase) }
+            let f = midiToHz(semis)
             let dt = f / sampleRate
             let wobble = lfoDepth > 0 ? lfoDepth * lfoValue(lfoRate * (control.time + Float(i) / sampleRate), lfoShape, seed: lfoSeed) : 0
             let fc = cutoff * control.cutoff * powf(2, envAmount * expf(-t / filterDecay) + wobble) * (0.7 + 0.3 * velocity)
             filter.set(cutoff: fc, resonance: resonance, sampleRate: sampleRate)
+            if unison > 1 {
+                filterR.set(cutoff: fc * 1.01, resonance: resonance, sampleRate: sampleRate)
+                let layerDt = f * powf(2, layerSemi / 12) / sampleRate
+                let n = Float(unison), norm = 1 / sqrtf(n)
+                for j in 0..<block {
+                    if elapsed == gateSamples { amp.gateOff() }
+                    var sl: Float = 0, sr: Float = 0
+                    for k in 0..<unison {
+                        let pos = (Float(k) / (n - 1) * 2 - 1)
+                        let ratio = powf(2, pos * unisonCents / 1200)
+                        let v: Float
+                        if k == 0 {
+                            v = wave == "saw" ? osc.saw(dt * ratio) : osc.pulse(dt * ratio, width: wave == "pulse" ? 0.5 + 0.3 * sinf(twoPi * 0.7 * (control.time + Float(i + j) / sampleRate)) : 0.5)
+                        } else {
+                            v = wave == "saw" ? stack[k - 1].saw(dt * ratio) : stack[k - 1].pulse(dt * ratio, width: 0.5)
+                        }
+                        let p = pos * spread
+                        sl += v * (1 - p) * 0.5 * 1.414
+                        sr += v * (1 + p) * 0.5 * 1.414
+                    }
+                    var yl = filter.process(sl * norm, drive: drive), yr = filterR.process(sr * norm, drive: drive)
+                    // The layer sits under the filter, like the mono path's.
+                    if layerMix > 0 { let s = layerOsc.wave(layerWave, layerDt) * layerMix; yl += s; yr += s }
+                    let a = amp.next() * 0.26 * (0.45 + 0.55 * velocity)
+                    l[i + j] += yl * a * panL * 1.414
+                    r[i + j] += yr * a * panR * 1.414
+                    elapsed += 1
+                }
+                i += block
+                continue
+            }
+            let layerDt = f * powf(2, layerSemi / 12) / sampleRate
             for j in 0..<block {
                 if elapsed == gateSamples { amp.gateOff() }
                 var s: Float
@@ -553,6 +643,7 @@ final class LeadVoice: Voice {
                     s = filter.process(0.5 * osc.saw(dt * powf(2, detune / 1200)) + 0.5 * osc2.saw(dt * powf(2, -detune / 1200)), drive: drive)
                 default: s = filter.process(osc.saw(dt), drive: drive)
                 }
+                if layerMix > 0 { s += layerOsc.wave(layerWave, layerDt) * layerMix }
                 let a = amp.next() * 0.26 * (0.45 + 0.55 * velocity)
                 l[i + j] += s * a * panL * 1.414
                 r[i + j] += s * a * panR * 1.414

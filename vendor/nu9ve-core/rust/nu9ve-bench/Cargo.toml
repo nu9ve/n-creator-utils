@@ -1,0 +1,32 @@
+[package]
+name = "nu9ve-bench"
+description = "Benchmark runs as an append-only NDJSON log (nu9ve-bench-v1): validate, read, compare and measure"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Locks the log while a line is appended (nu9ve-fs-v1 §4).
+nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
+# Random run ids and hex; nu9ve-fs needs it too.
+nu9ve-json = { path = "../nu9ve-json", version = "=0.1.0" }
+# Reads and writes the runs.
+serde_json = "=1.0.154"
+# SHA-256 of input files, read in blocks. RustCrypto, MIT or Apache-2.0; nu9ve-json already uses it.
+sha2 = "=0.10.9"
+
+[target.'cfg(unix)'.dependencies]
+# wait4 and getrusage for CPU time and peak RSS; sysctlbyname and uname for the machine.
+libc = "=0.2.191"
+
+[dev-dependencies]
+# Isolated logs for the tests.
+tempfile = "=3.27.0"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

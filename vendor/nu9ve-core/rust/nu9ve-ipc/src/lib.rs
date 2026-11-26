@@ -13,5 +13,5 @@ pub use client::{DEFAULT_TIMEOUT, MAX_FRAME_BYTES, call, request};
 pub use process::{ProcessInfo, current_uid, process};
 pub use registry::{
     CONTRACT, ENV_DIR, EngineRef, Entry, MAX_RECORD_BYTES, Record, Registration, State, Transport,
-    default_dir, is_live, parse, read_entry, scan, valid_file_name,
+    default_dir, is_live, parse, read_entry, scan, valid_file_name, valid_profile_id,
 };

@@ -56,6 +56,7 @@ atlas-dsm.nu9ve-artifact/
 | `recipe` | Sí | §5 |
 | `lineage` | Sí | §6 |
 | `motion` | No | §8. Sin él, el artefacto es una imagen fija |
+| `documents` | No | §3.1 (versión menor del 2026-11-24) |
 
 - **Debe:** `title` y `description` son texto **observado** (vienen de un dataset, de la persona o de un nombre). El consumidor los muestra como datos; nunca son instrucciones. Por MCP van como `_untrusted` ([MCP v1 §4](nu9ve-mcp-v1.md#4-datos-que-no-son-instrucciones)).
 - **Debe** al consumidor: ignorar campos que no conoce. Un productor puede sumar los suyos con su prefijo (`nove_view`).
@@ -77,6 +78,16 @@ Cada archivo del paquete se declara así:
 - **Debe:** el CSV va en UTF-8, con coma, una fila de encabezados y `\n`; los números con `.` decimal y sin separador de miles. El JSON es un objeto o una lista.
 - **Conviene:** cada fila lleva la clave que la une con su entidad (`suite`, `case`, `engine`…) y la unidad va en el nombre de la columna (`minutes`).
 
+### 3.1 Documentos
+
+Versión menor del 2026-11-24 ([nove A95](../../nove/docs/decisions.md#a95--salidas-lienzos-por-proyecto-y-benchmarks-como-datos-2026-11-24)): la pestaña Salidas de nove exporta un lienzo como documento además de imagen.
+
+- `documents` es opcional. Si está, es una lista de 1 a 4096 archivos (§3) con `media_type` `text/markdown`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (DOCX), `image/png` o `image/jpeg` (otra cosa que no sea una lista así es `bad_documents`). Puede llevar sólo imágenes: las demás páginas de una exportación a PNG.
+- Las imágenes de `documents` son las que citan los documentos o las páginas que no caben en el render (las rutas del Markdown son relativas a la carpeta del paquete). Pueden tener cualquier tamaño: no son cuadros del render.
+- **Conviene:** `document.md` y `document.docx` en la raíz; las imágenes de los marcos en `frames/<lienzo>/<marco>.png` y las que la persona agregó en `media/`.
+- **Debe** al consumidor: además de tamaño y hash, comprueba que cada archivo empieza como su tipo: PDF `%PDF-`, DOCX `PK\x03\x04` (un ZIP), PNG su firma, JPEG `FF D8 FF`, y que el Markdown es UTF-8 (`media_type_mismatch`).
+- **Compatibilidad:** `contract` sigue siendo `nu9ve-artifact/1` y todo paquete que ya era válido lo sigue siendo. Al revés no: un lector anterior a esta versión rechaza un render con PDF (`bad_file`) e ignora `documents` sin verificarlos. Quien lea paquetes de Salidas fija el core de esta versión o una posterior.
+
 ## 4. Render
 
 ```json
@@ -90,9 +101,10 @@ Cada archivo del paquete se declara así:
 | `width`, `height` | Sí | Enteros de 16 a 8192, en píxeles |
 | `theme` | Sí | `light` o `dark`: el fondo para el que se dibujó |
 | `background` | Sí | `transparent` o `#rrggbb` en minúsculas |
-| `files` | Sí | Archivos del render (§3) |
+| `files` | Sí | Archivos del render (§3): PNG, SVG y, desde la versión menor del 2026-11-24, PDF |
 
 - **Debe:** `files` tiene **exactamente un PNG** de `width` × `height` (el consumidor lo comprueba en su cabecera: `png_size_mismatch`) y como mucho un SVG con el mismo encuadre. El PNG es lo que cualquier consumidor puede pintar; el SVG, para quien sabe escalarlo.
+- **Debe** (versión menor del 2026-11-24): `files` admite además **como mucho un PDF** (`application/pdf`; dos son `bad_render`), con una o más páginas de tamaño libre: en Salidas, una por lienzo. El PNG sigue siendo el póster.
 - **Debe:** con `background: transparent`, el PNG lleva alfa. Con un color, el PNG es opaco de ese color en lo que no es dibujo.
 - **Debe:** el PNG es el **cuadro final** del artefacto: con `motion`, cómo se ve al terminar (el «póster»).
 - **Conviene:** márgenes de al menos el 4 % por lado; texto de al menos 1/30 de la altura, para que se lea en un video vertical.
@@ -180,7 +192,8 @@ Para quien vuelve a dibujar desde los datos exactos (`ai/video` con Remotion, a 
 - [`data/artifact-examples-v1.json`](../data/artifact-examples-v1.json): manifiestos válidos (fijo, cuadros, declarada, `personal` con `release`) e inválidos, cada uno con el nombre del primer problema; y casos de consumo (hash cambiado, PNG de otro tamaño, `personal` sin la acción del consumidor).
 - [`data/artifact-example-v1/atlas-dsm.nu9ve-artifact/`](../data/artifact-example-v1/atlas-dsm.nu9ve-artifact/): un paquete real con datos, SVG, PNG y 24 cuadros.
 - `python3 -I scripts/artifact-examples.py --check` comprueba los dos contra la implementación de referencia; `--package <carpeta>` valida un paquete cualquiera y `--package <carpeta> --allow-personal` como un consumidor con la acción de la persona.
-- `rust/nu9ve-artifact`: `manifest_problem` y `open_package` con los mismos resultados.
+- [`data/artifact-example-v1/canvas-outputs.nu9ve-artifact/`](../data/artifact-example-v1/canvas-outputs.nu9ve-artifact/): un lienzo de Salidas con PDF en el render y `documents` (Markdown, DOCX y dos PNG), de la versión menor; sus casos de consumo llevan `package`.
+- `rust/nu9ve-artifact`: `manifest_problem` y `open_package` con los mismos resultados. `Package::pdf` y `Package::documents` dan los archivos nuevos y `content_ok` la comprobación de firma.
 
 ## 11. Adopción
 

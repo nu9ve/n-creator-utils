@@ -574,6 +574,9 @@ impl Server {
                     if let Some(library) = &record.library {
                         row["library"] = json!(library);
                     }
+                    if let Some(profile_id) = &record.profile_id {
+                        row["profile_id"] = json!(profile_id);
+                    }
                     if record.has_capability(TOOLS_CAPABILITY) {
                         let tools = self.app_tools(&record);
                         row["tools"] = json!(tools.tools.len());

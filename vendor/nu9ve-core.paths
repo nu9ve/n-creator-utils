@@ -33,5 +33,17 @@ windows/Directory.Build.props
 windows/Nu9ve.Core
 windows/Nu9ve.WinUI
 
+# Perfiles en esta máquina (nu9ve-profile-v1): nüün lee profiles.json y agrega su entrada `nuun`. El crate lo usa
+# el motor; el ayudante de Python y sus ejemplos los corre el gate (`profile-examples.py --check`).
+rust/nu9ve-profiles
+scripts/nu9ve_profiles.py
+scripts/profile-examples.py
+
+# Registro de benchmarks (nu9ve-bench-v1, con resources y soak): bench/nuun.ndjson se escribe con su ayudante.
+rust/nu9ve-bench
+scripts/nu9ve_bench.py
+scripts/bench-examples.py
+scripts/bench-from-atlas.py
+
 # El chequeo de frontera: lo corre el gate sobre engine/crates/nu9ve-*.
 scripts/check-boundary.sh

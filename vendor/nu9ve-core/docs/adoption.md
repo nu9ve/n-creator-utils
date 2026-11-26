@@ -185,7 +185,7 @@ nove es el primero que se registra (2026-11-20). Las demás necesitan antes:
 
 | App | Transporte que podría registrar | Falta |
 | --- | --- | --- |
-| nove | Socket Unix `runtime/ipc` (Mac) y pipe (Windows), ya con las comprobaciones de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) | **En Mac, hecho** (`nove` `d430c04`, su A53): escribe y borra `nove.json` con `nu9ve-ipc` de su copia fijada, sólo con `--suite-registry`, que la app pasa desde su propio bundle y nunca en QA, demos ni pruebas. Anuncia `data_catalog_v1` y `mcp_tools_v1`. Sin probar con la app instalada. En Windows falta, como en `nu9ve-ipc` |
+| nove | Socket Unix `runtime/ipc` (Mac) y pipe (Windows), ya con las comprobaciones de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) | **Versión menor del 2026-11-25:** su motor escribe `profile_id` cuando arranca con `--profile` (A98, en integración). **En Mac, hecho** (`nove` `d430c04`, su A53): escribe y borra `nove.json` con `nu9ve-ipc` de su copia fijada, sólo con `--suite-registry`, que la app pasa desde su propio bundle y nunca en QA, demos ni pruebas. Anuncia `data_catalog_v1` y `mcp_tools_v1`. Sin probar con la app instalada. En Windows falta, como en `nu9ve-ipc` |
 | nüün | Ninguno: `rpc-serve` es stdio de su app | Un socket o pipe con las reglas de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) antes de registrarse |
 | Clipper | Ninguno: `serve` es stdio | Igual que nüün |
 
@@ -244,6 +244,16 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 | nove | `data_export` de sus tablas y capas (GeoJSON de baches, series), y «disponible en todas mis máquinas» con `share`, `unshare` y `shared`, ofreciendo sola lo compartido (§5) | Sin empezar. Ya sirve su catálogo, así que le falta sólo el método y la marca en su interfaz |
 | Clipper | `data_export` de sus transcripts | Sin empezar |
 
+## nu9ve-profile-v1
+
+[Perfiles en esta máquina v1](../contracts/nu9ve-profile-v1.md), propuesta del 2026-11-25 (la pieza local de los perfiles de [suite-devices §5](suite-devices.md#5-modelo)).
+
+| App | Papel | Estado |
+| --- | --- | --- |
+| nove | Primer escritor: registra su biblioteca personal como `e64` y cada perfil nuevo como una biblioteca nueva; su motor lee el archivo (`profile_info`, `profiles_overview`) y dice su perfil en el registro de motores | En integración (su A98): fija `nu9ve-profiles`. La app de Mac escribe el archivo |
+| nüün | Lee el archivo para saber qué perfiles hay en la máquina y en qué apps; agrega su entrada (`nuun`) a sus perfiles | Sin empezar. Con `scripts/nu9ve_profiles.py` (Python) o el crate (su motor de Rust) |
+| Atlas, Clipper | Leen; agregan su entrada si trabajan por perfil | Sin empezar |
+
 ## nu9ve-device-v1
 
 [Identidad de dispositivo v1](../contracts/nu9ve-device-v1.md), propuesta del 2026-11-22 (F0 de [varias máquinas](suite-devices.md)). nüün lo crea desde el 2026-11-22.
@@ -272,7 +282,7 @@ nove los produce desde el 2026-11-20 y Clipper los consume.
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nove | Productor: gráficas, mapas y comparaciones de «Datos» y de los benchmarks (S10) | **`artifact_export`** (`2f5468d`, core fijado en `39c1b9b`, su A57): una revisión de un dataset tabular o las velas de un par OTC. El motor dibuja el PNG sin dependencias nuevas, guarda todos los puntos en `drawn.csv` y valida con `nu9ve_artifact::open_package` antes de publicar. Lo `personal` pide `release` en un diálogo de la Mac y nunca sale por MCP. Sin mapas ni animación. Falta un recorrido nove → Clipper con un paquete real |
+| nove | Productor: gráficas, mapas y comparaciones de «Datos» y de los benchmarks (S10) | **`artifact_export`** (`2f5468d`, core fijado en `39c1b9b`, su A57): una revisión de un dataset tabular o las velas de un par OTC. El motor dibuja el PNG sin dependencias nuevas, guarda todos los puntos en `drawn.csv` y valida con `nu9ve_artifact::open_package` antes de publicar. Lo `personal` pide `release` en un diálogo de la Mac y nunca sale por MCP. Sin mapas ni animación. Falta un recorrido nove → Clipper con un paquete real. **Salidas (A95, en integración):** exporta lienzos con PDF y `documents` (Markdown, DOCX) de la versión menor del 2026-11-24 |
 | Clipper | Consumidor: overlay en la timeline (póster como imagen, cuadros como video) | `clipper overlay import-artifact` (`clipper` `0e3056f2`, core fijado en `699ccaf`): comprueba en Rust con `nu9ve-artifact` (`artifact_inspect`), póster en `data.chart`, cuadros a ProRes 4444 con `--animated`, procedencia en la escena, `personal` sólo con `--allow-personal`. Visto en un proyecto de QA con `scene-frame`; sin export completo ni TUI. Las animaciones declaradas se rechazan |
 | `ai/video` | Consumidor: cuadros o animación declarada a video | Sin empezar |
 | neuf | Consumidor en su proyecto | Sin empezar |
@@ -281,13 +291,16 @@ nove los produce desde el 2026-11-20 y Clipper los consume.
 
 [Registro de benchmarks v1](../contracts/nu9ve-bench-v1.md), con `rust/nu9ve-bench`, `scripts/nu9ve_bench.py` y `scripts/bench-from-atlas.py`.
 
-Clipper escribe en el registro desde el 2026-11-21. Lo que tiene cada app hoy y lo que le toca:
+Clipper escribe en el registro desde el 2026-11-21.
+
+**Versión menor del 2026-11-25 (`resources` y `soak`, §5.1 y §5.2):** cada app suma a su gate un soak de su operación más repetida (peticiones al motor, lecturas de proyecto) con un límite de pendiente de memoria, para detectar fugas o cambios raros; nove las grafica. Lo que tiene cada app hoy y lo que le toca:
 
 | App | Qué mide hoy | Qué le toca |
 | --- | --- | --- |
 | Clipper | **Adoptado** (2026-11-21): fija contrato, crate, ayudante y ejemplos en `6284877` (`ad80ef2a`). `scripts/core_bench.py` (`cdb46ebe`) mide la suite dorada con los dos motores con el ayudante de Python: suite `clipper-engine`, casos `golden/<dominio>` y `compose/score`, entradas por SHA-256 de `reads.json` y del módulo de casos. Línea base de M0 en `docs/benchmarks/2026-11-21-m0-engine-baseline.{md,ndjson}` (`835f4fc5`) | Flujos del TUI (`tui_flow_bench.py`) al registro, petición en caliente, caché fría y exports por rango; repetir todo en su M9 |
-| Atlas | `atlas_vision/engines/bench.py`: corridas en `derived/bench/` y líneas base en `config/bench.json` | Traducido en sólo lectura por `scripts/bench-from-atlas.py`, probado sobre su fixture y sobre el repo real (5 corridas válidas, 2026-11-21), sin cambiar Atlas |
-| nove | Mediciones del worker tabular, Parquet y el `measure` de `nu9ve-algo` | Fuente «Benchmarks» que lee los registros (su S10, la parte de nove) |
+| Atlas | `atlas_vision/engines/bench.py`: corridas en `derived/bench/` y líneas base en `config/bench.json` | Traducido en sólo lectura por `scripts/bench-from-atlas.py` y, desde el 2026-11-24, por `nu9ve_bench::atlas` en Rust, con los mismos `run_id`; los hitos de `analysis/history/evolucion.json` entran como corridas de sólo calidad (versión menor) y `derived/bench/*.ndjson` se lee como registro. Le toca escribir el formato nuevo en su sesión |
+| nove | Mediciones del worker tabular, Parquet y el `measure` de `nu9ve-algo` | S10 (A95, en integración): fuentes de sólo lectura (registros y repos de Atlas con `nu9ve_bench::atlas`), tablas `bench:runs` y `bench:quality`, comparación y unión con sesiones de agentes. **A96 (en integración):** `scripts/gate-bench.py` escribe `nove-gate` (duraciones del gate, pruebas, tamaños) y `nove-engine` (arranque, memoria en reposo y un soak de 2 000 peticiones con su pendiente) en `bench/nove.ndjson` |
+| Clipper, nüün | Ver arriba | Un soak del motor (`measure_soak` con el `pid` del motor) en su gate, con `resources` |
 | nüün, curado, SoundBender | Dorados de paridad y de LUFS | Traductores por escribir; su calidad es `bytes_equal` o un máximo absoluto con tolerancia |
 
 ## nu9ve-notifications-v1

@@ -1,0 +1,15 @@
+{
+ "_fixture": "Copia recortada de ~/code/data/atlas/analysis/history/evolucion.json (2026-11-24): seis hitos, para probar el traductor de Atlas (nu9ve_bench::atlas y scripts/bench-from-atlas.py). El último de gravity es inventado: trae su propia fecha. No se edita a mano.",
+ "evidence": [
+  {"key": "regla", "iteration": 39, "label": "regla", "what": "Regla: precisión por clase × estado del detector, sin mirar la imagen", "adopted": true, "judged": 362, "auc": 0.789, "auc_candidates": 0.52, "auc_flat": null, "auc_curb": null},
+  {"key": "ev-v1", "iteration": 40, "label": "ev-v1", "what": "Fotometría por luz: textura y correlación con el sol (un hoyo tiene pared iluminada y sombra)", "adopted": true, "judged": 362, "auc": 0.873, "auc_candidates": 0.835, "auc_flat": null, "auc_curb": null},
+  {"key": "L14", "iteration": 55, "label": "+juicios", "what": "Tanda de tipo y recalificación a ciegas: más ejemplos, mismo modelo", "adopted": true, "judged": 697, "auc": 0.855, "auc_candidates": 0.812, "auc_flat": 0.506, "auc_curb": 0.87},
+  {"key": "A2b", "iteration": 58, "label": "A2b", "what": "Un modelo por luz y consenso: gana banqueta y sombra, pierde plano (medido, no adoptado)", "adopted": false, "judged": 697, "auc": 0.956, "auc_candidates": 0.942, "auc_flat": 0.66, "auc_curb": 0.97}
+ ],
+ "gravity": [
+  {"key": "auto-v5", "iteration": 48, "label": "auto-v5", "what": "Volumen faltante (profundidad multivista × área)", "adopted": true, "rho_bombs": 0.227},
+  {"key": "auto-v6+", "iteration": 55, "label": "+bombas", "what": "Más bombas, mismos parámetros", "adopted": true, "rho_bombs": 0.273},
+  {"key": "gr-v3", "iteration": 99, "date": "2026-11-23", "label": "gr-v3", "what": "Hito de prueba con su propia fecha", "adopted": false, "rho_bombs": 0.5}
+ ],
+ "ceiling_rho": 0.835
+}
