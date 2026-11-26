@@ -471,6 +471,72 @@ pub fn export_working(
     Ok(json!({"results":results}))
 }
 
+/// U1 de nove (`nuun-conversations-compat.md`): la misma copia de trabajo que `conversations_export_working`,
+/// pedida desde la suite, sólo con lo que la persona ya decidió en Ajustes → Conversaciones: el disco de la copia
+/// de trabajo y las colecciones con `decided_at`. Otro destino u otra colección es `confirmation_required`.
+pub fn export_decided(
+    home: &Path,
+    backend: &dyn Backend,
+    isolated: bool,
+    user_home: &Path,
+    params: &Value,
+) -> Result<Value> {
+    let decided = export_decided_check(home, params)?;
+    export_working(home, backend, isolated, user_home, &decided)
+}
+
+/// The parameters of `export_working` that the person's decision allows, or `confirmation_required`.
+pub fn export_decided_check(home: &Path, params: &Value) -> Result<Value> {
+    let given = params
+        .as_object()
+        .filter(|p| {
+            p.keys()
+                .all(|k| ["destination", "collections", "confirm_personal"].contains(&k.as_str()))
+        })
+        .ok_or_else(|| {
+            Error::new(
+                "invalid_params",
+                "Only destination and collections are accepted",
+            )
+        })?;
+    let settings = settings_of(&Catalog::open(home)?)?;
+    let root = settings["working"]["root"].as_str().unwrap_or_default();
+    require(
+        !root.is_empty() && !settings["working"]["decided_at"].is_null(),
+        "confirmation_required",
+        "Decide the working copy in nüün first (Settings → Conversations)",
+    )?;
+    if let Some(destination) = given.get("destination") {
+        require(
+            destination.as_str() == Some(root),
+            "confirmation_required",
+            "Only the destination decided in nüün",
+        )?;
+    }
+    let decided: Vec<String> = settings["collections"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter(|(_, c)| !c["decided_at"].is_null())
+        .map(|(id, _)| id.clone())
+        .collect();
+    let collections: Vec<String> = match given.get("collections") {
+        None => decided.clone(),
+        Some(list) => list
+            .as_array()
+            .ok_or_else(|| Error::new("invalid_params", "collections is a list of ids"))?
+            .iter()
+            .map(|v| v.as_str().unwrap_or_default().to_owned())
+            .collect(),
+    };
+    require(
+        !collections.is_empty() && collections.iter().all(|c| decided.contains(c)),
+        "confirmation_required",
+        "Only collections decided in nüün",
+    )?;
+    Ok(json!({"destination": root, "collections": collections, "confirm_personal": true}))
+}
+
 /// `conversations_backup_apply`: each reviewed plan copied and verified (`living_apply`), its receipt published
 /// next to the collection's manifest, then the working copy when it is decided.
 pub fn backup_apply(
@@ -789,6 +855,46 @@ fn working_copy(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_suite_may_only_ask_for_the_decided_export() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let home = root.join("media");
+        crate::catalog::fixture::create(&home);
+        let disk = root.join("ESSD");
+        std::fs::create_dir_all(&disk).unwrap();
+        // Nothing decided: nothing leaves.
+        assert_eq!(
+            export_decided_check(&home, &json!({})).unwrap_err().code,
+            "confirmation_required"
+        );
+        settings(
+            &home,
+            &json!({"working": {"root": disk}, "collections": {"claude-code": true}, "confirm_personal": true}),
+        )
+        .unwrap();
+        let decided = export_decided_check(&home, &json!({})).unwrap();
+        assert_eq!(decided["destination"], json!(disk));
+        assert_eq!(decided["collections"], json!(["claude-code"]));
+        for refused in [
+            json!({"destination": "/Volumes/OTRO"}),
+            json!({"collections": ["codex"]}),
+            json!({"collections": []}),
+        ] {
+            assert_eq!(
+                export_decided_check(&home, &refused).unwrap_err().code,
+                "confirmation_required",
+                "{refused}"
+            );
+        }
+        assert_eq!(
+            export_decided_check(&home, &json!({"other": 1}))
+                .unwrap_err()
+                .code,
+            "invalid_params"
+        );
+    }
 
     const M1: &str = "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f";
 

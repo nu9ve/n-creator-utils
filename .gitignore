@@ -22,3 +22,6 @@ vendor/.nu9ve-core-build/
 
 # Rust engine build products
 engine/target/
+
+# nu9ve-bench-v1: registros locales de benchmarks (scripts/engine_bench.py)
+bench/

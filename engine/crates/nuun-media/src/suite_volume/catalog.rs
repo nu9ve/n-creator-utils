@@ -217,6 +217,10 @@ fn sources(home: &Path) -> Result<Sources> {
         }
         datasets.insert(dataset["id"].as_str().unwrap().to_owned(), dataset);
     }
+    // Accumulations on disk (builds, caches, backups): the newest scan as a personal table, one row per finding.
+    if let Some(dataset) = crate::accumulations::dataset(home) {
+        datasets.insert(crate::accumulations::DATASET.to_owned(), dataset);
+    }
     Ok(Sources {
         projects,
         roots,
@@ -348,6 +352,15 @@ pub fn data_export(home: &Path, params: &Value) -> Result<Value> {
             "invalid_params",
             "max_bytes must be an integer from 1 to 2^53 - 1",
         )?;
+    }
+    if dataset == crate::accumulations::DATASET {
+        let max = p
+            .get("max_bytes")
+            .and_then(Value::as_u64)
+            .unwrap_or(64 * 1024 * 1024);
+        return Ok(crate::accumulations::export(home, max).unwrap_or_else(
+            || json!({"contract": "nu9ve-export/1", "dataset": dataset, "status": "not_found"}),
+        ));
     }
     let sources = sources(home)?;
     let Some(found) = sources.datasets.get(&dataset) else {

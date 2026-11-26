@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-24, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-25, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -91,6 +91,9 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | Handycam | Histórico principal consolidado por Poner al día y conversión física con expulsión comprobada. Validar un lote mixto en ventana. Limpiar sólo desde el equipo después de comprobar cobertura. | [Contrato y pasos](docs/contracts/ingest-flow-v1.md#hdd-de-handycam-por-usb) |
 | Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |
 | Colecciones (Agentes) | Lectura `storage_collections` hecha en los dos motores, con medición real el 2026-11-19. Pendientes: (1) dar acceso en el sandbox o leer por el motor fuera de él antes de mostrarla en Discos; (2) plan revisado para retirar cachés, nunca automático; (3) servirla por `nu9ve-data-v1` cuando el core lo publique; (4) clasificar lo que aún sale como `other`, como `computer-use` y `sqlite` de Codex | [Colecciones](docs/features/storage-map.md#colecciones) · [Evidencia](docs/STATUS.md#colección-agentes--2026-11-19) |
+| **Acumulados en disco** (pedido del usuario, 2026-11-25) | Fase 1 hecha (inventario y plan en sólo lectura, CLI, RPC, Discos → Acumulados…, dataset de la suite). Siguen en orden: (1) un escaneo real en sólo lectura de `~/code` y las cachés, pedido por el usuario, y aceptar la vista en ventana; (2) **fase 2**: ejecutar el plan aprobado por grupo, a la Papelera por omisión, dos confirmaciones para lo que no se regenera, volver a medir antes de mover y recibo con lo liberado según `df`; (3) actividad de agentes desde nove (`agents:summary:sessions`) en lugar del mtime de `~/.claude/projects`; (4) acceso del sandbox a `HOME` | [Diseño](docs/features/storage-map.md#acumulados) · [Evidencia](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
+| **Perfiles de la suite** | Lectura y registro hechos en el motor y en Ajustes → Perfiles. Falta registrar los perfiles reales en la M1 (`e64`, `nu9ve-xyz`), pedido por el usuario, y decidir el tipo de `nu9ve-xyz` (hoy `team`) | [nu9ve-profile-v1](vendor/nu9ve-core/contracts/nu9ve-profile-v1.md) · [STATUS](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
+| Benchmarks | `scripts/engine_bench.py` (golden, walk, soak) en `bench/nuun.ndjson`. Falta el caso de copias (GiB/s) sobre fixture, y meter `soak --check-soak` en el gate de release | [nu9ve-bench-v1](vendor/nu9ve-core/contracts/nu9ve-bench-v1.md) |
 | Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
 **Clipper:** sources/handoff, relink y ACK ya adoptados; `library retire-plan`/`retire` existe del lado de Clipper. Que nüün lo invoque sería otra entrega.

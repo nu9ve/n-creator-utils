@@ -3,6 +3,7 @@
 
 #[cfg(target_os = "macos")]
 mod ableton;
+pub mod accumulations;
 pub mod agent_storage;
 pub mod captures;
 pub mod catalog;
@@ -205,4 +206,5 @@ mod mission_tests {
 }
 
 pub mod suite_device;
+pub mod suite_profiles;
 pub mod suite_volume;

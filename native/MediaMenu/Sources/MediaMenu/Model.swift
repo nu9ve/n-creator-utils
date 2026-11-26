@@ -142,6 +142,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     /// The copy between work disks being prepared, when its sheet is open.
     var workCopyRequest: WorkCopyRequest?
     var conversations: JSONValue?
+    /// Acumulados en disco (`storage_accumulations`) y perfiles de la suite en esta Mac (`suite_profiles`).
+    var accumulations: JSONValue?
+    var accumulationsRunning = false
+    var showAccumulations = false
+    var suiteProfiles: JSONValue?
     var conversationsRunning = false
     var librarySection: LibrarySection = .projects
     var presentation: WindowMode = .full

@@ -147,7 +147,12 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 31] = [
+const NATIVE: [&str; 36] = [
+    "suite_profiles",
+    "suite_profiles_register",
+    "storage_accumulations",
+    "storage_accumulations_scan",
+    "storage_accumulations_settings",
     "suite_device",
     "suite_suggestions",
     "suggestions_dismiss",
@@ -299,6 +304,13 @@ fn ported_writes(backend: Option<&dyn Backend>) -> Vec<&'static str> {
 fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Vec<&'static str> {
     let mut writes = CATALOG_WRITES.to_vec();
     writes.push("suite_device");
+    // profiles.json (nu9ve-profile-v1): only nüün's own `nuun` entry, after the person confirms.
+    writes.push("suite_profiles_register");
+    // Accumulations: settings in the catalog, and each scan kept under <home>/accumulations/ (derived).
+    writes.extend([
+        "storage_accumulations_scan",
+        "storage_accumulations_settings",
+    ]);
     // Only the catalog: which conversations may leave, to which disk, and when (the person's decision).
     writes.push("conversations_settings");
     // «No volver a preguntar» for a disk and flow: only the catalog.
@@ -410,7 +422,9 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 21] = [
+const ONCE_READS: [&str; 23] = [
+    "suite_profiles",
+    "storage_accumulations",
     "suite_adopt_volume",
     "suite_suggestions",
     "conversations_status",
@@ -470,6 +484,23 @@ impl Engine {
         let isolated = self.isolated();
         match method {
             "suite_device" => nuun_media::suite_device::current(isolated, params),
+            "suite_profiles" => nuun_media::suite_profiles::overview(&self.home(), isolated),
+            "suite_profiles_register" => {
+                let device = this_device(isolated)?.ok();
+                nuun_media::suite_profiles::register(
+                    &self.home(),
+                    isolated,
+                    device.as_deref(),
+                    params,
+                )
+            }
+            "storage_accumulations" => nuun_media::accumulations::read(&self.home()),
+            "storage_accumulations_scan" => {
+                nuun_media::accumulations::scan(&self.home(), &user_home()?, isolated, params)
+            }
+            "storage_accumulations_settings" => {
+                nuun_media::accumulations::settings(&self.home(), params)
+            }
             "suite_lease" => suite::lease(isolated, params),
             "suite_register_volume" => nuun_media::suite_volume::register(
                 &self.home(),
@@ -1159,7 +1190,7 @@ fn main() {
             }
         }
         // The suite methods in frames on stdio, for the core's example checks (`--server`).
-        Some("suite-frames") => match suite::serve_stdio(&engine.home()) {
+        Some("suite-frames") => match suite::serve_stdio(&engine.home(), engine.isolated()) {
             Ok(()) => 0,
             Err(error) => {
                 eprintln!("suite-frames: {error}");

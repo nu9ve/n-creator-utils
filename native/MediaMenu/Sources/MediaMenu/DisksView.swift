@@ -293,6 +293,8 @@ struct DisksView: View {
                 Button("Copiar al otro disco…", systemImage: "externaldrive.badge.plus") { model.openWorkCopy() }
                     .help("Copia verificada entre dos discos de trabajo, con recibo. No borra nada.")
                 Button("Añadir carpeta…", systemImage: "folder.badge.plus") { model.addStorageFolder() }
+                Button("Acumulados…", systemImage: "shippingbox") { model.showAccumulations = true }
+                    .help("Builds, dependencias, cachés y respaldos que se acumulan. Sólo lee.")
             }
             ErrorBanner(model: model)
             if !model.storageError.isEmpty {

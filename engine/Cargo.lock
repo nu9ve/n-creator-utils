@@ -565,6 +565,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "nu9ve-profiles"
+version = "0.1.0"
+dependencies = [
+ "nu9ve-fs",
+ "serde_json",
+]
+
+[[package]]
 name = "nu9ve-time"
 version = "0.1.0"
 dependencies = [
@@ -602,6 +610,7 @@ dependencies = [
  "nu9ve-engine",
  "nu9ve-ipc",
  "nu9ve-json",
+ "nu9ve-time",
  "nuun-media",
  "nuun-recipe",
  "regex",
@@ -615,8 +624,10 @@ name = "nuun-media"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "nu9ve-fs",
  "nu9ve-json",
  "nu9ve-mcp",
+ "nu9ve-profiles",
  "nu9ve-time",
  "nu9ve-volumes",
  "nuun-recipe",

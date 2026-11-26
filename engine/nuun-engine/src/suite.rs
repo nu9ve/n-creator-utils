@@ -4,13 +4,27 @@
 //!
 //! Under QA (a `--state-dir`, the sandbox) it registers only in `NU9VE_ENGINES_DIR`, never in the person's folder.
 use nu9ve_engine::{EngineInfo, Request, RpcError};
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
 
 pub const APP: &str = "nuun";
 pub const PROTOCOL: &str = "nuun-suite/1";
-pub const CAPABILITIES: [&str; 2] = ["data_catalog_v1", "data_export_v1"];
-pub const METHODS: [&str; 2] = ["data_catalog", "data_export"];
+pub const CAPABILITIES: [&str; 3] = [
+    "data_catalog_v1",
+    "data_export_v1",
+    "conversations_export_working_v1",
+];
+/// `conversations_export_working` (U1 of nove): the working copy the person already decided, started in the
+/// background; `conversations_export_status` answers how that run went.
+pub const METHODS: [&str; 4] = [
+    "data_catalog",
+    "data_export",
+    "conversations_export_working",
+    "conversations_export_status",
+];
+
+/// Export runs started from the suite while this engine serves: `run_id` → state.
+static RUNS: std::sync::Mutex<Vec<(String, Value)>> = std::sync::Mutex::new(Vec::new());
 
 fn info() -> EngineInfo<'static> {
     EngineInfo {
@@ -23,12 +37,87 @@ fn info() -> EngineInfo<'static> {
     }
 }
 
-/// One request of the suite transport: only the two read methods, on the catalog of `home`.
-pub fn dispatch(home: &Path, request: Request<'_>) -> nu9ve_engine::Result {
+/// Starts the decided working copy in a thread; only one at a time. The copy can take longer than a frame.
+fn start_export(home: &Path, isolated: bool, params: &Value) -> nu9ve_json::Result<Value> {
+    let mut runs = RUNS.lock().unwrap_or_else(|e| e.into_inner());
+    nu9ve_json::require(
+        !runs.iter().any(|(_, r)| r["status"] == "running"),
+        "busy",
+        "An export is already running",
+    )?;
+    let home = home.to_path_buf();
+    let user_home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .ok_or_else(|| nu9ve_json::Error::new("internal_error", "No home folder"))?;
+    // Checked before starting, so a refusal is the answer and not a failed run.
+    let backend = nuun_media::volumes::platform_backend(&home)
+        .filter(|b| b.writes())
+        .ok_or_else(|| {
+            nu9ve_json::Error::new("not_ported", "This platform cannot write disks yet")
+        })?;
+    drop(backend);
+    nuun_media::conversations::export_decided_check(&home, params)?;
+    let run_id = nu9ve_json::uid()?;
+    runs.push((
+        run_id.clone(),
+        json!({"status": "running", "started_at": nu9ve_time::now_utc()}),
+    ));
+    if runs.len() > 16 {
+        runs.remove(0);
+    }
+    drop(runs);
+    let id = run_id.clone();
+    let params = params.clone();
+    std::thread::spawn(move || {
+        let result = nuun_media::volumes::platform_backend(&home)
+            .ok_or_else(|| nu9ve_json::Error::new("not_ported", "No volume backend"))
+            .and_then(|b| {
+                nuun_media::conversations::export_decided(
+                    &home,
+                    b.as_ref(),
+                    isolated,
+                    &user_home,
+                    &params,
+                )
+            });
+        let state = match result {
+            Ok(data) => {
+                json!({"status": "done", "result": data, "finished_at": nu9ve_time::now_utc()})
+            }
+            Err(e) => json!({"status": "failed", "error": {"code": e.code, "message": e.message},
+                             "finished_at": nu9ve_time::now_utc()}),
+        };
+        let mut runs = RUNS.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(entry) = runs.iter_mut().find(|(r, _)| *r == id) {
+            entry.1 = state;
+        }
+    });
+    Ok(json!({"status": "started", "run_id": run_id}))
+}
+
+fn export_status(params: &Value) -> nu9ve_json::Result<Value> {
+    let id = params["run_id"].as_str().unwrap_or_default();
+    let runs = RUNS.lock().unwrap_or_else(|e| e.into_inner());
+    Ok(runs
+        .iter()
+        .find(|(r, _)| r == id)
+        .map(|(r, state)| {
+            let mut state = state.clone();
+            state["run_id"] = json!(r);
+            state
+        })
+        .unwrap_or_else(|| json!({"run_id": id, "status": "not_found"})))
+}
+
+/// One request of the suite transport on the catalog of `home`: the two reads and the decided export.
+pub fn dispatch(home: &Path, isolated: bool, request: Request<'_>) -> nu9ve_engine::Result {
     let params = Value::Object(request.params.clone());
     let result = match request.method {
         "data_catalog" => nuun_media::suite_volume::data_catalog(home, &params),
         "data_export" => nuun_media::suite_volume::data_export(home, &params),
+        "conversations_export_working" => start_export(home, isolated, &params),
+        "conversations_export_status" => export_status(&params),
         other => {
             return Err(RpcError::new(
                 "unknown_method",
@@ -42,12 +131,12 @@ pub fn dispatch(home: &Path, request: Request<'_>) -> nu9ve_engine::Result {
 }
 
 /// The same methods in frames on stdin and stdout, for the suite's example checks (`--server`).
-pub fn serve_stdio(home: &Path) -> std::io::Result<()> {
+pub fn serve_stdio(home: &Path, isolated: bool) -> std::io::Result<()> {
     nu9ve_engine::serve_frames(
         std::io::stdin().lock(),
         std::io::stdout().lock(),
         info(),
-        |r| dispatch(home, r),
+        |r| dispatch(home, isolated, r),
     )
 }
 
@@ -166,7 +255,7 @@ pub fn start(home: PathBuf, isolated: bool) -> Option<Served> {
             };
             let _ =
                 nu9ve_engine::serve_frames(std::io::BufReader::new(reader), &stream, info(), |r| {
-                    dispatch(&served, r)
+                    dispatch(&served, isolated, r)
                 });
         }
     });
@@ -188,6 +277,12 @@ pub fn start(home: PathBuf, isolated: bool) -> Option<Served> {
         },
         CAPABILITIES.iter().map(|c| (*c).to_owned()).collect(),
     );
+    // The library it serves and, once nüün is in profiles.json, its default profile (registry §2, 2026-11-25).
+    let record = record.map(|mut r| {
+        r.library = home.to_str().map(str::to_owned);
+        r.profile_id = nuun_media::suite_profiles::registered_default(&home, isolated);
+        r
+    });
     // Registered only once it accepts connections (registry §5).
     match record.and_then(|r| nu9ve_ipc::Registration::register(&dir, &r)) {
         Ok(registration) => Some(Served {

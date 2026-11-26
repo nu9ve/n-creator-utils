@@ -77,6 +77,8 @@ struct SettingsView: View {
             volume("Respaldo sugerido", role: "archive", value: $archive)
             Button("Guardar perfil") { save() }.disabled(id.isEmpty || name.isEmpty || raw.isEmpty)
             Text("Ejemplo: ESSD / 001_proyectos / 9logs_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales.").font(.caption)
+            Divider()
+            SuiteProfilesSection(model: model)
         }
     }
     var disks: some View {

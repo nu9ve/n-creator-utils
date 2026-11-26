@@ -23,6 +23,12 @@ nu9ve-volumes = { path = "../vendor/nu9ve-core/rust/nu9ve-volumes" }
 # lleva en su bundle para `nu9ve agent state` e `install --by nuun`, y usa sus reglas para saber si el agente
 # está; nunca corre su `serve`. Se compila con este Cargo.lock: `cargo build -p nu9ve-mcp --bin nu9ve`.
 nu9ve-mcp = { path = "../vendor/nu9ve-core/rust/nu9ve-mcp" }
+# Perfiles en esta máquina (nu9ve-profile-v1): leer profiles.json y escribir sólo la entrada `nuun`, con su candado.
+# Escritura atómica de los escaneos de acumulados (nu9ve-fs-v1); ya llega con nu9ve-volumes.
+nu9ve-fs = { path = "../vendor/nu9ve-core/rust/nu9ve-fs" }
+nu9ve-profiles = { path = "../vendor/nu9ve-core/rust/nu9ve-profiles" }
+# Registro de benchmarks (nu9ve-bench-v1): `nuun-engine bench` agrega corridas a bench/nuun.ndjson.
+nu9ve-bench = { path = "../vendor/nu9ve-core/rust/nu9ve-bench" }
 # Las mismas versiones que nove/core y curado (ya en la caché local; ninguna descarga nueva).
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

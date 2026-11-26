@@ -179,6 +179,9 @@ Con la misma envoltura JSON para CLI y app. Las lecturas van por el lector persi
 | `storage_add_folder`, `storage_remove_folder` | Catálogo e índice | Comparten `storage.lock` con escaneo y comparación. Olvidar una carpeta retira sus filas derivadas y su registro; conserva sus archivos. |
 
 | `storage_collections` | Lectura | [Colecciones](#colecciones) fuera de los discos (Agentes), sólo metadatos |
+| `storage_accumulations` | Lectura (motor Rust, `rpc`) | El último escaneo de [acumulados](#acumulados), con el plan, los discos ahora y la historia |
+| `storage_accumulations_scan` | Escaneo | Sólo metadatos; guarda la revisión en `<catálogo>/accumulations/` |
+| `storage_accumulations_settings` | Catálogo | Carpetas de código y umbrales de disco casi lleno |
 
 MCP expone `media_storage_overview`, `media_storage_tree` y `media_storage_collections`, de sólo lectura.
 
@@ -189,6 +192,34 @@ MCP expone `media_storage_overview`, `media_storage_tree` y `media_storage_colle
 [`tests/test_agent_storage.py`](../../tests/test_agent_storage.py) cubre las colecciones con un `HOME` de fixture: clases y bytes, hard link contado una vez, enlace sin seguir, ningún archivo abierto (`open` prohibido durante la lectura), ningún nombre profundo ni contenido en la respuesta, raíz ausente o carpeta ilegible, temporales agrupados, semanas, y Rust igual a Python.
 
 **Aceptación física:** una corrida explícita en ESSD debe cuadrar con `df`, y lo no explicado debe aparecer en «Sin contar». Pendiente medir el HDD MEDIA502, que fija el presupuesto de rendimiento.
+
+## Acumulados
+
+Pedido del usuario (2026-11-25): saber qué se acumula en disco, como builds, dependencias, cachés y respaldos, y decidir qué liberar sin riesgo. En la M1 se veían un `target/` de Rust de 36 GiB en nove, builds viejas en `dist/`, respaldos `nove-update-backups/` de unos 200 MB por instalación y discos internos con 169 y 303 MiB libres. Evidencia y estado en [STATUS](../STATUS.md#perfiles-y-acumulados--2026-11-25).
+
+**Fase 1, hecha: inventario y plan en sólo lectura.** Motor Rust ([`accumulations.rs`](../../engine/crates/nuun-media/src/accumulations.rs)), CLI [`scripts/suite_storage.py`](../../scripts/suite_storage.py) y Discos → **Acumulados…**.
+
+- **Reglas como datos** en [`rules.json`](../../engine/crates/nuun-media/src/accumulations/rules.json). Cada tipo trae su señal, si se regenera, su costo, su riesgo, su acción (`trash` o `manual`) y cuántas confirmaciones pide. Una carpeta llamada `target` sin `CACHEDIR.TAG` ni `Cargo.toml` al lado nunca es un hallazgo.
+
+  | Tipo | Señal | Se regenera |
+  | --- | --- | --- |
+  | Rust `target/` | `CACHEDIR.TAG` o `.rustc_info.json`, junto a `Cargo.toml` | Sí; horas en release |
+  | Next/Turbo | `.next/` o `.turbo/` junto a `package.json` | Sí |
+  | `node_modules/` | Con `package.json` al lado | Sí, por red |
+  | Python | `.venv`/`venv` con `pyvenv.cfg`; `__pycache__`, sumado por proyecto | Sí |
+  | Xcode y SwiftPM | `~/Library/Developer/Xcode/DerivedData/*`; `.build/` junto a `Package.swift` | Sí |
+  | Empaquetado | `dist/` o `build/` con `.app`, `.dmg`, `.msix`, `.zip`… | Depende |
+  | git | `.git`: packs, objetos sueltos y worktrees huérfanos | Parcial; manual (`git gc`, `git worktree prune`) |
+  | Modelos y cachés | `~/.cache/huggingface`, `torch`, `.ollama/models`, `~/Library/Caches/*` desde 50 MB, Docker (manual) | Sí, por red |
+  | Respaldos de apps | `nove-update-backups/<fecha>`, `nu9ve/app-backups/*` | **No**: dos confirmaciones |
+
+- **Dónde busca.** En las carpetas de código elegidas (por omisión `~/code`, `~/Developer`, `~/Projects`, `~/src`, `~/dev`) y en las rutas fijas de la tabla. Sólo metadatos, como el índice: no sigue enlaces, no sale del disco y cuenta cada hard link una vez. Sólo abre los `gitdir` de los worktrees.
+- **Por hallazgo** guarda ruta, tipo, tamaño en disco y aparente, archivos y último uso. El último uso es el mtime más nuevo, porque el atime de APFS no es fiable. También guarda el repo y su última actividad (reflog), la última sesión de agentes del proyecto (mtime de `~/.claude/projects/<ruta>`), la app y el perfil dueños, si se regenera y su costo. En APFS un clon cuenta en cada copia; mejor de más que de menos.
+- **Perfiles.** Las bibliotecas de cada perfil y app en `profiles.json` ([nu9ve-profile-v1](../../vendor/nu9ve-core/contracts/nu9ve-profile-v1.md)) son datos vivos: nunca son hallazgo ni se recorren. Se muestran aparte, agrupadas por perfil.
+- **Por disco.** Se agrupa por volumen. Hay aviso de casi lleno con un umbral del interno configurable, 20 GiB por omisión, y un 5 % en los externos.
+- **Revisiones.** Cada escaneo se guarda en `<catálogo>/accumulations/`, hasta 26. La vista compara contra el anterior para ver qué crece, y la suite recibe el más nuevo como dataset `storage-accumulations` (`table`, `personal`) por `data_catalog`/`data_export`.
+
+**Fase 2, pendiente: ejecución.** La persona aprueba el plan por grupo. Por omisión va a la Papelera; borrar en definitiva pide confirmación explícita. Lo que no se regenera pide una segunda confirmación, y los grupos `manual` nunca van a la Papelera. Antes de mover se vuelve a medir cada ruta, y si cambió se pide revisar de nuevo. Después se mide lo liberado de verdad con `df` y se guarda con su recibo, como las limpiezas de tarjetas. La Papelera de un disco externo no libera espacio hasta vaciarla, y la vista lo dice.
 
 ## Fuera de alcance
 

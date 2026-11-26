@@ -12,6 +12,10 @@ nu9ve-json.workspace = true
 nu9ve-volumes.workspace = true
 # The suite agent's own rules (nu9ve-agent-v1): its folder, whether `agent.json` is valid.
 nu9ve-mcp.workspace = true
+# profiles.json (nu9ve-profile-v1): qué perfiles hay y en qué apps; nüün sólo escribe su clave `nuun`.
+nu9ve-profiles.workspace = true
+# Escaneos de acumulados: un archivo por escaneo, escrito de forma atómica.
+nu9ve-fs.workspace = true
 nuun-recipe = { path = "../nuun-recipe" }
 nu9ve-time = { path = "../nu9ve-time" }
 sha2.workspace = true
