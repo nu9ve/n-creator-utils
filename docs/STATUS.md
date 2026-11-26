@@ -8,7 +8,7 @@ Regla para mantenerla: al cerrar una entrega se **actualiza la fila de su área*
 
 | Qué | Valor |
 | --- | --- |
-| App instalada | `~/Applications/nuun.app`, **0.2.0 / `c8b075471375`** (25 nov, desde `25a356b`: perfiles de la suite, acumulados en sólo lectura, U1 y bench), firma ad-hoc verificada; su `backend/nuun-engine` declara `suite_profiles*` y `storage_accumulations*`. Sin App Sandbox: el motor ve el `HOME` real, así que el escaneo desde Discos → Acumulados… lee `~/code` de verdad. Build anterior (`85846cc19649`) en `app-backups/9a0f6ed6.app`. Sin abrir tras instalar; no se escaneó ni se registró ningún perfil real. |
+| App instalada | `~/Applications/nuun.app`, **0.2.0 / `3becf7b297ae`** (26 nov, desde `0320418`: sin datos personales; incluye lo de `ef2db59`), firma ad-hoc verificada; su motor responde `{}` a `defaults` en una biblioteca nueva. La biblioteca real ya tenía sus propios valores, así que nada cambia en el uso. Sin App Sandbox: el motor ve el `HOME` real. Build anterior en `app-backups/0a6e5948.app`. No se abrió la app. |
 | App instalada en la M4 | `~/Applications/nuun.app`, **0.2.0 / `199f7b666f27`** (26 nov, conversaciones en Inicio). `codesign --verify --deep --strict` pasó y los requisitos designados de la app, `nuun-engine` y `nu9ve` coinciden con los de Apple Development de la build anterior (`b1e5690eac61`, respaldada en `app-backups/07bdd93b.app`). El motor instalado respondió `suite_suggestions` y exigió confirmación para `conversations_export_working` en QA. Pendientes la aceptación en ventana y la comprobación de permisos con discos reales. Las compilaciones locales usan `/Volumes/SUBSSD/001_builds/n-creator-utils/`. |
 | Suites en macOS | Copia fijada de [nu9ve/core](../vendor/nu9ve-core/SOURCE) en **`f267022`** (25 nov, con perfiles y bench): Python **421**, Rust **217** (incluidos los diferenciales), Swift **32**, `profile-examples.py --check` y `bench-examples.py --check` en verde (26 nov, tras [sin datos personales](#sin-datos-personales-en-el-repo--2026-11-26)). Antes: `1d11d30`, Python 415, Rust 195. `tests/suite_lease.rs` necesita antes `cargo build -p nu9ve-mcp --bin nu9ve`. Dorado vigente con `TZ=America/Phoenix` y `TMPDIR` físico, fmt y clippy limpios. El gate incluye `sync-core.sh --check`; la ejecución en Windows queda en CI. |
 | Tema de macOS | macOS 15+ y Swift 6.2+. La app usa [`Nu9veTheme` desde su copia fijada](../vendor/nu9ve-core/swift/README.md). Swift pasa los 15 roles y el modo resuelto en los **110 casos** de los [vectores fijados](../vendor/nu9ve-core/data/theme-vectors-v1.json). `NuMacShell` queda para después de la semana de uso diario; [PLAN](../PLAN.md#p3--robustez-y-distribución). |
@@ -181,7 +181,7 @@ Pruebas, fixtures y documentos usan nombres neutros: `canal-a`, `canal-b`, `blog
 
 Los nombres de disco también son neutros en código, pruebas, maquetas de QA y documentos: `EDICION` (trabajo), `VIAJE` (segundo SSD de trabajo), `SONIDO` (audio) y `MEDIA7`, `MEDIA8` y `MEDIA9` (respaldos). Conservan el orden alfabético de los anteriores, y el dorado regenerado es idéntico salvo los nombres. Ninguna lógica dependía de ellos. La app ya no nombra un disco concreto: el flujo de audio dice «Disco de audio» y Ajustes, «el respaldo y el disco de trabajo».
 
-**Queda.** La bitácora histórica nombra proyectos reales. El historial de git conserva lo anterior. La app instalada no se actualizó.
+**Queda.** La bitácora histórica nombra proyectos reales. El historial de git conserva lo anterior. Instalado como `3becf7b297ae`.
 
 ## Perfiles y acumulados · 2026-11-25
 
