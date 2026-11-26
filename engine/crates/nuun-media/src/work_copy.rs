@@ -934,7 +934,8 @@ mod tests {
     fn flows(d: &Disks) -> Vec<Value> {
         let user = d.home.join("user");
         std::fs::create_dir_all(&user).unwrap();
-        crate::suggestions::suggestions(&d.home, &d.backend, &user).unwrap()["suggestions"]
+        crate::suggestions::suggestions(&d.home, &d.backend, &user, &Value::Null, false)
+            .unwrap()["suggestions"]
             .as_array()
             .unwrap()
             .iter()

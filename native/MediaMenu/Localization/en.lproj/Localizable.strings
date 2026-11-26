@@ -1033,6 +1033,13 @@
 "Si un archivo ya está en el destino con otro contenido, lo reemplaza después de verificar la copia y guarda la versión anterior en la carpeta de nüün de ese disco. Sin esto, el plan se detiene." = "If a file is already on the destination with different contents, it is replaced after the copy is verified, and the previous version is kept in nüün's folder on that disk. Without this, the plan stops.";
 "A pedido" = "On request";
 "Actualizar copia" = "Update copy";
+"Actualizar copia de trabajo…" = "Update working copy…";
+"¿Actualizar la copia en %@?" = "Update the copy on %@?";
+"Sí, actualizar" = "Update";
+"Conversaciones por copiar a %@" = "Conversations to copy to %@";
+"%@ · %lld archivos" = "%@ · %lld files";
+"Copia actualizada · %lld archivos copiados · %lld pendientes" = "Copy updated · %lld files copied · %lld pending";
+"Copia de conversaciones actualizada · %lld archivos copiados" = "Conversation copy updated · %lld files copied";
 "Ahora no" = "Not now";
 "Automático respalda cuando toca, con nüün abierto y el disco conectado. Sugerir lo propone en Inicio al conectar el disco." = "Automatic backs up when due, with nüün open and the disk connected. Suggest offers it in Home when you connect the disk.";
 "Cambiar…" = "Change…";

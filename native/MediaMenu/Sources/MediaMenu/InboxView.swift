@@ -51,6 +51,7 @@ struct InboxView: View {
                     }
                 }
                 if model.sourceCards.isEmpty && model.pendingCaptures.isEmpty && model.attentionJobs.isEmpty && model.visibleSuiteSuggestions.isEmpty &&
+                    model.conversationUpdateResult.isEmpty &&
                     model.pendingMissionExports.isEmpty && pendingWork == 0 &&
                     !(model.finals?["groups"].array.contains { $0["pending"].double > 0 || $0["waiting"].double > 0 } ?? false) &&
                     archived.isEmpty && model.suggestedProjectClosures.isEmpty &&
@@ -62,6 +63,8 @@ struct InboxView: View {
         }
         // Names and sizes only, and at most every 15 minutes; never a timer of its own.
         .onAppear { model.checkFinals() }
+        .task { await model.checkConversationUpdates() }
+        .onDisappear { model.conversationUpdateResult = "" }
         .task(id: model.saveAllHomeTarget) {
             if let target = model.saveAllHomeTarget {
                 reader.scrollTo(target, anchor: .top)

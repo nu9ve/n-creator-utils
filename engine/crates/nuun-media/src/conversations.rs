@@ -296,6 +296,10 @@ fn measure(source: &Path, k: &Known) -> Value {
 
 /// `conversations_status`: what is decided, where, and what is due. A read.
 pub fn status(home: &Path, user_home: &Path) -> Result<Value> {
+    status_with_details(home, user_home, true)
+}
+
+pub(crate) fn status_with_details(home: &Path, user_home: &Path, details: bool) -> Result<Value> {
     let catalog = Catalog::open(home)?;
     let settings = settings_of(&catalog)?;
     let archive = settings["archive"]
@@ -309,7 +313,7 @@ pub fn status(home: &Path, user_home: &Path) -> Result<Value> {
         let decided = &settings["collections"][k.id]["decided_at"];
         let mut entry = json!({"id":k.id,"title":k.title,"source":source,"present":source.is_dir(),
             "include":k.include,"decided_at":decided,"backup":Value::Null,"due":false});
-        if source.is_dir() {
+        if details && source.is_dir() {
             entry["history"] = measure(&source, k);
         }
         if let Some(archive) = &archive {
@@ -401,7 +405,7 @@ fn hash_at(root: &Root, rel: &str) -> Result<Option<String>> {
     )?))
 }
 
-fn device_of(isolated: bool) -> Value {
+pub fn device_of(isolated: bool) -> Value {
     crate::suite_device::current(isolated, &json!({"peek":true}))
         .ok()
         .filter(|d| d["state"] == "ok")
@@ -447,6 +451,13 @@ pub fn export_working(
         "invalid_role",
         "Choose a work disk to export conversations",
     )?;
+    require(
+        params
+            .get("volume_id")
+            .is_none_or(|id| id == &marker["volume_id"]),
+        "volume_replaced",
+        "The work disk changed after the suggestion was shown",
+    )?;
     let device = device_of(isolated);
     require(
         !device.is_null(),
@@ -464,7 +475,9 @@ pub fn export_working(
             collection.id,
             text(&device, "device_id")
         );
-        let mut result = working_copy(backend, source, collection, &root.path, &folder, &device)?;
+        let mut result = working_copy(
+            backend, source, collection, &root.path, &folder, &device, false,
+        )?;
         result["collection"] = json!(collection.id);
         results.push(result);
     }
@@ -591,6 +604,7 @@ pub fn backup_apply(
                     &target,
                     &format!("{}/{device_folder}", text(&settings, "base")),
                     &device,
+                    true,
                 )
             }) {
                 Ok(done) => done,
@@ -751,9 +765,121 @@ fn mirror_file(source: &Root, rel_src: &str, target: &Root, rel: &str) -> Result
     )?;
     nu9ve_volumes::fs::replace(&partial, &dir.join(&name))?;
     target.sync_parent(rel)?;
-    Ok(Some(
-        json!({"size": before.size, "mtime_ns": before.mtime_ns, "sha256": sha}),
-    ))
+    Ok(Some(json!({"size":before.size,"mtime_ns":before.mtime_ns,
+        "ctime_ns":before.ctime_ns,"inode":before.inode,"sha256":sha})))
+}
+
+fn history_files(
+    origin: &Root,
+    k: &Known,
+    mut visit: impl FnMut(String, Option<nu9ve_volumes::Stamp>) -> Result<()>,
+) -> Result<()> {
+    let mut entries: Vec<String> = std::fs::read_dir(&origin.path)
+        .map_err(|e| nu9ve_volumes::fs::io_error(e, &origin.path))?
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter(|name| {
+            k.include
+                .iter()
+                .any(|p| crate::agent_storage::glob(p, name))
+        })
+        .collect();
+    entries.sort();
+    for name in entries {
+        let stamp = nu9ve_volumes::stamp(&origin.path.join(&name))?;
+        match stamp.kind {
+            nu9ve_volumes::EntryKind::Dir => {
+                crate::coverage::walk_stamped(origin, &name, &mut visit)?
+            }
+            nu9ve_volumes::EntryKind::File => visit(name, Some(stamp))?,
+            _ => visit(name, None)?,
+        }
+    }
+    Ok(())
+}
+
+fn same_source(entry: &Value, stamp: &nu9ve_volumes::Stamp) -> bool {
+    entry["size"].as_u64() == Some(stamp.size)
+        && entry["mtime_ns"] == json!(stamp.mtime_ns)
+        && entry["sha256"]
+            .as_str()
+            .is_some_and(|hash| hash.len() == 64)
+        && entry
+            .get("ctime_ns")
+            .is_none_or(|n| *n == json!(stamp.ctime_ns))
+        && entry.get("inode").is_none_or(|n| *n == json!(stamp.inode))
+}
+
+fn working_manifest(target: &Path, rel: &str) -> Result<Option<Value>> {
+    Ok(crate::tree::read_bytes(target, rel, 64 << 20)?
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok()))
+}
+
+/// Check source metadata once per collection, comparing with only the manifests on the eligible SSDs.
+pub(crate) fn working_updates<'a>(
+    catalog: &Catalog,
+    user_home: &Path,
+    device: &str,
+    targets: impl IntoIterator<Item = &'a Path>,
+) -> Result<BTreeMap<&'a Path, Vec<Value>>> {
+    let settings = settings_of(catalog)?;
+    let base = text(&settings, "base");
+    let targets: Vec<&Path> = targets.into_iter().collect();
+    let mut result = BTreeMap::<_, Vec<Value>>::new();
+    for k in &KNOWN {
+        let source = source_of(user_home, k);
+        if !source.is_dir() {
+            continue;
+        }
+        let folder = format!("{base}/{}/{device}", k.id);
+        let rel = format!("{folder}/_nuun/working.json");
+        let mut candidates: Vec<_> = targets
+            .iter()
+            .filter_map(|&target| {
+                let saved = working_manifest(target, &rel).ok()?;
+                let decided = settings["working"]["root"].as_str() == target.to_str()
+                    && !settings["working"]["decided_at"].is_null()
+                    && !settings["collections"][k.id]["decided_at"].is_null();
+                let manifest = saved.filter(|m| {
+                    m["contract"] == WORKING
+                        && m["collection"] == k.id
+                        && m["files"].is_object()
+                        && (m["device"].is_null() || m["device"]["device_id"] == device)
+                });
+                (decided || manifest.is_some()).then_some((target, manifest, 0usize))
+            })
+            .collect();
+        if candidates.is_empty() {
+            continue;
+        }
+        let scanned = Root::open(&source).and_then(|origin| {
+            history_files(&origin, k, |path, stamp| {
+                if let Some(stamp) = stamp {
+                    for (_, manifest, count) in &mut candidates {
+                        if !manifest
+                            .as_ref()
+                            .is_some_and(|m| same_source(&m["files"][&path], &stamp))
+                        {
+                            *count += 1;
+                        }
+                    }
+                }
+                Ok(())
+            })
+        });
+        if scanned.is_err() {
+            // An agent can rotate its history during the walk; retry at the next refresh.
+            continue;
+        }
+        for (target, _, count) in candidates {
+            if count > 0 {
+                result
+                    .entry(target)
+                    .or_default()
+                    .push(json!({"id":k.id,"title":k.title,"count":count}));
+            }
+        }
+    }
+    Ok(result)
 }
 
 /// The verified mirror of a collection's history in `<target>/<folder>/` and its manifest
@@ -765,6 +891,7 @@ fn working_copy(
     target: &Path,
     folder: &str,
     device: &Value,
+    from_archive_backup: bool,
 ) -> Result<Value> {
     require(
         target.is_dir(),
@@ -775,51 +902,19 @@ fn working_copy(
     let root = Root::open(target)?;
     let origin = Root::open(source)?;
     let manifest_rel = format!("{folder}/_nuun/working.json");
-    let previous: BTreeMap<String, Value> =
-        crate::tree::read_bytes(target, &manifest_rel, 64 << 20)?
-            .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
-            .and_then(|v| v["files"].as_object().cloned())
-            .map(|m| m.into_iter().collect())
-            .unwrap_or_default();
+    let manifest = working_manifest(target, &manifest_rel)?;
+    let previous = manifest.as_ref().and_then(|m| m["files"].as_object());
     let mut files = Map::new();
     let (mut copied, mut same, mut changed_during, mut links) = (0usize, 0usize, 0usize, 0usize);
     let mut bytes = 0u64;
-    let mut paths = Vec::new();
-    let mut entries: Vec<String> = std::fs::read_dir(source)
-        .map_err(|e| nu9ve_volumes::fs::io_error(e, source))?
-        .filter_map(|e| e.ok()?.file_name().into_string().ok())
-        .filter(|name| {
-            k.include
-                .iter()
-                .any(|p| crate::agent_storage::glob(p, name))
-        })
-        .collect();
-    entries.sort();
-    for name in entries {
-        match nu9ve_volumes::stamp(&source.join(&name))?.kind {
-            nu9ve_volumes::EntryKind::Dir => {
-                crate::coverage::walk(&origin, &name, |path, size| {
-                    if size.is_some() {
-                        paths.push(path);
-                    } else {
-                        links += 1;
-                    }
-                    Ok(())
-                })?;
-            }
-            nu9ve_volumes::EntryKind::File => paths.push(name),
-            _ => links += 1,
-        }
-    }
-    for path in paths {
-        let Some(stamp) = origin.stat(&path)? else {
-            continue;
+    history_files(&origin, k, |path, stamp| {
+        let Some(stamp) = stamp else {
+            links += 1;
+            return Ok(());
         };
-        let stamp = stamp_json(&stamp);
         let rel = format!("{folder}/{path}");
-        let kept = previous.get(&path).filter(|p| {
-            p["size"] == stamp["size"]
-                && p["mtime_ns"] == stamp["mtime_ns"]
+        let kept = previous.and_then(|p| p.get(&path)).filter(|p| {
+            same_source(p, &stamp)
                 && root
                     .stat(&rel)
                     .ok()
@@ -829,7 +924,7 @@ fn working_copy(
         if let Some(kept) = kept {
             same += 1;
             files.insert(path, kept.clone());
-            continue;
+            return Ok(());
         }
         match mirror_file(&origin, &path, &root, &rel)? {
             Some(verified) => {
@@ -839,12 +934,26 @@ fn working_copy(
             }
             None => changed_during += 1,
         }
+        Ok(())
+    })?;
+    let gone = previous
+        .into_iter()
+        .flat_map(|p| p.keys())
+        .filter(|p| !files.contains_key(*p))
+        .count();
+    if from_archive_backup
+        || manifest.as_ref().is_none_or(|m| {
+            m["contract"] != WORKING
+                || m["device"] != *device
+                || m["source"] != json!(source)
+                || m["collection"] != k.id
+                || previous != Some(&files)
+        })
+    {
+        let manifest = json!({"contract":WORKING,"collection":k.id,"title":k.title,"device":device,
+            "source":source,"updated_at":nu9ve_time::now_utc(),"include":k.include,"files":files});
+        root.write_json(&manifest_rel, &manifest)?;
     }
-    let gone = previous.keys().filter(|p| !files.contains_key(*p)).count();
-    let now = nu9ve_time::now_utc();
-    let manifest = json!({"contract":WORKING,"collection":k.id,"title":k.title,"device":device,
-        "source":source,"updated_at":now,"include":k.include,"files":files});
-    root.write_json(&manifest_rel, &manifest)?;
     Ok(
         json!({"state":"completed","root":target,"folder":folder,"copied":copied,"unchanged":same,
         "changed_during_copy":changed_during,"skipped_links":links,"no_longer_in_source":gone,"bytes":bytes,
@@ -1068,5 +1177,53 @@ mod tests {
         assert_eq!(ran["results"][0]["working"]["code"], "invalid_role");
         assert_eq!(seconds("1970-01-02T00:00:01Z"), Some(DAY + 1));
         assert_eq!(seconds("2026-11-23T00:00:00.123Z"), Some(1_795_392_000));
+    }
+
+    #[test]
+    fn working_updates_are_per_device_and_repeat_without_rewriting_the_manifest() {
+        let mut s = crate::volumes::test_backend::setup();
+        s.backend
+            .offline
+            .insert(crate::volumes::normalize(&s.archive));
+        let user = &s.card;
+        let source = user.join(".claude");
+        agent_home(user);
+        let target = &s.work;
+        let k = known("claude-code").unwrap();
+        let device = json!({"device_id":M1,"name":"M1"});
+        let folder = format!("{BASE}/claude-code/{M1}");
+        let catalog = Catalog::open(&s.home).unwrap();
+        let updates = |device| working_updates(&catalog, user, device, [target.as_path()]).unwrap();
+        let copy =
+            || working_copy(&s.backend, &source, k, target, &folder, &device, false).unwrap();
+        assert!(updates(M1).is_empty(), "a disk alone is not a destination");
+        assert_eq!(copy()["copied"], 2);
+        let manifest = target.join(&folder).join("_nuun/working.json");
+        let initial = nu9ve_volumes::stamp(&manifest).unwrap();
+        assert_eq!(copy()["copied"], 0);
+        assert_eq!(
+            stamp_json(&nu9ve_volumes::stamp(&manifest).unwrap()),
+            stamp_json(&initial)
+        );
+        assert!(updates(M1).is_empty());
+
+        let old = source.join("projects/repo/s1.jsonl");
+        let time = std::fs::metadata(&old).unwrap().modified().unwrap();
+        let replacement = source.join("replacement");
+        std::fs::write(&replacement, b"{\"turn\":2}\n").unwrap();
+        std::fs::File::open(&replacement)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+        std::fs::rename(&replacement, &old).unwrap();
+        Root::open(&source)
+            .unwrap()
+            .write_bytes("projects/repo/extra.jsonl", b"x", false)
+            .unwrap();
+        assert_eq!(updates(M1)[target.as_path()][0]["count"], 2);
+        assert!(updates("b56b874c-f743-493f-9b12-75a509c68829").is_empty());
+        assert_eq!(copy()["copied"], 2);
+        assert!(updates(M1).is_empty());
+        assert_eq!(copy()["copied"], 0);
     }
 }

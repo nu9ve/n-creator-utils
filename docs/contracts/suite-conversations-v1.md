@@ -49,6 +49,13 @@ Opcional y decidida aparte. Es un espejo del historial con la **misma forma** (`
  "include":["projects","…"],"files":{"history.jsonl":{"size":8,"mtime_ns":…,"sha256":"<sha256>"}}}
 ```
 
+Inicio propone actualizar un SSD portable `work` u `other` si ya tiene un manifiesto de esta colección
+y dispositivo, o si la colección y ese destino se eligieron en Ajustes. Compara rutas, tamaños y fechas
+del origen con el manifiesto. Las entradas nuevas también conservan `ctime_ns` e `inode` del origen;
+las anteriores siguen siendo válidas. El conteo de Inicio usa metadatos del origen y del manifiesto.
+La actualización comprueba el destino y verifica por SHA-256 los archivos que copia. Si todo sigue igual,
+el export directo conserva también el manifiesto. Los archivos que cambian durante la copia quedan pendientes.
+
 ## Lo personal
 
 Todo esto es `personal` ([data §6](../../vendor/nu9ve-core/contracts/nu9ve-data-v1.md#6-privacidad)). Sale de la máquina sólo por la decisión de la persona, por colección (`conversations_settings` con `confirm_personal: true`, que guarda `decided_at`) y, aparte, para la copia de trabajo. Cambiar el disco de respaldo vuelve a pedir la confirmación. `conversations_status` muestra qué está decidido y desde cuándo. Por MCP, como siempre, sólo la forma.
@@ -68,7 +75,7 @@ Todo esto es `personal` ([data §6](../../vendor/nu9ve-core/contracts/nu9ve-data
 | `conversations_backup_plan` | Un plan revisado de colección viva por colección decidida (u opcional `collections`) |
 | `conversations_backup_apply` | `plans: [{plan_id, digest}]`: copia, recibo y, si está decidida, copia de trabajo (`working: false` la omite) |
 | `conversations_run` | `when: "now"` (el clic de la persona) o `"due"` (sólo con `mode: auto` y lo que toca): planea y aplica |
-| `conversations_export_working` | `destination` (raíz de un disco portable `work` u `other`), `collections` (ids elegidos) y `confirm_personal: true`. Escribe la copia de trabajo y su manifiesto por dispositivo a pedido, con conteo de archivos que cambiaron al leerlos. Funciona sin un destino `archive`. |
+| `conversations_export_working` | `destination` (raíz de un disco portable `work` u `other`), `collections` (ids elegidos), `confirm_personal: true` y, opcionalmente, `volume_id` para confirmar que sigue siendo el SSD sugerido. Escribe la copia de trabajo y su manifiesto por dispositivo a pedido. Funciona sin un destino `archive`. |
 
 ## Estado en la ventana
 

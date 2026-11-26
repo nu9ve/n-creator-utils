@@ -802,6 +802,12 @@ impl Engine {
                 &self.home(),
                 backend(platform)?,
                 &user_home()?,
+                &if cfg!(target_os = "macos") {
+                    nuun_media::conversations::device_of(isolated)
+                } else {
+                    Value::Null
+                },
+                params["conversations_only"] == true,
             ),
             "suggestions_dismiss" => nuun_media::suggestions::dismiss(&self.home(), params),
             "conversations_status" => {

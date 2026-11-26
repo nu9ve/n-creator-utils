@@ -139,9 +139,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     /// next disk arrives (docs/features/suite-disks-flows.md §3).
     var suiteSuggestions: [JSONValue] = []
     var hiddenSuggestions: Set<String> = []
+    var lastConversationSuggestionCheck: ContinuousClock.Instant?
     /// The copy between work disks being prepared, when its sheet is open.
     var workCopyRequest: WorkCopyRequest?
     var conversations: JSONValue?
+    var conversationUpdateResult = ""
     /// Acumulados en disco (`storage_accumulations`) y perfiles de la suite en esta Mac (`suite_profiles`).
     var accumulations: JSONValue?
     var accumulationsRunning = false

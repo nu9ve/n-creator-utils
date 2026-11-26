@@ -21,11 +21,26 @@ extension Model {
         if arrival { hiddenSuggestions = [] }
         guard let found = try? await oneShot("suite_suggestions", [:]) else { return }
         suiteSuggestions = found["suggestions"].array
+        lastConversationSuggestionCheck = .now
         if arrival || conversations == nil { await loadConversations() }
         if conversations?["settings"]["schedule"]["mode"].string == "auto",
            suiteSuggestions.contains(where: { $0["flow"].string == "conversations_backup" }) {
             await runConversations(when: "due")
         }
+    }
+    func checkConversationUpdates(force: Bool = false) async {
+        let started = ContinuousClock.now
+        if !force, let lastConversationSuggestionCheck,
+           lastConversationSuggestionCheck.duration(to: started) < .seconds(10) { return }
+        lastConversationSuggestionCheck = started
+        guard let found = try? await oneShot("suite_suggestions", ["conversations_only": .bool(true)]),
+              !Task.isCancelled else {
+            if lastConversationSuggestionCheck == started { lastConversationSuggestionCheck = nil }
+            return
+        }
+        guard lastConversationSuggestionCheck == started else { return }
+        suiteSuggestions.removeAll { $0["flow"].string == "conversations_update" }
+        suiteSuggestions.append(contentsOf: found["suggestions"].array)
     }
     var visibleSuiteSuggestions: [JSONValue] {
         suiteSuggestions.filter { !hiddenSuggestions.contains($0["key"].string) }
@@ -75,6 +90,26 @@ extension Model {
             if let found = try? await oneShot("suite_suggestions", [:]) { suiteSuggestions = found["suggestions"].array }
         } catch { self.error = error.localizedDescription }
     }
+    func updateConversationCopy(_ suggestion: JSONValue) async {
+        guard !conversationsRunning else { return }
+        conversationsRunning = true
+        conversationUpdateResult = ""
+        defer { conversationsRunning = false }
+        do {
+            let destination = suggestion["destination"]
+            let result = try await oneShot("conversations_export_working", [
+                "destination": destination["root"], "volume_id": destination["volume_id"],
+                "collections": .array(suggestion["collections"].array.map { $0["id"] }),
+                "confirm_personal": .bool(true)
+            ])
+            let copied = result["results"].array.reduce(0) { $0 + Int($1["copied"].double) }
+            let pending = result["results"].array.reduce(0) { $0 + Int($1["changed_during_copy"].double) }
+            conversationUpdateResult = pending > 0
+                ? String(localized: "Copia actualizada · \(copied) archivos copiados · \(pending) pendientes")
+                : String(localized: "Copia de conversaciones actualizada · \(copied) archivos copiados")
+            await checkConversationUpdates(force: true)
+        } catch { self.error = error.localizedDescription }
+    }
 }
 
 // MARK: Inicio
@@ -88,6 +123,10 @@ struct SuiteSuggestionsSection: View {
             SectionTitle("Discos conectados")
             ForEach(shown, id: \.["key"].string) { SuiteSuggestionCard(model: model, suggestion: $0) }
         }
+        if !model.conversationUpdateResult.isEmpty {
+            Label(model.conversationUpdateResult, systemImage: "externaldrive")
+                .font(.callout).foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -95,6 +134,7 @@ struct SuiteSuggestionCard: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let suggestion: JSONValue
+    @State private var confirmingUpdate = false
     var body: some View {
         let key = suggestion["key"].string
         VStack(alignment: .leading, spacing: 8) {
@@ -111,14 +151,24 @@ struct SuiteSuggestionCard: View {
                 Button("No volver a preguntar") { model.silenceSuggestion(key) }
                     .help("Para este disco y este flujo. Se puede volver a activar.")
                 Spacer()
+                if suggestion["flow"].string == "conversations_update" && model.conversationsRunning {
+                    ProgressView().controlSize(.small)
+                }
                 Button(action) {
                     if suggestion["flow"].string.hasPrefix("work_copy") { model.openWorkCopy(suggestion) }
+                    else if suggestion["flow"].string == "conversations_update" { confirmingUpdate = true }
                     else { Task { await model.runConversations(when: "now") } }
                 }
                 .buttonStyle(CreatorButtonStyle(prominent: true))
                 .disabled(model.busy || model.conversationsRunning)
             }
         }.modifier(Panel())
+        .confirmationDialog(String(localized: "¿Actualizar la copia en \(suggestion["destination"]["label"].string)?"),
+                            isPresented: $confirmingUpdate) {
+            Button("Sí, actualizar") { Task { await model.updateConversationCopy(suggestion) } }
+        } message: {
+            Text(detail)
+        }
     }
     private var symbol: String {
         switch suggestion["flow"].string {
@@ -135,6 +185,8 @@ struct SuiteSuggestionCard: View {
             String(localized: "\(suggestion["source"]["label"].string) tiene trabajo nuevo o cambiado desde la última copia con \(suggestion["destination"]["label"].string)")
         case "conversations_backup":
             String(localized: "Conversaciones sin respaldar en \(suggestion["archive"]["name"].string)")
+        case "conversations_update":
+            String(localized: "Conversaciones por copiar a \(suggestion["destination"]["label"].string)")
         default:
             String(localized: "La copia de trabajo de tus conversaciones quedó atrás")
         }
@@ -147,6 +199,10 @@ struct SuiteSuggestionCard: View {
         case "work_copy_changed":
             String(localized: "\(Int(suggestion["count"].double)) archivos · \(bytesLabel(suggestion["bytes"].double))") + " · "
                 + suggestion["paths"].array.prefix(3).map(\.["path"].string).joined(separator: " · ")
+        case "conversations_update":
+            suggestion["collections"].array.map {
+                String(localized: "\($0["title"].string) · \(Int($0["count"].double)) archivos")
+            }.joined(separator: "  ·  ")
         default:
             suggestion["collections"].array.map(\.["title"].string).joined(separator: ", ")
         }
@@ -155,6 +211,7 @@ struct SuiteSuggestionCard: View {
         switch suggestion["flow"].string {
         case "work_copy", "work_copy_changed": "Revisar copia…"
         case "conversations_backup": "Respaldar ahora"
+        case "conversations_update": "Actualizar copia de trabajo…"
         default: "Actualizar copia"
         }
     }
@@ -525,6 +582,7 @@ struct ConversationsSettings: View {
                 let copied = results.reduce(0) { $0 + Int($1["copied"].double) }
                 let changed = results.reduce(0) { $0 + Int($1["changed_during_copy"].double) }
                 exportResult = String(localized: "Copia en \(disk.lastPathComponent) · \(copied) archivos copiados · \(changed) cambiaron durante la copia")
+                await model.checkConversationUpdates(force: true)
             } catch { exportResult = error.localizedDescription }
         }
     }

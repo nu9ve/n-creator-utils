@@ -68,6 +68,11 @@ private extension NSToolbarItem.Identifier {
         else { present(model.presentation) }
         return true
     }
+    func windowDidBecomeKey(_ notification: Notification) {
+        guard notification.object as? NSWindow === window, model.route == .home,
+              model.presentation == .full else { return }
+        Task { await model.checkConversationUpdates() }
+    }
 
     // MARK: Main window
 

@@ -17,6 +17,16 @@ pub(crate) fn walk(
     start: &str,
     mut visit: impl FnMut(String, Option<u64>) -> Result<()>,
 ) -> Result<()> {
+    walk_stamped(tree, start, |path, stamp| {
+        visit(path, stamp.map(|s| s.size))
+    })
+}
+
+pub(crate) fn walk_stamped(
+    tree: &Root,
+    start: &str,
+    mut visit: impl FnMut(String, Option<nu9ve_volumes::Stamp>) -> Result<()>,
+) -> Result<()> {
     let mut stack = vec![start.to_owned()];
     while let Some(folder) = stack.pop() {
         let marker = if folder.is_empty() {
@@ -53,7 +63,7 @@ pub(crate) fn walk(
                     stack.push(rel)
                 }
                 EntryKind::Dir => (),
-                EntryKind::File => visit(rel, Some(stamp.size))?,
+                EntryKind::File => visit(rel, Some(stamp))?,
                 _ => visit(rel, None)?,
             }
         }

@@ -81,13 +81,12 @@ fn within(a: &str, b: &str) -> bool {
 }
 
 /// Two work disks connected: the roots other apps declared on one that are not on the other.
-fn work_copies(home: &Path, backend: &dyn Backend) -> Result<Vec<Value>> {
-    let disks = work_disks(home, backend);
+fn work_copies(disks: &[Disk]) -> Result<Vec<Value>> {
     let mut out = Vec::new();
-    for from in &disks {
+    for from in disks {
         let from_id = text(&from.marker, "volume_id");
         let apps = work_copy::app_indexes_of(&from.root, from_id)?;
-        for to in &disks {
+        for to in disks {
             let to_id = text(&to.marker, "volume_id");
             if to_id == from_id {
                 continue;
@@ -227,8 +226,13 @@ fn changed_since_copy(disks: &[Disk]) -> Vec<Value> {
 }
 
 /// The decided conversations that are due, with their archive connected; and a working copy left behind.
-fn conversations_due(home: &Path, backend: &dyn Backend, user_home: &Path) -> Result<Vec<Value>> {
-    let status = conversations::status(home, user_home)?;
+fn conversations_due(
+    home: &Path,
+    backend: &dyn Backend,
+    user_home: &Path,
+    portable: &[Disk],
+) -> Result<Vec<Value>> {
+    let status = conversations::status_with_details(home, user_home, false)?;
     let settings = &status["settings"];
     let mut out = Vec::new();
     if settings["schedule"]["mode"] == "manual" {
@@ -263,7 +267,11 @@ fn conversations_due(home: &Path, backend: &dyn Backend, user_home: &Path) -> Re
     // A working copy that missed a backup (its disk was not connected then).
     let working = &settings["working"];
     let target = Path::new(text(working, "root"));
-    if !working["decided_at"].is_null() && target.is_dir() {
+    // Portable SSDs use source changes instead of the date of the last archive backup.
+    if !working["decided_at"].is_null()
+        && target.is_dir()
+        && !portable.iter().any(|disk| disk.path == target)
+    {
         let behind: Vec<Value> = decided
             .iter()
             .filter_map(|c| {
@@ -295,11 +303,51 @@ fn conversations_due(home: &Path, backend: &dyn Backend, user_home: &Path) -> Re
 }
 
 /// `suite_suggestions`: what is worth suggesting now, without the ones the person silenced.
-pub fn suggestions(home: &Path, backend: &dyn Backend, user_home: &Path) -> Result<Value> {
-    let silenced = dismissed(&Catalog::open(home)?)?;
-    let mut all = work_copies(home, backend)?;
-    all.extend(changed_since_copy(&work_disks(home, backend)));
-    all.extend(conversations_due(home, backend, user_home)?);
+pub fn suggestions(
+    home: &Path,
+    backend: &dyn Backend,
+    user_home: &Path,
+    device: &Value,
+    conversations_only: bool,
+) -> Result<Value> {
+    let catalog = Catalog::open(home)?;
+    let silenced = dismissed(&catalog)?;
+    let disks = work_disks(home, backend);
+    let portable = if device["device_id"].is_string() {
+        disks.as_slice()
+    } else {
+        &[]
+    };
+    let mut all = Vec::new();
+    if !conversations_only {
+        all.extend(work_copies(&disks)?);
+        all.extend(changed_since_copy(&disks));
+        all.extend(conversations_due(home, backend, user_home, portable)?);
+    }
+    if let Some(id) = device["device_id"].as_str() {
+        let targets = portable.iter().filter(|disk| {
+            silenced
+                .get(format!(
+                    "conversations_update:{}",
+                    text(&disk.marker, "volume_id")
+                ))
+                .is_none()
+        });
+        let updates = conversations::working_updates(
+            &catalog,
+            user_home,
+            id,
+            targets.map(|d| d.path.as_path()),
+        )?;
+        for disk in portable {
+            if let Some(collections) = updates.get(disk.path.as_path()) {
+                let volume = &disk.marker["volume_id"];
+                all.push(json!({"key":format!("conversations_update:{}",text(&disk.marker,"volume_id")),
+                    "flow":"conversations_update","destination":{"root":disk.path,"volume_id":volume,
+                    "label":disk.marker["label"]},"collections":collections}));
+            }
+        }
+    }
     let (kept, hidden): (Vec<Value>, Vec<Value>) = all
         .into_iter()
         .partition(|s| silenced.get(text(s, "key")).is_none());
@@ -311,6 +359,10 @@ mod tests {
     use super::*;
     use crate::tree::Root;
     use crate::volumes::test_backend::{Fixture, setup};
+
+    fn suggestions(home: &Path, backend: &dyn Backend, user: &Path) -> Result<Value> {
+        super::suggestions(home, backend, user, &Value::Null, false)
+    }
 
     fn marked(backend: &mut Fixture, path: &Path, id: &str, serial: &str) {
         std::fs::create_dir_all(path).unwrap();
@@ -441,5 +493,52 @@ mod tests {
             suggestions(&s.home, &s.backend, &user).unwrap()["suggestions"],
             json!([])
         );
+    }
+
+    #[test]
+    fn home_suggests_only_the_previous_conversation_export_on_a_work_disk_without_media() {
+        let mut s = setup();
+        let id = "6f0c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f";
+        let disk_id = "5d0cb4e8-605d-4682-a95a-adee7139d823";
+        s.backend.roots.retain(|p| p != &s.work);
+        marked(&mut s.backend, &s.work, disk_id, "AABB-1234");
+        assert!(suite_volume::usable(&s.home, &s.backend, &s.work).is_ok());
+        s.backend.offline.insert(volumes::normalize(&s.archive));
+        Root::open(&s.card)
+            .unwrap()
+            .write_bytes(".claude/history.jsonl", b"new\n", false)
+            .unwrap();
+        let device = json!({"device_id":id});
+        let check = || super::suggestions(&s.home, &s.backend, &s.card, &device, true).unwrap();
+        assert_eq!(check()["suggestions"], json!([]));
+        Root::open(&s.work)
+            .unwrap()
+            .write_json(
+                &format!("004_datos/conversaciones/claude-code/{id}/_nuun/working.json"),
+                &json!({"contract":"nuun-conversations-working/1","collection":"claude-code",
+                "device":device,"files":{}}),
+            )
+            .unwrap();
+        let found = check();
+        assert_eq!(found["suggestions"].as_array().unwrap().len(), 1);
+        let item = &found["suggestions"][0];
+        assert_eq!(item["flow"], "conversations_update");
+        assert_eq!(item["destination"]["volume_id"], disk_id);
+        assert_eq!(
+            item["collections"],
+            json!([{"id":"claude-code","title":"Claude Code","count":1}])
+        );
+        let replaced = conversations::export_working(
+            &s.home,
+            &s.backend,
+            true,
+            &s.card,
+            &json!({"destination":s.work,"collections":["claude-code"],
+                "volume_id":id,"confirm_personal":true}),
+        )
+        .unwrap_err();
+        assert_eq!(replaced.code, "volume_replaced");
+        dismiss(&s.home, &json!({"key":item["key"],"dismissed":true})).unwrap();
+        assert_eq!(check()["suggestions"], json!([]));
     }
 }
