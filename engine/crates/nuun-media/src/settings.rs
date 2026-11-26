@@ -61,9 +61,7 @@ pub fn defaults(home: &Path, params: &Value) -> Result<Value> {
         .unwrap_or_default();
     value.extend(map);
     catalog.set("defaults", &Value::Object(value))?;
-    Ok(catalog
-        .get("defaults")?
-        .unwrap_or_else(|| json!({"profile": "e64", "country": "mx", "city": "hermosillo"})))
+    Ok(catalog.get("defaults")?.unwrap_or_else(|| json!({})))
 }
 
 /// The `integration_settings` method with parameters: Clipper and Stalker executables, capture override, retention.
@@ -440,17 +438,15 @@ pub fn save_capture_tags(home: &Path, params: &Value, one: bool) -> Result<Value
             .clone()
     };
     let sessions = ids.iter().map(uuid_text).collect::<Result<Vec<_>>>()?;
-    let country = match params.get("country") {
-        Some(c) => c
-            .as_str()
-            .ok_or_else(|| Error::new("invalid_tag", "Invalid project/profile tag"))?,
-        None => "mx",
-    };
     let project = params["project"]
         .as_str()
         .ok_or_else(|| Error::new("invalid_tag", "Invalid project/profile tag"))?;
-    let value = json!({"name": slug(project)?, "country": slug(country)?});
+    let name = slug(project)?;
     let catalog = WritableCatalog::open(home)?;
+    let defaults = catalog.get("defaults")?;
+    let country =
+        crate::planner::library_default(params.get("country"), defaults.as_ref(), "country")?;
+    let value = json!({"name": name, "country": country});
     let _lock = writer_lock(home)?;
     for session in &sessions {
         catalog.set(&format!("capture-tag:{session}"), &value)?;

@@ -1,4 +1,4 @@
-"""Free space in a living collection (SSD1 recordings, libraries) against copies already on registered archives.
+"""Free space in a living collection (SONIDO recordings, libraries) against copies already on registered archives.
 
 Unlike `release.py`, the source is not a nüün work disk and nothing here was copied by nüün: a file is released
 only when a byte-identical copy (SHA-256, any name) exists on a registered archive, found by size first so that

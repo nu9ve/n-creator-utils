@@ -25,12 +25,13 @@ class ProjectFixture(unittest.TestCase):
         self.root = Path(temp.name).resolve()
         self.catalog = Catalog(self.root / 'state')
         self.addCleanup(self.catalog.close)
+        self.catalog.set('defaults', {'profile': 'canal-a', 'country': 'mx', 'city': 'oaxaca'})
 
     def asset(self, title, work='ready', job_state='completed', kind='file', updated='2026-10-01T00:00:00Z'):
-        project_id = self.catalog.project_for('e64', title)
+        project_id = self.catalog.project_for('canal-a', title)
         job = str(uuid.uuid4()); asset = str(uuid.uuid4())
-        payload = {'id': asset, 'job_id': job, 'project': title, 'project_id': project_id, 'profile': 'e64', 'kind': kind,
-                   'paths': ['a.mov'], 'camera': 'sony', 'country': 'mx', 'city': 'hermosillo'}
+        payload = {'id': asset, 'job_id': job, 'project': title, 'project_id': project_id, 'profile': 'canal-a', 'kind': kind,
+                   'paths': ['a.mov'], 'camera': 'sony', 'country': 'mx', 'city': 'oaxaca'}
         with self.catalog.db as db:
             db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', (job, 'd', '{"files":[]}', job_state, None, updated, updated))
             db.execute('INSERT INTO assets VALUES(?,?,?)', (asset, job, canonical(payload).decode()))
@@ -102,13 +103,13 @@ class ProjectOverviewTests(ProjectFixture):
         project = self.asset('terra')
         session = str(uuid.uuid4())
         save_capture_tags(self.catalog, [session], 'terra')
-        self.catalog.set('defaults', {'project': 'terra', 'profile': 'e64'})
+        self.catalog.set('defaults', {'project': 'terra', 'profile': 'canal-a'})
         result = rename(self.catalog, project, 'terra-nueva')
         self.assertEqual(result['previous'], 'terra')
         self.assertEqual(self.catalog.get('capture-tag:' + session)['name'], 'terra-nueva')
         self.assertEqual(self.catalog.get('defaults')['project'], 'terra-nueva')
         self.assertEqual(self.catalog.search()[0]['project'], 'terra-nueva')
-        self.assertEqual(self.catalog.project_for('e64', 'terra'), project)
+        self.assertEqual(self.catalog.project_for('canal-a', 'terra'), project)
         self.assertEqual(self.by_title()['terra-nueva']['aliases'], ['terra'])
 
     def test_renaming_a_draft_onto_a_known_project_links_its_sessions(self):
@@ -238,7 +239,7 @@ class FinalsTests(ProjectFixture):
         self.backend = FixtureVolumes()
         self.work, self.archive = self.root / 'work', self.root / 'archive'
         self.work.mkdir(); self.archive.mkdir()
-        self.catalog.register('ESSD', 'work', self.work, self.backend.describe(self.work), '001_proyectos')
+        self.catalog.register('EDICION', 'work', self.work, self.backend.describe(self.work), '001_proyectos')
         self.catalog.register('MEDIA', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
         patcher = mock.patch('media.clipper.inspect', return_value={'blockers': [], 'relinks': [], 'dependencies': {}})
         self.inspect = patcher.start()
@@ -251,32 +252,32 @@ class FinalsTests(ProjectFixture):
         return path
 
     def test_compares_name_and_size_anywhere_in_the_profile_without_writing(self):
-        self.file(self.work, 'e64/03_subidos/hecho.mov')
-        self.file(self.archive, 'e64/2026/hecho.mov')
-        self.file(self.work, 'e64/02_shorts/nuevo.mov', 20)
-        self.file(self.work, 'e64/02_shorts/cambio.mov', 30)
-        self.file(self.archive, 'e64/2026/cambio.mov', 31)
-        self.file(self.archive, '9logs/hecho.mov')
-        self.file(self.work, '9logs/otro-perfil.mov')
-        self.file(self.work, 'e64/.DS_Store'); self.file(self.work, 'e64/notas.txt')
-        bundle = self.file(self.work, 'e64/edicion.fcpbundle/render.mov')
+        self.file(self.work, 'canal-a/03_subidos/hecho.mov')
+        self.file(self.archive, 'canal-a/2026/hecho.mov')
+        self.file(self.work, 'canal-a/02_shorts/nuevo.mov', 20)
+        self.file(self.work, 'canal-a/02_shorts/cambio.mov', 30)
+        self.file(self.archive, 'canal-a/2026/cambio.mov', 31)
+        self.file(self.archive, 'blog/hecho.mov')
+        self.file(self.work, 'blog/otro-perfil.mov')
+        self.file(self.work, 'canal-a/.DS_Store'); self.file(self.work, 'canal-a/notas.txt')
+        bundle = self.file(self.work, 'canal-a/edicion.fcpbundle/render.mov')
         before = sorted(str(p) for p in self.archive.rglob('*'))
         result = finals_status(self.catalog, self.backend)
         groups = {g['profile']: g for g in result['groups']}
         self.assertEqual(result['archive'], 'MEDIA')
-        self.assertEqual(groups['e64']['total'], 3)
-        self.assertEqual(groups['e64']['published_folder'], '03_subidos')
-        self.assertEqual((groups['e64']['pending'], groups['e64']['waiting'], groups['e64']['waiting_bytes']), (0, 2, 50))
-        self.assertEqual((groups['e64']['in_archive'], groups['e64']['in_archive_bytes']), (1, 10))
-        self.assertEqual(groups['e64']['destination'], 'MEDIA/002_finales/e64')
-        self.assertEqual((groups['9logs']['published_folder'], groups['9logs']['pending']), ('', 1))
+        self.assertEqual(groups['canal-a']['total'], 3)
+        self.assertEqual(groups['canal-a']['published_folder'], '03_subidos')
+        self.assertEqual((groups['canal-a']['pending'], groups['canal-a']['waiting'], groups['canal-a']['waiting_bytes']), (0, 2, 50))
+        self.assertEqual((groups['canal-a']['in_archive'], groups['canal-a']['in_archive_bytes']), (1, 10))
+        self.assertEqual(groups['canal-a']['destination'], 'MEDIA/002_finales/canal-a')
+        self.assertEqual((groups['blog']['published_folder'], groups['blog']['pending']), ('', 1))
         self.assertEqual(before, sorted(str(p) for p in self.archive.rglob('*')))
         self.assertTrue(bundle.exists())
 
     def test_only_the_published_folder_is_due_for_backup(self):
-        self.file(self.work, 'e64/03_subidos/shorts/subido.mov', 20)
-        self.file(self.work, 'e64/03_subidos/maestro.mov', 30)
-        self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        self.file(self.work, 'canal-a/03_subidos/shorts/subido.mov', 20)
+        self.file(self.work, 'canal-a/03_subidos/maestro.mov', 30)
+        self.file(self.work, 'canal-a/02_shorts/en-uso.mov', 40)
         group = finals_status(self.catalog, self.backend)['groups'][0]
         self.assertEqual((group['published_total'], group['pending'], group['pending_bytes']), (2, 2, 50))
         self.assertEqual(sorted(f['name'] for f in group['files']), ['03_subidos/maestro.mov', '03_subidos/shorts/subido.mov'])
@@ -284,46 +285,46 @@ class FinalsTests(ProjectFixture):
         self.assertEqual(group['subfolders'], ['02_shorts', '03_subidos'])
 
     def test_an_empty_published_folder_still_means_nothing_is_due(self):
-        (self.work / '002_finales/9logs/subidos').mkdir(parents=True)
-        self.file(self.work, '9logs/sin-publicar.mov')
+        (self.work / '002_finales/blog/subidos').mkdir(parents=True)
+        self.file(self.work, 'blog/sin-publicar.mov')
         group = finals_status(self.catalog, self.backend)['groups'][0]
         self.assertEqual((group['published_folder'], group['pending'], group['waiting']), ('subidos', 0, 1))
 
     def test_the_published_folder_can_be_chosen_cleared_and_detected_again(self):
-        self.file(self.work, 'e64/03_subidos/a.mov')
-        self.file(self.work, 'e64/listos/b.mov')
+        self.file(self.work, 'canal-a/03_subidos/a.mov')
+        self.file(self.work, 'canal-a/listos/b.mov')
         def group(): return finals_status(self.catalog, self.backend)['groups'][0]
-        set_published_folder(self.catalog, 'e64', 'listos')
+        set_published_folder(self.catalog, 'canal-a', 'listos')
         self.assertEqual((group()['published_folder'], group()['files'][0]['name']), ('listos', 'listos/b.mov'))
-        set_published_folder(self.catalog, 'e64', '')
+        set_published_folder(self.catalog, 'canal-a', '')
         self.assertEqual((group()['published_folder'], group()['pending']), ('', 2))
-        set_published_folder(self.catalog, 'e64', 'ya-no-existe')
+        set_published_folder(self.catalog, 'canal-a', 'ya-no-existe')
         self.assertEqual(group()['published_folder'], '')
-        set_published_folder(self.catalog, 'e64', None)
+        set_published_folder(self.catalog, 'canal-a', None)
         self.assertEqual(group()['published_folder'], '03_subidos')
         for bad in ('../fuera', 'a/b', '.oculta'):
             with self.assertRaises(MediaError):
-                set_published_folder(self.catalog, 'e64', bad)
+                set_published_folder(self.catalog, 'canal-a', bad)
 
     def route(self, release=True):
-        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'e64', release=release))
+        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'canal-a', release=release))
         return plan, {row['source']: row['archive_path'] for row in plan['preview']}
 
     def test_year_comes_from_the_name_first(self):
         self.assertEqual(year_in_name('26-10-27-terra.mov'), '2026')
         self.assertEqual(year_in_name('2024-03-09-titulo.mov'), '2024')
         self.assertEqual(year_in_name('240905_davidcordova.mov'), '2024')
-        for name in ('008vibecoding.mp4', '26-13-27-mes-malo.mov', 'semana7-2026-e64.mov', '26-10-271.mov', '000.mov'):
+        for name in ('008vibecoding.mp4', '26-13-27-mes-malo.mov', 'semana7-2026-canal-a.mov', '26-10-271.mov', '000.mov'):
             self.assertIsNone(year_in_name(name), name)
 
     def test_route_keeps_subfolders_and_dates_loose_masters(self):
-        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov')
-        loose = self.file(self.work, 'e64/03_subidos/reexport.mov')
-        self.file(self.work, 'e64/03_subidos/shorts/26-09-26-corto_vertical_1.mov')
-        self.file(self.work, 'e64/03_subidos/thumbnails/titulos.txt')
-        self.file(self.work, 'e64/02_shorts/sin-publicar.mov')
+        self.file(self.work, 'canal-a/03_subidos/26-10-27-terra.mov')
+        loose = self.file(self.work, 'canal-a/03_subidos/reexport.mov')
+        self.file(self.work, 'canal-a/03_subidos/shorts/26-09-26-corto_vertical_1.mov')
+        self.file(self.work, 'canal-a/03_subidos/thumbnails/titulos.txt')
+        self.file(self.work, 'canal-a/02_shorts/sin-publicar.mov')
         plan, routes = self.route()
-        base = str(self.archive / '002_finales/e64')
+        base = str(self.archive / '002_finales/canal-a')
         self.assertEqual(routes['26-10-27-terra.mov'], base + '/2026/26-10-27-terra.mov')
         self.assertEqual(routes['reexport.mov'], base + '/' + created_year(loose) + '/reexport.mov')
         self.assertEqual(routes['shorts/26-09-26-corto_vertical_1.mov'], base + '/shorts/26-09-26-corto_vertical_1.mov')
@@ -333,15 +334,15 @@ class FinalsTests(ProjectFixture):
         self.assertIsNone(plan['work_id'])
 
     def test_keeping_the_source_is_a_choice(self):
-        source = self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
-        short = self.file(self.work, 'e64/03_subidos/shorts/corto.mov', 20)
-        waiting = self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        source = self.file(self.work, 'canal-a/03_subidos/26-10-27-terra.mov', 30)
+        short = self.file(self.work, 'canal-a/03_subidos/shorts/corto.mov', 20)
+        waiting = self.file(self.work, 'canal-a/02_shorts/en-uso.mov', 40)
         defaults = self.catalog.get('defaults')
         plan, _ = self.route(release=False)
         result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
         self.assertEqual(result['state'], 'source_retained')
-        self.assertEqual((self.archive / '002_finales/e64/2026/26-10-27-terra.mov').stat().st_size, 30)
-        self.assertEqual((self.archive / '002_finales/e64/shorts/corto.mov').stat().st_size, 20)
+        self.assertEqual((self.archive / '002_finales/canal-a/2026/26-10-27-terra.mov').stat().st_size, 30)
+        self.assertEqual((self.archive / '002_finales/canal-a/shorts/corto.mov').stat().st_size, 20)
         self.assertTrue(source.exists() and short.exists() and waiting.exists())
         self.assertFalse(list(self.archive.rglob('*.ncpartial')))
         group = finals_status(self.catalog, self.backend)['groups'][0]
@@ -354,16 +355,16 @@ class FinalsTests(ProjectFixture):
         self.assertEqual(len(list((self.archive / '002_finales').rglob('*.mov'))), 2)
 
     def test_moving_frees_only_what_was_verified_and_keeps_the_folders(self):
-        master = self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
-        short = self.file(self.work, 'e64/03_subidos/shorts/corto.mov', 20)
-        note = self.file(self.work, 'e64/03_subidos/thumbnails/titulos.txt', 5)
-        waiting = self.file(self.work, 'e64/02_shorts/en-uso.mov', 40)
+        master = self.file(self.work, 'canal-a/03_subidos/26-10-27-terra.mov', 30)
+        short = self.file(self.work, 'canal-a/03_subidos/shorts/corto.mov', 20)
+        note = self.file(self.work, 'canal-a/03_subidos/thumbnails/titulos.txt', 5)
+        waiting = self.file(self.work, 'canal-a/02_shorts/en-uso.mov', 40)
         plan, _ = self.route()
         result = Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
         self.assertEqual(result['state'], 'completed')
         self.assertFalse(master.exists() or short.exists() or note.exists())
         self.assertTrue(waiting.exists() and short.parent.is_dir())
-        final = self.archive / '002_finales/e64'
+        final = self.archive / '002_finales/canal-a'
         self.assertEqual((final / '2026/26-10-27-terra.mov').stat().st_size, 30)
         self.assertEqual((final / 'shorts/corto.mov').stat().st_size, 20)
         self.assertEqual((final / 'thumbnails/titulos.txt').stat().st_size, 5)
@@ -371,9 +372,9 @@ class FinalsTests(ProjectFixture):
         self.assertEqual((group['pending'], group['waiting'], group['published_total']), (0, 1, 0))
 
     def test_what_was_not_copied_is_never_freed(self):
-        self.file(self.archive, 'e64/2023/viejo.mov', 15)
-        kept = self.file(self.work, 'e64/03_subidos/viejo.mov', 15)
-        moved = self.file(self.work, 'e64/03_subidos/nuevo.mov', 25)
+        self.file(self.archive, 'canal-a/2023/viejo.mov', 15)
+        kept = self.file(self.work, 'canal-a/03_subidos/viejo.mov', 15)
+        moved = self.file(self.work, 'canal-a/03_subidos/nuevo.mov', 25)
         plan, _ = self.route()
         result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
         self.assertEqual(result['state'], 'completed')
@@ -381,17 +382,17 @@ class FinalsTests(ProjectFixture):
         self.assertFalse(moved.exists())
 
     def test_a_final_that_arrives_during_the_copy_stays_and_is_reported(self):
-        self.file(self.work, 'e64/03_subidos/a.mov')
+        self.file(self.work, 'canal-a/03_subidos/a.mov')
         plan, _ = self.route()
-        late = self.file(self.work, 'e64/03_subidos/llego-tarde.mov', 11)
+        late = self.file(self.work, 'canal-a/03_subidos/llego-tarde.mov', 11)
         result = Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
         self.assertEqual(result['state'], 'source_has_new_material')
         self.assertTrue(late.exists())
-        self.assertFalse((self.work / '002_finales/e64/03_subidos/a.mov').exists())
+        self.assertFalse((self.work / '002_finales/canal-a/03_subidos/a.mov').exists())
 
     def test_a_changed_final_stops_before_anything_is_freed(self):
-        changed = self.file(self.work, 'e64/03_subidos/a.mov', 10)
-        other = self.file(self.work, 'e64/03_subidos/b.mov', 10)
+        changed = self.file(self.work, 'canal-a/03_subidos/a.mov', 10)
+        other = self.file(self.work, 'canal-a/03_subidos/b.mov', 10)
         plan, _ = self.route()
         changed.write_bytes(b'y' * 12)
         with self.assertRaises(MediaError) as caught:
@@ -400,7 +401,7 @@ class FinalsTests(ProjectFixture):
         self.assertTrue(changed.exists() and other.exists())
 
     def test_one_physical_disk_or_clipper_use_refuses_to_free(self):
-        self.file(self.work, 'e64/03_subidos/a.mov')
+        self.file(self.work, 'canal-a/03_subidos/a.mov')
         self.inspect.return_value = {'blockers': ['Fuente en uso sin reemplazo editable: a.mov'], 'relinks': [], 'dependencies': {}}
         with self.assertRaises(MediaError) as caught:
             self.route()
@@ -411,7 +412,7 @@ class FinalsTests(ProjectFixture):
         self.inspect.return_value = {'blockers': ['Exportación en cola: a.mov'], 'relinks': [], 'dependencies': {}}
         with self.assertRaises(MediaError):
             Service(self.catalog, self.backend).call('apply', {'plan': plan, 'digest': plan['digest']})
-        self.assertTrue((self.work / '002_finales/e64/03_subidos/a.mov').exists())
+        self.assertTrue((self.work / '002_finales/canal-a/03_subidos/a.mov').exists())
         self.inspect.return_value = {'blockers': [], 'relinks': [], 'dependencies': {}}
         self.backend.physical[str(self.work)] = self.backend.physical[str(self.archive)] = 'mismo'
         with self.assertRaises(MediaError) as caught:
@@ -419,7 +420,7 @@ class FinalsTests(ProjectFixture):
         self.assertEqual(caught.exception.code, 'same_physical_disk')
 
     def test_unknown_or_offline_clipper_retains_published_finals(self):
-        source = self.file(self.work, 'e64/03_subidos/a.mov')
+        source = self.file(self.work, 'canal-a/03_subidos/a.mov')
         self.inspect.side_effect = MediaError('clipper_unavailable', 'unknown')
         with self.assertRaises(MediaError): self.route()
         self.assertFalse(self.route(release=False)[0]['cleanup'])
@@ -439,7 +440,7 @@ class FinalsTests(ProjectFixture):
         def checkpoint(stage, _):
             if stage in {'before_cleanup', 'cleanup_file'}:
                 checks.append(stage); self.assertTrue(held)
-        self.file(self.work, 'e64/03_subidos/a.mov')
+        self.file(self.work, 'canal-a/03_subidos/a.mov')
         plan, _ = self.route()
         engine = Transfer(self.catalog, self.backend, hook=checkpoint)
         with mock.patch('media.clipper.release_guard', side_effect=guard), mock.patch('media.service.Transfer', return_value=engine):
@@ -447,25 +448,25 @@ class FinalsTests(ProjectFixture):
         self.assertTrue(checks); self.assertFalse(held)
 
     def test_a_copy_already_elsewhere_in_the_profile_is_not_duplicated(self):
-        self.file(self.archive, 'e64/2023/viejo.mov', 15)
-        self.file(self.work, 'e64/03_subidos/viejo.mov', 15)
-        self.file(self.work, 'e64/03_subidos/nuevo.mov', 25)
+        self.file(self.archive, 'canal-a/2023/viejo.mov', 15)
+        self.file(self.work, 'canal-a/03_subidos/viejo.mov', 15)
+        self.file(self.work, 'canal-a/03_subidos/nuevo.mov', 25)
         plan, routes = self.route()
         self.assertEqual(list(routes), ['nuevo.mov'])
         self.assertEqual(plan['already_archived'], ['viejo.mov'])
 
     def test_a_different_file_at_the_destination_blocks_and_nothing_is_written(self):
-        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov', 30)
-        self.file(self.archive, 'e64/2026/26-10-27-terra.mov', 31)
+        self.file(self.work, 'canal-a/03_subidos/26-10-27-terra.mov', 30)
+        self.file(self.archive, 'canal-a/2026/26-10-27-terra.mov', 31)
         with self.assertRaises(MediaError) as caught:
             self.route()
         self.assertEqual(caught.exception.code, 'destination_conflict')
-        self.assertEqual((self.archive / '002_finales/e64/2026/26-10-27-terra.mov').stat().st_size, 31)
+        self.assertEqual((self.archive / '002_finales/canal-a/2026/26-10-27-terra.mov').stat().st_size, 31)
 
     def test_same_bytes_at_the_destination_are_adopted_and_different_bytes_stop(self):
-        self.file(self.work, 'e64/03_subidos/26-10-27-igual.mov', 12)
-        self.file(self.archive, 'e64/2026/26-10-27-igual.mov', 12)
-        source = self.work / '002_finales/e64/03_subidos/26-10-27-igual.mov'
+        self.file(self.work, 'canal-a/03_subidos/26-10-27-igual.mov', 12)
+        self.file(self.archive, 'canal-a/2026/26-10-27-igual.mov', 12)
+        source = self.work / '002_finales/canal-a/03_subidos/26-10-27-igual.mov'
         plan, routes = self.route()
         self.assertEqual(plan['already_archived'], [])
         self.assertEqual(len(routes), 1)
@@ -473,30 +474,30 @@ class FinalsTests(ProjectFixture):
         self.assertFalse(source.exists())
 
     def test_needs_a_published_folder_and_both_disks(self):
-        self.file(self.work, 'e64/02_shorts/a.mov')
+        self.file(self.work, 'canal-a/02_shorts/a.mov')
         with self.assertRaises(MediaError) as caught:
-            plan_params(self.catalog, self.backend, 'e64')
+            plan_params(self.catalog, self.backend, 'canal-a')
         self.assertEqual(caught.exception.code, 'no_published_folder')
         self.backend.offline.add(str(self.archive))
         with self.assertRaises(MediaError) as caught:
-            plan_params(self.catalog, self.backend, 'e64')
+            plan_params(self.catalog, self.backend, 'canal-a')
         self.assertEqual(caught.exception.code, 'archive_offline')
 
     def test_a_tampered_finals_plan_is_rejected(self):
-        self.file(self.work, 'e64/03_subidos/26-10-27-terra.mov')
+        self.file(self.work, 'canal-a/03_subidos/26-10-27-terra.mov')
         plan, _ = self.route()
-        plan['layout']['26-10-27-terra.mov']['archive'] = 'e64/otro/lugar.mov'
+        plan['layout']['26-10-27-terra.mov']['archive'] = 'canal-a/otro/lugar.mov'
         with self.assertRaises(MediaError):
             Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
 
     def test_offline_archive_answers_nothing_instead_of_all_pending(self):
-        self.file(self.work, 'e64/nuevo.mov')
+        self.file(self.work, 'canal-a/nuevo.mov')
         self.backend.offline.add(str(self.archive))
         result = finals_status(self.catalog, self.backend)
         self.assertEqual((result['reason'], result['groups']), ('archive_offline', []))
 
     def test_cancel_stops_the_walk(self):
-        self.file(self.work, 'e64/nuevo.mov')
+        self.file(self.work, 'canal-a/nuevo.mov')
         with self.assertRaises(MediaError):
             finals_status(self.catalog, self.backend, cancel=lambda: True)
 

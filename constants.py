@@ -7,7 +7,6 @@ SETTINGS = load_settings()
 
 LOGGER_NAME = 'nu9ve'
 
-DRIVE_NAME = 'MEDIA502'
 ROOT_DIR = SETTINGS['root_dir']
 SD_ROOT_DIR = SETTINGS['sd_root_dir']
 ROOT_RECORDINGS_DIR = SETTINGS['root_recordings_dir']

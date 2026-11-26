@@ -1538,19 +1538,19 @@ mod tests {
     #[test]
     fn published_finals_plan_uses_the_shared_review_and_retains_the_source() {
         let s = crate::volumes::test_backend::setup();
-        let published = s.work.join("002_finales/e64/01_subidos");
+        let published = s.work.join("002_finales/canal-a/01_subidos");
         std::fs::create_dir_all(&published).unwrap();
         std::fs::write(published.join("26-10-31-toma.MP4"), b"final").unwrap();
         let plan = plan_finals(
             &s.home,
             &s.backend,
-            &json!({"profile": "e64", "release": false}),
+            &json!({"profile": "canal-a", "release": false}),
         )
         .unwrap();
         assert_eq!(plan["source_kind"], "delivery");
         assert_eq!(
             plan["layout"]["26-10-31-toma.MP4"]["archive"],
-            "e64/2026/26-10-31-toma.MP4"
+            "canal-a/2026/26-10-31-toma.MP4"
         );
         let id = plan["id"].as_str().unwrap();
         let reviewed = Catalog::open(&s.home)
@@ -1573,7 +1573,7 @@ mod tests {
             b"final"
         );
         assert_eq!(
-            std::fs::read(s.archive.join("002_finales/e64/2026/26-10-31-toma.MP4")).unwrap(),
+            std::fs::read(s.archive.join("002_finales/canal-a/2026/26-10-31-toma.MP4")).unwrap(),
             b"final"
         );
     }
@@ -1582,7 +1582,7 @@ mod tests {
     fn a_final_moved_to_the_published_folder_is_found() {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().canonicalize().unwrap();
-        let moved = root.join("work/002_finales/e64/01_subidos/2026/final.mp4");
+        let moved = root.join("work/002_finales/canal-a/01_subidos/2026/final.mp4");
         std::fs::create_dir_all(moved.parent().unwrap()).unwrap();
         std::fs::write(&moved, "f").unwrap();
         let s = nu9ve_volumes::stamp(&moved).unwrap();
@@ -1591,23 +1591,23 @@ mod tests {
         let work = root.join("work").display().to_string();
         let identity = json!({"mode": "fixture", "volume_uuid": "w"});
         db.execute(
-            "INSERT INTO volumes VALUES('w','ESSD',?)",
-            [json!({"id": "w", "name": "ESSD", "role": "work", "root": work, "identity": identity}).to_string()],
+            "INSERT INTO volumes VALUES('w','EDICION',?)",
+            [json!({"id": "w", "name": "EDICION", "role": "work", "root": work, "identity": identity}).to_string()],
         )
         .unwrap();
-        db.execute("INSERT INTO projects VALUES('p1','e64','terra')", [])
+        db.execute("INSERT INTO projects VALUES('p1','canal-a','terra')", [])
             .unwrap();
         drop(db);
         let catalog = Catalog::open(&state).unwrap();
         let backend = Registered(HashMap::from([(work, identity)]));
         let config = json!({"finals": [{"role": "horizontal", "volume_id": "w",
-            "path": "002_finales/e64/terra/final.mp4",
+            "path": "002_finales/canal-a/terra/final.mp4",
             "stamp": {"size": s.size, "mtime_ns": s.mtime_ns, "inode": s.inode}}]});
         let states = delivery_states(&catalog, Some(&backend), "p1", Some(&config)).unwrap();
         assert_eq!(states[0]["state"], "moved");
         assert_eq!(
             states[0]["current_path"],
-            "002_finales/e64/01_subidos/2026/final.mp4"
+            "002_finales/canal-a/01_subidos/2026/final.mp4"
         );
     }
 

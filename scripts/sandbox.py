@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Test environment for nüün: test disks, test cards and their own catalog, to walk whole flows in the app without
-touching a real SD, MEDIA, ESSD or SSD1.
+touching a real SD or disk.
 
     python3 scripts/sandbox.py create          # disks (sparse images), cards with test media, catalog, registered disks
     python3 scripts/sandbox.py open            # mounts what is missing and opens nüün inside the environment
@@ -36,7 +36,7 @@ APP = Path.home() / 'Applications/nuun.app'
 # name: (filesystem, size, role); SD* images are cards, the rest USB disks.
 DISKS = {
     'MEDIA-TEST': ('ExFAT', '8g', 'archive'),
-    'ESSD-TEST': ('JHFS+', '8g', 'work'),
+    'EDICION-TEST': ('JHFS+', '8g', 'work'),
     'SD-SONY': ('MS-DOS', '1g', 'card'),
     'SD-DRONE': ('MS-DOS', '1g', 'card'),
 }
@@ -181,7 +181,7 @@ def create(root):
         if role != 'card':
             mount = attach(root, name)
             rpc(root, 'register_volume', {'root': mount, 'name': name, 'role': role})
-    rpc(root, 'defaults', {'archive': 'MEDIA-TEST', 'work': 'ESSD-TEST', 'project': 'prueba'})
+    rpc(root, 'defaults', {'archive': 'MEDIA-TEST', 'work': 'EDICION-TEST', 'project': 'prueba'})
     for kind in ('sony', 'drone'):
         mount, count = fill_card(root, kind)
         print('card', kind, '→', mount, count, 'files')
@@ -226,7 +226,7 @@ def reset(root, engine):
     for name, (_, _, role) in DISKS.items():
         if role != 'card':
             rpc(root, 'register_volume', {'root': attach(root, name), 'name': name, 'role': role}, engine)
-    rpc(root, 'defaults', {'archive': 'MEDIA-TEST', 'work': 'ESSD-TEST', 'project': 'prueba'}, engine)
+    rpc(root, 'defaults', {'archive': 'MEDIA-TEST', 'work': 'EDICION-TEST', 'project': 'prueba'}, engine)
 
 
 def seed_drone_mission(root):
@@ -257,7 +257,7 @@ def ingest(root, kind, engine, cleanup=True, with_mission=False):
     card, _ = fill_card(root, kind)
     if with_mission:
         seed_drone_mission(root)
-    params = {'source': str(card), 'archive': 'MEDIA-TEST', 'work': 'ESSD-TEST', 'project': 'prueba', 'cleanup': cleanup}
+    params = {'source': str(card), 'archive': 'MEDIA-TEST', 'work': 'EDICION-TEST', 'project': 'prueba', 'cleanup': cleanup}
     if kind == 'drone':
         params['camera'] = 'dji-drone'
     card_before = files_under(card)
@@ -274,7 +274,7 @@ def ingest(root, kind, engine, cleanup=True, with_mission=False):
         # A refused plan is a result too: both engines must refuse the same card for the same reason.
         return {'plan_error': planned.get('error', {}).get('code'), 'card_after': files_under(card),
                 'card_retained': files_under(card) == card_before,
-                'archive': files_under(attach(root, 'MEDIA-TEST')), 'work': files_under(attach(root, 'ESSD-TEST'))}
+                'archive': files_under(attach(root, 'MEDIA-TEST')), 'work': files_under(attach(root, 'EDICION-TEST'))}
     document = planned['data']
     plan = json.loads(document)
     applied = rpc(root, 'apply', {'plan': document, 'digest': plan['digest']}, engine, check=False)
@@ -286,7 +286,7 @@ def ingest(root, kind, engine, cleanup=True, with_mission=False):
             'apply': applied.get('data', {}).get('state') if applied.get('ok') else applied.get('error'),
             'job_state': job and job['state'],
             'resume_state': resumed.get('data', {}).get('state') if resumed.get('ok') else resumed.get('error'),
-            'archive': files_under(attach(root, 'MEDIA-TEST')), 'work': files_under(attach(root, 'ESSD-TEST'), plan),
+            'archive': files_under(attach(root, 'MEDIA-TEST')), 'work': files_under(attach(root, 'EDICION-TEST'), plan),
             'card_after': files_under(card), 'card_retained': files_under(card) == card_before}
 
 

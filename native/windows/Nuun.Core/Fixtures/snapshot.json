@@ -2,8 +2,8 @@
   "fixture": "nüün Windows maqueta · datos ficticios; misma forma que media/service.py _snapshot",
   "volumes": [
     { "name": "MEDIA-DEMO", "role": "archive", "online": true, "free": 2140000000000, "capacity": 5000000000000, "prefix": "001_raw" },
-    { "name": "ESSD-DEMO", "role": "work", "online": true, "free": 412000000000, "capacity": 2000000000000, "prefix": "001_proyectos" },
-    { "name": "SSD1-DEMO", "role": "work", "online": false, "free": null, "capacity": 1000000000000, "prefix": "musica" }
+    { "name": "EDICION-DEMO", "role": "work", "online": true, "free": 412000000000, "capacity": 2000000000000, "prefix": "001_proyectos" },
+    { "name": "SONIDO-DEMO", "role": "work", "online": false, "free": null, "capacity": 1000000000000, "prefix": "musica" }
   ],
   "source_cards": [
     {

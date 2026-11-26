@@ -3,8 +3,8 @@
   "handoff_id": "76f746eb-596b-4afb-9a38-b3ced84fa5bf",
   "created_at": "2026-10-28T12:42:29.327863Z",
   "project_id": "a4a2f15e-a8e5-4265-b8e1-740aab330d03",
-  "profile_id": "e64",
-  "clipper_profile": "erikiado64",
+  "profile_id": "canal-a",
+  "clipper_profile": "estudio-a",
   "assets": [
     {
       "asset_id": "3811b4fb-eaf4-5355-9b1a-d88843f5b699",
@@ -17,20 +17,20 @@
           "original_path": "DCIM/photo.DNG",
           "bytes": 8,
           "sha256": "577b96e7309b761c80704b407c637155a0424b43b5ebf45de348d6e81093433b",
-          "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG"
+          "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG"
         },
         {
           "relative_path": "26OCT28-054228_GENERIC_MX-INTRO[].JPG",
           "original_path": "DCIM/photo.JPG",
           "bytes": 10,
           "sha256": "2f61ae578996479a6c8cd9897d4633748c766d8bdc35f6886f4daec7a8a6eb77",
-          "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].JPG"
+          "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].JPG"
         }
       ],
       "locations": [
         {
           "volume_id": "a5e9d515-9c35-4435-a3c8-a29f9d1d1020",
-          "relative_path": "001_proyectos/e64_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG",
+          "relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG",
           "path_kind": "file",
           "role": "work",
           "members": [
@@ -39,14 +39,14 @@
               "original_path": "DCIM/photo.DNG",
               "bytes": 8,
               "sha256": "577b96e7309b761c80704b407c637155a0424b43b5ebf45de348d6e81093433b",
-              "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG"
+              "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].DNG"
             },
             {
               "relative_path": "26OCT28-054228_GENERIC_MX-INTRO[].JPG",
               "original_path": "DCIM/photo.JPG",
               "bytes": 10,
               "sha256": "2f61ae578996479a6c8cd9897d4633748c766d8bdc35f6886f4daec7a8a6eb77",
-              "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].JPG"
+              "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-054228_GENERIC_MX-INTRO[].JPG"
             }
           ],
           "receipt_id": "ab80f530-4512-51c5-82db-e019625da4d1"
@@ -99,7 +99,7 @@
         "time_zone": null,
         "offset_seconds": null
       },
-      "clipper_profile": "erikiado64"
+      "clipper_profile": "estudio-a"
     },
     {
       "asset_id": "aa2ec816-d652-5fc5-90bc-ed9db2e52177",
@@ -112,20 +112,20 @@
           "original_path": "fixture.stalker/manifest.json",
           "bytes": 433,
           "sha256": "85274abdeafa21fb6033ca28edd3231cd7997c8a526a635472c73887eb11cc0b",
-          "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/manifest.json"
+          "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/manifest.json"
         },
         {
           "relative_path": "screen.mov",
           "original_path": "fixture.stalker/screen.mov",
           "bytes": 16,
           "sha256": "00c9927af3cf8f78b99e4846a5e4b5b7fd4ac5ad337f246ce7a96c5dd1822822",
-          "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/screen.mov"
+          "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/screen.mov"
         }
       ],
       "locations": [
         {
           "volume_id": "a5e9d515-9c35-4435-a3c8-a29f9d1d1020",
-          "relative_path": "001_proyectos/e64_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker",
+          "relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker",
           "path_kind": "directory",
           "role": "work",
           "members": [
@@ -134,14 +134,14 @@
               "original_path": "fixture.stalker/manifest.json",
               "bytes": 433,
               "sha256": "85274abdeafa21fb6033ca28edd3231cd7997c8a526a635472c73887eb11cc0b",
-              "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/manifest.json"
+              "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/manifest.json"
             },
             {
               "relative_path": "screen.mov",
               "original_path": "fixture.stalker/screen.mov",
               "bytes": 16,
               "sha256": "00c9927af3cf8f78b99e4846a5e4b5b7fd4ac5ad337f246ce7a96c5dd1822822",
-              "volume_relative_path": "001_proyectos/e64_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/screen.mov"
+              "volume_relative_path": "001_proyectos/canal-a_raw/intro/26OCT28-100000_STALKER_00-01_MX-INTRO[].stalker/screen.mov"
             }
           ],
           "receipt_id": "ab80f530-4512-51c5-82db-e019625da4d1"
@@ -186,14 +186,14 @@
         "offset_seconds": -25200,
         "original": "2026-10-28T17:00:00.123Z",
         "originals": {
-          "captureTimeZone": "America/Hermosillo",
+          "captureTimeZone": "America/Phoenix",
           "createdAt": "2026-10-28T17:00:00Z",
           "epochWallClock": "2026-10-28T17:00:00.123Z"
         },
         "provenance": "manifest.epochWallClock",
-        "time_zone": "America/Hermosillo"
+        "time_zone": "America/Phoenix"
       },
-      "clipper_profile": "erikiado64",
+      "clipper_profile": "estudio-a",
       "capture_session_id": "a2c64750-8de8-4a62-8658-0637980ae443"
     }
   ]

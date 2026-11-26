@@ -34,7 +34,7 @@ class ImportTests(unittest.TestCase):
         second = self.source / 'b.jpg'
         second.write_bytes(b'second photo')
         os.utime(second, (1600000000, 1600000000))
-        media.save_tag_files(str(self.source), 'PHONE', 'mx', 'hermosillo')
+        media.save_tag_files(str(self.source), 'PHONE', 'mx', 'oaxaca')
         saved = sorted((self.archive / 'images').rglob('*.JPG'))
         self.assertEqual(len(saved), 2)
         self.assertEqual({p.read_bytes() for p in saved}, {b'first photo', b'second photo'})

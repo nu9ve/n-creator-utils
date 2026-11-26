@@ -60,7 +60,7 @@ def isolated_env(home, user_home=None):
     env = dict(os.environ, NU9VE_MEDIA_HOME=str(home), NU9VE_SANDBOX='',
                NU9VE_PROFILES_FILE=str(Path(home) / 'qa' / 'profiles.json'),
                NU9VE_DEVICE_FILE=str(Path(home) / 'qa' / 'device.json'),
-               NU9VE_ENGINES_DIR=str(Path(home) / 'qa' / 'engines'), TZ='America/Hermosillo')
+               NU9VE_ENGINES_DIR=str(Path(home) / 'qa' / 'engines'), TZ='America/Phoenix')
     env.pop('NU9VE_SANDBOX')
     if user_home:
         env['HOME'] = str(user_home)

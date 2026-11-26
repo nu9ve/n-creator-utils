@@ -62,7 +62,7 @@ mod tests {
     fn slug_cleans_like_python() {
         assert_eq!(slug("  Viaje a Sonora!  ").unwrap(), "Viaje-a-Sonora");
         assert_eq!(slug("_a_").unwrap(), "a");
-        assert_eq!(slug("MEDIA502").unwrap(), "MEDIA502");
+        assert_eq!(slug("MEDIA9").unwrap(), "MEDIA9");
         assert_eq!(slug("ñandú").unwrap(), "ñandú");
         for bad in ["", "-_-", "...", "  "] {
             assert_eq!(slug(bad).unwrap_err().code, "invalid_tag", "{bad:?}");
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn relative_paths_stay_inside_their_root() {
-        assert!(relative("001_raw").is_ok() && relative("001_proyectos/e64_raw").is_ok());
+        assert!(relative("001_raw").is_ok() && relative("001_proyectos/canal-a_raw").is_ok());
         for bad in ["", "/abs", "a/../b", "a//b", "./a", "a\\b", "C:x", "a\0"] {
             assert_eq!(relative(bad).unwrap_err().code, "unsafe_path", "{bad:?}");
         }

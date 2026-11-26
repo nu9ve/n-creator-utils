@@ -598,7 +598,7 @@ mod tests {
             [MEMBER],
         )
         .unwrap();
-        for (id, dest) in [("id-MEDIA", ARCHIVED), ("id-ESSD", EDITABLE)] {
+        for (id, dest) in [("id-MEDIA", ARCHIVED), ("id-EDICION", EDITABLE)] {
             db.execute(
                 "INSERT INTO copies VALUES('job',?,?,'member-sha',?)",
                 (
@@ -775,7 +775,7 @@ JSON
         let wrong_role = plan(
             &catalog,
             &s.backend,
-            "ESSD",
+            "EDICION",
             std::slice::from_ref(&root),
             |_| unreachable!("role must be validated before invoking Clipper"),
         )

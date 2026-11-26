@@ -144,9 +144,9 @@ import Nu9veTheme
         model.captureTask?.cancel()  // a slow first read must not replace the fixture
         model.capturesFrozenForQA = true  // nor a watcher that fires later with the real library
         model.volumes = [
-            .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12), "root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw")]),
-            .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "online": .bool(true), "free": .number(4.2e11), "root": .string("/Volumes/ESSD"), "prefix": .string("001_proyectos")]),
-            .object(["id": .string("s"), "name": .string("SSD1"), "role": .string("work"), "online": .bool(false), "free": .null, "root": .string("/Volumes/SSD1"), "prefix": .string("001_proyectos")])]
+            .object(["id": .string("a"), "name": .string("MEDIA9"), "role": .string("archive"), "online": .bool(true), "free": .number(1.8e12), "root": .string("/Volumes/MEDIA9"), "prefix": .string("001_raw")]),
+            .object(["id": .string("w"), "name": .string("EDICION"), "role": .string("work"), "online": .bool(true), "free": .number(4.2e11), "root": .string("/Volumes/EDICION"), "prefix": .string("001_proyectos")]),
+            .object(["id": .string("s"), "name": .string("SONIDO"), "role": .string("work"), "online": .bool(false), "free": .null, "root": .string("/Volumes/SONIDO"), "prefix": .string("001_proyectos")])]
         model.archive = "a"; model.work = "w"
         model.sourceCards = [
             .object(["path": .string(media.path), "name": .string("A7IV_64"), "hint": .object(["family": .string("sony"), "recommendation": .string("sony_format_in_camera"), "used_bytes": .number(38e9), "capacity_bytes": .number(64e9), "last_project": .string("mercado-norte")])]),
@@ -155,10 +155,10 @@ import Nu9veTheme
         model.captureRoots = ["/Users/demo/Stalker"]
         let stages = ["draft", "in_progress", "in_progress", "backed_up", "backed_up", "finished", "backed_up"]
         model.projectIndex = ["mercado-norte", "taller-luz", "entrevista-ana", "clip-intro", "viaje-sonora", "podcast-07", "demo"].enumerated().map { index, title in
-            .object(["key": .string(index == 0 ? "draft:" + title : "p\(index)"), "project_id": .string(index == 0 ? "" : "p\(index)"), "project": .string(title), "profile": .string(index == 0 ? "" : "e64"),
+            .object(["key": .string(index == 0 ? "draft:" + title : "p\(index)"), "project_id": .string(index == 0 ? "" : "p\(index)"), "project": .string(title), "profile": .string(index == 0 ? "" : "canal-a"),
                      "stage": .string(stages[index]), "state": .string(index == 5 ? "finished" : "active"), "assets": .integer(index == 0 ? 0 : Int64(index * 7)), "pending_sessions": .integer(index < 2 ? 3 : 0),
                      "work_pending": .integer(index == 2 ? 4 : 0), "work_ready": .integer(index > 0 ? 6 : 0), "work_skipped": .integer(index > 2 ? 12 : 0), "jobs": .integer(Int64(index)), "open_jobs": .integer(0),
-                     "kinds": .object(index == 0 ? [:] : ["stalker_session": .integer(2), "camera_bundle": .integer(Int64(index * 2)), "file": .integer(Int64(index * 5))]), "cameras": .array([.string("ILCE-6400")]), "places": .array([.string("mx/hermosillo")]),
+                     "kinds": .object(index == 0 ? [:] : ["stalker_session": .integer(2), "camera_bundle": .integer(Int64(index * 2)), "file": .integer(Int64(index * 5))]), "cameras": .array([.string("ILCE-6400")]), "places": .array([.string("mx/oaxaca")]),
                      "aliases": .array(index == 3 ? [.string("clip-viejo")] : []), "preview": .object([:]), "updated_at": .string("2026-10-2\(9 - index)T18:00:00.000000Z"),
                      // A closed project with verticals still waiting on the editing disk (closure.delivery_summary).
                      "released": .bool(index == 5),
@@ -171,10 +171,10 @@ import Nu9veTheme
                      "created_at_local": .string("2026-11-01T1\(index):20-07:00"), "duration_seconds": .number(125), "track_count": .integer(3), "preview_path": .string("screen.mov"),
                      "tag": index == 0 ? .object(["name": .string("mercado-norte"), "country": .string("mx")]) : .object([:]), "project_hint": .object([:])]) }
         model.lastTagged = "mercado-norte"
-        model.finals = .object(["archive": .string("MEDIA502"), "groups": .array([.object(["work": .string("ESSD"), "profile": .string("e64"), "folder": .string("/Volumes/ESSD/002_finales/e64"), "destination": .string("MEDIA502/002_finales/e64"), "published_folder": .string("03_subidos"), "subfolders": .array([.string("02_shorts"), .string("02_thumbnails"), .string("03_subidos")]), "total": .integer(74), "published_total": .integer(3), "pending": .integer(3), "pending_bytes": .number(2.4e9), "waiting": .integer(42), "waiting_bytes": .number(1.09e10), "in_archive": .integer(29), "in_archive_bytes": .number(8e9), "files": .array([.object(["path": .string("/Volumes/ESSD/002_finales/e64/02_shorts/corto_1.mov"), "name": .string("02_shorts/corto_1.mov"), "bytes": .number(8e8)])])])])])
+        model.finals = .object(["archive": .string("MEDIA9"), "groups": .array([.object(["work": .string("EDICION"), "profile": .string("canal-a"), "folder": .string("/Volumes/EDICION/002_finales/canal-a"), "destination": .string("MEDIA9/002_finales/canal-a"), "published_folder": .string("03_subidos"), "subfolders": .array([.string("02_shorts"), .string("02_thumbnails"), .string("03_subidos")]), "total": .integer(74), "published_total": .integer(3), "pending": .integer(3), "pending_bytes": .number(2.4e9), "waiting": .integer(42), "waiting_bytes": .number(1.09e10), "in_archive": .integer(29), "in_archive_bytes": .number(8e9), "files": .array([.object(["path": .string("/Volumes/EDICION/002_finales/canal-a/02_shorts/corto_1.mov"), "name": .string("02_shorts/corto_1.mov"), "bytes": .number(8e8)])])])])])
         model.finalsCheckedAt = Date()
-        model.profiles = [.object(["id": .string("e64"), "name": .string("erikiado64"), "clipper_profile": .string("erikiado64"), "raw_dir": .string("e64_raw")]), .object(["id": .string("9logs"), "name": .string("9logs"), "raw_dir": .string("9logs_raw")])]
-        model.assets = (0..<14).map { index in .object(["id": .string("asset\(index)"), "project": .string(["mercado-norte", "taller-luz", "entrevista-ana"][index % 3]), "profile": .string("e64"), "kind": .string(index % 4 == 0 ? "camera_bundle" : "file"), "camera": .string(index % 2 == 0 ? "ILCE-6400" : "dji-drone"), "country": .string("mx"), "city": .string("hermosillo"), "paths": .array([.string("a"), .string("b")]), "work_delivery_status": .string(["pending", "ready", "skipped"][index % 3])]) }
+        model.profiles = [.object(["id": .string("canal-a"), "name": .string("estudio-a"), "clipper_profile": .string("estudio-a"), "raw_dir": .string("canal-a_raw")]), .object(["id": .string("blog"), "name": .string("blog"), "raw_dir": .string("blog_raw")])]
+        model.assets = (0..<14).map { index in .object(["id": .string("asset\(index)"), "project": .string(["mercado-norte", "taller-luz", "entrevista-ana"][index % 3]), "profile": .string("canal-a"), "kind": .string(index % 4 == 0 ? "camera_bundle" : "file"), "camera": .string(index % 2 == 0 ? "ILCE-6400" : "dji-drone"), "country": .string("mx"), "city": .string("oaxaca"), "paths": .array([.string("a"), .string("b")]), "work_delivery_status": .string(["pending", "ready", "skipped"][index % 3])]) }
         model.jobs = [
             .object(["id": .string("job-1"), "state": .string("copying"), "updated_at": .string("2026-10-29T10:12:00"), "cleanup_profile": .string("files")]),
             .object(["id": .string("job-2"), "state": .string("camera_action_required"), "updated_at": .string("2026-10-28T18:40:00.123456Z"), "cleanup_profile": .string("sony_clips_then_format"), "source_kind": .string("card")]),
@@ -203,14 +203,14 @@ import Nu9veTheme
                      "kinds": .object(["video": .number(gb * 0.8e9), "audio": .number(gb * 0.2e9)]), "safety": .object(safety.mapValues { .number($0 * 1e9) })])
         }
         model.storageTargets = [
-            .object(["id": .string("w"), "name": .string("ESSD"), "role": .string("work"), "root": .string("/Volumes/ESSD"), "online": .bool(true), "indexed": .bool(true), "observed": .bool(false), "indexed_at": .string("2026-10-30T10:00:00.000000Z"), "files": .integer(80061), "allocated": .number(445e9), "fs_total": .number(465e9), "fs_free": .number(20e9), "uncounted": .number(2e9), "unreadable": .integer(2), "samples": .array([.string(".Spotlight-V100")]),
+            .object(["id": .string("w"), "name": .string("EDICION"), "role": .string("work"), "root": .string("/Volumes/EDICION"), "online": .bool(true), "indexed": .bool(true), "observed": .bool(false), "indexed_at": .string("2026-10-30T10:00:00.000000Z"), "files": .integer(80061), "allocated": .number(445e9), "fs_total": .number(465e9), "fs_free": .number(20e9), "uncounted": .number(2e9), "unreadable": .integer(2), "samples": .array([.string(".Spotlight-V100")]),
                      "safety": .object(["only_here": .number(130e9), "probable": .number(60e9), "unknown": .number(150e9), "verified": .number(85e9), "derived": .number(20e9)]),
                      "kinds": .object(["video": .number(310e9), "image": .number(40e9), "audio": .number(35e9), "editable": .number(40e9), "other": .number(20e9)])]),
-            .object(["id": .string("a"), "name": .string("MEDIA502"), "role": .string("archive"), "root": .string("/Volumes/MEDIA502"), "online": .bool(false), "indexed": .bool(true), "observed": .bool(false), "fs_total": .number(5e12), "fs_free": .number(2.7e12)]),
+            .object(["id": .string("a"), "name": .string("MEDIA9"), "role": .string("archive"), "root": .string("/Volumes/MEDIA9"), "online": .bool(false), "indexed": .bool(true), "observed": .bool(false), "fs_total": .number(5e12), "fs_free": .number(2.7e12)]),
             .object(["id": .string("new"), "name": .string("Música"), "role": .string("observed"), "root": .string("/Users/demo/Music"), "online": .bool(true), "indexed": .bool(false), "observed": .bool(true), "fs_total": .number(1e12), "fs_free": .number(12e9)])]
         model.storageTargetID = "w"; model.storagePath = ""; model.storageSelection = "acomodar"
-        model.storageTree = .object(["name": .string("ESSD"), "allocated": .number(445e9), "rest": .number(4e9), "safety": model.storageTargets[0]["safety"], "files": .array([
-            .object(["path": .string("entrevista.mov"), "name": .string("entrevista.mov"), "allocated": .number(12e9), "kind": .string("video"), "state": .string("verified"), "copy": .object(["volume": .string("MEDIA502"), "path": .string("001_raw/videos/entrevista.mov"), "origin": .string("computed")])])]),
+        model.storageTree = .object(["name": .string("EDICION"), "allocated": .number(445e9), "rest": .number(4e9), "safety": model.storageTargets[0]["safety"], "files": .array([
+            .object(["path": .string("entrevista.mov"), "name": .string("entrevista.mov"), "allocated": .number(12e9), "kind": .string("video"), "state": .string("verified"), "copy": .object(["volume": .string("MEDIA9"), "path": .string("001_raw/videos/entrevista.mov"), "origin": .string("computed")])])]),
             "folders": .array([folder("proyectos", 230, ["only_here": 80, "verified": 85, "probable": 45, "derived": 20]), folder("acomodar", 140, ["unknown": 140]),
                                folder("finales", 43, ["only_here": 28, "probable": 15]), folder("recuerdos", 14, ["only_here": 14]), folder("edicion.fcpbundle", 2, ["only_here": 2], kind: "editable", opaque: true)])])
     }
@@ -373,10 +373,10 @@ import Nu9veTheme
         await render(ProjectClosureSheet(model: model), size: NSSize(width: 820, height: 680), to: folder.appendingPathComponent("published-review.png"))
         model.applyProjectClosure()
         guard await wait("published apply", { !model.busy && model.closurePlan?["state"].string == "completed" }) else { NSApp.terminate(nil); return }
-        let intermediate = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre/renders/intermediate.mov")
+        let intermediate = folder.appendingPathComponent("work/001_proyectos/canal-a/demo-cierre/renders/intermediate.mov")
         guard FileManager.default.fileExists(atPath: intermediate.path), !model.closureSettings["no_more"].bool else { print("QA closeout FAILED premature cleanup"); NSApp.terminate(nil); return }
         print("QA closeout published only: rendersKept=true locations=\(model.closureSettings["finals"].array.map { $0["path"].string })")
-        let unpublished = folder.appendingPathComponent("work/002_finales/e64/02_shorts/demo-cierre_vertical_2.mov")
+        let unpublished = folder.appendingPathComponent("work/002_finales/canal-a/02_shorts/demo-cierre_vertical_2.mov")
         do {
             try FileManager.default.createDirectory(at: unpublished.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data("unpublished vertical".utf8).write(to: unpublished)
@@ -405,7 +405,7 @@ import Nu9veTheme
         let rowAwaiting = row["deliveries"]["awaiting_names"].array.map(\.string).sorted()
         print("QA closeout projects stage=\(row["stage"].string) awaiting=\(Int(row["deliveries"]["awaiting"].double)) matchesSheet=\(sheetAwaiting == rowAwaiting)")
         await render(ProjectRow(model: model, item: row, expanded: .constant(true)).padding(16), size: NSSize(width: 760, height: 200), to: folder.appendingPathComponent("projects-awaiting.png"))
-        let editor = folder.appendingPathComponent("work/001_proyectos/e64/demo-cierre")
+        let editor = folder.appendingPathComponent("work/001_proyectos/canal-a/demo-cierre")
         let kept = FileManager.default.fileExists(atPath: editor.appendingPathComponent("clipper/clipper-project.json").path)
         let removed = !FileManager.default.fileExists(atPath: editor.appendingPathComponent("renders/intermediate.mov").path)
         let waitingKept = FileManager.default.fileExists(atPath: unpublished.path)
@@ -455,9 +455,9 @@ import Nu9veTheme
         model.ingestStep = .run; model.activeScope = .ingest; model.activeJobID = "job-1"
         model.jobProgress = .object(["state": .string("copying"), "progress": .object(["phase": .string("copying"), "copied_bytes": .number(21e9), "bytes_total": .number(38e9), "bytes_per_second": .number(180e6), "files_done": .integer(120), "files_total": .integer(212),
             "overall_done": .number(52e9), "overall_total": .number(152e9), "file_done": .number(1.6e9), "file_total": .number(4.2e9),
-            "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("ESSD + MEDIA502"), "action": .string("copy")]),
-            "log": .array((118...120).map { .object(["kind": .string("copied"), "name": .string("C0\($0).MP4"), "target": .string("ESSD + MEDIA502")]) }),
-            "destinations": .array([.object(["name": .string("MEDIA502"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("ESSD"), "files_done": .integer(96), "files_total": .integer(110)])])])])
+            "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("EDICION + MEDIA9"), "action": .string("copy")]),
+            "log": .array((118...120).map { .object(["kind": .string("copied"), "name": .string("C0\($0).MP4"), "target": .string("EDICION + MEDIA9")]) }),
+            "destinations": .array([.object(["name": .string("MEDIA9"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("EDICION"), "files_done": .integer(96), "files_total": .integer(110)])])])])
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("ingest-4-run.png"))
         model.activeScope = nil
         model.presentation = .compact
@@ -521,16 +521,16 @@ import Nu9veTheme
             for ext in ["DNG", "JPG"] {
                 let name = "26NOV07-1545\(String(format: "%02d", index % 60))_MAVICAIR2_MX-SUBAEREO[].\(ext)"
                 preview.append(.object(["source": .string("DCIM/10\(index / 999 + 1)MEDIA/\(stem).\(ext)"), "bytes": .number(ext == "DNG" ? 30.5e6 : 5.3e6),
-                    "archive_path": .string("/Volumes/MEDIA502/001_raw/\(folder)/\(name)"),
-                    "work_path": ext == "JPG" && !existing ? .string("/Volumes/ESSD/001_proyectos/atlas-subaereo/misiones/\(name)") : .null,
+                    "archive_path": .string("/Volumes/MEDIA9/001_raw/\(folder)/\(name)"),
+                    "work_path": ext == "JPG" && !existing ? .string("/Volumes/EDICION/001_proyectos/atlas-subaereo/misiones/\(name)") : .null,
                     "source_action": .string("release_verified")]))
             }
         }
         units.append(.object(["id": .string("support"), "support": .bool(true), "kind": .string("file"), "project": .string("camera-support"), "paths": .array([.string("MISC/IDX/a.idx")])]))
-        preview.append(.object(["source": .string("MISC/IDX/a.idx"), "bytes": .number(4e6), "archive_path": .string("/Volumes/MEDIA502/001_raw/metadata/dji/support/2026/11/x/MISC/IDX/a.idx"), "work_path": .null, "source_action": .string("release_verified")]))
-        return .object(["id": .string("drone-plan"), "digest": .string("qa"), "archive_id": .string("media"), "work_id": .string("essd"), "source_kind": .string("card"),
+        preview.append(.object(["source": .string("MISC/IDX/a.idx"), "bytes": .number(4e6), "archive_path": .string("/Volumes/MEDIA9/001_raw/metadata/dji/support/2026/11/x/MISC/IDX/a.idx"), "work_path": .null, "source_action": .string("release_verified")]))
+        return .object(["id": .string("drone-plan"), "digest": .string("qa"), "archive_id": .string("media"), "work_id": .string("edicion"), "source_kind": .string("card"),
             "cleanup": .bool(true), "cleanup_profile": .string("files"), "work_delivery_status": .string("ready"),
-            "destinations": .object(["media": .object(["root": .string("/Volumes/MEDIA502"), "prefix": .string("001_raw"), "role": .string("archive")])]),
+            "destinations": .object(["media": .object(["root": .string("/Volumes/MEDIA9"), "prefix": .string("001_raw"), "role": .string("archive")])]),
             "files": .array(preview.map { .object(["path": $0["source"], "stamp": .object(["size": $0["bytes"]])]) }),
             "units": .array(units), "preview": .array(preview),
             "discarded": .array([.object(["paths": .array([.string("DCIM/102MEDIA/DJI_0340.DNG"), .string("DCIM/102MEDIA/DJI_0340.JPG")]), "bytes": .number(35.8e6)])]),
@@ -610,7 +610,7 @@ import Nu9veTheme
         }
         do {
             try? await Task.sleep(for: .seconds(1))
-            for (name, role) in [("QA-MEDIA", "archive"), ("QA-ESSD", "work")] {
+            for (name, role) in [("QA-MEDIA", "archive"), ("QA-EDICION", "work")] {
                 let root = folder.appendingPathComponent(name)
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
                 _ = try await model.client!.call("register_volume", ["root": .string(root.path), "name": .string(name), "role": .string(role), "allow_local": .bool(true)])
@@ -690,12 +690,12 @@ import Nu9veTheme
         }
         do {
             try? await Task.sleep(for: .seconds(1))
-            for (name, role) in [("QA-MEDIA", "archive"), ("QA-ESSD", "work")] {
+            for (name, role) in [("QA-MEDIA", "archive"), ("QA-EDICION", "work")] {
                 let root = folder.appendingPathComponent(name)
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
                 _ = try await model.client!.call("register_volume", ["root": .string(root.path), "name": .string(name), "role": .string(role), "allow_local": .bool(true)])
             }
-            let finals = folder.appendingPathComponent("QA-ESSD/002_finales/e64")
+            let finals = folder.appendingPathComponent("QA-EDICION/002_finales/canal-a")
             for (path, size) in [("03_subidos/26-10-27-master.mov", 300), ("03_subidos/shorts/corto.mov", 200), ("02_shorts/en-uso.mov", 400)] {
                 let file = finals.appendingPathComponent(path)
                 try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -724,7 +724,7 @@ import Nu9veTheme
             model.apply()
             guard await wait("apply", { model.lastResult != nil && !model.busy }) else { NSApp.terminate(nil); return }
             print("QA finals result=\(model.lastResult?["state"].string ?? "") label=\(model.jobLabel(model.lastResult!)) error=\(model.error)")
-            let target = folder.appendingPathComponent("QA-MEDIA/002_finales/e64")
+            let target = folder.appendingPathComponent("QA-MEDIA/002_finales/canal-a")
             print("QA finals copied master=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("2026/26-10-27-master.mov").path)) short=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("shorts/corto.mov").path)) waitingCopied=\(FileManager.default.fileExists(atPath: target.appendingPathComponent("02_shorts/en-uso.mov").path)) sourceKept=\(FileManager.default.fileExists(atPath: finals.appendingPathComponent("03_subidos/shorts/corto.mov").path))")
             await render(MainView(model: model), size: NSSize(width: 1180, height: 860), to: folder.appendingPathComponent("finals-done.png"))
             model.checkFinals(force: true)
@@ -895,11 +895,11 @@ import Nu9veTheme
             try? await Task.sleep(for: .milliseconds(700))
             capture(window, "dialog-\(skin.rawValue).png")
             // The long-action view with invented progress, open in the closeout dialog.
-            let log: [JSONValue] = ["vertical_1.mov", "vertical_2.mov", "vertical_3.mov"].map { .object(["kind": .string("copied"), "name": .string("26-10-27-demo_" + $0), "target": .string("MEDIA502")]) }
-                + [.object(["kind": .string("released"), "name": .string("demo.thumbnail-01.jpg"), "target": .string("ESSD")])]
+            let log: [JSONValue] = ["vertical_1.mov", "vertical_2.mov", "vertical_3.mov"].map { .object(["kind": .string("copied"), "name": .string("26-10-27-demo_" + $0), "target": .string("MEDIA9")]) }
+                + [.object(["kind": .string("released"), "name": .string("demo.thumbnail-01.jpg"), "target": .string("EDICION")])]
             delegate.model.closureProgress = .object(["stage": .string("copying_finals"), "overall_done": .number(3.2e9), "overall_total": .number(5.16e9),
                 "files_done": .number(4), "files_total": .number(13), "log": .array(log),
-                "current": .object(["name": .string("26-10-27-demo_vertical_4.mov"), "from": .string("ESSD"), "to": .string("MEDIA502"), "action": .string("copy")])])
+                "current": .object(["name": .string("26-10-27-demo_vertical_4.mov"), "from": .string("EDICION"), "to": .string("MEDIA9"), "action": .string("copy")])])
             delegate.model.closureApplying = true
             try? await Task.sleep(for: .milliseconds(900))
             capture(window, "action-\(skin.rawValue).png")

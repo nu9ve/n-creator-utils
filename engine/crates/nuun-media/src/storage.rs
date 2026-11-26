@@ -861,7 +861,7 @@ mod tests {
             std::fs::write(path.join("two.mov"), vec![12; 12_000]).unwrap();
         }
         std::os::unix::fs::symlink(&archive, work.join("outside")).unwrap();
-        let source = json!({"target":"ESSD"});
+        let source = json!({"target":"EDICION"});
         let scan = |params: &Value, cancel: &dyn Fn() -> bool| {
             write::scan_with(&state, &backend, params, None, cancel).unwrap()
         };
@@ -978,7 +978,7 @@ mod tests {
             "volume_exists"
         );
         assert_eq!(
-            remove_folder(&state, &json!({"target": "ESSD"}))
+            remove_folder(&state, &json!({"target": "EDICION"}))
                 .unwrap_err()
                 .code,
             "invalid_role"
@@ -1032,7 +1032,7 @@ mod tests {
         );
         for case in expected["coverage"].as_array().unwrap() {
             let mut reply = crate::coverage::report(&state, &backend,
-                &json!({"work": "ESSD", "archive": "MEDIA", "path": case["path"], "no_hash": case["no_hash"]})
+                &json!({"work": "EDICION", "archive": "MEDIA", "path": case["path"], "no_hash": case["no_hash"]})
             ).unwrap();
             let data = std::fs::read(reply["report"].as_str().unwrap()).unwrap();
             reply.as_object_mut().unwrap().remove("report");

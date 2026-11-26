@@ -19,10 +19,10 @@ No hay transacción de toda la tarjeta. Un fallo puede dejar archivos ya movidos
 ## Fuentes y detección
 
 ```sh
-nu9ve save "/ruta/a/tarjeta" mx hermosillo AUTO
-nu9ve save "/ruta/a/tarjeta" mx hermosillo SONYA6400
-nu9ve save all mx hermosillo
-nu9ve save hijack mx hermosillo
+nu9ve save "/ruta/a/tarjeta" mx oaxaca AUTO
+nu9ve save "/ruta/a/tarjeta" mx oaxaca SONYA6400
+nu9ve save all mx oaxaca
+nu9ve save hijack mx oaxaca
 ```
 
 - `all`: nombres configurados en `sd_src_name` bajo `sd_root_dir`. La detección por estructura puede sustituir el perfil asignado a un volumen.

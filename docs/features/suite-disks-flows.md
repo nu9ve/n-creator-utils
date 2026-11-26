@@ -1,6 +1,6 @@
 # Discos de trabajo, conversaciones y sugerencias · diseño
 
-Actualizado: 2026-11-24. En la M4, Atlas procesa en SUBSSD. En la M1, nove explora con ESSD y MEDIA501/502 sirve de archivo. nüün copia entre discos y respalda conversaciones por dispositivo. Se apoya en el core: [volumen](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §7–§8, [datos](../../vendor/nu9ve-core/contracts/nu9ve-data-v1.md) §2.1 y §6, [agente](../../vendor/nu9ve-core/contracts/nu9ve-agent-v1.md), [intercambio](../../vendor/nu9ve-core/contracts/nu9ve-exchange-v1.md) y [varias máquinas](../../vendor/nu9ve-core/docs/suite-devices.md) §6.4–§6.5; y en nove A70–A76. Estado y evidencia en [STATUS](../STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23).
+Actualizado: 2026-11-24. En la M4, Atlas procesa en SUBSSD. En la M1, nove explora con EDICION y MEDIA8/502 sirve de archivo. nüün copia entre discos y respalda conversaciones por dispositivo. Se apoya en el core: [volumen](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §7–§8, [datos](../../vendor/nu9ve-core/contracts/nu9ve-data-v1.md) §2.1 y §6, [agente](../../vendor/nu9ve-core/contracts/nu9ve-agent-v1.md), [intercambio](../../vendor/nu9ve-core/contracts/nu9ve-exchange-v1.md) y [varias máquinas](../../vendor/nu9ve-core/docs/suite-devices.md) §6.4–§6.5; y en nove A70–A76. Estado y evidencia en [STATUS](../STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23).
 
 ## Principios
 
@@ -24,9 +24,9 @@ Actualizado: 2026-11-24. En la M4, Atlas procesa en SUBSSD. En la M1, nove explo
 
 - **Permiso de macOS** habilita a nüün para leer y escribir en el volumen según sus permisos.
 - **Añadir SSD para editar…** guarda el destino y prefijo en el catálogo de esta Mac. Con eso aparece como destino en Ajustes y en la vista Discos.
-- **Registrar en la suite** escribe `.nu9ve/volume.json` con identidad y rol portables. La copia entre discos lee ese marcador en ambas raíces montadas y funciona aunque el ESSD sólo esté registrado en el catálogo de la M1. **Adoptar este disco…** consulta el índice publicado, en sólo lectura para el volumen. La adopción no añade un destino al catálogo local.
-- En la M4, para copiar con el ESSD que ya trae su marcador, abrir **Discos → Copiar al otro disco…** y usar **Elegir disco…** para seleccionar ambas raíces en `/Volumes`. Si también se quiere usar el ESSD como destino de edición o verlo en el mapa de Discos, añadirlo como SSD para editar en esa Mac.
-- El índice del ESSD consultado el 24 nov ofrece `subaereo` por la ruta `001_proyectos/atlas-subaereo/misiones/2026/11`. La build de esa primera copia requería elegir `_missions/` y `_nuun/` manualmente. En el código actualizado, la hoja los incorpora al elegir la carpeta de proyecto indexada, según la receta. Los resultados bajo `atlas-derived/` se eligen por separado.
+- **Registrar en la suite** escribe `.nu9ve/volume.json` con identidad y rol portables. La copia entre discos lee ese marcador en ambas raíces montadas y funciona aunque el EDICION sólo esté registrado en el catálogo de la M1. **Adoptar este disco…** consulta el índice publicado, en sólo lectura para el volumen. La adopción no añade un destino al catálogo local.
+- En la M4, para copiar con el EDICION que ya trae su marcador, abrir **Discos → Copiar al otro disco…** y usar **Elegir disco…** para seleccionar ambas raíces en `/Volumes`. Si también se quiere usar el EDICION como destino de edición o verlo en el mapa de Discos, añadirlo como SSD para editar en esa Mac.
+- El índice del EDICION consultado el 24 nov ofrece `subaereo` por la ruta `001_proyectos/atlas-subaereo/misiones/2026/11`. La build de esa primera copia requería elegir `_missions/` y `_nuun/` manualmente. En el código actualizado, la hoja los incorpora al elegir la carpeta de proyecto indexada, según la receta. Los resultados bajo `atlas-derived/` se eligen por separado.
 
 ## 2. Respaldo de conversaciones por dispositivo
 
@@ -47,16 +47,16 @@ Colecciones conocidas, cada una con sólo su **historial** (la clase `history` d
 - **Cuándo:** «A pedido» siempre; «Sugerir cada N días» por omisión (N = 7); «Automático» sólo si la persona lo elige: con la app abierta y el disco conectado, respalda sin preguntar cuando toca.
 - **Para nove:** la carpeta `<device_id>` es la identidad de la máquina (UUID de `device.json`); `_nuun/manifest.json` lista cada archivo con tamaño y SHA-256; el recibo dice colección y nombre del dispositivo. El proyecto es la clave conocida `conversaciones`.
 
-### Reunir los historiales de M4 y M1 en ESSD
+### Reunir los historiales de M4 y M1 en EDICION
 
-La build instalada exige un destino de archivo accesible desde la Mac que contiene los historiales. Con MEDIA en la M4, elegir en Ajustes → Conversaciones las colecciones y SUBSSD como copia de trabajo, y ejecutar «Respaldar ahora». Con MEDIA y ambos SSD conectados, se puede elegir ESSD directamente como copia de trabajo. Si se pasa por SUBSSD, copiar a ESSD sólo `004_datos/conversaciones/<colección>/<id-M4>/` por cada colección autorizada. La M1 puede escribir su propia copia al mismo ESSD cuando respalde sus historiales a MEDIA. Las carpetas por dispositivo preservan ambas procedencias. Está pendiente validar el recorrido con discos reales y reunir ambos historiales en nove desde ese árbol.
+La build instalada exige un destino de archivo accesible desde la Mac que contiene los historiales. Con MEDIA en la M4, elegir en Ajustes → Conversaciones las colecciones y SUBSSD como copia de trabajo, y ejecutar «Respaldar ahora». Con MEDIA y ambos SSD conectados, se puede elegir EDICION directamente como copia de trabajo. Si se pasa por SUBSSD, copiar a EDICION sólo `004_datos/conversaciones/<colección>/<id-M4>/` por cada colección autorizada. La M1 puede escribir su propia copia al mismo EDICION cuando respalde sus historiales a MEDIA. Las carpetas por dispositivo preservan ambas procedencias. Está pendiente validar el recorrido con discos reales y reunir ambos historiales en nove desde ese árbol.
 
-Sin MEDIA, **Ajustes → Conversaciones → Exportar historial a un SSD de trabajo** permite elegir las colecciones y confirmar el SSD. La exportación reutiliza el formato `nuun-conversations-working/1`, con carpeta por dispositivo y manifiesto SHA-256. Puede repetirse a pedido. Los archivos que cambian durante la lectura quedan para la próxima exportación. Para llevar la copia al ESSD, seleccionar las carpetas de ese dispositivo con «Copiar al otro disco…» y revisar «Actualizar lo que cambió» si ya hay una versión anterior. El flujo de respaldo a MEDIA conserva sus versiones de archivo.
+Sin MEDIA, **Ajustes → Conversaciones → Exportar historial a un SSD de trabajo** permite elegir las colecciones y confirmar el SSD. La exportación reutiliza el formato `nuun-conversations-working/1`, con carpeta por dispositivo y manifiesto SHA-256. Puede repetirse a pedido. Los archivos que cambian durante la lectura quedan para la próxima exportación. Para llevar la copia al EDICION, seleccionar las carpetas de ese dispositivo con «Copiar al otro disco…» y revisar «Actualizar lo que cambió» si ya hay una versión anterior. El flujo de respaldo a MEDIA conserva sus versiones de archivo.
 
-En la M1, el motor de nove permite resumir Claude Code y Codex apuntando al ESSD, sin abrir las carpetas activas. En este ejemplo `ID_M4` es la carpeta de dispositivo del export. La pantalla de Conversaciones aún requiere validar la incorporación de ambos dispositivos. El lector de Claude Desktop de nove todavía tiene el formato pendiente.
+En la M1, el motor de nove permite resumir Claude Code y Codex apuntando al EDICION, sin abrir las carpetas activas. En este ejemplo `ID_M4` es la carpeta de dispositivo del export. La pantalla de Conversaciones aún requiere validar la incorporación de ambos dispositivos. El lector de Claude Desktop de nove todavía tiene el formato pendiente.
 
 ```sh
-history_root=/Volumes/ESSD/004_datos/conversaciones
+history_root=/Volumes/EDICION/004_datos/conversaciones
 device_id=ID_M4
 /Applications/Nove.app/Contents/Helpers/nove-engine conversations-summary \
   --claude-projects "$history_root/claude-code/$device_id/projects" \

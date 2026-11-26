@@ -61,22 +61,22 @@ struct SettingsView: View {
     var profiles: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Perfiles y espacios de trabajo", systemImage: "person.crop.square").font(.title3.weight(.semibold))
-            Text("Un perfil es un canal o contexto creativo (e64, 9logs…). El proyecto y país/ciudad siguen siendo independientes.").foregroundStyle(.secondary)
+            Text("Un perfil es un canal o contexto creativo (por ejemplo, tu canal o una marca). El proyecto y país/ciudad siguen siendo independientes.").foregroundStyle(.secondary)
             ForEach(model.profiles, id: \.["id"].string) { value in
                 HStack { Image(systemName: "folder"); Text(value["name"].string).fontWeight(.medium); Text(value["id"].string).foregroundStyle(.secondary); Spacer(); Text(value["raw_dir"].string).font(.caption); Button("Editar") { load(value) }; Button("Usar") { model.selectProfile(value["id"].string) } }
                 Divider()
             }
-            if model.profiles.isEmpty { Text("Aún no hay perfiles guardados. e64 usa e64_raw hasta que lo configures.").font(.caption) }
+            if model.profiles.isEmpty { Text("Aún no hay perfiles guardados. Crea uno: sus raws van a ID_raw hasta que elijas otra carpeta.").font(.caption) }
             HStack { Text("Configurar perfil").font(.headline); Spacer(); Button("Nuevo") { id = ""; name = ""; raw = ""; clipperProfile = ""; work = model.work; archive = model.archive } }
-            HStack { TextField("ID: 9logs", text: $id); TextField("Nombre: 9logs", text: $name) }
-            TextField("Carpeta de raws: 9logs_raw", text: $raw)
+            HStack { TextField("ID: mi-canal", text: $id); TextField("Nombre: Mi canal", text: $name) }
+            TextField("Carpeta de raws: mi-canal_raw", text: $raw)
             Text("Ruta relativa dentro del espacio de trabajo del SSD. Se añade /PROYECTO. Cambiarla no mueve copias anteriores ni cambia planes ya revisados.").font(.caption).foregroundStyle(.secondary)
-            TextField("Perfil en Clipper: erikiado64", text: $clipperProfile)
+            TextField("Perfil en Clipper: mi-canal", text: $clipperProfile)
             Text("Cómo se llama este perfil en Clipper. Vacío: sin indicar, y Clipper decide por su cuenta. No cambia rutas ni copias anteriores.").font(.caption).foregroundStyle(.secondary)
             volume("SSD sugerido", role: "work", value: $work)
             volume("Respaldo sugerido", role: "archive", value: $archive)
             Button("Guardar perfil") { save() }.disabled(id.isEmpty || name.isEmpty || raw.isEmpty)
-            Text("Ejemplo: ESSD / 001_proyectos / 9logs_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales.").font(.caption)
+            Text("Ejemplo: SSD / 001_proyectos / mi-canal_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales.").font(.caption)
             Divider()
             SuiteProfilesSection(model: model)
         }
@@ -167,7 +167,7 @@ struct SettingsView: View {
             Text("Sin Clipper disponible, proyectos desconectados o exportaciones en cola, liberar espacio queda bloqueado. Guardar usa el botón de arriba.").font(.caption).foregroundStyle(.secondary)
             Toggle("Conservar el original Stalker después del respaldo", isOn: $model.retainStalkerSource)
                 .onChange(of: model.retainStalkerSource) { _, _ in model.watchCaptures() }
-            Text("Desactivado: tras verificar MEDIA/ESSD, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo.").font(.caption).foregroundStyle(.secondary)
+            Text("Desactivado: tras verificar el respaldo y el disco de trabajo, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo.").font(.caption).foregroundStyle(.secondary)
             Text("La bandeja sólo ofrece sesiones terminadas. Los originales, micrófono, eventos y pistas se conservan juntos dentro del bundle archivado.").font(.caption).foregroundStyle(.secondary)
         }
     }

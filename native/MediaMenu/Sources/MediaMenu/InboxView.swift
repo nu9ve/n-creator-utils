@@ -293,7 +293,7 @@ struct CaptureInboxRow: View {
     let capture: JSONValue
     let onDiscard: (JSONValue) -> Void
     @State private var project = ""
-    @State private var country = "mx"
+    @State private var country = ""
     @State private var reviewing = false
     @State private var editing = false
     @FocusState private var thumbnailFocused: Bool

@@ -19,18 +19,18 @@ macOS guarda estado en `~/Library/Application Support/n-creator-utils/media/`. `
 ## Registrar destinos
 
 ```sh
-nu9ve media volumes register MEDIA502 /Volumes/MEDIA502 --role archive --prefix 001_raw
-nu9ve media volumes register ESSD /Volumes/ESSD --role work --prefix 001_proyectos
+nu9ve media volumes register MEDIA9 /Volumes/MEDIA9 --role archive --prefix 001_raw
+nu9ve media volumes register EDICION /Volumes/EDICION --role work --prefix 001_proyectos
 nu9ve media volumes list
 ```
 
-Registrar SSD1 de la misma forma para audio. La raíz ya debe existir en el disco correcto; no crear una carpeta para suplir un externo ausente. El registro modifica el catálogo local; no migra tu archivo. El default requiere volumen externo. `--allow-local` es una elección explícita para carpetas locales/fixtures, no redundancia adicional.
+Registrar SONIDO de la misma forma para audio. La raíz ya debe existir en el disco correcto; no crear una carpeta para suplir un externo ausente. El registro modifica el catálogo local; no migra tu archivo. El default requiere volumen externo. `--allow-local` es una elección explícita para carpetas locales/fixtures, no redundancia adicional.
 
 ## Plan y ejecución
 
 ```sh
-nu9ve media plan /Volumes/TARJETA --archive MEDIA502 --work ESSD \
-  --project intro --profile e64 --country mx --city hermosillo --cleanup > plan.json
+nu9ve media plan /Volumes/TARJETA --archive MEDIA9 --work EDICION \
+  --project intro --profile canal-a --country mx --city oaxaca --cleanup > plan.json
 # Revisar data.preview, destinos, limpieza y digest de la respuesta.
 nu9ve media apply plan.json --digest DIGEST_REVISADO
 ```
@@ -40,9 +40,9 @@ nu9ve media apply plan.json --digest DIGEST_REVISADO
 Flujo humano equivalente:
 
 ```sh
-nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD \
-  --project intro --profile e64 --country mx --city hermosillo
-nu9ve save all --archive MEDIA502 --work ESSD --project intro
+nu9ve save /Volumes/TARJETA --archive MEDIA9 --work EDICION \
+  --project intro --profile canal-a --country mx --city oaxaca
+nu9ve save all --archive MEDIA9 --work EDICION --project intro
 ```
 
 `save` presenta resumen, rutas de destino por archivo y pide `GUARDAR`; `--dry-run` muestra el plan y `--yes` omite sólo esa confirmación estándar. Para conservar fuente: `--keep-source`. El atajo `save all mx TEXTO` equivale a `save all --country mx --project TEXTO`: el último texto ahora es **proyecto**, no ciudad. No combinar esos posicionales con `--country`/`--project`; ciudad y perfil se seleccionan con flags separados. El antiguo motor quedó como `legacy-save`, con sus riesgos intactos.
@@ -50,11 +50,11 @@ nu9ve save all --archive MEDIA502 --work ESSD --project intro
 ### Sólo respaldo, sin archivos de trabajo
 
 ```sh
-nu9ve save all mx kasakarla-electroritual --archive MEDIA502 --no-work
+nu9ve save all mx kasakarla-electroritual --archive MEDIA9 --no-work
 # Para elegir una sola tarjeta:
-nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA502 --no-work
+nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA9 --no-work
 # Vista previa: no copia ni limpia. La confirmación explícita permite construir el plan archive-only.
-nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA502 \
+nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA9 \
   --no-work --confirm-archive-only --dry-run
 ```
 
@@ -63,7 +63,7 @@ nu9ve save /Volumes/EOS_DIGITAL mx kasakarla-electroritual --archive MEDIA502 \
 Archivo sin SSD, explícito por operación:
 
 ```sh
-nu9ve save /Volumes/TARJETA --archive MEDIA502 --work ESSD --project intro \
+nu9ve save /Volumes/TARJETA --archive MEDIA9 --work EDICION --project intro \
   --archive-only --confirm-archive-only --work-decision pending
 ```
 
@@ -78,7 +78,7 @@ nu9ve media jobs
 nu9ve media job JOB_ID
 nu9ve media resume JOB_ID
 nu9ve media library --work-state pending
-nu9ve media deliver ASSET_ID --work ESSD
+nu9ve media deliver ASSET_ID --work EDICION
 nu9ve media work-state ASSET_ID --state skipped
 nu9ve media resolve ASSET_ID
 nu9ve media restore ASSET_ID /ruta/destino-existente
@@ -89,7 +89,7 @@ nu9ve media rename-project PROJECT_ID nuevo-titulo
 Reintento por archivo, no rollback general. `paused`/`failed` requieren revisar error y reanudar; una operación completada no vuelve a limpiar. Recovered jobs se usan para restore/delivery, no para reanudar limpieza de una SD.
 
 ```sh
-nu9ve media recover-catalog MEDIA502
+nu9ve media recover-catalog MEDIA9
 ```
 
 Recovery lee recibos de archivo y vuelve a verificar bytes. No sustituye una estrategia de backup para todas las decisiones posteriores del catálogo; ver bloqueadores en STATUS. No borrar staging/contendedores de jobs a mano como solución rutinaria.
@@ -114,7 +114,7 @@ La instalación es un snapshot: para incorporar cambios futuros vuelve a ejecuta
 
 En «Ingreso», elige fuente/proyecto/MEDIA y **Copiar también al SSD para editar**:
 
-- **Ninguno · sólo respaldo**: omite el ESSD incluso conectado, sin pendientes. Es la selección inicial.
+- **Ninguno · sólo respaldo**: omite el EDICION incluso conectado, sin pendientes. Es la selección inicial.
 - **Todo el lote**: respalda todo y copia también los archivos editables al SSD; índices/auxiliares siguen sólo en archivo.
 - **Elegir archivos**: abre directamente selección intermedia desde compacto; pulsa **Inspeccionar archivos** si aún no hay lista; las miniaturas visibles se cargan bajo demanda. Marca las unidades que quieras editar y asigna proyecto por unidad si hace falta. Todo se respalda, incluidas las unidades sin marcar. Pares RAW/JPG y bundles se mantienen juntos. Sin marcas se requiere confirmar sólo respaldo.
 
@@ -126,13 +126,13 @@ En ajustes, **Apariencia** ofrece Claro/Oscuro/Sistema y matiz/saturación/brill
 
 ### Perfiles y espacios de trabajo
 
-Ajustes se divide en **Perfiles, Discos, Apariencia, Capturas y Diagnóstico**. En Perfiles crea/edita ID (`9logs`), etiqueta, carpeta relativa (`9logs_raw`) y discos sugeridos. La ruta es `<raíz SSD>/<prefix registrado>/<raw_dir>/<proyecto>`. La selección del perfil en la app aplica discos sugeridos; CLI debe elegirlos con sus flags habituales. La carpeta se incorpora al planner compartido y queda congelada en cada plan. No mueve backups previos. País/ciudad, proyecto y perfil siguen separados.
+Ajustes se divide en **Perfiles, Discos, Apariencia, Capturas y Diagnóstico**. En Perfiles crea/edita ID (`blog`), etiqueta, carpeta relativa (`blog_raw`) y discos sugeridos. La ruta es `<raíz SSD>/<prefix registrado>/<raw_dir>/<proyecto>`. La selección del perfil en la app aplica discos sugeridos; CLI debe elegirlos con sus flags habituales. La carpeta se incorpora al planner compartido y queda congelada en cada plan. No mueve backups previos. País/ciudad, proyecto y perfil siguen separados.
 
 Boundary local para agentes/otras superficies, mediante `media rpc` (una petición JSON por proceso):
 
 ```json
 {"method":"profiles","params":{}}
-{"method":"save_profile","params":{"id":"9logs","name":"9logs","raw_dir":"9logs_raw","work":"ESSD","archive":"MEDIA502"}}
+{"method":"save_profile","params":{"id":"blog","name":"blog","raw_dir":"blog_raw","work":"EDICION","archive":"MEDIA9"}}
 ```
 
 La segunda petición cambia configuración local, no copia media. Volúmenes por ID/nombre registrado, roles validados y paths relativos sin traversal. No añade herramientas de escritura al MCP read-only.
@@ -177,15 +177,15 @@ MCP local: `nu9ve media mcp`; stdio JSON-RPC, sólo búsqueda/resolución/jobs/v
 - Un disco desconectado se sigue consultando con los datos de su último análisis y su fecha. **Sin contar** es el uso del disco que el recorrido no alcanzó.
 
 ```bash
-nu9ve media storage-scan ESSD
+nu9ve media storage-scan EDICION
 ```
 
 ```bash
-nu9ve media storage-tree ESSD --path 0000_acomodar
+nu9ve media storage-tree EDICION --path 0000_acomodar
 ```
 
 ```bash
-nu9ve media storage-compare ESSD --path 0000_acomodar
+nu9ve media storage-compare EDICION --path 0000_acomodar
 ```
 
 ### Bandeja Stalker, proyectos y liberar espacio
@@ -195,9 +195,9 @@ La bandeja lee `~/Library/Application Support/Stalker/library.json` (`stalker-li
 Cada sesión terminada pendiente muestra preview de su video de pantalla, fecha, duración y pistas cuando el manifiesto lo permite, además de proyecto y país. «Preparar lote» abre una biblioteca y prepara todas sus sesiones pendientes en un plan revisable; el proyecto puede asignarse por sesión con los tres proyectos recientes o texto libre. Una raíz de biblioteca equivale a un plan; varias raíces se procesan por separado. El `manifest.project` versión 1 es una sugerencia confirmable; sin él se muestra «Sin proyecto». Las etiquetas se guardan por UUID en el catálogo, resisten el renombre del bundle y **no escriben el manifiesto**. Cada sesión terminada también conserva las acciones individuales «Guardar» / «Guardar y preparar». El país también se congela por unidad. No se infiere un proyecto por proximidad con otra grabación.
 
 1. En Bandeja, asignar proyectos y preparar la sesión/biblioteca.
-2. En Ingreso, elegir MEDIA y ninguna/todas/algunas copias de trabajo; revisar el plan. Por defecto, **Ejecutar plan revisado** copia, verifica y después revisa Clipper/reenlaza con ACK antes de retirar cada original local. El bundle completo queda en MEDIA y, si se eligió, ESSD.
+2. En Ingreso, elegir MEDIA y ninguna/todas/algunas copias de trabajo; revisar el plan. Por defecto, **Ejecutar plan revisado** copia, verifica y después revisa Clipper/reenlaza con ACK antes de retirar cada original local. El bundle completo queda en MEDIA y, si se eligió, EDICION.
 3. Ajustes → Capturas → **Conservar el original Stalker después del respaldo** deja esa sesión para liberarla manualmente después. También se conserva automáticamente si Clipper no está disponible, hay proyectos/colas desconocidos, falla el reenlace o cambia una copia/origen durante la revisión. La respuesta del plan muestra por sesión qué se liberó y qué quedó retenido.
-4. Para una sesión archivada anteriormente o retenida por la política/una compuerta, abrir **Inicio** → «sesiones archivadas con original local» → **Revisar liberar local…**. En la hoja de liberación, revisar rutas, bytes y bloqueos. Si hace falta, **Reenlazar Clipper al destino verificado** pide el cambio al CLI de Clipper y valida su ACK. Para un original Stalker se prefiere una copia completa y verificada del ESSD; si no existe, se propone MEDIA. No se editan JSON de Clipper desde nüün.
+4. Para una sesión archivada anteriormente o retenida por la política/una compuerta, abrir **Inicio** → «sesiones archivadas con original local» → **Revisar liberar local…**. En la hoja de liberación, revisar rutas, bytes y bloqueos. Si hace falta, **Reenlazar Clipper al destino verificado** pide el cambio al CLI de Clipper y valida su ACK. Para un original Stalker se prefiere una copia completa y verificada del EDICION; si no existe, se propone MEDIA. No se editan JSON de Clipper desde nüün.
 5. **Liberar copias del plan…** es la acción manual para esos casos y pide una confirmación propia. Sólo retira archivos mostrados tras rehash de MEDIA, relectura del origen y comprobación actual de dependencias; el registro permite reanudar tras interrupción. Las carpetas vacías se retiran; metadata Finder ignorada puede dejar una carpeta mínima.
 
 La aplicación no puede hacer una transacción ACID entre discos, catálogo y Clipper. Es un flujo único y journalizado: las copias se verifican primero, Clipper confirma los relinks después, y cada retiro se registra antes de borrar. Si se detiene a mitad, el respaldo permanece y el original que falte se conserva o se reanuda desde el mismo plan.
@@ -208,7 +208,7 @@ Ajustes → Capturas permite elegir el **ejecutable de Clipper** (por ejemplo el
 
 El guard de proyectos antiguos revisa sólo lectura los proyectos del directorio estándar `~/Downloads/clipper-projects` (o `CLIPPER_PROJECTS_ROOT`), los del primer nivel de Downloads, el registro de proyectos enlazados y snapshots de la cola. Un proyecto antiguo que usa una ruta pero no está adoptado en la biblioteca **bloquea** la liberación: requiere adopción/relink en Clipper; nüün no lo migra silenciosamente. Un proyecto en una ubicación desconocida/no registrada no puede descubrirse de forma garantizada. Jobs fallidos/cancelados con snapshots conservados se tratan conservadoramente como dependencias; terminar o retirar la cola antes de liberar.
 
-### Material anterior en ESSD y catálogo completo
+### Material anterior en EDICION y catálogo completo
 
 En **Biblioteca → Discos**, elegir una carpeta de un SSD registrado. **Comprobar** compara su contenido con MEDIA, aunque los nombres difieran; ver [Mapa de discos](#mapa-de-discos). **Respaldar…** lleva al ingreso con limpieza desactivada y sólo archivo: sirve para una carpeta de raws que admita el planner. Carpetas de proyectos de editor/Final Cut siguen rechazadas por ese planner; no es un backup general de bibliotecas editoriales. Antes de liberar cualquier archivo sin cobertura, archivarlo primero. **Revisar liberación…** verifica contenido actual en MEDIA, incluso con nombres históricos diferentes. Retira sólo media editable/bundles completos; conserva `clipper/`, `renders/`, bibliotecas FCP y auxiliares ajenos. No es una eliminación recursiva del proyecto. Las ubicaciones de trabajo retiradas siguen en los recibos históricos y `sources` las reporta como retiradas.
 

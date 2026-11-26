@@ -70,7 +70,7 @@ Si el proyecto requiere menos tipos que el perfil, se pueden usar los tipos
 elegidos como excepción sólo para el proyecto.
 
 Un final pendiente de publicar se copia a MEDIA cuando falta y se verifica.
-Su copia de ESSD se conserva para publicar y el estado de publicación
+Su copia de EDICION se conserva para publicar y el estado de publicación
 permanece pendiente. Un final publicado de trabajo conserva la política
 de retirar esa copia sólo tras verificar el respaldo y sus dependencias.
 El plan identifica estas acciones mediante `keep_work`, `copy_required`
@@ -112,7 +112,7 @@ Al reabrir un proyecto con un cierre aplicado, la hoja empieza con su resumen: f
 
 ## Carpeta de Clipper y caché · decisión del usuario · 2026-11-07
 
-Medido en ESSD, en sólo lectura: las carpetas `clipper/` de cuatro proyectos `e64` suman 9.9 GB y sus transcripciones unos 16 MB. Dos de esos proyectos ya están retirados en Clipper, `terra-6-1-extra` (634 MB, 509 de caché) y `debloateando-mi-tele` (833 MB, 740 de caché). `buscando-baches-con-el-dron` guarda 4.6 GB de exports, 2.7 GB de caché y 314 MB de temporales `.clipper-multicam-*` que quedaron en `logs/`. Ningún export coincide en tamaño con un final de ESSD o MEDIA502. El usuario ya había limpiado la caché desde Clipper en los demás proyectos; lo que queda (268–740 MB por proyecto) es siempre `cache/stalker/*.wav`, el audio que Clipper extrae de las sesiones Stalker y que su Storage / Cleanup no ofrece borrar.
+Medido en EDICION, en sólo lectura: las carpetas `clipper/` de cuatro proyectos `canal-a` suman 9.9 GB y sus transcripciones unos 16 MB. Dos de esos proyectos ya están retirados en Clipper, `terra-6-1-extra` (634 MB, 509 de caché) y `debloateando-mi-tele` (833 MB, 740 de caché). `buscando-baches-con-el-dron` guarda 4.6 GB de exports, 2.7 GB de caché y 314 MB de temporales `.clipper-multicam-*` que quedaron en `logs/`. Ningún export coincide en tamaño con un final de EDICION o MEDIA9. El usuario ya había limpiado la caché desde Clipper en los demás proyectos; lo que queda (268–740 MB por proyecto) es siempre `cache/stalker/*.wav`, el audio que Clipper extrae de las sesiones Stalker y que su Storage / Cleanup no ofrece borrar.
 
 Decisión:
 - A largo plazo se conservan las transcripciones y lo necesario para recuperar la edición. Al retirar un proyecto no deben quedar archivos inaccesibles acumulándose.
@@ -145,7 +145,7 @@ El usuario pidió avanzar el 7 nov: el intercambio quedó definido en [transcrip
 
 ## Una sola verificación al aplicar · 2026-11-08
 
-Medido en el cierre de Terra: aplicar rehasheaba dos veces todas las fuentes y entregas del grupo en MEDIA502 (unos 10 GB a ~117 MB/s) aunque nüün no retiraba nada. Ahora:
+Medido en el cierre de Terra: aplicar rehasheaba dos veces todas las fuentes y entregas del grupo en MEDIA9 (unos 10 GB a ~117 MB/s) aunque nüün no retiraba nada. Ahora:
 - **Una verificación del respaldo por aplicación.** `apply_close` la hace y pasa sus guardas a `apply_release`, que ya no relee todo. Antes de cada retiro se siguen vigilando por stamp, y un cambio obliga a rehashear. Se conserva la relectura por archivo previa a cada retiro de nüün.
 - **Sin retiros de nüün** (el plan sólo copia transcripciones, conserva entregas o deja que Clipper borre sus regenerables), una copia del respaldo cuyo stamp coincide con el que la revisión registró al hashearla (`archive_stamp`) no se vuelve a leer. Una copia cambiada, una hecha en esta misma aplicación o una sin stamp de revisión se hashea completa. Es la misma vigilancia por stamp que Transfer usa con destinos verificados.
 - **Con retiros de nüün** se hashea cada copia del respaldo una vez antes del primer retiro, como exige «liberación con hash actual».
@@ -194,21 +194,21 @@ Diseño original, que sigue vigente:
 
 1. **Sugerir y confirmar.** Desde Proyectos (antes se pensó en la hoja de cierre), se listan proyectos del mismo perfil cuyo título normalizado empieza por el del otro seguido de `-` (`terra-6-1` ↔ `terra-6-1-extra`). La persona confirma «es una regrabación del mismo trabajo». Se guarda en ambos `project-closure:` como `related[{project_id, kind: 'rerecording'}]`, con el evento `project_relation_confirmed`. Quitar la relación es otra decisión registrada.
 2. **Una lista de entregas.** La selección muestra las entregas de los dos proyectos en un solo grupo por tipo. Cada final conserva su proyecto dueño: la regla `final_already_linked` no cambia y nada se reasigna. Los requisitos de cada proyecto se cumplen con la unión: un horizontal de `terra-6-1-extra` cubre el horizontal de `terra-6-1`, y la revisión dice «cubre el requisito de terra-6-1 · pertenece a terra-6-1-extra».
-3. **Fuentes y acciones por tanda.** El plan es uno solo, con un digest, pero `closure_scopes` lleva el proyecto de cada scope. La revisión muestra una sección por tanda: raws, intermedios y badges de efecto. Una tanda sin trabajo en ESSD sale con **Sin acción**.
+3. **Fuentes y acciones por tanda.** El plan es uno solo, con un digest, pero `closure_scopes` lleva el proyecto de cada scope. La revisión muestra una sección por tanda: raws, intermedios y badges de efecto. Una tanda sin trabajo en EDICION sale con **Sin acción**.
 4. **Sin fusionar historiales.** Cada proyecto conserva su catálogo, sus alias, recibos y eventos. Al terminar, el commit terminal escribe `project-state`, `project-released` y `project-closure` de cada uno en la misma transacción.
-5. **Terra hoy.** `terra-6-1` ya está cerrado (siete archivos retirados). Al incluir la regrabación, su tanda saldría **Sin acción** y la de `terra-6-1-extra` mostraría lo que aún tenga en ESSD.
+5. **Terra hoy.** `terra-6-1` ya está cerrado (siete archivos retirados). Al incluir la regrabación, su tanda saldría **Sin acción** y la de `terra-6-1-extra` mostraría lo que aún tenga en EDICION.
 
 La alternativa más corta, dos cierres separados en los que el requisito acepta finales de un proyecto relacionado confirmado, ahorra la vista por tandas pero obliga a revisar dos veces las mismas entregas.
 
 ## Autoridades y alcance
 
-- nüün guarda requisitos por proyecto, con valor inicial por perfil: `9logs`
-  sólo horizontal; `e64` horizontal, al menos un vertical y thumbnail. La
+- nüün guarda requisitos por proyecto, con valor inicial por perfil: `blog`
+  sólo horizontal; `canal-a` horizontal, al menos un vertical y thumbnail. La
   persona confirma la selección definitiva. La publicación tiene su propia
   declaración. Marcar terminado y guardar decisiones no borran media.
 - Los nombres sólo filtran candidatos. La persona vincula finales de trabajo
   o archivo a un proyecto existente; una ubicación no se reasigna en silencio.
-  No se renombran carpetas ni cambia el mapping `e64` / `erikiado64`.
+  No se renombran carpetas ni cambia el mapping `canal-a` / `estudio-a`.
 - Stalker conserva manifests y reloj. Se reutiliza el ingreso de bundles y
   los recibos existentes; este cierre no vuelve a implementar el ingreso.
 - Clipper conserva edición, registro y colas. Se usan deps, exclusión de
@@ -292,7 +292,7 @@ archivos sólo para entregas sin limpieza; conserva digest/preflight/verificaci�
 
 Material histórico con fuentes sin catálogo exige adopción/auditoría antes de
 este cierre. Sí pueden vincularse finales ya movidos a la colección `finales`
-de MEDIA sin devolverlos a ESSD ni reorganizar terabytes. No se localiza ni
+de MEDIA sin devolverlos a EDICION ni reorganizar terabytes. No se localiza ni
 borra cualquier caché del disco ni carpetas editoriales arbitrarias.
 
 API de retiro Clipper disponible en su checkout CLI/TUI, con plan/digest,
@@ -316,11 +316,11 @@ El usuario reporta haber eliminado algunos intermedios fuera de nüün y algunos
 
 Pendiente operativo: observar el estado desde Biblioteca/Actividad y el siguiente plan de la app; si bloquea, registrar razón y proyecto/cola concretos. No afirmar reconciliación de los borrados reales sólo por esta lectura de código.
 
-### Observación en ESSD · 2026-11-15
+### Observación en EDICION · 2026-11-15
 
-La lectura de `clipper library deps --json` mostró cinco proyectos activos, tres recibos de retiro y ningún proyecto offline. Se cotejaron las rutas contra ESSD y se consultó `sources` sobre una copia del catálogo. «Es tiempo de reescribir todo el software» tenía tres rutas de edición ausentes y «Fractos app intro fondo», dos. Clipper aún las reportaba en uso, sin cola, y las cinco tenían una ubicación visible en MEDIA502. El catálogo sí registra el retiro local de tres bundles originales de Stalker. En los registros de liberación consultados no aparece el retiro de esas cinco rutas exactas de ESSD. Su autoría y momento siguen desconocidos. Para seguir editando corresponde restaurar o reenlazar mediante el flujo revisado de Clipper. Los respaldos se vuelven a verificar antes de usar.
+La lectura de `clipper library deps --json` mostró cinco proyectos activos, tres recibos de retiro y ningún proyecto offline. Se cotejaron las rutas contra EDICION y se consultó `sources` sobre una copia del catálogo. «Es tiempo de reescribir todo el software» tenía tres rutas de edición ausentes y «Fractos app intro fondo», dos. Clipper aún las reportaba en uso, sin cola, y las cinco tenían una ubicación visible en MEDIA9. El catálogo sí registra el retiro local de tres bundles originales de Stalker. En los registros de liberación consultados no aparece el retiro de esas cinco rutas exactas de EDICION. Su autoría y momento siguen desconocidos. Para seguir editando corresponde restaurar o reenlazar mediante el flujo revisado de Clipper. Los respaldos se vuelven a verificar antes de usar.
 
-«Buscando baches en Hermosillo con el dron» tenía siete assets ligados a exportaciones en cola. Los `cleanup-plan` de «El repositorio de nu9ve», «Buscando baches con el dron» y «Buscando baches en Hermosillo con el dron» listaron 839 MB de caché regenerable entre los tres, sin preselección. Los retiros observados de «Debloateando mi tele», «Terra 6.1 extra» e «Intro al Clipper y a su TUI» no listaron regenerables elegibles. Cada fila de Proyectos puede consultar cola, rutas ausentes y retiro editorial por ID. Los recibos de retiro informan el estado editorial. La autorización de mover o liberar media sigue en la revisión de nüün.
+Un proyecto de dron tenía siete assets ligados a exportaciones en cola. Los `cleanup-plan` de «El repositorio de nu9ve», «Buscando baches con el dron» y ese proyecto de dron listaron 839 MB de caché regenerable entre los tres, sin preselección. Los retiros observados de «Debloateando mi tele», «Terra 6.1 extra» e «Intro al Clipper y a su TUI» no listaron regenerables elegibles. Cada fila de Proyectos puede consultar cola, rutas ausentes y retiro editorial por ID. Los recibos de retiro informan el estado editorial. La autorización de mover o liberar media sigue en la revisión de nüün.
 
 ### Restaurar una ruta que Clipper sigue usando
 

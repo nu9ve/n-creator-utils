@@ -26,9 +26,11 @@ if not (source / 'photo.JPG').exists():
     (source / 'photo.JPG').write_bytes(b'fixture-photo')
 catalog = Catalog(state / 'catalog')
 if not catalog.volumes():
-    for name, role, folder, prefix in [('MEDIA', 'archive', 'archive', '001_raw'), ('ESSD', 'work', 'work', '001_proyectos')]:
+    for name, role, folder, prefix in [('MEDIA', 'archive', 'archive', '001_raw'), ('EDICION', 'work', 'work', '001_proyectos')]:
         root = state / folder
         catalog.register(name, role, root, backend.describe(root), prefix)
+    # The library's own defaults, as the app saves them; the planner has none of its own.
+    catalog.set('defaults', {'profile': 'canal-a', 'country': 'mx', 'city': 'oaxaca'})
 request = json.load(sys.stdin)
 try:
     service = Service(catalog, backend)

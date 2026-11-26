@@ -3,7 +3,7 @@
 //! - `suite_profiles` (lectura): qué perfiles hay, de qué tipo, en qué apps y dónde viven sus bibliotecas, con
 //!   los perfiles creativos de nüün y si ya tienen su entrada `nuun`. Lo de otras apps es sólo lectura.
 //! - `suite_profiles_register` (escritura, con la confirmación de la persona): agrega la entrada `nuun` a cada
-//!   perfil creativo del catálogo. Si el perfil ya existe (nove lo crea primero con `e64`) sólo agrega su entrada
+//!   perfil creativo del catálogo. Si el perfil ya existe (nove lo crea primero con `canal-a`) sólo agrega su entrada
 //!   y, si hace falta, el nombre de nüün como alias; nunca toca la entrada de otra app.
 //!
 //! Bajo QA (una raíz aislada) sólo se usa `NU9VE_PROFILES_FILE`: nunca el archivo de la persona (perfil §1).
@@ -56,10 +56,12 @@ fn creative(catalog: &Catalog) -> Result<(Vec<Value>, Option<String>)> {
         .into_values()
         .collect();
     list.sort_by(|a, b| a["id"].as_str().cmp(&b["id"].as_str()));
-    let default = catalog
-        .get("defaults")?
-        .and_then(|d| d["profile"].as_str().map(str::to_owned))
-        .or_else(|| Some("e64".to_owned()));
+    let default = catalog.get("defaults")?.and_then(|d| {
+        d["profile"]
+            .as_str()
+            .filter(|p| !p.is_empty())
+            .map(str::to_owned)
+    });
     Ok((list, default))
 }
 
@@ -305,13 +307,13 @@ mod tests {
             .set(
                 "creative-profiles",
                 &json!({
-                    "e64": {"id": "e64", "name": "erikiado64", "raw_dir": "e64_raw"},
-                    "nu9ve-xyz": {"id": "nu9ve-xyz", "name": "nu9ve.xyz", "raw_dir": "nu9ve-xyz"}}),
+                    "canal-a": {"id": "canal-a", "name": "estudio-a", "raw_dir": "canal-a_raw"},
+                    "canal-b": {"id": "canal-b", "name": "Canal B", "raw_dir": "canal-b"}}),
             )
             .unwrap();
         crate::catalog::WritableCatalog::open(home)
             .unwrap()
-            .set("defaults", &json!({"profile": "e64"}))
+            .set("defaults", &json!({"profile": "canal-a"}))
             .unwrap();
     }
 
@@ -345,11 +347,11 @@ mod tests {
         .unwrap();
         assert_eq!(done["file"]["state"], "ok");
         let doc = nu9ve_profiles::read(&file).unwrap().unwrap();
-        let e64 = nu9ve_profiles::find(&doc, "e64").unwrap();
-        assert_eq!(e64["kind"], "person");
-        assert_eq!(e64["apps"]["nuun"]["default"], true);
+        let profile = nu9ve_profiles::find(&doc, "canal-a").unwrap();
+        assert_eq!(profile["kind"], "person");
+        assert_eq!(profile["apps"]["nuun"]["default"], true);
         assert_eq!(
-            nu9ve_profiles::find(&doc, "nu9ve-xyz").unwrap()["kind"],
+            nu9ve_profiles::find(&doc, "canal-b").unwrap()["kind"],
             "team"
         );
         assert_eq!(
@@ -367,10 +369,10 @@ mod tests {
     #[test]
     fn a_file_from_nove_keeps_its_entry_and_only_gains_nuun() {
         let (_dir, home, file) = setup();
-        let nove = nu9ve_profiles::create_profile_change("e64", "Erik", "person");
+        let nove = nu9ve_profiles::create_profile_change("canal-a", "Ana", "person");
         nu9ve_profiles::change(&file, &nove, None).unwrap();
         let entry = nu9ve_profiles::upsert_app_change(
-            "e64",
+            "canal-a",
             "nove",
             "/Users/ana/nove/engine",
             true,
@@ -382,19 +384,19 @@ mod tests {
             &home,
             &file,
             None,
-            &json!({"confirm": true, "profiles": ["e64"]}),
+            &json!({"confirm": true, "profiles": ["canal-a"]}),
         )
         .unwrap();
         let doc = nu9ve_profiles::read(&file).unwrap().unwrap();
-        let e64 = nu9ve_profiles::find(&doc, "e64").unwrap();
-        assert_eq!(e64["display_name"], "Erik");
-        assert_eq!(e64["aliases"], json!(["erikiado64"]));
+        let profile = nu9ve_profiles::find(&doc, "canal-a").unwrap();
+        assert_eq!(profile["display_name"], "Ana");
+        assert_eq!(profile["aliases"], json!(["estudio-a"]));
         assert_eq!(
-            e64["apps"]["nove"],
-            nu9ve_profiles::find(&before, "e64").unwrap()["apps"]["nove"]
+            profile["apps"]["nove"],
+            nu9ve_profiles::find(&before, "canal-a").unwrap()["apps"]["nove"]
         );
-        assert_eq!(e64["apps"]["nuun"]["library"], json!(home));
-        assert!(nu9ve_profiles::find(&doc, "nu9ve-xyz").is_none());
+        assert_eq!(profile["apps"]["nuun"]["library"], json!(home));
+        assert!(nu9ve_profiles::find(&doc, "canal-b").is_none());
         let read = overview_at(&home, Some(&file)).unwrap();
         let apps = &read["profiles"][0]["apps"];
         assert_eq!(apps[0]["app"], "nove");

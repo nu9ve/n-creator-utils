@@ -1110,7 +1110,7 @@ mod tests {
     }
 
     fn unit(id: &str, camera: &str, device: Value) -> Value {
-        json!({"id": id, "project": "intro", "profile": "e64", "camera": camera, "kind": "camera_bundle",
+        json!({"id": id, "project": "intro", "profile": "canal-a", "camera": camera, "kind": "camera_bundle",
                "device": device})
     }
 
@@ -1133,7 +1133,7 @@ mod tests {
         assert_eq!(
             layout["DCIM/101MEDIA/DJI_0001.JPG"],
             json!({"archive": "dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG",
-                   "work": "e64_raw/intro/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG"})
+                   "work": "canal-a_raw/intro/26NOV04-163212_MAVICAIR2_MX-INTRO[].JPG"})
         );
         assert_eq!(
             layout["DCIM/101MEDIA/DJI_0001.DNG"],
@@ -1184,7 +1184,7 @@ mod tests {
         assert_eq!(
             layout["PRIVATE/M4ROOT/CLIP/C0001.MP4"],
             json!({"archive": "v4k/2026/11/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4",
-                   "work": "e64_raw/intro/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4"})
+                   "work": "canal-a_raw/intro/26NOV04-163212_SONYA6400_00-10_MX-INTRO[].MP4"})
         );
         assert_eq!(
             layout["PRIVATE/M4ROOT/CLIP/C0001M01.XML"],
@@ -1209,7 +1209,7 @@ mod tests {
         ];
         let mut units = vec![
             unit("u1", "dji-drone", json!({"source": "MAVICAIR2"})),
-            json!({"id": "sup", "project": "camera-support", "profile": "e64", "camera": "generic",
+            json!({"id": "sup", "project": "camera-support", "profile": "canal-a", "camera": "generic",
                    "kind": "file", "support": true}),
         ];
         let layout = build_layout(root.path(), &drone_plan(), &mut units, &files).unwrap();

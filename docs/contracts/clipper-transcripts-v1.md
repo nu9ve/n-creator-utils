@@ -17,18 +17,18 @@ Sólo lectura. Responde un documento `clipper-transcript-export/1`:
 ```json
 {
   "schema": "clipper-transcript-export/1",
-  "project_root": "/Volumes/ESSD/001_proyectos/e64/terra-6-1-extra/clipper",
+  "project_root": "/Volumes/EDICION/001_proyectos/canal-a/terra-6-1-extra/clipper",
   "project_state": "active | retired",
   "generated_at": "2026-11-07T23:40:00Z",
   "entries": [
     {
-      "path": "/Volumes/ESSD/.../clipper/transcripts/26OCT27-040446_SONYA6400_23-11_MX-TERRA-6-1-EXTRA[].transcript.json",
+      "path": "/Volumes/EDICION/.../clipper/transcripts/26OCT27-040446_SONYA6400_23-11_MX-TERRA-6-1-EXTRA[].transcript.json",
       "format": "transcript.json | srt | vtt | ass | provider-response.json",
       "bytes": 123456,
       "sha256": "…64 hex…",
       "stamp": {"device": 0, "inode": 0, "size": 0, "mtime_ns": 0, "ctime_ns": 0},
       "source": {
-        "path": "/Volumes/ESSD/001_proyectos/e64_raw/terra-6-1-extra/26OCT27-040446_SONYA6400_23-11_MX-TERRA-6-1-EXTRA[].MP4",
+        "path": "/Volumes/EDICION/001_proyectos/canal-a_raw/terra-6-1-extra/26OCT27-040446_SONYA6400_23-11_MX-TERRA-6-1-EXTRA[].MP4",
         "asset_id": "uuid de nüün si la fuente llegó por `sources`/handoff, o null",
         "member_sha256": "sha256 del miembro de nüün si se conoce, o null",
         "clipper_fingerprint": "huella de transcript_store"
@@ -81,7 +81,7 @@ El ingreso de la SD no espera transcripciones.
 
 En el sandbox de macOS, Rust también implementa el respaldo a pedido `transcripts_backup`. Ambos motores exigen un volumen de respaldo registrado, aceptan su nombre o ID y usan el ID para buscar recibos. Una copia que se iba a adoptar vuelve a verificarse antes de incluirla en el recibo. En el cierre editorial de Rust, las transcripciones se verifican antes y durante el retiro de originales. Si la operación se interrumpe después del respaldo, el mismo plan reutiliza su recibo.
 
-Las pruebas de las dos partes usan fixtures y carpetas temporales; nunca ESSD ni MEDIA502. La aceptación física es una prueba aparte con un proyecto pequeño.
+Las pruebas de las dos partes usan fixtures y carpetas temporales; nunca EDICION ni MEDIA9. La aceptación física es una prueba aparte con un proyecto pequeño.
 
 ### Precisiones de la implementación de nüün (2026-11-07)
 

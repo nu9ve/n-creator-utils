@@ -59,7 +59,7 @@
 "Auxiliares" = "Auxiliary";
 "Añadir SSD para editar…" = "Add editing SSD…";
 "Añadir disco de respaldo…" = "Add backup disk…";
-"Aún no hay perfiles guardados. e64 usa e64_raw hasta que lo configures." = "No saved profiles yet. e64 uses e64_raw until you configure it.";
+"Aún no hay perfiles guardados. Crea uno: sus raws van a ID_raw hasta que elijas otra carpeta." = "No saved profiles yet. Create one: its raws go to ID_raw until you choose another folder.";
 "Biblioteca" = "Library";
 "Biblioteca de Stalker" = "Stalker library";
 "Biblioteca vacía" = "Empty library";
@@ -75,7 +75,7 @@
 "Captura" = "Capture";
 "Capturas" = "Captures";
 "Carpeta de capturas Stalker" = "Stalker captures folder";
-"Carpeta de raws: 9logs_raw" = "Raw folder: 9logs_raw";
+"Carpeta de raws: mi-canal_raw" = "Raw folder: my-channel_raw";
 "Catálogo completo verificado en " = "Full catalog verified at ";
 "Cerrar ventana" = "Close Window";
 "Ciudad" = "City";
@@ -112,7 +112,7 @@
 "Cámara" = "Camera";
 "DJI sin clasificar" = "Unclassified DJI";
 "Desactivado: elegir una fuente no recorre sus archivos hasta que abres Contenido o revisas el plan." = "Off: choosing a source does not read its files until you open Content or review the plan.";
-"Desactivado: tras verificar MEDIA/ESSD, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo." = "Off: after MEDIA/ESSD verify, Clipper is checked and the original is released in the same plan. Unknown dependencies, queues or failures keep it for a later release from Space. Tracks and the whole bundle stay in the backup.";
+"Desactivado: tras verificar el respaldo y el disco de trabajo, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo." = "Off: after the backup and the work disk verify, Clipper is checked and the original is released in the same plan. Unknown dependencies, queues or failures keep it for a later release from Space. Tracks and the whole bundle stay in the backup.";
 "Descartar" = "Dismiss";
 "Desconectado" = "Disconnected";
 "Deshacer" = "Undo";
@@ -132,7 +132,7 @@
 "Editar en %@ · %@" = "Edit on %@ · %@";
 "Ejecutable de Clipper (para dependencias y reenlace)" = "Clipper executable (for dependencies and relinking)";
 "Ejecutar plan revisado…" = "Run Reviewed Plan…";
-"Ejemplo: ESSD / 001_proyectos / 9logs_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales." = "Example: ESSD / 001_proyectos / 9logs_raw / PROJECT. Suggested disks apply when choosing the profile; the plan always shows the real destinations.";
+"Ejemplo: SSD / 001_proyectos / mi-canal_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales." = "Example: SSD / 001_proyectos / my-channel_raw / PROJECT. Suggested disks apply when choosing the profile; the plan always shows the real destinations.";
 "El cambio se aplica al reiniciar nüün. Los mensajes técnicos del motor pueden aparecer en inglés." = "The change applies after restarting nüün. Technical engine messages may appear in English.";
 "El destino se vuelve a leer y verificar antes de retirar cada archivo. Se conservan carpetas de Clipper, renders y archivos auxiliares ajenos. Retirar estas copias puede dejar MEDIA como única réplica." = "The destination is re-read and verified before each file is removed. Clipper folders, renders and unrelated auxiliary files are kept. Removing these copies may leave MEDIA as the only replica.";
 "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. " = "The plan document does not match its digest. Prepare and review a new plan before copying. ";
@@ -174,7 +174,7 @@
 "Guardar y preparar" = "Save and prepare";
 "Guardar y redescubrir bibliotecas" = "Save and rediscover libraries";
 "Hay archivos DJI sin clasificar. Elige dron, 360 o action para cada uno y revisa de nuevo." = "Some DJI files are unclassified. Choose drone, 360 or action for each and review again.";
-"ID: 9logs" = "ID: 9logs";
+"ID: mi-canal" = "ID: my-channel";
 "Idioma" = "Language";
 "Idioma de la app" = "App language";
 "Igual que el sistema" = "Same as the system";
@@ -221,7 +221,7 @@
 "Nombra el proyecto" = "Name the project";
 "Nombra el proyecto del lote o de cada sesión" = "Name the batch project or each session's";
 "Nombre del proyecto" = "Project name";
-"Nombre: 9logs" = "Name: 9logs";
+"Nombre: Mi canal" = "Name: My channel";
 "Nueva ingesta" = "New Ingest";
 "Nuevo" = "New";
 "Ocultar nüün" = "Hide nüün";
@@ -346,7 +346,7 @@
 "Todo se respalda y los archivos editables se copian también al SSD." = "Everything is backed up and editable files are also copied to the SSD.";
 "Todo se respalda. No se crean copias para editar ni pendientes." = "Everything is backed up. No editing copies or pending items are created.";
 "Todo se respalda. Sólo los marcados en Contenido se copian al SSD para editar." = "Everything is backed up. Only the ones marked in Content are copied to the SSD for editing.";
-"Un perfil es un canal o contexto creativo (e64, 9logs…). El proyecto y país/ciudad siguen siendo independientes." = "A profile is a creative channel or context (e64, 9logs…). Project and country/city stay independent.";
+"Un perfil es un canal o contexto creativo (por ejemplo, tu canal o una marca). El proyecto y país/ciudad siguen siendo independientes." = "A profile is a creative channel or context (for example, your channel or a brand). Project and country/city stay independent.";
 "Una ventana · tres modos · miniaturas bajo demanda · sin sondeo periódico en reposo." = "One window · three modes · on-demand thumbnails · no idle polling.";
 "Usada antes en: %@" = "Used before in: %@";
 "Usado antes con esta tarjeta: %@" = "Used before with this card: %@";
@@ -577,7 +577,7 @@
 "sin carpeta de publicados" = "no published folder";
 "¿Mover esta sesión a la Papelera?" = "Move this session to the Trash?";
 "Detectar automáticamente" = "Detect automatically";
-"Perfil en Clipper: erikiado64" = "Profile in Clipper: erikiado64";
+"Perfil en Clipper: mi-canal" = "Profile in Clipper: my-channel";
 "Cómo se llama este perfil en Clipper. Vacío: sin indicar, y Clipper decide por su cuenta. No cambia rutas ni copias anteriores." = "What this profile is called in Clipper. Empty: not specified, and Clipper decides on its own. Doesn't change paths or earlier copies.";
 "Se detecta una carpeta llamada subidos, con o sin número (03_subidos). Sin carpeta elegida, todo lo que no esté en el respaldo cuenta como por respaldar. Los masters sueltos van a la carpeta de su año, según el nombre o, si no lo trae, la fecha de creación; las subcarpetas se conservan. Ya en respaldo compara nombre y tamaño, sin leer contenido, y no libera nada." = "A folder named subidos is detected, with or without a number (03_subidos). With no folder chosen, everything not in the backup counts as to back up. Loose masters go to their year's folder, from the name or, if it has none, the creation date; subfolders are kept. Already backed up compares name and size without reading content, and frees nothing.";
 "Prepara los finales desde Inicio o Flujos." = "Prepare the finals from Home or Flows.";
@@ -1107,3 +1107,4 @@
 "Sí, exportar" = "Yes, export";
 "Los historiales elegidos son personales. Se copiarán en una carpeta de este dispositivo. Puedes actualizar la copia cuando lo decidas." = "The selected histories are personal. They will be copied into this device's folder. You can update the copy whenever you choose.";
 "Copia en %@ · %lld archivos copiados · %lld cambiaron durante la copia" = "Copy on %@ · %lld files copied · %lld changed during the copy";
+"Disco de audio" = "Audio disk";

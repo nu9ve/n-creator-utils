@@ -365,14 +365,10 @@ pub(crate) fn normalized_name(value: &str) -> String {
 /// Python `closure.settings(catalog, project_id)`: the saved closeout decisions, or the profile's defaults.
 pub fn closure_settings(catalog: &Catalog, project_id: &str) -> Result<Value> {
     let (_, profile, _) = project_record(catalog, project_id)?;
-    let default_required = if profile == "9logs" {
-        json!(["horizontal"])
-    } else {
-        json!(["horizontal", "vertical", "thumbnail"])
-    };
+    // A profile's own requirements live in `closure-profile:<id>`; the code only knows the general default.
     let required = catalog
         .get(&format!("closure-profile:{profile}"))?
-        .unwrap_or(default_required);
+        .unwrap_or_else(|| json!(["horizontal", "vertical", "thumbnail"]));
     Ok(catalog
         .get(&format!("project-closure:{project_id}"))?
         .unwrap_or_else(

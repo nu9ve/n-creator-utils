@@ -647,7 +647,7 @@ mod tests {
         }
         let make = |source: &Path, project: &str, cleanup| {
             let plan = planner::build_plan(&s.home, &s.backend, &json!({
-                "source": source, "archive": "MEDIA", "work": "ESSD", "project": project, "cleanup": cleanup
+                "source": source, "archive": "MEDIA", "work": "EDICION", "project": project, "cleanup": cleanup
             })).unwrap();
             String::from_utf8(canonical(&plan)).unwrap()
         };
@@ -718,7 +718,7 @@ mod tests {
                 &s.home,
                 &s.backend,
                 &json!({
-                    "source": source, "archive": "MEDIA", "work": "ESSD", "project": project
+                    "source": source, "archive": "MEDIA", "work": "EDICION", "project": project
                 }),
             )
             .unwrap();
@@ -810,7 +810,7 @@ mod tests {
             &s.home,
             &s.backend,
             &json!({
-                "source":s.card,"archive":"MEDIA","work":"ESSD","project":"editor",
+                "source":s.card,"archive":"MEDIA","work":"EDICION","project":"editor",
                 "archive_only":true,"confirm_archive_only":true,"work_decision":"pending"
             }),
         )
@@ -827,7 +827,7 @@ mod tests {
         let work = plan_work(
             &s.home,
             &s.backend,
-            &json!({"asset_ids":[asset],"work":"ESSD"}),
+            &json!({"asset_ids":[asset],"work":"EDICION"}),
         )
         .unwrap();
         assert_eq!(work["bytes"], 5);

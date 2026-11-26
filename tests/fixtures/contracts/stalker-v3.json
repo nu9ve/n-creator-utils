@@ -5,7 +5,7 @@
   "status": "completed",
   "createdAt": "2026-10-28T17:00:00Z",
   "epochWallClock": "2026-10-28T17:00:00.123Z",
-  "captureTimeZone": "America/Hermosillo",
+  "captureTimeZone": "America/Phoenix",
   "duration": {"value": 1000, "timescale": 1000},
   "tracks": [{"id": "screen", "relativePath": "screen.mov"}],
   "project": {"version": 1, "name": "old", "country": "mx"}

@@ -1009,8 +1009,21 @@ pub mod test_backend {
         pub backend: Fixture,
     }
 
-    /// MediaFixture.setUp: a card, MEDIA (archive) and ESSD (work) registered with their fixture identities.
+    /// MediaFixture.setUp: a card, MEDIA (archive) and EDICION (work) registered with their fixture identities, and
+    /// the library's own defaults (profile, country, city), as the app saves them: the code has none of its own.
     pub fn setup() -> Setup {
+        let s = setup_bare();
+        let db = rusqlite::Connection::open(s.home.join("catalog.sqlite3")).unwrap();
+        db.execute(
+            "INSERT OR REPLACE INTO metadata(key, value) VALUES('defaults', ?1)",
+            [r#"{"city":"oaxaca","country":"mx","profile":"canal-a"}"#],
+        )
+        .unwrap();
+        s
+    }
+
+    /// `setup` without library defaults: the golden catalogs of `scripts/engine_golden.py` have none.
+    pub fn setup_bare() -> Setup {
         let temp = tempfile::tempdir().unwrap();
         // macOS temporary folders sit under /var, a symlink the scan refuses (Python's tests resolve it too).
         #[cfg(unix)]
@@ -1037,7 +1050,7 @@ pub mod test_backend {
         );
         fixture::register(
             &db,
-            "ESSD",
+            "EDICION",
             "work",
             &work,
             &backend.describe(&work, false).unwrap(),
@@ -1286,7 +1299,7 @@ mod tests {
                 .iter()
                 .map(|v| (v["name"].as_str().unwrap(), v["online"].as_bool().unwrap()))
                 .collect::<Vec<_>>(),
-            [("ESSD", true), ("MEDIA", true)]
+            [("EDICION", true), ("MEDIA", true)]
         );
         s.backend.replaced.insert(normalize(&s.work));
         let list = volumes(&catalog(&s), &s.backend).unwrap();
@@ -1303,7 +1316,7 @@ mod tests {
         let db = rusqlite::Connection::open(s.home.join("catalog.sqlite3")).unwrap();
         let uuid = normalize(&s.card);
         let plan = |project: &str| {
-            json!({"source_identity": {"volume_uuid": uuid}, "units": [{"project": "support", "support": true}, {"project": project, "profile": "e64"}]}).to_string()
+            json!({"source_identity": {"volume_uuid": uuid}, "units": [{"project": "support", "support": true}, {"project": project, "profile": "canal-a"}]}).to_string()
         };
         db.execute(
             "INSERT INTO jobs VALUES('j1','d',?,'completed',NULL,'2026-11-01','2026-11-01')",
@@ -1319,7 +1332,7 @@ mod tests {
         let hint = &source_cards(&catalog(&s), &s.backend, None).unwrap()[0]["hint"];
         assert_eq!(
             (hint["last_project"].as_str(), hint["last_profile"].as_str()),
-            (Some("nuevo-demo"), Some("e64"))
+            (Some("nuevo-demo"), Some("canal-a"))
         );
     }
 

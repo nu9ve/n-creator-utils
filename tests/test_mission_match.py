@@ -78,7 +78,7 @@ class MissionMatchTests(MissionFixture):
         plan = self.plan()
         unit = self.unit(plan)
         self.assertEqual((unit['mission']['state'], unit['project']), ('none', 'intro'))
-        self.assertEqual(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'], 'e64_raw/intro/' + NAME.format('INTRO', 'JPG'))
+        self.assertEqual(plan['layout']['DCIM/101MEDIA/DJI_0001.JPG']['work'], 'canal-a_raw/intro/' + NAME.format('INTRO', 'JPG'))
         self.assertIsNone(plan['layout']['DCIM/101MEDIA/DJI_0001.DNG']['work'])
 
     def test_photo_newer_than_the_registry_waits_for_the_export_with_work_pending(self):
@@ -199,7 +199,7 @@ class MissionMatchTests(MissionFixture):
         with self.assertRaises(MediaError) as raised:
             self.plan(source=str(folder), cleanup=False)
         self.assertEqual(raised.exception.code, 'source_on_work_disk')
-        self.assertIn('ESSD', str(raised.exception))
+        self.assertIn('EDICION', str(raised.exception))
 
     def test_card_support_files_go_under_the_drone_family(self):
         self.registry(self.record())

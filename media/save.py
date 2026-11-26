@@ -78,8 +78,7 @@ def main(argv=None):
                     sources.append(path)
         require(sources, 'no_cards', 'No eligible card is connected')
         plans = [build_plan(catalog, backend, str(source), archive, None if args.no_work else work, project,
-                    args.profile or defaults.get('profile', 'e64'), args.country or defaults.get('country', 'mx'),
-                    args.city or defaults.get('city', 'hermosillo'), archive_only, confirmed, args.work_decision,
+                    args.profile, args.country, args.city, archive_only, confirmed, args.work_decision,
                     not args.keep_source and args.source_kind == 'card',
                     read_json(args.assignments) if args.assignments else None, args.camera, args.source_kind) for source in sources]
         if args.dry_run:

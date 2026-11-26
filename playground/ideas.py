@@ -23,8 +23,8 @@ def download_youtube(final_dir):
 
 def download_youtube_song_split_stem():
   youtube_link = sys.argv[2]
-  mix_path = '/Volumes/SSD1/mix/000/'
-  stems_path = '/Volumes/SSD1/abletonlive/stems/'
+  mix_path = '/Volumes/SONIDO/mix/000/'
+  stems_path = '/Volumes/SONIDO/abletonlive/stems/'
   youtube_dl_cmd = 'youtube-dl --extract-audio --audio-format mp3 '+ youtube_link
   os.system(youtube_dl_cmd)
   youtube_name_cmd = 'youtube-dl --get-filename '+ youtube_link
@@ -62,7 +62,7 @@ def download_youtube_song_split_stem():
 
 def song_split_stem(s):
   file_name = sys.argv[2]
-  stems_path = '/Volumes/SSD1/abletonlive/stems/'
+  stems_path = '/Volumes/SONIDO/abletonlive/stems/'
   file_path = os.path.join(os.getcwd(),file_name)
   separator = Separator('spleeter:'+str(s)+'stems')
   separator.separate_to_file(file_path, stems_path)
@@ -76,6 +76,6 @@ if len(sys.argv) > 2:
   if sys.argv[1] == 'file4stems':
     song_split_stem(4)
   if sys.argv[1] == 'soundfx':
-    download_youtube('/Users/erikiado/Movies/sounds/fx')
+    download_youtube('~/Movies/sounds/fx')
     
 

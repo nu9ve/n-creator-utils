@@ -29,7 +29,7 @@ Es una colección viva de nüün: incremental, verificada por SHA-256 y sin borr
 ```json
 {"contract":"nuun-conversations-backup/1","collection":"claude-code","title":"Claude Code",
  "device":{"device_id":"<uuid>","name":"M1"},"plan_id":"<uuid>","plan_digest":"<sha256>","completed_at":"…Z",
- "archive":{"name":"MEDIA502","folder":"004_datos/conversaciones/claude-code/<uuid>"},
+ "archive":{"name":"MEDIA9","folder":"004_datos/conversaciones/claude-code/<uuid>"},
  "include":["projects","history.jsonl","…"],"result":{"copied":2,"adopted":0,"versioned":0,"changed_since_review":0,"versions":[]},
  "bytes":15,"unchanged":{"files":0,"bytes":0},
  "manifest":{"path":"…/_nuun/manifest.json","sha256":"<sha256 del manifiesto al terminar>"}}
@@ -79,5 +79,5 @@ Todo esto es `personal` ([data §6](../../vendor/nu9ve-core/contracts/nu9ve-data
 
 ## Estado en la ventana
 
-Ajustes → Conversaciones ofrece el respaldo y el export a pedido. La app abierta llama a `conversations_run {when: "due"}` si corresponde en modo automático para el respaldo. Los archivos que cambian durante el export a pedido se informan para la siguiente ejecución. [Recorrido para reunir historiales en ESSD](../features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-essd).
+Ajustes → Conversaciones ofrece el respaldo y el export a pedido. La app abierta llama a `conversations_run {when: "due"}` si corresponde en modo automático para el respaldo. Los archivos que cambian durante el export a pedido se informan para la siguiente ejecución. [Recorrido para reunir historiales en EDICION](../features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-edicion).
 - Las bases SQLite de Codex por snapshot ([decisión 2](../features/suite-disks-flows.md#decisiones-del-usuario)).

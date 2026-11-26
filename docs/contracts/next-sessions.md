@@ -7,14 +7,14 @@ Los 20 JSON de `atlas/coverage_exports/` ya están en el registro y verificados,
 (`~/.Trash/atlas-coverage_exports-20261108`).
 
 ```text
-Repo: /Users/nu9ve/code/data/atlas. Lee docs/contracts del repo nüün
-(/Users/nu9ve/code/nu9ve/n-creator-utils/docs/contracts/atlas-drone-v1.md, sección «Registro de misiones en nüün (A13)»).
+Repo: ~/code/data/atlas. Lee docs/contracts del repo nüün
+(~/code/nu9ve/n-creator-utils/docs/contracts/atlas-drone-v1.md, sección «Registro de misiones en nüün (A13)»).
 
 Hoy atlas_vision/flightplans.py:176 lee coverage_exports/*.json, y esa carpeta ya no existe. Cambiar
 build_flight_plan_manifest para que lea el registro unificado de nüün:
 - Ruta por configuración (config/atlas.json), por defecto
-  /Volumes/ESSD/001_proyectos/atlas-subaereo/_missions/history.json. Es el espejo de
-  MEDIA502/004_datos/subaereo/coverage/ y tiene la misma forma que un export de subaereo (schemaVersion 3,
+  /Volumes/EDICION/001_proyectos/atlas-subaereo/_missions/history.json. Es el espejo de
+  MEDIA9/004_datos/subaereo/coverage/ y tiene la misma forma que un export de subaereo (schemaVersion 3,
   plans/captures/captureLog/flightSessions, exportWindow.kind = "merged"), más un bloque aditivo `nuun`.
 - La unión, la regla de que gana el export más nuevo y la procedencia ya las hace nüün. `_source_scope`
   y `_record_rank` pueden tratar el registro como una sola fuente. `nuun.records` dice de qué export vino cada registro.
@@ -25,7 +25,7 @@ build_flight_plan_manifest para que lea el registro unificado de nüün:
 Atlas no escribe en _missions/: es de nüün.
 
 Además (estado al cierre del 8 nov, ver «Estado del lado nüün» en atlas-drone-v1.md):
-- Fotos nuevas: ESSD/001_proyectos/atlas-subaereo/misiones/AAAA/MM/<sesión>_<PLAN>/ con nombres de nüün
+- Fotos nuevas: EDICION/001_proyectos/atlas-subaereo/misiones/AAAA/MM/<sesión>_<PLAN>/ con nombres de nüün
   (26NOV07-154516_MAVICAIR2_MX-SUBAEREO[].JPG). 101MEDIA/ y 102MEDIA/ siguen con sus JPG.
 - El mapa es atlas-subaereo/_nuun/units.ndjson (1,810 fotos): asset_id, rutas en archivo y trabajo
   (relativas a atlas-subaereo/), original_name, dcim_folder, captured_at (+UTC y utc_basis), serial,
@@ -33,10 +33,10 @@ Además (estado al cierre del 8 nov, ver «Estado del lado nüün» en atlas-dro
   por original_name + captured_at + serial, nunca por nombre solo.
 - DNG en trabajo: sólo una muestra de 128 (las 30 etiquetadas de crepusculo-2026-11-05-v1, una sesión
   reciente por iluminación, 24 malas y 12 de junio). work.dng dice dónde está cada uno; el resto vive en
-  MEDIA502 (archive.dng). Atlas no debe asumir DNG junto a cada JPG de 101MEDIA/102MEDIA.
+  MEDIA9 (archive.dng). Atlas no debe asumir DNG junto a cada JPG de 101MEDIA/102MEDIA.
 - Para pedir más DNG: una lista de asset_id a nüün (`nu9ve media dng-plan` con `keep`).
 - Adaptar el catálogo para leer units.ndjson y las carpetas misiones/; las 64 fotos de agosto y la 0340 ya no
-  están en el ESSD (el usuario las descartó).
+  están en el EDICION (el usuario las descartó).
 ```
 
 ## Pedido de Atlas · 2026-11-08 · fotos de dron, misiones y exports (A11–A16)
@@ -45,7 +45,7 @@ Escrito desde una sesión de Atlas; no se envió a ninguna sesión. Detalle y de
 usuario en [atlas-drone-v1](atlas-drone-v1.md#actualización-2026-11-08--primer-ingreso-real-y-exports).
 
 ```text
-Repo: /Users/nu9ve/code/nu9ve/n-creator-utils (nüün). Lee AGENTS.md, docs/CONTEXT.md,
+Repo: ~/code/nu9ve/n-creator-utils (nüün). Lee AGENTS.md, docs/CONTEXT.md,
 docs/STATUS.md, PLAN.md y docs/contracts/atlas-drone-v1.md empezando por
 «Actualización 2026-11-08» y «Decisiones del usuario (2026-11-08)»; nombres en
 docs/contracts/media-naming-v1.md.
@@ -60,37 +60,37 @@ Decisiones ya tomadas por el usuario:
 - Carpeta de dron por fecha: 001_raw/dron/misiones/AAAA/MM/<YYMONDD-HHMMSS>_<PLAN>/
   (fotos de una misión de subaereo) y 001_raw/dron/fotos/AAAA/MM/ (el resto). JPG y DNG
   juntos con el mismo stem. El video de dron sigue en 001_raw/vdron/.
-- Archivo: JPG+DNG. Trabajo (ESSD 001_proyectos/atlas-subaereo/misiones/…): sólo JPG,
+- Archivo: JPG+DNG. Trabajo (EDICION 001_proyectos/atlas-subaereo/misiones/…): sólo JPG,
   más el mapa atlas-subaereo/_nuun/units.ndjson para Atlas.
 - Exports: llegan por AirDrop a ~/Downloads (coverage-*.json, JSON-*.json). nüün
   incorpora sólo lo nuevo a un registro unificado (004_datos/subaereo/coverage/
   history.json + changes.ndjson; crudo comprimido en raw/AAAA/MM/), borra el archivo de
   Descargas tras verificar y deja un espejo en atlas-subaereo/_missions/. Reglas de
-  unión: /Users/nu9ve/code/ios/subaereo/docs/DATA_AND_EXPORTS.md («Exports parciales y
+  unión: ~/code/ios/subaereo/docs/DATA_AND_EXPORTS.md («Exports parciales y
   cómo unirlos») y tools/subaereo_merge_exports.py de ese repo.
 
 Orden sugerido (cortes verticales, cada uno con pruebas en fixtures):
 1) A15 + A1: registro de dispositivos (Make+Model+Serial → dji-drone, FUENTE
    MAVICAIR2); dron contra 360/acción por XMP de vuelo; tarjeta por UUID del volumen.
 2) A13: registro unificado de misiones; importar también una vez los 20 JSON de
-   /Users/nu9ve/code/data/atlas/coverage_exports/ (sin borrarlos de ahí sin confirmación).
+   ~/code/data/atlas/coverage_exports/ (sin borrarlos de ahí sin confirmación).
 3) Misión o no + A12: una foto es de misión si coincide con captureLog (misma hora ±2 s,
    nombre original y posición ≤ 40 m; para may–jun, que no tienen captureLog, usar
    plans[].captures). Sin export que cubra la fecha: pending: export. Trabajo sólo JPG
    + units.ndjson (asset_id, rutas, original_name, dcim_folder, card_uuid, captured_at y
    UTC, make, model, serial, SHA-256 de JPG y DNG, mission {planID, sessionID,
    captureID} o null).
-4) A11: archivar lo que es copia única: 534 pares en /Volumes/ESSD/001_proyectos/
+4) A11: archivar lo que es copia única: 534 pares en /Volumes/EDICION/001_proyectos/
    atlas-subaereo/101MEDIA (30 may – 3 jun; sólo copiar al archivo, no mover ni
-   renombrar los originales del ESSD) y los 770 pares nuevos de la SD (6–7 nov).
+   renombrar los originales del EDICION) y los 770 pares nuevos de la SD (6–7 nov).
    Plan revisado por el usuario antes de ejecutar.
 5) A14: liberar la SD sólo con archivo verificado y registro que cubra su última foto;
    terminar en camera_action_required (formatear desde el dron).
 6) A16, después: extraer DNG del archivo al trabajo a partir de una lista de asset_id
    que dará Atlas.
 
-Reglas: pruebas sólo con fixtures temporales; la corrida física (SD, ESSD, MEDIA502)
-es explícita y con plan revisado por el usuario; nada se borra de la SD ni del ESSD
+Reglas: pruebas sólo con fixtures temporales; la corrida física (SD, EDICION, MEDIA9)
+es explícita y con plan revisado por el usuario; nada se borra de la SD ni del EDICION
 sin verificación y confirmación; no editar el repo de Atlas salvo docs/contracts/*.md.
 Actualizar STATUS, PLAN y la fila de adopción en docs/contracts/atlas-drone-v1.md y
 README.md con fecha y commit. Al terminar, dejar para Atlas la ruta y el esquema de
@@ -157,7 +157,7 @@ Eres la sesión de Stalker. Objetivo: terminar la implementación para que Stalk
 ecosistema de media (n-creator-utils archiva y prepara; Stalker captura; Clipper edita) y coordinado con los
 flujos ya implementados en n-creator-utils.
 
-Lee primero, en /Users/nu9ve/code/nu9ve/n-creator-utils:
+Lee primero, en ~/code/nu9ve/n-creator-utils:
 - docs/contracts/README.md (tabla de adopción, "Interfaz local estable", "Cómo actualizan este contrato")
 - docs/contracts/media-naming-v1.md (gramática, identidad, "Estado de archivo para productores", "Adopción: Stalker")
 - docs/contracts/media-library-v1.md, docs/CONTEXT.md y docs/media-experience.md ("Stalker como biblioteca de originales")
@@ -166,7 +166,7 @@ pistas, audio ni internos del bundle).
 
 Estado real hoy: Stalker nombra Stalker_yyyy-MM-dd_HH-mm-ss.stalker, graba en ~/Downloads (disco interno con
 ~5.7 GB libres) y escribe sessionID en mayúsculas. n-creator-utils ya archivó 3 sesiones del proyecto
-"debloateando mi tele" a MEDIA502 + ESSD, renombrando sólo la carpeta de las copias, p. ej.
+"debloateando mi tele" a MEDIA9 + EDICION, renombrando sólo la carpeta de las copias, p. ej.
 26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker, y `nu9ve media captures ~/Downloads` las
 reporta archived=true.
 
@@ -183,11 +183,11 @@ Implementa:
    manifest.duration redondeada a segundos; slug en mayúsculas; "-2[]" si hay colisión). Un bundle completed
    nunca se renombra ni se reescribe después. Sin proyecto se conserva el nombre actual. Prueba de contrato:
    createdAt 2026-10-25T02:58:50Z, duration 227618267500/1e9 s, MX, "debloateando mi tele",
-   TZ America/Hermosillo → 26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker
+   TZ America/Phoenix → 26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker
 4. Señal de finalización robusta: completed se escribe al final y de forma atómica, y una interrupción nunca
    deja un bundle "completed" a medias. Documenta qué pasa si alguien edita un bundle ya completed (el digest del
    manifest cambia y el archivador lo verá como no archivado).
-5. "Liberar sesiones archivadas": usa `python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media captures
+5. "Liberar sesiones archivadas": usa `python3 ~/code/nu9ve/n-creator-utils/nu9ve.py media captures
    <biblioteca>` (JSON {ok,data:{sessions:[{path,session_id,status,archived}]}}). Sólo las archived=true, por
    selección explícita del usuario, van a la Papelera (recuperable). Si el comando falla o no existe, no ofrezcas
    liberar. Nunca borres por un evento.
@@ -216,7 +216,7 @@ Eres la sesión de Clipper. Objetivo: terminar la implementación para que Clipp
 ecosistema de media y coordinado con lo ya implementado en n-creator-utils y en Stalker, con features fluidos:
 importar un proyecto de la biblioteca en un paso y editarlo.
 
-Lee primero, en /Users/nu9ve/code/nu9ve/n-creator-utils:
+Lee primero, en ~/code/nu9ve/n-creator-utils:
 - docs/contracts/README.md: tabla de adopción. Revisa qué dejó Stalker y sus decisiones, la "Interfaz local
   estable" y "Cómo actualizan este contrato".
 - docs/contracts/media-naming-v1.md ("Identidad", "Adopción: Clipper") y docs/contracts/media-library-v1.md
@@ -224,11 +224,11 @@ Lee primero, en /Users/nu9ve/code/nu9ve/n-creator-utils:
 Y en ~/code/ai/stalker docs/clipper-contract.md (actualizado por la sesión de Stalker).
 
 Estado real hoy:
-- `python3 /Users/nu9ve/code/nu9ve/n-creator-utils/nu9ve.py media projects` lista "debloateando-mi-tele".
+- `python3 ~/code/nu9ve/n-creator-utils/nu9ve.py media projects` lista "debloateando-mi-tele".
 - `... media sources --project debloateando-mi-tele` devuelve en una llamada sus 10 fuentes en orden de captura:
-  7 clips Sony y 3 carpetas .stalker en /Volumes/ESSD/001_proyectos/e64_raw/debloateando-mi-tele/, con
+  7 clips Sony y 3 carpetas .stalker en /Volumes/EDICION/001_proyectos/canal-a_raw/debloateando-mi-tele/, con
   asset_id, revision, kind, session_id, path, sha256, captured_at, duration_seconds y alternatives (la copia de
-  MEDIA502). Los nombres llevan "[]".
+  MEDIA9). Los nombres llevan "[]".
 - Tres clips se solapan en el tiempo con una sesión Stalker (19:57/19:58, 20:44/20:44, 20:54/20:56).
 - clipper_tui.stalker.expand_inputs ya ordena bien esa carpeta.
 
@@ -246,16 +246,16 @@ Implementa:
    export (escape de filtros ffmpeg subtitles=/movie=, listas concat, glob(), shell). Pruebas con fixtures
    temporales que usen esos nombres.
 4. Borrado manual, offline y relink: el usuario borra en Finder, sin avisar, clips inútiles o un proyecto entero
-   al terminar, y ESSD puede no estar montado. `media sources` ya lo reporta (removed_from_work, offline,
+   al terminar, y EDICION puede no estar montado. `media sources` ya lo reporta (removed_from_work, offline,
    warnings): muéstralo sin error ni re-import automático. Ofrece relink a la copia de MEDIA sólo si el usuario lo
    pide, validando asset_id/session_id/sha256. Nunca cambies en silencio a otra revisión.
 5. Espacio: el disco interno tiene ~5.7 GB libres. Para proyectos importados de la biblioteca, el proyecto y los
-   renders van por default a /Volumes/ESSD/001_proyectos/e64/<proyecto>/ (configurable), con aviso de espacio
+   renders van por default a /Volumes/EDICION/001_proyectos/canal-a/<proyecto>/ (configurable), con aviso de espacio
    antes de un render grande.
 6. Nunca escribas dentro de bundles ni de media de la biblioteca, y no renombres archivos de media.
 
 Reglas: pruebas con catálogo aislado (`--state-dir` a un temp, volúmenes con `media volumes register ...
---allow-local`) o con el JSON simulado; nunca uses ESSD, MEDIA502 ni el catálogo real en pruebas automáticas.
+--allow-local`) o con el JSON simulado; nunca uses EDICION, MEDIA9 ni el catálogo real en pruebas automáticas.
 Leer el catálogo real sólo para la prueba manual final está bien.
 
 Contrato: al terminar, en n-creator-utils edita sólo docs/contracts/*.md. Actualiza la fila "Clipper" de la tabla

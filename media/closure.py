@@ -29,8 +29,8 @@ def project_record(catalog, project_id):
 
 def settings(catalog, project_id):
     project = project_record(catalog, project_id)
-    default = ['horizontal'] if project['profile'] == '9logs' else ['horizontal', 'vertical', 'thumbnail']
-    profile = catalog.get('closure-profile:' + project['profile'], default)
+    # A profile's own requirements live in `closure-profile:<id>`; the code only knows the general default.
+    profile = catalog.get('closure-profile:' + project['profile'], ['horizontal', 'vertical', 'thumbnail'])
     return catalog.get('project-closure:' + project_id,
                        {'required': profile, 'no_more': False, 'published': False, 'finals': []})
 

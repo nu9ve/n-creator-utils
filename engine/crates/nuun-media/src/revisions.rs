@@ -468,7 +468,7 @@ pub(crate) mod tests {
         manifest.as_object_mut().unwrap().remove("captureTimeZone");
         std::fs::write(bundle.join("manifest.json"), canonical(&manifest)).unwrap();
         let ingest = crate::planner::build_plan(&s.home, &s.backend, &json!({
-            "source": s.card,"source_kind":"stalker","archive":"MEDIA","work":"ESSD","project":"intro",
+            "source": s.card,"source_kind":"stalker","archive":"MEDIA","work":"EDICION","project":"intro",
             "cleanup":false,
         })).unwrap();
         crate::transfer::apply(

@@ -79,7 +79,7 @@ mod mission_tests {
             sample::tiff("DJI", "FC3170", "2026:11:04 16:32:12"),
         )
         .unwrap();
-        let mut params = json!({"source":s.card, "archive":"MEDIA","work":"ESSD","project":"intro","cleanup":false});
+        let mut params = json!({"source":s.card, "archive":"MEDIA","work":"EDICION","project":"intro","cleanup":false});
         let pending = crate::planner::build_plan(&s.home, &s.backend, &params).unwrap();
         crate::transfer::apply(
             &s.home,
@@ -149,7 +149,7 @@ mod mission_tests {
             {"captureID": "C1", "planID": "P1", "sessionID": "S1", "mediaCreatedAt": "2026-11-04 16:32:13",
              "imageJPEGReference": "DJI_0001.JPG", "latitude": 29.09, "longitude": -110.9583333}]});
         std::fs::write(area.join("history.json"), history.to_string()).unwrap();
-        let params = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "ESSD", "project": "intro"});
+        let params = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "EDICION", "project": "intro"});
         let plan = crate::planner::build_plan(&s.home, &s.backend, &params).unwrap();
         let digest = plan["digest"].as_str().unwrap();
         let result =

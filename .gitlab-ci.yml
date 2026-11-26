@@ -1,4 +1,4 @@
-# Fixture-only checks: never mount or write personal SDs/MEDIA/ESSD from CI.
+# Fixture-only checks: never mount or write personal SDs/MEDIA/EDICION from CI.
 stages: [test]
 
 .python:

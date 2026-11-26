@@ -44,7 +44,7 @@ class ContractTests(MediaFixture):
 
     def test_sources_receipts_schema_and_profile(self):
         bundle, manifest = self.session()
-        Service(self.catalog).call('save_profile', {'id':'e64', 'name':'local', 'raw_dir':'e64_raw', 'clipper_profile':'erikiado64'})
+        Service(self.catalog).call('save_profile', {'id':'canal-a', 'name':'local', 'raw_dir':'canal-a_raw', 'clipper_profile':'estudio-a'})
         plan = self.plan(cleanup=False)
         self.run_plan(plan)
         assets = self.catalog.search()
@@ -58,8 +58,8 @@ class ContractTests(MediaFixture):
         self.assertNotEqual(entry['manifest_sha256'], asset['capture_manifest_digest'])
         self.assertEqual(entry['media_bytes'], len(b'synthetic screen'))
         self.assertGreater(entry['bytes'], entry['media_bytes'])
-        self.assertEqual(entry['clipper_profile'], 'erikiado64')
-        self.assertEqual(entry['capture_time']['time_zone'], 'America/Hermosillo')
+        self.assertEqual(entry['clipper_profile'], 'estudio-a')
+        self.assertEqual(entry['capture_time']['time_zone'], 'America/Phoenix')
         self.assertEqual(entry['revision'], asset['revision'])
         self.assertEqual(entry['content_revision'], exported['assets'][0]['content_revision'])
         self.assertEqual(entry['bytes'], exported['assets'][0]['bytes'])
@@ -350,7 +350,7 @@ with mock.patch('pathlib.Path.home', return_value=root), mock.patch('media.clipp
 
     def test_old_profile_client_preserves_explicit_mapping(self):
         service = Service(self.catalog)
-        value = {'id':'e64','name':'e64','raw_dir':'e64_raw'}
+        value = {'id':'canal-a','name':'canal-a','raw_dir':'canal-a_raw'}
         service.call('save_profile', dict(value, clipper_profile='opaque:clipper-profile'))
         self.assertEqual(service.call('save_profile', value)['clipper_profile'], 'opaque:clipper-profile')
         self.assertIsNone(service.call('save_profile', dict(value, clipper_profile=None))['clipper_profile'])

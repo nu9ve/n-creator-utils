@@ -34,12 +34,12 @@ class LivingTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name).resolve()
-        self.src, self.media, self.lib = self.root / 'ssd1/abletonlive/projects', self.root / 'media502', self.root / 'ssd1/abletonlive/samples'
+        self.src, self.media, self.lib = self.root / 'sonido/abletonlive/projects', self.root / 'media9', self.root / 'sonido/abletonlive/samples'
         self.media.mkdir(parents=True)
         self.catalog = Catalog(self.root / 'state')
         self.addCleanup(self.catalog.close)
         self.backend = FixtureVolumes()
-        self.catalog.register('MEDIA502', 'archive', self.media, self.backend.describe(self.media), '001_raw')
+        self.catalog.register('MEDIA9', 'archive', self.media, self.backend.describe(self.media), '001_raw')
         write(self.src / 'song Project/song.als', b'v1-set')
         write(self.src / 'song Project/Samples/Recorded/take1.wav', b'take' * 100)
         write(self.lib / 'kick.wav', b'kick')
@@ -49,7 +49,7 @@ class LivingTests(unittest.TestCase):
         self.folder = '005_produccion/projects'
 
     def run_once(self, **extra):
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder, **extra)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder, **extra)
         return value, living.apply(self.catalog, self.backend, value['id'], value['digest'])
 
     def archived(self, rel):
@@ -68,7 +68,7 @@ class LivingTests(unittest.TestCase):
     def test_second_run_copies_only_new_and_never_rereads_unchanged(self):
         self.run_once()
         write(self.src / 'song Project/Samples/Recorded/take2.wav', b'new take')
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual([i['path'] for i in value['new']], ['song Project/Samples/Recorded/take2.wav'])
         self.assertEqual(value['changed'], [])
         self.assertEqual(value['unchanged']['files'], 2)
@@ -78,7 +78,7 @@ class LivingTests(unittest.TestCase):
     def test_changed_file_keeps_the_previous_version_in_the_archive(self):
         self.run_once()
         bump(self.src / 'song Project/song.als', b'v2-set-longer')
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual([i['path'] for i in value['changed']], ['song Project/song.als'])
         result = living.apply(self.catalog, self.backend, value['id'], value['digest'])
         self.assertEqual(result['result']['versioned'], 1)
@@ -91,7 +91,7 @@ class LivingTests(unittest.TestCase):
         self.run_once()
         path = self.src / 'song Project/Samples/Recorded/take1.wav'
         bump(path, b'take' * 100)
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         result = living.apply(self.catalog, self.backend, value['id'], value['digest'])
         self.assertEqual((result['result']['adopted'], result['result']['versioned']), (1, 0))
         self.assertFalse((self.media / self.folder / '_nuun/versions').exists())
@@ -99,22 +99,22 @@ class LivingTests(unittest.TestCase):
     def test_deleted_at_source_stays_in_archive_and_is_reported(self):
         self.run_once()
         (self.src / 'song Project/Samples/Recorded/take1.wav').unlink()
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual(value['gone_from_source'], ['song Project/Samples/Recorded/take1.wav'])
         living.apply(self.catalog, self.backend, value['id'], value['digest'])
         self.assertTrue(self.archived('song Project/Samples/Recorded/take1.wav').exists())
 
     def test_file_changed_after_review_is_skipped_not_fatal(self):
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         bump(self.src / 'song Project/song.als', b'edited while reviewing')
         result = living.apply(self.catalog, self.backend, value['id'], value['digest'])
         self.assertEqual(result['result']['changed_since_review'], 1)
         self.assertFalse(self.archived('song Project/song.als').exists())
-        again = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        again = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual([i['path'] for i in again['new']], ['song Project/song.als'])
 
     def test_interrupted_run_resumes_and_adopts_what_was_already_copied(self):
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
 
         def stop(stage, item):
             if stage == 'after_copy':
@@ -129,51 +129,51 @@ class LivingTests(unittest.TestCase):
     def test_archive_file_missing_is_copied_again(self):
         self.run_once()
         self.archived('song Project/song.als').unlink()
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual([i['path'] for i in value['changed']], ['song Project/song.als'])
 
     def test_ableton_report_lists_external_samples_not_covered(self):
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         report = value['ableton']
         self.assertEqual(report['sets'], 1)
         self.assertEqual(report['missing'], 1)
         self.assertEqual([r['path'] for r in report['not_covered']], [str(self.lib / 'kick.wav')])
         # Once the sample library is its own collection, the same reference is covered.
         living.apply(self.catalog, self.backend, *self._plan_lib())
-        self.assertEqual(living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)['ableton']['not_covered'], [])
+        self.assertEqual(living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)['ableton']['not_covered'], [])
 
     def _plan_lib(self):
-        value = living.plan(self.catalog, self.backend, str(self.lib), 'MEDIA502', '005_produccion/samples')
+        value = living.plan(self.catalog, self.backend, str(self.lib), 'MEDIA9', '005_produccion/samples')
         return value['id'], value['digest']
 
     def test_refusals(self):
         with self.assertRaises(MediaError) as error:
-            living.plan(self.catalog, self.backend, str(self.media / 'x'), 'MEDIA502', 'f')
+            living.plan(self.catalog, self.backend, str(self.media / 'x'), 'MEDIA9', 'f')
         self.assertEqual(error.exception.code, 'invalid_request')
         (self.media / 'inner').mkdir()
         with self.assertRaises(MediaError) as error:
-            living.plan(self.catalog, self.backend, str(self.media / 'inner'), 'MEDIA502', 'f')
+            living.plan(self.catalog, self.backend, str(self.media / 'inner'), 'MEDIA9', 'f')
         self.assertEqual(error.exception.code, 'overlapping_roots')
         living.apply(self.catalog, self.backend, *self._plan_lib())
         with self.assertRaises(MediaError) as error:
-            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', '005_produccion/samples/sub')
+            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', '005_produccion/samples/sub')
         self.assertEqual(error.exception.code, 'overlapping_roots')
         with self.assertRaises(MediaError) as error:
-            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', '005_produccion/_nuun')
+            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', '005_produccion/_nuun')
         self.assertEqual(error.exception.code, 'invalid_request')
-        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+        value = living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         with self.assertRaises(MediaError) as error:
             living.apply(self.catalog, self.backend, value['id'], 'x' * 64)
         self.assertEqual(error.exception.code, 'plan_changed')
         self.backend.physical[str(self.src)] = 'same'
         self.backend.physical[str(self.media)] = 'same'
         with self.assertRaises(MediaError) as error:
-            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA502', self.folder)
+            living.plan(self.catalog, self.backend, str(self.src), 'MEDIA9', self.folder)
         self.assertEqual(error.exception.code, 'same_physical_disk')
 
     def test_service_shape(self):
         service = Service(self.catalog, self.backend)
-        value = service.call('living_plan', {'source': str(self.src), 'archive': 'MEDIA502', 'folder': self.folder})
+        value = service.call('living_plan', {'source': str(self.src), 'archive': 'MEDIA9', 'folder': self.folder})
         service.call('living_apply', {'plan_id': value['id'], 'digest': value['digest']})
         self.assertEqual(service.call('living_collections', {})[0]['files'], 2)
 

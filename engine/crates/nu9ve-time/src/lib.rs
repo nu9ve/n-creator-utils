@@ -380,7 +380,7 @@ mod tests {
             Some(-18_000)
         );
         assert_eq!(
-            offset("America/Hermosillo", "2026-07-01T12:00:00+00:00"),
+            offset("America/Phoenix", "2026-07-01T12:00:00+00:00"),
             Some(-25_200)
         );
         assert_eq!(

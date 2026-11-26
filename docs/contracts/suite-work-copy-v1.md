@@ -1,6 +1,6 @@
 # Copias entre discos de trabajo · `nuun-work-copy/1`
 
-Estado: **propuesta**, implementada en el motor Rust (2026-11-23), probada con discos de mentira. Responde al flujo 1 de [discos y conversaciones](../features/suite-disks-flows.md): pasar lo procesado de un disco de trabajo a otro (XSSD → ESSD) verificado, con fechas y con un recibo que otra app (nove) puede usar para registrar el destino **sin volver a calcular hashes**. Se apoya en [`nu9ve-volume-v1`](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §5, §7 y §8 y en la [transferencia verificada](../media-architecture.md) de nüün.
+Estado: **propuesta**, implementada en el motor Rust (2026-11-23), probada con discos de mentira. Responde al flujo 1 de [discos y conversaciones](../features/suite-disks-flows.md): pasar lo procesado de un disco de trabajo a otro (VIAJE → EDICION) verificado, con fechas y con un recibo que otra app (nove) puede usar para registrar el destino **sin volver a calcular hashes**. Se apoya en [`nu9ve-volume-v1`](../../vendor/nu9ve-core/contracts/nu9ve-volume-v1.md) §5, §7 y §8 y en la [transferencia verificada](../media-architecture.md) de nüün.
 
 ## Reglas
 
@@ -23,8 +23,8 @@ Al terminar, el mismo documento se publica, sin reemplazar y releído, en `.nu9v
 {"contract":"nuun-work-copy/1","id":"<uuid>","plan_digest":"<sha256>",
  "copied_by":{"device_id":"<del dispositivo, o null>","app":"nuun"},
  "created_at":"…Z","completed_at":"…Z",
- "source":{"volume_id":"<XSSD>","label":"XSSD","paths":["atlas-derived/potholes"]},
- "destination":{"volume_id":"<ESSD>","label":"ESSD","into":""},
+ "source":{"volume_id":"<VIAJE>","label":"VIAJE","paths":["atlas-derived/potholes"]},
+ "destination":{"volume_id":"<EDICION>","label":"EDICION","into":""},
  "file_count":2,"bytes":34,"copied":2,"adopted":0,"replaced":0,
  "manifest":{"algorithm":"sha256","of":"manifest","value":"<sha256>","verified_at":"…Z"},
  "files":[{"source_path":"atlas-derived/potholes/day/a.geojson","path":"atlas-derived/potholes/day/a.geojson",
@@ -41,7 +41,7 @@ Al terminar, el mismo documento se publica, sin reemplazar y releído, en `.nu9v
 
 ## Qué hace con esto otra app (nove)
 
-Para registrar en ESSD lo que nove indexó en XSSD sin hashear:
+Para registrar en EDICION lo que nove indexó en VIAJE sin hashear:
 
 1. Leer `.nu9ve/apps/nuun/copies/*.json` del disco (con tope), con `contract` `nuun-work-copy/1` y `destination.volume_id` igual al marcador del disco.
 2. Tomar su propio archivo de `source_indexes` (`app: "nove"`), comprobar que su SHA-256 es el declarado, y leerlo como si fuera el de `source.volume_id`.
@@ -71,4 +71,4 @@ Errores propios: `unmarked`, `suspect`, `duplicate`, `invalid_role`, `same_volum
 
 - Un proyecto de Clipper con sus dependencias: armar `paths` desde `clipper.inspect` (deps) en lugar de una carpeta.
 - Que el índice de nüün del destino resuma también lo copiado como un dataset con su `hash` de manifiesto.
-- Prueba física con XSSD y ESSD reales ([release](../release.md)).
+- Prueba física con VIAJE y EDICION reales ([release](../release.md)).

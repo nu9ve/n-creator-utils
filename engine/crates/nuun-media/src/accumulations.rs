@@ -978,8 +978,8 @@ mod tests {
         // No signal: a folder called target with media in it is never a finding.
         touch(&code.join("video/target/clip.mov"), 4 * mb);
         // A library of a profile under the code root: live data.
-        touch(&code.join("lib-e64/node_modules/x"), 4 * mb);
-        touch(&code.join("lib-e64/package.json"), 10);
+        touch(&code.join("lib-canal-a/node_modules/x"), 4 * mb);
+        touch(&code.join("lib-canal-a/package.json"), 10);
         touch(
             &home.join("Library/Application Support/nove-update-backups/2026-11-24/nove.app/bin"),
             2 * mb,
@@ -989,8 +989,8 @@ mod tests {
     }
 
     fn profiles(home: &Path) -> Value {
-        json!({"profiles": [{"profile_id": "e64", "display_name": "Erik",
-               "apps": {"nove": {"library": home.join("code/lib-e64")}}}]})
+        json!({"profiles": [{"profile_id": "canal-a", "display_name": "Ana",
+               "apps": {"nove": {"library": home.join("code/lib-canal-a")}}}]})
     }
 
     #[test]
@@ -1042,7 +1042,7 @@ mod tests {
         assert_eq!(rule_of("video/target"), None);
         assert!(
             rows.iter()
-                .all(|r| !r["path"].as_str().unwrap().contains("lib-e64"))
+                .all(|r| !r["path"].as_str().unwrap().contains("lib-canal-a"))
         );
         // __pycache__ of one project is one finding with both folders.
         let pyc: Vec<_> = rows.iter().filter(|r| r["rule"] == "pycache").collect();
@@ -1060,7 +1060,7 @@ mod tests {
         assert_eq!(backup["owner_app"], "nove");
         assert_eq!(backup["confirmations"], 2);
         assert_eq!(backup["regenerates"], "no");
-        assert_eq!(inv["libraries"][0]["profile_id"], "e64");
+        assert_eq!(inv["libraries"][0]["profile_id"], "canal-a");
         let plan = plan(rows);
         assert_eq!(plan["automatic"], false);
         assert!(plan["trash_bytes"].as_u64().unwrap() > 0);

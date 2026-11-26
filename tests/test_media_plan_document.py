@@ -8,7 +8,7 @@ from media.service import Service
 class PlanDocumentTests(MediaFixture):
     def document(self):
         return Service(self.catalog, self.backend).call('plan_document', {
-            'source': str(self.source), 'archive': 'MEDIA', 'work': 'ESSD',
+            'source': str(self.source), 'archive': 'MEDIA', 'work': 'EDICION',
             'project': 'transport', 'cleanup': False})
 
     def test_original_document_applies_and_preserves_source(self):

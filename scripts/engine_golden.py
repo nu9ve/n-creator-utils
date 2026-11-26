@@ -6,7 +6,7 @@ Pure: it reads no disk, card or catalog of the user; it only imports media/, bui
 and writes tests/fixtures/engine-golden/recipe.json (`--check` only compares). Run from the checkout:
 
     python3 scripts/engine_golden.py [--check]
-    cd engine && TZ=America/Hermosillo TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored
+    cd engine && TZ=America/Phoenix TMPDIR="$(cd "$TMPDIR" && pwd -P)" cargo test --offline -- --ignored
 
 (`TZ`: plan names use the host zone for files without a camera time; `TMPDIR` resolved because macOS puts
 temporary folders under /var, a symlink the scan refuses.)
@@ -161,7 +161,7 @@ def discover_cases():
 
 # `plan` on temporary cards (a Python `FixtureVolumes` backend, as tests/test_media_engine.py). Names use the host zone
 # for files without a camera time, so the zone is fixed here and the Rust test requires the same `TZ`.
-PLAN_TZ = 'America/Hermosillo'
+PLAN_TZ = 'America/Phoenix'
 PLAN_MTIME_NS = 1778000000123456789
 SONY_CLIP_XML = ('<NonRealTimeMeta xmlns="urn:schemas-professionalDisc:nonRealTimeMeta:ver.2.00">'
                  '<Duration value="300"/><CreationDate value="2026-11-04T16:32:12-07:00"/>'
@@ -186,7 +186,10 @@ def plan_case_specs():
               'capturedAt': '2026-11-04T23:32:13Z', 'imageJPEGReference': 'DJI_0001.JPG', 'latitude': LAT, 'longitude': LON}
     history = {'plans': [{'id': 'P1', 'name': 'Calles-45m-1104-1625'}], 'captureLog': [record],
                'nuun': {'sources': {'s': {'kind': 'all', 'exportedAt': '2026-11-05T05:00:00Z'}}}}
-    base = {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro'}
+    # Profile, country and city come from each library's `defaults`; the fixture catalogs have none, so the
+    # cases pass neutral ones (the code itself has no default of its own).
+    place = {'profile': 'canal-a', 'country': 'mx', 'city': 'oaxaca'}
+    base = {'archive': 'MEDIA', 'work': 'EDICION', 'project': 'intro', **place}
     return [
         ('drone_pending_export', drone, {}, base),
         ('drone_matched_mission', drone,
@@ -199,7 +202,7 @@ def plan_case_specs():
         ('h6_wav', {'ZOOM0001/ZOOM0001_LR.WAV': pcm_wav(2, 8000, 1, 2),
                     'ZOOM0001/ZOOM0001_Tr1.WAV': pcm_wav(1, 8000, 1, 2)}, {}, base),
         ('archive_only_with_assignments', {'DCIM/100CANON/IMG_0001.JPG': b'x', 'DCIM/100CANON/IMG_0002.JPG': b'y'}, {},
-         {'archive': 'MEDIA', 'work': 'ESSD', 'project': 'intro', 'archive_only': True, 'confirm_archive_only': True,
+         {**base, 'archive_only': True, 'confirm_archive_only': True,
           'assignments': {'DCIM/100CANON/IMG_0002.JPG': {'discard': True},
                           'DCIM/100CANON/IMG_0001.JPG': {'country': 'pe', 'work': False}}}),
         ('stalker_bundle', {
@@ -212,10 +215,12 @@ def plan_case_specs():
             'S.stalker/events.json': b'[]',
         }, {}, dict(base, source_kind='stalker')),
         ('finals_delivery', {'26-10-31-toma.MP4': b'final', 'shorts/vertical.MP4': b'v',
-                            '26-10-31-existente.MP4': b'already'}, {'002_finales/e64/old/26-10-31-existente.MP4': b'already'},
+                            '26-10-31-existente.MP4': b'already'}, {'002_finales/canal-a/old/26-10-31-existente.MP4': b'already'},
          dict(base, source_kind='delivery', finals_route=True, work=None, archive_only=True,
               confirm_archive_only=True, work_decision='skipped')),
         ('dji_unknown_model_asks', {'DCIM/101MEDIA/DJI_0009.JPG': jpeg(model='FC9999', flight=False)}, {}, base),
+        # Neither the request nor the library says which profile: the plan asks for one.
+        ('no_defaults', {'DCIM/100CANON/IMG_0001.JPG': b'x'}, {}, dict(base, profile='')),
     ]
 
 
@@ -256,7 +261,7 @@ def plan_cases():
             catalog = Catalog(root / 'state')
             try:
                 a = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
-                w = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+                w = catalog.register('EDICION', 'work', work, backend.describe(work), '001_proyectos')
                 info = backend.describe(card)
                 files, _, _ = scan(card)
                 discovery = None
@@ -274,7 +279,7 @@ def plan_cases():
                     # The same plan applied: final state and verified copies (no cleanup in these cases).
                     from media.transfer import Transfer
                     result = Transfer(catalog, backend).apply(plan, plan['digest'])
-                    names = {a['id']: 'MEDIA', w['id']: 'ESSD'}
+                    names = {a['id']: 'MEDIA', w['id']: 'EDICION'}
                     copies = sorted([names[row[0]], json.loads(row[1])['destination'], json.loads(row[1])['sha256']]
                                     for row in catalog.db.execute('SELECT volume_id,payload FROM copies'))
                     applied = {'state': result['state'], 'copies': copies}
@@ -287,7 +292,7 @@ def plan_cases():
             results.append({
                 'name': name, 'root': str(root), 'mtime_ns': PLAN_MTIME_NS, 'params': params,
                 'card': {k: v.hex() for k, v in card_tree.items()}, 'archive': {k: v.hex() for k, v in archive_tree.items()},
-                'work': {}, 'volume_ids': {'MEDIA': a['id'], 'ESSD': w['id']},
+                'work': {}, 'volume_ids': {'MEDIA': a['id'], 'EDICION': w['id']},
                 'source_identity': {k: info[k] for k in ('mode', 'volume_uuid', 'disk_uuid', 'root_inode')},
                 'stamps': {f['path']: f['stamp'] for f in files}, 'plan': plan, 'apply': applied, **({'discovery': discovery} if discovery is not None else {})})
     return results
@@ -314,10 +319,10 @@ def release_cases():
     initial = {'blockers': [], 'relinks': [], 'dependencies': None}
     refreshed = dict(initial, blockers=['fixture blocker'])
     with deterministic(), contextlib.closing(Catalog(root / 'state')) as catalog:
-        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'ESSD', 'work', '001_proyectos')):
+        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'EDICION', 'work', '001_proyectos')):
             catalog.register(name, role, folder, backend.describe(folder), prefix)
         with patch('media.clipper.inspect', return_value=initial):
-            plan = plan_release(catalog, backend, archive='MEDIA', work='ESSD', path=scope, project='intro')
+            plan = plan_release(catalog, backend, archive='MEDIA', work='EDICION', path=scope, project='intro')
         with patch('media.clipper.inspect', return_value=refreshed):
             updated = review_release(catalog, backend, plan['id'], plan['digest'])
         assert catalog.get('release:' + plan['id']) == updated
@@ -333,7 +338,7 @@ def release_cases():
         for entry in value['entries']:
             entry['stamp'].update(inode='<INODE>', ctime_ns='<CTIME>', mtime_ns='<MTIME>')
         value['archive_id'] = 'MEDIA'
-        value['work_id'] = 'ESSD'
+        value['work_id'] = 'EDICION'
         return json.loads(json.dumps(value).replace(str(root), '<ROOT>'))
     return {'files': files, 'plan': normalize(plan), 'review': normalize(updated),
             'applied': normalize(applied), 'remaining': remaining}
@@ -361,13 +366,13 @@ def closeout_cases(full=False):
     backend = FixtureVolumes()
     consumers = {'blockers': [], 'relinks': [], 'dependencies': None}
     with contextlib.closing(Catalog(root / 'state')) as catalog:
-        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'ESSD', 'work', '001_proyectos')):
+        for folder, name, role, prefix in ((archive, 'MEDIA', 'archive', '001_raw'), (work, 'EDICION', 'work', '001_proyectos')):
             catalog.register(name, role, folder, backend.describe(folder), prefix)
         with catalog.db:
             catalog.db.execute("INSERT INTO projects VALUES('p1','general','intro')")
         save(catalog, backend, 'p1', ['horizontal'], True, False, [
-            {'volume_id': catalog.volume('ESSD')['id'], 'path': published, 'role': 'horizontal', 'published': True},
-            {'volume_id': catalog.volume('ESSD')['id'], 'path': unpublished, 'role': 'auxiliary', 'published': False}])
+            {'volume_id': catalog.volume('EDICION')['id'], 'path': published, 'role': 'horizontal', 'published': True},
+            {'volume_id': catalog.volume('EDICION')['id'], 'path': unpublished, 'role': 'auxiliary', 'published': False}])
         if full:
             import hashlib
             sha = hashlib.sha256(b'raw').hexdigest()
@@ -379,16 +384,16 @@ def closeout_cases(full=False):
                 asset = {'id': 'a1', 'kind': 'file', 'job_id': 'j1', 'project_id': 'p1',
                          'profile': 'general', 'paths': [member]}
                 catalog.db.execute("INSERT INTO assets VALUES('a1','j1',?)", (json.dumps(asset),))
-                catalog.db.execute("INSERT INTO work VALUES('a1','ready',?,'t')", (catalog.volume('ESSD')['id'],))
+                catalog.db.execute("INSERT INTO work VALUES('a1','ready',?,'t')", (catalog.volume('EDICION')['id'],))
                 for volume, dest in (('MEDIA', '001_raw/2026/11/clip.mov'),
-                                     ('ESSD', '001_proyectos/general_raw/intro/clip.mov')):
+                                     ('EDICION', '001_proyectos/general_raw/intro/clip.mov')):
                     row = {'path': member, 'destination': dest, 'sha256': sha}
                     catalog.db.execute("INSERT INTO copies VALUES('j1',?,?,?,?)",
                                        (catalog.volume(volume)['id'], member, sha, json.dumps(row)))
         with patch('media.clipper.inspect', return_value=consumers), patch('media.clipper.release_guard', return_value=contextlib.nullcontext()):
-            plan = plan_close(catalog, backend, 'p1', 'MEDIA', 'ESSD', release_work=full)
+            plan = plan_close(catalog, backend, 'p1', 'MEDIA', 'EDICION', release_work=full)
             applied = apply_close(catalog, backend, plan['id'], plan['digest'], confirm_discard=True)
-        ids = {catalog.volume(name)['id']: name for name in ('MEDIA', 'ESSD')}
+        ids = {catalog.volume(name)['id']: name for name in ('MEDIA', 'EDICION')}
         terminal = {'state': catalog.get('project-state:p1'), 'release': catalog.get('project-released:p1'),
                     'work': catalog.db.execute("SELECT state FROM work WHERE asset_id='a1'").fetchone()[0]} if full else None
         if terminal:
@@ -433,7 +438,7 @@ def transcript_cases():
     editable = '001_proyectos/general_raw/intro/clip.mov'
     with contextlib.closing(Catalog(root / 'state')) as catalog:
         media = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
-        essd = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        edicion = catalog.register('EDICION', 'work', work, backend.describe(work), '001_proyectos')
         with catalog.db:
             catalog.db.execute("INSERT INTO projects VALUES('p1','general','intro')")
             catalog.db.execute("INSERT INTO jobs VALUES('job','digest','{}','completed',NULL,'t','t')")
@@ -441,7 +446,7 @@ def transcript_cases():
                                (json.dumps({'id': 'asset', 'job_id': 'job', 'paths': [member]}),))
             catalog.db.execute("INSERT INTO work VALUES('asset','ready',NULL,'t')")
             catalog.db.execute("INSERT INTO members(job_id,relative_path,sha256) VALUES('job',?,'member-sha')", (member,))
-            for volume, destination in ((media, archived), (essd, editable)):
+            for volume, destination in ((media, archived), (edicion, editable)):
                 row = json.dumps({'path': member, 'destination': destination})
                 catalog.db.execute("INSERT INTO copies VALUES('job',?,?,'member-sha',?)", (volume['id'], member, row))
         def invoke(_, args, timeout):
@@ -473,7 +478,7 @@ def handoff_cases():
     backend = FixtureVolumes()
     with deterministic(), contextlib.closing(Catalog(root / 'state')) as catalog:
         volumes = []
-        for folder, name, role, prefix in (('archive', 'MEDIA', 'archive', '001_raw'), ('work', 'ESSD', 'work', '001_proyectos')):
+        for folder, name, role, prefix in (('archive', 'MEDIA', 'archive', '001_raw'), ('work', 'EDICION', 'work', '001_proyectos')):
             path = root / folder
             path.mkdir()
             identity = dict(backend.describe(path), root_inode=1, device=1)
@@ -556,11 +561,11 @@ def reads_cases():
             db = catalog.db
             with db:
                 db.executemany('INSERT INTO projects VALUES(?,?,?)', [
-                    ('p1', 'e64', 'terra-6-1'), ('p2', 'e64', 'Terra 6 1 extra'), ('p3', 'e64', 'otro_proyecto'),
-                    ('p4', '9logs', 'vlog'), ('p5', 'e64', 'finales'), ('p6', 'e64', 'terra__6')])
+                    ('p1', 'canal-a', 'terra-6-1'), ('p2', 'canal-a', 'Terra 6 1 extra'), ('p3', 'canal-a', 'otro_proyecto'),
+                    ('p4', 'blog', 'vlog'), ('p5', 'canal-a', 'finales'), ('p6', 'canal-a', 'terra__6')])
                 asset = lambda i, job, project, pid, rev: json.dumps(  # noqa: E731
                     {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': project,
-                     'project_id': pid, 'profile': 'e64', 'revision': rev})
+                     'project_id': pid, 'profile': 'canal-a', 'revision': rev})
                 db.executemany('INSERT INTO assets VALUES(?,?,?)', [
                     ('a1', 'j1', asset('a1', 'j1', 'terra-6-1', 'p1', 'r2')),
                     ('a2', 'j1', asset('a2', 'j1', 'otro_proyecto', 'p3', 'r1')),
@@ -596,7 +601,7 @@ def reads_cases():
                 'release:r1': {'id': 'r1'},
                 'retitle:op1': {'id': 'op1', 'state': 'applied', 'request': {'session_id': 's'}},
                 'collection-release:c1': {'id': 'c1', 'source': '/x', 'entries': [1], 'kept': [], 'moved': [], 'bytes': 5},
-                'creative-profiles': {'e64': {'id': 'e64', 'name': 'E64', 'clipper_profile': 'clip-e64'}},
+                'creative-profiles': {'canal-a': {'id': 'canal-a', 'name': 'Canal A', 'clipper_profile': 'clip-canal-a'}},
             }.items():
                 catalog.set(key, value)
             service = Service(catalog)
@@ -710,18 +715,18 @@ def project_cases():
             return info
 
     root = fresh_root('projects')
-    files = {'work/002_finales/e64/terra/final-h.mp4': 'h', 'work/002_finales/e64/terra/final-v.mp4': 'v',
-             'work/002_finales/e64/01_subidos/final-t.mp4': 't', 'archive/x/thumb.jpg': 'j',
-             'work/002_finales/e64/01_subidos/26-11-04-terra.mp4': 'dated', 'work/002_finales/e64/shorts/terra-old.mp4': 's',
-             'work/002_finales/e64/terra/Terra_Short-2.MOV': 'v2', 'work/002_finales/e64/terra/terra.thumbnail.jpg': 'j',
-             'work/002_finales/e64/terra/notas.txt': 'n', 'work/002_finales/e64/otro/otro.mp4': 'o',
-             'work/002_finales/e64/Proyecto.fcpbundle/x.mp4': 'b', 'work/002_finales/e64/.oculto/x.mp4': 'h',
-             'archive/002_finales/e64/2026/terra.mp4': 'a', 'work/002_finales/e64/01_subidos/terra-short.mp4': 'sv',
-             'work/002_finales/e64/otro/terra.mp4': 'a',
-             'work/001_proyectos/e64_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4': 'clip',
+    files = {'work/002_finales/canal-a/terra/final-h.mp4': 'h', 'work/002_finales/canal-a/terra/final-v.mp4': 'v',
+             'work/002_finales/canal-a/01_subidos/final-t.mp4': 't', 'archive/x/thumb.jpg': 'j',
+             'work/002_finales/canal-a/01_subidos/26-11-04-terra.mp4': 'dated', 'work/002_finales/canal-a/shorts/terra-old.mp4': 's',
+             'work/002_finales/canal-a/terra/Terra_Short-2.MOV': 'v2', 'work/002_finales/canal-a/terra/terra.thumbnail.jpg': 'j',
+             'work/002_finales/canal-a/terra/notas.txt': 'n', 'work/002_finales/canal-a/otro/otro.mp4': 'o',
+             'work/002_finales/canal-a/Proyecto.fcpbundle/x.mp4': 'b', 'work/002_finales/canal-a/.oculto/x.mp4': 'h',
+             'archive/002_finales/canal-a/2026/terra.mp4': 'a', 'work/002_finales/canal-a/01_subidos/terra-short.mp4': 'sv',
+             'work/002_finales/canal-a/otro/terra.mp4': 'a',
+             'work/001_proyectos/canal-a_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4': 'clip',
              'archive/001_raw/2026/11/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4': 'clip',
-             'work/001_proyectos/e64_raw/terra/S1.stalker/manifest.json': 'm',
-             'archive/002_finales/e64/2026/entrega.mp4': 'ent'}
+             'work/001_proyectos/canal-a_raw/terra/S1.stalker/manifest.json': 'm',
+             'archive/002_finales/canal-a/2026/entrega.mp4': 'ent'}
     for rel, text in files.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -732,21 +737,21 @@ def project_cases():
         catalog = Catalog(root / 'state')
         try:
             media = catalog.register('MEDIA', 'archive', root / 'archive', backend.describe(root / 'archive'), '001_raw')
-            essd = catalog.register('ESSD', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
+            edicion = catalog.register('EDICION', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
             old = catalog.register('OLD', 'work', root / 'gone', backend.describe(root / 'gone'), '001_proyectos')
             shutil.rmtree(root / 'gone')
-            prefix = '002_finales/e64/'
+            prefix = '002_finales/canal-a/'
             asset = lambda i, job, title, pid, **extra: json.dumps(dict(  # noqa: E731
                 {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': title,
-                 'project_id': pid, 'profile': 'e64'}, **extra))
+                 'project_id': pid, 'profile': 'canal-a'}, **extra))
             with catalog.db:
                 db = catalog.db
                 db.executemany('INSERT INTO projects VALUES(?,?,?)', [
-                    ('p1', 'e64', 'terra'), ('p2', 'e64', 'terra-extra'), ('p3', 'e64', 'finales')])
+                    ('p1', 'canal-a', 'terra'), ('p2', 'canal-a', 'terra-extra'), ('p3', 'canal-a', 'finales')])
                 db.executemany('INSERT INTO project_aliases VALUES(?,?,?)', [
-                    ('e64', 'terra', 'p1'), ('e64', 'terra-old', 'p1'), ('e64', 'terra-extra', 'p2')])
+                    ('canal-a', 'terra', 'p1'), ('canal-a', 'terra-old', 'p1'), ('canal-a', 'terra-extra', 'p2')])
                 db.executemany('INSERT INTO assets VALUES(?,?,?)', [
-                    ('a1', 'j1', asset('a1', 'j1', 'terra', 'p1', camera='sony-a6400', country='mx', city='hermosillo')),
+                    ('a1', 'j1', asset('a1', 'j1', 'terra', 'p1', camera='sony-a6400', country='mx', city='oaxaca')),
                     ('a2', 'j2', asset('a2', 'j2', 'terra', 'p1', camera='generic', country='pe')),
                     ('a3', 'j1', asset('a3', 'j1', 'terra-extra', 'p2', kind='stalker_session', bundle='S9.stalker')),
                     ('a4', 'j1', asset('a4', 'j1', 'borrador', '')),
@@ -756,14 +761,14 @@ def project_cases():
                     ('a4', 'ready', None, 't'), ('a5', 'ready', None, 't')])
                 db.executemany('INSERT INTO asset_projects VALUES(?,?)', [
                     ('a1', 'p1'), ('a2', 'p1'), ('a3', 'p2'), ('a5', 'p3')])
-                plan = {'source': str(root / 'work' / '002_finales' / 'e64'), 'source_kind': 'delivery',
-                        'units': [{'profile': 'e64'}], 'layout': {}}
+                plan = {'source': str(root / 'work' / '002_finales' / 'canal-a'), 'source_kind': 'delivery',
+                        'units': [{'profile': 'canal-a'}], 'layout': {}}
                 db.executemany('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)', [
                     ('j1', 'd', json.dumps({'source_kind': 'card'}), 'completed', None, 't', '2026-11-08T11:00:00Z'),
                     ('j2', 'd', json.dumps({'source_kind': 'card'}), 'failed', None, 't', '2026-11-09T09:00:00Z'),
                     ('j3', 'd', json.dumps(plan), 'completed', None, 't', '2026-11-07T09:00:00Z')])
                 copy = {'path': '01_subidos/gone-r.mp4', 'volume_id': media['id'],
-                        'destination': '002_finales/e64/2026/gone-r.mp4', 'stamp': {'size': 5}}
+                        'destination': '002_finales/canal-a/2026/gone-r.mp4', 'stamp': {'size': 5}}
                 db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j3', media['id'], copy['path'], 'h', json.dumps(copy)))
                 # Editor sources (`sources`): a file on both disks, a Stalker session missing a file on the work
                 # disk, a bundle only on the disk that is gone, and a delivery.
@@ -775,7 +780,7 @@ def project_cases():
                            ('j4', 'd', json.dumps({'files': files_plan}), 'completed', None, 't', '2026-11-06T00:00:00Z'))
                 source = lambda i, kind, paths, **extra: json.dumps(dict(  # noqa: E731
                     {'id': i, 'job_id': 'j4', 'kind': kind, 'paths': paths, 'project': 'terra', 'project_id': 'p1',
-                     'profile': 'e64', 'revision': 'r-' + i}, **extra))
+                     'profile': 'canal-a', 'revision': 'r-' + i}, **extra))
                 db.executemany('INSERT INTO assets VALUES(?,?,?)', [
                     ('s1', 'j4', source('s1', 'file', ['CLIP/C1.MP4'], camera='sony')),
                     ('s2', 'j4', source('s2', 'stalker_session', ['S1.stalker/manifest.json', 'S1.stalker/screen.mov'],
@@ -785,25 +790,25 @@ def project_cases():
                 db.executemany('INSERT INTO work VALUES(?,?,?,?)', [(i, 'ready', None, 't') for i in ('s1', 's2', 's3', 's4')])
                 db.executemany('INSERT INTO asset_projects VALUES(?,?)', [(i, 'p1') for i in ('s1', 's2', 's3', 's4')])
                 copy_rows = [
-                    (essd['id'], 'CLIP/C1.MP4', '001_proyectos/e64_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4', 4, 'h1'),
+                    (edicion['id'], 'CLIP/C1.MP4', '001_proyectos/canal-a_raw/terra/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4', 4, 'h1'),
                     (media['id'], 'CLIP/C1.MP4', '001_raw/2026/11/26NOV04-163212_SONY_05-09_MX-TERRA[].MP4', 4, 'h1'),
-                    (essd['id'], 'S1.stalker/manifest.json', '001_proyectos/e64_raw/terra/S1.stalker/manifest.json', 1, 'hm'),
-                    (essd['id'], 'S1.stalker/screen.mov', '001_proyectos/e64_raw/terra/S1.stalker/screen.mov', 3, 'hs'),
+                    (edicion['id'], 'S1.stalker/manifest.json', '001_proyectos/canal-a_raw/terra/S1.stalker/manifest.json', 1, 'hm'),
+                    (edicion['id'], 'S1.stalker/screen.mov', '001_proyectos/canal-a_raw/terra/S1.stalker/screen.mov', 3, 'hs'),
                     (old['id'], 'DCIM/B1.JPG', 'x/B1.JPG', 2, 'hb'),
-                    (media['id'], 'entrega.mp4', '002_finales/e64/2026/entrega.mp4', 3, 'he')]
+                    (media['id'], 'entrega.mp4', '002_finales/canal-a/2026/entrega.mp4', 3, 'he')]
                 for volume_id, path, destination, size, sha in copy_rows:
                     payload = {'path': path, 'volume_id': volume_id, 'destination': destination, 'bytes': size, 'sha256': sha}
                     db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j4', volume_id, path, sha, json.dumps(payload)))
             catalog.set('project-closure:p1', {'required': ['horizontal'], 'no_more': True, 'published': False,
                                                'related': ['p2', 'gone'], 'finals': [
-                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-h.mp4', 'stamp': {'size': 0}},
-                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/final-v.mp4', 'published': True,
+                {'role': 'horizontal', 'volume_id': edicion['id'], 'path': prefix + 'terra/final-h.mp4', 'stamp': {'size': 0}},
+                {'role': 'vertical', 'volume_id': edicion['id'], 'path': prefix + 'terra/final-v.mp4', 'published': True,
                  'stamp': {'size': 0}},
                 {'role': 'thumbnail', 'volume_id': media['id'], 'path': 'x/thumb.jpg'},
                 {'role': 'auxiliary', 'volume_id': old['id'], 'path': 'a.mp4'},
-                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'terra/final-t.mp4',
+                {'role': 'horizontal', 'volume_id': edicion['id'], 'path': prefix + 'terra/final-t.mp4',
                  'stamp': {'size': 1, 'mtime_ns': 1, 'inode': 1}},
-                {'role': 'vertical', 'volume_id': essd['id'], 'path': prefix + 'terra/gone-r.mp4', 'stamp': {'size': 5}}]})
+                {'role': 'vertical', 'volume_id': edicion['id'], 'path': prefix + 'terra/gone-r.mp4', 'stamp': {'size': 5}}]})
             catalog.set('project-state:p2', {'state': 'finished'})
             catalog.set('project-touch:p1', '2026-11-10T00:00:00Z')
             catalog.set('project-released:p2', {'at': 't'})
@@ -816,7 +821,7 @@ def project_cases():
                 {'tag': {'name': 'terra-old'}, 'status': 'completed', 'archived': True, 'path': '/x/S4.stalker'}]
             catalog.set('project-closure:p2', {'required': ['horizontal'], 'no_more': False, 'published': True,
                                                'related': ['p1'], 'finals': [
-                {'role': 'horizontal', 'volume_id': essd['id'], 'path': prefix + 'otro/otro.mp4', 'stamp': {'size': 0}}]})
+                {'role': 'horizontal', 'volume_id': edicion['id'], 'path': prefix + 'otro/otro.mp4', 'stamp': {'size': 0}}]})
             from media.closure import candidates
             found = {}
             for name, args in (('p1', ('p1', None)), ('p1-query', ('p1', 'final')), ('p2', ('p2', None)),
@@ -947,13 +952,13 @@ def mission_incorporation_case():
     backend = FixtureVolumes()
     with contextlib.closing(Catalog(root / 'state')) as catalog:
         catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
-        catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        catalog.register('EDICION', 'work', work, backend.describe(work), '001_proyectos')
         recipe = json.loads(json.dumps(TEMPLATE))
         recipe['missions'][0]['inbox'] = str(inbox)
         catalog.set('recipe', recipe)
         reviewed = review(catalog, backend, 'MEDIA')
         with patch('media.missions.now', return_value='2026-11-13T00:00:00Z'):
-            result = incorporate(catalog, backend, 'MEDIA', reviewed['digest'], work='ESSD')
+            result = incorporate(catalog, backend, 'MEDIA', reviewed['digest'], work='EDICION')
     area = archive / recipe['missions'][0]['archive_area']
     return {'files': files, 'result': result, 'history': json.loads((area / 'history.json').read_bytes()),
             'changes': [json.loads(line) for line in (area / 'changes.ndjson').read_bytes().splitlines()],
@@ -976,7 +981,7 @@ def dng_case():
     backend = FixtureVolumes()
     with contextlib.closing(Catalog(root / 'state')) as catalog:
         media = catalog.register('MEDIA', 'archive', archive, backend.describe(archive), '001_raw')
-        essd = catalog.register('ESSD', 'work', work, backend.describe(work), '001_proyectos')
+        edicion = catalog.register('EDICION', 'work', work, backend.describe(work), '001_proyectos')
         units = []
         for name, body in (('a', b'first'), ('b', b'second')):
             rel = '001_raw/dron/' + name + '.DNG'
@@ -993,12 +998,12 @@ def dng_case():
         (base / 'photos').mkdir()
         (base / 'photos/a.DNG').write_bytes(b'first')
         (base / 'photos/orphan.DNG').write_bytes(b'orphan')
-        reviewed = plan(catalog, backend, 'MEDIA', 'ESSD', keep=['b'],
+        reviewed = plan(catalog, backend, 'MEDIA', 'EDICION', keep=['b'],
                         trash_unbacked=['001_proyectos/atlas-subaereo/photos/orphan.DNG'])
         result = apply(catalog, backend, reviewed, reviewed['digest'])
     reviewed.pop('digest')
     result.pop('operation')
-    reviewed.update(archive_id='MEDIA', work_id='ESSD')
+    reviewed.update(archive_id='MEDIA', work_id='EDICION')
     for group, key in (('release', 'archive_stamp'), ('trash_unbacked', 'stamp')):
         for row in reviewed[group]:
             row[key] = {'size': row[key]['size']}
@@ -1064,9 +1069,9 @@ def storage_cases():
 
     root = fresh_root('storage')
     files = {'archive/001_raw/raw/a.mov': 'A' * 4000, 'archive/001_raw/raw/b.mov': 'B' * 9000,
-             'archive/002_finales/e64/f.mp4': 'F' * 100,
-             'work/001_proyectos/e64_raw/terra/a.mov': 'A' * 4000, 'work/001_proyectos/e64_raw/terra/c.mov': 'C' * 9000,
-             'work/001_proyectos/e64_raw/terra/d.mov': 'D' * 7000, 'work/001_proyectos/e64/terra.fcpbundle/x.plist': 'p',
+             'archive/002_finales/canal-a/f.mp4': 'F' * 100,
+             'work/001_proyectos/canal-a_raw/terra/a.mov': 'A' * 4000, 'work/001_proyectos/canal-a_raw/terra/c.mov': 'C' * 9000,
+             'work/001_proyectos/canal-a_raw/terra/d.mov': 'D' * 7000, 'work/001_proyectos/canal-a/terra.fcpbundle/x.plist': 'p',
              'work/node_modules/m.js': 'm' * 300, 'work/notes.txt': 'n', 'work/.hidden/h.mov': 'h'}
     for rel, text in files.items():
         path = root / rel
@@ -1079,11 +1084,11 @@ def storage_cases():
         catalog = Catalog(root / 'state')
         try:
             media = catalog.register('MEDIA', 'archive', root / 'archive', backend.describe(root / 'archive'), '001_raw')
-            essd = catalog.register('ESSD', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
+            edicion = catalog.register('EDICION', 'work', root / 'work', backend.describe(root / 'work'), '001_proyectos')
             with catalog.db:
                 catalog.db.execute('INSERT INTO jobs VALUES(?,?,?,?,?,?,?)',
                                    ('j1', 'd', '{}', 'completed', None, 't', 't'))
-                for volume, destination in ((media['id'], '001_raw/raw/a.mov'), (essd['id'], '001_proyectos/e64_raw/terra/a.mov')):
+                for volume, destination in ((media['id'], '001_raw/raw/a.mov'), (edicion['id'], '001_proyectos/canal-a_raw/terra/a.mov')):
                     payload = {'destination': destination, 'path': 'CLIP/a.mov', 'bytes': 4000, 'verified_at': '2026-11-01'}
                     catalog.db.execute('INSERT INTO copies VALUES(?,?,?,?,?)', ('j1', volume, 'CLIP/a.mov', 'SHA-A', json.dumps(payload)))
             def record(method, params):
@@ -1091,23 +1096,23 @@ def storage_cases():
                 reply.pop('seconds', None)
                 scan_compare.append((method, params, reply))
 
-            for target in ('MEDIA', 'ESSD'):
+            for target in ('MEDIA', 'EDICION'):
                 record('storage_scan', {'target': target})
             index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
             with index:
                 index.execute("UPDATE runs SET pid=0,started_at='2026-11-02T00:00:00Z',finished_at='2026-11-02T00:01:00Z'")
                 index.execute("UPDATE indexes SET indexed_at='2026-11-02T00:01:00Z',seconds=0.1236,fs_total=1000000,fs_used=600000,fs_free=400000")
-                index.execute("INSERT INTO runs(target_id,kind,state,pid,started_at) VALUES('ESSD-x','scan','running',999999999,'t')")
+                index.execute("INSERT INTO runs(target_id,kind,state,pid,started_at) VALUES('EDICION-x','scan','running',999999999,'t')")
             sql_index = sql_dump(index)
             index.close()
             call = lambda method, params: storage_index.call(catalog, backend, method, params)  # noqa: E731
-            requests = [('storage_progress', {}), ('storage_tree', {'target': 'ESSD'}),
-                        ('storage_tree', {'target': essd['id'], 'path': '001_proyectos/e64_raw/terra'}),
-                        ('storage_tree', {'target': 'ESSD', 'path': '001_proyectos', 'limit': 1}),
-                        ('storage_tree', {'target': 'ESSD', 'path': '001_proyectos/e64/terra.fcpbundle'}),
+            requests = [('storage_progress', {}), ('storage_tree', {'target': 'EDICION'}),
+                        ('storage_tree', {'target': edicion['id'], 'path': '001_proyectos/canal-a_raw/terra'}),
+                        ('storage_tree', {'target': 'EDICION', 'path': '001_proyectos', 'limit': 1}),
+                        ('storage_tree', {'target': 'EDICION', 'path': '001_proyectos/canal-a/terra.fcpbundle'}),
                         ('storage_tree', {'target': 'MEDIA', 'path': '001_raw/raw'}),
-                        ('storage_tree', {'target': 'ESSD', 'path': 'nope'}), ('storage_tree', {'target': 'X'}),
-                        ('storage_tree', {'target': 'ESSD', 'path': '../x'}), ('storage_tree', {'target': 'ESSD', 'limit': 5000}),
+                        ('storage_tree', {'target': 'EDICION', 'path': 'nope'}), ('storage_tree', {'target': 'X'}),
+                        ('storage_tree', {'target': 'EDICION', 'path': '../x'}), ('storage_tree', {'target': 'EDICION', 'limit': 5000}),
                         ('storage_overview', {})]
             for method, params in requests:
                 try:
@@ -1115,8 +1120,8 @@ def storage_cases():
                 except MediaError as error:
                     value = {'ok': False, 'code': error.code}
                 results[json.dumps([method, params], sort_keys=True)] = value
-            for scope in ('001_proyectos/e64_raw/terra', ''):
-                record('storage_compare', {'target': 'ESSD', 'path': scope})
+            for scope in ('001_proyectos/canal-a_raw/terra', ''):
+                record('storage_compare', {'target': 'EDICION', 'path': scope})
             index = sqlite3.connect(str(catalog.home / 'storage-index.sqlite3'))
             queries = [
                 'SELECT target_id,path,parent,size,allocated,mtime_ns,kind FROM entries ORDER BY target_id,path',
@@ -1152,8 +1157,8 @@ def storage_cases():
         index.close()
         assert indexed_target == selected['id']
         removed = storage_index.remove_folder(catalog, 'Observada')
-        for scoped, hashed in (('', True), ('001_proyectos/e64_raw/terra', False)):
-            reply = coverage(catalog, backend, 'ESSD', 'MEDIA', scoped, hashed)
+        for scoped, hashed in (('', True), ('001_proyectos/canal-a_raw/terra', False)):
+            reply = coverage(catalog, backend, 'EDICION', 'MEDIA', scoped, hashed)
             report = json.loads(Path(reply.pop('report')).read_text())
             report.pop('created_at')
             reports.append({'path': scoped, 'no_hash': not hashed, 'reply': reply, 'report': report})
@@ -1269,7 +1274,7 @@ WRITE_REQUESTS = [
     ('set_publication', {'asset_id': 'd1', 'variant': 'v.mp4', 'channel': 'youtube', 'state': 'published', 'url': 'ftp://x'}),
     ('set_publication', {'asset_id': 'd1', 'variant': 'z.mp4', 'channel': 'youtube', 'state': 'candidate'}),
     ('set_publication', {'asset_id': 'a1', 'variant': 'CLIP/a1.MP4', 'channel': 'youtube', 'state': 'candidate'}),
-    ('set_finals_folder', {'profile': 'e64', 'folder': '01_subidos'}), ('set_finals_folder', {'profile': '9logs', 'folder': None}),
+    ('set_finals_folder', {'profile': 'canal-a', 'folder': '01_subidos'}), ('set_finals_folder', {'profile': 'blog', 'folder': None}),
     ('set_finals_folder', {'profile': '../x', 'folder': ''}),
     ('cancel_plan', {'plan_id': 'rp1'}), ('cancel_plan', {'plan_id': 'j1'}), ('cancel_plan', {'plan_id': 'nope'}),
     ('capture_discarded', {'session_id': U1, 'name': 'S.stalker', 'trash_path': '/T/S', 'bytes': 5}),
@@ -1278,7 +1283,7 @@ WRITE_REQUESTS = [
     ('closure_save', {'project_id': 'p1', 'required': ['auxiliary'], 'no_more': False, 'published': False, 'finals': []}),
     ('closure_link', {'project_id': 'p1', 'other_id': 'p3'}), ('closure_link', {'project_id': 'p1', 'other_id': 'p3', 'linked': False}),
     ('closure_link', {'project_id': 'p1', 'other_id': 'p4'}), ('closure_link', {'project_id': 'p1', 'other_id': 'p1'}),
-    ('save_profile', {'id': 'e64', 'name': ' E64 nuevo ', 'raw_dir': 'e64_raw', 'work': 'ESSD', 'archive': 'MEDIA'}),
+    ('save_profile', {'id': 'canal-a', 'name': ' Canal A nuevo ', 'raw_dir': 'canal-a_raw', 'work': 'EDICION', 'archive': 'MEDIA'}),
     ('save_profile', {'id': 'E 64', 'name': 'x', 'raw_dir': 'r'}), ('save_profile', {'id': 'x', 'name': 'x', 'raw_dir': 'r', 'work': 'MEDIA'}),
     ('confirm_device', {'make': 'DJI', 'model': 'FC3170', 'serial': 'X1', 'category': 'dji-drone', 'label': 'Mavic'}),
     ('confirm_device', {'make': 'DJI', 'model': 'FC3170', 'serial': 'X1', 'category': 'x'}),
@@ -1300,15 +1305,15 @@ def write_cases():
             db = catalog.db
             identity = {'mode': 'fixture', 'volume_uuid': 'v', 'disk_uuid': 'd', 'root_inode': 1, 'external': True}
             catalog.register('MEDIA', 'archive', root / 'archive', identity, '001_raw')
-            catalog.register('ESSD', 'work', root / 'work', dict(identity, volume_uuid='w'), '001_proyectos')
+            catalog.register('EDICION', 'work', root / 'work', dict(identity, volume_uuid='w'), '001_proyectos')
             asset = lambda i, job, title, pid, **extra: json.dumps(dict(  # noqa: E731
                 {'id': i, 'job_id': job, 'kind': 'camera_clip', 'paths': ['CLIP/%s.MP4' % i], 'project': title,
-                 'project_id': pid, 'profile': 'e64', 'revision': 'r1'}, **extra))
+                 'project_id': pid, 'profile': 'canal-a', 'revision': 'r1'}, **extra))
             with db:
                 db.executemany('INSERT INTO projects VALUES(?,?,?)', [
-                    ('p1', 'e64', 'terra-6-1'), ('p2', 'e64', 'Terra 6 1 extra'), ('p3', 'e64', 'otro'), ('p4', '9logs', 'vlog')])
+                    ('p1', 'canal-a', 'terra-6-1'), ('p2', 'canal-a', 'Terra 6 1 extra'), ('p3', 'canal-a', 'otro'), ('p4', 'blog', 'vlog')])
                 db.executemany('INSERT INTO project_aliases VALUES(?,?,?)', [
-                    ('e64', 'terra-6-1', 'p1'), ('e64', 'Terra 6 1 extra', 'p2'), ('e64', 'otro', 'p3'), ('9logs', 'vlog', 'p4')])
+                    ('canal-a', 'terra-6-1', 'p1'), ('canal-a', 'Terra 6 1 extra', 'p2'), ('canal-a', 'otro', 'p3'), ('blog', 'vlog', 'p4')])
                 db.executemany('INSERT INTO assets VALUES(?,?,?)', [
                     ('a1', 'j1', asset('a1', 'j1', 'terra-6-1', 'p1')), ('a2', 'j1', asset('a2', 'j1', 'Terra 6 1 extra', 'p2')),
                     ('d1', 'j2', asset('d1', 'j2', 'terra-6-1', 'p1', kind='delivery', paths=['v.mp4', 'h.mp4']))])
@@ -1317,7 +1322,7 @@ def write_cases():
                     ('j1', 'd', '{"files":[]}', 'completed', None, 't', 't'), ('j2', 'd', '{"files":[]}', 'completed', None, 't', 't')])
             for key, value in {'reviewed-plan:rp1': {'id': 'rp1'}, 'reviewed-plan:j1': {'id': 'j1'},
                                'capture-tag:' + U2: {'name': 'terra-6-1', 'country': 'mx'},
-                               'creative-profiles': {'e64': {'id': 'e64', 'name': 'E64', 'clipper_profile': 'clip-e64'}}}.items():
+                               'creative-profiles': {'canal-a': {'id': 'canal-a', 'name': 'Canal A', 'clipper_profile': 'clip-canal-a'}}}.items():
                 catalog.set(key, value)
             base = sql_dump(db)
             service, answers = Service(catalog), []

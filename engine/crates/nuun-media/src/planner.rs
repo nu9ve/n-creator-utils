@@ -90,6 +90,30 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
     value[key].as_str().unwrap_or_default()
 }
 
+/// Python `_default`: profile, country and city come from the request or the library's own `defaults`
+/// (`catalog.get("defaults")`); the code has none of its own.
+pub fn library_default(
+    value: Option<&Value>,
+    defaults: Option<&Value>,
+    key: &str,
+) -> Result<String> {
+    let given = value
+        .and_then(Value::as_str)
+        .filter(|v| !v.trim().is_empty());
+    let chosen = given.or_else(|| {
+        defaults
+            .and_then(|d| d.get(key))
+            .and_then(Value::as_str)
+            .filter(|v| !v.trim().is_empty())
+    });
+    let chosen = chosen.ok_or_else(|| {
+        Error::new(
+            "defaults_required",
+            format!("Set a default {key} first (Settings) or pass it"),
+        )
+    })?;
+    slug(chosen)
+}
 /// A Python `str` parameter: slug errors for anything else, as `slug(None)` raises `invalid_tag`.
 fn slug_value(value: &Value) -> Result<String> {
     match value.as_str() {
@@ -724,9 +748,10 @@ fn build_with_stamps(
         Some(Value::String(s)) if s.trim().is_empty() => String::new(),
         Some(other) => slug_value(other)?,
     };
-    let profile = slug_value(&get("profile", json!("e64")))?;
-    let country = slug_value(&get("country", json!("mx")))?;
-    let city = slug_value(&get("city", json!("hermosillo")))?;
+    let defaults = catalog.get("defaults")?;
+    let profile = library_default(p.get("profile"), defaults.as_ref(), "profile")?;
+    let country = library_default(p.get("country"), defaults.as_ref(), "country")?;
+    let city = library_default(p.get("city"), defaults.as_ref(), "city")?;
     let camera = get("camera", Value::Null);
     require(
         camera.is_null()
@@ -1817,7 +1842,7 @@ mod tests {
     }
 
     fn params(s: &Setup, extra: Value) -> Value {
-        let mut p = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "ESSD", "project": "intro"});
+        let mut p = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "EDICION", "project": "intro"});
         for (k, v) in extra.as_object().unwrap() {
             p[k] = v.clone();
         }
@@ -1944,7 +1969,7 @@ mod tests {
             );
             assert_eq!(
                 dest["work"],
-                format!("e64_raw/intro/26OCT02-210630_ZOOM0001_MX-INTRO[]/{basename}")
+                format!("canal-a_raw/intro/26OCT02-210630_ZOOM0001_MX-INTRO[]/{basename}")
             );
         }
     }
@@ -1975,7 +2000,7 @@ mod tests {
             text(&plan["layout"][clip], "archive")
                 .starts_with("videos/2026/10/26OCT31-232113_CANONEOSREBELSL3_")
         );
-        assert!(text(&plan["layout"][clip], "work").starts_with("e64_raw/intro/"));
+        assert!(text(&plan["layout"][clip], "work").starts_with("canal-a_raw/intro/"));
     }
 
     #[test]
@@ -2116,7 +2141,7 @@ mod tests {
         for (folder, names) in [("videos", &names[..3]), ("images", &names[3..])] {
             for (destination, prefix) in [
                 ("archive", format!("360/{folder}/")),
-                ("work", "e64_raw/intro/".to_owned()),
+                ("work", "canal-a_raw/intro/".to_owned()),
             ] {
                 let mut expected_parent = None;
                 for name in names {
@@ -2264,7 +2289,7 @@ mod tests {
         let source = s.archive.join("inside");
         std::fs::create_dir_all(&source).unwrap();
         std::fs::write(source.join("a.JPG"), b"x").unwrap();
-        let p = json!({"source": source.display().to_string(), "archive": "MEDIA", "work": "ESSD", "project": "intro"});
+        let p = json!({"source": source.display().to_string(), "archive": "MEDIA", "work": "EDICION", "project": "intro"});
         assert_eq!(
             build(&Catalog::open(&s.home).unwrap(), &s.backend, &p)
                 .unwrap_err()
@@ -2312,7 +2337,7 @@ mod tests {
 #[cfg(test)]
 mod golden {
     use super::*;
-    use crate::volumes::test_backend::setup;
+    use crate::volumes::test_backend::setup_bare;
 
     fn unhex(text: &str) -> Vec<u8> {
         (0..text.len())
@@ -2375,7 +2400,7 @@ mod golden {
             "run with TZ={zone}: names use the host zone, as Python"
         );
         for case in cases {
-            let mut s = setup();
+            let mut s = setup_bare();
             let root = s.card.parent().unwrap().display().to_string();
             write_tree(&s.card, &case["card"], case["mtime_ns"].as_i64());
             write_tree(&s.archive, &case["archive"], None);
@@ -2436,9 +2461,9 @@ mod golden {
                     );
                     let python_ids = [
                         (text(&case["volume_ids"], "MEDIA"), "MEDIA"),
-                        (text(&case["volume_ids"], "ESSD"), "ESSD"),
+                        (text(&case["volume_ids"], "EDICION"), "EDICION"),
                     ];
-                    let rust_ids = [("id-MEDIA", "MEDIA"), ("id-ESSD", "ESSD")];
+                    let rust_ids = [("id-MEDIA", "MEDIA"), ("id-EDICION", "EDICION")];
                     // Rust's plan also carries Python's root: the source identity above is Python's.
                     let mine = normalized(&plan, &root, &rust_ids);
                     assert_eq!(
@@ -2479,7 +2504,7 @@ mod golden {
                     if let Some(discovery) = case.get("discovery") {
                         assert_eq!(discover(&s.card, true), discovery["archived"]);
                     }
-                    let names = |id: &str| if id == "id-MEDIA" { "MEDIA" } else { "ESSD" };
+                    let names = |id: &str| if id == "id-MEDIA" { "MEDIA" } else { "EDICION" };
                     let mut copies: Vec<Value> = Catalog::open(&s.home)
                         .unwrap()
                         .json_rows("SELECT payload FROM copies", [])

@@ -97,12 +97,12 @@ class ShadowCompare(unittest.TestCase):
         self.assertEqual(compare('other', first, second)['diffs'], ['$.checked_at'])
 
     def test_volatile_keys_inside_list_items(self):
-        def overview(free, used, uncounted, name='MEDIA502'):
+        def overview(free, used, uncounted, name='MEDIA9'):
             return {'ok': True, 'data': {'targets': [{'name': name, 'fs_free': free, 'fs_used': used,
                                                       'uncounted': uncounted, 'allocated': 10}]}}
         self.assertEqual(compare('storage_overview', overview(5, 20, 10), overview(4, 21, 11))['outcome'], 'same')
         # Only those values: anything else in the item still counts.
-        self.assertEqual(compare('storage_overview', overview(5, 20, 10), overview(4, 21, 11, 'ESSD'))['diffs'],
+        self.assertEqual(compare('storage_overview', overview(5, 20, 10), overview(4, 21, 11, 'EDICION'))['diffs'],
                          ['$.targets[0].name'])
         # Whether the key is there is still compared.
         missing = overview(5, 20, 10)

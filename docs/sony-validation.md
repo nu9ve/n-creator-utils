@@ -65,7 +65,7 @@ Registrar por etapa: fecha/build, proyecto/job, resultado observado y siguiente 
 
 ### Resultado parcial reportado · 2026-11-06
 
-Flotante aceptado; popup/reconexión no concluyente y pendiente. Usuario completó sus ingresos y necesita editar. Stalker completado; Sony mostró FileNotFoundError de C0001.MP4 y se conserva failed: el journal registra seis retiradas y recibos de archivo, sin causa confirmada ni evidencia de doble borrado. Dos clips Sony entregados después desde archivo a ESSD con herramienta existente, por solicitud explícita; esto no cierra el job ni valida formato. [Evidencia y siguiente diagnóstico](STATUS.md). No exigir otro ciclo físico ahora ni reanudar limpieza a ciegas.
+Flotante aceptado; popup/reconexión no concluyente y pendiente. Usuario completó sus ingresos y necesita editar. Stalker completado; Sony mostró FileNotFoundError de C0001.MP4 y se conserva failed: el journal registra seis retiradas y recibos de archivo, sin causa confirmada ni evidencia de doble borrado. Dos clips Sony entregados después desde archivo a EDICION con herramienta existente, por solicitud explícita; esto no cierra el job ni valida formato. [Evidencia y siguiente diagnóstico](STATUS.md). No exigir otro ciclo físico ahora ni reanudar limpieza a ciegas.
 
 ## Prueba física con un clip · 2026-11-07
 
@@ -74,7 +74,7 @@ de 9 s en una Sony ILCE-6400 y autorizó explícitamente el plan
 `a7839591-f8b0-5583-9f7f-6ea107d168dc`, proyecto `prueba-sony-261107`.
 El CLI del bundle instalado `a439bb378645` aplicó el mismo motor de nüün.
 
-- MEDIA502 recibió 12 archivos (105,985,867 bytes). ESSD recibió el clip
+- MEDIA9 recibió 12 archivos (105,985,867 bytes). EDICION recibió el clip
   (33,563,329 bytes). Los 13 SHA-256 de destino coinciden con los originales
   leídos antes de ejecutar.
 - Tras `backup_verified` se retiraron el MP4, el XML y la miniatura de la SD.

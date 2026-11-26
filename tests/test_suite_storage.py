@@ -31,9 +31,9 @@ class SuiteStorageTest(unittest.TestCase):
         catalog = Catalog(self.home)
         with catalog.writer():
             catalog.set('creative-profiles', {
-                'e64': {'id': 'e64', 'name': 'erikiado64', 'raw_dir': 'e64_raw'},
-                'nu9ve-xyz': {'id': 'nu9ve-xyz', 'name': 'nu9ve.xyz', 'raw_dir': 'nu9ve-xyz'}})
-            catalog.set('defaults', {'profile': 'e64'})
+                'canal-a': {'id': 'canal-a', 'name': 'estudio-a', 'raw_dir': 'canal-a_raw'},
+                'canal-b': {'id': 'canal-b', 'name': 'Canal B', 'raw_dir': 'canal-b'}})
+            catalog.set('defaults', {'profile': 'canal-a'})
         catalog.close()
         self.profiles = self.root / 'qa' / 'nu9ve' / 'profiles.json'
         self.user = self.root / 'user'
@@ -62,40 +62,40 @@ class SuiteStorageTest(unittest.TestCase):
         self.assertEqual(refused['error']['code'], 'confirmation_required')
         self.assertFalse(self.profiles.exists())
         done = self.rpc('suite_profiles_register', {'confirm': True})['data']
-        self.assertEqual({p['id'] for p in done['registered']}, {'e64', 'nu9ve-xyz'})
+        self.assertEqual({p['id'] for p in done['registered']}, {'canal-a', 'canal-b'})
         doc = nu9ve_profiles.read(str(self.profiles))
         self.assertIsNone(nu9ve_profiles.document_problem(doc))
         self.assertEqual(oct(self.profiles.stat().st_mode & 0o777), oct(0o600))
         self.assertEqual(oct(self.profiles.parent.stat().st_mode & 0o777), oct(0o700))
         self.assertEqual([p.profile_id if hasattr(p, 'profile_id') else p['profile_id']
-                          for p in nu9ve_profiles.for_app(doc, 'nuun')][0], 'e64')
+                          for p in nu9ve_profiles.for_app(doc, 'nuun')][0], 'canal-a')
 
-    def test_file_from_nove_with_e64_only_gains_nuun(self):
-        nu9ve_profiles.change(str(self.profiles), {'op': 'create_profile', 'profile_id': 'e64',
-                                                   'display_name': 'Erik', 'kind': 'person'})
-        nu9ve_profiles.change(str(self.profiles), {'op': 'upsert_app_entry', 'profile_id': 'e64', 'app': 'nove',
+    def test_file_from_nove_with_one_profile_only_gains_nuun(self):
+        nu9ve_profiles.change(str(self.profiles), {'op': 'create_profile', 'profile_id': 'canal-a',
+                                                   'display_name': 'Ana', 'kind': 'person'})
+        nu9ve_profiles.change(str(self.profiles), {'op': 'upsert_app_entry', 'profile_id': 'canal-a', 'app': 'nove',
                                                    'library': '/Users/ana/nove/engine', 'default': True, 'ui': 'full'})
         nove = nu9ve_profiles.read(str(self.profiles))['profiles'][0]['apps']['nove']
-        self.rpc('suite_profiles_register', {'confirm': True, 'profiles': ['e64']})
+        self.rpc('suite_profiles_register', {'confirm': True, 'profiles': ['canal-a']})
         doc = nu9ve_profiles.read(str(self.profiles))
-        e64 = doc['profiles'][0]
-        self.assertEqual(e64['display_name'], 'Erik')
-        self.assertEqual(e64['apps']['nove'], nove)
-        self.assertEqual(e64['apps']['nuun']['library'], str(self.home))
-        self.assertEqual(e64['aliases'], ['erikiado64'])
+        profile = doc['profiles'][0]
+        self.assertEqual(profile['display_name'], 'Ana')
+        self.assertEqual(profile['apps']['nove'], nove)
+        self.assertEqual(profile['apps']['nuun']['library'], str(self.home))
+        self.assertEqual(profile['aliases'], ['estudio-a'])
         read = self.rpc('suite_profiles')['data']
         self.assertEqual([(a['app'], a['own']) for a in read['profiles'][0]['apps']], [('nove', False), ('nuun', True)])
 
     def test_two_writers_rust_and_python_at_once(self):
-        nu9ve_profiles.change(str(self.profiles), {'op': 'create_profile', 'profile_id': 'e64',
-                                                   'display_name': 'Erik', 'kind': 'person'})
+        nu9ve_profiles.change(str(self.profiles), {'op': 'create_profile', 'profile_id': 'canal-a',
+                                                   'display_name': 'Ana', 'kind': 'person'})
         errors = []
 
         def python_writer():
             try:
                 for index in range(20):
                     nu9ve_profiles.change(str(self.profiles), {
-                        'op': 'upsert_app_entry', 'profile_id': 'e64', 'app': 'nove',
+                        'op': 'upsert_app_entry', 'profile_id': 'canal-a', 'app': 'nove',
                         'library': '/Users/ana/nove/%d' % index, 'default': True})
             except Exception as error:  # noqa: BLE001
                 errors.append(error)
@@ -109,9 +109,9 @@ class SuiteStorageTest(unittest.TestCase):
         self.assertEqual(errors, [])
         doc = nu9ve_profiles.read(str(self.profiles))
         self.assertIsNone(nu9ve_profiles.document_problem(doc))
-        e64 = next(p for p in doc['profiles'] if p['profile_id'] == 'e64')
-        self.assertEqual(e64['apps']['nove']['library'], '/Users/ana/nove/19')
-        self.assertIn('nuun', e64['apps'])
+        profile = next(p for p in doc['profiles'] if p['profile_id'] == 'canal-a')
+        self.assertEqual(profile['apps']['nove']['library'], '/Users/ana/nove/19')
+        self.assertIn('nuun', profile['apps'])
         self.assertEqual(len(doc['profiles']), 2)
 
     def test_an_invalid_file_is_never_overwritten(self):

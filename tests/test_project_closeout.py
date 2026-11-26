@@ -20,7 +20,7 @@ class ClosureTests(WorkflowFixture):
         self.invoke = patcher.start(); self.addCleanup(patcher.stop)
         self.run_plan()
         self.project_id = self.catalog.db.execute("SELECT id FROM projects WHERE title='intro'").fetchone()[0]
-        self.editor = self.work / '001_proyectos/e64/intro'
+        self.editor = self.work / '001_proyectos/canal-a/intro'
         (self.editor / 'renders').mkdir(parents=True)
         (self.editor / 'renders/intermediate.mov').write_bytes(b'intermediate')
         (self.editor / 'clipper').mkdir()
@@ -28,7 +28,7 @@ class ClosureTests(WorkflowFixture):
         (self.editor / 'edit.fcpbundle').mkdir()
         (self.editor / 'edit.fcpbundle/library').write_bytes(b'fcp')
         (self.editor / 'notes.txt').write_text('keep')
-        self.final = self.archive / '002_finales/e64/2026/intro.mov'
+        self.final = self.archive / '002_finales/canal-a/2026/intro.mov'
         self.final.parent.mkdir(parents=True)
         self.final.write_bytes(b'final')
         self.configure()
@@ -40,7 +40,7 @@ class ClosureTests(WorkflowFixture):
         return closure.save(self.catalog, self.backend, **params)
 
     def plan_close(self):
-        return closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        return closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
 
     def apply(self, plan, **kwargs):
         return closure.apply_close(self.catalog, self.backend, plan['id'], plan['digest'], confirm_discard=True, **kwargs)
@@ -53,7 +53,7 @@ class ClosureTests(WorkflowFixture):
         result = self.apply(plan)
         self.assertEqual(result['state'], 'completed')
         self.assertFalse((self.editor / 'renders/intermediate.mov').exists())
-        self.assertFalse((self.work / '001_proyectos/e64_raw/intro').exists())
+        self.assertFalse((self.work / '001_proyectos/canal-a_raw/intro').exists())
         self.assertTrue((self.editor / 'clipper/clipper-project.json').exists())
         self.assertTrue((self.editor / 'edit.fcpbundle/library').exists())
         self.assertTrue((self.editor / 'notes.txt').exists())
@@ -62,7 +62,7 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(self.apply(plan)['state'], 'completed')
 
     def test_copy_selected_work_final_verify_and_release_in_one_apply(self):
-        selected = self.work / '002_finales/e64/03_subidos/26-11-04-intro.mov'
+        selected = self.work / '002_finales/canal-a/03_subidos/26-11-04-intro.mov'
         selected.parent.mkdir(parents=True)
         selected.write_bytes(b'new final')
         unrelated = selected.with_name('unrelated.mov'); unrelated.write_bytes(b'not selected')
@@ -73,10 +73,10 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(self.apply(plan)['state'], 'completed')
         self.assertFalse(selected.exists())
         self.assertTrue(unrelated.exists())
-        self.assertEqual((self.archive / '002_finales/e64/2026/26-11-04-intro.mov').read_bytes(), b'new final')
+        self.assertEqual((self.archive / '002_finales/canal-a/2026/26-11-04-intro.mov').read_bytes(), b'new final')
 
     def test_apply_reports_one_overall_measure_with_a_log(self):
-        selected = self.work / '002_finales/e64/03_subidos/26-11-04-intro.mov'
+        selected = self.work / '002_finales/canal-a/03_subidos/26-11-04-intro.mov'
         selected.parent.mkdir(parents=True)
         selected.write_bytes(b'new final')
         self.configure(selected, self.w)
@@ -101,7 +101,7 @@ class ClosureTests(WorkflowFixture):
 
     def test_apply_without_release_watches_reviewed_stamps_instead_of_rehashing(self):
         from media import release
-        selected = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        selected = self.work / '002_finales/canal-a/02_shorts/intro_vertical_1.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'kept for publishing')
         finals = closure.settings(self.catalog, self.project_id)['finals'] + [
             {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'vertical', 'published': False}]
@@ -126,9 +126,9 @@ class ClosureTests(WorkflowFixture):
             self.apply(plan)
 
     def test_vertical_and_thumbnail_route_and_requirements(self):
-        selected = self.work / '002_finales/e64/shorts/intro-short.mov'
+        selected = self.work / '002_finales/canal-a/shorts/intro-short.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'short')
-        thumb = self.work / '002_finales/e64/thumbs/intro.jpg'
+        thumb = self.work / '002_finales/canal-a/thumbs/intro.jpg'
         thumb.parent.mkdir(parents=True); thumb.write_bytes(b'thumb')
         config = closure.settings(self.catalog, self.project_id)
         self.configure(required=['horizontal', 'vertical', 'thumbnail'])
@@ -137,20 +137,20 @@ class ClosureTests(WorkflowFixture):
                              for p, role in [(selected, 'vertical'), (thumb, 'thumbnail')]]
         self.configure(required=['horizontal', 'vertical', 'thumbnail'], finals=config['finals'])
         self.assertEqual(self.apply(self.plan_close())['state'], 'completed')
-        self.assertTrue((self.archive / '002_finales/e64/shorts/intro-short.mov').exists())
-        self.assertTrue((self.archive / '002_finales/e64/thumbnails/intro.jpg').exists())
+        self.assertTrue((self.archive / '002_finales/canal-a/shorts/intro-short.mov').exists())
+        self.assertTrue((self.archive / '002_finales/canal-a/thumbnails/intro.jpg').exists())
 
     def test_suggest_exact_published_vertical_and_retain_publication_after_archiving(self):
         from media.finals import finals_status, plan_params
         from media.planner import build_plan
         from media.transfer import Transfer
 
-        published = self.work / '002_finales/e64/03_subidos/shorts'
+        published = self.work / '002_finales/canal-a/03_subidos/shorts'
         published.mkdir(parents=True)
         vertical = published / '26-11-04-intro_vertical_1.mov'
         vertical.write_bytes(b'short')
         (published / '26-11-04-intro-extra_vertical_1.mov').write_bytes(b'other project')
-        waiting = self.work / '002_finales/e64/02_shorts'
+        waiting = self.work / '002_finales/canal-a/02_shorts'
         waiting.mkdir()
         (waiting / '26-11-04-intro_vertical_2.mov').write_bytes(b'unpublished')
         suggestions = lambda: finals_status(self.catalog, self.backend)['closure_suggestions']
@@ -158,10 +158,10 @@ class ClosureTests(WorkflowFixture):
         files = closure.candidates(self.catalog, self.backend, self.project_id)['files']
         self.assertTrue(next(f for f in files if f['name'].endswith(vertical.name))['suggested'])
         self.assertFalse(next(f for f in files if 'intro-extra' in f['name'])['suggested'])
-        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'e64', release=False))
+        plan = build_plan(self.catalog, self.backend, **plan_params(self.catalog, self.backend, 'canal-a', release=False))
         Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
         vertical.unlink()
-        archive = self.archive / '002_finales/e64/shorts' / vertical.name
+        archive = self.archive / '002_finales/canal-a/shorts' / vertical.name
         archived = next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files']
                         if f['archived'] and f['name'].endswith(vertical.name))
         self.assertTrue(archived['published'])
@@ -171,7 +171,7 @@ class ClosureTests(WorkflowFixture):
 
     def test_already_released_raws_do_not_block_remaining_intermediates(self):
         from media.release import plan_release
-        raw = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')
+        raw = plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path='001_proyectos/canal-a_raw/intro', project='intro')
         apply_release(self.catalog, self.backend, raw['id'], raw['digest'])
         self.assertEqual(self.apply(self.plan_close())['state'], 'completed')
 
@@ -256,22 +256,22 @@ class ClosureTests(WorkflowFixture):
         key = 'closure-progress:' + review_id
         with mock.patch.object(self.catalog, 'set', wraps=self.catalog.set) as write:
             plan = service.call('closure_plan', {'project_id': self.project_id, 'archive': 'MEDIA',
-                                                 'work': 'ESSD', 'review_id': review_id})
+                                                 'work': 'EDICION', 'review_id': review_id})
         observed = [call.args[1] for call in write.call_args_list if call.args[0] == key]
         self.assertTrue(any(value['stage'] == 'review_final' and value['bytes_done'] > 0 for value in observed))
         self.assertEqual(service.call('closure_progress', {'plan_id': review_id}), {})
         self.assertEqual(plan['state'], 'review')
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
-        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
+        self.assertTrue((self.work / '001_proyectos/canal-a_raw/intro').exists())
 
     def test_review_reports_one_overall_measure_and_the_file_in_hand(self):
-        selected = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        selected = self.work / '002_finales/canal-a/02_shorts/intro_vertical_1.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'vertical waiting')
         finals = closure.settings(self.catalog, self.project_id)['finals'] + [
             {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'vertical', 'published': False}]
         self.configure(required=['horizontal', 'vertical'], published=False, finals=finals)
         events = []
-        closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD',
+        closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION',
                            progress=lambda stage, **details: events.append(dict(details, stage=stage)))
         measured = [e for e in events if 'overall_total' in e]
         self.assertTrue(measured)
@@ -294,7 +294,7 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
 
     def test_published_folder_is_declaration_but_not_a_backup(self):
-        selected = self.work / '002_finales/e64/03_subidos/intro-publicado.mov'
+        selected = self.work / '002_finales/canal-a/03_subidos/intro-publicado.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'published final')
         found = next(f for f in closure.candidates(self.catalog, self.backend, self.project_id)['files'] if f['volume_id'] == self.w['id'])
         self.assertTrue(found['published'])
@@ -310,7 +310,7 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual(result['state'], 'completed')
 
     def test_complete_before_publication_backs_up_and_keeps_editing_final(self):
-        selected = self.work / '002_finales/e64/intro-publicado.mov'
+        selected = self.work / '002_finales/canal-a/intro-publicado.mov'
         selected.parent.mkdir(parents=True); selected.write_bytes(b'not yet published')
         item = {'volume_id': self.w['id'], 'path': str(selected.relative_to(self.work)), 'role': 'horizontal', 'published': False}
         self.configure(published=False, finals=[item])
@@ -327,14 +327,14 @@ class ClosureTests(WorkflowFixture):
         item['published'] = True
         config = self.configure(published=False, finals=[item])
         self.assertTrue(config['published'])
-        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION', release_work=False)
         self.assertEqual(published_plan['closure_copies'], [])
         self.assertEqual(self.apply(published_plan)['state'], 'completed')
         self.assertFalse(selected.exists())
 
     def test_projects_report_finals_awaiting_publication_until_backed_up(self):
         from media.projects import overview
-        shorts = self.work / '002_finales/e64/02_shorts'
+        shorts = self.work / '002_finales/canal-a/02_shorts'
         shorts.mkdir(parents=True)
         waiting = [shorts / f'intro_vertical_{n}.mov' for n in (1, 2)]
         for index, path in enumerate(waiting):
@@ -350,7 +350,7 @@ class ClosureTests(WorkflowFixture):
         self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['published']), (2, 0))
         self.assertEqual(sorted(s['name'] for s in sheet() if s['state'] == 'awaiting'), sorted(row()['deliveries']['awaiting_names']))
         # Publishing by moving one short into the published folder is the same file, reported but not relinked.
-        uploaded = self.work / '002_finales/e64/03_subidos/shorts' / waiting[0].name
+        uploaded = self.work / '002_finales/canal-a/03_subidos/shorts' / waiting[0].name
         uploaded.parent.mkdir(parents=True)
         waiting[0].rename(uploaded)
         moved = next(s for s in sheet() if s['name'] == uploaded.name)
@@ -363,7 +363,7 @@ class ClosureTests(WorkflowFixture):
             if Path(item['path']).name == uploaded.name:
                 item.update(path=moved['current_path'], published=True)
         self.configure(required=['horizontal', 'vertical'], published=False, finals=config['finals'])
-        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        published_plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION', release_work=False)
         self.apply(published_plan)
         self.assertFalse(uploaded.exists())
         self.assertEqual((row()['deliveries']['awaiting'], row()['deliveries']['published']), (1, 0))
@@ -381,18 +381,18 @@ class ClosureTests(WorkflowFixture):
         (bundle / 'screen.mov').write_bytes(b'extra screen')
         (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': str(uuid.uuid4()),
                                                           'status': 'completed', 'tracks': [{'relativePath': 'screen.mov'}]}))
-        plan = build_plan(self.catalog, self.backend, source=str(card), archive='MEDIA', work='ESSD', project='intro-extra',
-                          profile='e64', source_kind='stalker', cleanup=False)
+        plan = build_plan(self.catalog, self.backend, source=str(card), archive='MEDIA', work='EDICION', project='intro-extra',
+                          profile='canal-a', source_kind='stalker', cleanup=False)
         Transfer(self.catalog, self.backend).apply(plan, plan['digest'])
         extra_id = self.catalog.db.execute("SELECT id FROM projects WHERE title='intro-extra'").fetchone()[0]
-        editor = self.work / '001_proyectos/e64/intro-extra'
+        editor = self.work / '001_proyectos/canal-a/intro-extra'
         (editor / 'renders').mkdir(parents=True); (editor / 'renders/extra-intermediate.mov').write_bytes(b'extra render')
         cache = editor / 'clipper/cache/stalker'; cache.mkdir(parents=True)
         (cache / 'abc.wav').write_bytes(b'extracted audio')
         (cache / '.abc.wav.lock').write_bytes(b'')
         (editor / 'clipper/transcripts').mkdir(); (editor / 'clipper/transcripts/take.json').write_text('{}')
         (editor / 'clipper' / ('clipper-retired-project.json' if retired else 'clipper-project.json')).write_text('{}')
-        horizontal = self.archive / '002_finales/e64/2026/intro-extra.mov'
+        horizontal = self.archive / '002_finales/canal-a/2026/intro-extra.mov'
         horizontal.write_bytes(b'extra final')
         closure.save(self.catalog, self.backend, extra_id, ['horizontal'], False, True,
                      [{'volume_id': self.a['id'], 'path': str(horizontal.relative_to(self.archive)), 'role': 'horizontal'}])
@@ -400,9 +400,9 @@ class ClosureTests(WorkflowFixture):
 
     def test_projects_overview_survives_the_finales_collection(self):
         from media.projects import overview
-        self.catalog.project_for('e64', 'finales')
-        self.catalog.set('project-closure:' + self.catalog.project_for('e64', 'finales'), {'required': ['horizontal'], 'finals': [], 'no_more': False, 'published': False})
-        finales = self.catalog.project_for('e64', 'finales')
+        self.catalog.project_for('canal-a', 'finales')
+        self.catalog.set('project-closure:' + self.catalog.project_for('canal-a', 'finales'), {'required': ['horizontal'], 'finals': [], 'no_more': False, 'published': False})
+        finales = self.catalog.project_for('canal-a', 'finales')
         asset = dict(self.catalog.search()[0], project='finales', project_id=finales)
         with mock.patch.object(self.catalog, 'search', return_value=self.catalog.search() + [asset]):
             rows = overview(self.catalog, [], self.backend)
@@ -457,24 +457,24 @@ class ClosureTests(WorkflowFixture):
         document = self.regenerable(folder)
         calls = self.fake_clipper({os.path.realpath(folder): document})
         self.assertTrue(next(c for c in closure.link_candidates(self.catalog, self.project_id) if c['id'] == extra_id)['suggested'])
-        before = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        before = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         self.assertFalse(any('intro-extra' in e['path'] for e in before['entries']), 'nothing of another project before linking')
         self.assertEqual(before['clipper_regenerable'], [])
         closure.link(self.catalog, self.project_id, extra_id)
         self.assertEqual(closure.related(self.catalog, extra_id), [self.project_id])
         # The rerecording's horizontal covers this project's requirement without being reassigned.
         self.configure(required=['horizontal'], finals=[])
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         self.assertEqual(set(plan['closure_group']), {self.project_id, extra_id})
         self.assertFalse(any('/clipper/' in e['path'] for e in plan['entries']), 'nüün itself retires nothing inside clipper/')
         [group] = plan['clipper_regenerable']
-        self.assertEqual(group['editor'], '001_proyectos/e64/intro-extra/clipper')
+        self.assertEqual(group['editor'], '001_proyectos/canal-a/intro-extra/clipper')
         self.assertEqual([c['id'] for c in group['categories']], ['project_cache'])
         self.assertEqual([Path(e['path']).name for e in group['entries']], ['abc.wav'])
         self.assertEqual((plan['clipper_files'], plan['clipper_bytes']), (1, len(b'extracted audio')))
         self.assertTrue(any('exports' in n or 'Project renders' in n for n in plan['retained_editors']), 'unselected categories are listed as kept')
         self.assertTrue(any('intro/clipper' in n and 'se conserva todo' in n for n in plan['retained_editors']), 'no answer offers nothing')
-        self.assertIn('001_proyectos/e64/intro-extra/renders/extra-intermediate.mov', [e['path'] for e in plan['entries']])
+        self.assertIn('001_proyectos/canal-a/intro-extra/renders/extra-intermediate.mov', [e['path'] for e in plan['entries']])
         self.assertTrue(any(f['owner'] == extra_id for f in plan['closure_finals'] if f['role'] == 'horizontal'))
         with self.assertRaisesRegex(MediaError, 'final_already_linked|otro proyecto'):
             self.configure(finals=closure.settings(self.catalog, extra_id)['finals'])
@@ -499,7 +499,7 @@ class ClosureTests(WorkflowFixture):
         self.configure(required=['horizontal'], finals=[])
         document = self.regenerable(editor / 'clipper')
         calls = self.fake_clipper({os.path.realpath(editor / 'clipper'): document}, fail=MediaError('clipper_failed', 'Storage ocupado'))
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         result = self.apply(plan)
         self.assertEqual(result['state'], 'completed')
         self.assertIn('Storage ocupado', result['clipper_cleaned'][document['project_root']]['error'])
@@ -521,18 +521,18 @@ class ClosureTests(WorkflowFixture):
         }
         for name, document in cases.items():
             self.fake_clipper({folder: document})
-            plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+            plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
             self.assertEqual(plan['clipper_regenerable'], [], name)
             self.assertTrue(any('intro-extra/clipper' in n for n in plan['retained_editors']), name)
         self.invoke.side_effect = MediaError('clipper_unavailable', 'Clipper offline')
-        offline = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        offline = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         self.assertEqual(offline['clipper_regenerable'], [], 'unknown Clipper keeps everything')
         self.assertTrue((editor / 'clipper/cache/stalker/abc.wav').exists())
 
     def test_review_from_the_old_stalker_audio_exception_must_be_redone(self):
         plan = self.plan_close()
         stored = self.catalog.get('release:' + plan['id'])
-        stored['entries'].append(dict(stored['entries'][0], path='001_proyectos/e64/intro/clipper/cache/stalker/a.wav',
+        stored['entries'].append(dict(stored['entries'][0], path='001_proyectos/canal-a/intro/clipper/cache/stalker/a.wav',
                                       category='intermediate', origin='clipper_cache'))
         self.catalog.set('release:' + plan['id'], stored)
         with self.assertRaisesRegex(MediaError, 'anterior a la lista'):
@@ -541,19 +541,19 @@ class ClosureTests(WorkflowFixture):
     def test_link_change_after_review_invalidates_the_plan(self):
         extra_id, _ = self.linked_rerecording()
         closure.link(self.catalog, self.project_id, extra_id)
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         closure.link(self.catalog, self.project_id, extra_id, linked=False)
         with self.assertRaisesRegex(MediaError, 'Cambió'):
             self.apply(plan)
-        self.assertTrue((self.work / '001_proyectos/e64/intro-extra/clipper/cache/stalker/abc.wav').exists())
+        self.assertTrue((self.work / '001_proyectos/canal-a/intro-extra/clipper/cache/stalker/abc.wav').exists())
 
     def test_already_absent_work_closes_without_deletion_or_clipper(self):
         import shutil
 
-        raw = self.work / '001_proyectos/e64_raw/intro'
+        raw = self.work / '001_proyectos/canal-a_raw/intro'
         shutil.rmtree(raw)
         shutil.rmtree(self.editor / 'renders')
-        short = self.work / '002_finales/e64/02_shorts/intro_vertical_1.mov'
+        short = self.work / '002_finales/canal-a/02_shorts/intro_vertical_1.mov'
         short.parent.mkdir(parents=True)
         short.write_bytes(b'final vertical')
         finals = closure.settings(self.catalog, self.project_id)['finals']
@@ -566,7 +566,7 @@ class ClosureTests(WorkflowFixture):
         self.assertIn({'kind': 'raw', 'path': str(raw.relative_to(self.work))}, plan['closure_scopes'])
         self.assertEqual(self.apply(plan)['state'], 'completed')
         self.assertTrue(self.final.exists())
-        self.assertEqual(short.read_bytes(), (self.archive / '002_finales/e64/shorts' / short.name).read_bytes())
+        self.assertEqual(short.read_bytes(), (self.archive / '002_finales/canal-a/shorts' / short.name).read_bytes())
         self.assertEqual(self.catalog.get('project-released:' + self.project_id)['bytes'], 0)
         already_backed_up = self.plan_close()
         self.assertEqual(already_backed_up['closure_copies'], [])
@@ -586,7 +586,7 @@ class ClosureTests(WorkflowFixture):
         self.assertTrue((renders / 'new.mov').exists())
 
     def test_changed_unpublished_work_copy_blocks_other_removals(self):
-        work_final = self.work / '002_finales/e64/intro.mov'
+        work_final = self.work / '002_finales/canal-a/intro.mov'
         work_final.parent.mkdir(parents=True)
         work_final.write_bytes(self.final.read_bytes())
         self.configure(work_final, self.w, published=False)
@@ -596,22 +596,22 @@ class ClosureTests(WorkflowFixture):
         with self.assertRaisesRegex(MediaError, 'conservada cambió'):
             self.apply(plan)
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
-        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
+        self.assertTrue((self.work / '001_proyectos/canal-a_raw/intro').exists())
 
     def test_backup_published_finals_before_project_completion_preserves_work(self):
-        published = self.work / '002_finales/e64/intro-published.mov'
-        waiting = self.work / '002_finales/e64/intro-waiting.mov'
+        published = self.work / '002_finales/canal-a/intro-published.mov'
+        waiting = self.work / '002_finales/canal-a/intro-waiting.mov'
         published.parent.mkdir(parents=True); published.write_bytes(b'published'); waiting.write_bytes(b'waiting')
         items = [{'volume_id': self.w['id'], 'path': str(p.relative_to(self.work)), 'role': 'horizontal', 'published': flag}
                  for p, flag in [(published, True), (waiting, False)]]
         self.configure(no_more=False, published=False, finals=items)
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD', release_work=False)
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION', release_work=False)
         self.assertEqual({e['category'] for e in plan['entries']}, {'final'})
         self.assertEqual(len(plan['entries']), 1)
         self.apply(plan)
         self.assertFalse(published.exists()); self.assertTrue(waiting.exists())
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
-        self.assertTrue((self.work / '001_proyectos/e64_raw/intro').exists())
+        self.assertTrue((self.work / '001_proyectos/canal-a_raw/intro').exists())
         self.assertIsNone(self.catalog.get('project-released:' + self.project_id))
         config = closure.settings(self.catalog, self.project_id)
         self.assertFalse(config['no_more']); self.assertFalse(config['published'])

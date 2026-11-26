@@ -206,7 +206,7 @@ public sealed class AppState(DispatcherQueue dispatcher) : INotifyPropertyChange
             return;
         }
         var request = Engine.IsFixture
-            ? new PlanRequest(Source, Project, "MEDIA-DEMO", "ESSD-DEMO", false, null, true)
+            ? new PlanRequest(Source, Project, "MEDIA-DEMO", "EDICION-DEMO", false, null, true)
             : new PlanRequest(Source, Project, Archive, Work, ConfirmArchiveOnly, PendingWork, Cleanup && !Source.Folder);
         try
         {

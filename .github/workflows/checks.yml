@@ -1,4 +1,4 @@
-# Fixture-only checks: nothing here mounts, reads or writes a personal SD, MEDIA, ESSD or SSD1.
+# Fixture-only checks: nothing here mounts, reads or writes a personal SD, MEDIA, EDICION or SONIDO.
 # One workflow so the Mac half (Python oracle, Swift app, engine on macOS) and the Windows half
 # (engine with its volume backend) are validated on every push, not on whichever machine is at hand.
 name: checks
@@ -61,7 +61,7 @@ jobs:
           cargo test
       - name: Differential against the Python golden (TZ fixed as the generator)
         working-directory: engine
-        run: TZ=America/Hermosillo cargo test -- --ignored
+        run: TZ=America/Phoenix cargo test -- --ignored
       - name: Suite boundary
         run: bash vendor/nu9ve-core/scripts/check-boundary.sh engine/crates/nu9ve-*
 

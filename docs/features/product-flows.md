@@ -8,7 +8,7 @@ Actualización 2026-11-04: [primera entrega del cierre de proyectos](../contract
 
 Actualización 2026-11-05: [Ingreso directo](../contracts/ingest-flow-v1.md) implementa Entrada → Flujo → Resultado, revisión agrupada, autorización única, progreso global y correcciones de proyecto/auxiliares/popup/centrado. [Cierre actualizado](../contracts/project-closeout-v1.md#actualización-vigente--2026-11-05): `subidos` o marca manual por final, sin gestión por canal. Respaldar publicados puede preceder al cierre completo; raws/renders se conservan hasta esa acción explícita.
 
-Actualización 2026-11-07. [Completar antes de publicar](../contracts/project-closeout-v1.md#completar-antes-de-publicar--2026-11-07) permite declarar definitivas las entregas, respaldar pendientes y conservarlas en ESSD para publicar. El plan muestra qué copia, verifica, retira o deja sin acción.
+Actualización 2026-11-07. [Completar antes de publicar](../contracts/project-closeout-v1.md#completar-antes-de-publicar--2026-11-07) permite declarar definitivas las entregas, respaldar pendientes y conservarlas en EDICION para publicar. El plan muestra qué copia, verifica, retira o deja sin acción.
 
 ## Diagnóstico histórico · 2026-10-30
 
@@ -17,7 +17,7 @@ Las tablas de diagnóstico/landing y los «Hoy» siguientes describen esa fecha,
 El motor de ingreso está bastante adelantado. Lo que falta para cerrar el ciclo que promete la landing son tres conceptos que hoy no existen:
 
 1. **Un proyecto no tiene ciclo de vida.** La tabla `projects` sólo guarda `id`, `profile` y `title`. Hay estados de job, de copia de trabajo y de publicación, pero ninguno puede expresar «terminé esto». Por eso liberar espacio es una tarea manual por carpeta.
-2. **El catálogo sólo conoce lo que pasó por nüün.** Conoce 19.1 GB de los 445 GB ocupados en ESSD, cerca del 4 %. `0000_acomodar` ocupa 141 GB y ningún flujo la toca. Sin un índice de todo el disco no se puede responder qué lo está llenando.
+2. **El catálogo sólo conoce lo que pasó por nüün.** Conoce 19.1 GB de los 445 GB ocupados en EDICION, cerca del 4 %. `0000_acomodar` ocupa 141 GB y ningún flujo la toca. Sin un índice de todo el disco no se puede responder qué lo está llenando.
 3. **El ingreso supone una fuente de una sola vez.** Sirve para una tarjeta, no para una carpeta viva como música o samples. Tampoco se puede conservar sólo una parte: toda unidad descubierta va al archivo, y la selección actual sólo decide la copia de trabajo.
 
 ## La landing contra lo implementado
@@ -125,10 +125,10 @@ Para drones, fotos y tomas de prueba. Hoy toda unidad descubierta se archiva. Pr
 
 | Flujo | Fuente | Copias | Después | Limpieza | Hoy |
 | --- | --- | --- | --- | --- | --- |
-| Video de cámara | SD | MEDIA + ESSD | Clipper / Final Cut | Tras verificar; Sony termina con formato en cámara | Uso real |
-| Pantalla | Stalker | MEDIA + ESSD opcional | Clipper | Original local liberado tras ACK | Uso real pequeño |
+| Video de cámara | SD | MEDIA + EDICION | Clipper / Final Cut | Tras verificar; Sony termina con formato en cámara | Uso real |
+| Pantalla | Stalker | MEDIA + EDICION opcional | Clipper | Original local liberado tras ACK | Uso real pequeño |
 | Fotos | SD | MEDIA; trabajo opcional | Kyū | Tras verificar | Sólo vista previa |
-| Audio grabado | SD (H6) | MEDIA + SSD1 | Editor / SoundShop | Tras verificar | Fixtures |
+| Audio grabado | SD (H6) | MEDIA + SONIDO | Editor / SoundShop | Tras verificar | Fixtures |
 | Dron | SD | MEDIA, con categoría explícita y selección | Atlas, por handoff | Tras verificar | Fixtures; Atlas sin iniciar |
 | 360 / acción | SD | MEDIA + trabajo | Clipper | Tras verificar | Fixtures |
 | Entregas | Carpeta de finales | `002_finales` | `subidos` o marca manual Publicado, sin canales | Movimiento/liberación explícitos | UI de publicados y cierre; aceptación física pendiente |
@@ -167,15 +167,15 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 ### Finales y `subidos`
 
-`002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`e64/03_subidos`, `9logs/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es la declaración de publicación de la persona; no es evidencia externa ni prueba de respaldo íntegro. También puede marcarse Publicado desde el proyecto sin mover primero a `subidos`.
+`002_finales` en el SSD es material en uso: el usuario lo mantiene ahí hasta publicar y entonces lo mueve a su carpeta de publicados (`canal-a/03_subidos`, `blog/subidos`). Sólo eso toca respaldar y después liberar. Inicio y Flujos separan por perfil lo que está por respaldar, lo que espera publicarse y lo que ya está en respaldo. La carpeta se detecta por nombre (`subidos` o `publicados`, con o sin número) y se puede elegir por perfil. Sin carpeta, todo lo que no esté en el respaldo cuenta como por respaldar, pero no se ofrece copiar. La carpeta es la declaración de publicación de la persona; no es evidencia externa ni prueba de respaldo íntegro. También puede marcarse Publicado desde el proyecto sin mover primero a `subidos`.
 
 **Ruta implementada (2026-11-01):** **Mover al respaldo…** arma un plan normal con SHA-256 y, en la misma ejecución, libera el disco de edición con la limpieza verificada de las tarjetas: vuelve a leer cada original, comprueba la copia y lo borra, con registro por archivo. Por defecto mueve, porque respaldar lo publicado es para recuperar espacio; **Conservar en el disco de edición**, en la revisión, lo evita. Mover exige discos físicos distintos y se bloquea si Clipper reporta que usa esos archivos. **Desde el 2026-11-04**, Clipper desconocido o con proyectos offline también conserva el origen; ya no se acepta la excepción anterior.
 
 | En el SSD | En el respaldo |
 | --- | --- |
-| `e64/03_subidos/26-10-27-terra-6-1.mov` | `e64/2026/`, con el año del nombre o, si no lo trae, de la fecha de creación, porque un re-export cambia las fechas |
-| `e64/03_subidos/shorts/…` | `e64/shorts/…` |
-| `e64/03_subidos/thumbnails/…`, con sus `.txt` | `e64/thumbnails/…` |
+| `canal-a/03_subidos/26-10-27-terra-6-1.mov` | `canal-a/2026/`, con el año del nombre o, si no lo trae, de la fecha de creación, porque un re-export cambia las fechas |
+| `canal-a/03_subidos/shorts/…` | `canal-a/shorts/…` |
+| `canal-a/03_subidos/thumbnails/…`, con sus `.txt` | `canal-a/thumbnails/…` |
 
 - Un idéntico en el destino se adopta tras verificarlo. Uno de tamaño distinto bloquea el plan y dos finales al mismo destino también.
 - Lo que el respaldo del perfil ya tiene en otra carpeta con igual nombre y tamaño no se duplica ni se borra, porque esta operación no lo verificó: el plan lo lista en `already_archived` y se queda en la carpeta.
@@ -184,11 +184,11 @@ Los rechazos de Kyū nunca borran por sí solos: nüün los lee y arma un plan r
 
 **Falta:** «Ya en respaldo» fuera de `subidos` compara nombre y tamaño; liberarlo exige el rehash del plan de liberación, no esta lectura.
 
-**Primera entrega, 2026-11-04:** Proyectos → **Completar y liberar…** vincula finales por selección confirmada, incluidos los ya archivados. Requisitos por perfil/proyecto y declaraciones «ya publiqué» / «ya no habrá más»: `9logs` inicia con horizontal; `e64`, con horizontal, al menos un vertical y thumbnail. Puede copiar los finales elegidos y liberar raws verificados y renders en una operación revisada. Inicio recuerda **Falta liberar trabajo** tras guardar un cierre completo pendiente. Terminar por sí solo no borra. [Contrato, límites y reanudación](../contracts/project-closeout-v1.md).
+**Primera entrega, 2026-11-04:** Proyectos → **Completar y liberar…** vincula finales por selección confirmada, incluidos los ya archivados. Requisitos por perfil/proyecto y declaraciones «ya publiqué» / «ya no habrá más»: `blog` inicia con horizontal; `canal-a`, con horizontal, al menos un vertical y thumbnail. Puede copiar los finales elegidos y liberar raws verificados y renders en una operación revisada. Inicio recuerda **Falta liberar trabajo** tras guardar un cierre completo pendiente. Terminar por sí solo no borra. [Contrato, límites y reanudación](../contracts/project-closeout-v1.md).
 
 ### Carpetas vivas: música y samples
 
-Inventario real de SSD1 (9 nov): [music-ssd1-inventory-2026-11-09](music-ssd1-inventory-2026-11-09.md).
+Inventario real de SONIDO (9 nov): [music-sonido-inventory-2026-11-09](music-sonido-inventory-2026-11-09.md).
 
 Las fotos y el video de cámara **no** son carpetas vivas: siguen el respaldo general por tipo que ya aplica [layout.py](../../media/layout.py) (`images/`, `rimages/`, `360/images/`, por año y mes). Las selecciones terminadas de fotos son entregas y van a finales, organizadas por fecha y nombre de proyecto.
 
@@ -234,7 +234,7 @@ Tres niveles sobre un mismo dato. Cada uno es opcional y no se necesita el sigui
 
 ```text
 [Tarjeta] → [Sólo fotos] → [Elegir] ─┬→ [Copiar + verificar: MEDIA] ─┬→ [Limpiar tarjeta] → [Abrir Kyū]
-                                     └→ [Copiar + verificar: ESSD]  ─┘
+                                     └→ [Copiar + verificar: EDICION]  ─┘
 ```
 
 | Tipo de bloque | Ejemplos |
@@ -256,7 +256,7 @@ Se recomienda bloques y no un grafo libre porque casi todos estos flujos son lin
 
 **Automatización, por receta:** `manual` (por defecto), `preparar` (deja el plan listo al conectar, sin lectura profunda si no hay destinos) y, después de la aceptación física, `copiar` (ejecuta sólo copias). Limpiar y liberar siempre requieren confirmación.
 
-**Perfil y flujo son independientes.** El perfil (e64, 9logs) es el contexto creativo y decide carpetas. El flujo decide qué hacer según el tipo de archivo. Las recetas viven en el catálogo, como los perfiles.
+**Perfil y flujo son independientes.** El perfil (canal-a, blog) es el contexto creativo y decide carpetas. El flujo decide qué hacer según el tipo de archivo. Las recetas viven en el catálogo, como los perfiles.
 
 ## Fases
 
@@ -264,8 +264,8 @@ Cada fase se puede usar por sí sola. Las primeras no pueden perder datos, por l
 
 | Fase | Entrega | Riesgo | Se acepta cuando |
 | --- | --- | --- | --- |
-| 0 · Operativa | Ciclo físico pequeño; `coverage --no-hash` de ESSD contra MEDIA; copy de la landing | Bajo | Hay evidencia real en STATUS |
-| 1 · Ver | Implementada: navegación, índice y Discos en sólo lectura | Ninguno sobre media | Explica el uso de ESSD sin leer contenido ni recalcular. Falta tu aceptación en la app y analizar MEDIA502 |
+| 0 · Operativa | Ciclo físico pequeño; `coverage --no-hash` de EDICION contra MEDIA; copy de la landing | Bajo | Hay evidencia real en STATUS |
+| 1 · Ver | Implementada: navegación, índice y Discos en sólo lectura | Ninguno sobre media | Explica el uso de EDICION sin leer contenido ni recalcular. Falta tu aceptación en la app y analizar MEDIA9 |
 | 2 · Cerrar | Proyectos, ciclo de vida, Archivos con disco y tamaño, entregas y publicación en UI, cierre sobre liberación existente | Medio | Un proyecto real pasa de activo a terminado y liberado, y se reabre |
 | 3 · Colecciones | `source_kind` colección, «Sólo aquí → respaldar», editables, regenerables, adoptar carpetas | Medio | `0000_acomodar` y la música tienen cobertura incremental |
 | 4 · Tipos | Fotos con Kyū, audio, dron, conservar selección y descartes | Alto en descartes | RAW reales, H6 y DJI aceptados en físico |
@@ -296,7 +296,7 @@ Reversibles; se documentan para no volver a discutirlas sin un motivo nuevo.
 
 - **Flujos es una pestaña principal**, con bloques y líneas.
 - **Finales:** sólo se respalda y libera lo que está en la carpeta de publicados, en una sola acción y moviendo por defecto. El año de un master sale del nombre y, si no lo trae, de la fecha de creación.
-- **Perfil:** `e64` sigue como ID y carpeta y `erikiado64` es su nombre visible; no se renombran carpetas. `000_acomodar/erikiado64` se revisa aparte.
+- **Perfil:** `canal-a` sigue como ID y carpeta y `estudio-a` es su nombre visible; no se renombran carpetas. `000_acomodar/estudio-a` se revisa aparte.
 
 ## Pendiente de decidir
 

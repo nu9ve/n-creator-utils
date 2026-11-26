@@ -9,19 +9,19 @@ import Testing
     #expect(ProtocolBoundary.shouldOfferCard(destinationsOnline: true, sourceIsDestination: false, removableExternal: true))
 }
 @Test func archiveOnlyNeverRequiresConnectedWorkOrCreatesPending() {
-    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: true, deferWork: true, work: "ESSD")
+    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: true, deferWork: true, work: "EDICION")
     #expect(params["archive_only"] == .bool(true))
     #expect(params["confirm_archive_only"] == .bool(true))
     #expect(params["work_decision"] == .string("skipped"))
     #expect(params["work"] == nil)
 }
 @Test func unavailableWorkCanRemainPendingAfterConfirmation() {
-    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: false, deferWork: true, work: "ESSD")
+    let params = IngestPolicy.parameters(archiveOnly: true, skipWork: false, deferWork: true, work: "EDICION")
     #expect(params["work_decision"] == .string("pending"))
-    #expect(params["work"] == .string("ESSD"))
-    let normal = IngestPolicy.parameters(archiveOnly: false, skipWork: false, deferWork: true, work: "ESSD")
+    #expect(params["work"] == .string("EDICION"))
+    let normal = IngestPolicy.parameters(archiveOnly: false, skipWork: false, deferWork: true, work: "EDICION")
     #expect(normal["archive_only"] == .bool(false))
-    #expect(normal["work"] == .string("ESSD"))
+    #expect(normal["work"] == .string("EDICION"))
 }
 @Test func jsonBoundaryPreservesReviewedPlan() throws {
     let raw = Data(#"{"ok":true,"data":{"digest":"abc","cleanup":true,"paths":["a b.mov"]}}"#.utf8)
@@ -67,7 +67,7 @@ import Testing
     defer { try? FileManager.default.removeItem(at: state) }
     let client = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repo.appendingPathComponent("tests/fixtures/native_plan_backend.py").path, stateDirectory: state.path))
     let document = try await client.call("plan_document", ["source": .string(state.appendingPathComponent("card").path),
-        "archive": .string("MEDIA"), "work": .string("ESSD"), "project": .string("roundtrip"), "cleanup": .bool(false)]).string
+        "archive": .string("MEDIA"), "work": .string("EDICION"), "project": .string("roundtrip"), "cleanup": .bool(false)]).string
     let reviewed = try ReviewedPlan(document: document)
     #expect(document.contains("1.0"))
     #expect(reviewed.display["source_identity"]["root_inode"] == .unsignedInteger(UInt64.max))
@@ -101,7 +101,7 @@ import Testing
     async let second = reader.call("suggest", ["source": .string("/does/not/exist")])
     let (snapshot, suggestion) = try await (first, second)
     #expect(snapshot["volumes"].array.isEmpty)
-    #expect(snapshot["defaults"]["profile"].string == "e64")
+    #expect(snapshot["defaults"] == .object([:]))  // a fresh library has no defaults; the code adds none
     #expect(suggestion["reason"].string == "no_registered_destinations")
     do {
         _ = try await reader.call("defaults", ["project": .string("x")])
@@ -216,7 +216,7 @@ for line in sys.stdin:
     defer { reader.stop() }
     // `not_ported` from Rust: Python answers.
     let snapshot = try await reader.call("snapshot", ["cards": .bool(false)])
-    #expect(snapshot["defaults"]["profile"].string == "e64")
+    #expect(snapshot["defaults"] == .object([:]))  // a fresh library has no defaults; the code adds none
     #expect(reader.answeredBy["snapshot"] == "python")
     // An error of the method itself is Rust's answer, as Python's would be.
     do {

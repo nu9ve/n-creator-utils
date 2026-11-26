@@ -41,20 +41,20 @@ El archivo indicado debe existir. `doctor` devuelve JSON con rutas efectivas, ex
 
 ## Referencia
 
-`~` significa el home real obtenido con `Path.home()`. `YYYY` se calcula al iniciar el proceso.
+`~` significa el home real obtenido con `Path.home()`. `YYYY` se calcula al iniciar el proceso. Los valores del código son neutros, como [config.example.json](../config.example.json): los discos, carpetas y nombres de tarjeta de cada persona van en `config.local.json` (ignorado por git) o en variables `NU9VE_*`.
 
 | Clave JSON | Valor predeterminado | Uso |
 | --- | --- | --- |
-| `root_dir` | `/Volumes/MEDIA502/001_raw` | Raíz principal de importación. Debe existir antes de `legacy-save`. |
+| `root_dir` | `~/Media/archive` | Raíz principal de importación. Debe existir antes de `legacy-save`. |
 | `sd_root_dir` | `/Volumes` | Directorio donde `save all` busca nombres del mapa de tarjetas. |
-| `root_recordings_dir` | `/Volumes/SSD1` | Raíz de segunda copia de audio; debe existir para importar audio. |
+| `root_recordings_dir` | `~/Media/audio-backup` | Raíz de segunda copia de audio; debe existir para importar audio. |
 | `audio_hijack_dir` | `~/Music/Audio Hijack` | Fuente del alias `legacy-save hijack`. |
-| `audio_samples_dir` | `~/Music/01_produccion/samples/YYYY/raw` | Destino de `download sample`. |
-| `audio_splits_dir` | `~/Music/01_produccion/splits` | Directorio de trabajo de Demucs, descargas para split y originales procesados. |
-| `audio_songs_dir` | `~/Music/02_mix/latest` | Destino de `download song`. |
-| `tmp_video_dir` | `~/data/projectIX/raw` | Destino de `download video`. |
-| `yt_dlp_cookies_browser` | `brave` | Valor de `--cookies-from-browser` para canciones/samples de YouTube. `""` desactiva esa opción. No se añade a video. |
-| `sd_src_name` | Mapa en `configuration.py` | Nombre de volumen → perfil/etiqueta. `AUTO` intenta Sony/Insta360 y omite tarjetas desconocidas. |
+| `audio_samples_dir` | `~/Music/samples/YYYY/raw` | Destino de `download sample`. |
+| `audio_splits_dir` | `~/Music/splits` | Directorio de trabajo de Demucs, descargas para split y originales procesados. |
+| `audio_songs_dir` | `~/Music/songs` | Destino de `download song`. |
+| `tmp_video_dir` | `~/Movies/downloads` | Destino de `download video`. |
+| `yt_dlp_cookies_browser` | `""` | Valor de `--cookies-from-browser` para canciones/samples de YouTube. `""` desactiva esa opción. No se añade a video. |
+| `sd_src_name` | `NO NAME` → `SONYA6400`, `Untitled` → `AUTO`, `INSTA360` | Nombre de volumen → perfil/etiqueta. `AUTO` intenta Sony/Insta360 y omite tarjetas desconocidas. |
 
 Todas las filas excepto `sd_src_name` aceptan su variable de entorno, por ejemplo `NU9VE_ROOT_DIR` o `NU9VE_AUDIO_SONGS_DIR`. Los destinos por categoría (`images`, `v4k`, `metadata/sony`, etc.) se derivan de las raíces y mantienen sus nombres históricos; aún no son reglas configurables.
 
@@ -73,6 +73,6 @@ El repositorio contenía valores incrustados de OpenAI, Replicate y SoundCloud. 
 
 ## Migración desde `constants.py`
 
-Los nombres públicos de constantes y las carpetas de destino se conservan para los importadores existentes. Mueve cualquier personalización de rutas de tu copia anterior al JSON. Las rutas personales ahora dependen del home, no del directorio desde el que ejecutas el programa. El nombre `DRIVE_NAME` se conserva por compatibilidad pero no gobierna el destino: usa `root_dir`.
+Los nombres públicos de constantes y las carpetas de destino se conservan para los importadores existentes. Mueve cualquier personalización de rutas de tu copia anterior al JSON. Las rutas personales ahora dependen del home, no del directorio desde el que ejecutas el programa. `DRIVE_NAME` ya no existe: el destino es `root_dir`.
 
 Antes de reutilizar estos módulos en otro proceso, establece `NU9VE_CONFIG` y después importa los módulos. Inyectar un objeto de configuración por operación es una mejora pendiente; hoy las constantes importadas son globales.

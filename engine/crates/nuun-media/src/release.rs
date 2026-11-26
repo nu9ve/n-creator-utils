@@ -1342,7 +1342,7 @@ mod tests {
         let plan = plan_with(
             &s.home,
             &s.backend,
-            &json!({"archive": "MEDIA", "work": "ESSD", "path": scope, "project": "intro"}),
+            &json!({"archive": "MEDIA", "work": "EDICION", "path": scope, "project": "intro"}),
             |_, paths| empty_consumers(paths),
         );
         let plan = plan.unwrap();
@@ -1535,7 +1535,7 @@ esac
         std::fs::write(bundle.join("manifest.json"), manifest.to_string()).unwrap();
         std::fs::write(bundle.join("screen.mov"), b"capture").unwrap();
         let ingest = crate::planner::build_plan(&s.home, &s.backend, &json!({
-            "source": s.card, "source_kind": "stalker", "archive": "MEDIA", "work": "ESSD", "project": "intro"
+            "source": s.card, "source_kind": "stalker", "archive": "MEDIA", "work": "EDICION", "project": "intro"
         })).unwrap();
         assert_eq!(ingest["release_stalker_source"], true);
         let catalog = WritableCatalog::open(&s.home).unwrap();
@@ -1604,7 +1604,7 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
             .set("retain-stalker-source", &json!(true))
             .unwrap();
         let ingest = crate::planner::build_plan(&s.home, &s.backend, &json!({
-            "source": s.card, "source_kind": "stalker", "archive": "MEDIA", "work": "ESSD", "project": "intro"
+            "source": s.card, "source_kind": "stalker", "archive": "MEDIA", "work": "EDICION", "project": "intro"
         })).unwrap();
         crate::transfer::apply(
             &s.home,
@@ -1650,14 +1650,14 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
                 entry["stamp"]["mtime_ns"] = json!("<MTIME>");
             }
             plan["archive_id"] = json!("MEDIA");
-            plan["work_id"] = json!("ESSD");
+            plan["work_id"] = json!("EDICION");
             let root = json!(root).to_string();
             serde_json::from_str::<Value>(
                 &plan.to_string().replace(&root[1..root.len() - 1], "<ROOT>"),
             )
             .unwrap()
         };
-        let params = json!({"archive": "MEDIA", "work": "ESSD", "path": "001_proyectos/intro", "project": "intro"});
+        let params = json!({"archive": "MEDIA", "work": "EDICION", "path": "001_proyectos/intro", "project": "intro"});
         let plan = plan_with(&s.home, &s.backend, &params, |_, _| {
             Ok(case["plan"]["consumers"].clone())
         })

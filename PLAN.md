@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-26, America/Hermosillo. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-26. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -12,11 +12,11 @@ Actualizado: 2026-11-26, America/Hermosillo. Éste es el backlog priorizado. [ST
 
 | Orden | Trabajo | Criterio de cierre |
 | --- | --- | --- |
-| 1 | Aceptar en la app la build `a350af7f16af` | Tarjeta para ver, «sólo respaldo» dentro del ESSD, filtros Fecha/Sesión, Flujos → «Lo que reconoce» |
+| 1 | Aceptar en la app la build `a350af7f16af` | Tarjeta para ver, «sólo respaldo» dentro del EDICION, filtros Fecha/Sesión, Flujos → «Lo que reconoce» |
 | 2 | Formatear la SD `MAVIC200` en el dron y reconectar | El trabajo de dron cierra por observación, como Sony |
 | 3 | Popup al insertar | Medir latencia con la app cerrada y en menubar; aceptar o corregir |
-| 4 | Cobertura ESSD contra MEDIA502 | Informe por tamaño hecho para `001_proyectos/e64_raw`; falta ampliar al resto del ESSD. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
-| 5 | Retiro de raws del ESSD con un plan revisado | Debloateando mi tele aplicado (8,14 GB). Próximo: revisar 16,35 GB entre Baches con el dron y El repositorio de nu9ve, con reenlaces de Clipper. [Evidencia](docs/STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
+| 4 | Cobertura EDICION contra MEDIA9 | Informe por tamaño hecho para `001_proyectos/canal-a_raw`; falta ampliar al resto del EDICION. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
+| 5 | Retiro de raws del EDICION con un plan revisado | Debloateando mi tele aplicado (8,14 GB). Próximo: revisar 16,35 GB entre Baches con el dron y El repositorio de nu9ve, con reenlaces de Clipper. [Evidencia](docs/STATUS.md#diagnóstico-de-edicion-y-música--2026-11-13) |
 
 ## P1 · escalabilidad del motor (en curso)
 
@@ -72,7 +72,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ### Ensayo físico de macOS
 
-1. **Hecho el 13 nov.** Copia sintética a MEDIA502 en ExFAT y respaldo con limpieza de un clip prescindible de la Sony real. Se usó una carpeta exclusiva de prueba y un catálogo temporal con rutas y UUID autorizados. [Evidencia](docs/STATUS.md#ingreso-físico-sony-con-rust--2026-11-13)
+1. **Hecho el 13 nov.** Copia sintética a MEDIA9 en ExFAT y respaldo con limpieza de un clip prescindible de la Sony real. Se usó una carpeta exclusiva de prueba y un catálogo temporal con rutas y UUID autorizados. [Evidencia](docs/STATUS.md#ingreso-físico-sony-con-rust--2026-11-13)
 2. **Remontaje comprobado.** Los tres archivos retirados siguieron ausentes, los nueve índices conservaron sus hashes y Rust informó `waiting_camera`.
 3. **Extracción y reanudación comprobadas.** La desconexión dejó cero retiros. Tras corregir el cambio de inode del marcador Sony vacío, el mismo job reanudó la copia, verificó los 12 archivos y retiró los tres miembros autorizados. Falta observar el cierre por formato y completar la semana de uso diario. [Evidencia](docs/STATUS.md#reanudación-física-sony-con-rust--2026-11-13)
 
@@ -82,19 +82,20 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 | Área | Pendiente real | Referencia |
 | --- | --- | --- |
-| **Música y SSD1** | (1) Primera revisión de `recordingslong` 2019–2021 al conectar SSD1, MEDIA500/501 y ESSD; conservar lo que usa un set (`.asd` o `.als`). (2) Carpeta viva: piloto `~/Music/03_final` completado con Rust y segundo plan vacío. Abrir el set respaldado en Ableton y elegir la siguiente carpeta de producción. (3) Triage con Clipper (`audio-triage-v1`). (4) Biblioteca con curado (`music-library-v1`). | [Runbooks](docs/features/music-flows.md#fases) · [Evidencia](docs/STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
+| **Música y SONIDO** | (1) Primera revisión de `recordingslong` 2019–2021 al conectar SONIDO, MEDIA7/501 y EDICION; conservar lo que usa un set (`.asd` o `.als`). (2) Carpeta viva: piloto `~/Music/03_final` completado con Rust y segundo plan vacío. Abrir el set respaldado en Ableton y elegir la siguiente carpeta de producción. (3) Triage con Clipper (`audio-triage-v1`). (4) Biblioteca con curado (`music-library-v1`). | [Runbooks](docs/features/music-flows.md#fases) · [Evidencia](docs/STATUS.md#diagnóstico-de-edicion-y-música--2026-11-13) |
 | Dron, resto | Asociación revisada de fotos `pending_export` en catálogo implementada; falta el traslado journalizado a misiones y actualizar mapas si cambian rutas. Confirmar dispositivo nuevo y UI de DNG | [Evidencia DJI](docs/STATUS.md#misiones-dji-al-incorporar-un-export--2026-11-13), [Atlas](docs/contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08) |
 | A77 · exports de subaereo | nüün responde con `missions_ingest` por su socket local en macOS. Pendiente una entrega de punta a punta cuando nove implemente el cliente | [Contrato de entrega](docs/contracts/atlas-drone-v1.md#respuesta-de-nüün-a-a77-2026-11-26) |
 | Conversaciones en Inicio | Actualización de la copia desde esta Mac al SSD por manifiesto, con confirmación. Siguiente: aceptar en ventana y decidir cómo avisar de cambios entre dos SSD | [Flujo](docs/features/suite-disks-flows.md#3-sugerencias-al-conectar) |
 | Poner al día | Borrador recuperable, copias de edición y carpetas vivas registradas en el lote Rust. DJI incorpora y compara dentro del lote. Siguiente: aceptación en ventana al desconectar y reconectar y progreso por paso | [Flujos y contrato](docs/features/save-all.md) |
 | Bandeja por proyecto | Primer corte en macOS: ubicaciones catalogadas, Stalker pendiente, entregas candidatas, requisitos de cierre y acceso a la revisión de raws. Faltan fuentes SD asignadas y aceptación en ventana | [Proyectos](docs/features/nuun-window.md#bandeja-por-proyecto) |
 | Fotos / Kyū | Consumidor de `camera_bundle` RAW+JPG. Canon SL3 ya tiene evidencia de detección y plan con JPG y MP4. Falta probar RAW+JPG y ejecutar una copia física de muestra. | [Fotos](docs/features/product-flows.md#fotos-y-kyū) · [Estado por dispositivo](docs/STATUS.md#por-área) |
-| Audio / cámaras | H6: WAV/HPRJ agrupados, reloj BWF y archivos ajenos separados en vista previa real. Confirmar SSD1 antes de aplicar. DJI 360/acción y GoPro requieren evidencia física. Insta360 X3: plan físico de INSV y fotos comprobado en Rust. Falta copiar y abrir una muestra en Studio y resolver FreeFrame. | [Estado por dispositivo](docs/STATUS.md#por-área) |
+| Audio / cámaras | H6: WAV/HPRJ agrupados, reloj BWF y archivos ajenos separados en vista previa real. Confirmar SONIDO antes de aplicar. DJI 360/acción y GoPro requieren evidencia física. Insta360 X3: plan físico de INSV y fotos comprobado en Rust. Falta copiar y abrir una muestra en Studio y resolver FreeFrame. | [Estado por dispositivo](docs/STATUS.md#por-área) |
 | Handycam | Histórico principal consolidado por Poner al día y conversión física con expulsión comprobada. Validar un lote mixto en ventana. Limpiar sólo desde el equipo después de comprobar cobertura. | [Contrato y pasos](docs/contracts/ingest-flow-v1.md#hdd-de-handycam-por-usb) |
 | Stalker | Casos reales `recording`/`finalizing`/`recovery` | [Pedidos](docs/contracts/README.md#pendientes-para-n-creator-utils) |
 | Colecciones (Agentes) | Lectura `storage_collections` hecha en los dos motores, con medición real el 2026-11-19. Pendientes: (1) dar acceso en el sandbox o leer por el motor fuera de él antes de mostrarla en Discos; (2) plan revisado para retirar cachés, nunca automático; (3) servirla por `nu9ve-data-v1` cuando el core lo publique; (4) clasificar lo que aún sale como `other`, como `computer-use` y `sqlite` de Codex | [Colecciones](docs/features/storage-map.md#colecciones) · [Evidencia](docs/STATUS.md#colección-agentes--2026-11-19) |
 | **Acumulados en disco** (pedido del usuario, 2026-11-25) | Fase 1 hecha (inventario y plan en sólo lectura, CLI, RPC, Discos → Acumulados…, dataset de la suite). Siguen en orden: (1) un escaneo real en sólo lectura de `~/code` y las cachés, pedido por el usuario, y aceptar la vista en ventana; (2) **fase 2**: ejecutar el plan aprobado por grupo, a la Papelera por omisión, dos confirmaciones para lo que no se regenera, volver a medir antes de mover y recibo con lo liberado según `df`; (3) actividad de agentes desde nove (`agents:summary:sessions`) en lugar del mtime de `~/.claude/projects`; (4) acceso del sandbox a `HOME` | [Diseño](docs/features/storage-map.md#acumulados) · [Evidencia](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
-| **Perfiles de la suite** | Lectura y registro hechos en el motor y en Ajustes → Perfiles. Falta registrar los perfiles reales en la M1 (`e64`, `nu9ve-xyz`), pedido por el usuario, y decidir el tipo de `nu9ve-xyz` (hoy `team`) | [nu9ve-profile-v1](vendor/nu9ve-core/contracts/nu9ve-profile-v1.md) · [STATUS](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
+| **Perfiles de la suite** | Lectura y registro hechos en el motor y en Ajustes → Perfiles. Falta registrar los perfiles reales de la M1, pedido por el usuario: propuesta, sólo el predeterminado como persona; los demás siguen como canales de nüün y no se suben a la suite (hoy se crearían como `team`) | [nu9ve-profile-v1](vendor/nu9ve-core/contracts/nu9ve-profile-v1.md) · [STATUS](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
+| Sin datos personales | Hecho el 2026-11-26: sin perfil, país ni ciudad en el código, y nombres neutros, discos incluidos, en pruebas y documentos ([STATUS](docs/STATUS.md#sin-datos-personales-en-el-repo--2026-11-26)). Queda la bitácora histórica, que nombra proyectos reales | [STATUS](docs/STATUS.md#sin-datos-personales-en-el-repo--2026-11-26) |
 | Benchmarks | `scripts/engine_bench.py` (golden, walk, soak) en `bench/nuun.ndjson`. Falta el caso de copias (GiB/s) sobre fixture, y meter `soak --check-soak` en el gate de release | [nu9ve-bench-v1](vendor/nu9ve-core/contracts/nu9ve-bench-v1.md) |
 | Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
@@ -102,7 +103,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 
 ## P3 · robustez y distribución
 
-- **Identidad portable F0:** registro, publicación y adopción de sólo lectura, aceptados en ventana con MEDIA502 y ESSD; `nu9ve-volumes` ya vive en nu9ve/core. Falta: la otra Mac y Windows ([F0 → F1](#suite-de-f0-a-f1)). [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
+- **Identidad portable F0:** registro, publicación y adopción de sólo lectura, aceptados en ventana con MEDIA9 y EDICION; `nu9ve-volumes` ya vive en nu9ve/core. Falta: la otra Mac y Windows ([F0 → F1](#suite-de-f0-a-f1)). [Estado](docs/STATUS.md#identidad-portable-f0--2026-11-22).
 - Digest de plan autenticado o reverificación en `apply`; owner/lease de jobs.
 - Automatizar flujos ya probados (`preparar` al conectar, luego sólo copias). Limpiar y liberar siempre piden confirmación.
 - Medir antes de optimizar: bibliotecas grandes, miniaturas, idle CPU/IO, DiskArbitration.
@@ -122,11 +123,11 @@ Plan de [varias máquinas](vendor/nu9ve-core/docs/suite-devices.md). F0 está [e
 
 ### Cerrar F0
 
-1. ~~**Índice por proyecto**~~ **Hecho el 2026-11-22**: MEDIA502 bajó de 5,1 MiB a 20 KB ([STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22)). Lo que se decidió (decisión del usuario, 2026-11-22; [decisión abierta 4 de `nu9ve-volume-v1` §13](vendor/nu9ve-core/contracts/nu9ve-volume-v1.md#13-decisiones-abiertas)). Hoy `index.json` lleva un dataset por archivo: MEDIA502 tiene 7 666 de unos 698 B, 5,1 MiB de 8, con el disco al 57 %. Sin cambios, el tope llega hacia las 12 000 entradas y el disco lleno serían unas 13 400. Con otra ráfaga como la del 8 nov (3 622) se pasa. El cambio:
+1. ~~**Índice por proyecto**~~ **Hecho el 2026-11-22**: MEDIA9 bajó de 5,1 MiB a 20 KB ([STATUS](docs/STATUS.md#identidad-portable-f0--2026-11-22)). Lo que se decidió (decisión del usuario, 2026-11-22; [decisión abierta 4 de `nu9ve-volume-v1` §13](vendor/nu9ve-core/contracts/nu9ve-volume-v1.md#13-decisiones-abiertas)). Hoy `index.json` lleva un dataset por archivo: MEDIA9 tiene 7 666 de unos 698 B, 5,1 MiB de 8, con el disco al 57 %. Sin cambios, el tope llega hacia las 12 000 entradas y el disco lleno serían unas 13 400. Con otra ráfaga como la del 8 nov (3 622) se pasa. El cambio:
    - un dataset por **proyecto × carpeta de primer nivel** (`001_raw/…`, `005_produccion/…`) y modalidad, con `size.items` y `size.bytes` sumados, `updated_at` el más reciente y `state` el peor de sus archivos. Lo que no tiene proyecto va a un dataset por carpeta;
    - el detalle por archivo (hash, ruta, verificación) sigue en el snapshot del catálogo de `.ncreator/catalog-backups/`, que la adopción ya comprueba por SHA-256;
    - no cambia el contrato: `nu9ve-data-v1` no dice que un dataset sea un archivo. Lo que sí sube es el `contract` interno de nüün en el índice, para que un lector viejo lo reconozca;
-   - medir antes y después: MEDIA502 debería bajar a decenas de KB y crecer con los proyectos, no con los archivos;
+   - medir antes y después: MEDIA9 debería bajar a decenas de KB y crecer con los proyectos, no con los archivos;
    - la adopción sigue leyendo conteos y proyectos igual; «Adoptar este disco…» muestra datasets y archivos por separado.
 2. **Otra Mac y Windows**: los [pasos exactos](docs/STATUS.md#pendientes-físicos-de-f0) los corre el usuario.
 3. Pulir la ventana de adopción: decir qué hará F1 con lo adoptado. La fecha local ya está.
@@ -148,13 +149,13 @@ y `data_export`, colecciones por dispositivo y «Trabajar aquí». Lo que sigue,
 
 ### Recorrido de misiones entre la M1 y la M4 (pedido del usuario, 2026-11-23)
 
-Guardar las misiones en la M1 (MEDIA + ESSD), llevar el ESSD a la M4, copiar al SUBSSD, procesar ahí con Atlas, devolver lo procesado al ESSD y analizarlo en nove en la M1. MEDIA se requiere para el ingreso de material nuevo. La copia entre discos de trabajo puede hacerse en la M4 mientras MEDIA sigue en la M1. [Flujos](docs/features/suite-disks-flows.md).
+Guardar las misiones en la M1 (MEDIA + EDICION), llevar el EDICION a la M4, copiar al SUBSSD, procesar ahí con Atlas, devolver lo procesado al EDICION y analizarlo en nove en la M1. MEDIA se requiere para el ingreso de material nuevo. La copia entre discos de trabajo puede hacerse en la M4 mientras MEDIA sigue en la M1. [Flujos](docs/features/suite-disks-flows.md).
 
-1. **Ya hay:** el ingreso de dron deja la misión en MEDIA y en el ESSD. `work_copy` copia verificado entre dos discos de trabajo de la misma Mac, con recibo en los dos. Fuera del sandbox no hay otra guarda que el marcador y el rol. Nunca se corrió con discos reales.
-2. **Primera ida física hecha.** ESSD → SUBSSD completada y verificada en la M4, incluidos el historial y el mapa de fotos ([evidencia](docs/STATUS.md#pendientes-físicos-de-f0)). La hoja de copia ya incluye juntos los archivos de Atlas en el código. Pendiente validar esa selección en ventana y hacer la vuelta de resultados a la M1.
-3. ~~**Copiar proyecto**~~ **Hecho el 2026-11-23** ([STATUS](docs/STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23), punto 7): la hoja lista los proyectos de nüün del índice publicado en el disco, así funciona en la M4 sin el catálogo de la M1. Antes de llevar el ESSD, «Publicar índice» en Ajustes para que incluya las misiones recientes. Falta un proyecto de Clipper con sus dependencias (`clipper.inspect`).
+1. **Ya hay:** el ingreso de dron deja la misión en MEDIA y en el EDICION. `work_copy` copia verificado entre dos discos de trabajo de la misma Mac, con recibo en los dos. Fuera del sandbox no hay otra guarda que el marcador y el rol. Nunca se corrió con discos reales.
+2. **Primera ida física hecha.** EDICION → SUBSSD completada y verificada en la M4, incluidos el historial y el mapa de fotos ([evidencia](docs/STATUS.md#pendientes-físicos-de-f0)). La hoja de copia ya incluye juntos los archivos de Atlas en el código. Pendiente validar esa selección en ventana y hacer la vuelta de resultados a la M1.
+3. ~~**Copiar proyecto**~~ **Hecho el 2026-11-23** ([STATUS](docs/STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23), punto 7): la hoja lista los proyectos de nüün del índice publicado en el disco, así funciona en la M4 sin el catálogo de la M1. Antes de llevar el EDICION, «Publicar índice» en Ajustes para que incluya las misiones recientes. Falta un proyecto de Clipper con sus dependencias (`clipper.inspect`).
 4. ~~**Volver con lo procesado**~~ **Hecho el 2026-11-23**: «Actualizar lo que cambió» (la versión anterior queda en la carpeta de nüün del destino) y la sugerencia `work_copy_changed` desde los recibos, sin necesitar un índice de Atlas. Sólo ve lo que cambia dentro de las carpetas copiadas: si Atlas escribe en otra carpeta, se elige a mano.
-5. **nove registra desde el recibo** (sesión de nove, A70–A76): sin eso, nove vuelve a hashear lo que llega al ESSD.
+5. **nove registra desde el recibo** (sesión de nove, A70–A76): sin eso, nove vuelve a hashear lo que llega al EDICION.
 6. Opcional: emparejar M1 y M4 para «Trabajar aquí» (F1, paso 3).
 
 ### F1 · Diarios de decisiones ([§6.4](vendor/nu9ve-core/docs/suite-devices.md#nüün-en-dos-macs))
@@ -184,7 +185,7 @@ Decisiones que esperan: canal de firma y actualización, cuarentena o papelera a
 ## Pasada de UX · discos y conversaciones
 
 - Unificar el alta de disco y guiar el uso local de un disco portable detectado. Mostrar por qué aparece una actualización, con proyecto, dirección y cambios. [Criterios de UX](docs/features/suite-disks-flows.md#pasada-de-ux-pendiente).
-- Validar en ventana el export a pedido sin MEDIA y en nove el árbol de M4 y M1 en ESSD. Comprobar el progreso compartido en una copia larga. [Recorrido](docs/features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-essd).
+- Validar en ventana el export a pedido sin MEDIA y en nove el árbol de M4 y M1 en EDICION. Comprobar el progreso compartido en una copia larga. [Recorrido](docs/features/suite-disks-flows.md#reunir-los-historiales-de-m4-y-m1-en-edicion).
 
 ## Prioridad baja · capturas del producto
 

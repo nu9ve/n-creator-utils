@@ -85,13 +85,14 @@ def capture_libraries(catalog, override='', registry=None, common=None):
             'pending': [s for s in values if s.get('status') == 'completed' and not s['archived']], 'errors': errors}
 
 
-def save_capture_tags(catalog, session_ids, project, country='mx'):
+def save_capture_tags(catalog, session_ids, project, country=None):
     """One writer for a whole batch; the project rises in the quick picks right away."""
     from .common import slug
+    from .planner import _default
     from .projects import key_for, touch
     require(isinstance(session_ids, list) and session_ids, 'invalid_request', 'Sessions required')
     sessions = [str(uuid.UUID(value)) for value in session_ids]
-    value = {'name': slug(project), 'country': slug(country)}
+    value = {'name': slug(project), 'country': _default(catalog, country, 'country')}
     with catalog.writer():
         for sid in sessions:
             catalog.set('capture-tag:' + sid, value)
@@ -99,7 +100,7 @@ def save_capture_tags(catalog, session_ids, project, country='mx'):
     return value
 
 
-def save_capture_tag(catalog, session_id, project, country='mx'):
+def save_capture_tag(catalog, session_id, project, country=None):
     return save_capture_tags(catalog, [session_id], project, country)
 
 

@@ -11,13 +11,13 @@ La referencia operativa vigente está en [operations](operations.md): registro d
 - `nu9ve doctor`: configuración/ejecutables/directorios del legado, no estado completo del catálogo ni certificación de discos.
 - `nu9ve clip`: retirado; informa [sucesor](https://github.com/nu9ve/clipper) y termina con código 2.
 
-## Liberar una colección (SSD1)
+## Liberar una colección (SONIDO)
 
-`nu9ve media collection-release-plan --source CARPETA --archive MEDIA500 [--archive …] [--als-root CARPETA] [--keep RUTA] [--search ARCHIVO:CARPETA]` planea sin mover nada; `collection-release-apply PLAN --digest D` mueve a la Papelera del volumen exactamente lo revisado; `collection-release-plans` lista los planes. Garantías y runbook en [music-flows](features/music-flows.md#m1--liberar-una-colección-implementado-2026-11-09).
+`nu9ve media collection-release-plan --source CARPETA --archive MEDIA7 [--archive …] [--als-root CARPETA] [--keep RUTA] [--search ARCHIVO:CARPETA]` planea sin mover nada; `collection-release-apply PLAN --digest D` mueve a la Papelera del volumen exactamente lo revisado; `collection-release-plans` lista los planes. Garantías y runbook en [music-flows](features/music-flows.md#m1--liberar-una-colección-implementado-2026-11-09).
 
 ## Carpeta viva
 
-`nu9ve media living-plan --source CARPETA --archive MEDIA502 --folder CARPETA_EN_ARCHIVO [--name N]` planea un respaldo incremental sin copiar; `living-apply PLAN --digest D` copia y verifica exactamente lo revisado; `living-collections` lista las colecciones. Garantías y runbook en [music-flows](features/music-flows.md#m2--carpeta-viva-implementado-2026-11-09).
+`nu9ve media living-plan --source CARPETA --archive MEDIA9 --folder CARPETA_EN_ARCHIVO [--name N]` planea un respaldo incremental sin copiar; `living-apply PLAN --digest D` copia y verifica exactamente lo revisado; `living-collections` lista las colecciones. Garantías y runbook en [music-flows](features/music-flows.md#m2--carpeta-viva-implementado-2026-11-09).
 
 ## Descargas y stems
 

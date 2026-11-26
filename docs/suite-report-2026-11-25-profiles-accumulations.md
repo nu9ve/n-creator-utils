@@ -24,8 +24,8 @@ Sesión en la M1. Core en `~/code/ai/core` al día (`git pull --ff-only`, `f2670
 
 Todo con fixtures, raíces temporales, `--state-dir`, `NU9VE_PROFILES_FILE`, `NU9VE_DEVICE_FILE`, `NU9VE_ENGINES_DIR` y un `HOME` de fixture. No se tocaron `~/Library/Application Support/nu9ve/profiles.json` (no existe en la M1), `~/code`, la biblioteca real, los discos, el agente ni los LaunchAgents.
 
-- **Rust:** `cargo fmt --check` y Clippy `-D warnings` limpios. `cargo test`: 191 pruebas y 23 diferenciales (`TZ=America/Hermosillo`, `TMPDIR` físico). Hay 9 pruebas nuevas: 4 de perfiles, 5 de acumulados (una con `data_catalog`/`data_export`) y 1 de U1.
-- **Python:** `unittest discover`, 420 pruebas. Las 5 nuevas de `tests/test_suite_storage.py` cubren: sin archivo; archivo de nove con `e64`, al que sólo se agrega `nuun`; dos escritores a la vez (el motor de Rust y `nu9ve_profiles.py` en un hilo, 20 escrituras); un archivo inválido que no se toca; y el escaneo de acumulados por RPC. `engine_golden.py --check` está al día.
+- **Rust:** `cargo fmt --check` y Clippy `-D warnings` limpios. `cargo test`: 191 pruebas y 23 diferenciales (`TZ=America/Phoenix`, `TMPDIR` físico). Hay 9 pruebas nuevas: 4 de perfiles, 5 de acumulados (una con `data_catalog`/`data_export`) y 1 de U1.
+- **Python:** `unittest discover`, 420 pruebas. Las 5 nuevas de `tests/test_suite_storage.py` cubren: sin archivo; archivo de nove con `canal-a`, al que sólo se agrega `nuun`; dos escritores a la vez (el motor de Rust y `nu9ve_profiles.py` en un hilo, 20 escrituras); un archivo inválido que no se toca; y el escaneo de acumulados por RPC. `engine_golden.py --check` está al día.
 - **Swift:** `swift test`, 32 pruebas. La app compila con las vistas nuevas, pero no se abrió en ventana ni se instaló.
 - **Core:** `sync-core.sh --check` («is current»), `profile-examples.py --check`, `bench-examples.py --check` y `check-boundary.sh` pasan.
 - **Bench** en la M1, sobre un registro temporal:
@@ -43,7 +43,7 @@ Todo con fixtures, raíces temporales, `--state-dir`, `NU9VE_PROFILES_FILE`, `NU
 
 ## Lo que nove debe saber
 
-- **Perfiles:** nüün lee `profiles.json` y sólo escribe su clave `nuun`. `e64` lleva `aliases: ["erikiado64"]` si nove ya lo creó como «Erik». La biblioteca `nuun` de todos sus perfiles es el mismo catálogo.
+- **Perfiles:** nüün lee `profiles.json` y sólo escribe su clave `nuun`. `canal-a` lleva `aliases: ["estudio-a"]` si nove ya lo creó como «Ana». La biblioteca `nuun` de todos sus perfiles es el mismo catálogo.
 - **Acumulados:** el dataset `storage-accumulations` es una tabla NDJSON, una fila por hallazgo. Campos: `scan_id`, `scanned_at`, `path`, `rule`, `kind`, `bytes_on_disk`, `bytes_logical`, `files`, `last_used_at`, `repo`, `repo_activity_at`, `agent_activity_at`, `owner_app`, `owner_profile`, `regenerates`, `cost`, `risk`, `action`, `confirmations`, `volume` y `git`. Cada escaneo es una revisión nueva (`revision.id`), y el archivo exportado nunca se reescribe. Las rutas son personales.
 - **U1:** el socket anuncia `conversations_export_working_v1`. Una petición sin parámetros exporta lo decidido. Cualquier otro destino o colección da `confirmation_required`. La respuesta es `{"status":"started","run_id"}`, y `conversations_export_status {run_id}` responde `running`, `done` (con `result`) o `failed`. Sólo funciona mientras la app de nüün tiene abierto su motor. El formato de `working.json` no cambió: el contrato de compatibilidad sigue vigente.
 - **Bench:** `bench/nuun.ndjson` con `suite: nuun-engine`, casos `golden/<método>`, `walk/storage-index`, `walk/accumulations` y `soak/catalog-reads`, y `subject.commit` de 12 caracteres.
@@ -52,8 +52,8 @@ Todo con fixtures, raíces temporales, `--state-dir`, `NU9VE_PROFILES_FILE`, `NU
 
 1. **Umbral del disco interno:** 20 GiB por omisión (configurable en la vista y por CLI). ¿Otro valor? En la M1 hubo 169 MiB libres.
 2. **Qué va a la Papelera y qué no** en la fase 2. Hoy `git` y Docker son `manual`: se liberan con su herramienta (`git gc`, `docker system prune`). Lo demás va a la Papelera, con dos confirmaciones para los respaldos de apps. ¿Borrar `node_modules` y `target/` en definitiva, sin Papelera, si la persona lo confirma?
-3. **`e64` y la cuenta de Fractos:** `account_link` sigue en `null`. Lo decide F2 en el core.
-4. **Tipo de `nu9ve-xyz`:** se crea como `team` si no existe. ¿Es una persona o una marca?
+3. **`canal-a` y la cuenta de Fractos:** `account_link` sigue en `null`. Lo decide F2 en el core.
+4. **Tipo de `canal-b`:** se crea como `team` si no existe. ¿Es una persona o una marca?
 5. **Sesiones de agentes:** hoy se toma el mtime de `~/.claude/projects/<ruta>`. Para usar `agents:summary:sessions` de nove, nüün necesita un cliente de otros motores registrados, que no tiene. ¿Lo trae el core (`nu9ve-ipc`), o nove expone algo por el agente?
 6. **Copias en el bench:** falta un caso de copia (GiB/s) sobre fixture que no exija discos con marcador.
 7. **Bibliotecas en el mapa:** se muestran con su ruta, pero no se miden. ¿Medir su tamaño, que es caro en la biblioteca de nove?

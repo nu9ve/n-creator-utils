@@ -389,7 +389,7 @@ mod tests {
     fn a_root_of_another_app_missing_on_the_other_disk_is_suggested_until_copied_or_silenced() {
         let temp = tempfile::tempdir().unwrap();
         let base = temp.path().canonicalize().unwrap();
-        let (x, e, home) = (base.join("XSSD"), base.join("ESSD"), base.join("state"));
+        let (x, e, home) = (base.join("VIAJE"), base.join("EDICION"), base.join("state"));
         let xid = "1b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e01";
         let mut backend = Fixture::default();
         marked(&mut backend, &x, xid, "AAAA-0001");

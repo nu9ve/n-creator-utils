@@ -6,7 +6,7 @@ namespace Nuun.Core.Engine;
 /// <summary>
 /// Maqueta: datos ficticios con la forma del motor real, para ver temas y pantallas en Windows sin
 /// Python ni discos. No lee ni escribe ningún volumen; «aplicar» sólo emite progreso simulado,
-/// y la UI lo rotula como maqueta. Nunca usa SDs, ESSD ni MEDIA reales (AGENTS.md).
+/// y la UI lo rotula como maqueta. Nunca usa SDs ni discos reales (AGENTS.md).
 /// </summary>
 public sealed class FixtureEngine(TimeSpan? step = null) : IMediaEngine
 {
@@ -63,7 +63,7 @@ public sealed class FixtureEngine(TimeSpan? step = null) : IMediaEngine
         {
             foreach (var destination in item.Destinations)
             {
-                var target = destination == PlanDestination.Archive ? "MEDIA" : "ESSD";
+                var target = destination == PlanDestination.Archive ? "MEDIA" : "EDICION";
                 const int slices = 8;
                 for (var s = 0; s < slices; s++)
                 {

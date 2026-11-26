@@ -1,6 +1,6 @@
 """Clipper transcripts kept in MEDIA next to the backed-up video (contracts/clipper-transcripts-v1.md).
 
-Fixture volumes and a fake `transcripts-export`; never ESSD or MEDIA502."""
+Fixture volumes and a fake `transcripts-export`; never EDICION or MEDIA9."""
 import hashlib
 import json
 import os
@@ -27,7 +27,7 @@ class TranscriptTests(WorkflowFixture):
                                                            (self.asset['job_id'], self.a['id'], self.member)).fetchone()[0])['destination']
         self.work_copy = json.loads(self.catalog.db.execute('SELECT payload FROM copies WHERE job_id=? AND volume_id=? AND relative_path=?',
                                                             (self.asset['job_id'], self.w['id'], self.member)).fetchone()[0])['destination']
-        self.clipper = self.work / '001_proyectos/e64/intro/clipper'
+        self.clipper = self.work / '001_proyectos/canal-a/intro/clipper'
         (self.clipper / 'transcripts').mkdir(parents=True)
         (self.clipper / 'clipper-project.json').write_text('{}')
         self.files = {}
@@ -118,19 +118,19 @@ class TranscriptTests(WorkflowFixture):
         self.assertEqual(failure.exception.code, 'checksum_mismatch')
 
     def test_closeout_backs_up_transcripts_before_release_and_notes_clipper_offline(self):
-        final = self.archive / '002_finales/e64/2026/intro.mov'
+        final = self.archive / '002_finales/canal-a/2026/intro.mov'
         final.parent.mkdir(parents=True); final.write_bytes(b'final')
         closure.save(self.catalog, self.backend, self.project_id, ['horizontal'], True, True,
                      [{'volume_id': self.a['id'], 'path': str(final.relative_to(self.archive)), 'role': 'horizontal'}])
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         self.assertEqual(plan['transcripts']['files'], 2)
         self.assertFalse(plan['already_complete'])
-        raw = self.work / '001_proyectos/e64_raw/intro'
+        raw = self.work / '001_proyectos/canal-a_raw/intro'
         self.files['srt'].write_bytes(b'changed after review')
         with self.assertRaises(MediaError):
             closure.apply_close(self.catalog, self.backend, plan['id'], plan['digest'], confirm_discard=True)
         self.assertTrue(raw.exists(), 'a transcript that cannot be verified stops the closeout before any release')
-        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'ESSD')
+        plan = closure.plan_close(self.catalog, self.backend, self.project_id, 'MEDIA', 'EDICION')
         result = closure.apply_close(self.catalog, self.backend, plan['id'], plan['digest'], confirm_discard=True)
         self.assertEqual(result['state'], 'completed')
         # What the stopped run already verified is adopted, not copied twice.

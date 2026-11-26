@@ -581,7 +581,7 @@ mod tests {
             &s.home,
             &s.backend,
             &json!({
-                "source":s.card,"archive":"MEDIA","work":"ESSD","project":"restore",
+                "source":s.card,"archive":"MEDIA","work":"EDICION","project":"restore",
                 "archive_only":true,"confirm_archive_only":true,"work_decision":"pending"
             }),
         )
@@ -599,7 +599,7 @@ mod tests {
         let copy = crate::delivery::work_preview(
             &catalog,
             &s.backend,
-            &json!({"asset_ids":[id],"work":"ESSD"}),
+            &json!({"asset_ids":[id],"work":"EDICION"}),
         )
         .unwrap();
         let path = s.work.join(copy["entries"][0]["path"].as_str().unwrap());

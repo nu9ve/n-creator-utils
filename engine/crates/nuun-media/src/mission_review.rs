@@ -1333,7 +1333,7 @@ mod incorporate_tests {
         let actual = incorporate(
             &s.home,
             &s.backend,
-            &json!({"archive":"MEDIA","work":"ESSD","digest_value":reviewed["digest"]}),
+            &json!({"archive":"MEDIA","work":"EDICION","digest_value":reviewed["digest"]}),
         )
         .unwrap();
         assert_eq!(actual, expected["result"]);
@@ -1464,7 +1464,7 @@ mod incorporate_tests {
         let import = |s: &crate::volumes::test_backend::Setup, remove| {
             let catalog = Catalog::open(&s.home).unwrap();
             let reviewed = review(&catalog, Some(&s.backend), &json!({"archive":"MEDIA"})).unwrap();
-            incorporate(&s.home,&s.backend,&json!({"archive":"MEDIA","work":"ESSD","digest_value":reviewed["digest"],"remove_from_inbox":remove})).unwrap()
+            incorporate(&s.home,&s.backend,&json!({"archive":"MEDIA","work":"EDICION","digest_value":reviewed["digest"],"remove_from_inbox":remove})).unwrap()
         };
         put("JSON-a.json", "2026-11-07T01:00:00Z", "old", json!([]));
         std::fs::write(inbox.join("JSON-broken.json"), b"{").unwrap();

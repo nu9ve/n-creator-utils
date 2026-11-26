@@ -396,7 +396,7 @@ class Service:
                 require(not set(params) - allowed and all(isinstance(v, str) for v in params.values()),
                         'invalid_settings', 'Invalid defaults')
                 self.catalog.set('defaults', dict(self.catalog.get('defaults', {}), **params))
-            return self.catalog.get('defaults', {'profile': 'e64', 'country': 'mx', 'city': 'hermosillo'})
+            return self.catalog.get('defaults', {})
         if method == 'suggest':
             # Cheap destination gate precedes any source discovery/probing.
             online = [v for v in self.catalog.volumes() if self.backend.online(v)]

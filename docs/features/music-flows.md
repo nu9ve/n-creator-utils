@@ -1,6 +1,6 @@
 # Música: liberar, analizar, respaldar y organizar
 
-Flujos definidos a partir del [inventario de SSD1](music-ssd1-inventory-2026-11-09.md). M1 y M2 están implementados por CLI/RPC. M3 y M4 siguen en diseño. Prioridad en [PLAN](../../PLAN.md) y evidencia de corridas en [STATUS](../STATUS.md#diagnóstico-de-essd-y-música--2026-11-13).
+Flujos definidos a partir del [inventario de SONIDO](music-sonido-inventory-2026-11-09.md). M1 y M2 están implementados por CLI/RPC. M3 y M4 siguen en diseño. Prioridad en [PLAN](../../PLAN.md) y evidencia de corridas en [STATUS](../STATUS.md#diagnóstico-de-edicion-y-música--2026-11-13).
 
 ## Quién es dueño de qué
 
@@ -13,23 +13,23 @@ Flujos definidos a partir del [inventario de SSD1](music-ssd1-inventory-2026-11-
 
 Ninguna app escribe en la base de otra. nüün nunca escribe en `master.db` de rekordbox ni en la base de curado.
 
-## 1 · Liberar `recordingslong` y `recordings` de SSD1
+## 1 · Liberar `recordingslong` y `recordings` de SONIDO
 
-Lo que dijo el usuario: estas carpetas salieron de un `save all` y su respaldo está en MEDIA500 o MEDIA501. Se conserva lo que use un proyecto (`.asd` o algo así), y quizá se borra todo 2019–2021.
+Lo que dijo el usuario: estas carpetas salieron de un `save all` y su respaldo está en MEDIA7 o MEDIA8. Se conserva lo que use un proyecto (`.asd` o algo así), y quizá se borra todo 2019–2021.
 
-Medido el 9 nov (sólo lectura). Todos los WAV tienen el nombre fechado del importador anterior (`23MAY10-014910_H6LR_67-47_JP-SHINKANSEN[].WAV`). Se leyeron los 2,879 `.als` de SSD1 y `~/Music`: **141 grabaciones** están referenciadas por un set (por ejemplo, `erikiado`, `soltura`, `errorton`).
+Medido el 9 nov (sólo lectura). Todos los WAV tienen el nombre fechado del importador anterior (`23MAY10-014910_H6LR_67-47_JP-SHINKANSEN[].WAV`). Se leyeron los 2,879 `.als` de SONIDO y `~/Music`: **141 grabaciones** están referenciadas por un set (por ejemplo, `demo`, `soltura`, `errorton`).
 
 | | Total | Proteger (`.asd` o usado por un set) | Candidatos |
 | --- | --- | --- | --- |
 | `recordingslong` 2019–2021 | 72 GB | 6.3 GB (25) | 65.7 GB (179) |
 | `recordingslong` 2022–2025 + podcasts | 173 GB | 0.8 GB (2) | 172.7 GB (358) |
-| `recordingslong` 2026 | 10 GB | 3.4 GB | 6.6 GB (ya está en MEDIA502) |
+| `recordingslong` 2026 | 10 GB | 3.4 GB | 6.6 GB (ya está en MEDIA9) |
 | `recordings` | 7 GB | ~0 | 6.9 GB |
 | **Total** | **262 GB** | **10.5 GB** | **~252 GB** |
 
-**Cómo:** el plan M1 busca cada archivo **por contenido** (SHA-256) en un archivo registrado, aunque allá tenga otro nombre. Congela la lista de conservación (`.asd`, referencias de `.als` y rutas elegidas). Para la primera corrida se necesitan SSD1 y los archivos MEDIA500/501 conectados y registrados. Lo que no coincida con una copia se conserva hasta respaldarlo en MEDIA502.
+**Cómo:** el plan M1 busca cada archivo **por contenido** (SHA-256) en un archivo registrado, aunque allá tenga otro nombre. Congela la lista de conservación (`.asd`, referencias de `.als` y rutas elegidas). Para la primera corrida se necesitan SONIDO y los archivos MEDIA7/501 conectados y registrados. Lo que no coincida con una copia se conserva hasta respaldarlo en MEDIA9.
 
-Resultado: un plan revisable por año, con «se libera (hash coincide en MEDIA50x)», «se conserva (lo usa un set)» y «sin respaldo». Lo liberado va a la Papelera del SSD1, con journal.
+Resultado: un plan revisable por año, con «se libera (hash coincide en MEDIA50x)», «se conserva (lo usa un set)» y «sin respaldo». Lo liberado va a la Papelera del SONIDO, con journal.
 
 ## 2 · Análisis de audio: relleno o importante
 
@@ -48,12 +48,12 @@ La idea es ordenar la revisión, no decidir sola: el análisis nunca borra.
 
 | Dónde | Qué | Tamaño |
 | --- | --- | --- |
-| `SSD1/abletonlive/projects`, `collabs`, `stems`, `canciones`, `recordings` | 29 carpetas de proyecto, 1,815 `.als` con versiones | ~85 GB |
+| `SONIDO/abletonlive/projects`, `collabs`, `stems`, `canciones`, `recordings` | 29 carpetas de proyecto, 1,815 `.als` con versiones | ~85 GB |
 | `~/Music/01_produccion` (`splits`, `drums`, `shots`, `loops`, `samples`, `midis`, `AXOMODAR`) | Material de producción ya ordenado por tipo | 42 GB |
 | `~/Music/03_final` (`projects`, `tracks`) | Finales | 9 GB |
-| `SSD1/abletonlive/packs`, `samples`, `kontakt`, `Spitfire` | Librerías | ~155 GB |
+| `SONIDO/abletonlive/packs`, `samples`, `kontakt`, `Spitfire` | Librerías | ~155 GB |
 
-**Cómo:** con una carpeta viva, que copia a MEDIA502 sólo lo nuevo o cambiado, verificado, sin renombrar ni limpiar el origen y sin propagar borrados. La carpeta de proyecto de Ableton se trata como un bundle y se copia completa. Antes de copiar, un informe de **referencias externas**: qué muestras usa cada set fuera de su carpeta (packs, `recordingslong`, `~/Music`) y si esas muestras ya tienen respaldo. Así un set respaldado se puede abrir. «Collect All and Save» sigue siendo una acción de Ableton que hace el usuario.
+**Cómo:** con una carpeta viva, que copia a MEDIA9 sólo lo nuevo o cambiado, verificado, sin renombrar ni limpiar el origen y sin propagar borrados. La carpeta de proyecto de Ableton se trata como un bundle y se copia completa. Antes de copiar, un informe de **referencias externas**: qué muestras usa cada set fuera de su carpeta (packs, `recordingslong`, `~/Music`) y si esas muestras ya tienen respaldo. Así un set respaldado se puede abrir. «Collect All and Save» sigue siendo una acción de Ableton que hace el usuario.
 
 ## 4 · Organizar la biblioteca de música
 
@@ -61,7 +61,7 @@ Hoy `mix/` tiene 90 carpetas, una por tanda de descargas, con unos 60 GB duplica
 
 **Principio:** las carpetas responden a *de dónde vino y dónde está*, que no cambia. Los tags y las colecciones responden a *qué es y para qué la uso* (género, energía, set), que cambia y admite varias respuestas a la vez. Si se ordena por género en carpetas, cada pista acaba en un solo lugar y hay que mover archivos cada vez que cambia de criterio.
 
-Estructura propuesta (la misma en MEDIA502 y en el disco de trabajo):
+Estructura propuesta (la misma en MEDIA9 y en el disco de trabajo):
 
 ```text
 musica/
@@ -86,8 +86,8 @@ sonidos/
 
 ## Decisiones del usuario · 2026-11-09
 
-- `recordingslong` y `recordings` salieron de un `save all`; los años pasados ya tienen respaldo en **MEDIA500 o MEDIA501**. Se pueden quitar de SSD1 la mayoría, sobre todo 2019–2021, **salvo lo que use un proyecto** (`.asd` junto al WAV o referencia desde un `.als`).
-- Nada se borra sin encontrar la copia **por hash** en un archivo registrado; si no aparece, primero se respalda en MEDIA502.
+- `recordingslong` y `recordings` salieron de un `save all`; los años pasados ya tienen respaldo en **MEDIA7 o MEDIA8**. Se pueden quitar de SONIDO la mayoría, sobre todo 2019–2021, **salvo lo que use un proyecto** (`.asd` junto al WAV o referencia desde un `.als`).
+- Nada se borra sin encontrar la copia **por hash** en un archivo registrado; si no aparece, primero se respalda en MEDIA9.
 - Biblioteca: rekordbox sí, pero sobre todo **curado** a futuro. Serato casi no se usa; sus carpetas no son la biblioteca.
 - Hay producción y música también en `~/Music` (`01_produccion`, `03_final`, `00_assets`): entra en el respaldo de producción.
 - Interés en un triage de audio (silencio, ruido, voz, música) con `ffmpeg` y Qwen para decidir qué vale la pena; lo hace Clipper, nüün lo muestra.
@@ -100,8 +100,8 @@ Cada fase cierra con pruebas en fixtures, docs al día (esta página, [STATUS](.
 
 | Fase | Entrega | Criterio de cierre | Estado |
 | --- | --- | --- | --- |
-| M1 · Liberar grabaciones | Liberación de una carpeta de un disco de colección (SSD1) contra archivos registrados (MEDIA500/501/502) por hash, con lista de conservación (`.asd`, referencias `.als`, rutas elegidas) congelada en el digest; CLI/RPC | Pruebas: renombrado en el archivo, sin copia → no se libera, conservados intactos, cambio tras revisar → rechazo, Papelera + journal. Corrida real: el usuario conecta MEDIA500/501 y revisa el plan | **Código hecho 9 nov** ([detalle](#m1--liberar-una-colección-implementado-2026-11-09)); falta la corrida real |
-| M2 · Carpeta viva | Copia incremental verificada SSD1/`~/Music` → MEDIA502 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | Piloto real `~/Music/03_final` completado con Rust, segundo plan sin cambios. [Evidencia](../STATUS.md#diagnóstico-de-essd-y-música--2026-11-13) |
+| M1 · Liberar grabaciones | Liberación de una carpeta de un disco de colección (SONIDO) contra archivos registrados (MEDIA7/501/502) por hash, con lista de conservación (`.asd`, referencias `.als`, rutas elegidas) congelada en el digest; CLI/RPC | Pruebas: renombrado en el archivo, sin copia → no se libera, conservados intactos, cambio tras revisar → rechazo, Papelera + journal. Corrida real: el usuario conecta MEDIA7/501 y revisa el plan | **Código hecho 9 nov** ([detalle](#m1--liberar-una-colección-implementado-2026-11-09)); falta la corrida real |
+| M2 · Carpeta viva | Copia incremental verificada SONIDO/`~/Music` → MEDIA9 sin renombrar ni limpiar; bundles de Ableton completos; informe de referencias externas | Segunda corrida sólo copia lo nuevo; borrar en origen no borra en archivo | Piloto real `~/Music/03_final` completado con Rust, segundo plan sin cambios. [Evidencia](../STATUS.md#diagnóstico-de-edicion-y-música--2026-11-13) |
 | M3 · Triage de audio | Contrato `audio-triage-v1` con Clipper (niveles 0–1 primero); filtros en la revisión | Fixture de silencio, ruido, voz y música clasificado; nunca borra | Pendiente |
 | M4 · Biblioteca | Deduplicar por hash y huella; reorganizar con curado mediante `music-library-v1` (mapa de rutas + ACK, `rekordbox.xml`) | Un lote movido sin perder cues ni playlists en curado/rekordbox | Pendiente |
 
@@ -120,19 +120,19 @@ Código: [collection_release.py](../../media/collection_release.py), pruebas en 
 - **Material nuevo** que aparezca en la carpeta después de revisar no bloquea ni se toca.
 - Se rechaza una fuente que se cruza con un volumen registrado o que está en el mismo disco físico que el archivo.
 
-**Runbook para SSD1 (operación física, la pide el usuario):**
+**Runbook para SONIDO (operación física, la pide el usuario):**
 
-1. Conectar SSD1, MEDIA500, MEDIA501 y **ESSD** (los proyectos de Clipper viven ahí; sin él, aplicar se bloquea por «Proyecto Clipper no disponible»).
-2. Registrar MEDIA500/501 como archivos si no lo están (Ajustes → Discos, o `nu9ve media volumes register …`; escribe la marca de nüün en esos discos).
-3. Planear (lee y hashea; con SSD1 y los MEDIA puede tardar horas, según cuántos archivos tengan candidato):
+1. Conectar SONIDO, MEDIA7, MEDIA8 y **EDICION** (los proyectos de Clipper viven ahí; sin él, aplicar se bloquea por «Proyecto Clipper no disponible»).
+2. Registrar MEDIA7/501 como archivos si no lo están (Ajustes → Discos, o `nu9ve media volumes register …`; escribe la marca de nüün en esos discos).
+3. Planear (lee y hashea; con SONIDO y los MEDIA puede tardar horas, según cuántos archivos tengan candidato):
    ```sh
-   nu9ve media collection-release-plan --source /Volumes/SSD1/recordingslong \
-     --archive MEDIA500 --archive MEDIA501 --archive MEDIA502 \
-     --als-root /Volumes/SSD1/abletonlive --als-root ~/Music
+   nu9ve media collection-release-plan --source /Volumes/SONIDO/recordingslong \
+     --archive MEDIA7 --archive MEDIA8 --archive MEDIA9 \
+     --als-root /Volumes/SONIDO/abletonlive --als-root ~/Music
    ```
    `--search ARCHIVO:carpeta` limita dónde buscar en un MEDIA y lo hace más rápido; `--keep 2024` conserva una carpeta entera.
 4. Revisar el `summary` por año, `kept` y `uncovered`. Lo que no tenga copia se respalda primero (M2).
-5. Aplicar: `nu9ve media collection-release-apply <plan_id> --digest <digest>`. Al terminar, el espacio vuelve **al vaciar la Papelera de SSD1**.
+5. Aplicar: `nu9ve media collection-release-apply <plan_id> --digest <digest>`. Al terminar, el espacio vuelve **al vaciar la Papelera de SONIDO**.
 
 Sin interfaz en la app todavía: por ahora es CLI/servicio. Pendiente de M1: la corrida real y, si se usa seguido, una vista de revisión en Discos.
 
@@ -153,9 +153,9 @@ Código: [living.py](../../media/living.py), pruebas en [test_living.py](../../t
 
 **Colecciones recomendadas** (decisión del usuario pendiente; se pueden cambiar antes de la primera corrida):
 
-| Origen | Carpeta en MEDIA502 | Por qué |
+| Origen | Carpeta en MEDIA9 | Por qué |
 | --- | --- | --- |
-| `/Volumes/SSD1/abletonlive` (241 GB, incluye packs) | `005_produccion/ssd1-abletonlive` | Una sola colección conserva juntas las rutas que usan los sets; caben con 2.1 TB libres |
+| `/Volumes/SONIDO/abletonlive` (241 GB, incluye packs) | `005_produccion/sonido-abletonlive` | Una sola colección conserva juntas las rutas que usan los sets; caben con 2.1 TB libres |
 | `~/Music/01_produccion` (42 GB) | `005_produccion/music-01_produccion` | Material ya ordenado por tipo |
 | `~/Music/03_final` (9 GB) | `005_produccion/music-03_final` | Finales de producción |
 | `~/Music/00_assets` (12 GB, 11 GB son plugins) | opcional | Instaladores; quizá no vale la pena |
@@ -163,7 +163,7 @@ Código: [living.py](../../media/living.py), pruebas en [test_living.py](../../t
 **Runbook (operación física, la pide el usuario):**
 
 ```sh
-nu9ve media living-plan --source /Volumes/SSD1/abletonlive --archive MEDIA502 --folder 005_produccion/ssd1-abletonlive --name "Ableton (SSD1)"
+nu9ve media living-plan --source /Volumes/SONIDO/abletonlive --archive MEDIA9 --folder 005_produccion/sonido-abletonlive --name "Ableton (SONIDO)"
 # revisar new/changed/gone_from_source, bytes, free y ableton.not_covered
 nu9ve media living-apply <plan_id> --digest <digest>
 nu9ve media living-collections
@@ -173,11 +173,11 @@ Repetir `living-plan` + `living-apply` cuando se quiera: la segunda vez sólo co
 
 ## Para retomar
 
-Leer esta página → [inventario](music-ssd1-inventory-2026-11-09.md) → la fila de la fase en curso. El código dueño de M1 es [release.py](../../media/release.py). Los números del inventario salieron de listados de sólo nombre y tamaño; repetirlos no requiere abrir archivos (`find … -print0 | xargs -0 stat -f '%z\t%m\t%N'`). Las referencias de Ableton se leen descomprimiendo cada `.als` (gzip XML) y buscando rutas `.wav`.
+Leer esta página → [inventario](music-sonido-inventory-2026-11-09.md) → la fila de la fase en curso. El código dueño de M1 es [release.py](../../media/release.py). Los números del inventario salieron de listados de sólo nombre y tamaño; repetirlos no requiere abrir archivos (`find … -print0 | xargs -0 stat -f '%z\t%m\t%N'`). Las referencias de Ableton se leen descomprimiendo cada `.als` (gzip XML) y buscando rutas `.wav`.
 
 ## Orden propuesto (resumen)
 
-1. **Liberar `recordingslong`/`recordings` contra MEDIA500/501** (sección 1). Es el mayor alivio (~250 GB) y reutiliza la liberación existente. Necesita conectar esos discos.
-2. **Carpeta viva** para producción y `~/Music` hacia MEDIA502, con el informe de referencias externas.
+1. **Liberar `recordingslong`/`recordings` contra MEDIA7/501** (sección 1). Es el mayor alivio (~250 GB) y reutiliza la liberación existente. Necesita conectar esos discos.
+2. **Carpeta viva** para producción y `~/Music` hacia MEDIA9, con el informe de referencias externas.
 3. **Triage de audio** con Clipper (`audio-triage-v1`), primero los niveles 0–1.
 4. **Biblioteca:** respaldar `mix/` y `selec/` tal como están, después deduplicar y luego reorganizar con curado y el contrato `music-library-v1`.

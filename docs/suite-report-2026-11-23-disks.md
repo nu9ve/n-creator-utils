@@ -13,7 +13,7 @@ Después, en la misma sesión: `suite_suggestions` y `suggestions_dismiss` (suge
 
 ## Qué se verificó y cómo
 
-- `cargo test --workspace` (TMPDIR físico, `TZ=America/Hermosillo`), `fmt`, Clippy `-D warnings`, `check-boundary.sh`, `engine_golden.py --check`, `tests.test_agent_storage`. 5 pruebas nuevas con discos y `HOME` de mentira.
+- `cargo test --workspace` (TMPDIR físico, `TZ=America/Phoenix`), `fmt`, Clippy `-D warnings`, `check-boundary.sh`, `engine_golden.py --check`, `tests.test_agent_storage`. 5 pruebas nuevas con discos y `HOME` de mentira.
 - QA de punta a punta por `nuun-engine rpc` en una raíz aislada (`NU9VE_*`, `HOME`, catálogo propios) con imágenes exFAT/HFS+ montadas: detalle en [STATUS](STATUS.md#discos-de-trabajo-y-conversaciones--2026-11-23). No se tocó el agente instalado, el llavero, los LaunchAgents, discos reales ni el sandbox de otra sesión.
 
 ## Qué falló
@@ -33,7 +33,7 @@ Después, en la misma sesión: `suite_suggestions` y `suggestions_dismiss` (suge
 ## Pendiente (siguiente sesión de nüün)
 
 - Hecho después: la ventana (sugerencias en Inicio, «Copiar al otro disco…», Ajustes → Conversaciones, respaldo automático con la app abierta), aceptada en el sandbox. Falta instalarla y usarla con los discos reales.
-- Proyecto de Clipper con dependencias en `work_copy`; resumir copias en el índice de nüün; prueba física XSSD/ESSD.
+- Proyecto de Clipper con dependencias en `work_copy`; resumir copias en el índice de nüün; prueba física VIAJE/EDICION.
 
 ## Decisiones del usuario
 

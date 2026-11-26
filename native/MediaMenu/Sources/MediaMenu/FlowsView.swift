@@ -103,7 +103,7 @@ extension Model {
                 [FlowBlock(symbol: "photo.stack", title: "Kyū", detail: String(localized: "Cribar y revelar"), step: .manual)]]),
             ProductFlow(id: "audio", symbol: "waveform", title: "Audio grabado", summary: "Una grabadora como la H6 pide su disco de audio; sin él hay que confirmar la excepción para esa operación.", maturity: .toValidate, stages: [
                 [FlowBlock(symbol: "waveform", title: "Zoom H6", detail: String(localized: "Tarjeta de audio"), step: .manual)],
-                [backupBlock, FlowBlock(symbol: "bolt.horizontal", title: "SSD1", detail: String(localized: "Requerido, o confirmar excepción"), step: .confirmed)],
+                [backupBlock, FlowBlock(symbol: "bolt.horizontal", title: String(localized: "Disco de audio"), detail: String(localized: "Requerido, o confirmar excepción"), step: .confirmed)],
                 [cleanCard]]),
             ProductFlow(id: "drone", symbol: "airplane", title: "Dron y misiones", summary: "El dispositivo se reconoce por su EXIF, nunca por la marca o la carpeta. Las fotos de una misión van a su sesión y su JPG a Atlas; la tarjeta se libera sólo si el registro de misiones cubre todas sus fotos.", maturity: .inUse, stages: [
                 [card],

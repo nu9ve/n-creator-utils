@@ -69,7 +69,7 @@ public static class LibraryView
     }
 
     /// <summary>
-    /// Registers MEDIA, ESSD or SSD1 as a destination on this PC. Configuration only (the catalog): nothing on the disk
+    /// Registers MEDIA, EDICION or SONIDO as a destination on this PC. Configuration only (the catalog): nothing on the disk
     /// is read or written. External disks by default; an internal folder needs an explicit check, as in the CLI.
     /// </summary>
     static async Task RegisterAsync(AppState state, MainWindow shell)
@@ -77,7 +77,7 @@ public static class LibraryView
         var root = new TextBox { PlaceholderText = "E:\\", Width = 260 };
         AutomationProperties.SetName(root, "Carpeta raíz del destino");
         var pick = UI.Button("Elegir…", () => _ = PickFolderAsync(shell, root), glyph: "\uE8B7");
-        var name = new TextBox { PlaceholderText = "MEDIA502", Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
+        var name = new TextBox { PlaceholderText = "MEDIA9", Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(name, "Nombre del destino");
         var role = new ComboBox { Width = 260, HorizontalAlignment = HorizontalAlignment.Left, Items = { "Archivo (respaldo)", "Trabajo (copia para editar)" } };
         role.SelectedIndex = 0;

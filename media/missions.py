@@ -572,7 +572,7 @@ def write_units_map(catalog, backend, plan):
 # --- Work copies already present for the consumer (no duplicates) -------------------------------------------
 
 class WorkPresence:
-    """Stills already in the consumer's work root (e.g. ESSD atlas-subaereo/101MEDIA), found by original name +
+    """Stills already in the consumer's work root (e.g. EDICION atlas-subaereo/101MEDIA), found by original name +
     size and confirmed by EXIF capture time + serial. Never by name alone. Folders starting with `_` are skipped."""
 
     def __init__(self, work_record, flow):

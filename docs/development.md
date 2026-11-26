@@ -68,7 +68,7 @@ En otra sesión: leer CONTEXT → STATUS → tarea de PLAN → módulos relevant
 Conservado como contexto de la solicitud; no es la siguiente tarea. La evidencia y aceptación restante viven en [STATUS](STATUS.md) y la prioridad vigente en [PLAN](../PLAN.md).
 
 ```text
-Trabaja en /Users/nu9ve/code/nu9ve/n-creator-utils. Lee primero las instrucciones de AGENTS.md, docs/CONTEXT.md, docs/STATUS.md y la fila vigente de PLAN.md; luego docs/features/nuun-window.md y sólo los Swift/services necesarios. Conserva todo el trabajo staged, unstaged y untracked que ya existe. No lo limpies ni lo restages en bloque.
+Trabaja en ~/code/nu9ve/n-creator-utils. Lee primero las instrucciones de AGENTS.md, docs/CONTEXT.md, docs/STATUS.md y la fila vigente de PLAN.md; luego docs/features/nuun-window.md y sólo los Swift/services necesarios. Conserva todo el trabajo staged, unstaged y untracked que ya existe. No lo limpies ni lo restages en bloque.
 
 Objetivo: implementar el rediseño de Ingreso solicitado el 2026-10-27. La captura actual tiene un campo de path siempre visible y los controles se distribuyen en muchas filas.
 

@@ -146,7 +146,7 @@ public class FixtureEngineTests
         // Same rule as tests/test_action_progress.py: one measure that never goes back, ends at its total.
         await using var engine = new FixtureEngine(TimeSpan.Zero);
         var snapshot = await engine.SnapshotAsync();
-        var plan = await engine.PlanAsync(new PlanRequest(snapshot.Cards[0], "proyecto-demo", "MEDIA-DEMO", "ESSD-DEMO", false, null, true));
+        var plan = await engine.PlanAsync(new PlanRequest(snapshot.Cards[0], "proyecto-demo", "MEDIA-DEMO", "EDICION-DEMO", false, null, true));
         var reports = new List<ActionProgress>();
         await engine.ApplyAsync(plan, new SyncProgress(reports.Add));
         Assert.NotEmpty(reports);

@@ -260,7 +260,7 @@ public sealed class IngestView
             Content = state.Engine.IsFixture
                 ? UI.Column(8,
                     Destination("MEDIA-DEMO", "Respaldo (archivo) · obligatorio", true),
-                    Destination("ESSD-DEMO", "Copia para editar · verificada antes de limpiar", true),
+                    Destination("EDICION-DEMO", "Copia para editar · verificada antes de limpiar", true),
                     UI.Text("Limpieza: después de verificar todos los destinos requeridos, según la política del plan.", TextRole.Muted, 12))
                 : UI.Column(8,
                     Destination(state.Archive ?? "—", "Respaldo (archivo) · obligatorio", true),

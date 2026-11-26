@@ -42,6 +42,9 @@ class FixtureVolumes(VolumeBackend):
                 'removable': True}
 
 
+LIBRARY_DEFAULTS = {'profile': 'canal-a', 'country': 'mx', 'city': 'oaxaca'}
+
+
 class MediaFixture(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -51,21 +54,38 @@ class MediaFixture(unittest.TestCase):
         for root in (self.source, self.archive, self.work): root.mkdir()
         self.catalog = Catalog(self.root / 'state')
         self.addCleanup(self.catalog.close)
+        # A library's own defaults, as the app saves them; the code has none for profile, country or city.
+        self.catalog.set('defaults', dict(LIBRARY_DEFAULTS))
         self.backend = FixtureVolumes()
         self.a = self.catalog.register('MEDIA', 'archive', self.archive, self.backend.describe(self.archive), '001_raw')
-        self.w = self.catalog.register('ESSD', 'work', self.work, self.backend.describe(self.work), '001_proyectos')
+        self.w = self.catalog.register('EDICION', 'work', self.work, self.backend.describe(self.work), '001_proyectos')
         (self.source / 'DCIM').mkdir()
         (self.source / 'DCIM/photo.JPG').write_bytes(b'photo-data')
         (self.source / 'DCIM/photo.DNG').write_bytes(b'raw-data')
 
     def plan(self, **overrides):
-        params = dict(source=str(self.source), archive='MEDIA', work='ESSD', project='intro', profile='e64', cleanup=True)
+        params = dict(source=str(self.source), archive='MEDIA', work='EDICION', project='intro', profile='canal-a', cleanup=True)
         params.update(overrides)
         return build_plan(self.catalog, self.backend, **params)
 
     def run_plan(self, plan=None, hook=None, cancel=None):
         plan = plan or self.plan()
         return Transfer(self.catalog, self.backend, cancel, hook).apply(plan, plan['digest'])
+
+
+class LibraryDefaultsTests(MediaFixture):
+    """Profile, country and city come from the request or the library; the code has none of its own."""
+    def test_plan_uses_the_library_defaults_and_asks_when_there_are_none(self):
+        plan = build_plan(self.catalog, self.backend, str(self.source), 'MEDIA', 'EDICION', 'intro')
+        self.assertEqual((plan['units'][0]['profile'], plan['country'], plan['city']), ('canal-a', 'mx', 'oaxaca'))
+        self.catalog.set('defaults', {'work': 'EDICION'})
+        with self.assertRaises(MediaError) as raised:
+            build_plan(self.catalog, self.backend, str(self.source), 'MEDIA', 'EDICION', 'intro')
+        self.assertEqual(raised.exception.code, 'defaults_required')
+        plan = build_plan(self.catalog, self.backend, str(self.source), 'MEDIA', 'EDICION', 'intro',
+                          profile='otro', country='pe', city='lima')
+        self.assertEqual((plan['units'][0]['profile'], plan['country'], plan['city']), ('otro', 'pe', 'lima'))
+        self.assertEqual(Service(self.catalog, self.backend).call('defaults'), {'work': 'EDICION'})
 
 
 class ProjectPreviewTests(MediaFixture):
@@ -107,7 +127,7 @@ class MediaSaveTests(MediaFixture):
         from media.save import parse_args
         for argv in (['all', 'mx'], ['all', 'mx', 'intro', 'extra'],
                      ['all', 'mx', 'intro', '--project', 'other'],
-                     ['all', '--no-work', '--work', 'ESSD'],
+                     ['all', '--no-work', '--work', 'EDICION'],
                      ['all', '--no-work', '--work-decision', 'pending']):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
                 parse_args(argv)
@@ -131,7 +151,7 @@ class MediaSaveTests(MediaFixture):
         self.assertTrue((self.source / 'DCIM/photo.JPG').exists())
 
     def test_no_work_interactive_confirmed_archive_then_cleanup(self):
-        self.catalog.set('defaults', {'work': 'ESSD'})
+        self.catalog.set('defaults', dict(LIBRARY_DEFAULTS, work='EDICION'))
         self.backend.offline.add(str(self.work))
         result, output = self.save('mx', 'intro', '--archive', 'MEDIA', '--no-work',
                                    interactive=True, answers=['SOLO MEDIA', 'GUARDAR'])
@@ -141,7 +161,7 @@ class MediaSaveTests(MediaFixture):
         self.assertFalse((self.source / 'DCIM/photo.JPG').exists())
         self.assertEqual(len(list(self.archive.rglob('*.JPG'))), 1)
         self.assertTrue(all(asset['work_delivery_status'] == 'skipped' for asset in self.catalog.search()))
-        self.assertEqual(self.catalog.get('defaults')['work'], 'ESSD')
+        self.assertEqual(self.catalog.get('defaults')['work'], 'EDICION')
 
     def test_no_work_rejected_confirmation_retains_source(self):
         with self.assertRaisesRegex(MediaError, 'not confirmed'):
@@ -154,14 +174,14 @@ class MediaSaveTests(MediaFixture):
 class MediaEngineTests(MediaFixture):
     def test_profile_route_is_frozen_in_reviewed_plan(self):
         service = Service(self.catalog, self.backend)
-        value = dict(id='9logs', name='9logs', raw_dir='9logs_sources', work='ESSD', archive='MEDIA')
+        value = dict(id='blog', name='blog', raw_dir='blog_sources', work='EDICION', archive='MEDIA')
         service.call('save_profile', value)
-        plan = self.plan(profile='9logs')
-        self.assertEqual(plan['profile_routes'], {'9logs': '9logs_sources'})
-        self.assertTrue(all('/9logs_sources/intro/' in row['work_path'] for row in plan['preview']))
+        plan = self.plan(profile='blog')
+        self.assertEqual(plan['profile_routes'], {'blog': 'blog_sources'})
+        self.assertTrue(all('/blog_sources/intro/' in row['work_path'] for row in plan['preview']))
         service.call('save_profile', dict(value, raw_dir='new_sources'))
         self.run_plan(plan)
-        self.assertTrue((self.work / '001_proyectos/9logs_sources/intro').is_dir())
+        self.assertTrue((self.work / '001_proyectos/blog_sources/intro').is_dir())
         self.assertFalse((self.work / '001_proyectos/new_sources').exists())
         self.assertEqual(service.call('profiles')[0]['raw_dir'], 'new_sources')
 
@@ -169,9 +189,9 @@ class MediaEngineTests(MediaFixture):
         service = Service(self.catalog, self.backend)
         for raw in ('../outside', '/absolute', '.', 'a/../b'):
             with self.assertRaises(MediaError):
-                service.call('save_profile', dict(id='e64', name='e64', raw_dir=raw))
+                service.call('save_profile', dict(id='canal-a', name='canal-a', raw_dir=raw))
         with self.assertRaisesRegex(MediaError, 'role'):
-            service.call('save_profile', dict(id='e64', name='e64', raw_dir='e64_raw', work='MEDIA'))
+            service.call('save_profile', dict(id='canal-a', name='canal-a', raw_dir='canal-a_raw', work='MEDIA'))
         self.assertEqual(service.call('profiles'), [])
 
     def test_discovery_summary_is_read_only_and_groups_pairs(self):
@@ -198,7 +218,7 @@ class MediaEngineTests(MediaFixture):
         assets = self.catalog.search()
         self.assertEqual(next(a for a in assets if a['id'] == skipped['id'])['work_delivery_status'], 'skipped')
         # An explicit later delivery remains possible without the SD.
-        deliver_work(self.catalog, self.backend, [skipped['id']], 'ESSD')
+        deliver_work(self.catalog, self.backend, [skipped['id']], 'EDICION')
         self.assertEqual(len(list(self.work.rglob('*.DNG'))), 1)
         exported = handoff(self.catalog, self.backend, [skipped['id']])
         self.assertTrue(any(loc['role'] == 'work' for loc in exported['assets'][0]['locations']))
@@ -248,7 +268,7 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual((progress['verified_bytes'], progress['verify_total']), (36, 36))
         self.assertEqual((progress['files_done'], progress['phase']), (2, 'completed'))
         self.assertEqual([(d['name'], d['files_done'], d['files_total']) for d in progress['destinations']],
-                         [('ESSD', 2, 2), ('MEDIA', 2, 2)])
+                         [('EDICION', 2, 2), ('MEDIA', 2, 2)])
 
     def test_no_media_writes_by_plan_and_stable_plan_digest(self):
         first = self.plan(cleanup=False)
@@ -268,8 +288,8 @@ class MediaEngineTests(MediaFixture):
         self.assertEqual(len(pending), 1)
         self.assertFalse(any(self.source.rglob('*.JPG')))
         self.backend.offline.clear()
-        deliver_work(self.catalog, self.backend, [pending[0]['id']], 'ESSD')
-        deliver_work(self.catalog, self.backend, [pending[0]['id']], 'ESSD')
+        deliver_work(self.catalog, self.backend, [pending[0]['id']], 'EDICION')
+        deliver_work(self.catalog, self.backend, [pending[0]['id']], 'EDICION')
         self.assertEqual(len(list(self.work.rglob('*.JPG'))), 1)
         self.assertEqual(self.catalog.search()[0]['work_delivery_status'], 'ready')
 
@@ -750,7 +770,7 @@ class NamedLayoutTests(MediaFixture):
         plan = self.plan(source=str(card), project='debloateando mi tele', cleanup=False)
         name = '26OCT24-194650_SONYA6400_08-24_MX-DEBLOATEANDO-MI-TELE[]'
         self.assertEqual(plan['layout']['PRIVATE/M4ROOT/CLIP/C0001.MP4'],
-                         {'archive': 'videos/2026/10/' + name + '.MP4', 'work': 'e64_raw/debloateando-mi-tele/' + name + '.MP4'})
+                         {'archive': 'videos/2026/10/' + name + '.MP4', 'work': 'canal-a_raw/debloateando-mi-tele/' + name + '.MP4'})
         self.assertEqual(plan['layout']['PRIVATE/M4ROOT/CLIP/C0001M01.XML'], {'archive': 'metadata/sony/2026/10/' + name + '.XML', 'work': None})
         self.assertEqual(plan['layout']['PRIVATE/M4ROOT/THMBNL/C0001T01.JPG']['work'], None)
         self.assertTrue(plan['layout']['AVF_INFO/AVIN0001.BNP']['archive'].startswith(
@@ -758,7 +778,7 @@ class NamedLayoutTests(MediaFixture):
         self.assertTrue(plan['layout']['AVF_INFO/AVIN0001.BNP']['archive'].endswith('/AVF_INFO/AVIN0001.BNP'))
         self.assertEqual(self.run_plan(plan)['state'], 'source_retained')
         work_files = sorted(p.relative_to(self.work).as_posix() for p in self.work.rglob('*') if p.is_file() and '.ncreator' not in p.parts)
-        self.assertEqual(work_files, ['001_proyectos/e64_raw/debloateando-mi-tele/' + name + '.MP4'])
+        self.assertEqual(work_files, ['001_proyectos/canal-a_raw/debloateando-mi-tele/' + name + '.MP4'])
         self.assertEqual((self.archive / '001_raw/videos/2026/10' / (name + '.MP4')).read_bytes(), b'clip-one')
         self.assertEqual(self.catalog.search(work_state='pending'), [])  # Support units are not work.
         clip = next(a for a in self.catalog.search() if 'PRIVATE/M4ROOT/CLIP/C0001.MP4' in a['paths'])
@@ -773,12 +793,12 @@ class NamedLayoutTests(MediaFixture):
         (bundle / 'manifest.json').write_text(json.dumps({'producer': 'stalker', 'schemaVersion': 3, 'sessionID': str(uuid.uuid4()),
             'status': 'completed', 'createdAt': '2026-10-25T02:58:50Z', 'duration': {'value': 227618267500, 'timescale': 1000000000},
             'tracks': [{'relativePath': 'screen.mov'}]}))
-        os.environ['TZ'] = 'America/Hermosillo'; __import__('time').tzset()
+        os.environ['TZ'] = 'America/Phoenix'; __import__('time').tzset()
         self.addCleanup(lambda: (os.environ.pop('TZ', None), __import__('time').tzset()))
         plan = self.plan(source=str(card), project='debloateando mi tele', source_kind='stalker', cleanup=False)
         name = '26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker'
         self.assertEqual(plan['layout']['Stalker_2026-10-24_19-58-50.stalker/screen.mov'],
-                         {'archive': 'stalker/2026/10/' + name + '/screen.mov', 'work': 'e64_raw/debloateando-mi-tele/' + name + '/screen.mov'})
+                         {'archive': 'stalker/2026/10/' + name + '/screen.mov', 'work': 'canal-a_raw/debloateando-mi-tele/' + name + '/screen.mov'})
         self.assertLess('26OCT24-194650_SONYA6400', name)  # Sorts after the 19:46 clip, before 20:41.
         self.assertLess(name, '26OCT24-204110_SONYA6400')
 
@@ -907,13 +927,13 @@ class CoverageTests(MediaFixture):
         (old / 'unique.wav').write_bytes(b'only here!!!')
         (old / '.DS_Store').write_bytes(b'finder')
         before = sorted((p, p.stat().st_mtime_ns) for root in (self.work, self.archive) for p in root.rglob('*'))
-        result = coverage(self.catalog, self.backend, 'ESSD', 'MEDIA')
+        result = coverage(self.catalog, self.backend, 'EDICION', 'MEDIA')
         after = sorted((p, p.stat().st_mtime_ns) for root in (self.work, self.archive) for p in root.rglob('*'))
         self.assertEqual(before, after)
         self.assertEqual(result['totals']['in_archive']['files'], 3)  # Two receipted copies + renamed.mov.
         self.assertEqual(sorted(f['path'] for f in result['only_work_sample']),
                          ['001_proyectos/viejo/impostor.mov', '001_proyectos/viejo/unique.wav'])
-        fast = coverage(self.catalog, self.backend, 'ESSD', 'MEDIA', path='001_proyectos/viejo', hash_matches=False)
+        fast = coverage(self.catalog, self.backend, 'EDICION', 'MEDIA', path='001_proyectos/viejo', hash_matches=False)
         self.assertEqual((fast['totals']['size_match']['files'], fast['totals']['only_work']['files']), (2, 1))
         self.assertTrue(Path(result['report']).is_file())
 
@@ -929,6 +949,7 @@ class AdditionalFailureTests(MediaFixture):
                 for path in (source, archive, work): path.mkdir()
                 (source / 'a.jpg').write_bytes(b'file-a'); (source / 'b.jpg').write_bytes(b'file-b')
                 state = Catalog(area / 'state')
+                state.set('defaults', dict(LIBRARY_DEFAULTS))
                 try:
                     backend = FixtureVolumes()
                     state.register('A', 'archive', archive, backend.describe(archive), '001_raw')

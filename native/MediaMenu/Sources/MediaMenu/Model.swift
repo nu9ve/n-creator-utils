@@ -260,9 +260,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     var cardSuggestions: [String] = []
     var sourceCards: [JSONValue] = []
     @ObservationIgnored var notifiedCards: Set<String> = []
-    var profile = "e64" { didSet { if profile != oldValue { invalidatePlan() } } }
-    var country = "mx" { didSet { if country != oldValue { invalidatePlan() } } }
-    var city = "hermosillo" { didSet { if city != oldValue { invalidatePlan() } } }
+    var profile = "" { didSet { if profile != oldValue { invalidatePlan() } } }
+    var country = "" { didSet { if country != oldValue { invalidatePlan() } } }
+    var city = "" { didSet { if city != oldValue { invalidatePlan() } } }
     var archive = "" { didSet { if archive != oldValue { invalidatePlan() } } }
     var work = "" { didSet { if work != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
     var sourceKind = "card" { didSet { if sourceKind != oldValue { invalidatePlan(); loadedSourceKey = ""; units = [] } } }
@@ -407,9 +407,9 @@ enum OperationScope { case ingest, library, space, settings, source }
                 let values = data["defaults"]
                 // Offered via a suggestion; a new card never inherits it silently.
                 lastProject = values["project"].string
-                profile = values["profile"].string.isEmpty ? "e64" : values["profile"].string
-                country = values["country"].string.isEmpty ? "mx" : values["country"].string
-                city = values["city"].string.isEmpty ? "hermosillo" : values["city"].string
+                profile = values["profile"].string
+                country = values["country"].string
+                city = values["city"].string
                 let savedArchive = values["archive"].string, savedWork = values["work"].string
                 archive = volume(savedArchive)?["id"].string ?? savedArchive
                 work = volume(savedWork)?["id"].string ?? savedWork

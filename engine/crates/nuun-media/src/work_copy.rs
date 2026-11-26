@@ -1,5 +1,5 @@
 //! Verified copies of processed work between two suite work disks (nu9ve-volume-v1 §7 and §8, suite-devices
-//! §6.4): «copiar al otro disco» a folder of atlas-derived, or a project's folders, from XSSD to ESSD.
+//! §6.4): «copiar al otro disco» a folder of atlas-derived, or a project's folders, from VIAJE to EDICION.
 //!
 //! - Both disks are recognized by their marker (`ok` or `unverified`), never by their name, and must be `work` or
 //!   `other`: an archive is nüün's own flow (`deliver_work` copies from it, ingest writes to it).
@@ -840,14 +840,14 @@ mod tests {
     use super::*;
     use crate::volumes::test_backend::Fixture;
 
-    const XSSD: &str = "1b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e01";
-    const ESSD: &str = "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e02";
+    const VIAJE: &str = "1b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e01";
+    const EDICION: &str = "2b7d4c1e-8f3a-4e6b-9c0d-1a2b3c4d5e02";
 
     struct Disks {
         _temp: tempfile::TempDir,
         home: PathBuf,
-        xssd: PathBuf,
-        essd: PathBuf,
+        viaje: PathBuf,
+        edicion: PathBuf,
         backend: Fixture,
     }
 
@@ -876,10 +876,10 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let base = temp.path().canonicalize().unwrap();
         let mut backend = Fixture::default();
-        let (xssd, essd) = (base.join("XSSD"), base.join("ESSD"));
-        disk(&mut backend, &xssd, XSSD, "work", "AAAA-0001");
-        disk(&mut backend, &essd, ESSD, "work", "AAAA-0002");
-        let x = Root::open(&xssd).unwrap();
+        let (viaje, edicion) = (base.join("VIAJE"), base.join("EDICION"));
+        disk(&mut backend, &viaje, VIAJE, "work", "AAAA-0001");
+        disk(&mut backend, &edicion, EDICION, "work", "AAAA-0002");
+        let x = Root::open(&viaje).unwrap();
         x.write_bytes(
             "atlas-derived/potholes/day/a.geojson",
             b"{\"type\":\"FeatureCollection\"}",
@@ -899,14 +899,14 @@ mod tests {
         for name in ["a.geojson", "severity.json"] {
             std::fs::File::options()
                 .write(true)
-                .open(xssd.join("atlas-derived/potholes/day").join(name))
+                .open(viaje.join("atlas-derived/potholes/day").join(name))
                 .unwrap()
                 .set_modified(old)
                 .unwrap();
         }
         let index = json!({"contract":"nu9ve-data/1","app":"nove","generated_at":"2026-11-23T00:00:00Z",
             "projects":[{"project_key":"subaereo","title":"Subaéreo","parent_key":null,"state":"active"}],
-            "roots":[{"id":"root-1","label":"atlas-derived","state":"ok","volume_id":XSSD,"volume_path":"atlas-derived"}],
+            "roots":[{"id":"root-1","label":"atlas-derived","state":"ok","volume_id":VIAJE,"volume_path":"atlas-derived"}],
             "datasets":[{"id":"ds-1","owner":"nove","title":"Baches","modality":"geo_vector","privacy":"public",
                 "storage":"in_place","location":{"root_id":"root-1","path":"potholes/day/a.geojson"},
                 "projects":[{"project_key":"subaereo"}],"state":"unverified","updated_at":"2026-11-23T00:00:00Z"}],
@@ -921,14 +921,14 @@ mod tests {
         Disks {
             _temp: temp,
             home: base.join("state"),
-            xssd,
-            essd,
+            viaje,
+            edicion,
             backend,
         }
     }
 
     fn ask(d: &Disks, paths: Value) -> Value {
-        json!({"source":d.xssd,"destination":d.essd,"paths":paths})
+        json!({"source":d.viaje,"destination":d.edicion,"paths":paths})
     }
 
     fn flows(d: &Disks) -> Vec<Value> {
@@ -961,19 +961,23 @@ mod tests {
         )
         .unwrap();
         assert!(flows(&d).is_empty());
-        // Processed on the ESSD: one file changed, one new.
-        let e = Root::open(&d.essd).unwrap();
+        // Processed on the EDICION: one file changed, one new.
+        let e = Root::open(&d.edicion).unwrap();
         let rel = "atlas-derived/potholes/day/severity.json";
-        std::fs::write(d.essd.join(rel), b"[9]").unwrap();
+        std::fs::write(d.edicion.join(rel), b"[9]").unwrap();
         e.write_bytes("atlas-derived/potholes/day/out.tif", b"tif", false)
             .unwrap();
         let found = flows(&d);
         assert_eq!(found.len(), 1);
-        assert_eq!(found[0]["key"], format!("work_copy_changed:{ESSD}:{XSSD}"));
+        assert_eq!(
+            found[0]["key"],
+            format!("work_copy_changed:{EDICION}:{VIAJE}")
+        );
         assert_eq!(found[0]["count"], 2);
         assert_eq!(found[0]["paths"][0]["path"], "atlas-derived/potholes");
         assert_eq!(found[0]["paths"][0]["new"], 1);
-        let back = json!({"source":d.essd,"destination":d.xssd,"paths":["atlas-derived/potholes"]});
+        let back =
+            json!({"source":d.edicion,"destination":d.viaje,"paths":["atlas-derived/potholes"]});
         let error = plan(&d.home, &d.backend, true, &back).unwrap_err();
         assert_eq!(error.code, "destination_conflict");
         let mut ask_update = back.clone();
@@ -988,17 +992,17 @@ mod tests {
         })
         .unwrap_err();
         assert_eq!(error.code, "interrupted");
-        assert!(!d.xssd.join(rel).exists());
+        assert!(!d.viaje.join(rel).exists());
         let done = apply(&d.home, &d.backend, &args).unwrap();
         assert_eq!(done["receipt"]["replaced"], 1);
-        assert_eq!(std::fs::read(d.xssd.join(rel)).unwrap(), b"[9]");
+        assert_eq!(std::fs::read(d.viaje.join(rel)).unwrap(), b"[9]");
         let kept = format!(
             "{COPIES}/{}/previous/{rel}",
             reviewed["id"].as_str().unwrap()
         );
-        assert_eq!(std::fs::read(d.xssd.join(&kept)).unwrap(), b"[1,2,3]");
+        assert_eq!(std::fs::read(d.viaje.join(&kept)).unwrap(), b"[1,2,3]");
         let receipt: Value = serde_json::from_slice(
-            &std::fs::read(d.xssd.join(text(&done["receipt"], "path"))).unwrap(),
+            &std::fs::read(d.viaje.join(text(&done["receipt"], "path"))).unwrap(),
         )
         .unwrap();
         let entry = receipt["files"]
@@ -1029,7 +1033,7 @@ mod tests {
     #[test]
     fn other_apps_indexes_say_what_a_disk_holds() {
         let d = disks();
-        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.xssd})).unwrap();
+        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.viaje})).unwrap();
         assert_eq!(seen["state"], "ok");
         let nove = &seen["apps"][0];
         assert_eq!(nove["app"], "nove");
@@ -1041,7 +1045,7 @@ mod tests {
         assert_eq!(nove["datasets"][0]["title"], "Baches");
         assert_eq!(nove["files"].as_array().unwrap().len(), 2);
         // An index in the wrong folder is reported, never trusted, and the disk stays usable.
-        Root::open(&d.xssd)
+        Root::open(&d.viaje)
             .unwrap()
             .write_bytes(
                 ".nu9ve/apps/atlas/index.json",
@@ -1049,7 +1053,7 @@ mod tests {
                 false,
             )
             .unwrap();
-        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.xssd})).unwrap();
+        let seen = volume_apps(&d.home, &d.backend, &json!({"root":d.viaje})).unwrap();
         assert_eq!(seen["apps"][0]["app"], "atlas");
         assert_eq!(seen["apps"][0]["problem"], "app_mismatch");
     }
@@ -1079,42 +1083,42 @@ mod tests {
         for name in ["a.geojson", "severity.json"] {
             let rel = format!("atlas-derived/potholes/day/{name}");
             assert_eq!(
-                std::fs::read(d.essd.join(&rel)).unwrap(),
-                std::fs::read(d.xssd.join(&rel)).unwrap()
+                std::fs::read(d.edicion.join(&rel)).unwrap(),
+                std::fs::read(d.viaje.join(&rel)).unwrap()
             );
             let times = |p: &Path| std::fs::metadata(p.join(&rel)).unwrap().modified().unwrap();
-            assert_eq!(times(&d.essd), times(&d.xssd));
+            assert_eq!(times(&d.edicion), times(&d.viaje));
         }
-        assert!(!d.essd.join("atlas-derived/other").exists());
+        assert!(!d.edicion.join("atlas-derived/other").exists());
         // nüün never writes another app's folder; it keeps the source's files, byte for byte, in its own.
-        assert!(!d.essd.join(".nu9ve/apps/nove").exists());
+        assert!(!d.edicion.join(".nu9ve/apps/nove").exists());
         let id = text(&reviewed, "id");
         assert_eq!(
             std::fs::read(
-                d.essd
+                d.edicion
                     .join(format!("{COPIES}/{id}/source/nove/inplace-v1.json"))
             )
             .unwrap(),
-            std::fs::read(d.xssd.join(".nu9ve/apps/nove/inplace-v1.json")).unwrap()
+            std::fs::read(d.viaje.join(".nu9ve/apps/nove/inplace-v1.json")).unwrap()
         );
         let receipt: Value = serde_json::from_slice(
-            &std::fs::read(d.essd.join(format!("{COPIES}/{id}.json"))).unwrap(),
+            &std::fs::read(d.edicion.join(format!("{COPIES}/{id}.json"))).unwrap(),
         )
         .unwrap();
         assert_eq!(receipt["contract"], RECEIPT);
-        assert_eq!(receipt["source"]["volume_id"], XSSD);
-        assert_eq!(receipt["destination"]["volume_id"], ESSD);
+        assert_eq!(receipt["source"]["volume_id"], VIAJE);
+        assert_eq!(receipt["destination"]["volume_id"], EDICION);
         assert_eq!(
             receipt["copied"].as_u64().unwrap() + receipt["adopted"].as_u64().unwrap(),
             2
         );
         assert_eq!(receipt["files"][0]["sha256"].as_str().unwrap().len(), 64);
         assert_eq!(
-            std::fs::read(d.xssd.join(format!("{COPIES}/{id}.json"))).unwrap(),
-            std::fs::read(d.essd.join(format!("{COPIES}/{id}.json"))).unwrap()
+            std::fs::read(d.viaje.join(format!("{COPIES}/{id}.json"))).unwrap(),
+            std::fs::read(d.edicion.join(format!("{COPIES}/{id}.json"))).unwrap()
         );
         assert_eq!(apply(&d.home, &d.backend, &args).unwrap(), done);
-        let listed = volume_apps(&d.home, &d.backend, &json!({"root":d.essd})).unwrap();
+        let listed = volume_apps(&d.home, &d.backend, &json!({"root":d.edicion})).unwrap();
         assert_eq!(listed["copies"][0]["id"], reviewed["id"]);
         assert_eq!(list(&d.home).unwrap()["copies"][0]["state"], "completed");
         // Copying again: everything is already there and identical, so it is adopted, never replaced.
@@ -1132,7 +1136,7 @@ mod tests {
     #[test]
     fn conflicts_archives_and_reserved_folders_block_the_plan() {
         let mut d = disks();
-        Root::open(&d.essd)
+        Root::open(&d.edicion)
             .unwrap()
             .write_bytes("atlas-derived/potholes/day/severity.json", b"[9]", false)
             .unwrap();
@@ -1144,9 +1148,9 @@ mod tests {
         assert_eq!(code(&d, ask(&d, json!([".nu9ve/apps"]))), "invalid_params");
         assert_eq!(code(&d, ask(&d, json!(["a", "a/b"]))), "invalid_params");
         assert_eq!(code(&d, ask(&d, json!(["../x"]))), "unsafe_path");
-        let same = json!({"source":d.xssd,"destination":d.xssd,"paths":["atlas-derived"]});
+        let same = json!({"source":d.viaje,"destination":d.viaje,"paths":["atlas-derived"]});
         assert_eq!(code(&d, same), "same_volume");
-        let media = d.xssd.parent().unwrap().join("MEDIA");
+        let media = d.viaje.parent().unwrap().join("MEDIA");
         disk(
             &mut d.backend,
             &media,
@@ -1155,7 +1159,7 @@ mod tests {
             "AAAA-0003",
         );
         let to_archive =
-            json!({"source":d.xssd,"destination":media,"paths":["atlas-derived/other"]});
+            json!({"source":d.viaje,"destination":media,"paths":["atlas-derived/other"]});
         assert_eq!(code(&d, to_archive), "invalid_role");
         // A reviewed plan does not survive a disk swapped under the same mount.
         let reviewed = plan(
@@ -1167,7 +1171,7 @@ mod tests {
         .unwrap();
         d.backend
             .overrides
-            .get_mut(&volumes::normalize(&d.essd))
+            .get_mut(&volumes::normalize(&d.edicion))
             .unwrap()["root_inode"] = json!(7);
         let args = json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]});
         assert_eq!(

@@ -20,20 +20,18 @@ def load_settings(config_path=None, environ=None):
     home = Path.home()
     year = datetime.datetime.now().strftime('%Y')
     settings = {
-        'root_dir': '/Volumes/MEDIA502/001_raw',
+        # Neutral defaults (see config.example.json). Each person's disks, folders and card names go in
+        # config.local.json (ignored by git) or NU9VE_* variables; nothing personal lives in the code.
+        'root_dir': str(home / 'Media/archive'),
         'sd_root_dir': '/Volumes',
-        'root_recordings_dir': '/Volumes/SSD1',
+        'root_recordings_dir': str(home / 'Media/audio-backup'),
         'audio_hijack_dir': str(home / 'Music/Audio Hijack'),
-        'audio_samples_dir': str(home / f'Music/01_produccion/samples/{year}/raw'),
-        'audio_splits_dir': str(home / 'Music/01_produccion/splits'),
-        'audio_songs_dir': str(home / 'Music/02_mix/latest'),
-        'tmp_video_dir': str(home / 'data/projectIX/raw'),
-        'yt_dlp_cookies_browser': 'brave',
-        'sd_src_name': {
-            'EOS_DIGITAL': 'SL3', 'NIKON D3300': 'NIKON', 'GOPRO64': 'GOPRO4',
-            'MAVIC200': 'MAVIC2', 'H6_SD': 'H6', 'INSTA360': 'INSTA360',
-            'Untitled': 'AUTO', 'NO NAME': 'SONYA6400',
-        },
+        'audio_samples_dir': str(home / f'Music/samples/{year}/raw'),
+        'audio_splits_dir': str(home / 'Music/splits'),
+        'audio_songs_dir': str(home / 'Music/songs'),
+        'tmp_video_dir': str(home / 'Movies/downloads'),
+        'yt_dlp_cookies_browser': '',
+        'sd_src_name': {'Untitled': 'AUTO', 'NO NAME': 'SONYA6400', 'INSTA360': 'INSTA360'},
     }
     explicit = config_path is not None or 'NU9VE_CONFIG' in env
     path = Path(config_path if config_path is not None else env.get(

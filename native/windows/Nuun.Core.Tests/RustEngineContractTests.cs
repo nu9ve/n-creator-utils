@@ -80,7 +80,8 @@ public class RustEngineContractTests
         // `capabilities` is ported since 2026-11-12: a fresh catalog answers with no errors.
         Assert.Empty(data!["errors"]!.AsObject());
         Assert.NotNull(data["capabilities"]);
-        Assert.Equal("hermosillo", data["defaults"]!["city"]!.GetValue<string>());
+        // A fresh library has no defaults, and the engine adds none of its own.
+        Assert.Empty(data["defaults"]!.AsObject());
         Assert.Null(data["source_cards"]);
     }
 

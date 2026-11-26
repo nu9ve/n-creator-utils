@@ -1,6 +1,6 @@
 # Auditoría de media y decisiones de diseño
 
-Auditoría inicial: 24 de octubre de 2026, America/Hermosillo. La implementación posterior está en [STATUS](STATUS.md); esta página conserva hallazgos y contexto de origen. Esta revisión incorpora el flujo relatado por el propietario, lectura de código y una inspección superficial de los discos conectados. No ejecutó respaldos, limpiezas ni migraciones personales.
+Auditoría inicial: 24 de octubre de 2026. La implementación posterior está en [STATUS](STATUS.md); esta página conserva hallazgos y contexto de origen. Esta revisión incorpora el flujo relatado por el propietario, lectura de código y una inspección superficial de los discos conectados. No ejecutó respaldos, limpiezas ni migraciones personales.
 
 ## Evidencia y límites
 
@@ -17,30 +17,30 @@ Una guía de otro repo puede describir comportamiento antiguo. Los hallazgos de 
 ## Tu flujo actual reconstruido
 
 1. Sony/Canon/DJI/360/H6 llegan a SD. Una tarjeta puede contener varios proyectos y canales.
-2. `save all` organiza y retira originales hacia MEDIA502. Audio exige además SSD1, donde trabajas.
-3. Copias manualmente raws seleccionados a ESSD: `001_proyectos/e64_raw`, a veces planos y a veces por proyecto. También agregas screens y ahora bundles Stalker.
+2. `save all` organiza y retira originales hacia MEDIA9. Audio exige además SONIDO, donde trabajas.
+3. Copias manualmente raws seleccionados a EDICION: `001_proyectos/canal-a_raw`, a veces planos y a veces por proyecto. También agregas screens y ahora bundles Stalker.
 4. Pegas fuentes en orden en Clipper; agrupas/sincronizas, editas y exportas versiones a Downloads.
-5. Pasas versiones elegidas a `001_proyectos/e64`, editas canales en paralelo en Final Cut y exportas master y verticales a `002_finales/e64`.
+5. Pasas versiones elegidas a `001_proyectos/canal-a`, editas canales en paralelo en Final Cut y exportas master y verticales a `002_finales/canal-a`.
 6. El master conserva fecha+título; verticales agregan `_vertical_N`. Shorts/thumbnails están en subcarpetas. Tras publicar, mueves seleccionados a `subidos` para archivar luego en MEDIA.
-7. Alternas perfiles como erikiado64 y nu9ve xyz; Atlas comparte fotos de dron y necesita originales JPG+DNG, datos de vuelo y derivados.
+7. Alternas perfiles como estudio-a y canal-b; Atlas comparte fotos de dron y necesita originales JPG+DNG, datos de vuelo y derivados.
 
 La organización física es útil. Los problemas aparecen cuando una ruta o un nombre intenta expresar simultáneamente cámara, fecha, proyecto, perfil, estado de publicación y respaldo. Esos datos necesitan campos independientes y relaciones persistentes.
 
 Aclaración del propietario: la SD debe terminar libre para grabar nuevos proyectos. La conservación de fuente propuesta es temporal durante copia/verificación, no una política de acumular grabaciones en la tarjeta. El éxito completo incluye limpieza y consistencia de cámara; no basta con un respaldo que deja pendiente liberar la SD.
 
-Aclaración adicional: si está MEDIA pero falta ESSD/SSD1, permitir confirmar sólo respaldo y registrar trabajo pendiente u omitido para decidirlo después. Sin ningún destino registrado de archivo/trabajo conectado, insertar SD no debe disparar popup ni notificación: se presume uso de consulta ajeno al ingreso.
+Aclaración adicional: si está MEDIA pero falta EDICION/SONIDO, permitir confirmar sólo respaldo y registrar trabajo pendiente u omitido para decidirlo después. Sin ningún destino registrado de archivo/trabajo conectado, insertar SD no debe disparar popup ni notificación: se presume uso de consulta ajeno al ingreso.
 
 ## Discos observados
 
 | Volumen | Total / libre decimal aproximado | Filesystem | Uso y estructura confirmada |
 | --- | --- | --- | --- |
-| ESSD | 499.76 GB / 33.78 GB | HFS+ Journaled | `000_acomodar`, `000_allcam`, `000_cache`, `001_proyectos/{e64_raw,e64,atlas-subaereo,atlas-derived,...}`, `002_finales/{e64,nu9vexyz,...}`. |
-| MEDIA502 | 5.00 TB / 2.71 TB | ExFAT | `000_acomodar`, `000_crudo`, `001_proyectos`, `001_raw/{360,images,insta360,metadata,recordings,recordingslong,screens,v4k,vdron,videos}`, `002_finales`, `003_curado`. |
-| SSD1 / XSSD / MEDIA501 | No conectados al inspeccionar | Sin comprobar | Roles relatados por el propietario; no se inventaron rutas ni identidades. |
+| EDICION | 499.76 GB / 33.78 GB | HFS+ Journaled | `000_acomodar`, `000_allcam`, `000_cache`, `001_proyectos/{canal-a_raw,canal-a,atlas-subaereo,atlas-derived,...}`, `002_finales/{canal-a,nu9vexyz,...}`. |
+| MEDIA9 | 5.00 TB / 2.71 TB | ExFAT | `000_acomodar`, `000_crudo`, `001_proyectos`, `001_raw/{360,images,insta360,metadata,recordings,recordingslong,screens,v4k,vdron,videos}`, `002_finales`, `003_curado`. |
+| SONIDO / VIAJE / MEDIA8 | No conectados al inspeccionar | Sin comprobar | Roles relatados por el propietario; no se inventaron rutas ni identidades. |
 
-ESSD y MEDIA502 reportan distintos discos físicos y UUID de volumen. Ambos reportan `Removable=false` aunque sean USB externos: filtrar sólo por ese booleano perdería destinos reales. Guardar identidades en configuración local al registrar discos; los UUID personales no necesitan publicarse en este documento. No usar `disk4`/`disk6` como identidad persistente. Esta inspección no diagnostica la causa de desconexiones de ESSD.
+EDICION y MEDIA9 reportan distintos discos físicos y UUID de volumen. Ambos reportan `Removable=false` aunque sean USB externos: filtrar sólo por ese booleano perdería destinos reales. Guardar identidades en configuración local al registrar discos; los UUID personales no necesitan publicarse en este documento. No usar `disk4`/`disk6` como identidad persistente. Esta inspección no diagnostica la causa de desconexiones de EDICION.
 
-Con 33.78 GB libres, una importación de 80 GB no debe empezar hacia ESSD. Puede archivarse en MEDIA si la política permite sólo archivo; si trabajo es obligatorio, queda bloqueada con el espacio requerido visible. No debe ocupar silenciosamente el disco interno.
+Con 33.78 GB libres, una importación de 80 GB no debe empezar hacia EDICION. Puede archivarse en MEDIA si la política permite sólo archivo; si trabajo es obligatorio, queda bloqueada con el espacio requerido visible. No debe ocupar silenciosamente el disco interno.
 
 ## Hallazgos priorizados
 
@@ -53,7 +53,7 @@ Con 33.78 GB libres, una importación de 80 GB no debe empezar hacia ESSD. Puede
 | P1 | `detect_sd_source_name` prioriza cualquier estructura Sony; sólo detecta Sony/Insta360. `save all` sólo mira nombres de volumen del mapa. | Una estructura residual puede clasificar toda la SD mal. Clasificar por archivo y unidad de captura; nombre de tarjeta es evidencia débil. |
 | P1 | Ruta con `mavic2` decide `vdron`; resolución decide `v4k`; DJI no tiene detector por modelo. | DJI 360, dron y acción no pueden distinguirse por marca, extensión MP4 o resolución. Modelo/metadatos y confirmación por unidad deben preceder al ruteo. No se asumió qué modelo DJI 360 tienes. |
 | P1 | Las raíces sólo se validan con `is_dir`; no hay verificación de montaje, UUID o espacio. | Registrar volúmenes y validar identidad/dispositivo antes de toda escritura. Un directorio residual no prueba montaje. |
-| P1 | Audio valida SSD1 al encontrar cada archivo, después de poder procesar otros. | Preflight antes del primer byte. Por defecto H6 usa MEDIA+SSD1; con MEDIA y sin SSD1 se puede confirmar excepción sólo archivo y registrar trabajo pendiente/omitido. |
+| P1 | Audio valida SONIDO al encontrar cada archivo, después de poder procesar otros. | Preflight antes del primer byte. Por defecto H6 usa MEDIA+SONIDO; con MEDIA y sin SONIDO se puede confirmar excepción sólo archivo y registrar trabajo pendiente/omitido. |
 | P1 | No hay journal, lock de operación, checksum o idempotencia; colisiones reciben sufijos. | Una repetición puede producir duplicados. El fallo deja destinos parciales sin resultado estructurado. |
 | P1 | Clipper importa Stalker por referencia; cambiar raíz o digest produce error. Relink genérico no actualiza toda `capture_sessions`. | No mover sesiones detrás del editor. Resolver por identidad y relink completo con ACK del consumidor; colas/snapshots también son dependencias. |
 | P1 | Stalker escribe durante captura y finaliza derivados al detener. | `screen.mov` existente o tamaño estable no significa sesión terminada. Requerir `completed` y revalidación antes/después de copiar. |

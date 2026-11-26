@@ -135,11 +135,11 @@ Los tres modos (440×700, 780×820, 1180×900) son razonables, pero son tamaños
   limpia.
 - **Falta una confirmación final de acciones destructivas.** «Ejecutar plan revisado»
   ejecuta en seguida aunque incluya limpieza de SD o liberación Stalker. Proponer una hoja
-  breve: *N archivos · MEDIA502 + ESSD · después se limpia la SD · se libera el original
+  breve: *N archivos · MEDIA9 + EDICION · después se limpia la SD · se libera el original
   Stalker*, con el botón destructivo a la derecha y ⌘↩.
 - Errores: hoy hay un único `error` arriba en rojo y un `message` en el pie. Proponer
   avisos por contexto (banner en la vista que falló), con acción de recuperación
-  («Reintentar», «Abrir actividad», «Conectar ESSD») y botón para descartar.
+  («Reintentar», «Abrir actividad», «Conectar EDICION») y botón para descartar.
 
 ## 3. Ingreso por pasos, a pantalla completa
 
@@ -250,7 +250,7 @@ volumen externo, `suggest` (otro proceso + `diskutil info`)
    | Huella | Recomendación |
    | --- | --- |
    | Sony XAVC | Respaldo + copia de trabajo del perfil; termina con formato en cámara |
-   | Zoom H6 | Requiere SSD1 o confirmar excepción; audio por proyecto |
+   | Zoom H6 | Requiere SONIDO o confirmar excepción; audio por proyecto |
    | DJI | Pedir categoría por unidad antes de planear |
    | GoPro / Insta360 | Respaldo + copia; pares `.LRF`/`.THM` juntos |
    | Stalker | Lote por biblioteca con proyecto por sesión |
@@ -259,7 +259,7 @@ volumen externo, `suggest` (otro proceso + `diskutil info`)
    ella (sugerencia, nunca asignación silenciosa). Se conecta con el registro de
    dispositivos/modelos de P1.
 5. **Espacio antes de planear:** mostrar tamaño de la tarjeta frente al libre en MEDIA y
-   ESSD desde el paso Fuente, no hasta que el plan falle.
+   EDICION desde el paso Fuente, no hasta que el plan falle.
 
 ## 7. Estilo: más compacto y ordenado
 

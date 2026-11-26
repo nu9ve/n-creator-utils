@@ -971,7 +971,7 @@ mod tests {
         let root = dir.path().canonicalize().unwrap();
         let home = root.join("media");
         crate::catalog::fixture::create(&home);
-        let disk = root.join("ESSD");
+        let disk = root.join("EDICION");
         std::fs::create_dir_all(&disk).unwrap();
         // Nothing decided: nothing leaves.
         assert_eq!(

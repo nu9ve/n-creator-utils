@@ -402,7 +402,7 @@ mod tests {
     fn home_with_index(count: usize) -> tempfile::TempDir {
         let home = tempfile::tempdir().unwrap();
         let index = json!({"contract": "nu9ve-data/1", "app": "nuun", "generated_at": "2026-11-22T00:00:00Z",
-            "projects": [], "roots": [{"id": "disk", "label": "MEDIA502", "state": "ok", "volume_id": VOLUME, "volume_path": ""}],
+            "projects": [], "roots": [{"id": "disk", "label": "MEDIA9", "state": "ok", "volume_id": VOLUME, "volume_path": ""}],
             "datasets": (0..count).map(dataset).collect::<Vec<_>>(), "next_cursor": null});
         std::fs::create_dir_all(home.path().join(LOCAL)).unwrap();
         std::fs::write(home.path().join(local_index(VOLUME)), index.to_string()).unwrap();

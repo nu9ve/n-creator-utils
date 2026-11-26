@@ -40,10 +40,10 @@ class ReleaseTests(WorkflowFixture):
         patcher = mock.patch('media.clipper.dependencies', side_effect=lambda _: empty_deps())
         self.deps = patcher.start(); self.addCleanup(patcher.stop)
         self.run_plan()
-        self.folder = '001_proyectos/e64_raw/intro'
+        self.folder = '001_proyectos/canal-a_raw/intro'
 
     def release(self):
-        return plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path=self.folder, project='intro')
+        return plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path=self.folder, project='intro')
 
     def apply(self, plan, **kwargs):
         return apply_release(self.catalog, self.backend, plan['id'], plan['digest'], **kwargs)
@@ -65,7 +65,7 @@ class ReleaseTests(WorkflowFixture):
 
     def test_release_reports_hashing_revalidation_and_cleanup_stages(self):
         plan_events, apply_events = [], []
-        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path=self.folder, project='intro',
+        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path=self.folder, project='intro',
                             progress=lambda stage, **details: plan_events.append((stage, details)))
         self.assertIn('hashing_source', {stage for stage, _ in plan_events})
         self.assertIn('matching_archive', {stage for stage, _ in plan_events})
@@ -134,10 +134,10 @@ class ReleaseTests(WorkflowFixture):
         folder = self.work / '001_proyectos/old_raw/project'; folder.mkdir(parents=True)
         (folder / 'old.JPG').write_bytes(b'identical')
         (self.archive / 'historical.JPG').write_bytes(b'identical')
-        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/old_raw/project', project='old')
+        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path='001_proyectos/old_raw/project', project='old')
         self.assertEqual(self.apply(plan)['state'], 'completed')
         folder.mkdir(exist_ok=True); (folder / 'only.JPG').write_bytes(b'only here')
-        with self.assertRaisesRegex(MediaError, 'archive first'): plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/old_raw/project', project='old')
+        with self.assertRaisesRegex(MediaError, 'archive first'): plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path='001_proyectos/old_raw/project', project='old')
         self.assertTrue((folder / 'only.JPG').exists())
 
     def test_clipper_missing_or_offline_or_queued_blocks_release(self):
@@ -390,7 +390,7 @@ class CaptureWorkflowTests(WorkflowFixture):
             self.assertTrue((active / 'screen.mov').exists())
 
     def test_full_metadata_backup_includes_profiles_tags_decisions_and_ack(self):
-        self.catalog.set('creative-profiles', {'e64': {'raw_dir': 'raw'}})
+        self.catalog.set('creative-profiles', {'canal-a': {'raw_dir': 'raw'}})
         self.catalog.set('capture-tag:example', {'name': 'human'})
         self.catalog.set('clipper-ack:example', {'status': 'applied'})
         result = backup_metadata(self.catalog, self.backend, 'MEDIA')
@@ -419,7 +419,7 @@ class CaptureWorkflowTests(WorkflowFixture):
     def test_coverage_rehashes_receipts_instead_of_trusting_old_presence(self):
         plan = self.plan(cleanup=False); self.run_plan(plan)
         next(p for p in self.archive.rglob('*.JPG')).write_bytes(b'not-the-photo')
-        result = coverage(self.catalog, self.backend, 'ESSD', 'MEDIA')
+        result = coverage(self.catalog, self.backend, 'EDICION', 'MEDIA')
         self.assertEqual(result['totals']['only_work']['files'], 1)
 
 
@@ -488,8 +488,8 @@ class ClipperBridgeTests(WorkflowFixture):
 
     def test_release_cli_and_rpc_share_recorded_plan_boundary(self):
         from media.cli import parser
-        parsed = parser().parse_args(['plan-release', '--archive', 'MEDIA', '--work', 'ESSD', '--path', '001_proyectos/raw/intro', '--project', 'intro'])
-        self.assertEqual(parsed.work, 'ESSD')
+        parsed = parser().parse_args(['plan-release', '--archive', 'MEDIA', '--work', 'EDICION', '--path', '001_proyectos/raw/intro', '--project', 'intro'])
+        self.assertEqual(parsed.work, 'EDICION')
         result = Service(self.catalog, self.backend).call('release_plans')
         self.assertEqual(result, [])
         with self.assertRaisesRegex(MediaError, 'recorded'):

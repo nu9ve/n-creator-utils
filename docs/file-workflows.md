@@ -16,7 +16,7 @@ Se revisaron los checkouts de Clipper (`7075eb9`) y Stalker (`46161c7`), sus con
 | **[Stalker](https://github.com/nu9ve/stalker)** | Grabar pantalla y señales asociadas | La **carpeta `.stalker` completa**, con su manifest, pistas, voz derivada y eventos opcionales. |
 | **[Clipper](https://github.com/nu9ve/clipper)** | Editar, sincronizar, componer y producir entregas | `clipper-project.json`, artefactos editoriales y las fuentes externas a las que apunta. El proyecto por sí solo no es un backup de esos originales. |
 
-El propietario confirmó que el editor de `/Users/nu9ve/code/ai/clipper` reemplaza al `clipper/` antiguo de este repo. No hay que mejorar dos editores en paralelo. El código antiguo se retiró en la entrega posterior; `nu9ve clip` sólo informa el sucesor con error. Su JSON de rangos no es el contrato del editor nuevo.
+El propietario confirmó que el editor de `~/code/ai/clipper` reemplaza al `clipper/` antiguo de este repo. No hay que mejorar dos editores en paralelo. El código antiguo se retiró en la entrega posterior; `nu9ve clip` sólo informa el sucesor con error. Su JSON de rangos no es el contrato del editor nuevo.
 
 Stalker y Clipper ya tienen un intercambio implementado. Lo que falta aquí es integrar **ingreso, organización y archivo** alrededor de ese intercambio, conservando sus archivos y relaciones.
 
@@ -33,11 +33,11 @@ Stalker y Clipper ya tienen un intercambio implementado. Lo que falta aquí es i
 | Caché compartida Clipper | `~/.cache/clipper/` | `CLIPPER_CACHE_ROOT`; incluye derivados de media, renders y otras cachés. No confundir con originales o archivo permanente. |
 | Mezcla derivada de Stalker en Clipper | `<proyecto>/cache/stalker/*.wav` | Mezcla PCM reutilizable. No es una nueva grabación original. Su política de limpieza específica está pendiente. |
 | Temporales de render Clipper | Según operación; los nativos pueden usar la carpeta de salida | `CLIPPER_RENDER_TEMP_ROOT` en rutas que lo soportan. Un temporal no es un final publicado. |
-| Archivo principal de n-creator-utils | `/Volumes/MEDIA502/001_raw` por default | `root_dir` / `NU9VE_ROOT_DIR`; organiza por categoría y fecha. |
-| Segunda copia de audio | `/Volumes/SSD1` por default | `root_recordings_dir` / `NU9VE_ROOT_RECORDINGS_DIR`. |
+| Archivo principal de n-creator-utils | `/Volumes/MEDIA9/001_raw` por default | `root_dir` / `NU9VE_ROOT_DIR`; organiza por categoría y fecha. |
+| Segunda copia de audio | `/Volumes/SONIDO` por default | `root_recordings_dir` / `NU9VE_ROOT_RECORDINGS_DIR`. |
 | Descargas y stems de n-creator-utils | `audio_songs_dir`, `audio_samples_dir`, `tmp_video_dir`, `audio_splits_dir` | [Referencia de configuración](configuration.md). No hay registro automático en Clipper. |
 
-Se leyó únicamente el campo de destino del preset local de Stalker: está configurado en `/Users/nu9ve/Downloads`. En el shell de revisión no estaban definidas las variables de raíz de Clipper de esta tabla; esto **no prueba** el entorno de un TUI ya abierto ni el workspace de ClipperStudio. Studio tiene configuración/bookmarks propios y no tiene toda la integración Stalker expuesta en su interfaz.
+Se leyó únicamente el campo de destino del preset local de Stalker: está configurado en `~/Downloads`. En el shell de revisión no estaban definidas las variables de raíz de Clipper de esta tabla; esto **no prueba** el entorno de un TUI ya abierto ni el workspace de ClipperStudio. Studio tiene configuración/bookmarks propios y no tiene toda la integración Stalker expuesta en su interfaz.
 
 Downloads actualmente puede contener originales de captura, proyectos y entregas terminadas. Una carpeta allí no es desechable sólo por estar en Downloads.
 

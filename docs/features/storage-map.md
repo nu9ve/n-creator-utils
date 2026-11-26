@@ -13,19 +13,19 @@ Herramientas como DaisyDisk o GrandPerspective dicen cuánto ocupa algo. nüün 
 
 ## Mediciones que la justifican
 
-Tomadas el 2026-10-30 en sólo lectura. MEDIA502 estaba desconectado.
+Tomadas el 2026-10-30 en sólo lectura. MEDIA9 estaba desconectado.
 
 En GiB, como `df -h`; la app muestra GB decimales (449 GiB son 482 GB).
 
 | Dato | Valor |
 | --- | --- |
-| ESSD | 445 GiB usados de 465 GiB, 80,061 archivos |
-| Recorrido de metadatos de ESSD con `du` | 10.4 s |
-| Conocido por el catálogo en ESSD | 19.1 GiB (cerca del 4 %) |
+| EDICION | 445 GiB usados de 465 GiB, 80,061 archivos |
+| Recorrido de metadatos de EDICION con `du` | 10.4 s |
+| Conocido por el catálogo en EDICION | 19.1 GiB (cerca del 4 %) |
 | `001_proyectos` / `0000_acomodar` / `002_finales` | 234.6 / 141.1 / 43.0 GiB |
 | Interno | 888 GiB usados de 926 GiB, 12 GiB disponibles |
 
-**Conclusión de diseño:** recorrer metadatos es barato; lo caro es hashear. La auditoría actual (`media coverage`) no guarda hashes entre corridas y, en el peor caso, toma horas. Por eso el índice se separa de la verificación: el mapa nunca lee contenido por sí solo. Falta medir el recorrido en el HDD MEDIA502.
+**Conclusión de diseño:** recorrer metadatos es barato; lo caro es hashear. La auditoría actual (`media coverage`) no guarda hashes entre corridas y, en el peor caso, toma horas. Por eso el índice se separa de la verificación: el mapa nunca lee contenido por sí solo. Falta medir el recorrido en el HDD MEDIA9.
 
 ## Índice
 
@@ -115,17 +115,17 @@ Carpetas que no son media pero ocupan disco. La primera es **Agentes**: `~/.clau
 
 ```text
 ┌ Discos ───────────────────────────────────────────────────────────┐
-│ ESSD 445/465 GB · hoy 10:42   MEDIA502 · desconectado, índice 28 oct │
+│ EDICION 445/465 GB · hoy 10:42   MEDIA9 · desconectado, índice 28 oct │
 │ [██████ proyectos ████ acomodar ██ finales ░ libre]               │
 │                                                                   │
 │ 141 GB sin clasificar · 19 GB en catálogo · 0 GB liberables aún   │
 │                                                                   │
 │ Ver por: [Seguridad] Contenido Proyecto    Actualizar · Comprobar │
-│ ESSD › 001_proyectos                                              │
+│ EDICION › 001_proyectos                                              │
 │ ┌ mapa ──────────────────┐  Carpeta          Tamaño  Estado       │
 │ │ visuales  │ atlas-der. │  visuales         83.7 GB Sin revisar  │
 │ │           ├─────┬──────│  atlas-derived    34.1 GB Sin revisar  │
-│ │           │ 0cl │ ...  │  erikiado         24.0 GB Sin revisar  │
+│ │           │ 0cl │ ...  │  demo         24.0 GB Sin revisar  │
 │ └────────────────────────┘  [ panel de la carpeta y sus acciones ]│
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -191,7 +191,7 @@ MCP expone `media_storage_overview`, `media_storage_tree` y `media_storage_colle
 
 [`tests/test_agent_storage.py`](../../tests/test_agent_storage.py) cubre las colecciones con un `HOME` de fixture: clases y bytes, hard link contado una vez, enlace sin seguir, ningún archivo abierto (`open` prohibido durante la lectura), ningún nombre profundo ni contenido en la respuesta, raíz ausente o carpeta ilegible, temporales agrupados, semanas, y Rust igual a Python.
 
-**Aceptación física:** una corrida explícita en ESSD debe cuadrar con `df`, y lo no explicado debe aparecer en «Sin contar». Pendiente medir el HDD MEDIA502, que fija el presupuesto de rendimiento.
+**Aceptación física:** una corrida explícita en EDICION debe cuadrar con `df`, y lo no explicado debe aparecer en «Sin contar». Pendiente medir el HDD MEDIA9, que fija el presupuesto de rendimiento.
 
 ## Acumulados
 

@@ -7,10 +7,15 @@ from configuration import ConfigurationError, load_settings
 
 
 class ConfigurationTests(unittest.TestCase):
-    def test_defaults_preserve_archive_and_use_actual_home(self):
-        settings = load_settings(environ={})
-        self.assertEqual(settings['root_dir'], '/Volumes/MEDIA502/001_raw')
-        self.assertEqual(settings['audio_hijack_dir'], str(Path.home() / 'Music/Audio Hijack'))
+    def test_defaults_are_neutral_and_use_actual_home(self):
+        # An empty config file: only the code defaults, never this machine's config.local.json.
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / 'empty.json'
+            empty.write_text('{}')
+            settings = load_settings(environ={'NU9VE_CONFIG': str(empty)})
+        self.assertEqual(settings['root_dir'], str((Path.home() / 'Media/archive').resolve()))
+        self.assertEqual(settings['audio_hijack_dir'], str((Path.home() / 'Music/Audio Hijack').resolve()))
+        self.assertEqual(settings['yt_dlp_cookies_browser'], '')
 
     def test_json_environment_precedence_and_relative_paths(self):
         with tempfile.TemporaryDirectory() as tmp:

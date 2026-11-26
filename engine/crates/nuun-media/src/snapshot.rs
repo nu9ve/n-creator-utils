@@ -349,9 +349,7 @@ pub fn integration_settings(catalog: &Catalog) -> Result<Value> {
 
 /// The `defaults` read (no params).
 pub fn defaults(catalog: &Catalog) -> Result<Value> {
-    Ok(catalog
-        .get("defaults")?
-        .unwrap_or_else(|| json!({"profile": "e64", "country": "mx", "city": "hermosillo"})))
+    Ok(catalog.get("defaults")?.unwrap_or_else(|| json!({})))
 }
 
 /// Python `_snapshot(params)`. `backend` is None where volume methods are not ported (macOS).
@@ -510,9 +508,9 @@ mod tests {
         let home = temp.path().join("state");
         let db = fixture::create(&home);
         db.execute_batch(
-            "INSERT INTO projects VALUES('p1','e64','proyecto-demo');
-             INSERT INTO assets VALUES('a1','j1','{\"id\":\"a1\",\"job_id\":\"j1\",\"kind\":\"camera_clip\",\"paths\":[\"PRIVATE/M4ROOT/CLIP/C0001.MP4\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"e64\"}');
-             INSERT INTO assets VALUES('a2','j1','{\"id\":\"a2\",\"job_id\":\"j1\",\"kind\":\"camera_support\",\"paths\":[\"PRIVATE/M4ROOT/THMBNL/C0001T01.JPG\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"e64\"}');
+            "INSERT INTO projects VALUES('p1','canal-a','proyecto-demo');
+             INSERT INTO assets VALUES('a1','j1','{\"id\":\"a1\",\"job_id\":\"j1\",\"kind\":\"camera_clip\",\"paths\":[\"PRIVATE/M4ROOT/CLIP/C0001.MP4\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"canal-a\"}');
+             INSERT INTO assets VALUES('a2','j1','{\"id\":\"a2\",\"job_id\":\"j1\",\"kind\":\"camera_support\",\"paths\":[\"PRIVATE/M4ROOT/THMBNL/C0001T01.JPG\"],\"project\":\"proyecto-demo\",\"project_id\":\"p1\",\"profile\":\"canal-a\"}');
              INSERT INTO work VALUES('a1','ready',NULL,'2026-11-08');
              INSERT INTO work VALUES('a2','skipped',NULL,'2026-11-08');
              INSERT INTO asset_projects VALUES('a1','p1');
@@ -520,7 +518,7 @@ mod tests {
              INSERT INTO jobs VALUES('j2','d','{\"release_stalker_source\":true}','completed',NULL,'2026-11-07T10:00:00Z','2026-11-07T10:30:00Z');
              INSERT INTO metadata VALUES('job-dismissed:j2','true');
              INSERT INTO metadata VALUES('sony-card-check:j1','\"waiting_camera\"');
-             INSERT INTO metadata VALUES('creative-profiles','{\"e64\":{\"id\":\"e64\",\"name\":\"E64\",\"raw_dir\":\"e64_raw\",\"clipper_profile\":\"clip-e64\"}}');
+             INSERT INTO metadata VALUES('creative-profiles','{\"canal-a\":{\"id\":\"canal-a\",\"name\":\"Canal A\",\"raw_dir\":\"canal-a_raw\",\"clipper_profile\":\"clip-canal-a\"}}');
              INSERT INTO metadata VALUES('release:r1','{\"id\":\"r1\"}');
              INSERT INTO metadata VALUES('project-closure:p1','{\"required\":[\"horizontal\"],\"finals\":[{\"role\":\"horizontal\"}],\"no_more\":true}');",
         )
@@ -537,7 +535,7 @@ mod tests {
         let (_temp, catalog) = catalog_with_data();
         let asset = |id: &str, project: &str| {
             json!({"id": id, "job_id": "j1", "kind": "camera_clip", "paths": ["CLIP/C0001.MP4"],
-                   "project": project, "project_id": project, "profile": "e64"})
+                   "project": project, "project_id": project, "profile": "canal-a"})
         };
         let assets = [
             asset("a1", "zz"),
@@ -584,11 +582,12 @@ mod tests {
         assert_eq!(data["library"].as_array().unwrap().len(), 2);
         assert_eq!(data["projects"].as_array().unwrap().len(), 1);
         assert_eq!(data["projects"][0]["assets"], 1);
-        assert_eq!(data["projects"][0]["clipper_profile"], "clip-e64");
+        assert_eq!(data["projects"][0]["clipper_profile"], "clip-canal-a");
         assert_eq!(data["projects"][0]["updated_at"], "2026-11-08T11:00:00Z");
-        assert_eq!(data["profiles"][0]["id"], "e64");
+        assert_eq!(data["profiles"][0]["id"], "canal-a");
         assert_eq!(data["release_plans"], json!([{"id": "r1"}]));
-        assert_eq!(data["defaults"]["city"], "hermosillo");
+        // No library defaults saved: the code adds none of its own.
+        assert_eq!(data["defaults"], json!({}));
         assert_eq!(data["integration_settings"]["retain_stalker_source"], false);
         // Closure: complete, no_more and not released → needs release.
         assert_eq!(data["project_closures"][0]["title"], "proyecto-demo");
@@ -612,6 +611,6 @@ mod tests {
         let data = isolated(&Catalog::empty(), &json!({}));
         assert_eq!(data["jobs"], json!([]));
         assert_eq!(data["library"], json!([]));
-        assert_eq!(data["defaults"]["profile"], "e64");
+        assert_eq!(data["defaults"], json!({}));
     }
 }

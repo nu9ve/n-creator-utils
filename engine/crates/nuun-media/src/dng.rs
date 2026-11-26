@@ -792,7 +792,7 @@ mod tests {
     #[test]
     fn dng_rechecks_archive_and_resumes_verified_trash_moves() {
         let s = fixture();
-        let options = json!({"archive":"MEDIA","work":"ESSD","keep":["b"],"trash_unbacked":[format!("{BASE}/photos/orphan.DNG")]});
+        let options = json!({"archive":"MEDIA","work":"EDICION","keep":["b"],"trash_unbacked":[format!("{BASE}/photos/orphan.DNG")]});
         let reviewed = plan(&s.home, &s.backend, &options).unwrap();
         assert_eq!(
             reviewed["totals"],
@@ -847,7 +847,7 @@ mod tests {
         let reviewed = plan(
             &s.home,
             &s.backend,
-            &json!({"archive":"MEDIA","work":"ESSD","keep":["b"],
+            &json!({"archive":"MEDIA","work":"EDICION","keep":["b"],
             "trash_unbacked":[format!("{BASE}/photos/orphan.DNG")]}),
         )
         .unwrap();
@@ -861,7 +861,7 @@ mod tests {
         let mut plan = reviewed;
         plan.as_object_mut().unwrap().remove("digest");
         plan["archive_id"] = json!("MEDIA");
-        plan["work_id"] = json!("ESSD");
+        plan["work_id"] = json!("EDICION");
         for (group, key) in [("release", "archive_stamp"), ("trash_unbacked", "stamp")] {
             for item in plan[group].as_array_mut().unwrap() {
                 item[key] = json!({"size":item[key]["size"]});

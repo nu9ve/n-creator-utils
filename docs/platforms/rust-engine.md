@@ -33,7 +33,7 @@ Una copia verificada de N bytes a D destinos cuesta, en el mejor caso, leer N de
 | Paso | Lo limita | ¿Rust lo acelera? |
 | --- | --- | --- |
 | Leer la tarjeta y calcular el hash | Velocidad de la SD (90–250 MB/s) | No: el hash va a 1,67 GB/s en ambos (medido) |
-| Escribir en MEDIA y ESSD | El destino más lento | No; ya va en paralelo por destino |
+| Escribir en MEDIA y EDICION | El destino más lento | No; ya va en paralelo por destino |
 | Verificar (releer cada destino) | Lectura de cada destino; ya en paralelo | No en bytes. Sí, un poco, si se verifica un archivo mientras se copia el siguiente en **otro** disco (también posible en Python) |
 | `fsync` del archivo y de su carpeta por archivo | La latencia del disco | No por el lenguaje. Sí agrupando el `fsync` de la carpeta en lotes, otra vez en cualquier lenguaje |
 | Miles de archivos chicos | Sobrecarga por archivo: `open`/`stat`/`rename` y el intérprete | **Sí, algo:** el intérprete pesa cuando el archivo es chico |

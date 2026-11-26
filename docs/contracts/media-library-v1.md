@@ -51,7 +51,7 @@ Un plan aprobado queda inmutable. Cambiar proyecto, destinos, clasificación, po
 
 ### Excepción de destino de trabajo ausente
 
-Con archivo MEDIA disponible, el usuario puede confirmar un plan `archive_only` cuando falte ESSD/SSD1. El plan DEBE conservar política habitual y efectiva, destino esperado, confirmación explícita de esa operación y motivo, junto con `work_delivery_status` por selección/asset: `pending`, `ready` o `skipped`. Ausencia de respuesta no confirma y la excepción no cambia el default del perfil.
+Con archivo MEDIA disponible, el usuario puede confirmar un plan `archive_only` cuando falte EDICION/SONIDO. El plan DEBE conservar política habitual y efectiva, destino esperado, confirmación explícita de esa operación y motivo, junto con `work_delivery_status` por selección/asset: `pending`, `ready` o `skipped`. Ausencia de respuesta no confirma y la excepción no cambia el default del perfil.
 
 `pending` registra intención de entregar al SSD después; `skipped` registra omisión voluntaria y no vuelve a encolarse automáticamente. `ready` requiere recibo real de entrega de trabajo. Después de archivo verificado, el plan efectivo confirmado puede limpiar SD aunque trabajo no se haya entregado. Estado de trabajo y cobertura de réplicas siguen visibles; no emitir recibos para destinos omitidos ni declarar redundancia inexistente.
 
@@ -117,13 +117,13 @@ Fase 3: paths absolutos sólo en respuestas locales del adaptador; manifests usa
 | Misma SD con Sony residual, DJI y otro fabricante | Clasificación por unidad, ambiguos a revisión, sin reemplazar todo el perfil por carpeta residual. |
 | Job repetido / caída tras publicar antes de registrar catálogo | Reconcilia recibo y hashes sin duplicar; origen retenido hasta verificar destinos requeridos. |
 | Limpieza tras éxito / caída a mitad / archivos nuevos | Retira sólo revisión respaldada, registra/reanuda pendientes y no borra material nuevo; SD lista sólo con limpieza y perfil de cámara consistentes. |
-| ESSD desconectado o sustituido por disco del mismo nombre | Pausa, identidad verificada, no crea fallback en interno. |
+| EDICION desconectado o sustituido por disco del mismo nombre | Pausa, identidad verificada, no crea fallback en interno. |
 | Stalker recording/finalizing o manifest cambiado | No transferencia final ni limpieza; recuperación en productor si hace falta. |
 | Nueva ubicación de Stalker con cola activa | Relink integral/ACK o retención de antigua ruta; nunca actualización parcial silenciosa. |
 | Perfil o project title renombrado | IDs y relaciones conservados, sin duplicar archivos por slug. |
 | Short publicado pero master pendiente | Sólo variante confirmada publicada; archivo y limpieza independientes. |
 | Handoff con traversal, symlink, hash falso o major desconocido | Rechazo antes de escritura/edición. |
-| Falta SSD1/ESSD con MEDIA disponible | Preflight bloquea plan directo; sólo tras confirmar archive-only crea otro plan efectivo y registra trabajo pending/skipped. Puede liberar SD después de verificar archivo. |
+| Falta SONIDO/EDICION con MEDIA disponible | Preflight bloquea plan directo; sólo tras confirmar archive-only crea otro plan efectivo y registra trabajo pending/skipped. Puede liberar SD después de verificar archivo. |
 | SSD de trabajo reconectado | Ofrece pendientes; entrega desde archivo con verificación/idempotencia o registra omisión. No requiere SD ni insiste sobre omitidos. |
 | SD conectada sin MEDIA ni SSD de trabajo registrados montados | Sin popup/notificación/escaneo profundo ni jobs; acceso manual disponible. |
 | Espacio insuficiente en destino requerido del plan efectivo | Bloquea antes del primer byte; no sustituye discos ni cambia política silenciosamente. |
@@ -272,9 +272,9 @@ preserva exactamente el orden explícito de selección de IDs, desde cero.
 - `save_profile` RPC acepta `clipper_profile: string|null`: referencia opaca
   explícita; no importa schema ni configura un perfil de Clipper. Se publica en
   `projects`, sources (nivel proyecto y asset) y handoff. Ausente/null significa
-  sin mapping; **no se infiere e64 → erikiado64**. Omitirlo al guardar desde un cliente antiguo conserva el mapping; null lo
+  sin mapping; **no se infiere canal-a → estudio-a**. Omitirlo al guardar desde un cliente antiguo conserva el mapping; null lo
   elimina. Es metadata vigente del catálogo; no modifica rutas congeladas ni content_revision. `profile_id` del
-  handoff es el ID local (p.ej. e64), no el ID de Clipper.
+  handoff es el ID local (p.ej. canal-a), no el ID de Clipper.
 
 ### Ubicaciones y recibos portables
 

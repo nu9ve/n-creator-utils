@@ -7,7 +7,7 @@
 # - 
 # - 
 
-echo -e "erikiado's shell tools" 
+echo -e "nu9ve shell tools"
 # GOPRO_PATH=
 
 function add_counter {

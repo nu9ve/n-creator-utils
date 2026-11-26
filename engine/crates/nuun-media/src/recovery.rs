@@ -412,7 +412,7 @@ mod tests {
             &s.home,
             &s.backend,
             &json!({
-                "source": s.card, "archive": "MEDIA", "work": "ESSD", "project": "intro"
+                "source": s.card, "archive": "MEDIA", "work": "EDICION", "project": "intro"
             }),
         )
         .unwrap();
@@ -528,7 +528,7 @@ mod tests {
             &s.home,
             &s.backend,
             &json!({
-                "source": s.card, "archive": "MEDIA", "work": "ESSD", "project": "intro"
+                "source": s.card, "archive": "MEDIA", "work": "EDICION", "project": "intro"
             }),
         )
         .unwrap();
@@ -583,13 +583,14 @@ mod tests {
         let asset_id = &plan["units"][0]["id"];
         crate::catalog::fixture::register(
             &rusqlite::Connection::open(home.join("catalog.sqlite3")).unwrap(),
-            "ESSD",
+            "EDICION",
             "work",
             &s.work,
             &s.backend.describe(&s.work, false).unwrap(),
             "001_proyectos",
         );
-        let delivery = json!({"asset_ids": [asset_id], "work": "ESSD", "progress_id": "delivery"});
+        let delivery =
+            json!({"asset_ids": [asset_id], "work": "EDICION", "progress_id": "delivery"});
         let mut offline = s.backend;
         offline.offline.insert(s.work.display().to_string());
         assert_eq!(
@@ -602,7 +603,7 @@ mod tests {
         let delivered = crate::delivery::deliver(&home, &offline, &delivery).unwrap();
         assert_eq!(
             delivered,
-            json!({"delivered": [asset_id], "volume_id": "id-ESSD"})
+            json!({"delivered": [asset_id], "volume_id": "id-EDICION"})
         );
         assert_eq!(
             crate::delivery::deliver(&home, &offline, &delivery).unwrap(),
@@ -611,7 +612,10 @@ mod tests {
         let reader = Catalog::open(&home).unwrap();
         assert!(reader.get("action-progress:delivery").unwrap().is_none());
         let work = reader
-            .json_rows("SELECT payload FROM copies WHERE volume_id='id-ESSD'", [])
+            .json_rows(
+                "SELECT payload FROM copies WHERE volume_id='id-EDICION'",
+                [],
+            )
             .unwrap();
         assert_eq!(
             std::fs::read(s.work.join(text(&work[0], "destination"))).unwrap(),

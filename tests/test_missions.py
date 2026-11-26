@@ -45,7 +45,7 @@ class MissionRegistryTests(MediaFixture):
         return self.service.call('missions_review', dict({'archive': 'MEDIA'}, **params))
 
     def incorporate(self, reviewed, **params):
-        return self.service.call('missions_incorporate', dict({'archive': 'MEDIA', 'work': 'ESSD',
+        return self.service.call('missions_incorporate', dict({'archive': 'MEDIA', 'work': 'EDICION',
                                                                'digest_value': reviewed['digest']}, **params))
 
     def history(self):

@@ -51,7 +51,7 @@ class IngestProgressTests(MediaFixture):
         # Read once, verified on two disks, re-read before cleaning the card.
         self.assertEqual(total, size + 2 * size + size)
         copied = next(line for line in measured[-1]['log'] if line['kind'] == 'copied')
-        self.assertEqual(copied['target'], 'ESSD + MEDIA')
+        self.assertEqual(copied['target'], 'EDICION + MEDIA')
         self.assertTrue(any(s['current'].get('action') == 'copy' and s['current']['from'] == 'card' for s in measured))
         self.assertTrue(any(s['current'].get('action') == 'release' for s in measured))
         self.assertTrue(any(0 < s.get('file_done', 0) <= s.get('file_total', 0) for s in measured), 'per-file indicator')
@@ -68,7 +68,7 @@ class ReleaseProgressTests(WorkflowFixture):
         self.run_plan()
 
     def test_apply_reports_one_overall_measure_with_a_log(self):
-        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')
+        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path='001_proyectos/canal-a_raw/intro', project='intro')
         events = []
         result = apply_release(self.catalog, self.backend, plan['id'], plan['digest'],
                                progress=lambda stage, **details: events.append(dict(details, stage=stage)))
@@ -79,12 +79,12 @@ class ReleaseProgressTests(WorkflowFixture):
         self.assertEqual(total, 2 * plan['bytes'])
         self.assertEqual(measured[-1]['stage'], 'release_complete')
         self.assertTrue(any(e['current'].get('action') == 'verify' and e['current']['from'] == 'MEDIA' for e in measured))
-        self.assertTrue(any(e['current'].get('action') == 'release' and e['current']['from'] == 'ESSD' for e in measured))
-        self.assertEqual({line['target'] for line in measured[-1]['log']}, {'ESSD'})
+        self.assertTrue(any(e['current'].get('action') == 'release' and e['current']['from'] == 'EDICION' for e in measured))
+        self.assertEqual({line['target'] for line in measured[-1]['log']}, {'EDICION'})
         self.assertTrue(any(0 < e.get('file_done', 0) <= e.get('file_total', 0) for e in measured), 'per-file indicator')
 
     def test_service_keeps_the_measure_for_the_reader(self):
-        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='ESSD', path='001_proyectos/e64_raw/intro', project='intro')
+        plan = plan_release(self.catalog, self.backend, 'MEDIA', work='EDICION', path='001_proyectos/canal-a_raw/intro', project='intro')
         service = Service(self.catalog, self.backend)
         seen = []
         original = service.catalog.set
@@ -108,12 +108,12 @@ class DeliveryProgressTests(MediaFixture):
         pending = self.catalog.search(work_state='pending')
         events = []
         with flushing_every_report():
-            deliver_work(self.catalog, self.backend, [pending[0]['id']], 'ESSD',
+            deliver_work(self.catalog, self.backend, [pending[0]['id']], 'EDICION',
                          progress=lambda stage, **details: events.append(dict(details, stage=stage)))
         measured = [e for e in events if 'overall_total' in e]
         delivered = list(self.work.rglob('*.JPG')) + list(self.work.rglob('*.DNG'))
         total = assert_one_measure(self, measured, {'copied': len(delivered)})
         self.assertEqual(total, 2 * sum(p.stat().st_size for p in delivered))
         self.assertEqual(measured[-1]['files_done'], measured[-1]['files_total'])
-        self.assertTrue(any(e['current'].get('from') == 'MEDIA' and e['current'].get('to') == 'ESSD' for e in measured))
+        self.assertTrue(any(e['current'].get('from') == 'MEDIA' and e['current'].get('to') == 'EDICION' for e in measured))
         self.assertEqual(self.catalog.search()[0]['work_delivery_status'], 'ready')

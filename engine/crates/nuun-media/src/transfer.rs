@@ -1702,8 +1702,8 @@ mod tests {
     }
 
     fn plan(s: &Setup, extra: Value) -> Value {
-        let mut params = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "ESSD",
-                                "project": "intro", "profile": "e64", "cleanup": true});
+        let mut params = json!({"source": s.card.display().to_string(), "archive": "MEDIA", "work": "EDICION",
+                                "project": "intro", "profile": "canal-a", "cleanup": true});
         for (k, v) in extra.as_object().unwrap() {
             params[k] = v.clone();
         }
@@ -1752,7 +1752,7 @@ mod tests {
     fn finals_cleanup_holds_clipper_exclusion_and_keeps_new_deliveries() {
         use std::os::unix::fs::PermissionsExt;
         let s = crate::volumes::test_backend::setup();
-        let folder = s.work.join("002_finales/e64/subidos");
+        let folder = s.work.join("002_finales/canal-a/subidos");
         std::fs::create_dir_all(&folder).unwrap();
         std::fs::write(folder.join("26-11-12-final.mov"), b"final").unwrap();
         let clipper = s.home.join("clipper-fixture");
@@ -1763,7 +1763,7 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         let catalog = WritableCatalog::open(&s.home).unwrap();
         catalog.set("clipper-executable", &json!(clipper)).unwrap();
         let plan = crate::planner::build_plan(&s.home, &s.backend, &json!({
-            "source": folder, "archive": "MEDIA", "project": "finales", "profile": "e64",
+            "source": folder, "archive": "MEDIA", "project": "finales", "profile": "canal-a",
             "archive_only": true, "confirm_archive_only": true, "work_decision": "skipped",
             "cleanup": true, "source_kind": "delivery", "finals_route": true, "camera": "generic",
         })).unwrap();
@@ -1791,7 +1791,11 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
             b"new"
         );
         assert_eq!(
-            std::fs::read(s.archive.join("002_finales/e64/2026/26-11-12-final.mov")).unwrap(),
+            std::fs::read(
+                s.archive
+                    .join("002_finales/canal-a/2026/26-11-12-final.mov")
+            )
+            .unwrap(),
             b"final"
         );
     }
@@ -2000,7 +2004,7 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         let plan = plan(&s, json!({"cleanup": false}));
         let unit = &plan["units"][0];
         let file = &plan["files"][0];
-        let work = Catalog::open(&s.home).unwrap().volume("ESSD").unwrap();
+        let work = Catalog::open(&s.home).unwrap().volume("EDICION").unwrap();
         let rel = destination_path(&work, &plan, unit, text(file, "path"), true)
             .unwrap()
             .unwrap();

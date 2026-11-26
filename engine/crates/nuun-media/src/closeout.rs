@@ -1031,8 +1031,8 @@ mod tests {
             .unwrap();
         crate::settings::closure_save(&s.home, Some(&s.backend), &json!({
             "project_id": "p1", "required": ["horizontal"], "no_more": true, "published": false,
-            "finals": [{"volume_id": "ESSD", "path": PUBLISHED, "role": "horizontal", "published": true},
-                       {"volume_id": "ESSD", "path": UNPUBLISHED, "role": "auxiliary", "published": false}],
+            "finals": [{"volume_id": "EDICION", "path": PUBLISHED, "role": "horizontal", "published": true},
+                       {"volume_id": "EDICION", "path": UNPUBLISHED, "role": "auxiliary", "published": false}],
         })).unwrap();
         let clipper = s.home.join("clipper");
         std::fs::write(&clipper, r#"#!/bin/sh
@@ -1049,7 +1049,7 @@ printf '%s\n' '{"schema":"clipper-library-deps/1","capabilities":["media-release
             &s.home,
             &s.backend,
             &json!({
-                "project_id": "p1", "archive": "MEDIA", "work": "ESSD", "release_work": false,
+                "project_id": "p1", "archive": "MEDIA", "work": "EDICION", "release_work": false,
                 "review_id": review_id,
             }),
             |catalog, paths| {
@@ -1130,14 +1130,14 @@ printf '%s\n' '{"schema":"clipper-library-deps/1","capabilities":["media-release
             [asset.to_string()],
         )
         .unwrap();
-        db.execute("INSERT INTO work VALUES('a1','ready','id-ESSD','t')", [])
+        db.execute("INSERT INTO work VALUES('a1','ready','id-EDICION','t')", [])
             .unwrap();
         db.execute(
             "INSERT INTO members(job_id,relative_path,sha256) VALUES('j1','clip.mov',?)",
             [&sha],
         )
         .unwrap();
-        for (id, dest) in [("id-MEDIA", ARCHIVE_RAW), ("id-ESSD", RAW)] {
+        for (id, dest) in [("id-MEDIA", ARCHIVE_RAW), ("id-EDICION", RAW)] {
             db.execute(
                 "INSERT INTO copies VALUES('j1',?,'clip.mov',?,?)",
                 (
@@ -1192,7 +1192,7 @@ esac
         plan_with(
             &s.home,
             &s.backend,
-            &json!({"project_id":"p1","archive":"MEDIA","work":"ESSD"}),
+            &json!({"project_id":"p1","archive":"MEDIA","work":"EDICION"}),
             |_, _| Ok(json!({"blockers":[],"relinks":[],"dependencies":null})),
         )
         .unwrap()
@@ -1435,7 +1435,7 @@ esac
                     .to_string()
                     .replace(root.as_ref(), "<ROOT>")
                     .replace("id-MEDIA", "MEDIA")
-                    .replace("id-ESSD", "ESSD"),
+                    .replace("id-EDICION", "EDICION"),
             )
             .unwrap();
             assert_eq!(normalized, golden[case][key], "{case}: {key}");

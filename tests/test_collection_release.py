@@ -37,13 +37,13 @@ class CollectionReleaseTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name).resolve()
-        self.ssd, self.old, self.new = [self.root / n for n in ('ssd1', 'media500', 'media502')]
+        self.ssd, self.old, self.new = [self.root / n for n in ('sonido', 'media7', 'media9')]
         for folder in (self.ssd, self.old, self.new): folder.mkdir()
         self.catalog = Catalog(self.root / 'state')
         self.addCleanup(self.catalog.close)
         self.backend = FixtureVolumes()
-        self.m500 = self.catalog.register('MEDIA500', 'archive', self.old, self.backend.describe(self.old), '001_raw')
-        self.m502 = self.catalog.register('MEDIA502', 'archive', self.new, self.backend.describe(self.new), '001_raw')
+        self.m500 = self.catalog.register('MEDIA7', 'archive', self.old, self.backend.describe(self.old), '001_raw')
+        self.m502 = self.catalog.register('MEDIA9', 'archive', self.new, self.backend.describe(self.new), '001_raw')
         # Never the person's Clipper registry or Downloads: an isolated home and projects root.
         for patcher in (mock.patch('media.clipper.dependencies', return_value=NO_CLIPPER),
                         mock.patch('pathlib.Path.home', return_value=self.root / 'home'),
@@ -51,7 +51,7 @@ class CollectionReleaseTests(unittest.TestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
         rec = self.ssd / 'recordingslong'
-        # 2019: backed up under another name on MEDIA500 (historical rename) — released.
+        # 2019: backed up under another name on MEDIA7 (historical rename) — released.
         write(rec / '2019/10/19OCT31-200854_H6LR_03-10_JP-TOKYO[].WAV', b'tokyo' * 1000)
         write(self.old / 'audio/2019/tokyo-renamed.wav', b'tokyo' * 1000)
         # 2019: used by an Ableton set — kept although it has a copy.
@@ -70,13 +70,13 @@ class CollectionReleaseTests(unittest.TestCase):
         write(rec / '2023/05/23MAY10-014910_H6LR_67-47_JP-SHINKANSEN[].WAV', b'shink' * 1000)
         write(self.new / '001_raw/recordingslong/2023/05/23MAY10-014910_H6LR_67-47_JP-SHINKANSEN[].WAV', b'shink' * 1000)
         self.sets = self.root / 'ableton'
-        ableton_set(self.sets / 'erikiado Project/erikiado.als',
-                    '/Volumes/SSD1/recordingslong/#2019:11:19NOV4-035845_H6LR_04-14_JP-KYOTOSAKA[].WAV')
+        ableton_set(self.sets / 'demo Project/demo.als',
+                    '/Volumes/SONIDO/recordingslong/#2019:11:19NOV4-035845_H6LR_04-14_JP-KYOTOSAKA[].WAV')
         self.rec = rec
 
     def make(self, **extra):
         keep = extra.pop('keep', {'als_roots': [str(self.sets)]})
-        return cr.plan(self.catalog, self.backend, str(self.rec), ['MEDIA500', 'MEDIA502'], keep=keep, **extra)
+        return cr.plan(self.catalog, self.backend, str(self.rec), ['MEDIA7', 'MEDIA9'], keep=keep, **extra)
 
     def test_plan_classifies_without_moving_anything(self):
         before = sorted(p for p in self.root.rglob('*') if p.is_file() and 'state' not in p.parts)
@@ -183,31 +183,31 @@ class CollectionReleaseTests(unittest.TestCase):
 
     def test_source_overlapping_an_archive_or_same_disk_is_refused(self):
         with self.assertRaises(MediaError) as error:
-            cr.plan(self.catalog, self.backend, str(self.old / 'audio'), ['MEDIA500'])
+            cr.plan(self.catalog, self.backend, str(self.old / 'audio'), ['MEDIA7'])
         self.assertEqual(error.exception.code, 'overlapping_roots')
         self.backend.physical[str(self.rec)] = 'disk-x'
         self.backend.physical[str(self.old)] = 'disk-x'
         with self.assertRaises(MediaError) as error:
-            cr.plan(self.catalog, self.backend, str(self.rec), ['MEDIA500'])
+            cr.plan(self.catalog, self.backend, str(self.rec), ['MEDIA7'])
         self.assertEqual(error.exception.code, 'same_physical_disk')
 
     def test_search_folder_limits_where_copies_are_looked_for(self):
-        value = self.make(search=[{'archive': 'MEDIA500', 'path': 'audio/2021'}])
+        value = self.make(search=[{'archive': 'MEDIA7', 'path': 'audio/2021'}])
         self.assertNotIn('2019/10/19OCT31-200854_H6LR_03-10_JP-TOKYO[].WAV', [e['path'] for e in value['entries']])
 
     def test_service_and_cli_shape(self):
         service = Service(self.catalog, self.backend)
-        value = service.call('collection_release_plan', {'source': str(self.rec), 'archives': ['MEDIA500', 'MEDIA502'],
+        value = service.call('collection_release_plan', {'source': str(self.rec), 'archives': ['MEDIA7', 'MEDIA9'],
                                                          'keep': {'als_roots': [str(self.sets)]}})
         listed = service.call('collection_release_plans', {})
         self.assertEqual([p['id'] for p in listed], [value['id']])
         self.assertNotIn('entries', listed[0])
         with self.assertRaises(MediaError):
-            service.call('collection_release_plan', {'source': str(self.rec), 'archives': ['MEDIA500'], 'progress': None})
+            service.call('collection_release_plan', {'source': str(self.rec), 'archives': ['MEDIA7'], 'progress': None})
         from media.cli import parser
-        args = parser().parse_args(['collection-release-plan', '--source', 's', '--archive', 'MEDIA500', '--archive', 'MEDIA501',
-                                    '--search', 'MEDIA500:001_raw/recordingslong', '--als-root', 'a', '--keep', '2024'])
-        self.assertEqual(args.archive, ['MEDIA500', 'MEDIA501'])
+        args = parser().parse_args(['collection-release-plan', '--source', 's', '--archive', 'MEDIA7', '--archive', 'MEDIA8',
+                                    '--search', 'MEDIA7:001_raw/recordingslong', '--als-root', 'a', '--keep', '2024'])
+        self.assertEqual(args.archive, ['MEDIA7', 'MEDIA8'])
 
     def test_offline_clipper_project_blocks_apply_but_not_the_plan(self):
         value = self.make()

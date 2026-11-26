@@ -184,7 +184,16 @@ def pending_stalker_files(catalog, archive_record, files, bundles):
     return files, bundles
 
 
-def _build_plan(catalog, backend, source, archive, work=None, project='', profile='e64', country='mx', city='hermosillo',
+def _default(catalog, value, key):
+    # Profile, country and city come from the request or the library's own `defaults`; the code has none of its own.
+    if not (isinstance(value, str) and value.strip()):
+        value = (catalog.get('defaults', {}) or {}).get(key)
+    require(isinstance(value, str) and value.strip(), 'defaults_required',
+            'Set a default {} first (Settings) or pass it'.format(key))
+    return slug(value)
+
+
+def _build_plan(catalog, backend, source, archive, work=None, project='', profile=None, country=None, city=None,
                archive_only=False, confirm_archive_only=False, work_decision='pending', cleanup=False,
                assignments=None, camera=None, source_kind='card', cancel=None, finals_route=False, delivery_paths=None, finals_role=None):
     require(isinstance(archive_only, bool) and isinstance(confirm_archive_only, bool), 'invalid_policy', 'Archive-only flags must be boolean')
@@ -202,8 +211,8 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
         project = ''
     else:
         project = slug(project)
-    profile = slug(profile)
-    country, city = slug(country), slug(city)
+    profile, country, city = (_default(catalog, value, key) for value, key in
+                              ((profile, 'profile'), (country, 'country'), (city, 'city')))
     require(camera is None or camera in CAMERAS, 'invalid_camera', 'Unknown camera category')
     source = Path(source).expanduser().absolute()
     card_cleanup = cleanup and source_kind == 'card'
@@ -373,7 +382,7 @@ def _build_plan(catalog, backend, source, archive, work=None, project='', profil
             if found:
                 unit['work_existing'] = found
     if mission_indexes and not active_work:
-        # Backing up a folder that already is the consumer's work copy (e.g. ESSD atlas-subaereo/101MEDIA): those
+        # Backing up a folder that already is the consumer's work copy (e.g. EDICION atlas-subaereo/101MEDIA): those
         # stills are the work copy, so the units map points to them instead of leaving them without one.
         flows = {f['id']: f for f in rules['missions']}
         for record in catalog.volumes():

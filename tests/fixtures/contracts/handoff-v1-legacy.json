@@ -3,7 +3,7 @@
   "handoff_id": "b009108e-f01e-4b17-a96d-e7b7945b5f03",
   "created_at": "2026-10-25T05:00:00Z",
   "project_id": "51782354-3a15-4a39-9364-07f199956c76",
-  "profile_id": "erikiado64",
+  "profile_id": "estudio-a",
   "assets": [
     {
       "asset_id": "e1a8f55e-a818-4f3f-8175-4610c4bb90b2",
@@ -20,7 +20,7 @@
       "locations": [
         {
           "volume_id": "83d8a1bd-9066-4b4d-a25d-5b2b9dcd6a4c",
-          "relative_path": "001_proyectos/e64_raw/ejemplo/source.mp4",
+          "relative_path": "001_proyectos/canal-a_raw/ejemplo/source.mp4",
           "role": "work",
           "receipt_id": "2bf642c5-3cc6-474a-b83d-a24f4e72bb49"
         }

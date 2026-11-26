@@ -26,7 +26,7 @@ class DngTests(MissionFixture):
         self.ids = {line['original_name']: line['asset_id'] for line in self.units_map()}
 
     def dng_plan(self, **params):
-        return self.service.call('dng_plan', dict({'archive': 'MEDIA', 'work': 'ESSD'}, **params))
+        return self.service.call('dng_plan', dict({'archive': 'MEDIA', 'work': 'EDICION'}, **params))
 
     def trash(self):
         folder = self.work / '.Trashes' / str(os.getuid())

@@ -174,8 +174,8 @@ Por eso el `FileNotFoundError` de `C0001.MP4`, retirado minutos antes, encaja
 con una entrada de directorio todavía listada que ya no existía al leerla, el
 caso que la fase `checking_card` reintenta desde `a439bb378645`. Es coherente
 con la reaparición observada el 7 nov tras la interrupción de FSKit, pero no
-la prueba: la tarjeta ya se formateó y reutilizó. Los recibos en MEDIA502 y la
-entrega posterior a ESSD constan verificados. El trabajo sigue `failed` y la
+la prueba: la tarjeta ya se formateó y reutilizó. Los recibos en MEDIA9 y la
+entrega posterior a EDICION constan verificados. El trabajo sigue `failed` y la
 comprobación al reconectar no lo incluía. Decisión del usuario (7 nov): la
 comprobación al reconectar observa también los trabajos `failed` con
 `removal_recorded`. Con la tarjeta formateada (clips ausentes y un índice
