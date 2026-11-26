@@ -160,6 +160,30 @@ Gana el `exportedAt` más nuevo aunque el export viejo llegue después. Un tombs
 lo publique) borra el plan y un export más viejo no lo revive. Los archivos fuera de `~/Downloads` (por ejemplo
 `atlas/coverage_exports/`) se incorporan pero nunca se borran.
 
+#### Respuesta de nüün a A77 (2026-11-26)
+
+nüün acepta la opción (a) de nove. En macOS, su registro de motor anuncia `missions_ingest_v1`
+mientras el lector Rust de la app sirve el socket local de la suite. nove llama
+`missions_ingest {path, source: "nove"}` con la ruta absoluta de un `JSON-subaereo-*.json` directo en
+`<biblioteca>/outbox/nuun-missions/`. La biblioteca sale del registro vivo de nove o de la entrada
+`nove` de su perfil activo en `profiles.json`. El nombre de archivo y el campo `source` por sí solos
+no autorizan otra carpeta. El importador aplica su límite de 64 MiB y rechaza enlaces en la ruta.
+
+Se usa el archivo registrado que figura en los defaults de nüün, o el único archivo registrado si
+no hay preferencia. La misma regla selecciona el espejo de trabajo si corresponde. El método
+reutiliza la revisión y la incorporación de A13. Sólo nove escribe y retira sus exports del buzón de
+salida. La operación se puede repetir con los mismos bytes después de un cierre o una desconexión.
+
+| Respuesta | Qué puede hacer nove |
+| --- | --- |
+| `incorporated` | Retirar su copia después de comprobar que su SHA-256 coincide con `sha256` de la respuesta. El crudo y el registro quedaron verificados. |
+| `already` | Mismo permiso. El crudo volvió a verificarse y los registros no se duplicaron. |
+| `deferred` | Conservar la copia y reintentar. `reason` indica si falta nove o su biblioteca, la selección o identidad del archivo, si otro trabajo tiene el lock o si cambió la revisión. Con `work_offline`, el archivo ya es durable y el espejo se completa al reintentar. |
+| Error, socket ausente o timeout | Conservar la copia. Un export inválido o una discrepancia de SHA-256 requieren revisión. La respuesta puede tardar mientras se verifica el disco. |
+
+`mirror` indica `written`, `skipped` si no se seleccionó un SSD de trabajo, o `pending` al quedar pendiente.
+La entrega de JSON sólo actualiza el registro de misiones. La liberación de la SD sigue bajo A14.
+
 ### `units.ndjson` (A12)
 
 `ESSD/001_proyectos/atlas-subaereo/_nuun/units.ndjson`: una línea por unidad de dron, reemplazada por `asset_id`

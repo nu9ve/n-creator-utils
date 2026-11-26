@@ -77,7 +77,58 @@ fn rpc_serve_registers_its_socket_and_answers_the_suite() {
     )
     .unwrap();
     assert_eq!(export["status"], "not_found");
-    // Only the two suite methods: the app's reads and writes stay on its own stdio.
+    #[cfg(target_os = "macos")]
+    {
+        assert!(record.has_capability("missions_ingest_v1"));
+        let delivery = |path: &Path| {
+            nu9ve_ipc::request(
+                &record,
+                "missions_ingest",
+                Some(json!({"path":path,"source":"nove"})),
+                None,
+                timeout,
+            )
+        };
+        assert_eq!(
+            delivery(Path::new("relative.json")).unwrap_err().code,
+            "invalid_params"
+        );
+        let library = root.join("nove");
+        let path = library.join("outbox/nuun-missions/JSON-subaereo-test.json");
+        assert_eq!(
+            delivery(&path).unwrap(),
+            json!({"status":"deferred","reason":"nove_unavailable"})
+        );
+        let mut sender = nu9ve_ipc::Record::for_current_process(
+            "nove",
+            "0.1",
+            nu9ve_ipc::Transport::Unix {
+                path: root.join("nove.sock"),
+            },
+            nu9ve_ipc::EngineRef {
+                contract: "nu9ve-engine/1".into(),
+                protocol: "nove/1".into(),
+                engine: "rust".into(),
+                version: "0.1".into(),
+            },
+            vec![],
+        )
+        .unwrap();
+        sender.library = Some(library.to_str().unwrap().into());
+        let registration = nu9ve_ipc::Registration::register(&engines, &sender).unwrap();
+        assert_eq!(
+            delivery(&root.join("JSON-subaereo-other.json"))
+                .unwrap_err()
+                .code,
+            "invalid_params"
+        );
+        assert_eq!(
+            delivery(&path).unwrap(),
+            json!({"status":"deferred","reason":"archive_not_selected"})
+        );
+        registration.unregister().unwrap();
+    }
+    // The app's general reads and writes stay on its own stdio.
     let refused =
         nu9ve_ipc::request(&record, "snapshot", Some(json!({})), None, timeout).unwrap_err();
     assert_eq!(refused.code, "unknown_method");

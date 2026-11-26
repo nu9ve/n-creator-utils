@@ -798,6 +798,15 @@ mod incorporate {
     }
 
     pub fn run(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value> {
+        apply(home, backend, params, false)
+    }
+
+    fn apply(
+        home: &Path,
+        backend: &dyn Backend,
+        params: &Value,
+        verify_duplicates: bool,
+    ) -> Result<Value> {
         if let Some(key) = params.as_object().and_then(|params| {
             params.keys().find(|key| {
                 ![
@@ -888,7 +897,14 @@ mod incorporate {
                 "source_changed",
                 format!("An export changed after review: {name}"),
             )?;
-            if state.nuun["sources"].get(sha).is_some() {
+            if let Some(source) = state.nuun["sources"].get(sha) {
+                if verify_duplicates {
+                    require(
+                        verify_raw(&root, text(source, "raw"), sha)?,
+                        "checksum_mismatch",
+                        "Archived raw mission export did not verify",
+                    )?;
+                }
                 continue;
             }
             let raw_rel = store_raw(&root, area, entry, &raw)?;
@@ -1042,10 +1058,97 @@ mod incorporate {
             "kept":kept,"invalid":invalid,"mirror":mirror,"coverage":coverage,"history":history_rel}),
         )
     }
+
+    // A foreign outbox stays owned by its producer. Reuse the reviewed merge, but require proof
+    // of the raw archive even on a retry before the producer may remove its own copy.
+    pub fn ingest_nove(
+        home: &Path,
+        backend: &dyn Backend,
+        library: &Path,
+        path: &Path,
+    ) -> Result<Value> {
+        let outbox = library.join("outbox/nuun-missions");
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+        require(
+            library.is_absolute()
+                && !library
+                    .components()
+                    .any(|c| c == std::path::Component::ParentDir)
+                && path.parent() == Some(outbox.as_path())
+                && name.starts_with("JSON-subaereo-")
+                && name.ends_with(".json"),
+            "invalid_params",
+            "Expected a JSON-subaereo export directly in the registered nove library outbox",
+        )?;
+        let catalog = Catalog::open(home)?;
+        let defaults = crate::snapshot::defaults(&catalog)?;
+        let records = catalog.volumes()?;
+        let destination = |role: &str| {
+            let mut matching = records.iter().filter(|volume| volume["role"] == role);
+            if let Some(saved) = defaults[role].as_str().filter(|s| !s.is_empty()) {
+                return matching.find(|v| v["id"] == saved || v["name"] == saved);
+            }
+            matching.next().filter(|_| matching.next().is_none())
+        };
+        let Some(archive) = destination("archive") else {
+            return Ok(json!({"status":"deferred","reason":"archive_not_selected"}));
+        };
+        let archive = &archive["id"];
+        let paths = json!([path]);
+        let result: Result<Value> = (|| {
+            let reviewed = review(
+                &catalog,
+                Some(backend),
+                &json!({"archive":archive,"paths":paths,"flow_id":"subaereo"}),
+            )?;
+            let entry = &reviewed["files"][0];
+            require(
+                entry["state"] != "invalid",
+                "invalid_export",
+                "The export cannot be read or does not match the subaereo schema",
+            )?;
+            let imported = apply(
+                home,
+                backend,
+                &json!({"archive":archive,"paths":paths,"flow_id":"subaereo",
+                    "digest_value":reviewed["digest"],"remove_from_inbox":false,
+                    "work":destination("work").map(|v| &v["id"])}),
+                true,
+            )?;
+            if imported["mirror"] == "pending" {
+                return Ok(json!({"status":"deferred","reason":"work_offline",
+                    "sha256":entry["sha256"],"mirror":"pending"}));
+            }
+            let status = if imported["incorporated"] == json!([]) {
+                "already"
+            } else {
+                "incorporated"
+            };
+            Ok(json!({"status":status,"sha256":entry["sha256"],"mirror":imported["mirror"]}))
+        })();
+        match result {
+            Err(e)
+                if matches!(
+                    e.code.as_str(),
+                    "volume_offline"
+                        | "volume_replaced"
+                        | "review_changed"
+                        | "source_changed"
+                        | "job_busy"
+                ) =>
+            {
+                Ok(json!({"status":"deferred","reason":e.code}))
+            }
+            other => other,
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
-pub use incorporate::run as incorporate;
+pub use incorporate::{ingest_nove, run as incorporate};
 
 #[cfg(test)]
 mod tests {
@@ -1264,6 +1367,77 @@ mod incorporate_tests {
             assert!(output.status.success());
             assert_eq!(output.stdout, raw.as_str().unwrap().as_bytes());
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn nove_delivery_retries_and_verifies_duplicates_without_removing_the_source() {
+        let mut s = setup();
+        let library = s.card.join("nove");
+        let outbox = library.join("outbox/nuun-missions");
+        std::fs::create_dir_all(&outbox).unwrap();
+        let path = outbox.join("JSON-subaereo-fixture.json");
+        let export = nu9ve_json::canonical(&json!({
+            "schemaVersion":3,"exportedAt":"2026-11-26T01:00:00Z",
+            "plans":[{"id":"plan-1"}],"captureLog":[],"captures":[],
+            "flightSessions":[],"fieldNotes":[]
+        }));
+        std::fs::write(&path, &export).unwrap();
+        let deliver = |s: &crate::volumes::test_backend::Setup| {
+            ingest_nove(&s.home, &s.backend, &library, &path)
+        };
+        let archive_mount = s.archive.to_string_lossy().into_owned();
+        s.backend.offline.insert(archive_mount.clone());
+        assert_eq!(
+            deliver(&s).unwrap(),
+            json!({"status":"deferred","reason":"volume_offline"})
+        );
+        let area = s.archive.join("004_datos/subaereo/coverage");
+        assert!(!area.exists());
+        s.backend.offline.remove(&archive_mount);
+        s.backend
+            .offline
+            .insert(s.work.to_string_lossy().into_owned());
+        let waiting = deliver(&s).unwrap();
+        assert_eq!(waiting["status"], "deferred");
+        assert_eq!(waiting["reason"], "work_offline");
+        let history = std::fs::read(area.join("history.json")).unwrap();
+        let changes = std::fs::read(area.join("changes.ndjson")).unwrap();
+        assert_eq!(String::from_utf8_lossy(&changes).lines().count(), 1);
+        s.backend.offline.clear();
+        let delivered = deliver(&s).unwrap();
+        assert_eq!(
+            delivered,
+            json!({
+                "status":"already","mirror":"written","sha256":nu9ve_json::sha256_hex(&export)
+            })
+        );
+        assert_eq!(std::fs::read(area.join("history.json")).unwrap(), history);
+        assert_eq!(std::fs::read(area.join("changes.ndjson")).unwrap(), changes);
+        assert_eq!(std::fs::read(&path).unwrap(), export);
+
+        let another = outbox.join("JSON-subaereo-second.json");
+        let data = json!({
+            "schemaVersion":3,"exportedAt":"2026-11-27T01:00:00Z",
+            "plans":[],"captureLog":[],"captures":[],"flightSessions":[],"fieldNotes":[],
+            "deletedPlanIDs":["plan-1"]
+        });
+        std::fs::write(&another, nu9ve_json::canonical(&data)).unwrap();
+        assert_eq!(
+            ingest_nove(&s.home, &s.backend, &library, &another).unwrap()["status"],
+            "incorporated"
+        );
+        assert!(another.exists());
+        assert_eq!(
+            ingest_nove(&s.home, &s.backend, &library, &another).unwrap()["status"],
+            "already"
+        );
+        let registry: Value =
+            serde_json::from_slice(&std::fs::read(area.join("history.json")).unwrap()).unwrap();
+        assert_eq!(registry["plans"], json!([]));
+        std::fs::remove_file(area.join("raw/2026/11/JSON-subaereo-fixture.json.gz")).unwrap();
+        assert_eq!(deliver(&s).unwrap_err().code, "checksum_mismatch");
+        assert_eq!(std::fs::read(&path).unwrap(), export);
     }
 
     #[test]

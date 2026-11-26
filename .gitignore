@@ -12,6 +12,7 @@ config.local.json
 
 # Native build products
 .build/
+/native/MediaMenu/.build
 .swiftpm/
 
 # Windows build products
@@ -21,7 +22,7 @@ native/windows/**/obj/
 vendor/.nu9ve-core-build/
 
 # Rust engine build products
-engine/target/
+/engine/target
 
 # nu9ve-bench-v1: registros locales de benchmarks (scripts/engine_bench.py)
 bench/

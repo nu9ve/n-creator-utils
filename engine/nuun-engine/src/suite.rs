@@ -1,5 +1,5 @@
 //! nüün on a transport the suite can find (nu9ve-registry-v1): while the app's `rpc-serve` runs, a Unix socket
-//! serves `data_catalog` and `data_export` in frames, one per connection, with the rules of nu9ve-engine-v1 §9,
+//! serves suite methods in frames, one per connection, with the rules of nu9ve-engine-v1 §9,
 //! and the engine registers as `nuun` once it accepts connections.
 //!
 //! Under QA (a `--state-dir`, the sandbox) it registers only in `NU9VE_ENGINES_DIR`, never in the person's folder.
@@ -9,18 +9,22 @@ use std::path::{Path, PathBuf};
 
 pub const APP: &str = "nuun";
 pub const PROTOCOL: &str = "nuun-suite/1";
-pub const CAPABILITIES: [&str; 3] = [
+pub const CAPABILITIES: &[&str] = &[
     "data_catalog_v1",
     "data_export_v1",
     "conversations_export_working_v1",
+    #[cfg(target_os = "macos")]
+    "missions_ingest_v1",
 ];
 /// `conversations_export_working` (U1 of nove): the working copy the person already decided, started in the
 /// background; `conversations_export_status` answers how that run went.
-pub const METHODS: [&str; 4] = [
+pub const METHODS: &[&str] = &[
     "data_catalog",
     "data_export",
     "conversations_export_working",
     "conversations_export_status",
+    #[cfg(target_os = "macos")]
+    "missions_ingest",
 ];
 
 /// Export runs started from the suite while this engine serves: `run_id` → state.
@@ -30,9 +34,9 @@ fn info() -> EngineInfo<'static> {
     EngineInfo {
         protocol: PROTOCOL,
         version: env!("CARGO_PKG_VERSION"),
-        capabilities: &CAPABILITIES,
+        capabilities: CAPABILITIES,
         ported: &[],
-        native: &METHODS,
+        native: METHODS,
         extra: Map::new(),
     }
 }
@@ -110,7 +114,48 @@ fn export_status(params: &Value) -> nu9ve_json::Result<Value> {
         .unwrap_or_else(|| json!({"run_id": id, "status": "not_found"})))
 }
 
-/// One request of the suite transport on the catalog of `home`: the two reads and the decided export.
+#[cfg(target_os = "macos")]
+fn missions_ingest(home: &Path, isolated: bool, params: &Value) -> nu9ve_json::Result<Value> {
+    let path = params["path"]
+        .as_str()
+        .filter(|p| Path::new(p).is_absolute());
+    let path = path
+        .filter(|_| params["source"] == "nove" && params.as_object().is_some_and(|p| p.len() == 2))
+        .ok_or_else(|| {
+            nu9ve_json::Error::new(
+                "invalid_params",
+                "Expected an absolute path and source nove",
+            )
+        })?;
+    let Some(dir) = registry(isolated) else {
+        return Ok(json!({"status":"deferred","reason":"nove_unavailable"}));
+    };
+    let Some(nu9ve_ipc::Entry {
+        state: nu9ve_ipc::State::Live(record),
+        ..
+    }) = nu9ve_ipc::read_entry(&dir, "nove")
+        .map_err(|e| nu9ve_json::Error::new("internal_error", e.to_string()))?
+    else {
+        return Ok(json!({"status":"deferred","reason":"nove_unavailable"}));
+    };
+    let library = record.library.map(PathBuf::from).or_else(|| {
+        let profile_id = record.profile_id?;
+        let profiles = nuun_media::suite_profiles::file(isolated);
+        let (document, _) = nuun_media::suite_profiles::load(profiles.as_deref());
+        nuun_media::suite_profiles::libraries(document.as_ref())
+            .into_iter()
+            .find(|(id, _, app, _)| id == &profile_id && app == "nove")
+            .map(|(_, _, _, library)| library)
+    });
+    let Some(library) = library else {
+        return Ok(json!({"status":"deferred","reason":"nove_library_unavailable"}));
+    };
+    let backend = nuun_media::volumes::platform_backend(home)
+        .ok_or_else(|| nu9ve_json::Error::new("not_ported", "No volume backend"))?;
+    nuun_media::mission_review::ingest_nove(home, backend.as_ref(), &library, Path::new(path))
+}
+
+/// One request of the suite transport on the catalog of `home`.
 pub fn dispatch(home: &Path, isolated: bool, request: Request<'_>) -> nu9ve_engine::Result {
     let params = Value::Object(request.params.clone());
     let result = match request.method {
@@ -118,6 +163,8 @@ pub fn dispatch(home: &Path, isolated: bool, request: Request<'_>) -> nu9ve_engi
         "data_export" => nuun_media::suite_volume::data_export(home, &params),
         "conversations_export_working" => start_export(home, isolated, &params),
         "conversations_export_status" => export_status(&params),
+        #[cfg(target_os = "macos")]
+        "missions_ingest" => missions_ingest(home, isolated, &params),
         other => {
             return Err(RpcError::new(
                 "unknown_method",
