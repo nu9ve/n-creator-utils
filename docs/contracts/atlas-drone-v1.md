@@ -212,7 +212,7 @@ no está todavía en el trabajo. `utc_basis: host_zone` significa que el EXIF de
 | A13 registro de misiones | Hecho y aplicado: 22 exports, 65 planes, espejo `_missions/`; Inicio avisa cuando cae un JSON en Descargas | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dron-para-atlas-paso-2-registro-unificado-de-misiones--2026-11-08) |
 | A12 misión o no + trabajo JPG + `units.ndjson` | Hecho y aplicado: SD `MAVIC200` (job `cc8bd128`), 1,276 de misión en 25 sesiones | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#primer-ingreso-real-de-dron-aplicado-mavic200--2026-11-08) |
 | A11 copias únicas | Hecho: SD (6–7 nov) y `EDICION/101MEDIA` mayo–junio (job `77bdcb73`, 534 pares) | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#a11-aplicado-mayojunio-del-edicion-respaldado-en-media9--2026-11-08) |
-| A14 liberar la SD | Hecho: SD vacía tras verificar; un plan con limpieza se rechaza si alguna foto espera export (`mission_export_missing`). Falta formatear desde el dron | idem |
+| A14 liberar la SD | Hecho: SD vacía tras verificar; un plan con limpieza se rechaza si alguna foto espera export (`mission_export_missing`). No hace falta formatear: la limpieza es `files` y el dron rehace su estructura (cuatro ingresos `completed` hasta el 26 nov, sin fotos repetidas) | idem |
 | A16 DNG a pedido | Hecho: muestra de 128 en trabajo y 999 liberados tras verificar (`dng-d9549817`); `dng-plan` con `keep` para pedir más | [STATUS](../releases/status-log-2026-10-25_2026-11-08.md#dng-del-edicion-muestra-conservada-y-el-resto-a-la-papelera-a16--2026-11-08) |
 
 Pendiente del lado nüün:
