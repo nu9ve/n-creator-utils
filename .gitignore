@@ -25,4 +25,4 @@ vendor/.nu9ve-core-build/
 /engine/target
 
 # nu9ve-bench-v1: registros locales de benchmarks (scripts/engine_bench.py)
-bench/
+/bench/
