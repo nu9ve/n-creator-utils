@@ -172,39 +172,71 @@ struct SectionTitle: View {
 struct SourceTiles: View {
     @Bindable var model: Model
     let compact: Bool
+    /// Cards inserted while nüün runs, newest first; the rest keep the snapshot's order.
+    private var cards: (recent: [JSONValue], rest: [JSONValue]) {
+        let arrived = { (card: JSONValue) in model.cardArrivals[card["path"].string] }
+        let recent = model.sourceCards.filter { arrived($0) != nil }.sorted { arrived($0)! > arrived($1)! }
+        return (recent, model.sourceCards.filter { arrived($0) == nil })
+    }
     var body: some View {
-        let columns = [GridItem(.adaptive(minimum: compact ? 170 : 220), spacing: 10, alignment: .top)]
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-            ForEach(model.sourceCards, id: \.["path"].string) { card in
-                let hint = card["hint"]
-                // Highlighted only once chosen and read (or being read): a card parked as source is not a choice yet.
-                SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card" && (model.contentLoaded || model.discoveryLoading),
-                           symbol: "sdcard.fill", title: card["name"].string,
-                           subtitle: hint == .null ? String(localized: "SD conectada") : model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : ""),
-                           detail: hint == .null ? nil : model.cardRecommendation(hint),
-                           eject: { model.eject(card["path"].string) }) {
-                    model.useCard(card["path"].string); model.discover()
+        Group {
+            if compact {
+                // One row that scrolls sideways: more sources never push the footer out of the window.
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: 10) { tiles(width: 210) }.padding(.vertical, 1)
+                }.scrollIndicators(.hidden)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10, alignment: .top)], alignment: .leading, spacing: 10) {
+                    tiles(width: nil)
                 }
             }
-            // Every library is one Stalker: the folders only matter once there is something in two of them.
-            if !model.captureRoots.isEmpty {
-                SourceTile(selected: !model.source.isEmpty && model.sourceKind == "stalker" && model.captureRoots.contains(model.source), symbol: "record.circle",
-                           title: "Stalker", subtitle: String(localized: "\(model.pendingCaptures.count) sesiones pendientes"), detail: nil, eject: nil) {
-                    model.useStalker()
-                }
-            }
-            let known = model.sourceCards.contains { $0["path"].string == model.source } || model.captureRoots.contains(model.source)
-            if !model.source.isEmpty && !known {
-                SourceTile(selected: true, symbol: model.sourceKind == "stalker" ? "record.circle" : "folder.fill", title: URL(fileURLWithPath: model.source).lastPathComponent,
-                           subtitle: model.source, detail: nil, eject: nil) {}
-            }
-            SourceTile(selected: false, symbol: "folder.badge.plus", title: String(localized: "Otra carpeta…"),
-                       subtitle: String(localized: "Tarjeta, disco o carpeta"), detail: nil, eject: nil) { model.chooseSource() }
-            SourceTile(selected: false, symbol: "film.stack", title: String(localized: "Histórico Handycam…"),
-                       subtitle: String(localized: "Organizar los MP4 en el archivo"), detail: nil, eject: nil) { model.chooseHandycamHistory() }
         }
         if model.sourceCards.isEmpty && !model.volumes.contains(where: { $0["online"].bool }) {
             Text("Conecta tu disco de respaldo para que nüün sugiera las SD conectadas.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder private func tiles(width: CGFloat?) -> some View {
+        let (recent, rest) = cards
+        ForEach(recent, id: \.["path"].string) { card in cardTile(card).frame(width: width) }
+        // Stalker only with something to back up (or while it is the source).
+        let stalkerSelected = !model.source.isEmpty && model.sourceKind == "stalker" && model.captureRoots.contains(model.source)
+        if !model.captureRoots.isEmpty && (!model.pendingCaptures.isEmpty || stalkerSelected) {
+            SourceTile(selected: stalkerSelected, symbol: "record.circle",
+                       title: "Stalker", subtitle: String(localized: "\(model.pendingCaptures.count) sesiones pendientes"), detail: nil, eject: nil) {
+                model.useStalker()
+            }.frame(width: width)
+        }
+        ForEach(rest, id: \.["path"].string) { card in cardTile(card).frame(width: width) }
+        let known = model.sourceCards.contains { $0["path"].string == model.source } || model.captureRoots.contains(model.source)
+        if !model.source.isEmpty && !known {
+            SourceTile(selected: true, symbol: model.sourceKind == "stalker" ? "record.circle" : "folder.fill", title: URL(fileURLWithPath: model.source).lastPathComponent,
+                       subtitle: model.source, detail: nil, eject: nil) {}.frame(width: width)
+        }
+        // Manual sources are tools, not suggestions: one tile with a menu.
+        Menu {
+            Button("Carpeta, tarjeta o disco…", systemImage: "folder") { model.chooseSource() }
+            Button("Histórico Handycam: organizar MP4 en el archivo…", systemImage: "film.stack") { model.chooseHandycamHistory() }
+        } label: {
+            SourceTileContent(selected: false, symbol: "folder.badge.plus", title: String(localized: "Otra fuente…"),
+                              subtitle: String(localized: "Carpeta, disco o histórico"), detail: nil, compact: compact)
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).buttonStyle(.plain)
+        .frame(width: width)
+    }
+
+    private func cardTile(_ card: JSONValue) -> some View {
+        let hint = card["hint"]
+        let subtitle = card["reading"].bool ? String(localized: "Leyendo la tarjeta…")
+            : hint == .null ? String(localized: "SD conectada")
+            : model.cardKindLabel(hint) + (hint["capacity_bytes"].double > 0 ? " · " + bytesLabel(hint["used_bytes"].double) + " / " + bytesLabel(hint["capacity_bytes"].double) : "")
+        // Highlighted only once chosen and read (or being read): a card parked as source is not a choice yet.
+        return SourceTile(selected: model.source == card["path"].string && model.sourceKind == "card" && (model.contentLoaded || model.discoveryLoading),
+                          symbol: "sdcard.fill", title: card["name"].string, subtitle: subtitle,
+                          detail: hint == .null ? nil : model.cardRecommendation(hint), compact: compact,
+                          eject: card["reading"].bool ? nil : { model.eject(card["path"].string) }) {
+            guard !card["reading"].bool else { return }
+            model.useCard(card["path"].string); model.discover()
         }
     }
 }
@@ -231,25 +263,12 @@ struct SourceTile: View {
     let title: String
     let subtitle: String
     let detail: String?
+    var compact = false
     let eject: (() -> Void)?
     let action: () -> Void
-    @Environment(\.creatorPalette) private var palette
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbol).font(.title2).foregroundStyle(selected ? palette.accentText : palette.muted).frame(width: 28)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.callout.weight(.semibold)).lineLimit(1)
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    if let detail { Text(detail).font(.caption2).foregroundStyle(palette.muted).fixedSize(horizontal: false, vertical: true) }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .background(palette.raised.opacity(selected ? 0.6 : 0.35), in: palette.panel)
-            .overlay(palette.panel.stroke(selected ? palette.accentText : palette.line.opacity(0.6), lineWidth: selected ? 1.5 : 1))
-            .contentShape(palette.panel)
+            SourceTileContent(selected: selected, symbol: symbol, title: title, subtitle: subtitle, detail: detail, compact: compact)
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topTrailing) {
@@ -258,6 +277,35 @@ struct SourceTile: View {
                     .help("Expulsar SD de forma segura").accessibilityLabel("Expulsar SD de forma segura")
             }
         }
+    }
+}
+
+struct SourceTileContent: View {
+    let selected: Bool
+    let symbol: String
+    let title: String
+    let subtitle: String
+    let detail: String?
+    var compact = false
+    @Environment(\.creatorPalette) private var palette
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: symbol).font(.title2).foregroundStyle(selected ? palette.accentText : palette.muted).frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.callout.weight(.semibold)).lineLimit(1)
+                Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                if let detail {
+                    Text(detail).font(.caption2).foregroundStyle(palette.muted)
+                        .lineLimit(compact ? 2 : nil).fixedSize(horizontal: false, vertical: !compact)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 64, maxHeight: compact ? .infinity : nil, alignment: .topLeading)
+        .background(palette.raised.opacity(selected ? 0.6 : 0.35), in: palette.panel)
+        .overlay(palette.panel.stroke(selected ? palette.accentText : palette.line.opacity(0.6), lineWidth: selected ? 1.5 : 1))
+        .contentShape(palette.panel)
     }
 }
 

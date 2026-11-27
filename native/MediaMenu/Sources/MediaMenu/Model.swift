@@ -268,6 +268,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var cardSuggestions: [String] = []
     var sourceCards: [JSONValue] = []
     @ObservationIgnored var notifiedCards: Set<String> = []
+    /// When each card was inserted in this run: the newest go first in the source list.
+    var cardArrivals: [String: Date] = [:]
     var profile = "" { didSet { if profile != oldValue { invalidatePlan() } } }
     var country = "" { didSet { if country != oldValue { invalidatePlan() } } }
     var city = "" { didSet { if city != oldValue { invalidatePlan() } } }
@@ -1415,6 +1417,13 @@ enum OperationScope { case ingest, library, space, settings, source }
         if changed && !Task.isCancelled { await refresh() }
     }
 
+    /// A volume the system marks removable (an SD in a reader) that is not one of the registered disks.
+    func removableUnregistered(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        let removable = (try? url.resourceValues(forKeys: [.volumeIsRemovableKey]))?.volumeIsRemovable ?? false
+        return removable && !volumes.contains { $0["root"].string == path }
+    }
+
     func notifyCard(_ path: String) {
         guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
         let card = card(path)
@@ -1428,9 +1437,19 @@ enum OperationScope { case ingest, library, space, settings, source }
         }
     }
     func mountChanged(arrival: String? = nil) {
-        if let arrival { notifiedCards.remove(arrival) }
+        if let arrival { notifiedCards.remove(arrival); cardArrivals[arrival] = Date() }
         let started = ContinuousClock.now
         if arrival != nil { cardLog.notice("mount notification") }
+        // Reading every disk can take seconds on a card that was just mounted: show the popup now, with the card
+        // as «reading», and let the snapshot fill it in. Only a removable volume that is not a registered disk.
+        if let arrival, removableUnregistered(arrival), !busy, !sourceCards.contains(where: { $0["path"].string == arrival }),
+           volumes.contains(where: { $0["online"].bool }), UserDefaults.standard.bool(forKey: "showQuickImporter") {
+            sourceCards.insert(.object(["path": .string(arrival), "name": .string(URL(fileURLWithPath: arrival).lastPathComponent),
+                                        "hint": .null, "reading": .bool(true)]), at: 0)
+            if source.isEmpty || lastResult != nil || (units.isEmpty && plan == nil) { route = .ingest; ingestStep = .source }
+            openImporter?()
+            cardLog.notice("importer opened early after \(elapsedMilliseconds(since: started), privacy: .public) ms")
+        }
         eventTask?.cancel()
         eventTask = Task {
             try? await Task.sleep(for: .milliseconds(300))

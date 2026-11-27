@@ -1113,3 +1113,8 @@
 "Incorporar y volver a leer" = "Incorporate and read again";
 "Se guardan en el respaldo, se unen al registro y salen de Descargas. Luego las fotos se enlazan con su misión." = "They are saved to the backup, merged into the registry and leave Downloads. Then the photos link to their mission.";
 "No hay ningún export en Descargas. Mándalo desde la app de vuelo: nüün lo detecta en cuanto llega." = "No export in Downloads. Send it from the flight app: nüün detects it as soon as it arrives.";
+"Leyendo la tarjeta…" = "Reading the card…";
+"Otra fuente…" = "Other source…";
+"Carpeta, disco o histórico" = "Folder, disk or archive";
+"Carpeta, tarjeta o disco…" = "Folder, card or disk…";
+"Histórico Handycam: organizar MP4 en el archivo…" = "Handycam archive: organize MP4s in the backup…";
