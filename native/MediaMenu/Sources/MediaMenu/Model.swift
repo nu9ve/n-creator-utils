@@ -158,6 +158,9 @@ enum OperationScope { case ingest, library, space, settings, source }
     var showAccumulations = false
     var suiteProfiles: JSONValue?
     var conversationsRunning = false
+    /// The engine's measure of the conversations backup in progress (`action_progress`), apart from `actionProgress`
+    /// so a backup and another action never overwrite each other's bar.
+    var conversationProgress: JSONValue = .object([:])
     var librarySection: LibrarySection = .projects
     var presentation: WindowMode = .full
     var profiles: [JSONValue] = []

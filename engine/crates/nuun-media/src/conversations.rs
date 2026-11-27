@@ -361,6 +361,7 @@ pub fn backup_plan(
         "not_configured",
         "Choose the archive disk for your conversations first",
     )?;
+    let wanted_progress = params["progress_id"].clone();
     let wanted: Option<Vec<&str>> = params["collections"]
         .as_array()
         .map(|a| a.iter().filter_map(Value::as_str).collect());
@@ -383,16 +384,25 @@ pub fn backup_plan(
             skipped.push(json!({"id":k.id,"reason":"absent"}));
             continue;
         }
-        let params = living::device_folder(
+        let mut params = living::device_folder(
             home,
             &living_params(&settings, k, user_home),
             device.clone(),
         )?;
+        // Listing a collection is the long part of planning: shown under the caller's measure.
+        if let Some(id) = params_progress(&wanted_progress) {
+            params["progress_id"] = json!(id);
+        }
         let mut plan = living::plan(home, backend, &params)?;
         plan["collection"] = json!(k.id);
         plans.push(plan);
     }
     Ok(json!({"plans":plans,"skipped":skipped}))
+}
+
+/// The caller's `progress_id`, when it gave one.
+fn params_progress(value: &Value) -> Option<&str> {
+    value.as_str().filter(|id| !id.is_empty())
 }
 
 fn hash_at(root: &Root, rel: &str) -> Result<Option<String>> {
@@ -564,9 +574,40 @@ pub fn backup_apply(
         .filter(|a| !a.is_empty())
         .ok_or_else(|| Error::new("invalid_params", "'plans' lists {plan_id, digest}"))?;
     let device = device_of(isolated);
+    // With a `progress_id`, one measure for every collection: each plan starts where the previous one ended.
+    let progress = params_progress(&params["progress_id"]);
+    let sizes: Vec<(u64, u64)> = {
+        let catalog = Catalog::open(home)?;
+        reviewed
+            .iter()
+            .map(|item| {
+                let plan = catalog
+                    .get(&format!("living-plan:{}", text(item, "plan_id")))
+                    .ok()
+                    .flatten()
+                    .unwrap_or_default();
+                let files = ["new", "changed"]
+                    .iter()
+                    .map(|key| plan[*key].as_array().map_or(0, Vec::len) as u64)
+                    .sum();
+                (plan["bytes"].as_u64().unwrap_or_default(), files)
+            })
+            .collect()
+    };
+    let total = sizes
+        .iter()
+        .fold((0, 0), |(b, f), (bytes, files)| (b + bytes, f + files));
+    let mut offset = (0u64, 0u64);
     let mut results = Vec::new();
-    for item in reviewed {
-        let done = living::apply(home, backend, item)?;
+    for (item, (bytes, files)) in reviewed.iter().zip(&sizes) {
+        let mut item = item.clone();
+        if let Some(id) = progress {
+            item["progress_id"] = json!(id);
+            item["progress_offset"] = json!({"bytes":offset.0,"files":offset.1});
+            item["progress_total"] = json!({"bytes":total.0,"files":total.1});
+        }
+        offset = (offset.0 + bytes, offset.1 + files);
+        let done = living::apply(home, backend, &item)?;
         let catalog = Catalog::open(home)?;
         let collection = KNOWN
             .iter()
@@ -660,7 +701,7 @@ pub fn run(
         backend,
         user_home,
         device,
-        &json!({"collections":collections}),
+        &json!({"collections":collections,"progress_id":params["progress_id"]}),
     )?;
     let reviewed: Vec<Value> = plans["plans"]
         .as_array()
@@ -676,7 +717,7 @@ pub fn run(
         backend,
         isolated,
         user_home,
-        &json!({"plans":reviewed}),
+        &json!({"plans":reviewed,"progress_id":params["progress_id"]}),
     )
 }
 
@@ -1106,9 +1147,17 @@ mod tests {
             true,
             &user,
             Ok(M1.into()),
-            &json!({"when":"now"}),
+            // The app's click gives one measure for every collection; it is gone once the run answers.
+            &json!({"when":"now","progress_id":"conversations-now"}),
         )
         .unwrap();
+        assert!(
+            Catalog::open(&s.home)
+                .unwrap()
+                .get("action-progress:conversations-now")
+                .unwrap()
+                .is_none()
+        );
         let first = &ran["results"][0];
         assert_eq!(first["result"]["versioned"], 1);
         assert_eq!(first["working"]["state"], "completed", "{first}");

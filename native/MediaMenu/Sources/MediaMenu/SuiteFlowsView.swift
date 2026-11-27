@@ -79,9 +79,20 @@ extension Model {
     func runConversations(when: String) async {
         guard !conversationsRunning else { return }
         conversationsRunning = true
-        defer { conversationsRunning = false }
+        conversationProgress = .object([:])
+        // One measure for every collection, read while the one-shot engine copies (U1.1, 2026-11-26).
+        let progressID = JSONValue.string(UUID().uuidString.lowercased())
+        let monitor = Task { @MainActor in
+            while !Task.isCancelled {
+                if let value = try? await self.reader?.call("action_progress", ["id": progressID]), !Task.isCancelled, value != .object([:]) {
+                    self.conversationProgress = value
+                }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+        }
+        defer { monitor.cancel(); conversationsRunning = false }
         do {
-            let result = try await oneShot("conversations_run", ["when": .string(when)])
+            let result = try await oneShot("conversations_run", ["when": .string(when), "progress_id": progressID])
             let copied = result["results"].array.reduce(0) { $0 + Int($1["result"]["copied"].double) + Int($1["result"]["versioned"].double) }
             if !result["results"].array.isEmpty {
                 message = String(localized: "Conversaciones respaldadas: \(copied) archivos nuevos o cambiados")
@@ -118,15 +129,109 @@ extension Model {
 struct SuiteSuggestionsSection: View {
     @Bindable var model: Model
     var body: some View {
-        let shown = model.visibleSuiteSuggestions
-        if !shown.isEmpty {
+        let groups = Self.grouped(model.visibleSuiteSuggestions)
+        if !groups.isEmpty {
             SectionTitle("Discos conectados")
-            ForEach(shown, id: \.["key"].string) { SuiteSuggestionCard(model: model, suggestion: $0) }
+            ForEach(groups, id: \.self) { keys in
+                let members = keys.compactMap { key in model.visibleSuiteSuggestions.first { $0["key"].string == key } }
+                if members.count == 1 { SuiteSuggestionCard(model: model, suggestion: members[0]) }
+                else { SuiteSuggestionGroupCard(model: model, members: members) }
+            }
         }
         if !model.conversationUpdateResult.isEmpty {
             Label(model.conversationUpdateResult, systemImage: "externaldrive")
                 .font(.callout).foregroundStyle(.secondary)
         }
+    }
+}
+
+extension SuiteSuggestionsSection {
+    /// One card per pair of work disks (both directions together) and one for the conversations to copy to several
+    /// disks, so the same two disks do not ask twice (U1.2, 2026-11-26). Keys keep the engine's order.
+    static func grouped(_ suggestions: [JSONValue]) -> [[String]] {
+        var order: [String] = [], members: [String: [String]] = [:]
+        for suggestion in suggestions {
+            let flow = suggestion["flow"].string
+            let group: String
+            if flow.hasPrefix("work_copy") {
+                let pair = [suggestion["source"]["volume_id"].string, suggestion["destination"]["volume_id"].string].sorted()
+                group = "disks:" + pair.joined(separator: ":")
+            } else if flow == "conversations_update" {
+                group = "conversations_update"
+            } else {
+                group = suggestion["key"].string
+            }
+            if members[group] == nil { order.append(group) }
+            members[group, default: []].append(suggestion["key"].string)
+        }
+        return order.compactMap { members[$0] }
+    }
+}
+
+/// Several suggestions about the same disks in one card: one line and one button per direction or disk.
+struct SuiteSuggestionGroupCard: View {
+    @Environment(\.creatorPalette) private var palette
+    @Bindable var model: Model
+    let members: [JSONValue]
+    @State private var confirming: JSONValue?
+    private var conversations: Bool { members.first?["flow"].string == "conversations_update" }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                Image(systemName: conversations ? "bubble.left.and.text.bubble.right" : "arrow.triangle.2.circlepath")
+                    .font(.title2).foregroundStyle(palette.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    ForEach(members, id: \.["key"].string) { member in
+                        Text(verbatim: line(member)).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                Spacer()
+            }
+            HStack {
+                Button("Ahora no") { members.forEach { model.hideSuggestion($0["key"].string) } }
+                Button("No volver a preguntar") { members.forEach { model.silenceSuggestion($0["key"].string) } }
+                    .help("Para estos discos y este flujo. Se puede volver a activar.")
+                Spacer()
+                if conversations && model.conversationsRunning { ProgressView().controlSize(.small) }
+                ForEach(members, id: \.["key"].string) { member in
+                    Button(button(member)) {
+                        if conversations { confirming = member } else { model.openWorkCopy(member) }
+                    }
+                    .buttonStyle(CreatorButtonStyle(prominent: member["key"] == members.first?["key"]))
+                    .disabled(model.busy || model.conversationsRunning)
+                }
+            }
+        }.modifier(Panel())
+        .confirmationDialog(String(localized: "¿Actualizar la copia en \(confirming?["destination"]["label"].string ?? "")?"),
+                            isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })) {
+            Button("Sí, actualizar") {
+                if let member = confirming { Task { await model.updateConversationCopy(member) } }
+                confirming = nil
+            }
+        }
+    }
+    private var title: String {
+        if conversations {
+            return String(localized: "Conversaciones por copiar a \(members.map { $0["destination"]["label"].string }.joined(separator: " y "))")
+        }
+        let labels = [members[0]["source"]["label"].string, members[0]["destination"]["label"].string]
+        return String(localized: "\(labels[0]) y \(labels[1]) tienen trabajo por llevar de uno a otro")
+    }
+    private func line(_ member: JSONValue) -> String {
+        if conversations {
+            return member["destination"]["label"].string + ": " + member["collections"].array.map {
+                String(localized: "\($0["title"].string) · \(Int($0["count"].double)) archivos")
+            }.joined(separator: " · ")
+        }
+        return "\(member["source"]["label"].string) → \(member["destination"]["label"].string): "
+            + String(localized: "\(Int(member["count"].double)) archivos · \(bytesLabel(member["bytes"].double))")
+            + " · " + member["paths"].array.prefix(2).map(\.["path"].string).joined(separator: " · ")
+    }
+    private func button(_ member: JSONValue) -> String {
+        conversations
+            ? String(localized: "Actualizar \(member["destination"]["label"].string)…")
+            : "\(member["source"]["label"].string) → \(member["destination"]["label"].string)…"
     }
 }
 
@@ -151,7 +256,9 @@ struct SuiteSuggestionCard: View {
                 Button("No volver a preguntar") { model.silenceSuggestion(key) }
                     .help("Para este disco y este flujo. Se puede volver a activar.")
                 Spacer()
-                if suggestion["flow"].string == "conversations_update" && model.conversationsRunning {
+                if suggestion["flow"].string == "conversations_backup" && model.conversationsRunning {
+                    ConversationProgressLine(progress: model.conversationProgress)
+                } else if suggestion["flow"].string == "conversations_update" && model.conversationsRunning {
                     ProgressView().controlSize(.small)
                 }
                 Button(action) {
@@ -461,6 +568,34 @@ struct WorkCopySheet: View {
 // MARK: Ajustes → Conversaciones
 
 /// Which conversations leave this Mac, to which disk and when; and the working copy. Every «sí» is recorded with its date.
+/// What the conversations backup is doing, from the engine's stage (U1.1).
+func conversationPhase(_ progress: JSONValue) -> String {
+    switch progress["stage"].string {
+    case "copying": String(localized: "Copiando y verificando el historial")
+    case "complete": String(localized: "Colección respaldada")
+    case "": String(localized: "Preparando")
+    default: String(localized: "Leyendo el historial · \(Int(progress["files_done"].double)) archivos")
+    }
+}
+
+/// The conversations backup in one line, for the Home card: the skin's bar and the engine's numbers.
+struct ConversationProgressLine: View {
+    @Environment(\.creatorPalette) private var palette
+    let progress: JSONValue
+    var body: some View {
+        let total = progress["overall_total"].double, done = progress["overall_done"].double
+        let copying = progress["stage"].string == "copying" && total > 0
+        HStack(spacing: 8) {
+            SkinProgressBar(fraction: copying ? min(1, done / total) : nil).frame(width: 140)
+            Text(verbatim: copying
+                 ? "\(Int((done / total * 100).rounded(.down))) % · " + String(localized: "\(bytesLabel(done)) de \(bytesLabel(total))")
+                 : conversationPhase(progress))
+                .font(.caption.monospacedDigit()).foregroundStyle(palette.muted).lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct ConversationsSettings: View {
     @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
@@ -473,6 +608,13 @@ struct ConversationsSettings: View {
     var body: some View {
         let status = model.conversations, settings = status?["settings"] ?? .null
         VStack(alignment: .leading, spacing: 12) {
+          if model.conversationsRunning {
+            // While it copies, the action replaces the pane (nu9ve-interaction-v1 §7): stage, files and bytes.
+            ActionProgressView(title: "Respaldando conversaciones",
+                               note: "Puedes seguir usando nüün. Mantén conectado \(settings["archive"].string) hasta que aparezca el resultado.",
+                               state: .transfer(model.conversationProgress, phase: conversationPhase(model.conversationProgress)))
+                .frame(height: 460)
+          } else {
             Label("Conversaciones", systemImage: "bubble.left.and.text.bubble.right").font(.title3.weight(.semibold))
             Text("Respalda el historial de tus agentes (Claude Code, Codex, Claude) en un disco de respaldo, en una carpeta por dispositivo. Nunca credenciales, ajustes ni cachés. Nada sale de esta Mac sin que lo decidas aquí.")
                 .foregroundStyle(.secondary)
@@ -539,6 +681,7 @@ struct ConversationsSettings: View {
                 if exporting { ProgressView().controlSize(.small) }
                 if !exportResult.isEmpty { Text(exportResult).font(.caption).textSelection(.enabled) }
             }
+          }
         }
         .task { await model.loadConversations() }
         .confirmationDialog(confirming.map { String(localized: "¿Respaldar \($0.title) en \(settings["archive"].string)?") } ?? "",

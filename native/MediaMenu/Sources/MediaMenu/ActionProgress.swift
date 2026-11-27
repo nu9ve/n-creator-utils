@@ -260,7 +260,9 @@ struct ActionTravel: View {
         let track = (0..<width).map { $0 == position ? ">" : $0 < position ? "=" : "·" }.joined()
         let left = state.from.isEmpty ? "src" : state.from
         let right = verifying ? "sha256" : releasing ? "free" : (state.to.isEmpty ? "dst" : state.to)
-        return VStack(alignment: .leading, spacing: 6) {
+        // Each line centered on its own: the travel and the prompt differ in width, and aligned to each other's
+        // leading edge the block read off-centre under the bar (2026-11-26).
+        return VStack(alignment: .center, spacing: 6) {
             Text(verbatim: "\(left) [\(track)] \(right)")
             Text(verbatim: "$ \(verifying ? "verify" : releasing ? "release" : "cp --verify") \(name)" + (state.fileFraction.map { "  \(Int($0 * 100))%" } ?? ""))
                 .foregroundStyle(palette.muted)

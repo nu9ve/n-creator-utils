@@ -498,9 +498,29 @@ fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>
         .into_iter()
         .flat_map(|key| value[key].as_array().into_iter().flatten().cloned())
         .collect();
-    let mut progress = ActionProgress::new(&writer, Some(id), "copying");
-    progress.meter.total = value["bytes"].as_u64().unwrap_or_default();
-    progress.meter.files_total = items.len();
+    // One measure for several plans applied in a row (conversations: three collections) when the caller gives a
+    // `progress_id` and where this plan starts in the whole; otherwise the plan's own, under its id.
+    let progress_id = params["progress_id"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .unwrap_or(id);
+    let offset = (
+        params["progress_offset"]["bytes"]
+            .as_u64()
+            .unwrap_or_default(),
+        params["progress_offset"]["files"]
+            .as_u64()
+            .unwrap_or_default() as usize,
+    );
+    let mut progress = ActionProgress::new(&writer, Some(progress_id), "copying");
+    progress.meter.total = params["progress_total"]["bytes"]
+        .as_u64()
+        .unwrap_or_else(|| value["bytes"].as_u64().unwrap_or_default());
+    progress.meter.files_total = params["progress_total"]["files"]
+        .as_u64()
+        .map_or(items.len(), |files| files as usize);
+    progress.meter.files_done = offset.1;
+    progress.meter.reach(offset.0);
     let mut transfer = Transfer::new(home, &writer, backend, &|_, _| Ok(()));
     let mut processed = 0u64;
     let mut versions = Vec::new();
@@ -628,7 +648,7 @@ fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>
         if state != "changed_since_review" {
             processed += size;
         }
-        progress.meter.reach(processed);
+        progress.meter.reach(offset.0 + processed);
         progress.meter.finished(state, path, text(&record, "name"));
     }
     volumes::check(backend, &record)?;
@@ -724,6 +744,54 @@ mod tests {
             )
             .unwrap(),
             stored
+        );
+    }
+
+    #[test]
+    fn several_plans_share_one_measure_from_where_the_previous_ended() {
+        let s = crate::volumes::test_backend::setup();
+        let source = Root::open(&s.card).unwrap();
+        source.write_bytes("a.jsonl", b"abc", false).unwrap();
+        source.write_bytes("b.jsonl", b"defgh", false).unwrap();
+        let reviewed = plan(
+            &s.home,
+            &s.backend,
+            &json!({"source":s.card,"archive":"MEDIA","folder":"agentes/codex"}),
+        )
+        .unwrap();
+        // As if two earlier collections already moved 100 bytes in 4 files of a 108-byte, 6-file whole.
+        let args = json!({"plan_id":reviewed["id"],"digest":reviewed["digest"],"progress_id":"conversations-now",
+            "progress_offset":{"bytes":100,"files":4},"progress_total":{"bytes":108,"files":6}});
+        let seen = std::cell::RefCell::new(Vec::new());
+        apply_with(&s.home, &s.backend, &args, &|stage, _| {
+            if stage == "before_copy" {
+                let catalog = Catalog::open(&s.home).unwrap();
+                seen.borrow_mut().push(
+                    catalog
+                        .get("action-progress:conversations-now")
+                        .unwrap()
+                        .unwrap(),
+                );
+            }
+            Ok(())
+        })
+        .unwrap();
+        let seen = seen.into_inner();
+        assert_eq!(seen.len(), 2);
+        for (index, value) in seen.iter().enumerate() {
+            assert_eq!(value["overall_total"], 108);
+            assert_eq!(value["files_total"], 6);
+            assert_eq!(value["files_done"], 4 + index);
+        }
+        assert_eq!(seen[0]["overall_done"], 100);
+        assert!(seen[1]["overall_done"].as_u64().unwrap() > 100);
+        // The plan's own id is left free: nothing else keys on it while a caller's measure is given.
+        let catalog = Catalog::open(&s.home).unwrap();
+        assert!(
+            catalog
+                .get(&format!("action-progress:{}", text(&reviewed, "id")))
+                .unwrap()
+                .is_none()
         );
     }
 

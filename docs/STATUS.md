@@ -328,6 +328,16 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Acciones y sugerencias · 2026-11-26
+
+U1.1, U1.2 y U1.4 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), en código y **sin instalar ni aceptar en ventana**.
+
+- **Respaldo de conversaciones con progreso.** `conversations_run` acepta `progress_id`: el listado de cada colección y la copia de las tres se ven en una sola medida (`living::apply` suma desde donde terminó la anterior con `progress_offset`/`progress_total`). Ajustes → Conversaciones muestra `ActionProgressView` mientras corre y la tarjeta de Inicio una línea con barra y bytes. Antes: 37 min con un *spinner* para 7 403 archivos y 4,4 GB a MEDIA502 (recibos `1ca44cef`, `9dfc2086`, `4e06c3d7`; 17 archivos cambiaron durante la copia y quedan para el próximo).
+- **Sugerencias sin ida y vuelta.** `changed_since_copy` ya no propone lo que el otro disco tiene igual (tamaño y fecha). Inicio junta en una tarjeta las dos direcciones de un par de discos y las conversaciones por copiar a varios discos, con un botón por dirección o disco.
+- **Terminal:** las dos líneas de la travesía se centran cada una.
+- Pruebas: Rust 201 (más 16 diferenciales con `--ignored`; fallan sueltas, como siempre, `real_export_copy_ingests_once` sin `NUUN_MISSIONS_EXPORT` y `cancel_file_child`, que lanza otra prueba), fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`; Swift 34. Nuevas: `several_plans_share_one_measure_from_where_the_previous_ended` y `what_both_disks_already_hold_alike_is_not_proposed_back`. Sin `TMPDIR` físico, `writes_go_only_through_the_one_shot_rpc` da `unsafe_state` (entorno, no regresión).
+
+
 ### Colección Agentes · 2026-11-19
 
 **Qué se hizo.** `storage_collections` mide `~/.claude`, `~/.codex` y `~/Library/Application Support/Claude` sólo con metadatos, en Python y en Rust, y lo expone por RPC y MCP. Reparte el espacio en historial, estado, caché regenerable, registros y otros, y estima cuánto crece por semana. [Diseño](features/storage-map.md#colecciones).

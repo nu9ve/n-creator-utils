@@ -1118,3 +1118,12 @@
 "Carpeta, disco o histórico" = "Folder, disk or archive";
 "Carpeta, tarjeta o disco…" = "Folder, card or disk…";
 "Histórico Handycam: organizar MP4 en el archivo…" = "Handycam archive: organize MP4s in the backup…";
+"Respaldando conversaciones" = "Backing up conversations";
+"Puedes seguir usando nüün. Mantén conectado %@ hasta que aparezca el resultado." = "You can keep using nüün. Keep %@ connected until the result appears.";
+"Copiando y verificando el historial" = "Copying and verifying the history";
+"Colección respaldada" = "Collection backed up";
+"Preparando" = "Preparing";
+"Leyendo el historial · %lld archivos" = "Reading the history · %lld files";
+"%@ y %@ tienen trabajo por llevar de uno a otro" = "%@ and %@ have work to carry between them";
+"Actualizar %@…" = "Update %@…";
+"Para estos discos y este flujo. Se puede volver a activar." = "For these disks and this flow. It can be turned back on.";

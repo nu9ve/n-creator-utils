@@ -1016,6 +1016,50 @@ mod tests {
     }
 
     #[test]
+    fn what_both_disks_already_hold_alike_is_not_proposed_back() {
+        let d = disks();
+        let there = plan(
+            &d.home,
+            &d.backend,
+            true,
+            &ask(&d, json!(["atlas-derived/potholes"])),
+        )
+        .unwrap();
+        apply(
+            &d.home,
+            &d.backend,
+            &json!({"plan_id":there["id"],"digest":there["digest"]}),
+        )
+        .unwrap();
+        // Another flow writes the same file to both disks with the same date (the conversations export does).
+        let rel = "atlas-derived/potholes/day/both.json";
+        let at = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_790_000_000);
+        for disk in [&d.viaje, &d.edicion] {
+            std::fs::write(disk.join(rel), b"{}").unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(disk.join(rel))
+                .unwrap()
+                .set_modified(at)
+                .unwrap();
+        }
+        assert!(flows(&d).is_empty(), "{:?}", flows(&d));
+        // Only on one side, it is still proposed, from that side.
+        Root::open(&d.edicion)
+            .unwrap()
+            .write_bytes("atlas-derived/potholes/day/only.json", b"[]", false)
+            .unwrap();
+        let found = flows(&d);
+        assert_eq!(found.len(), 1);
+        assert_eq!(
+            found[0]["key"],
+            format!("work_copy_changed:{EDICION}:{VIAJE}")
+        );
+        assert_eq!(found[0]["count"], 1);
+        assert_eq!(found[0]["paths"][0]["new"], 1);
+    }
+
+    #[test]
     fn indexed_mission_copies_include_atlas_history_and_photo_map() {
         let recipe = nuun_recipe::template();
         assert_eq!(

@@ -201,8 +201,20 @@ fn changed_since_copy(disks: &[Disk]) -> Vec<Value> {
                         Some((size, at)) if *size == stamp.size && same_time(at, &mtime) => {
                             continue;
                         }
-                        None => new += 1,
-                        Some(_) => {}
+                        _ => {}
+                    }
+                    // Already on the other disk as it is here: copied back the other way, or written to both by
+                    // another flow (the conversations export). Proposing it again made the two disks ping-pong
+                    // (2026-11-26). Same size and date, like the receipts; copies keep the source's dates.
+                    let there = to.root.stat(&path).ok().flatten();
+                    if there.as_ref().is_some_and(|there| {
+                        there.size == stamp.size
+                            && same_time(&crate::tree::stamp_json(there)["mtime_ns"], &mtime)
+                    }) {
+                        continue;
+                    }
+                    if !known.contains_key(&path) {
+                        new += 1;
                     }
                     n += 1;
                     b += stamp.size;

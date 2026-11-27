@@ -182,6 +182,25 @@ La §12.1 de `nu9ve-engine-v1` está implementada en los dos motores y Rust usa 
 
 Decidido por el usuario el 2026-11-26: **liberar manda a la Papelera** (no a una cuarentena), y **la instalación local se firma con el certificado Apple Development** de la Mac, como en la M4, para que macOS no vuelva a pedir permisos en cada build: `install_media_app.py` lo toma del llavero si hay uno solo ([operaciones](docs/operations.md#app-de-desarrollo-y-launcher)). Sigue abierto el canal de actualización y Developer ID. Para nüün en Mac queda propuesto el estándar de [avisos del sistema](vendor/nu9ve-core/contracts/nu9ve-notifications-v1.md): hoy sólo avisa de una tarjeta detectada.
 
+## UX · acciones y procesos (pedido del usuario, 2026-11-26)
+
+Lo pidió el usuario después de usar nüün en la M1 y la M4 con varios procesos a la vez: que todo proceso, también los secundarios, diga qué hace y cuánto falta, con la misma vista y animación del skin, y que lo común viva en el core. La parte del core está propuesta en `nu9ve/core` [`docs/actions-next.md`](../../ai/core/docs/actions-next.md) (sin commit, para la sesión del core). Aquí va lo de nüün, en fases.
+
+**U1 · arreglos en nüün que no esperan al core.** En orden:
+
+1. ~~**Respaldo de conversaciones con progreso.**~~ **Hecho en código el 2026-11-26, sin instalar** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). El motor ya guarda `action-progress:<plan>`, pero `conversations_run` es de una vez y Ajustes sólo muestra un *spinner*: 37 min sin saber si avanzaba (2026-11-26, 7 403 archivos y 4,4 GB a MEDIA502, ~3 archivos/s en exFAT por USB). Pasar un `progress_id` hasta `living::apply` y leerlo con `ActionProgressView`.
+2. ~~**Sugerencias entre discos de trabajo sin ping-pong.**~~ **Hecho en código el 2026-11-26, sin instalar** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). `changed_since_copy` compara con los recibos y no con el otro disco: tras copiar ESSD → SUBSSD y luego SUBSSD → ESSD, o tras actualizar las conversaciones en los dos, vuelve a proponer la copia de regreso. No proponer lo que el otro disco ya tiene igual (tamaño y fecha); una sola tarjeta por par de discos con las dos direcciones; una sola tarjeta para las conversaciones por copiar a varios discos.
+3. **Revisar «Copiar al otro disco» sin que crezca con los datos.** Hoy `work_copy::plan` hashea en los dos discos cada archivo que ya existe en el destino (20 GB de `atlas-subaereo` cada vez). Adoptar sin rehashear lo que coincide en tamaño y fecha con un recibo verificado; hashear sólo lo dudoso. Mostrar la etapa con la vista de acción, no con un *loader* en la esquina.
+4. ~~**Terminal:** centrar las dos líneas de la travesía (`ActionTravel.terminal`).~~ **Hecho en código el 2026-11-26, sin instalar.**
+5. **Ventana compacta por omisión** a unos 3/4 hacia la derecha y un poco arriba del centro, cuando no hay posición guardada, con una forma de restablecerla.
+6. **Dron en Ingreso:** decir en la fila JPG+DNG que a edición va sólo el JPG (el DNG queda archivado y se pide después), con un control por unidad o para el lote.
+7. **Abrir la compacta al conectar el segundo disco de trabajo** cuando hay cambios por copiar, sin repetirla si ya se dijo «Ahora no» a ese par con esos mismos cambios.
+8. **Época `tinted` del core** en Macintosh y Windows 9x: el color en bordes, líneas de la barra y controles ([tema §5](vendor/nu9ve-core/contracts/nu9ve-theme-v1.md#5-catálogo-de-skins)). Comprobar el tema en hojas y popovers.
+
+**U2 · Acumulados en Discos.** Los hallazgos de [Acumulados](docs/features/storage-map.md#acumulados) en el mapa de Discos (los cuadros), para ver dónde hay qué revisar y volver a medir desde ahí. Por proyecto: icono o favicon si lo hay, y si es un repo de git, su remoto. Acciones por grupo: todos los builds menos el último, cachés regenerables (turbo, `.next`, `node_modules`…) y carpetas ocultas con descargas grandes (modelos viejos), sin tocar lo que usa el próximo build salvo que se pida limpiar todo. El tipo de análisis se elige; por omisión, todo. Ejecutar sigue siendo la fase 2 de Acumulados (P2: Papelera con recibo).
+
+**U3 · con las piezas del core** ([propuesta](../../ai/core/docs/actions-next.md)): registro de acción común, tres tamaños de la vista (pantalla, compacta que se expande y vuelve, indicador en la barra y en el Dock), cierre de éxito, aviso o error con la animación del skin, escaneos como acciones, y *hover* por skin también en × − +. nüün lo adopta cuando el core lo publique; lo de U1 se hace ya con comentario de origen para mudarlo.
+
 ## Pasada de UX · discos y conversaciones
 
 - Unificar el alta de disco y guiar el uso local de un disco portable detectado. Mostrar por qué aparece una actualización, con proyecto, dirección y cambios. [Criterios de UX](docs/features/suite-disks-flows.md#pasada-de-ux-pendiente).
