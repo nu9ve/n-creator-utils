@@ -136,6 +136,17 @@ import Nu9veTheme
         model.project = "prueba-handycam"
         model.archive = "a"
         passed = passed && model.canPrepareFlow
+        // Drone stills that wait for the flight app's export: first with an empty inbox, then once one lands.
+        model.ingestFromSaveAll = false
+        model.units = (1...2).map { DraftUnit(id: "DJI_000\($0)", paths: ["DCIM/100MEDIA/DJI_000\($0).JPG"], category: "image",
+                                              detectedCamera: "DJI Mavic Air 2", deviceCategory: "dji-drone",
+                                              missionState: "pending_export", missionLikely: true) }
+        model.missionInbox = .object(["archive": .string("a"), "files": .array([])])
+        model.ingestStep = .content
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("drone-waiting-export.png"))
+        model.missionInbox = .object(["archive": .string("a"), "files": .array([.object(["state": .string("new"), "name": .string("JSON-qa.json")])])])
+        passed = passed && model.pendingMissionExports.count == 1
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("drone-export-found.png"))
         print("QA ingest choices \(passed ? "OK" : "FAILED")")
         NSApp.terminate(nil)
     }
@@ -581,6 +592,8 @@ import Nu9veTheme
         model.goToStep(.content)
         check(await wait { model.contentLoaded && model.pendingMissionExports.count == 1 }, "initial read")
         check(model.units.count == 2 && model.units.allSatisfy { $0.missionState == "pending_export" }, "awaiting export")
+        try? FileManager.default.createDirectory(at: folder.appendingPathComponent("shots"), withIntermediateDirectories: true)
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("shots/content-waiting-export.png"))
         model.gridSelection = [model.units[0].id]
         model.updateTargets { $0.project = "qa-manual" }
         model.project = "qa-batch"
@@ -594,6 +607,7 @@ import Nu9veTheme
         check(model.plan == nil && model.reviewedPlan == nil, "old plan invalidated")
         check(model.ingestDrafts[path]?.loadedKey == "" && model.ingestDrafts[path]?.reviewed == nil, "parked plan invalidated")
         check(Set(model.units.map(\.project)) == ["qa-manual", "subaereo"], "manual assignment kept and new match suggested")
+        await render(IngestFlow(model: model), size: NSSize(width: 900, height: 640), to: folder.appendingPathComponent("shots/content-linked.png"))
         model.reviewPlan()
         check(await wait { !model.busy && model.plan != nil }, "new plan")
         check(model.plan?["missions"]["subaereo"]["units"]["matched"].double == 2, "new plan counts")

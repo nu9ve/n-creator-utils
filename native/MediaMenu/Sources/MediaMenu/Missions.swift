@@ -97,6 +97,52 @@ struct MissionsSection: View {
     }
 }
 
+/// Ingest content: drone stills that wait for the flight app's export, while the card is being looked at.
+/// The inbox watcher already re-reads Descargas when a JSON lands; this says so and offers the same one-click
+/// incorporation as Inicio, after which the card is read again and the stills link to their missions.
+struct ContentMissionBanner: View {
+    @Bindable var model: Model
+    @Environment(\.creatorPalette) private var palette
+    var body: some View {
+        let waiting = model.units.filter { $0.missionState == "pending_export" }
+        if !waiting.isEmpty {
+            let likely = waiting.filter(\.missionLikely).count
+            let exports = model.pendingMissionExports.count
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Label(exports > 0 ? String(localized: "\(waiting.count) fotos esperan el export de misión · hay \(exports) en Descargas")
+                                      : String(localized: "\(waiting.count) fotos esperan el export de misión"),
+                          systemImage: exports > 0 ? "tray.and.arrow.down" : "clock.badge.questionmark")
+                        .foregroundStyle(exports > 0 ? Color.primary : palette.warning)
+                    Spacer(minLength: 0)
+                    if exports > 0 {
+                        Button("Incorporar y volver a leer") { model.incorporateMissions() }
+                            .buttonStyle(CreatorButtonStyle(prominent: true)).controlSize(.small)
+                            .disabled(model.busy || !model.missionArchiveOnline)
+                    }
+                }
+                if exports > 0 && !model.missionArchiveOnline {
+                    Text("Conecta el disco de respaldo para incorporarlos al registro.").foregroundStyle(palette.warning)
+                } else if exports > 0 {
+                    Text("Se guardan en el respaldo, se unen al registro y salen de Descargas. Luego las fotos se enlazan con su misión.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("No hay ningún export en Descargas. Mándalo desde la app de vuelo: nüün lo detecta en cuanto llega.")
+                        .foregroundStyle(.secondary)
+                }
+                if likely > 0 { Text("\(likely) parecen de misión: nadir a altura de vuelo.").foregroundStyle(.secondary) }
+                let last = (model.missionInbox ?? .null)["coverage_after"]["last_media_created_at"].string
+                if !last.isEmpty { Text("El registro cubre hasta \(String(last.prefix(16)))").foregroundStyle(.secondary) }
+            }
+            .font(.caption)
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 8).fill((exports > 0 ? Color.accentColor : palette.warning).opacity(0.08)))
+            // The watcher starts with the first review; ask once if this view comes up before it.
+            .onAppear { if model.missionInbox == nil { model.missionsChanged() } }
+        }
+    }
+}
+
 struct ArchivedMissionReview: View {
     @Bindable var model: Model
     @State private var result: JSONValue?

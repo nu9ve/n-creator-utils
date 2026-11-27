@@ -455,6 +455,7 @@ struct ContentStep: View {
             if !support.isEmpty && model.typeFilter != "support" && model.typeFilter != "all" {
                 Text("Datos de cámara incluidos en el respaldo: \(support.reduce(0) { $0 + $1.paths.count }) archivos").font(.caption).foregroundStyle(.secondary)
             }
+            ContentMissionBanner(model: model)
             if model.typeFilter == "likely_unregistered", let flowProject = model.visibleUnits.first?.missionFlowProject, !flowProject.isEmpty {
                 // Nadir at flight height but no record in the registry (e.g. flown before the app exported).
                 HStack {

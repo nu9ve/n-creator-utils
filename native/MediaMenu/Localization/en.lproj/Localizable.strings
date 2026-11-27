@@ -1108,3 +1108,8 @@
 "Los historiales elegidos son personales. Se copiarán en una carpeta de este dispositivo. Puedes actualizar la copia cuando lo decidas." = "The selected histories are personal. They will be copied into this device's folder. You can update the copy whenever you choose.";
 "Copia en %@ · %lld archivos copiados · %lld cambiaron durante la copia" = "Copy on %@ · %lld files copied · %lld changed during the copy";
 "Disco de audio" = "Audio disk";
+"%lld fotos esperan el export de misión · hay %lld en Descargas" = "%lld photos wait for the mission export · %lld in Downloads";
+"%lld fotos esperan el export de misión" = "%lld photos wait for the mission export";
+"Incorporar y volver a leer" = "Incorporate and read again";
+"Se guardan en el respaldo, se unen al registro y salen de Descargas. Luego las fotos se enlazan con su misión." = "They are saved to the backup, merged into the registry and leave Downloads. Then the photos link to their mission.";
+"No hay ningún export en Descargas. Mándalo desde la app de vuelo: nüün lo detecta en cuanto llega." = "No export in Downloads. Send it from the flight app: nüün detects it as soon as it arrives.";
