@@ -1,7 +1,12 @@
 //! Cooperative cancellation for one-shot workers: the job stops at a recoverable checkpoint and is recorded
-//! `paused`, so `resume` continues it. macOS: SIGINT. Windows: a named event the client creates and passes in
-//! `NUUN_CANCEL_EVENT` (`Local\nuun-cancel-…`); the client signals it to cancel, as nove signals its host with
-//! named events. Without the variable a Windows worker is not cancellable, only stoppable (journal + `resume`).
+//! `paused`, so `resume` continues it.
+//!
+//! Every platform: a cancel file (nu9ve-engine-v1 §6.2, as Clipper's supervised jobs). The client passes an
+//! absolute path in `NUUN_CANCEL_FILE` and creates that file to cancel; a worker whose file already exists stops
+//! at its first checkpoint. Windows has no SIGINT, so this is its way (decided 2026-11-26); the client then gives
+//! a grace period and cuts the worker's Job Object.
+//! macOS also stops on SIGINT. Windows still accepts the named event in `NUUN_CANCEL_EVENT`
+//! (`Local\nuun-cancel-…`) until its client moves to the file.
 
 use nu9ve_json::{Error, Result};
 use std::io;
@@ -18,12 +23,11 @@ extern "C" fn interrupt(_: libc::c_int) {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) struct Cancel(libc::sigaction);
+struct Platform(libc::sigaction);
 
 #[cfg(target_os = "macos")]
-impl Cancel {
-    // Only install from a dedicated one-shot worker.
-    pub(crate) fn install() -> Result<Self> {
+impl Platform {
+    fn install() -> Result<Self> {
         CANCELLED.store(false, Ordering::Relaxed);
         unsafe {
             let mut action: libc::sigaction = std::mem::zeroed();
@@ -43,7 +47,7 @@ impl Cancel {
 }
 
 #[cfg(target_os = "macos")]
-impl Drop for Cancel {
+impl Drop for Platform {
     fn drop(&mut self) {
         unsafe {
             libc::sigaction(libc::SIGINT, &self.0, std::ptr::null_mut());
@@ -52,7 +56,7 @@ impl Drop for Cancel {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn cancelled() -> bool {
+fn signalled() -> bool {
     CANCELLED.load(Ordering::Relaxed)
 }
 
@@ -67,12 +71,11 @@ pub const CANCEL_EVENT_VAR: &str = "NUUN_CANCEL_EVENT";
 const CANCEL_EVENT_PREFIX: &str = "Local\\nuun-cancel-";
 
 #[cfg(windows)]
-pub(crate) struct Cancel(());
+struct Platform(());
 
 #[cfg(windows)]
-impl Cancel {
-    // Only install from a dedicated one-shot worker.
-    pub(crate) fn install() -> Result<Self> {
+impl Platform {
+    fn install() -> Result<Self> {
         Self::open(std::env::var_os(CANCEL_EVENT_VAR).map(|n| n.to_string_lossy().into_owned()))
     }
 
@@ -103,7 +106,7 @@ impl Cancel {
 }
 
 #[cfg(windows)]
-impl Drop for Cancel {
+impl Drop for Platform {
     fn drop(&mut self) {
         let handle = EVENT.swap(0, Ordering::Relaxed);
         if handle != 0 {
@@ -114,12 +117,99 @@ impl Drop for Cancel {
 }
 
 #[cfg(windows)]
-pub(crate) fn cancelled() -> bool {
+fn signalled() -> bool {
     use windows_sys::Win32::Foundation::WAIT_OBJECT_0;
     use windows_sys::Win32::System::Threading::WaitForSingleObject;
     let handle = EVENT.load(Ordering::Relaxed);
     // SAFETY: a live event handle with SYNCHRONIZE, polled without waiting.
     handle != 0 && unsafe { WaitForSingleObject(handle as _, 0) } == WAIT_OBJECT_0
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+struct Platform(());
+#[cfg(not(any(target_os = "macos", windows)))]
+impl Platform {
+    fn install() -> Result<Self> {
+        Ok(Self(()))
+    }
+}
+#[cfg(not(any(target_os = "macos", windows)))]
+fn signalled() -> bool {
+    false
+}
+
+/// Environment variable with the absolute path of the file whose existence cancels the worker.
+pub const CANCEL_FILE_VAR: &str = "NUUN_CANCEL_FILE";
+
+/// The cancel file of the running worker. Only a guard that set one clears it, so a worker without the variable
+/// never forgets another's.
+static CANCEL_FILE: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
+/// Installed once by a dedicated one-shot worker for the length of its job.
+pub(crate) struct Cancel {
+    _platform: Platform,
+    file: bool,
+}
+
+impl Cancel {
+    pub(crate) fn install() -> Result<Self> {
+        Self::with_file(std::env::var_os(CANCEL_FILE_VAR))
+    }
+
+    fn with_file(file: Option<std::ffi::OsString>) -> Result<Self> {
+        let file = file.filter(|f| !f.is_empty()).map(std::path::PathBuf::from);
+        if let Some(path) = &file
+            && !path.is_absolute()
+        {
+            return Err(Error::new(
+                "invalid_params",
+                format!("{CANCEL_FILE_VAR} must be an absolute path"),
+            ));
+        }
+        let platform = Platform::install()?;
+        let set = file.is_some();
+        if set {
+            *CANCEL_FILE.lock().unwrap_or_else(|e| e.into_inner()) = file;
+        }
+        Ok(Self {
+            _platform: platform,
+            file: set,
+        })
+    }
+}
+
+impl Drop for Cancel {
+    fn drop(&mut self) {
+        if self.file {
+            *CANCEL_FILE.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        }
+    }
+}
+
+/// True once the client asked to stop: the cancel file exists, or the platform's signal arrived.
+pub(crate) fn cancelled() -> bool {
+    signalled()
+        || CANCEL_FILE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_deref()
+            .is_some_and(|path| path.exists())
+}
+
+#[cfg(test)]
+mod file_tests {
+    use super::*;
+
+    #[test]
+    fn a_relative_cancel_file_is_refused() {
+        assert_eq!(
+            Cancel::with_file(Some("relative/cancel".into()))
+                .err()
+                .unwrap()
+                .code,
+            "invalid_params"
+        );
+    }
 }
 
 #[cfg(all(test, windows))]
@@ -136,24 +226,24 @@ mod tests {
         let event = unsafe { CreateEventW(std::ptr::null(), 1, 0, wide.as_ptr()) };
         assert!(!event.is_null());
         {
-            let _cancel = Cancel::open(Some(name.clone())).unwrap();
-            assert!(!cancelled());
+            let _cancel = Platform::open(Some(name.clone())).unwrap();
+            assert!(!signalled());
             // SAFETY: live event handle.
             unsafe { SetEvent(event) };
-            assert!(cancelled());
+            assert!(signalled());
         }
-        assert!(!cancelled(), "dropping the guard forgets the event");
+        assert!(!signalled(), "dropping the guard forgets the event");
         // SAFETY: live event handle, closed once.
         unsafe { CloseHandle(event) };
         let missing = format!("{CANCEL_EVENT_PREFIX}missing-{}", std::process::id());
         assert_eq!(
-            Cancel::open(Some(missing)).err().unwrap().code,
+            Platform::open(Some(missing)).err().unwrap().code,
             "internal_error"
         );
-        let other = Cancel::open(Some("Global\\other".into()));
+        let other = Platform::open(Some("Global\\other".into()));
         assert_eq!(other.err().unwrap().code, "invalid_params");
-        let none = Cancel::open(None).unwrap();
-        assert!(!cancelled(), "without the variable nothing cancels");
+        let none = Platform::open(None).unwrap();
+        assert!(!signalled(), "without the variable nothing cancels");
         drop(none);
     }
 }

@@ -1893,6 +1893,53 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         assert_eq!(count(&s.work, ".ncpartial"), 0);
     }
 
+    /// nu9ve-engine-v1 §6.2 on every platform: the client creates the worker's cancel file and the copy pauses at
+    /// a recoverable point, then resumes as the same job. In a child process, so the cancel state of this one
+    /// never reaches the other tests running beside it.
+    #[test]
+    fn a_cancel_file_pauses_the_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "transfer::tests::cancel_file_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env(crate::interrupt::CANCEL_FILE_VAR, dir.path().join("cancel"))
+            .output()
+            .unwrap();
+        let log = String::from_utf8_lossy(&output.stdout);
+        assert!(output.status.success() && log.contains("1 passed"), "{log}");
+    }
+
+    #[test]
+    #[ignore = "run in its own process by a_cancel_file_pauses_the_copy"]
+    fn cancel_file_child() {
+        let file = std::path::PathBuf::from(
+            std::env::var_os(crate::interrupt::CANCEL_FILE_VAR).expect("NUUN_CANCEL_FILE"),
+        );
+        let s = fixture();
+        let plan = plan(&s, json!({}));
+        std::fs::write(&file, b"").unwrap();
+        let paused = super::apply_reviewed(&s.home, &s.backend, &plan, text(&plan, "digest"));
+        assert_eq!(paused.unwrap_err().code, "cancelled");
+        let id = text(&plan, "id");
+        let job =
+            crate::reads::job(&Catalog::open(&s.home).unwrap(), &json!({"job_id": id})).unwrap();
+        assert_eq!(
+            (job["state"].as_str(), job["error"].as_str()),
+            (Some("paused"), Some("cancelled"))
+        );
+        assert!(s.card.join("DCIM/photo.JPG").exists(), "nothing cleaned");
+        std::fs::remove_file(&file).unwrap();
+        assert_eq!(
+            super::resume(&s.home, &s.backend, id).unwrap()["state"],
+            "completed"
+        );
+        assert_eq!(count(&s.archive, ".ncpartial"), 0);
+    }
+
     #[test]
     fn interrupted_copy_and_a_crash_before_rename_resume_without_duplicates() {
         let s = fixture();
