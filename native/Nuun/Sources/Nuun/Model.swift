@@ -308,6 +308,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     var suiteAgent = SuiteAgentStatus.unavailable
     /// The nüün projects some machine works on, by project key (exchange §7.1), as the agent last said.
     var projectLeases: [String: JSONValue] = [:]
+    /// `project_keys`, by local project id: `{key, chosen, suggested}`.
+    var projectKeys: [String: JSONValue] = [:]
     var error = ""
     var python = ""
     var script = ""
@@ -806,8 +808,31 @@ enum OperationScope { case ingest, library, space, settings, source }
         }
     }
 
-    /// The suite key of a nüün project: its local id, lowercased (the same one `data_catalog` lists).
-    static func projectKey(_ item: JSONValue) -> String { item["project_id"].string.lowercased() }
+    /// The suite key of a nüün project (nu9ve-data-v1 §2): the one the person chose, or its local id lowercased
+    /// until then. The same one `data_catalog` lists and the agent's leases use.
+    func projectKey(_ item: JSONValue) -> String {
+        let id = item["project_id"].string
+        let chosen = projectKeys[id]?["key"].string ?? ""
+        return chosen.isEmpty ? id.lowercased() : chosen
+    }
+
+    /// Each project's suite key, whether the person chose it and what nüün offers (`project_keys`).
+    func loadProjectKeys() async {
+        guard let found = try? await oneShot("project_keys", [:]) else { return }
+        projectKeys = found["projects"].object
+    }
+
+    /// The suite key the person chose for a project. A key is never reused for another project of nüün.
+    func setProjectKey(_ item: JSONValue, to key: String) {
+        let id = item["project_id"].string
+        guard !id.isEmpty else { return }
+        operation(String(localized: "Guardando la clave del proyecto"), scope: .settings) {
+            _ = try await self.oneShot("project_key_set", ["project_id": .string(id), "key": .string(key)])
+            await self.loadProjectKeys()
+            await self.loadProjectLeases()
+            self.message = String(localized: "Clave de la suite: \(key)")
+        }
+    }
 
     /// Who works on each nüün project now, through the agent. Without the agent there is nothing to show.
     func loadProjectLeases() async {
@@ -823,7 +848,7 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     /// «Trabajar aquí» (`take`) or «Dejar de trabajar aquí» (`release`): the agent's lease_take or lease_release.
     func setProjectLease(_ item: JSONValue, take: Bool) {
-        let key = Self.projectKey(item)
+        let key = projectKey(item)
         guard !key.isEmpty else { return }
         operation(take ? String(localized: "Tomando el proyecto en esta máquina") : String(localized: "Soltando el proyecto"), scope: .settings) {
             let result = try await self.oneShot("suite_lease", ["action": .string(take ? "take" : "release"), "project_key": .string(key)])

@@ -58,7 +58,7 @@ struct ProjectsView: View {
             }
         }
         .padding(.horizontal, 20).padding(.top, 14)
-        .task { await model.loadSuiteAgent(); await model.loadProjectLeases() }
+        .task { await model.loadSuiteAgent(); await model.loadProjectKeys(); await model.loadProjectLeases() }
     }
 }
 
@@ -68,9 +68,12 @@ struct ProjectRow: View {
     @Binding var expanded: Bool
     @State private var renaming = false
     @State private var newName = ""
+    @State private var choosingKey = false
+    @State private var newKey = ""
     @Environment(\.creatorPalette) private var palette
     private var title: String { item["project"].string }
-    private var lease: JSONValue { model.projectLeases[Model.projectKey(item)] ?? .null }
+    private var lease: JSONValue { model.projectLeases[model.projectKey(item)] ?? .null }
+    private var keyInfo: JSONValue { model.projectKeys[item["project_id"].string] ?? .null }
     private var pendingSessions: Int { Int(item["pending_sessions"].double) }
     private var kinds: [(symbol: String, label: String, count: Int)] {
         [("record.circle", "Stalker", "stalker_session"), ("camera", String(localized: "Capturas"), "camera_bundle"), ("doc", String(localized: "Archivos"), "file"), ("film", String(localized: "Entregas"), "delivery")]
@@ -122,6 +125,12 @@ struct ProjectRow: View {
                     Button("Subir a recientes", systemImage: "arrow.up") { model.bumpProject(item) }
                     Button("Renombrar…", systemImage: "pencil") { newName = title; renaming = true; expanded = true }.disabled(model.busy)
                     if !item["project_id"].string.isEmpty {
+                        Button("Clave para la suite…", systemImage: "key") {
+                            newKey = keyInfo["chosen"].bool ? keyInfo["key"].string : keyInfo["suggested"].string
+                            choosingKey = true; expanded = true
+                        }.disabled(model.busy)
+                    }
+                    if !item["project_id"].string.isEmpty {
                         Divider()
                         Button("Ver archivos", systemImage: "square.stack") { model.openFiles(project: title) }
                         if title != "finales" {
@@ -169,6 +178,10 @@ struct ProjectRow: View {
                         }
                     }
                     if renaming { rename }
+                    if choosingKey { keyEditor }
+                    if keyInfo["chosen"].bool {
+                        Label(String(localized: "Clave de la suite: \(keyInfo["key"].string)"), systemImage: "key")
+                    }
                     if !kinds.isEmpty {
                         HStack(spacing: 12) {
                             ForEach(kinds, id: \.symbol) { kind in Label(kind.label + " · \(kind.count)", systemImage: kind.symbol) }
@@ -228,6 +241,27 @@ struct ProjectRow: View {
             }
             Text("Biblioteca, sesiones y próximas copias usan el nuevo nombre. Las carpetas ya copiadas conservan el suyo.").foregroundStyle(.secondary)
         }
+    }
+    /// nu9ve-data-v1 §2: the person chooses the key once; nüün offers the title's slug and never pairs on its own.
+    private var trimmedKey: String { newKey.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var keyValid: Bool {
+        (1...64).contains(trimmedKey.count) && trimmedKey.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
+    }
+    private var keyEditor: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                TextField("clave-del-proyecto", text: $newKey).frame(maxWidth: 260).font(.caption.monospaced()).onSubmit(commitKey)
+                Button("Guardar clave", action: commitKey).disabled(!keyValid || model.busy || (keyInfo["chosen"].bool && trimmedKey == keyInfo["key"].string))
+                Button("Cancelar") { choosingKey = false }
+            }
+            Text("La misma clave en otra app de la suite es el mismo proyecto: escríbela igual en nove o Clipper. Minúsculas, números y guiones. Cambiarla después es un proyecto nuevo para las demás apps, y una clave usada no vuelve a servir para otro proyecto.")
+                .foregroundStyle(.secondary)
+        }
+    }
+    private func commitKey() {
+        guard keyValid, !model.busy else { return }
+        model.setProjectKey(item, to: trimmedKey)
+        choosingKey = false
     }
     private func commitRename() {
         guard canRename else { return }

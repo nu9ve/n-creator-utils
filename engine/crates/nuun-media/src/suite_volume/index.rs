@@ -38,8 +38,8 @@ fn project_links(catalog: &Catalog) -> Result<(BTreeMap<String, Value>, ProjectL
             row.get(1).map_err(sql)?,
             row.get(2).map_err(sql)?,
         );
-        // Existing project keys are the local stable ids until an explicit suite key is assigned.
-        let key = id.to_ascii_lowercase();
+        // nu9ve-data-v1 §2: the key the person chose, or the local id until then (F7a).
+        let key = crate::project_keys::key_of(db, &id);
         if !identifier(&key, 64, b"-", false) {
             continue;
         }

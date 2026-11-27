@@ -1163,3 +1163,9 @@
 "Revisando la copia" = "Reviewing the copy";
 "nüün compara lo que ya está en el destino. Lo que un recibo verificó y conserva su tamaño y fecha no se vuelve a leer." = "nüün compares what is already on the destination. What a receipt verified and still has its size and date is not read again.";
 "Limpiar terminadas" = "Clear finished";
+"Clave de la suite: %@" = "Suite key: %@";
+"Clave para la suite…" = "Suite key…";
+"Guardando la clave del proyecto" = "Saving the project key";
+"Guardar clave" = "Save key";
+"La misma clave en otra app de la suite es el mismo proyecto: escríbela igual en nove o Clipper. Minúsculas, números y guiones. Cambiarla después es un proyecto nuevo para las demás apps, y una clave usada no vuelve a servir para otro proyecto." = "The same key in another suite app is the same project: type it the same way in nove or Clipper. Lower-case letters, digits and hyphens. Changing it later is a new project for the other apps, and a key once used never serves another project.";
+"clave-del-proyecto" = "project-key";

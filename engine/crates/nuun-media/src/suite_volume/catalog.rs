@@ -12,7 +12,7 @@ use crate::tree::Root;
 use nu9ve_json::{Error, Result, require};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub(crate) const LOCAL: &str = "suite-volumes";
 const MAX_SAFE: u64 = (1 << 53) - 1;
@@ -68,7 +68,8 @@ fn projects(catalog: &Catalog) -> Result<BTreeMap<String, Value>> {
             row.get(1).map_err(sql)?,
             row.get(2).map_err(sql)?,
         );
-        let key = id.to_ascii_lowercase();
+        // nu9ve-data-v1 §2: the key the person chose, or the local id until then (F7a).
+        let key = crate::project_keys::key_of(db, &id);
         if !key_ok(&key) {
             continue;
         }
@@ -102,7 +103,15 @@ fn mounted(catalog: &Catalog) -> Result<BTreeSet<String>> {
     Ok(ids)
 }
 
-fn sources(home: &Path) -> Result<Sources> {
+/// The person's home folder, where the agents keep their conversations (`HOME`, `USERPROFILE` on Windows).
+fn user_home() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+}
+
+/// `agents`: the folder whose agents' conversations become datasets (F7b); `None` lists none (the tests).
+fn sources(home: &Path, agents: Option<&Path>) -> Result<Sources> {
     let catalog = Catalog::open(home)?;
     let projects = projects(&catalog)?;
     let here = mounted(&catalog)?;
@@ -217,6 +226,24 @@ fn sources(home: &Path) -> Result<Sources> {
         }
         datasets.insert(dataset["id"].as_str().unwrap().to_owned(), dataset);
     }
+    // The Agentes collection (F7b): each agent's folder on this machine, in place, personal, never measured
+    // here (`storage_collections` measures it on request). Under the known key `conversaciones` (§2.1) only when
+    // the person gave a nüün project that key.
+    let conversations = projects.contains_key("conversaciones");
+    for (agent, name, path) in agents.map(crate::agent_storage::roots).unwrap_or_default() {
+        let root_id = format!("agents-{}", agent.replace('_', "-"));
+        roots.insert(
+            root_id.clone(),
+            json!({"id": root_id, "label": name, "path": path.to_string_lossy(), "state": "ok"}),
+        );
+        let id = format!("agents:{agent}");
+        datasets.insert(id.clone(), json!({
+            "id": id, "owner": "nuun", "title": format!("Agentes · {name}"),
+            "modality": "files", "privacy": "personal", "storage": "in_place",
+            "location": {"root_id": root_id, "path": ""},
+            "projects": if conversations { json!([{"project_key": "conversaciones"}]) } else { json!([]) },
+            "state": "unverified", "updated_at": nu9ve_time::now_utc()}));
+    }
     // Accumulations on disk (builds, caches, backups): the newest scan as a personal table, one row per finding.
     if let Some(dataset) = crate::accumulations::dataset(home) {
         datasets.insert(crate::accumulations::DATASET.to_owned(), dataset);
@@ -244,6 +271,10 @@ fn params_of(params: &Value, allowed: &[&str]) -> Result<Map<String, Value>> {
 
 /// `data_catalog` (nu9ve-data-v1 §1–§4): pages of datasets sorted by id, each page within one frame.
 pub fn data_catalog(home: &Path, params: &Value) -> Result<Value> {
+    data_catalog_in(home, user_home().as_deref(), params)
+}
+
+fn data_catalog_in(home: &Path, agents: Option<&Path>, params: &Value) -> Result<Value> {
     let p = params_of(params, &["project_key", "modality", "limit", "cursor"])?;
     let key = match p.get("project_key") {
         None => None,
@@ -273,7 +304,7 @@ pub fn data_catalog(home: &Path, params: &Value) -> Result<Value> {
         ),
         Some(_) => return Err(invalid("cursor must be a string of 1 to 256 bytes")),
     };
-    let sources = sources(home)?;
+    let sources = sources(home, agents)?;
     let wanted = |d: &Value| {
         key.as_ref().is_none_or(|k| {
             d["projects"]
@@ -340,6 +371,10 @@ pub fn data_catalog(home: &Path, params: &Value) -> Result<Value> {
 /// `data_export` (nu9ve-export-v1 §1–§2). Never bytes: a dataset of nüün is a folder on a disk or a living
 /// collection on this machine, so it is `too_large` with where it is.
 pub fn data_export(home: &Path, params: &Value) -> Result<Value> {
+    data_export_in(home, user_home().as_deref(), params)
+}
+
+fn data_export_in(home: &Path, agents: Option<&Path>, params: &Value) -> Result<Value> {
     let p = params_of(params, &["dataset", "max_bytes"])?;
     let dataset = match p.get("dataset") {
         Some(Value::String(d)) if dataset_id_ok(d) => d.clone(),
@@ -362,7 +397,7 @@ pub fn data_export(home: &Path, params: &Value) -> Result<Value> {
             || json!({"contract": "nu9ve-export/1", "dataset": dataset, "status": "not_found"}),
         ));
     }
-    let sources = sources(home)?;
+    let sources = sources(home, agents)?;
     let Some(found) = sources.datasets.get(&dataset) else {
         return Ok(
             json!({"contract": "nu9ve-export/1", "dataset": dataset, "status": "not_found"}),
@@ -412,7 +447,7 @@ mod tests {
     #[test]
     fn the_catalog_describes_the_last_index_of_each_disk_with_its_volume() {
         let home = home_with_index(3);
-        let page = data_catalog(home.path(), &json!({})).unwrap();
+        let page = data_catalog_in(home.path(), None, &json!({})).unwrap();
         assert_eq!(page["app"], "nuun");
         assert_eq!(page["datasets"].as_array().unwrap().len(), 3);
         let root = &page["roots"][0];
@@ -438,9 +473,10 @@ mod tests {
     #[test]
     fn pages_follow_the_cursor_and_filters_are_lists_not_errors() {
         let home = home_with_index(5);
-        let first = data_catalog(home.path(), &json!({"limit": 2})).unwrap();
+        let first = data_catalog_in(home.path(), None, &json!({"limit": 2})).unwrap();
         let cursor = first["next_cursor"].as_str().unwrap().to_owned();
-        let second = data_catalog(home.path(), &json!({"limit": 2, "cursor": cursor})).unwrap();
+        let second =
+            data_catalog_in(home.path(), None, &json!({"limit": 2, "cursor": cursor})).unwrap();
         let third = data_catalog(
             home.path(),
             &json!({"limit": 2, "cursor": second["next_cursor"]}),
@@ -461,7 +497,7 @@ mod tests {
             (0..5).map(|n| dataset(n)["id"].clone()).collect::<Vec<_>>()
         );
         assert_eq!(third["next_cursor"], Value::Null);
-        let none = data_catalog(home.path(), &json!({"project_key": "otro"})).unwrap();
+        let none = data_catalog_in(home.path(), None, &json!({"project_key": "otro"})).unwrap();
         assert_eq!(
             (
                 none["datasets"].as_array().unwrap().len(),
@@ -470,7 +506,7 @@ mod tests {
             (0, 0)
         );
         assert_eq!(
-            data_catalog(home.path(), &json!({"modality": "table"})).unwrap()["datasets"],
+            data_catalog_in(home.path(), None, &json!({"modality": "table"})).unwrap()["datasets"],
             json!([])
         );
         for bad in [
@@ -480,13 +516,13 @@ mod tests {
             json!({"project_key": "A"}),
         ] {
             assert_eq!(
-                data_catalog(home.path(), &bad).unwrap_err().code,
+                data_catalog_in(home.path(), None, &bad).unwrap_err().code,
                 "invalid_params",
                 "{bad}"
             );
         }
         assert_eq!(
-            data_catalog(home.path(), &json!({"cursor": "zzz"}))
+            data_catalog_in(home.path(), None, &json!({"cursor": "zzz"}))
                 .unwrap_err()
                 .code,
             "invalid_cursor"
@@ -497,7 +533,7 @@ mod tests {
     fn an_export_is_never_bytes_but_where_the_folder_is() {
         let home = home_with_index(1);
         let id = dataset(0)["id"].as_str().unwrap().to_owned();
-        let answer = data_export(home.path(), &json!({"dataset": id})).unwrap();
+        let answer = data_export_in(home.path(), None, &json!({"dataset": id})).unwrap();
         assert_eq!(answer["status"], "too_large");
         assert_eq!(
             answer["where"],
@@ -505,7 +541,7 @@ mod tests {
         );
         assert_eq!(answer["bytes"], 1000);
         assert_eq!(
-            data_export(home.path(), &json!({"dataset": "group:none"})).unwrap()["status"],
+            data_export_in(home.path(), None, &json!({"dataset": "group:none"})).unwrap()["status"],
             "not_found"
         );
         for bad in [
@@ -515,10 +551,91 @@ mod tests {
             json!({"dataset": id, "x": 1}),
         ] {
             assert_eq!(
-                data_export(home.path(), &bad).unwrap_err().code,
+                data_export_in(home.path(), None, &bad).unwrap_err().code,
                 "invalid_params",
                 "{bad}"
             );
         }
+    }
+
+    /// F7b: the Agentes collection, one in-place personal dataset per agent folder that exists, under
+    /// `conversaciones` only when a nüün project has that key.
+    #[test]
+    fn the_agents_folders_are_personal_datasets_in_place() {
+        let home = tempfile::tempdir().unwrap();
+        let person = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(person.path().join(".claude/projects")).unwrap();
+        std::fs::create_dir_all(person.path().join(".codex")).unwrap();
+        let writer = crate::catalog::WritableCatalog::open(home.path()).unwrap();
+        writer
+            .db()
+            .execute(
+                "INSERT INTO projects VALUES('p1','canal-a','Mis conversaciones')",
+                [],
+            )
+            .unwrap();
+        let listed = data_catalog_in(
+            home.path(),
+            Some(person.path()),
+            &json!({"modality": "files"}),
+        )
+        .unwrap();
+        let agents: Vec<&Value> = listed["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|d| d["id"].as_str().unwrap().starts_with("agents:"))
+            .collect();
+        assert_eq!(
+            agents
+                .iter()
+                .map(|d| d["id"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["agents:claude_code", "agents:codex"]
+        );
+        for dataset in &agents {
+            assert_eq!(dataset["privacy"], "personal");
+            assert_eq!(dataset["storage"], "in_place");
+            assert_eq!(dataset["projects"], json!([]));
+        }
+        let root = listed["roots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == "agents-claude-code")
+            .unwrap();
+        assert_eq!(
+            root["path"],
+            person.path().join(".claude").to_string_lossy().as_ref()
+        );
+        // Once the person gives a project the known key, the collection is under it.
+        crate::project_keys::set(
+            home.path(),
+            &json!({"project_id": "p1", "key": "conversaciones"}),
+        )
+        .unwrap();
+        let under = data_catalog_in(
+            home.path(),
+            Some(person.path()),
+            &json!({"project_key": "conversaciones"}),
+        )
+        .unwrap();
+        let ids: Vec<&str> = under["datasets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|d| d["id"].as_str())
+            .collect();
+        assert!(
+            ids.contains(&"agents:claude_code") && ids.contains(&"agents:codex"),
+            "{ids:?}"
+        );
+        assert!(
+            data_catalog_in(home.path(), None, &json!({})).unwrap()["datasets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|d| !d["id"].as_str().unwrap().starts_with("agents:"))
+        );
     }
 }

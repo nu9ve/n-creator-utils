@@ -399,6 +399,24 @@ impl Walk {
     }
 }
 
+/// The agents' folders under `home` that exist, as `(id, name, path)`, without measuring them (F7b: the Agentes
+/// collection in `data_catalog`).
+pub(crate) fn roots(home: &Path) -> Vec<(&'static str, &'static str, PathBuf)> {
+    ROOTS
+        .iter()
+        .map(|(id, name, parts, _)| {
+            (
+                *id,
+                *name,
+                parts
+                    .iter()
+                    .fold(home.to_path_buf(), |p, part| p.join(part)),
+            )
+        })
+        .filter(|(_, _, path)| path.is_dir())
+        .collect()
+}
+
 /// The `agents` collection under `home`, measured at `now` (seconds since the epoch).
 pub fn collections(home: &Path, now: f64) -> Value {
     let this_week = week_start((now / DAY as f64).floor() as i64);

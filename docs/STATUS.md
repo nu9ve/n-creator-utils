@@ -328,6 +328,26 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Claves de proyecto y Agentes en `data_catalog` · 2026-11-27
+
+F7a y F7b de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Están **sin instalar ni aceptar en ventana**.
+
+- **F7a · Clave de suite legible** ([data §2](../vendor/nu9ve-core/contracts/nu9ve-data-v1.md#2-clave-de-proyecto-común), [project_keys.rs](../engine/crates/nuun-media/src/project_keys.rs)):
+  - La persona la elige en Proyectos → menú → «Clave para la suite…». nüün sólo la ofrece: el título en minúsculas y sin acentos (`Baches de Ñuñoa` → `baches-de-nunoa`, con `-2` si ya está), o la clave conocida `conversaciones` para «Mis conversaciones». No empareja por su cuenta con otra app.
+  - Hasta que se elija, la clave sigue siendo el id local, así que nada de lo que otra app ya vio cambia solo.
+  - Una clave que tuvo un proyecto queda suya (`project-key-used:<clave>`) y no sirve para otro. Cambiarla se permite y, para las demás apps, es un proyecto nuevo.
+  - `data_catalog`, el índice publicado en el disco y «Trabajar aquí» (las leases del agente) usan esa clave.
+  - Métodos nuevos, sólo en Rust: `project_keys` (lectura) y `project_key_set` (escritura del catálogo).
+- **F7b · La colección Agentes en `data_catalog`:**
+  - Un dataset `agents:<agente>` por cada carpeta que existe (`~/.claude`, `~/.codex`, `~/Library/Application Support/Claude`), `files`, `personal` y en su sitio.
+  - No se mide en cada llamada; `storage_collections` la mide cuando se pide.
+  - Queda bajo `conversaciones` sólo si la persona dio esa clave a un proyecto de nüün.
+  - Como todo lo `personal`, la suite ve su forma, no su contenido, salvo que la persona lo comparta.
+- **Pruebas nuevas:**
+  - En `project_keys`: la sugerencia, cuándo se elige, que una clave no se reutiliza, los errores y que `data_catalog` la usa.
+  - `the_agents_folders_are_personal_datasets_in_place`, que corre con una carpeta de persona temporal: las pruebas no ven el `~/.claude` de esta Mac.
+- **Pruebas:** Rust 211 y 23 diferenciales con `--ignored`; fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Swift 36, Python 426, golden al día y `sync-core.sh --check` sin error. `check_localization.py`: las 6 cadenas nuevas tienen inglés; quedan las mismas 112 claves que faltaban antes.
+
 ### Benchmarks de copia y soak en el gate · 2026-11-27
 
 F6 de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), con [nu9ve-bench-v1](../vendor/nu9ve-core/contracts/nu9ve-bench-v1.md). Todo corre sobre fixtures en `TMPDIR`, nunca en discos de la persona.

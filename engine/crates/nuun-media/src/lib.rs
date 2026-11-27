@@ -32,6 +32,7 @@ pub mod mission_review;
 pub mod missions;
 pub mod photo_meta;
 pub mod planner;
+pub mod project_keys;
 pub mod projects;
 pub mod reads;
 pub mod recovery;

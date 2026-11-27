@@ -147,7 +147,9 @@ const ORACLE_METHODS: [&str; 93] = [
     "volumes",
 ];
 /// Methods only this engine has (no oracle, so no shadow): `native` in `engine_info` when this platform answers them.
-const NATIVE: [&str; 36] = [
+const NATIVE: [&str; 38] = [
+    "project_keys",
+    "project_key_set",
     "suite_profiles",
     "suite_profiles_register",
     "storage_accumulations",
@@ -315,6 +317,8 @@ fn writes_for(has_backend: bool, can_write: bool, macos: bool, unix: bool) -> Ve
     writes.push("conversations_settings");
     // «No volver a preguntar» for a disk and flow: only the catalog.
     writes.push("suggestions_dismiss");
+    // nu9ve-data-v1 §2: the suite key the person chose for a project; only the catalog.
+    writes.push("project_key_set");
     // «Trabajar aquí» through the suite agent; without it the answer says so and nothing changes.
     writes.push("suite_lease");
     if has_backend {
@@ -422,7 +426,8 @@ fn write_backend(platform: Option<&dyn Backend>) -> Result<&dyn Backend> {
 }
 
 /// Reads that Python answers only through the one-shot `rpc` (not in `READ_METHODS`): `discover` walks a source.
-const ONCE_READS: [&str; 23] = [
+const ONCE_READS: [&str; 24] = [
+    "project_keys",
     "suite_profiles",
     "storage_accumulations",
     "suite_adopt_volume",
@@ -484,6 +489,8 @@ impl Engine {
         let isolated = self.isolated();
         match method {
             "suite_device" => nuun_media::suite_device::current(isolated, params),
+            "project_keys" => nuun_media::project_keys::keys(&self.catalog()?),
+            "project_key_set" => nuun_media::project_keys::set(&self.home(), params),
             "suite_profiles" => nuun_media::suite_profiles::overview(&self.home(), isolated),
             "suite_profiles_register" => {
                 let device = this_device(isolated)?.ok();
