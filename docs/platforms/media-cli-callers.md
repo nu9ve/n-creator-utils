@@ -1,6 +1,6 @@
 # Quién llama a `nu9ve.py media`
 
-Estado: **inventario del 2026-11-27**, paso (a) de F5 en [PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26) («retirar Python de `media/`»). Es sólo lectura: no cambia `nu9ve.py` ni a ningún consumidor. Se leyó en Clipper `f16a8ca3`, Kyū `cd6d1c8`, Stalker `1d38e1b` y en este repo. Antes de cambiar `nu9ve.py`, el paso (c), hay que avisar a la sesión de Clipper.
+Estado: **inventario del 2026-11-27**, paso (a) de F5 en [PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26) («retirar Python de `media/`»). Es sólo lectura: no cambia `nu9ve.py` ni a ningún consumidor. Se leyó en Clipper `f16a8ca3`, Kyū `cd6d1c8`, Stalker `1d38e1b` y en este repo. El paso (c) ya reenvía a Rust; el aviso para la sesión de Clipper está [abajo](#aviso-para-la-sesión-de-clipper).
 
 ## Fuera de este repo
 
@@ -34,7 +34,22 @@ Las órdenes de fuera se resuelven en métodos que `nuun-engine` ya sirve: `proj
 - **Diferencia que queda:** Python rechaza un `--state-dir` con un enlace simbólico en la ruta (`unsafe_state`) y Rust no.
 - **Escrituras:** ninguna orden de escritura (`apply`, `retitle-capture`…) pasa por aquí. Siguen en `rpc`.
 
-## Lo que queda antes de (c)
+## Paso (c), hecho el 2026-11-27
 
-- **Cómo lo encuentran:** con la CLI ya en Rust, `nu9ve` puede ser un enlace instalado a `nuun.app/Contents/Resources/backend/nuun-engine`, lo que cubre a Clipper y a Kyū sin cambiarlos. O cada uno sigue a Stalker y busca la app. Lo decide el usuario con la sesión de Clipper, antes del paso (c).
-- **Avisar a Clipper** antes de (c): su ruta por defecto es el checkout de `nu9ve.py`, que (c) convierte en un reenvío a Rust.
+`nu9ve.py media <orden>` reenvía a Rust las órdenes de lectura de arriba (`projects`, `sources`, `volumes`, `resolve`, `captures`, `integration-capabilities` y `retitle-operations`). Responde lo que respondería `nuun-engine media`: los mismos valores que Python, con las claves ordenadas ([nu9ve.py](../../nu9ve.py), `rust_media`).
+
+- **Qué motor:** sólo `NUUN_ENGINE` si está puesto. Si no, en este orden: el `nuun-engine` junto a `backend/source/nu9ve.py` dentro de la app, las builds `release` y `debug` de este checkout, y la app instalada (`~/Applications` y `/Applications`).
+- **Cuándo responde Python:** con cualquier otra orden (`rpc`, `rpc-serve`, escrituras, `--help`, `--state-dir=…`), sin ningún motor, con `NUUN_MEDIA_ENGINE=python`, o cuando el motor sale con 2. Un 2 es un error de uso, o un motor anterior a (b), como el de la app instalada hoy (`f65bb6e27f56`) o una build `release` vieja; Python da entonces su respuesta y su uso de siempre.
+- **Pruebas:** `ForwardTest` en [test_media_cli_rust.py](../../tests/test_media_cli_rust.py) comprueba que el reenvío da los bytes de Rust, que un motor sin la CLI deja la respuesta a Python, que los errores de uso siguen saliendo con 2, y que las demás órdenes no se reenvían. La comparación con Python fija `NUUN_MEDIA_ENGINE=python`.
+- **Clipper y Kyū no cambian:** Clipper, que por defecto lanza `python3 …/nu9ve.py`, ya recibe la respuesta de Rust. Kyū sigue en `nuun_unavailable` mientras no tenga un comando configurado.
+
+### Aviso para la sesión de Clipper
+
+Texto para que el usuario lo pase; esta sesión no escribe a otras.
+
+> nüün, 2026-11-27: desde el commit de F5 (c), `nu9ve.py media projects | sources | volumes list | resolve` responde con `nuun-engine media` cuando hay un motor que la entiende, y si no, con Python como antes. El sobre es el mismo (`ok`, `command`, `data` o `error`) y los valores también. Cambian el orden de las claves (Rust las ordena) y el tiempo de arranque (unos 50 ms en vez de 80). Para fijar un motor, `NUUN_ENGINE=<ruta>`; para volver a Python, `NUUN_MEDIA_ENGINE=python`. Nada cambia en `CLIPPER_NU9VE` ni en `CLIPPER_NU9VE_STATE_DIR`.
+
+## Lo que queda
+
+- **Cómo lo encuentran sin el checkout:** un `nu9ve` instalado que apunte a `nuun.app/Contents/Resources/backend/nuun-engine` cubriría a Clipper y a Kyū sin cambiarlos; la otra opción es que cada uno busque la app, como Stalker. Lo decide el usuario con la sesión de Clipper. Hasta entonces, Clipper usa el checkout y por él llega a Rust.
+- **(d) en adelante:** el MCP en Rust, la app sin respaldo de Python, el golden como archivos y borrar `media/*.py` ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).

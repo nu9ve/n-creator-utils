@@ -328,6 +328,15 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### `nu9ve.py media` responde con Rust · 2026-11-27
+
+Paso (c) de F5 en [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Detalle en el [inventario](platforms/media-cli-callers.md#paso-c-hecho-el-2026-11-27).
+
+- **Qué cambió:** las órdenes de lectura que mandan Clipper y Kyū (`projects`, `sources`, `volumes list`, `resolve`, más `captures`, `integration-capabilities` y `retitle-operations`) las responde `nuun-engine media`. Se elige `NUUN_ENGINE` si está puesto; si no, el motor junto a la app, el del checkout o el de la app instalada.
+- **Cuándo sigue Python:** las demás órdenes, `NUUN_MEDIA_ENGINE=python`, sin motor, o cuando el motor sale con 2. Ese 2 llega con un error de uso o con un motor anterior a F5 (b): el de la app instalada hoy no tiene la CLI, así que con él responde Python.
+- **Evidencia:** `ForwardTest` (4 pruebas nuevas) con un catálogo del golden y motores falsos. A mano, sin `NUUN_ENGINE`, la build `release` vieja salió con 2 y respondió la `debug` en 49 ms, contra 82 ms de Python.
+- **Pendiente:** pasar a la sesión de Clipper el [aviso](platforms/media-cli-callers.md#aviso-para-la-sesión-de-clipper) y decidir cómo encuentran el motor sin el checkout. Las dos pruebas de `test_media_closure` que piden `item_analyze` fallan por el `clipper-core` instalado, igual que antes de este cambio.
+
 ### Vectores de nombres compartidos · 2026-11-27
 
 Pedido de Stalker (`fdc80fc`) en [contratos](contracts/README.md#pendientes-para-n-creator-utils): el cambio de `_` en `tag` se copió a mano en Python, Rust y la Swift de Stalker.
