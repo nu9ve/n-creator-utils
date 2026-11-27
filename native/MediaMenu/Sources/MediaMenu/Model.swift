@@ -2,6 +2,14 @@ import AppKit
 import SwiftUI
 import UserNotifications
 import MediaMenuCore
+import os
+
+/// Card arrival timing, to measure the popup: `log stream --predicate 'subsystem == "app.nu9ve.media"'`.
+let cardLog = Logger(subsystem: "app.nu9ve.media", category: "cards")
+func elapsedMilliseconds(since start: ContinuousClock.Instant) -> Int64 {
+    let d = start.duration(to: .now).components
+    return d.seconds * 1000 + d.attoseconds / 1_000_000_000_000_000
+}
 
 struct DraftUnit: Identifiable, Equatable {
     var id: String
@@ -1421,12 +1429,15 @@ enum OperationScope { case ingest, library, space, settings, source }
     }
     func mountChanged(arrival: String? = nil) {
         if let arrival { notifiedCards.remove(arrival) }
+        let started = ContinuousClock.now
+        if arrival != nil { cardLog.notice("mount notification") }
         eventTask?.cancel()
         eventTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let reader, reader.configuration.usable else { return }
             await refresh()
             guard !Task.isCancelled else { return }
+            if arrival != nil { cardLog.notice("snapshot ready after \(elapsedMilliseconds(since: started), privacy: .public) ms") }
             if route == .library && librarySection == .disks { await loadStorage() }
             // No registered destination online: mounts stay silent (no popup, no content hints).
             guard volumes.contains(where: { $0["online"].bool }) else {
@@ -1449,6 +1460,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                     if source != path || lastResult != nil || (units.isEmpty && plan == nil) { useCard(path) }
                     openImporter?()
                     opened = true
+                    cardLog.notice("importer opened after \(elapsedMilliseconds(since: started), privacy: .public) ms")
                 }
             }
             statusChanged?()
