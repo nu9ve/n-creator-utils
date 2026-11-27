@@ -328,6 +328,25 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### La CLI de media en Rust · 2026-11-27
+
+F5 (b) de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). `nu9ve.py` no cambió, y Clipper y Kyū siguen usando Python hasta el paso (c).
+
+- **Qué hace.** `nuun-engine [--state-dir D] media [--state-dir D] <orden>` responde las lecturas que mandan otras apps ([inventario](platforms/media-cli-callers.md#paso-b-hecho-el-2026-11-27)):
+  - `projects`;
+  - `sources --project P [--purpose edit|archive]`;
+  - `volumes list`;
+  - `resolve ASSET [--revision R]`;
+  - `captures ROOT`;
+  - `integration-capabilities`;
+  - `retitle-operations`.
+- **Sobre.** Es el de Python: `{ok, command, data}`, o `{ok: false, error}` con salida 1. Un error de uso sale con 2. Las claves salen ordenadas; los consumidores parsean el JSON, así que da igual.
+- **Comprobado:**
+  - `test_media_cli_rust.py` corre las órdenes con los dos motores sobre los catálogos `reads` y `projects` del golden y compara valores y salidas. Cada orden de Clipper y Kyū responde con datos al menos una vez.
+  - En Rust, `media_orders_become_pythons_methods` prueba cómo se leen los argumentos.
+- **Diferencia:** Python rechaza un `--state-dir` con un enlace simbólico en la ruta (`unsafe_state`) y Rust no.
+- **Pruebas:** Rust 207 y 23 diferenciales con `--ignored`; fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Python 425 (3 nuevas), golden al día y `sync-core.sh --check` sin error. No toca Swift.
+
 ### Quién llama a `nu9ve.py media` · 2026-11-27
 
 F5 (a) de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Es sólo un inventario, en [media-cli-callers](platforms/media-cli-callers.md), y no cambia código.

@@ -9,7 +9,7 @@
 use nu9ve_engine::{EngineInfo, Request, RpcError, serve_lines};
 use nu9ve_json::{Error, Result, error_envelope, ok_envelope, require};
 use nuun_media::volumes::{Backend, platform_backend, platform_backend_name};
-use serde_json::{Value, json, value::RawValue};
+use serde_json::{Map, Value, json, value::RawValue};
 use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
@@ -1162,6 +1162,101 @@ impl From<RpcFailure> for RpcError {
     }
 }
 
+/// F5 (b): the read orders other apps send to `nu9ve.py media` ([callers](../../docs/platforms/media-cli-callers.md)),
+/// as the method and params Python's `media/cli.py` builds from them. `Err` is a usage error (Python's argparse
+/// exits 2 for it).
+fn media_order(args: &[String]) -> std::result::Result<(&'static str, Value), String> {
+    let words: Vec<&str> = args.iter().map(String::as_str).collect();
+    // `--name value` pairs after the positionals, each at most once.
+    let options =
+        |rest: &[&str], allowed: &[&str]| -> std::result::Result<Map<String, Value>, String> {
+            let mut found = Map::new();
+            let mut rest = rest.iter();
+            while let Some(flag) = rest.next() {
+                let name = flag
+                    .strip_prefix("--")
+                    .filter(|name| allowed.contains(name))
+                    .ok_or_else(|| format!("unrecognized argument: {flag}"))?;
+                let value = rest
+                    .next()
+                    .ok_or_else(|| format!("{flag} expects a value"))?;
+                found.insert(name.to_owned(), json!(value));
+            }
+            Ok(found)
+        };
+    match words.as_slice() {
+        ["projects"] => Ok(("projects", json!({}))),
+        ["volumes", "list"] => Ok(("volumes", json!({}))),
+        ["integration-capabilities"] => Ok(("integration_capabilities", json!({}))),
+        ["retitle-operations"] => Ok(("retitle_operations", json!({}))),
+        ["captures", root] if !root.starts_with("--") => Ok(("captures", json!({"root": root}))),
+        ["sources", rest @ ..] => {
+            let found = options(rest, &["project", "purpose"])?;
+            let project = found
+                .get("project")
+                .ok_or("the following arguments are required: --project")?;
+            let purpose = found.get("purpose").cloned().unwrap_or(json!("edit"));
+            if purpose != "edit" && purpose != "archive" {
+                return Err(format!("argument --purpose: invalid choice: {purpose}"));
+            }
+            Ok(("sources", json!({"project": project, "purpose": purpose})))
+        }
+        ["resolve", asset, rest @ ..] if !asset.starts_with("--") => {
+            let found = options(rest, &["revision"])?;
+            Ok((
+                "resolve",
+                json!({"asset_id": asset, "revision": found.get("revision")}),
+            ))
+        }
+        _ => Err(format!(
+            "unknown order: {}",
+            if words.is_empty() {
+                "(none)".to_owned()
+            } else {
+                words.join(" ")
+            }
+        )),
+    }
+}
+
+/// `nuun-engine [--state-dir DIR] media [--state-dir DIR] <order> …`: Python's CLI envelope with the same values,
+/// `{"ok": true, "command", "data"}` indented by 2, or `{"ok": false, "error"}` on one line with exit 1. Keys come
+/// in this engine's order (sorted), not Python's; the callers parse the JSON.
+fn media_cli(mut state_dir: Option<PathBuf>, args: &[String]) -> i32 {
+    let mut rest = args;
+    while let [flag, value, tail @ ..] = rest
+        && flag == "--state-dir"
+    {
+        state_dir = Some(PathBuf::from(value));
+        rest = tail;
+    }
+    let (method, params) = match media_order(rest) {
+        Ok(order) => order,
+        Err(usage) => {
+            eprintln!(
+                "usage: nuun-engine media [--state-dir DIR] projects | sources --project P [--purpose edit|archive] | volumes list | resolve ASSET [--revision R] | captures ROOT | integration-capabilities | retitle-operations\nnuun-engine media: error: {usage}"
+            );
+            return 2;
+        }
+    };
+    let engine = Engine { state_dir };
+    match engine.dispatch(method, &params, Mode::Once) {
+        Ok(data) => {
+            let envelope = json!({"ok": true, "command": method, "data": data});
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&envelope).unwrap_or_default()
+            );
+            0
+        }
+        Err(failure) => {
+            let error = json!({"code": failure.error.code, "message": failure.error.message});
+            println!("{}", json!({"ok": false, "error": error}));
+            1
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut state_dir = None;
@@ -1177,6 +1272,7 @@ fn main() {
                 println!("nuun-engine {}", env!("CARGO_PKG_VERSION"));
                 return;
             }
+            "media" => std::process::exit(media_cli(state_dir, &args[i + 1..])),
             other => command = Some(other.to_owned()),
         }
         i += 1;
@@ -1221,7 +1317,7 @@ fn main() {
         }
         _ => {
             eprintln!(
-                "usage: nuun-engine [--state-dir DIR] rpc-serve | rpc | suite-frames | --version"
+                "usage: nuun-engine [--state-dir DIR] rpc-serve | rpc | suite-frames | media … | --version"
             );
             2
         }
@@ -1573,6 +1669,47 @@ mod tests {
         }
         assert_eq!(cfg!(any(windows, target_os = "macos")), has);
         assert_eq!(cfg!(any(windows, target_os = "macos")), writes);
+    }
+
+    /// F5 (b): the orders of `media`, as Python's `media/cli.py` turns them into a method and its params.
+    #[test]
+    fn media_orders_become_pythons_methods() {
+        let order =
+            |words: &[&str]| media_order(&words.iter().map(|w| w.to_string()).collect::<Vec<_>>());
+        assert_eq!(order(&["projects"]).unwrap(), ("projects", json!({})));
+        assert_eq!(order(&["volumes", "list"]).unwrap(), ("volumes", json!({})));
+        assert_eq!(
+            order(&["sources", "--project", "terra"]).unwrap(),
+            ("sources", json!({"project": "terra", "purpose": "edit"}))
+        );
+        assert_eq!(
+            order(&["sources", "--purpose", "archive", "--project", "terra"]).unwrap(),
+            ("sources", json!({"project": "terra", "purpose": "archive"}))
+        );
+        assert_eq!(
+            order(&["resolve", "a1"]).unwrap(),
+            ("resolve", json!({"asset_id": "a1", "revision": null}))
+        );
+        assert_eq!(
+            order(&["resolve", "a1", "--revision", "r1"]).unwrap(),
+            ("resolve", json!({"asset_id": "a1", "revision": "r1"}))
+        );
+        assert_eq!(
+            order(&["captures", "/x"]).unwrap(),
+            ("captures", json!({"root": "/x"}))
+        );
+        for bad in [
+            &[][..],
+            &["sources"],
+            &["sources", "--project"],
+            &["sources", "--project", "p", "--purpose", "x"],
+            &["sources", "--project", "p", "--other", "y"],
+            &["resolve"],
+            &["volumes"],
+            &["apply", "plan.json"],
+        ] {
+            assert!(order(bad).is_err(), "{bad:?}");
+        }
     }
 
     /// nu9ve-action-v1 §6: the pinned `action_progress` requests, through `rpc-serve`, on an empty library.

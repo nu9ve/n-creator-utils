@@ -23,11 +23,18 @@ Estado: **inventario del 2026-11-27**, paso (a) de F5 en [PLAN](../../PLAN.md#tr
 
 ## Qué cubre ya Rust
 
-Las órdenes de fuera se resuelven en métodos que `nuun-engine` ya sirve: `projects`, `sources` (con `purpose`), `volumes`, `resolve` (con `revision`) y `captures`. El golden (`engine_golden.py`) compara `projects`, `resolve` y las fuentes del editor. `volumes` no está entre sus lecturas: hay que sumarlo en (b). Falta la **CLI con argumentos**, paso (b): `nuun-engine` sólo entiende `rpc`, `rpc-serve` y `suite-frames`, y los consumidores mandan `media <orden> --opción`.
+Las órdenes de fuera se resuelven en métodos que `nuun-engine` ya sirve: `projects`, `sources` (con `purpose`), `volumes`, `resolve` (con `revision`) y `captures`. El golden (`engine_golden.py`) compara `projects`, `resolve` y las fuentes del editor. `volumes` no está entre sus lecturas; lo compara la prueba de la CLI (abajo). Hasta el paso (b), `nuun-engine` sólo entendía `rpc`, `rpc-serve` y `suite-frames`, y los consumidores mandan `media <orden> --opción`.
 
-## Para el paso (b)
+## Paso (b), hecho el 2026-11-27
 
-- **Sobre:** `nuun-engine media <orden>` debe escribir lo mismo que Python: `{"ok": true, "command": <método>, "data": …}` o `{"ok": false, "error": {code, message}}`, con `--state-dir` antes de la orden. Ningún consumidor lee la sangría ni el orden de las claves, pero conviene igualarlos para que el dorado compare bytes.
-- **Órdenes mínimas:** `projects`, `sources --project P [--purpose edit|archive]`, `volumes list` y `resolve ASSET [--revision R]`. Con eso, Clipper y Kyū funcionan sin Python. `captures` y las de Stalker ya van por `rpc`.
-- **Cómo lo encuentran:** cuando la CLI exista, `nu9ve` puede ser un enlace instalado a `nuun.app/Contents/Resources/backend/nuun-engine`, lo que cubre a Clipper y a Kyū sin cambiarlos. O cada uno sigue a Stalker y busca la app. Lo decide el usuario con la sesión de Clipper, antes del paso (c).
+`nuun-engine [--state-dir D] media [--state-dir D] <orden>` responde las órdenes de lectura que mandan los de fuera: `projects`, `sources --project P [--purpose edit|archive]`, `volumes list`, `resolve ASSET [--revision R]`, `captures ROOT`, `integration-capabilities` y `retitle-operations` ([main.rs](../../engine/nuun-engine/src/main.rs), `media_cli`).
+
+- **Sobre:** `{"ok": true, "command", "data"}` con sangría de 2, o `{"ok": false, "error": {code, message}}` en una línea con salida 1. Un error de uso sale con 2 y escribe el uso en stderr, como argparse. Las claves salen ordenadas, no en el orden de Python; ningún consumidor lo lee.
+- **Igual a Python:** [`test_media_cli_rust.py`](../../tests/test_media_cli_rust.py) corre cada orden con los dos motores sobre dos catálogos del golden (`reads` y `projects`, este con fuentes del editor y tres discos) y compara valores y salida. Cada orden responde con datos al menos una vez.
+- **Diferencia que queda:** Python rechaza un `--state-dir` con un enlace simbólico en la ruta (`unsafe_state`) y Rust no.
+- **Escrituras:** ninguna orden de escritura (`apply`, `retitle-capture`…) pasa por aquí. Siguen en `rpc`.
+
+## Lo que queda antes de (c)
+
+- **Cómo lo encuentran:** con la CLI ya en Rust, `nu9ve` puede ser un enlace instalado a `nuun.app/Contents/Resources/backend/nuun-engine`, lo que cubre a Clipper y a Kyū sin cambiarlos. O cada uno sigue a Stalker y busca la app. Lo decide el usuario con la sesión de Clipper, antes del paso (c).
 - **Avisar a Clipper** antes de (c): su ruta por defecto es el checkout de `nu9ve.py`, que (c) convierte en un reenvío a Rust.
