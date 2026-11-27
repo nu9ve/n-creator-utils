@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import NuMacShell
 import NuunCore
 import Nu9veTheme
 
@@ -10,9 +11,11 @@ struct CreatorPalette: Sendable {
     static let defaultSaturation = NuunTheme.defaultSaturation
     let roles: ThemeRoles
     let skin: ThemeSkin
-    init(skin: ThemeSkin = .glass, dark: Bool, hue: Double, saturation: Double, brightness: Double) {
+    /// `era` matters only for Macintosh and Windows 9x (nu9ve-theme-v1 §4 «Época»): `tinted` takes the user's
+    /// color for paper, lines and ink, and the user's mode.
+    init(skin: ThemeSkin = .glass, dark: Bool, hue: Double, saturation: Double, brightness: Double, era: ThemeEra = .original) {
         self.skin = skin
-        roles = ThemeRoles(skin: skin, dark: dark, hue: hue, saturation: saturation, brightness: brightness)
+        roles = ThemeRoles(skin: skin, dark: dark, base: .hsv(hue, saturation, brightness), era: era)
     }
     static func ns(_ color: ThemeColor) -> NSColor { NSColor(srgbRed: color.red, green: color.green, blue: color.blue, alpha: 1) }
     static func color(_ color: ThemeColor) -> Color { Color(.sRGB, red: color.red, green: color.green, blue: color.blue, opacity: 1) }
@@ -220,11 +223,13 @@ struct CreatorAppearance: ViewModifier {
     @AppStorage("accentHue") private var hue = CreatorPalette.defaultHue
     @AppStorage("accentSaturation") private var saturation = CreatorPalette.defaultSaturation
     @AppStorage("accentBrightness") private var brightness = 1.0
+    @AppStorage("era") private var eraID = ThemeEra.original.rawValue
     func body(content: Content) -> some View {
         let skin = ThemeSkin(rawValue: skinID) ?? .glass
+        let era = ThemeEra(rawValue: eraID) ?? .original
         let requested = appearance == "dark" || (appearance == "system" && systemScheme == .dark)
-        let palette = CreatorPalette(skin: skin, dark: requested, hue: hue, saturation: saturation, brightness: brightness)
-        let followsSystem = appearance == "system" && skin.forcedDark == nil
+        let palette = CreatorPalette(skin: skin, dark: requested, hue: hue, saturation: saturation, brightness: brightness, era: era)
+        let followsSystem = appearance == "system" && skin.forcedDark(era: era) == nil
         content
             .buttonStyle(CreatorButtonStyle())
             .textFieldStyle(CreatorTextFieldStyle())
@@ -249,13 +254,15 @@ struct AppearanceSettings: View {
     @AppStorage("accentHue") private var hue = CreatorPalette.defaultHue
     @AppStorage("accentSaturation") private var saturation = CreatorPalette.defaultSaturation
     @AppStorage("accentBrightness") private var brightness = 1.0
+    @AppStorage("era") private var eraID = ThemeEra.original.rawValue
+    private var era: ThemeEra { ThemeEra(rawValue: eraID) ?? .original }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Apariencia", systemImage: "paintpalette").font(.title3.weight(.semibold))
             Picker("Tema", selection: $appearance) { Text("Claro").tag("light"); Text("Oscuro").tag("dark"); Text("Sistema").tag("system") }
                 .pickerStyle(.segmented).fixedSize()
-                .disabled(palette.skin.forcedDark != nil)
-            if let forced = palette.skin.forcedDark {
+                .disabled(palette.skin.forcedDark(era: era) != nil)
+            if let forced = palette.skin.forcedDark(era: era) {
                 Text(forced ? "\(palette.skin.name) siempre es oscuro; tu tema vuelve al elegir otro skin." : "\(palette.skin.name) siempre es claro; tu tema vuelve al elegir otro skin.")
                     .font(.caption).foregroundStyle(palette.muted)
             }
@@ -288,7 +295,18 @@ struct AppearanceSettings: View {
                 Button("Restaurar claro · #FFBB5C") { appearance = "light"; skinID = ThemeSkin.glass.rawValue; hue = CreatorPalette.defaultHue; saturation = CreatorPalette.defaultSaturation; brightness = 1 }
             }
             Divider()
-            SkinPicker(skinID: $skinID, hue: hue, saturation: saturation, brightness: brightness, dark: palette.dark)
+            SkinPicker(skinID: $skinID, hue: hue, saturation: saturation, brightness: brightness, dark: palette.dark, era: era)
+            if palette.skin.hasEra {
+                // nu9ve-theme-v1 §4 «Época»: only Macintosh and Windows 9x; the skin's measures never change.
+                Picker("Época", selection: $eraID) {
+                    Text("Original").tag(ThemeEra.original.rawValue)
+                    Text("Con tu color").tag(ThemeEra.tinted.rawValue)
+                }
+                .pickerStyle(.segmented).fixedSize()
+                Text(era == .tinted ? "El papel, las reglas y la tinta salen de tu color, y sigue tu tema claro u oscuro."
+                                    : "La paleta de la época, siempre clara; tu color queda en el acento.")
+                    .font(.caption).foregroundStyle(palette.muted)
+            }
         }
     }
     /// A preset only moves the color; light/dark stays the user's choice.
@@ -303,6 +321,7 @@ private struct SkinPicker: View {
     @Environment(\.creatorPalette) private var palette
     @Binding var skinID: String
     let hue: Double, saturation: Double, brightness: Double, dark: Bool
+    var era: ThemeEra = .original
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Skin").font(.headline)
@@ -311,7 +330,7 @@ private struct SkinPicker: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], alignment: .leading, spacing: 10) {
                 ForEach(ThemeSkin.allCases) { skin in
                     let selected = skin.rawValue == skinID
-                    Button { skinID = skin.rawValue } label: { SkinCard(skin: skin, palette: CreatorPalette(skin: skin, dark: dark, hue: hue, saturation: saturation, brightness: brightness), selected: selected) }
+                    Button { skinID = skin.rawValue } label: { SkinCard(skin: skin, palette: CreatorPalette(skin: skin, dark: dark, hue: hue, saturation: saturation, brightness: brightness, era: era), selected: selected) }
                         .buttonStyle(.plain)
                         .help(Text(verbatim: skin.summary))
                         .accessibilityLabel(Text(verbatim: skin.name))

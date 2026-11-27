@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import NuMacShell
 import UserNotifications
 import NuunCore
 import Nu9veTheme
@@ -285,7 +286,7 @@ private extension NSToolbarItem.Identifier {
             value.titleVisibility = .hidden; value.tabbingMode = .disallowed
             value.isUserResizable = false
             let host = NSHostingView(rootView: SkinnedWindow(title: title, barRow: { $0.captionHeight == 0 }, resizable: false, bar: { Spacer() }) {
-                AboutView(identity: .nuun)
+                NuunAboutView()
             }.modifier(CreatorAppearance()))
             host.sizingOptions = [.preferredContentSize]
             value.contentView = host

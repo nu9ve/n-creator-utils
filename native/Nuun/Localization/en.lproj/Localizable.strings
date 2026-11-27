@@ -1127,3 +1127,12 @@
 "%@ y %@ tienen trabajo por llevar de uno a otro" = "%@ and %@ have work to carry between them";
 "Actualizar %@…" = "Update %@…";
 "Para estos discos y este flujo. Se puede volver a activar." = "For these disks and this flow. It can be turned back on.";
+"Cerrar ventana · ⌘W" = "Close window · ⌘W";
+"Minimizar ventana · ⌘M" = "Minimize window · ⌘M";
+"Ampliar ventana · con Opción: pantalla completa" = "Zoom window · with Option: full screen";
+"Época" = "Era";
+"Original" = "Original";
+"Con tu color" = "With your color";
+"El papel, las reglas y la tinta salen de tu color, y sigue tu tema claro u oscuro." = "Paper, rules and ink come from your color, and it follows your light or dark theme.";
+"La paleta de la época, siempre clara; tu color queda en el acento." = "The era's own palette, always light; your color stays in the accent.";
+"Compilación %@" = "Build %@";

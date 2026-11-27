@@ -1,4 +1,5 @@
 import SwiftUI
+import NuMacShell
 import NuunCore
 import Nu9veTheme
 
