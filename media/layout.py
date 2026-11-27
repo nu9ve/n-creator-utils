@@ -54,7 +54,9 @@ def sony_index_member(path):
 
 
 def tag(value):
-    return slug(value).upper()
+    # `_` separates the parts of a name, so inside a part it becomes `-` (decided 2026-11-26): `mi_proyecto`
+    # names `MX-MI-PROYECTO`. Only names; the project's slug, its folders and earlier names stay as they are.
+    return slug(value).upper().replace('_', '-')
 
 
 def sony_xml(path):

@@ -36,7 +36,7 @@ YYMONDD-HHMMSS_<FUENTE>_<MM-SS>_<PAIS>-<PROYECTO>[]<-N>.<EXT>
 | `YYMONDD-HHMMSS` | Inicio de captura en hora de pared local, mes en inglés de 3 letras mayúsculas. Ordena alfabéticamente = cronológicamente dentro de un mes/año. |
 | `FUENTE` | Dispositivo/productor: `SONYA6400` (XML `ILCE-6400`), `STALKER`, `H6TR1`/`H6LR`, categoría en mayúsculas si no hay modelo. Tabla en `MODELS` de `layout.py`. |
 | `MM-SS` | Duración redondeada a segundos con `round()` de Python (mitad a par: 0.5 → 0, 1.5 → 2); minutos pueden pasar de 59. Fotos no llevan duración. `00-00` si no hay fuente fiable. |
-| `PAIS-PROYECTO` | Slug en mayúsculas. País y proyecto son campos distintos del plan; ciudad no entra al nombre. |
+| `PAIS-PROYECTO` | Slug en mayúsculas. País y proyecto son campos distintos del plan; ciudad no entra al nombre. Un `_` dentro de una parte pasa a `-`, porque `_` separa las partes (`mi_proyecto` → `MX-MI-PROYECTO`). Decidido el 2026-11-26; vale igual para la fuente, el modelo y el plan de una misión. Sólo nombres nuevos: no cambia el proyecto del catálogo ni sus carpetas, y nada ya nombrado se renombra. Ningún proyecto del catálogo tenía `_` al decidirlo. |
 | `[]` | Hueco histórico de etiquetas; se conserva por compatibilidad con años de archivo existente. |
 | `-N` | Sólo si dos archivos del mismo plan producen el mismo nombre (mismo segundo y fuente): `…-2[].MP4`. Determinista dentro del plan. |
 

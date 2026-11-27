@@ -84,8 +84,10 @@ pub fn sony_index_member(path: &str) -> bool {
 }
 
 /// Python `layout.tag`.
+/// Python `tag`: `_` separates the parts of a name, so inside a part it becomes `-` (decided 2026-11-26).
+/// Only names; the project's slug, its folders and earlier names stay as they are.
 pub fn tag(value: &str) -> Result<String> {
-    Ok(slug(value)?.to_uppercase())
+    Ok(slug(value)?.to_uppercase().replace('_', "-"))
 }
 
 /// Python `evidence.capture_time(value, provenance)` without a zone: what the source said and, when it carries an
@@ -1089,6 +1091,17 @@ fn truthy(value: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_underscore_inside_a_name_part_becomes_a_hyphen() {
+        assert_eq!(tag("mi_proyecto").unwrap(), "MI-PROYECTO");
+        assert_eq!(
+            tag("buscando baches_con dron").unwrap(),
+            "BUSCANDO-BACHES-CON-DRON"
+        );
+        assert_eq!(tag("_mx_").unwrap(), "MX");
+        assert_eq!(tag("subaereo").unwrap(), "SUBAEREO");
+    }
 
     fn file(root: &Path, rel: &str, bytes: &[u8], unit: &str) -> Value {
         let path = root.join(rel);

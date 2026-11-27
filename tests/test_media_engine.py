@@ -786,6 +786,13 @@ class NamedLayoutTests(MediaFixture):
         self.assertEqual({l['role'] for l in exported['locations']}, {'archive', 'work'})
         self.assertEqual([m['relative_path'] for m in exported['members']], [name + '.MP4'])
 
+    def test_an_underscore_inside_a_name_part_becomes_a_hyphen(self):
+        from media.layout import tag
+        self.assertEqual(tag('mi_proyecto'), 'MI-PROYECTO')
+        self.assertEqual(tag('buscando baches_con dron'), 'BUSCANDO-BACHES-CON-DRON')
+        self.assertEqual(tag('_mx_'), 'MX')
+        self.assertEqual(tag('subaereo'), 'SUBAEREO')
+
     def test_stalker_bundle_takes_dated_name_and_interleaves_with_clips(self):
         card = self.sony_card()
         bundle = card / 'Stalker_2026-10-24_19-58-50.stalker'; bundle.mkdir()
