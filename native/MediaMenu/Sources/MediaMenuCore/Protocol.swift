@@ -30,6 +30,36 @@ public enum JSONValue: Codable, Sendable, Equatable {
         case .null: try c.encodeNil()
         }
     }
+    /// Parse a JSON document in one pass. The Codable init above tries each type in turn and throws on every
+    /// miss, which took ~6 s on a 6.9 MB snapshot; this gives the same cases: a whole number is `.integer`
+    /// (or `.unsignedInteger` past Int64), any other number `.number`.
+    public static func parse(_ data: Data) throws -> JSONValue {
+        convert(try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]))
+    }
+    private static func convert(_ value: Any) -> JSONValue {
+        switch value {
+        case let object as [String: Any]: return .object(object.mapValues(convert))
+        case let array as [Any]: return .array(array.map(convert))
+        case let string as String: return .string(string)
+        case let number as NSNumber:
+            if CFGetTypeID(number) == CFBooleanGetTypeID() { return .bool(number.boolValue) }
+            switch UInt8(number.objCType.pointee) {
+            case UInt8(ascii: "Q"), UInt8(ascii: "L"), UInt8(ascii: "I"), UInt8(ascii: "S"), UInt8(ascii: "C"):
+                let unsigned = number.uint64Value
+                return unsigned > UInt64(Int64.max) ? .unsignedInteger(unsigned) : .integer(Int64(unsigned))
+            case UInt8(ascii: "q"), UInt8(ascii: "l"), UInt8(ascii: "i"), UInt8(ascii: "s"), UInt8(ascii: "c"):
+                return .integer(number.int64Value)
+            default:
+                let double = number.doubleValue
+                if double.rounded() == double, abs(double) < 9.2e18 {
+                    return .integer(Int64(double))
+                }
+                if number is NSDecimalNumber, let unsigned = UInt64(number.stringValue) { return .unsignedInteger(unsigned) }
+                return .number(double)
+            }
+        default: return .null
+        }
+    }
     public subscript(_ key: String) -> JSONValue { if case .object(let o) = self { return o[key] ?? .null }; return .null }
     public var string: String { if case .string(let s) = self { return s }; return "" }
     public var bool: Bool { if case .bool(let b) = self { return b }; return false }
@@ -47,7 +77,7 @@ public struct ReviewedPlan: Sendable {
     public let display: JSONValue
     public init(document: String) throws {
         self.document = document
-        display = try JSONDecoder().decode(JSONValue.self, from: Data(document.utf8))
+        display = try JSONValue.parse(Data(document.utf8))
         guard !display["digest"].string.isEmpty else {
             throw BackendFailure(code: "invalid_plan", message: "El plan recibido no tiene digest")
         }
@@ -66,7 +96,7 @@ public struct BackendFailure: LocalizedError, Sendable {
 
 public enum ProtocolBoundary {
     public static func response(_ data: Data) throws -> JSONValue {
-        let envelope = try JSONDecoder().decode(JSONValue.self, from: data)
+        let envelope = try JSONValue.parse(data)
         guard envelope["ok"].bool else {
             throw BackendFailure(code: envelope["error"]["code"].string, message: envelope["error"]["message"].string)
         }
@@ -206,7 +236,7 @@ final class LineServer: @unchecked Sendable {
         while let newline = buffer.firstIndex(of: 0x0A) {
             let line = buffer[buffer.startIndex..<newline]
             buffer.removeSubrange(buffer.startIndex...newline)
-            guard let envelope = try? JSONDecoder().decode(JSONValue.self, from: Data(line)) else { continue }
+            guard let envelope = try? JSONValue.parse(Data(line)) else { continue }
             let id = Int(envelope["id"].double)
             guard let continuation = pending.removeValue(forKey: id) else { continue }
             ready.append((continuation, Result { try ProtocolBoundary.response(Data(line)) }))

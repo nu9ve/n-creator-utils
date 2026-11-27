@@ -291,3 +291,19 @@ func theRealEngineAnswersReadsLikePython() async throws {
         Issue.record("The fake engine terminates without an apply response")
     } catch let failure as BackendFailure { #expect(failure.code == "backend_failed") }
 }
+
+/// The one-pass parser gives the same values as the Codable init, on edge cases and on the whole golden file.
+@Test func fastParserMatchesCodable() throws {
+    let samples = [
+        #"{"a":1,"b":1.5,"c":-3,"d":true,"e":false,"f":null,"g":"x","h":[1,2.0,"y",{"z":[]}],"i":18446744073709551615,"j":1e3,"k":0}"#,
+        #"[9223372036854775807,-9223372036854775808,0.1,"é",{}]"#,
+        #""fragment""#, "42", "true", "null",
+    ]
+    for sample in samples {
+        let data = Data(sample.utf8)
+        #expect(try JSONValue.parse(data) == JSONDecoder().decode(JSONValue.self, from: data), "\(sample)")
+    }
+    let golden = repoRoot.appendingPathComponent("tests/fixtures/engine-golden/recipe.json")
+    let data = try Data(contentsOf: golden)
+    #expect(try JSONValue.parse(data) == JSONDecoder().decode(JSONValue.self, from: data))
+}
