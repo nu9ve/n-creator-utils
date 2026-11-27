@@ -328,6 +328,26 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Revisión de copia sin volver a leer · 2026-11-27
+
+U1.3 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), **sin instalar ni aceptar en ventana**.
+
+- **Qué cambia.** `work_copy::plan` ([work_copy.rs](../engine/crates/nuun-media/src/work_copy.rs)) ya no hashea los dos lados de cada archivo que está en el destino.
+  - Si un recibo publicado entre esos dos discos lo verificó, en cualquier sentido, y los dos lados conservan su tamaño y fecha, es idéntico sin leerlo. El plan lo marca `verified_by`.
+  - Lo demás se lee como antes. La copia vuelve a leer todo antes de adoptarlo.
+  - [Contrato](contracts/suite-work-copy-v1.md#reglas).
+- **Medida.** `review_of_a_finished_copy` (a mano, `--release`, con `TMPDIR` físico): revisar otra vez 64 archivos de 8 MiB ya copiados pasó de **3 489 ms** (mediana de 3) a **8–18 ms**, según la corrida. Falta llevar el caso a `nu9ve-bench` (F6).
+- **La revisión es una acción.**
+  - Primero lista y busca en los recibos; después lee sólo lo dudoso, con etapa `reviewing`, el doble de los bytes por leer y el archivo en mano.
+  - En la app, «Revisar» manda `progress_id` y muestra la vista del core («Revisando la copia») en lugar del *loader*.
+- **Arreglo en el registro (F4a).** El límite de escrituras ya no cede cada vez que termina un archivo: como pide el contrato, son como mucho 4 escrituras por segundo, más un cambio de etapa y lo retenido al terminar el paso. La primera medida de cada paso siempre se escribe. `several_plans_share_one_measure…` ahora comprueba eso en lugar de una escritura por archivo.
+- **Pruebas:**
+  - Nueva: `a_receipt_spares_reading_again_what_kept_its_size_and_time`, que cubre la ida, la vuelta, el mismo tamaño y fecha (que se confía sin leer) y otra fecha (que se lee y bloquea).
+  - Rust 206 y 23 diferenciales con `--ignored`; fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`.
+  - Swift 36, Python 422, golden al día y `sync-core.sh --check` sin error.
+  - `check_localization.py`: las 2 cadenas nuevas tienen inglés; siguen las 112 claves que faltaban antes.
+- **Decisión que queda a la vista:** un archivo editado que conserva su tamaño y su fecha se toma como idéntico en la revisión. La copia lo lee de vuelta y, si difiere, se detiene con `destination_conflict` sin tocarlo. Nunca se reemplaza en silencio.
+
 ### La app con la vista del core · 2026-11-27
 
 F4c de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), **sin instalar ni aceptar en ventana**. La app ya no tiene vista de progreso propia: usa `Nu9veAction` y `Nu9veActionProgress` del core.

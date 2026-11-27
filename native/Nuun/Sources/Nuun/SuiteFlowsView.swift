@@ -330,10 +330,15 @@ struct WorkCopySheet: View {
     @State private var done: JSONValue?
     @State private var inFlight = false
     @State private var copying = false
+    @State private var reviewing = false
     @State private var failure = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if copying {
+            if reviewing {
+                // U1.3: the review is an action too; what a receipt verified with the same size and time is not read.
+                ActionProgressScreen(model.actionSnapshot(.action), title: "Revisando la copia",
+                                     note: "nüün compara lo que ya está en el destino. Lo que un recibo verificó y conserva su tamaño y fecha no se vuelve a leer.")
+            } else if copying {
                 ActionProgressScreen(model.actionSnapshot(.action), title: "Copiando y verificando",
                                      note: "Mantén conectados ambos discos hasta que aparezca el recibo.")
             } else {
@@ -527,14 +532,21 @@ struct WorkCopySheet: View {
         catch { failure = error.localizedDescription }
     }
     private func review() {
-        inFlight = true; failure = ""
+        inFlight = true; reviewing = true; failure = ""
         Task {
-            defer { inFlight = false }
+            let progressID = newProgressID()
+            model.watchAction("work_copy_review", progressID)
+            defer {
+                model.stopAction(.action)
+                model.runningAction = ""
+                inFlight = false
+                reviewing = false
+            }
             do {
                 let paths = Self.outermost(Array(chosen) + missionMetadata(for: chosen))
                 plan = try await model.oneShot("work_copy_plan", ["source": .string(request.source), "destination": .string(request.destination),
                                                                   "paths": .array(paths.map(JSONValue.string)),
-                                                                  "update": .bool(request.update)])
+                                                                  "update": .bool(request.update), "progress_id": .string(progressID)])
             } catch let failure as BackendFailure where failure.code == "destination_conflict" {
                 self.failure = String(localized: "Hay archivos distintos con el mismo nombre en el destino. Marca «Actualizar lo que cambió» para reemplazarlos guardando su versión anterior, o elige otra carpeta.")
             } catch { failure = error.localizedDescription }

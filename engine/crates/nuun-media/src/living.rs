@@ -784,13 +784,22 @@ mod tests {
         .unwrap();
         let seen = seen.into_inner();
         assert_eq!(seen.len(), 2);
-        for (index, value) in seen.iter().enumerate() {
+        for value in &seen {
             assert_eq!(value["overall_total"], 108);
             assert_eq!(value["files_total"], 6);
-            assert_eq!(value["files_done"], 4 + index);
         }
+        assert_eq!(seen[0]["files_done"], 4);
         assert_eq!(seen[0]["overall_done"], 100);
-        assert!(seen[1]["overall_done"].as_u64().unwrap() > 100);
+        // At most 4 writes a second (nu9ve-action-v1 §3.3): the second file may still be held back here…
+        assert!(seen[1]["files_done"] == 4 || seen[1]["files_done"] == 5);
+        // …and is written when the step ends.
+        let last = Catalog::open(&s.home)
+            .unwrap()
+            .get("action-progress:conversations-now")
+            .unwrap()
+            .unwrap();
+        assert_eq!(last["files_done"], 6);
+        assert_eq!(last["overall_done"], 107);
         // The plan's own id is left free: nothing else keys on it while a caller's measure is given.
         let catalog = Catalog::open(&s.home).unwrap();
         assert!(

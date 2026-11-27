@@ -1160,3 +1160,5 @@
 "escrito" = "written";
 "retirado" = "removed";
 "verificado" = "verified";
+"Revisando la copia" = "Reviewing the copy";
+"nüün compara lo que ya está en el destino. Lo que un recibo verificó y conserva su tamaño y fecha no se vuelve a leer." = "nüün compares what is already on the destination. What a receipt verified and still has its size and date is not read again.";

@@ -414,7 +414,7 @@ pub(crate) struct ActionProgress<'a> {
     pub(crate) meter: Meter,
     pub(crate) stage: &'static str,
     closure: bool,
-    written: Option<(Instant, &'static str, usize)>,
+    written: Option<(Instant, &'static str)>,
     /// A measure the throttle held back; written when the step ends, so the closing counts it.
     held: bool,
 }
@@ -506,19 +506,20 @@ impl<'a> ActionProgress<'a> {
                 beat: Some(beat),
             })
         });
-        self.written = Some((Instant::now(), self.stage, 0));
+        // The first report of a step always goes in.
+        self.written = None;
         Ok(())
     }
 
-    /// Write this step's measure into the action's record (at most 4 times a second; always on a new stage or a
-    /// finished file). The fraction never goes back, and 100 % waits for the close.
+    /// Write this step's measure into the action's record: at most 4 times a second (§3.3), always on a new
+    /// stage, and what was held back when the step ends. The fraction never goes back, and 100 % waits for the
+    /// close.
     pub(crate) fn report(&mut self) -> Result<()> {
         let Some(key) = &self.key else {
             return Ok(());
         };
-        if let Some((at, stage, files)) = self.written
+        if let Some((at, stage)) = self.written
             && stage == self.stage
-            && files == self.meter.files_done
             && at.elapsed() < THROTTLE
         {
             self.held = true;
@@ -569,7 +570,7 @@ impl<'a> ActionProgress<'a> {
         }
         object.insert("updated_at".into(), json!(now));
         write(db, key, &record)?;
-        self.written = Some((Instant::now(), self.stage, self.meter.files_done));
+        self.written = Some((Instant::now(), self.stage));
         Ok(())
     }
 }

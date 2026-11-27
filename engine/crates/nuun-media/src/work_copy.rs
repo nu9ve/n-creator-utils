@@ -442,7 +442,53 @@ fn hash_at(root: &Root, rel: &str) -> Result<Option<String>> {
     Ok(Some(hash_file(&mut file, |_| {})?))
 }
 
+/// What a verified receipt between two disks says about one file, by its path on today's destination (U1.3).
+struct Known {
+    /// Its path on today's source.
+    source: String,
+    size: Value,
+    mtime_ns: Value,
+    receipt: Value,
+}
+
+/// U1.3: the files a published receipt between `source_id` and `dest_id` verified, in either direction, keyed by
+/// their path on today's destination. Both ends were read back and matched then, with the source's time kept;
+/// the newest receipt wins.
+fn verified(dest: &Root, source_id: &str, dest_id: &str) -> BTreeMap<String, Known> {
+    let mut known = BTreeMap::new();
+    for receipt in full_receipts(dest) {
+        let from = text(&receipt["source"], "volume_id");
+        let to = text(&receipt["destination"], "volume_id");
+        let forward = from == source_id && to == dest_id;
+        if !forward && !(from == dest_id && to == source_id) {
+            continue;
+        }
+        for file in receipt["files"].as_array().into_iter().flatten() {
+            let (here, there) = (text(file, "source_path"), text(file, "path"));
+            let (here, there) = if forward {
+                (here, there)
+            } else {
+                (there, here)
+            };
+            known.insert(
+                there.to_owned(),
+                Known {
+                    source: here.to_owned(),
+                    size: file["size"].clone(),
+                    mtime_ns: file["mtime_ns"].clone(),
+                    receipt: receipt["id"].clone(),
+                },
+            );
+        }
+    }
+    known
+}
+
 /// `work_copy_plan`: what would be copied from one work disk to another, reviewed before anything is written.
+///
+/// A file already on the destination is compared by its hash on both disks, unless a receipt between these two
+/// disks verified it and both ends still have that size and modification time (U1.3): then it is identical
+/// without reading it again. The copy itself still reads it back before adopting it.
 pub fn plan(home: &Path, backend: &dyn Backend, isolated: bool, params: &Value) -> Result<Value> {
     let (paths, into) = check_paths(params)?;
     let source = side(home, backend, &absolute(params, "source")?, "source")?;
@@ -475,38 +521,99 @@ pub fn plan(home: &Path, backend: &dyn Backend, isolated: bool, params: &Value) 
     let mut conflicts = Vec::new();
     let update = params["update"] == true;
     let (mut replace, mut replace_bytes) = (0usize, 0u64);
+    let known = verified(
+        &dest.root,
+        text(&source.volume, "volume_id"),
+        text(&dest.volume, "volume_id"),
+    );
+    // First the list, with what a receipt already verified; then only what is left is read, with a measure.
+    let mut listed = Vec::new();
     for top in &paths {
         for (path, stamp) in files_under(&source.root, top)? {
             let target = join(&into, &path);
-            let mut item = json!({"path":path,"target":target,"stamp":stamp_json(&stamp)});
-            if let Some(existing) = dest.root.stat(&target)? {
-                let there = hash_at(&dest.root, &target)?;
-                let same = existing.size == stamp.size && there == hash_at(&source.root, &path)?;
-                if same {
-                    item["existing"] = json!("identical");
-                    adopt += 1;
-                    adopt_bytes += stamp.size;
-                } else if update {
-                    // «Actualizar»: the reviewed version on the destination is kept in nüün's folder, never deleted.
-                    item["existing"] = json!("different");
-                    item["previous"] = json!({"sha256":there,"stamp":stamp_json(&existing)});
-                    replace += 1;
-                    replace_bytes += stamp.size;
-                    bytes += stamp.size;
-                } else {
-                    conflicts.push(target.clone());
-                }
-            } else {
-                bytes += stamp.size;
-            }
-            items.push(item);
-            if items.len().is_multiple_of(2000) {
+            let existing = dest.root.stat(&target)?;
+            let receipt = existing.as_ref().and_then(|existing| {
+                known.get(&target).filter(|k| {
+                    k.source == path
+                        && [stamp.size, existing.size]
+                            .iter()
+                            .all(|s| k.size == json!(s))
+                        && [stamp.mtime_ns, existing.mtime_ns]
+                            .iter()
+                            .all(|t| k.mtime_ns == json!(t))
+                })
+            });
+            listed.push((path, target, stamp, existing, receipt));
+            if listed.len().is_multiple_of(2000) {
                 progress.stage = "listing_source";
-                progress.meter.files_done = items.len();
+                progress.meter.files_done = listed.len();
                 progress.report()?;
             }
         }
     }
+    let unread = |e: &&(
+        String,
+        String,
+        nu9ve_volumes::Stamp,
+        Option<nu9ve_volumes::Stamp>,
+        Option<&Known>,
+    )| { e.3.is_some() && e.4.is_none() };
+    progress.stage = "reviewing";
+    progress.meter.total = listed.iter().filter(unread).map(|e| e.2.size * 2).sum();
+    progress.meter.files_total = listed.iter().filter(unread).count();
+    progress.meter.files_done = 0;
+    progress.report()?;
+    let (source_label, dest_label) = (
+        text(&source.volume, "label").to_owned(),
+        text(&dest.volume, "label").to_owned(),
+    );
+    let mut read = 0u64;
+    for (path, target, stamp, existing, receipt) in listed {
+        let mut item = json!({"path":path,"target":target,"stamp":stamp_json(&stamp)});
+        if let Some(existing) = existing {
+            let (same, there) = match receipt {
+                Some(_) => (true, None),
+                None => {
+                    progress
+                        .meter
+                        .holding(&target, &dest_label, &source_label, "verify");
+                    progress.report()?;
+                    let there = hash_at(&dest.root, &target)?;
+                    read += existing.size;
+                    progress.meter.reach(read);
+                    progress.report()?;
+                    let same =
+                        existing.size == stamp.size && there == hash_at(&source.root, &path)?;
+                    read += stamp.size;
+                    progress.meter.reach(read);
+                    progress.meter.finished("verified", &target, &dest_label);
+                    progress.report()?;
+                    (same, there)
+                }
+            };
+            if same {
+                item["existing"] = json!("identical");
+                if let Some(known) = receipt {
+                    item["verified_by"] = known.receipt.clone();
+                }
+                adopt += 1;
+                adopt_bytes += stamp.size;
+            } else if update {
+                // «Actualizar»: the reviewed version on the destination is kept in nüün's folder, never deleted.
+                item["existing"] = json!("different");
+                item["previous"] = json!({"sha256":there,"stamp":stamp_json(&existing)});
+                replace += 1;
+                replace_bytes += stamp.size;
+                bytes += stamp.size;
+            } else {
+                conflicts.push(target.clone());
+            }
+        } else {
+            bytes += stamp.size;
+        }
+        items.push(item);
+    }
+    progress.meter.current.clear();
     require(
         conflicts.is_empty(),
         "destination_conflict",
@@ -1230,6 +1337,96 @@ mod tests {
         assert_eq!(
             apply(&d.home, &d.backend, &args).unwrap_err().code,
             "volume_replaced"
+        );
+    }
+
+    /// U1.3: after a verified copy, the review trusts the receipt for what still has its size and time, in
+    /// both directions, and reads again what does not.
+    #[test]
+    fn a_receipt_spares_reading_again_what_kept_its_size_and_time() {
+        let d = disks();
+        let paths = json!(["atlas-derived/potholes"]);
+        let first = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+        assert!(first["files"][0].get("verified_by").is_none());
+        apply(
+            &d.home,
+            &d.backend,
+            &json!({"plan_id":first["id"],"digest":first["digest"]}),
+        )
+        .unwrap();
+        let again = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+        assert_eq!(again["adopt"]["files"], 2);
+        for file in again["files"].as_array().unwrap() {
+            assert_eq!(file["verified_by"], first["id"], "{file}");
+        }
+        let back =
+            json!({"source":d.edicion,"destination":d.viaje,"paths":["atlas-derived/potholes"]});
+        let reverse = plan(&d.home, &d.backend, true, &back).unwrap();
+        assert!(
+            reverse["files"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|f| f["verified_by"] == first["id"])
+        );
+        // The same size and time is trusted without reading: that is the rule (and the apply reads it back).
+        let rel = "atlas-derived/potholes/day/severity.json";
+        let old = std::fs::metadata(d.edicion.join(rel))
+            .unwrap()
+            .modified()
+            .unwrap();
+        std::fs::write(d.edicion.join(rel), b"[1,2,4]").unwrap();
+        let file = std::fs::File::options()
+            .write(true)
+            .open(d.edicion.join(rel))
+            .unwrap();
+        file.set_modified(old).unwrap();
+        drop(file);
+        let trusted = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+        assert_eq!(trusted["adopt"]["files"], 2);
+        // Another time: read again, and the different content blocks the plan.
+        let file = std::fs::File::options()
+            .write(true)
+            .open(d.edicion.join(rel))
+            .unwrap();
+        file.set_modified(old + std::time::Duration::from_secs(60))
+            .unwrap();
+        drop(file);
+        let error = plan(&d.home, &d.backend, true, &ask(&d, paths)).unwrap_err();
+        assert_eq!(error.code, "destination_conflict");
+    }
+
+    /// U1.3 · how long the review of «Copiar al otro disco» takes once everything is already copied
+    /// (64 files of 8 MiB). Run by hand: `cargo test -p nuun-media review_of_a_finished_copy -- --ignored --nocapture`.
+    #[test]
+    #[ignore = "a measure, printed; run by hand"]
+    fn review_of_a_finished_copy() {
+        let d = disks();
+        let x = Root::open(&d.viaje).unwrap();
+        let block = vec![7u8; 8 << 20];
+        for index in 0..64 {
+            x.write_bytes(&format!("atlas-derived/big/{index:02}.bin"), &block, false)
+                .unwrap();
+        }
+        let paths = json!(["atlas-derived/big"]);
+        let first = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+        apply(
+            &d.home,
+            &d.backend,
+            &json!({"plan_id":first["id"],"digest":first["digest"]}),
+        )
+        .unwrap();
+        let mut times = Vec::new();
+        for _ in 0..3 {
+            let started = std::time::Instant::now();
+            let again = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+            times.push(started.elapsed().as_secs_f64() * 1000.0);
+            assert_eq!(again["adopt"]["files"], 64);
+        }
+        times.sort_by(f64::total_cmp);
+        println!(
+            "review of 64 × 8 MiB already copied: median {:.0} ms ({:.0}–{:.0})",
+            times[1], times[0], times[2]
         );
     }
 }
