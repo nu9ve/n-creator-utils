@@ -184,7 +184,7 @@ struct SourceTiles: View {
                 // One row that scrolls sideways: more sources never push the footer out of the window.
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 10) { tiles(width: 210) }.padding(.vertical, 1)
-                }.scrollIndicators(.hidden)
+                }.scrollIndicators(.hidden).horizontalScrollHints()
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10, alignment: .top)], alignment: .leading, spacing: 10) {
                     tiles(width: nil)
