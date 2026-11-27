@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Nu9veActionProgress
 import NuunCore
 
 func bytesLabel(_ value: Double) -> String { ByteCountFormatter.string(fromByteCount: Int64(value), countStyle: .file) }
@@ -857,16 +858,11 @@ struct RunStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if model.busy {
-                let progress = model.jobProgress?["progress"] ?? .object([:])
-                ActionProgressView(title: model.plan?["source_kind"].string == "delivery" ? "Respaldando publicados" : "Copiando y verificando",
-                                   note: runNote,
-                                   state: .transfer(progress, phase: model.jobProgress.map { model.progressLabel($0) } ?? model.message))
+                // The core's view of the record; its time left replaces the job's `eta_seconds`.
+                ActionProgressScreen(model.actionSnapshot(.ingest),
+                                     title: model.plan?["source_kind"].string == "delivery" ? "Respaldando publicados" : "Copiando y verificando",
+                                     note: runNote)
                     .frame(minHeight: 380)
-                if let job = model.jobProgress, job["progress"]["eta_seconds"].double > 0 {
-                    let minutes = max(1, Int((job["progress"]["eta_seconds"].double / 60).rounded(.up)))
-                    Text(job["progress"]["eta_scope"].string == "backup" ? "Respaldo: ~\(minutes) min; después se revisa la liberación" : "Restante aproximado: \(minutes) min")
-                        .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity)
-                }
             } else if let result = model.lastResult {
                 Label(model.jobLabel(result), systemImage: "checkmark.seal.fill").font(palette.heading(.title3)).foregroundStyle(palette.success)
                 if result["state"].string == "camera_action_required", model.cleanupProfile(result) == "sony_clips_then_format" {

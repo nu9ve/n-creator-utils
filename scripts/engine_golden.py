@@ -536,7 +536,7 @@ READ_REQUESTS = [
     ('closure_link_candidates', {'project_id': 'p1'}), ('closure_link_candidates', {'project_id': 'p4'}),
     ('closure_link_candidates', {'project_id': 'p5'}), ('closure_link_candidates', {'project_id': 'nope'}),
     ('closure_progress', {'plan_id': 'x1'}), ('closure_progress', {'plan_id': 'absent'}),
-    ('action_progress', {'id': 'a-1'}), ('action_progress', {'id': 'absent'}),
+    ('action_progress', {'id': 'a-1'}),
     ('action_progress', {'progress_id': 'a-1'}), ('action_progress', {'progress_id': 'x1'}),
     ('action_progress', {'progress_id': 'absent'}), ('action_progress', {}),
     ('action_progress', {'progress_id': 'a-1', 'verbose': True}), ('action_progress', {'progress_id': 'Bad'}),

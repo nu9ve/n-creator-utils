@@ -592,7 +592,6 @@
 "Conservar en el disco de edición" = "Keep on the editing disk";
 "Ya en el respaldo con igual nombre y tamaño; se quedan en la carpeta: %lld" = "Already in the backup with the same name and size; they stay in the folder: %lld";
 "%lld elegidos" = "%lld selected";
-"Archivos retirados: %lld de %lld" = "Files removed: %lld of %lld";
 "Auxiliar" = "Auxiliary";
 "Buscando finales del proyecto" = "Finding project finals";
 "Buscar" = "Search";
@@ -764,7 +763,6 @@
 "copiado y verificado" = "copied and verified";
 "huellas" = "fingerprints";
 "liberado" = "freed";
-"retirado de edición" = "removed from editing";
 "%lld entregas publicadas esperan «Respaldar publicados…» para retirar su copia de edición." = "%lld published deliveries wait for “Back up published…” to remove their editing copy.";
 "%lld entregas se movieron a la carpeta de publicados. La selección usa su nueva ubicación como publicada; se guarda al guardar o respaldar." = "%lld deliveries moved to the published folder. The selection uses their new location as published; it is saved when you save or back up.";
 "Entregas no encontradas: %lld" = "Deliveries not found: %lld";
@@ -781,7 +779,6 @@
 "Copiando desde el respaldo" = "Copying from the backup";
 "Copiando desde el respaldo y verificando" = "Copying from the backup and verifying";
 "Respaldando publicados" = "Backing up published";
-"retirado del origen" = "removed from the source";
 "Conecta la misma SD para revisarla" = "Connect the same SD card to review it";
 "Formato observado · SD lista para grabar" = "Format observed · SD card ready to record";
 "Prepara un plan nuevo para esta SD; nada se retira hasta aplicarlo" = "Prepares a new plan for this SD card; nothing is removed until you apply it";
@@ -1097,7 +1094,6 @@
 "último respaldo %@" = "last backup %@";
 "Leyendo los índices del disco…" = "Reading the disk's indexes…";
 "Mantén conectados ambos discos hasta que aparezca el recibo." = "Keep both disks connected until the receipt appears.";
-"Copia entre discos de trabajo" = "Copy between work disks";
 "Incluye el historial de misiones y el mapa de fotos." = "Includes mission history and the photo map.";
 "Exportar historial a un SSD de trabajo" = "Export history to a work SSD";
 "Crea una copia verificable para consultar en otra Mac. Vuelve a exportar cuando quieras actualizarla." = "Create a verifiable copy to read on another Mac. Export again whenever you want to update it.";
@@ -1123,7 +1119,6 @@
 "Copiando y verificando el historial" = "Copying and verifying the history";
 "Colección respaldada" = "Collection backed up";
 "Preparando" = "Preparing";
-"Leyendo el historial · %lld archivos" = "Reading the history · %lld files";
 "%@ y %@ tienen trabajo por llevar de uno a otro" = "%@ and %@ have work to carry between them";
 "Actualizar %@…" = "Update %@…";
 "Para estos discos y este flujo. Se puede volver a activar." = "For these disks and this flow. It can be turned back on.";
@@ -1136,3 +1131,32 @@
 "El papel, las reglas y la tinta salen de tu color, y sigue tu tema claro u oscuro." = "Paper, rules and ink come from your color, and it follows your light or dark theme.";
 "La paleta de la época, siempre clara; tu color queda en el acento." = "The era's own palette, always light; your color stays in the accent.";
 "Compilación %@" = "Build %@";
+
+/* nu9ve-action-v1: the core's action views (Nu9veActionProgress), translated here (2026-11-27). */
+"%lld acciones" = "%lld actions";
+"Abre la acción en pantalla" = "Opens the action on screen";
+"Acciones en curso" = "Actions in progress";
+"Analizando" = "Analyzing";
+"Cancelado" = "Cancelled";
+"Cerrando" = "Finishing";
+"Contando qué hay que hacer" = "Counting what there is to do";
+"Copiando" = "Copying";
+"ETA pendiente" = "ETA pending";
+"Escaneando" = "Scanning";
+"Escribiendo el resultado" = "Writing the result";
+"Hecho, con avisos" = "Done, with warnings";
+"La acción terminó; su resultado ya no está disponible" = "The action ended; its result is no longer available";
+"Leyendo el historial" = "Reading the history";
+"Liberando originales" = "Releasing originals";
+"No se pudo terminar" = "Could not finish";
+"Puedes reanudar desde donde quedó." = "You can resume where it stopped.";
+"Puedes volver a intentarlo." = "You can try again.";
+"Renderizando" = "Rendering";
+"Revisando lo que ya está en el destino" = "Reviewing what is already at the destination";
+"Sin señal de la acción desde hace %lld s" = "No signal from the action for %lld s";
+"Terminó" = "Finished";
+"Trabajando" = "Working";
+"Verificando" = "Verifying";
+"escrito" = "written";
+"retirado" = "removed";
+"verificado" = "verified";

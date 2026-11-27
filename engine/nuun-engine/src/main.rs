@@ -698,10 +698,10 @@ impl Engine {
                 nuun_media::reads::closure_link_candidates(&self.catalog()?, params)
             }
             "closure_progress" => {
-                nuun_media::action::progress_method(&self.catalog()?, params, "plan_id")
+                nuun_media::action::progress_method(&self.catalog()?, params, Some("plan_id"))
             }
             "action_progress" => {
-                nuun_media::action::progress_method(&self.catalog()?, params, "id")
+                nuun_media::action::progress_method(&self.catalog()?, params, None)
             }
             "asset_revisions" => nuun_media::reads::asset_revisions(&self.catalog()?, params),
             "living_collections" => nuun_media::reads::living_collections(&self.catalog()?),

@@ -470,6 +470,11 @@ import Nu9veTheme
             "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("EDICION + MEDIA9"), "action": .string("copy")]),
             "log": .array((118...120).map { .object(["kind": .string("copied"), "name": .string("C0\($0).MP4"), "target": .string("EDICION + MEDIA9")]) }),
             "destinations": .array([.object(["name": .string("MEDIA9"), "files_done": .integer(120), "files_total": .integer(212)]), .object(["name": .string("EDICION"), "files_done": .integer(96), "files_total": .integer(110)])])])])
+        await model.showQAAction(.ingest, action: "ingest", stage: "copying", [
+            "overall_done": .integer(52_000_000_000), "overall_total": .integer(152_000_000_000), "files_done": .integer(120), "files_total": .integer(212),
+            "current": .object(["name": .string("C0121.MP4"), "from": .string("A7IV_64"), "to": .string("EDICION + MEDIA9"), "action": .string("copy"),
+                                "file_done": .integer(1_600_000_000), "file_total": .integer(4_200_000_000)]),
+            "log": .array((118...120).map { Model.qaLogLine("copied", "C0\($0).MP4", "EDICION + MEDIA9") })])
         await render(MainView(model: model), size: full, to: folder.appendingPathComponent("ingest-4-run.png"))
         model.activeScope = nil
         model.presentation = .compact
@@ -910,16 +915,17 @@ import Nu9veTheme
             try? await Task.sleep(for: .milliseconds(700))
             capture(window, "dialog-\(skin.rawValue).png")
             // The long-action view with invented progress, open in the closeout dialog.
-            let log: [JSONValue] = ["vertical_1.mov", "vertical_2.mov", "vertical_3.mov"].map { .object(["kind": .string("copied"), "name": .string("26-10-27-demo_" + $0), "target": .string("MEDIA9")]) }
-                + [.object(["kind": .string("released"), "name": .string("demo.thumbnail-01.jpg"), "target": .string("EDICION")])]
-            delegate.model.closureProgress = .object(["stage": .string("copying_finals"), "overall_done": .number(3.2e9), "overall_total": .number(5.16e9),
-                "files_done": .number(4), "files_total": .number(13), "log": .array(log),
+            let log: [JSONValue] = ["vertical_1.mov", "vertical_2.mov", "vertical_3.mov"].map { Model.qaLogLine("copied", "26-10-27-demo_" + $0, "MEDIA9") }
+                + [Model.qaLogLine("released", "demo.thumbnail-01.jpg", "EDICION")]
+            await delegate.model.showQAAction(.closure, action: "closeout", stage: "copying", [
+                "overall_done": .integer(3_200_000_000), "overall_total": .integer(5_160_000_000),
+                "files_done": .integer(4), "files_total": .integer(13), "log": .array(log),
                 "current": .object(["name": .string("26-10-27-demo_vertical_4.mov"), "from": .string("EDICION"), "to": .string("MEDIA9"), "action": .string("copy")])])
             delegate.model.closureApplying = true
             try? await Task.sleep(for: .milliseconds(900))
             capture(window, "action-\(skin.rawValue).png")
             delegate.model.closureApplying = false
-            delegate.model.closureProgress = .object([:])
+            delegate.model.actionMonitors[.closure] = nil
             delegate.model.showClosure = false
             try? await Task.sleep(for: .milliseconds(400))
             let start = window.frame

@@ -79,17 +79,18 @@ pub fn valid_id(id: &str) -> bool {
 
 /// §2 `action_progress`: the record of `progress_id`, or `state: unknown` when there is none.
 ///
-/// `legacy` is the parameter the app sent before the contract (`id`, or `plan_id` for the
-/// `closure_progress` alias); it is accepted alone, in place of `progress_id`, until the app
-/// migrates. Closures keep their record under `closure-progress:`, read after `action-progress:`.
+/// `legacy` is the parameter of the method this one replaces (`plan_id` for the `closure_progress` alias, §2),
+/// accepted alone in place of `progress_id`. Closures keep their record under `closure-progress:`, read after
+/// `action-progress:`.
 pub fn progress_method(
     catalog: &crate::catalog::Catalog,
     params: &Value,
-    legacy: &str,
+    legacy: Option<&str>,
 ) -> Result<Value> {
     let invalid = || Error::new("invalid_params", "action_progress takes one progress_id.");
     let fields = params.as_object().ok_or_else(invalid)?;
-    let id = match (fields.get("progress_id"), fields.get(legacy), fields.len()) {
+    let old = legacy.and_then(|name| fields.get(name));
+    let id = match (fields.get("progress_id"), old, fields.len()) {
         (Some(id), None, 1) | (None, Some(id), 1) => id.as_str().ok_or_else(invalid)?,
         _ => return Err(invalid()),
     };
@@ -414,6 +415,8 @@ pub(crate) struct ActionProgress<'a> {
     pub(crate) stage: &'static str,
     closure: bool,
     written: Option<(Instant, &'static str, usize)>,
+    /// A measure the throttle held back; written when the step ends, so the closing counts it.
+    held: bool,
 }
 
 impl<'a> ActionProgress<'a> {
@@ -426,7 +429,7 @@ impl<'a> ActionProgress<'a> {
         Self::with_prefix(catalog, id, action, stage, false)
     }
 
-    /// A closeout's record, read by `closure_progress` (it also counts `released_files`).
+    /// A closeout's record, read by `closure_progress` (it also counts `nuun_released_files`).
     pub(crate) fn closure(
         catalog: &'a WritableCatalog,
         id: Option<&str>,
@@ -452,6 +455,7 @@ impl<'a> ActionProgress<'a> {
             stage,
             closure,
             written: None,
+            held: false,
         };
         if let (Some(id), Some(key)) = (id, progress.key.clone()) {
             progress.open(id, &key, action)?;
@@ -489,7 +493,6 @@ impl<'a> ActionProgress<'a> {
             "unit": "bytes", "files_done": 0, "files_total": 0, "log": [], "cancellable": action.cancellable,
             "started_at": now, "progressed_at": now, "updated_at": now});
         if self.closure {
-            record["released_files"] = json!(0);
             record["nuun_released_files"] = json!(0);
         }
         write(db, key, &record)?;
@@ -518,8 +521,10 @@ impl<'a> ActionProgress<'a> {
             && files == self.meter.files_done
             && at.elapsed() < THROTTLE
         {
+            self.held = true;
             return Ok(());
         }
+        self.held = false;
         let db = self.catalog.db();
         let Some((_, mut record)) = read(db, key)? else {
             return Ok(());
@@ -560,13 +565,22 @@ impl<'a> ActionProgress<'a> {
             } else {
                 0
             };
-            object.insert("released_files".into(), json!(released));
             object.insert("nuun_released_files".into(), json!(released));
         }
         object.insert("updated_at".into(), json!(now));
         write(db, key, &record)?;
         self.written = Some((Instant::now(), self.stage, self.meter.files_done));
         Ok(())
+    }
+}
+
+impl Drop for ActionProgress<'_> {
+    /// The step ends before the close: the measure the throttle held back goes in now.
+    fn drop(&mut self) {
+        if self.held {
+            self.written = None;
+            let _ = self.report();
+        }
     }
 }
 
@@ -612,28 +626,25 @@ mod tests {
         let catalog = crate::catalog::Catalog::open(dir.path()).unwrap();
         let read = |params: Value, legacy| progress_method(&catalog, &params, legacy);
         assert_eq!(
-            read(json!({"progress_id": "a-1"}), "id").unwrap()["state"],
+            read(json!({"progress_id": "a-1"}), None).unwrap()["state"],
             "running"
         );
         assert_eq!(
-            read(json!({"id": "a-1"}), "id").unwrap()["state"],
-            "running"
-        );
-        assert_eq!(
-            read(json!({"plan_id": "p-1"}), "plan_id").unwrap()["state"],
+            read(json!({"plan_id": "p-1"}), Some("plan_id")).unwrap()["state"],
             "complete"
         );
         assert_eq!(
-            read(json!({"progress_id": "p-1"}), "id").unwrap()["state"],
+            read(json!({"progress_id": "p-1"}), None).unwrap()["state"],
             "complete"
         );
         assert_eq!(
-            read(json!({"progress_id": "nope"}), "id").unwrap(),
+            read(json!({"progress_id": "nope"}), None).unwrap(),
             json!({"contract": CONTRACT, "progress_id": "nope", "state": "unknown"})
         );
         for params in [
             json!({}),
             json!([]),
+            json!({"id": "a-1"}),
             json!({"progress_id": "a-1", "id": "a-1"}),
             json!({"progress_id": "a-1", "verbose": true}),
             json!({"plan_id": "p-1"}),
@@ -641,7 +652,7 @@ mod tests {
             json!({"progress_id": 7}),
         ] {
             assert_eq!(
-                read(params.clone(), "id").unwrap_err().code,
+                read(params.clone(), None).unwrap_err().code,
                 "invalid_params",
                 "{params}"
             );
@@ -827,5 +838,128 @@ mod tests {
         prune(catalog.db()).unwrap();
         assert!(catalog.get("action-progress:old").unwrap().is_none());
         assert!(catalog.get("action-progress:legacy").unwrap().is_some());
+    }
+
+    /// The records this engine writes, with their instants fixed, for the app's test that reads them with the
+    /// core's Swift reader (`engineRecordsPassTheCoreReader`). `NUUN_UPDATE_FIXTURES=1` writes the file again.
+    #[test]
+    fn engine_records_fixture() {
+        let (_dir, catalog) = catalog();
+        let mut records = Vec::new();
+        let mut keep = |name: &str, key: &str, catalog: &WritableCatalog| {
+            records.push(json!({"name": name, "record": fixed(record(catalog, key))}));
+        };
+        let _ = within(|| {
+            let mut progress = ActionProgress::new(
+                &catalog,
+                Some("copy-1"),
+                Action::cancellable("ingest"),
+                "copying",
+            )?;
+            progress.meter.total = 4_000;
+            progress.meter.files_total = 2;
+            progress
+                .meter
+                .holding("A/C0001.MP4", "CARD", "MEDIA", "copy");
+            progress.meter.reach(1_500);
+            progress.meter.finished("copied", "A/C0001.MP4", "MEDIA");
+            progress
+                .meter
+                .holding("A/C0002.MP4", "CARD", "MEDIA", "copy");
+            progress.report()?;
+            keep("running", "action-progress:copy-1", &catalog);
+            Ok(json!({"result": {"changed_since_review": 1}}))
+        });
+        keep(
+            "complete with a warning",
+            "action-progress:copy-1",
+            &catalog,
+        );
+        let _ = within(|| {
+            let mut progress = ActionProgress::new(
+                &catalog,
+                Some("f-1"),
+                Action::new("backup"),
+                "copying_transcripts",
+            )?;
+            progress.meter.total = 10;
+            progress.meter.reach(5);
+            progress.report()?;
+            Err(Error::new("checksum_mismatch", "The copy did not verify"))
+        });
+        keep("failed", "action-progress:f-1", &catalog);
+        let _ = within(|| {
+            ActionProgress::new(
+                &catalog,
+                Some("c-1"),
+                Action::planning("copy"),
+                "listing_source",
+            )?;
+            Err(Error::new("cancelled", "Operation paused"))
+        });
+        keep("cancelled before any file", "action-progress:c-1", &catalog);
+        let _ = within(|| {
+            let mut progress = ActionProgress::closure(
+                &catalog,
+                Some("plan-1"),
+                Action::new("closeout"),
+                "releasing_originals",
+            )?;
+            progress.meter.total = 100;
+            progress.meter.files_total = 3;
+            progress
+                .meter
+                .finished("released", "renders/final.mov", "EDICION");
+            progress.meter.reach(40);
+            progress.report()?;
+            keep("closure releasing", "closure-progress:plan-1", &catalog);
+            Ok(json!({}))
+        });
+        let text = serde_json::to_string_pretty(&json!({
+            "note": "Written by engine_records_fixture in engine/crates/nuun-media/src/action.rs.",
+            "records": records,
+        }))
+        .unwrap()
+            + "\n";
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../native/Nuun/Tests/NuunCoreTests/Fixtures/engine-action-records.json");
+        if std::env::var_os("NUUN_UPDATE_FIXTURES").is_some() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &text).unwrap();
+        }
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap_or_default(),
+            text,
+            "run with NUUN_UPDATE_FIXTURES=1 to write {}",
+            path.display()
+        );
+    }
+
+    /// The record with fixed instants, after checking that each one is RFC 3339 UTC with `Z`.
+    fn fixed(mut record: Value) -> Value {
+        fn instant(text: &Value) -> bool {
+            let text = text.as_str().unwrap_or("");
+            let bytes = text.as_bytes();
+            text.len() >= 20
+                && text.ends_with('Z')
+                && bytes[4] == b'-'
+                && bytes[10] == b'T'
+                && nu9ve_time::DateTime::fromisoformat(&text.replace('Z', "+00:00")).is_some()
+        }
+        for (key, value) in [
+            ("started_at", "2026-11-27T10:00:00Z"),
+            ("progressed_at", "2026-11-27T10:00:01Z"),
+            ("updated_at", "2026-11-27T10:00:02Z"),
+        ] {
+            assert!(instant(&record[key]), "{key}: {}", record[key]);
+            record[key] = json!(value);
+        }
+        if let Some(log) = record["log"].as_array_mut() {
+            for line in log {
+                assert!(instant(&line["at"]), "log: {line}");
+                line["at"] = json!("2026-11-27T10:00:01Z");
+            }
+        }
+        record
     }
 }

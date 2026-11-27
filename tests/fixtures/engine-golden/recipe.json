@@ -6528,30 +6528,12 @@
       },
       {
         "answer": {
-          "data": {
-            "done": 1,
-            "phase": "copy",
-            "total": 4
-          },
-          "ok": true
+          "code": "invalid_params",
+          "ok": false
         },
         "method": "action_progress",
         "params": {
           "id": "a-1"
-        }
-      },
-      {
-        "answer": {
-          "data": {
-            "contract": "nu9ve-action/1",
-            "progress_id": "absent",
-            "state": "unknown"
-          },
-          "ok": true
-        },
-        "method": "action_progress",
-        "params": {
-          "id": "absent"
         }
       },
       {

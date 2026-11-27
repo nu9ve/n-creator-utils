@@ -1,0 +1,154 @@
+{
+  "note": "Written by engine_records_fixture in engine/crates/nuun-media/src/action.rs.",
+  "records": [
+    {
+      "name": "running",
+      "record": {
+        "action": "ingest",
+        "cancellable": true,
+        "contract": "nu9ve-action/1",
+        "current": {
+          "action": "copy",
+          "from": "CARD",
+          "name": "C0002.MP4",
+          "to": "MEDIA"
+        },
+        "files_done": 1,
+        "files_total": 2,
+        "log": [
+          {
+            "at": "2026-11-27T10:00:01Z",
+            "kind": "copied",
+            "name": "C0001.MP4",
+            "target": "MEDIA"
+          }
+        ],
+        "overall_done": 1500,
+        "overall_total": 4000,
+        "progress_id": "copy-1",
+        "progressed_at": "2026-11-27T10:00:01Z",
+        "stage": "copying",
+        "started_at": "2026-11-27T10:00:00Z",
+        "state": "running",
+        "unit": "bytes",
+        "updated_at": "2026-11-27T10:00:02Z"
+      }
+    },
+    {
+      "name": "complete with a warning",
+      "record": {
+        "action": "ingest",
+        "cancellable": false,
+        "contract": "nu9ve-action/1",
+        "files_done": 1,
+        "files_total": 2,
+        "log": [
+          {
+            "at": "2026-11-27T10:00:01Z",
+            "kind": "copied",
+            "name": "C0001.MP4",
+            "target": "MEDIA"
+          }
+        ],
+        "outcome": {
+          "receipt": null,
+          "summary": "Done: 1 file, 4.0 KB.",
+          "warnings": [
+            {
+              "code": "changed_during_copy",
+              "message": "1 file changed during the copy: it goes in the next backup"
+            }
+          ]
+        },
+        "overall_done": 4000,
+        "overall_total": 4000,
+        "progress_id": "copy-1",
+        "progressed_at": "2026-11-27T10:00:01Z",
+        "stage": "finishing",
+        "started_at": "2026-11-27T10:00:00Z",
+        "state": "complete",
+        "unit": "bytes",
+        "updated_at": "2026-11-27T10:00:02Z"
+      }
+    },
+    {
+      "name": "failed",
+      "record": {
+        "action": "backup",
+        "cancellable": false,
+        "contract": "nu9ve-action/1",
+        "error": {
+          "code": "checksum_mismatch",
+          "message": "The copy did not verify"
+        },
+        "files_done": 0,
+        "files_total": 0,
+        "log": [],
+        "overall_done": 5,
+        "overall_total": 10,
+        "progress_id": "f-1",
+        "progressed_at": "2026-11-27T10:00:01Z",
+        "resumable": true,
+        "stage": "copying",
+        "started_at": "2026-11-27T10:00:00Z",
+        "state": "failed",
+        "unit": "bytes",
+        "updated_at": "2026-11-27T10:00:02Z"
+      }
+    },
+    {
+      "name": "cancelled before any file",
+      "record": {
+        "action": "copy",
+        "cancellable": false,
+        "contract": "nu9ve-action/1",
+        "files_done": 0,
+        "files_total": 0,
+        "log": [],
+        "outcome": {
+          "receipt": null,
+          "summary": "Cancelled before any file was done.",
+          "warnings": []
+        },
+        "overall_done": 0,
+        "overall_total": null,
+        "progress_id": "c-1",
+        "progressed_at": "2026-11-27T10:00:01Z",
+        "resumable": false,
+        "stage": "listing",
+        "started_at": "2026-11-27T10:00:00Z",
+        "state": "cancelled",
+        "unit": "bytes",
+        "updated_at": "2026-11-27T10:00:02Z"
+      }
+    },
+    {
+      "name": "closure releasing",
+      "record": {
+        "action": "closeout",
+        "cancellable": false,
+        "contract": "nu9ve-action/1",
+        "files_done": 1,
+        "files_total": 3,
+        "log": [
+          {
+            "at": "2026-11-27T10:00:01Z",
+            "kind": "released",
+            "name": "final.mov",
+            "target": "EDICION"
+          }
+        ],
+        "nuun_released_files": 1,
+        "overall_done": 40,
+        "overall_total": 100,
+        "progress_id": "plan-1",
+        "progressed_at": "2026-11-27T10:00:01Z",
+        "stage": "releasing",
+        "started_at": "2026-11-27T10:00:00Z",
+        "state": "running",
+        "unit": "bytes",
+        "updated_at": "2026-11-27T10:00:02Z"
+      }
+    }
+  ]
+}

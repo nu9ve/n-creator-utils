@@ -1,5 +1,6 @@
 import SwiftUI
 import NuunCore
+import Nu9veActionProgress
 
 extension Model {
     var suggestedProjectClosures: [JSONValue] {
@@ -10,7 +11,7 @@ extension Model {
     func openProjectClosure(_ item: JSONValue, stored: JSONValue? = nil) {
         guard !busy else { return }
         closureProject = item
-        closureSettings = .object([:]); closureCandidates = []; closureDeliveries = []; closureGroup = []; closureProgress = .object([:])
+        closureSettings = .object([:]); closureCandidates = []; closureDeliveries = []; closureGroup = []; stopAction(.closure); actionMonitors[.closure] = nil
         let id = item["project_id"].string.isEmpty ? item["id"].string : item["project_id"].string
         closurePlan = stored ?? releaseHistory.filter { $0["closure_project_id"].string == id && $0["state"].string != "completed" }.max { $0["created_at"].string < $1["created_at"].string }
         showClosure = true
@@ -60,17 +61,17 @@ extension Model {
         let id = item["project_id"].string.isEmpty ? item["id"] : item["project_id"]
         operation(review ? String(localized: "Preparando revisión del cierre") : String(localized: "Guardando entregas"), scope: .space) {
             self.closureReviewing = review
-            self.closureProgress = .object([:])
             defer { self.closureReviewing = false }
             self.closurePlan = nil
             self.closureSettings = try await self.client!.call("closure_save", ["project_id": id, "required": .array(required.sorted().map { .string($0) }),
                 "no_more": .bool(noMore), "published": .bool(published), "finals": .array(finals), "profile_default": .bool(profileDefault)])
             if review {
-                let reviewID = JSONValue.string(UUID().uuidString)
-                let monitor = self.watchClosureProgress(reviewID)
-                defer { monitor.cancel() }
+                // Lower case: the engine refuses an id outside the pattern of nu9ve-action-v1 §1.
+                let reviewID = newProgressID()
+                self.startAction(.closure, reviewID)
+                defer { self.stopAction(.closure) }
                 do {
-                    self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work), "release_work": .bool(releaseWork), "review_id": reviewID])
+                    self.closurePlan = try await self.client!.call("closure_plan", ["project_id": id, "archive": .string(self.archive), "work": .string(self.work), "release_work": .bool(releaseWork), "review_id": .string(reviewID)])
                 } catch let error as BackendFailure where error.code == "cancelled" {
                     self.message = String(localized: "Revisión cancelada")
                     return
@@ -82,25 +83,12 @@ extension Model {
             self.closureDeliveries = (try? await self.client!.call("closure_deliveries", ["project_id": id]).array) ?? self.closureDeliveries
         }
     }
-    private func watchClosureProgress(_ id: JSONValue) -> Task<Void, Never> {
-        Task { @MainActor in
-            while !Task.isCancelled {
-                // A finished action removes its key; keep the last measure instead of blanking the view.
-                if let value = try? await self.reader?.call("closure_progress", ["plan_id": id]), !Task.isCancelled, value != .object([:]) {
-                    self.closureProgress = value
-                }
-                try? await Task.sleep(for: .milliseconds(500))
-            }
-        }
-    }
     func applyProjectClosure() {
         guard let reviewed = closurePlan else { return }
         operation(String(localized: "Respaldando finales y liberando trabajo"), scope: .space) {
-            self.closureProgress = .object([:])
             self.closureApplying = true
-            defer { self.closureApplying = false }
-            let monitor = self.watchClosureProgress(reviewed["id"])
-            defer { monitor.cancel() }
+            self.startAction(.closure, reviewed["id"].string)
+            defer { self.closureApplying = false; self.stopAction(.closure) }
             self.closurePlan = try await self.client!.call("closure_apply", ["plan_id": reviewed["id"], "digest": reviewed["digest"], "confirm_discard": .bool(true)])
             if let result = self.closurePlan, result["closure_settings"] != .null { self.closureSettings = result["closure_settings"] }
             self.closureDeliveries = (try? await self.client!.call("closure_deliveries", ["project_id": reviewed["closure_project_id"]]).array) ?? self.closureDeliveries
@@ -183,13 +171,11 @@ struct ProjectClosureSheet: View {
             PageHeader(title: "Completar y liberar", subtitle: LocalizedStringKey(title))
             ErrorBanner(model: model)
             if model.closureReviewing {
-                ActionProgressView(title: "Preparando revisión del cierre",
-                                   note: "nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan.",
-                                   state: .verify(model.closureProgress, phase: phase, volume: model.volume(model.work)?["name"].string ?? ""))
+                ActionProgressScreen(model.actionSnapshot(.closure), title: "Preparando revisión del cierre",
+                                     note: "nüün está leyendo los archivos para verificar sus huellas. Las copias y retiradas empiezan al aplicar el plan.")
             } else if model.closureApplying {
-                ActionProgressView(title: "Completando y liberando",
-                                   note: "Cada entrega se copia y se verifica antes de retirar su copia de edición. Puedes pausar; lo verificado se conserva.",
-                                   state: .transfer(model.closureProgress, phase: phase))
+                ActionProgressScreen(model.actionSnapshot(.closure), title: "Completando y liberando",
+                                     note: "Cada entrega se copia y se verifica antes de retirar su copia de edición. Puedes pausar; lo verificado se conserva.")
             } else if let plan = model.closurePlan {
                 review(plan)
             } else {
@@ -202,7 +188,7 @@ struct ProjectClosureSheet: View {
                 if model.busy {
                     if !model.closureReviewing && !model.closureApplying {
                         ProgressView().controlSize(.small)
-                        Text(model.closureProgress["stage"].string.isEmpty ? model.message : model.stageLabel(model.closureProgress["stage"].string)).font(.caption).lineLimit(2)
+                        Text(model.message).font(.caption).lineLimit(2)
                     }
                     Button(model.closureReviewing ? "Cancelar revisión" : "Pausar") { model.client?.cancel() }
                 } else if let plan = model.closurePlan {
@@ -229,10 +215,6 @@ struct ProjectClosureSheet: View {
         .onChange(of: model.closureSettings) { _, config in load(config) }
         .onAppear { load(model.closureSettings); query = title }
 
-    }
-    private var phase: String {
-        let stage = model.closureProgress["stage"].string
-        return stage.isEmpty ? model.message : model.stageLabel(stage)
     }
     private func applyTitle(_ plan: JSONValue) -> LocalizedStringKey {
         if !plan["entries"].array.isEmpty || !plan["clipper_regenerable"].array.isEmpty {
@@ -448,9 +430,6 @@ struct ProjectClosureSheet: View {
                     // User decision 2026-11-07: the reviewed list plus the apply button is the consent; no extra checkbox.
                     Text("Al completar se descartan los intermedios de la lista, sin respaldo. Revisa que ninguna otra edición los necesite.")
                         .font(.caption).foregroundStyle(palette.muted)
-                }
-                if model.busy && model.closureProgress["released_files"].double > 0 {
-                    Text("Archivos retirados: \(Int(model.closureProgress["released_files"].double)) de \(plan["entries"].array.count)").font(.caption).monospacedDigit()
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }

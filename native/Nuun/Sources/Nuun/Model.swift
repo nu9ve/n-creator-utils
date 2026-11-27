@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UserNotifications
 import NuunCore
+import Nu9veAction
 import os
 
 /// Card arrival timing, to measure the popup: `log stream --predicate 'subsystem == "app.nu9ve.media"'`.
@@ -158,9 +159,6 @@ enum OperationScope { case ingest, library, space, settings, source }
     var showAccumulations = false
     var suiteProfiles: JSONValue?
     var conversationsRunning = false
-    /// The engine's measure of the conversations backup in progress (`action_progress`), apart from `actionProgress`
-    /// so a backup and another action never overwrite each other's bar.
-    var conversationProgress: JSONValue = .object([:])
     var librarySection: LibrarySection = .projects
     var presentation: WindowMode = .full
     var profiles: [JSONValue] = []
@@ -172,9 +170,10 @@ enum OperationScope { case ingest, library, space, settings, source }
     var closureProject: JSONValue?
     var closureSettings: JSONValue = .object([:])
     var closureCandidates: [JSONValue] = []
-    /// A release or a delivery from the archive in progress: which one, and the engine's last measure (`action_progress`).
+    /// A release or a delivery from the archive in progress: which one. Its measure is `actionMonitors[.action]`.
     var runningAction = ""
-    var actionProgress: JSONValue = .object([:])
+    /// The long action read in each place of the app (nu9ve-action-v1, Actions.swift).
+    var actionMonitors: [ActionSlot: ActionMonitor] = [:]
     /// Where each saved delivery stands now (`closure.delivery_states`): the same reading as the Projects row.
     var closureDeliveries: [JSONValue] = []
     /// Linked projects (closure.related) with their saved deliveries, from `closure_candidates.group`.
@@ -183,7 +182,6 @@ enum OperationScope { case ingest, library, space, settings, source }
     var linkingProject = ""
     var closureTruncated = false
     var closurePlan: JSONValue?
-    var closureProgress: JSONValue = .object([:])
     var closureReviewing = false
     var closureApplying = false
     var showClosure = false
@@ -1249,7 +1247,11 @@ enum OperationScope { case ingest, library, space, settings, source }
                     }
                 }
             }
-            let result = try await self.client!.call("apply", reviewed.applyParameters)
+            // The record of nu9ve-action-v1 for the view; `job` keeps the recovery state and the destinations.
+            let progressID = newProgressID()
+            self.startAction(.ingest, progressID)
+            defer { self.stopAction(.ingest) }
+            let result = try await self.client!.call("apply", reviewed.applyParameters.merging(["progress_id": .string(progressID)]) { $1 })
             self.saveAllPlans = self.saveAllPlans.filter { $0.value.display["id"].string != jobID }
             self.lastResult = result
             self.message = self.jobLabel(result)
@@ -1321,25 +1323,17 @@ enum OperationScope { case ingest, library, space, settings, source }
     func deliver() {
         let ids = selected.sorted()
         operation(String(localized: "Preparando copias para editar"), scope: .library) {
-            let progressID = JSONValue.string(UUID().uuidString.lowercased())
-            let monitor = self.watchAction("deliver", progressID)
-            defer { monitor.cancel(); self.runningAction = "" }
-            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work), "progress_id": progressID])
+            let progressID = newProgressID()
+            self.watchAction("deliver", progressID)
+            defer { self.runningAction = ""; self.stopAction(.action) }
+            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work), "progress_id": .string(progressID)])
             self.message = String(localized: "Copias para editar verificadas"); self.selected = []
         }
     }
-    /// Polls the engine's measure for a release or a delivery; the action view reads `actionProgress`.
-    func watchAction(_ name: String, _ id: JSONValue) -> Task<Void, Never> {
+    /// Reads the engine's record of a release, a delivery or a copy between disks in the `.action` place.
+    func watchAction(_ name: String, _ id: String) {
         runningAction = name
-        actionProgress = .object([:])
-        return Task { @MainActor in
-            while !Task.isCancelled {
-                if let value = try? await self.reader?.call("action_progress", ["id": id]), !Task.isCancelled, value != .object([:]) {
-                    self.actionProgress = value
-                }
-                try? await Task.sleep(for: .milliseconds(400))
-            }
-        }
+        startAction(.action, id)
     }
     func skip() {
         let ids = selected.sorted()
@@ -1382,7 +1376,10 @@ enum OperationScope { case ingest, library, space, settings, source }
                     if let job = try? await self.reader?.call("job", ["job_id": .string(id)]) { self.jobProgress = job; self.message = self.progressLabel(job) }
                 }
             }
-            let result = try await self.client!.call("resume", ["job_id": .string(id)])
+            let progressID = newProgressID()
+            self.startAction(.ingest, progressID)
+            defer { self.stopAction(.ingest) }
+            let result = try await self.client!.call("resume", ["job_id": .string(id), "progress_id": .string(progressID)])
             self.message = self.stateLabel(result["state"].string)
             if !result["metadata_backup_error"].string.isEmpty { self.error = String(localized: "Respaldo de media terminado; falta respaldar catálogo: ") + result["metadata_backup_error"].string }
         }

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Nu9veActionProgress
 import NuunCore
 
 extension Model {
@@ -165,8 +166,8 @@ extension Model {
     func applyRelease() {
         guard let reviewed = releasePlan else { return }
         operation(String(localized: "Liberando copias verificadas"), scope: .space) {
-            let monitor = self.watchAction("release", reviewed["id"])
-            defer { monitor.cancel(); self.runningAction = "" }
+            self.watchAction("release", reviewed["id"].string)
+            defer { self.runningAction = ""; self.stopAction(.action) }
             self.releasePlan = try await self.client!.call("apply_release", ["plan_id": reviewed["id"], "digest": reviewed["digest"]])
             self.message = String(localized: "Espacio liberado; respaldo y catálogo conservados en MEDIA")
             if let result = self.releasePlan, !result["metadata_backup_error"].string.isEmpty {
@@ -205,9 +206,8 @@ struct ReleaseSheet: View {
             PageHeader(title: "Revisar liberación", subtitle: "Comprueba las copias actuales antes de retirar nada. No se borra sin tu confirmación.")
             ErrorBanner(model: model)
             if model.runningAction == "release" {
-                ActionProgressView(title: "Liberando copias verificadas",
-                                   note: "Cada copia del respaldo se vuelve a verificar y cada original se relee antes de retirarlo. Puedes pausar: lo retirado queda en el registro y se reanuda el mismo plan.",
-                                   state: .transfer(model.actionProgress, phase: model.stageLabel(model.actionProgress["stage"].string)))
+                ActionProgressScreen(model.actionSnapshot(.action), title: "Liberando copias verificadas",
+                                     note: "Cada copia del respaldo se vuelve a verificar y cada original se relee antes de retirarlo. Puedes pausar: lo retirado queda en el registro y se reanuda el mismo plan.")
             } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {

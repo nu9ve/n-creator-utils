@@ -328,12 +328,29 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### La app con la vista del core · 2026-11-27
+
+F4c de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), **sin instalar ni aceptar en ventana**. La app ya no tiene vista de progreso propia: usa `Nu9veAction` y `Nu9veActionProgress` del core.
+
+- **Lectura.** [`Actions.swift`](../native/Nuun/Sources/Nuun/Actions.swift) le da a cada lugar de la app su `ActionMonitor`, que pide `action_progress {progress_id}` al lector persistente. Hay cuatro lugares: la acción (liberar, entregar desde el respaldo, copiar entre discos), las conversaciones, el cierre y el ingreso. Desaparecen las tres lecturas propias (`action_progress {id}`, `closure_progress {plan_id}` y los `actionProgress`/`conversationProgress`/`closureProgress` del modelo).
+- **Vista.** Las siete pantallas usan `ActionProgressScreen`, con el cierre del core (`ActionClosingView`) cuando el registro termina antes de que la llamada vuelva. Los colores llegan con `actionProgressStyle` desde la paleta. La tarjeta de Inicio de conversaciones usa la barra del core (`ActionLine`). Se borró `ActionProgress.swift`.
+- **Ingreso.** `apply` y `resume` mandan `progress_id`. `job` sigue para la recuperación y los destinos. El tiempo restante es el del core, en lugar de `eta_seconds`.
+- **Arreglos:**
+  - La revisión del cierre usaba un UUID en mayúsculas como `review_id`. Desde F4a el motor lo rechaza con `invalid_params`; ahora va en minúsculas.
+  - El último paso de un paso corto se perdía por el límite de 4 escrituras por segundo, y el cierre contaba «0 de nada». Ahora el paso escribe lo retenido al terminar (`Drop`).
+- **Contrato estricto.** El motor quita el alias `id` y `action_progress` sólo acepta `progress_id`. `closure_progress {plan_id}` queda como alias del contrato. El registro del cierre ya no escribe `released_files`, sólo `nuun_released_files`. El oráculo de Python lee igual.
+- **Del límite Rust–Swift.** `engine_records_fixture` (Rust) escribe los registros reales del motor en [un archivo](../native/Nuun/Tests/NuunCoreTests/Fixtures/engine-action-records.json): corriendo, completo con aviso, fallido, cancelado y cierre. Falla si se separan. `engineRecordsPassTheCoreReader` y `engineRecordsShowAsTheCoreViewExpects` (Swift) los leen con el lector del core.
+- **Sin hacer todavía:**
+  - El cierre queda visible sólo si llega antes de que vuelva la llamada. Mostrarlo con «Listo», «Reanudar» o «Reintentar» es de U3, con los tres tamaños.
+  - Capturas: no se lanzó `--qa-snapshots` ni `--qa-skins`. Las capturas de QA ya alimentan el monitor con un registro del contrato.
+- **Pruebas:** Rust 205 (nueva `engine_records_fixture`), más 23 diferenciales con `--ignored` (sin `real_export_copy_ingests_once` ni `cancel_file_child`); fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Swift 36 (dos nuevas), Python 422, `engine_golden.py --check` al día y `sync-core.sh --check` sin error. `check_localization.py`: el inglés de las 27 claves nuevas del core está en `en.lproj` y se quitaron las 5 que dejaron de usarse; quedan las mismas 112 que faltaban antes.
+
 ### Lectura `action_progress` del contrato · 2026-11-27
 
 F4b de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), **sin instalar**. El motor ya sirve `action_progress` como dice [`nu9ve-action-v1` §2](../vendor/nu9ve-core/contracts/nu9ve-action-v1.md#2-método-action_progress).
 
 - **El método.** [`action::progress_method`](../engine/crates/nuun-media/src/action.rs) recibe `{"progress_id"}` y lee `action-progress:<id>` y luego `closure-progress:<id>`. Si no hay registro, responde `{"contract":"nu9ve-action/1","progress_id":…,"state":"unknown"}` en lugar de `{}`. Sin `progress_id`, con otro parámetro, o con un tipo o patrón equivocado responde `invalid_params`.
-- **Alias mientras la app migra.** `action_progress {"id"}` y `closure_progress {"plan_id"}` siguen valiendo, pero sólo solos: no se juntan con `progress_id`. El alias `id` se quita en F4c, cuando la app mande `progress_id`. Esto se aparta del contrato, que pide `invalid_params` con cualquier otro parámetro.
+- **Alias mientras la app migra.** `action_progress {"id"}` y `closure_progress {"plan_id"}` siguen valiendo, pero sólo solos. F4c quitó `id`.
 - **`engine_info`** declara `capabilities: ["action_progress_v1"]`. nüün todavía no publica un archivo de [registro](../vendor/nu9ve-core/contracts/nu9ve-registry-v1.md), así que la capacidad sólo está en `engine_info`.
 - **Python**, que es el oráculo, lee igual en `media/service.py`. Su productor no cambió y todavía borra el registro al terminar, así que ahí lo terminado responde `unknown`.
 - **La app** compara con `{}` y ahora recibiría `unknown`. En esta fase no se instala: F4c cambia esas tres lecturas por `ActionMonitor`.

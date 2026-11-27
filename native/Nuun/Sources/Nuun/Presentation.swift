@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Nu9veActionProgress
 import NuMacShell
 import NuunCore
 
@@ -311,9 +312,8 @@ struct LibraryView: View {
                 Text("\(rows.count) elementos").font(.caption).foregroundStyle(.secondary)
             }
             if model.runningAction == "deliver" {
-                ActionProgressView(title: "Copiando desde el respaldo",
-                                   note: "Cada archivo se copia desde MEDIA al disco de edición y se verifica contra su huella. Puedes pausar: lo verificado se conserva y se adopta al reintentar.",
-                                   state: .transfer(model.actionProgress, phase: model.stageLabel(model.actionProgress["stage"].string)))
+                ActionProgressScreen(model.actionSnapshot(.action), title: "Copiando desde el respaldo",
+                                     note: "Cada archivo se copia desde MEDIA al disco de edición y se verifica contra su huella. Puedes pausar: lo verificado se conserva y se adopta al reintentar.")
             } else {
             Table(rows, selection: $model.selected, sortOrder: $order) {
                 TableColumn("Proyecto", value: \.project)

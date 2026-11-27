@@ -97,7 +97,7 @@ class ReleaseProgressTests(WorkflowFixture):
         self.assertEqual(seen[-1]['stage'], 'release_complete')
         self.assertEqual(seen[-1]['overall_done'], seen[-1]['overall_total'])
         # The reader saw it while it ran; Python's finished action leaves no key behind (the Rust engine keeps it).
-        self.assertEqual(service.call('action_progress', {'id': plan['id']})['state'], 'unknown')
+        self.assertEqual(service.call('action_progress', {'progress_id': plan['id']})['state'], 'unknown')
 
 
 class DeliveryProgressTests(MediaFixture):

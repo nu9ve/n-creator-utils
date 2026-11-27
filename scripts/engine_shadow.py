@@ -140,7 +140,7 @@ def requests_for(python):
         if isinstance(volume, dict) and volume.get('role') == 'archive':
             requests.append(('missions_review', {'archive': volume['name']}))
     requests.append(('closure_progress', {'plan_id': 'shadow-absent'}))
-    requests.append(('action_progress', {'id': 'shadow-absent'}))
+    requests.append(('action_progress', {'progress_id': 'shadow-absent'}))
     return requests
 
 

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Nu9veActionProgress
 import NuMacShell
 import NuunCore
 import Nu9veTheme
@@ -247,6 +248,7 @@ struct CreatorAppearance: ViewModifier {
             .background(WindowTheme(palette: palette, followsSystem: followsSystem))
             .toolbarBackground(palette.canvas, for: .windowToolbar)
             .environment(\.creatorPalette, palette)
+            .environment(\.actionProgressStyle, ActionProgressStyle(palette))
             .preferredColorScheme(followsSystem ? nil : palette.dark ? .dark : .light)
     }
 }

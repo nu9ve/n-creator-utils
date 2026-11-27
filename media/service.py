@@ -42,9 +42,10 @@ PROGRESS_ID = re.compile(r'[a-z0-9][a-z0-9._:-]{0,127}')
 def action_progress(catalog, params, legacy):
     """nu9ve-action-v1 §2: the record of `progress_id`, or `state: unknown`. Same as the Rust engine's reader.
 
-    `legacy` (`id`, `plan_id`) is accepted alone in place of `progress_id` until the app migrates."""
+    `legacy` (`plan_id` for the `closure_progress` alias) is accepted alone in place of `progress_id`."""
     keys = set(params)
-    require(keys in ({'progress_id'}, {legacy}), 'invalid_params', 'action_progress takes one progress_id.')
+    require(keys == {'progress_id'} or (legacy is not None and keys == {legacy}), 'invalid_params',
+            'action_progress takes one progress_id.')
     progress_id = params.get('progress_id', params.get(legacy))
     require(isinstance(progress_id, str) and PROGRESS_ID.fullmatch(progress_id) is not None, 'invalid_params',
             'progress_id does not follow the nu9ve-action/1 pattern.')
@@ -261,7 +262,7 @@ class Service:
             with self._action_progress(progress_id) as progress:
                 return project_backup(self.catalog, self.backend, params['project_id'], params['archive'], self.cancel, progress)
         if method == 'action_progress':
-            return action_progress(self.catalog, params, 'id')
+            return action_progress(self.catalog, params, None)
         if method == 'release_plans':
             from .release import release_plans
             return release_plans(self.catalog)

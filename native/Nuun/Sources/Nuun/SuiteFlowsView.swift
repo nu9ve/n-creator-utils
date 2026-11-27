@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Nu9veActionProgress
 import NuunCore
 
 /// A copy between two work disks being prepared (docs/contracts/suite-work-copy-v1.md).
@@ -79,20 +80,12 @@ extension Model {
     func runConversations(when: String) async {
         guard !conversationsRunning else { return }
         conversationsRunning = true
-        conversationProgress = .object([:])
         // One measure for every collection, read while the one-shot engine copies (U1.1, 2026-11-26).
-        let progressID = JSONValue.string(UUID().uuidString.lowercased())
-        let monitor = Task { @MainActor in
-            while !Task.isCancelled {
-                if let value = try? await self.reader?.call("action_progress", ["id": progressID]), !Task.isCancelled, value != .object([:]) {
-                    self.conversationProgress = value
-                }
-                try? await Task.sleep(for: .milliseconds(500))
-            }
-        }
-        defer { monitor.cancel(); conversationsRunning = false }
+        let progressID = newProgressID()
+        startAction(.conversations, progressID)
+        defer { stopAction(.conversations); conversationsRunning = false }
         do {
-            let result = try await oneShot("conversations_run", ["when": .string(when), "progress_id": progressID])
+            let result = try await oneShot("conversations_run", ["when": .string(when), "progress_id": .string(progressID)])
             let copied = result["results"].array.reduce(0) { $0 + Int($1["result"]["copied"].double) + Int($1["result"]["versioned"].double) }
             if !result["results"].array.isEmpty {
                 message = String(localized: "Conversaciones respaldadas: \(copied) archivos nuevos o cambiados")
@@ -257,7 +250,7 @@ struct SuiteSuggestionCard: View {
                     .help("Para este disco y este flujo. Se puede volver a activar.")
                 Spacer()
                 if suggestion["flow"].string == "conversations_backup" && model.conversationsRunning {
-                    ConversationProgressLine(progress: model.conversationProgress)
+                    ActionLine(snapshot: model.actionSnapshot(.conversations), idle: conversationPhase(model.actionStage(.conversations)))
                 } else if suggestion["flow"].string == "conversations_update" && model.conversationsRunning {
                     ProgressView().controlSize(.small)
                 }
@@ -341,8 +334,8 @@ struct WorkCopySheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if copying {
-                ActionProgressView(title: "Copiando y verificando", note: "Mantén conectados ambos discos hasta que aparezca el recibo.",
-                                   state: .transfer(model.actionProgress, phase: String(localized: "Copia entre discos de trabajo")))
+                ActionProgressScreen(model.actionSnapshot(.action), title: "Copiando y verificando",
+                                     note: "Mantén conectados ambos discos hasta que aparezca el recibo.")
             } else {
                 selection
             }
@@ -550,9 +543,9 @@ struct WorkCopySheet: View {
     private func apply(_ plan: JSONValue) {
         inFlight = true; copying = true; failure = ""
         Task {
-            let monitor = model.watchAction("work_copy", plan["id"])
+            model.watchAction("work_copy", plan["id"].string)
             defer {
-                monitor.cancel()
+                model.stopAction(.action)
                 model.runningAction = ""
                 inFlight = false
                 copying = false
@@ -568,31 +561,13 @@ struct WorkCopySheet: View {
 // MARK: Ajustes → Conversaciones
 
 /// Which conversations leave this Mac, to which disk and when; and the working copy. Every «sí» is recorded with its date.
-/// What the conversations backup is doing, from the engine's stage (U1.1).
-func conversationPhase(_ progress: JSONValue) -> String {
-    switch progress["stage"].string {
-    case "copying": String(localized: "Copiando y verificando el historial")
-    case "complete": String(localized: "Colección respaldada")
-    case "": String(localized: "Preparando")
-    default: String(localized: "Leyendo el historial · \(Int(progress["files_done"].double)) archivos")
-    }
-}
-
-/// The conversations backup in one line, for the Home card: the skin's bar and the engine's numbers.
-struct ConversationProgressLine: View {
-    @Environment(\.creatorPalette) private var palette
-    let progress: JSONValue
-    var body: some View {
-        let total = progress["overall_total"].double, done = progress["overall_done"].double
-        let copying = progress["stage"].string == "copying" && total > 0
-        HStack(spacing: 8) {
-            SkinProgressBar(fraction: copying ? min(1, done / total) : nil).frame(width: 140)
-            Text(verbatim: copying
-                 ? "\(Int((done / total * 100).rounded(.down))) % · " + String(localized: "\(bytesLabel(done)) de \(bytesLabel(total))")
-                 : conversationPhase(progress))
-                .font(.caption.monospacedDigit()).foregroundStyle(palette.muted).lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
+/// What the conversations backup is doing while there is no amount yet, from the record's common stage (U1.1).
+func conversationPhase(_ stage: String) -> String {
+    switch stage {
+    case "copying", "verifying": String(localized: "Copiando y verificando el historial")
+    case "finishing": String(localized: "Colección respaldada")
+    case "listing", "scanning": String(localized: "Leyendo el historial")
+    default: String(localized: "Preparando")
     }
 }
 
@@ -610,9 +585,8 @@ struct ConversationsSettings: View {
         VStack(alignment: .leading, spacing: 12) {
           if model.conversationsRunning {
             // While it copies, the action replaces the pane (nu9ve-interaction-v1 §7): stage, files and bytes.
-            ActionProgressView(title: "Respaldando conversaciones",
-                               note: "Puedes seguir usando nüün. Mantén conectado \(settings["archive"].string) hasta que aparezca el resultado.",
-                               state: .transfer(model.conversationProgress, phase: conversationPhase(model.conversationProgress)))
+            ActionProgressScreen(model.actionSnapshot(.conversations), title: "Respaldando conversaciones",
+                                 note: "Puedes seguir usando nüün. Mantén conectado \(settings["archive"].string) hasta que aparezca el resultado.")
                 .frame(height: 460)
           } else {
             Label("Conversaciones", systemImage: "bubble.left.and.text.bubble.right").font(.title3.weight(.semibold))
