@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--skip-build', action='store_true')
     parser.add_argument('--python', help='Explicit Python executable for development only')
     parser.add_argument('--runtime', help='Relocatable Python runtime root containing bin/python3 and its license')
-    parser.add_argument('--identity', help='Developer ID identity; optional ad-hoc signing for development')
+    parser.add_argument('--identity', help='Signing identity (Apple Development or Developer ID, by name or SHA-1); ad-hoc if omitted')
     parser.add_argument('--no-engine', action='store_true', help='Leave the Rust engine out: Python answers every read')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
@@ -118,7 +118,9 @@ def main():
     subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(output)], check=True)
     subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(output)], check=True)
     print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'rust_engine': engine is not None, 'suite_agent': engine is not None,
-                      'developer_id_signed': bool(args.identity),
+                      # A stable identity may be Apple Development, which is not Developer ID: only a name says so.
+                      'signed_with_identity': bool(args.identity),
+                      'developer_id_signed': 'Developer ID' in (args.identity or ''),
                       'notarized': False, 'release_ready': False, 'remaining_gates': ['camera/device validation', 'GUI acceptance', 'notarization and Gatekeeper acceptance']}, indent=2))
 
 

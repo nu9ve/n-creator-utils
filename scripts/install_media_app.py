@@ -62,6 +62,21 @@ def install(app, destination):
     if backup.exists(): print('Previous build: ' + str(backup))
 
 
+def development_identity():
+    """SHA-1 of the only valid «Apple Development» signing identity in the keychain, else None.
+
+    Two or more are ambiguous, so the caller falls back to ad-hoc and says why. Returns the hash, never the
+    certificate name, so nothing personal reaches the build log."""
+    try:
+        listing = subprocess.run(['/usr/bin/security', 'find-identity', '-v', '-p', 'codesigning'],
+                                 capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    found = [line.split()[1] for line in listing.splitlines()
+             if '"Apple Development:' in line and len(line.split()) > 2]
+    return found[0] if len(found) == 1 else None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--python', default=sys.executable, help='External Python for this local development install')
@@ -70,8 +85,16 @@ def main():
     # A stable identity (a certificate name or its SHA-1) keeps macOS privacy permissions across rebuilds;
     # ad-hoc signing changes the app's identity with every build, so macOS asks again.
     parser.add_argument('--identity', default=os.environ.get('NU9VE_SIGN_IDENTITY'),
-                        help='Signing identity for the rebuild (default: $NU9VE_SIGN_IDENTITY, else ad-hoc)')
+                        help='Signing identity for the rebuild (default: $NU9VE_SIGN_IDENTITY, else the only '
+                             '«Apple Development» identity in the keychain, else ad-hoc)')
+    parser.add_argument('--ad-hoc', action='store_true', help='Sign ad-hoc even if a development identity exists')
     args = parser.parse_args()
+    if args.ad_hoc:
+        args.identity = None
+    elif not args.identity and not args.app:
+        args.identity = development_identity()
+        print('Signing: ' + ('Apple Development identity from the keychain' if args.identity else
+                             'ad-hoc (no single Apple Development identity); macOS will ask for permissions again'))
     repo = Path(__file__).resolve().parents[1]
     app = Path(args.app).absolute() if args.app else repo / 'dist' / ('Nu9veMedia-local-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:6] + '.app')
     if not args.app:
