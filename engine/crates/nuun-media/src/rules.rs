@@ -1,10 +1,11 @@
 //! Validation rules from `media/common.py` that writes depend on.
 
 use nu9ve_json::{Result, require};
+use unicode_normalization::UnicodeNormalization;
 
 /// Python `slug(value)`: at most 160 characters; runs of non-word characters become `-`, then `-`/`_` are
-/// stripped at both ends, and something must remain. Returns the cleaned form. Python normalizes to NFC first;
-/// that never changes whether a letter or digit is present, which is all a validation needs.
+/// stripped at both ends, and something must remain. Returns the cleaned form. NFC first, as Python: a name in NFD
+/// (`N` + combining tilde, as an HFS+ folder gives it) is `Ñandú`, not `N-andu`. The 160 are counted before.
 pub fn slug(value: &str) -> Result<String> {
     require(
         value.chars().count() <= 160,
@@ -13,7 +14,7 @@ pub fn slug(value: &str) -> Result<String> {
     )?;
     let mut cleaned = String::new();
     let mut in_gap = false;
-    for c in value.trim().chars() {
+    for c in value.nfc().collect::<String>().trim().chars() {
         if c.is_alphanumeric() || c == '_' || c == '-' {
             if in_gap {
                 cleaned.push('-');

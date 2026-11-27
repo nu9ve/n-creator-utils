@@ -1087,6 +1087,60 @@ fn truthy(value: &Value) -> bool {
 mod tests {
     use super::*;
 
+    /// The shared naming vectors (docs/contracts/examples/media-naming-vectors-v1.json), the same file Python's
+    /// `tests/test_media_naming_vectors.py` checks and Stalker copies. Bundle names use the host zone, so they are
+    /// compared only under the zone of the vectors (`TZ`, as in the gate).
+    #[test]
+    fn naming_vectors() {
+        let vectors: Value = serde_json::from_str(include_str!(
+            "../../../../docs/contracts/examples/media-naming-vectors-v1.json"
+        ))
+        .unwrap();
+        let text = |name: &str, f: &dyn Fn(&str) -> Result<String>| {
+            for case in vectors[name].as_array().unwrap() {
+                let input = case["input"].as_str().unwrap();
+                match (f(input), case.get("error")) {
+                    (Err(error), Some(code)) => {
+                        assert_eq!(error.code, code.as_str().unwrap(), "{name} {case}")
+                    }
+                    (Ok(out), None) => {
+                        assert_eq!(out, case["output"].as_str().unwrap(), "{name} {case}")
+                    }
+                    (got, _) => panic!("{name} {case}: {got:?}"),
+                }
+            }
+        };
+        text("slug", &slug);
+        text("tag", &tag);
+        for case in vectors["duration"].as_array().unwrap() {
+            assert_eq!(duration(case["seconds"].as_f64()), case["output"], "{case}");
+        }
+        for case in vectors["stamp"].as_array().unwrap() {
+            let local = DateTime::fromisoformat(case["local"].as_str().unwrap()).unwrap();
+            assert_eq!(stamp(&local), case["output"], "{case}");
+        }
+        let zone = vectors["time_zone"].as_str().unwrap();
+        if std::env::var("TZ").as_deref() != Ok(zone) {
+            eprintln!("bundle names not compared: run with TZ={zone}");
+            return;
+        }
+        for case in vectors["bundle_name"].as_array().unwrap() {
+            let mut manifest = json!({"createdAt": case["created_at"]});
+            if !case["duration"].is_null() {
+                manifest["duration"] = case["duration"].clone();
+            }
+            let text = |key: &str| case[key].as_str().unwrap();
+            let (base, _) =
+                stalker_bundle_name(&manifest, 0, text("country"), text("project")).unwrap();
+            let mut taken = HashSet::new();
+            let mut name = String::new();
+            for _ in 0..case["attempt"].as_u64().unwrap() {
+                name = claim(&mut taken, &base);
+            }
+            assert_eq!(name, text("output"), "{case}");
+        }
+    }
+
     #[test]
     fn an_underscore_inside_a_name_part_becomes_a_hyphen() {
         assert_eq!(tag("mi_proyecto").unwrap(), "MI-PROYECTO");

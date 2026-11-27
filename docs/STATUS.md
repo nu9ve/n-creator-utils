@@ -328,6 +328,15 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Vectores de nombres compartidos · 2026-11-27
+
+Pedido de Stalker (`fdc80fc`) en [contratos](contracts/README.md#pendientes-para-n-creator-utils): el cambio de `_` en `tag` se copió a mano en Python, Rust y la Swift de Stalker.
+
+- **El archivo:** [media-naming-vectors-v1.json](contracts/examples/media-naming-vectors-v1.json), entrada → salida de `slug`, `tag`, `duration`, `stamp` y el nombre de un bundle Stalker (zona `America/Phoenix`, colisión `-2[]` y `-3[]`). Incluye `_`, NFD, el máximo de 160 y los redondeos a par.
+- **Quién lo prueba:** Python en [test_media_naming_vectors.py](../tests/test_media_naming_vectors.py) y Rust en `layout.rs` (`naming_vectors`; el nombre del bundle sólo con `TZ=America/Phoenix`, como el gate). `claim` de Python pasó a `layout.claim_name` para probarlo sin un plan.
+- **Lo que encontró:** Rust no pasaba a NFC antes de limpiar, y un proyecto en NFD (como lo da una carpeta de HFS+) salía `N-andu` en vez de `Ñandú`. Arreglado con `unicode-normalization` 0.1.21, ya en la caché de cargo.
+- **Para Stalker:** falta que copie los vectores. A primera lectura, su `slug` cuenta los 160 en grafemas y nüün en puntos de código tal como llegan: `ñ`×81 en NFD es error en nüün y nombre en Stalker.
+
 ### Claves de proyecto y Agentes en `data_catalog` · 2026-11-27
 
 F7a y F7b de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Están **sin instalar ni aceptar en ventana**.

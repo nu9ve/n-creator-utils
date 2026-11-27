@@ -25,6 +25,8 @@ rusqlite.workspace = true
 quick-xml.workspace = true
 # closure.py names (`delivery_title`, vertical suffixes, dates in a name) are regular expressions in Python.
 regex.workspace = true
+# `slug` en NFC, como Python (docs/contracts/examples/media-naming-vectors-v1.json).
+unicode-normalization.workspace = true
 
 # storage_index.py `_alive`: whether a scan's process still runs (`kill(pid, 0)`).
 [target.'cfg(unix)'.dependencies]

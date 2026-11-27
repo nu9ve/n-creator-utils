@@ -1,0 +1,292 @@
+{
+  "contract": "media-naming-vectors-v1",
+  "about": "Casos de la gramática de media-naming-v1.md: entrada → salida de nüün. Los prueban los dos motores de nüün (tests/test_media_naming_vectors.py y layout.rs); Stalker los copia a sus pruebas con el commit de origen. `error` es el código del productor cuando no hay nombre (Stalker: nil).",
+  "time_zone": "America/Phoenix",
+  "slug": [
+    {
+      "input": "debloateando mi tele",
+      "output": "debloateando-mi-tele"
+    },
+    {
+      "input": "  Viaje a Sonora!  ",
+      "output": "Viaje-a-Sonora",
+      "note": "espacios y signos en los extremos"
+    },
+    {
+      "input": "mi_proyecto",
+      "output": "mi_proyecto",
+      "note": "`_` se conserva en slug"
+    },
+    {
+      "input": "_a_",
+      "output": "a"
+    },
+    {
+      "input": "-_-a-_-",
+      "output": "a",
+      "note": "se quitan `-` y `_` de ambos extremos"
+    },
+    {
+      "input": "a--b",
+      "output": "a--b",
+      "note": "`-` seguidos se conservan"
+    },
+    {
+      "input": "a  /  b",
+      "output": "a-b",
+      "note": "un tramo de no-palabra es un solo `-`"
+    },
+    {
+      "input": "2026 · Lima",
+      "output": "2026-Lima"
+    },
+    {
+      "input": "x²",
+      "output": "x²",
+      "note": "otros números (No) son palabra"
+    },
+    {
+      "input": "Ñandú",
+      "output": "Ñandú"
+    },
+    {
+      "input": "Ñandú",
+      "output": "Ñandú",
+      "note": "NFD: se normaliza a NFC antes de limpiar"
+    },
+    {
+      "input": "café olé",
+      "output": "café-olé",
+      "note": "NFD"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "output": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "note": "máx. 160"
+    },
+    {
+      "input": "ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ",
+      "output": "ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ",
+      "note": "160 en NFC"
+    },
+    {
+      "input": "ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ",
+      "output": "ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ",
+      "note": "160 puntos de código en NFD: el máximo cuenta los puntos de código tal como llegan, antes de NFC"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "error": "invalid_tag",
+      "note": "más de 160"
+    },
+    {
+      "input": "ñññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ",
+      "error": "invalid_tag",
+      "note": "162 puntos de código en NFD (81 letras): se rechaza"
+    },
+    {
+      "input": "",
+      "error": "invalid_tag"
+    },
+    {
+      "input": "   ",
+      "error": "invalid_tag"
+    },
+    {
+      "input": "-_-",
+      "error": "invalid_tag"
+    },
+    {
+      "input": "...",
+      "error": "invalid_tag"
+    },
+    {
+      "input": "!!!",
+      "error": "invalid_tag"
+    },
+    {
+      "input": ".",
+      "error": "invalid_tag"
+    }
+  ],
+  "tag": [
+    {
+      "input": "mi_proyecto",
+      "output": "MI-PROYECTO",
+      "note": "`_` pasa a `-` dentro de una parte (2026-11-26)"
+    },
+    {
+      "input": "debloateando mi tele",
+      "output": "DEBLOATEANDO-MI-TELE"
+    },
+    {
+      "input": "mx",
+      "output": "MX"
+    },
+    {
+      "input": "_x_y_",
+      "output": "X-Y"
+    },
+    {
+      "input": "Ñandú",
+      "output": "ÑANDÚ"
+    },
+    {
+      "input": "Ñandú",
+      "output": "ÑANDÚ",
+      "note": "NFD"
+    },
+    {
+      "input": "straße",
+      "output": "STRASSE",
+      "note": "mayúsculas de Unicode: ß → SS"
+    },
+    {
+      "input": "a__b",
+      "output": "A--B"
+    },
+    {
+      "input": "",
+      "error": "invalid_tag"
+    },
+    {
+      "input": "_",
+      "error": "invalid_tag"
+    }
+  ],
+  "duration": [
+    {
+      "seconds": null,
+      "output": "00-00"
+    },
+    {
+      "seconds": 0,
+      "output": "00-00"
+    },
+    {
+      "seconds": 0.4,
+      "output": "00-00"
+    },
+    {
+      "seconds": 0.5,
+      "output": "00-00"
+    },
+    {
+      "seconds": 1.5,
+      "output": "00-02"
+    },
+    {
+      "seconds": 2.5,
+      "output": "00-02"
+    },
+    {
+      "seconds": 59.5,
+      "output": "01-00"
+    },
+    {
+      "seconds": 228.4,
+      "output": "03-48"
+    },
+    {
+      "seconds": 3599.5,
+      "output": "60-00"
+    },
+    {
+      "seconds": 3600,
+      "output": "60-00"
+    },
+    {
+      "seconds": 6000.2,
+      "output": "100-00"
+    }
+  ],
+  "stamp": [
+    {
+      "local": "2026-10-24T19:58:50",
+      "output": "26OCT24-195850"
+    },
+    {
+      "local": "2000-01-01T00:00:00",
+      "output": "00JAN01-000000"
+    },
+    {
+      "local": "2026-12-31T23:59:59",
+      "output": "26DEC31-235959"
+    },
+    {
+      "local": "2009-05-07T08:09:01",
+      "output": "09MAY07-080901"
+    },
+    {
+      "local": "2026-11-04T16:32:12.700000",
+      "output": "26NOV04-163212"
+    }
+  ],
+  "bundle_name": [
+    {
+      "created_at": "2026-10-25T02:58:50Z",
+      "duration": {
+        "value": 228000,
+        "timescale": 1000
+      },
+      "country": "MX",
+      "project": "debloateando mi tele",
+      "attempt": 1,
+      "output": "26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE[].stalker"
+    },
+    {
+      "created_at": "2026-10-25T02:58:50Z",
+      "duration": {
+        "value": 228000,
+        "timescale": 1000
+      },
+      "country": "MX",
+      "project": "mi_proyecto",
+      "attempt": 1,
+      "output": "26OCT24-195850_STALKER_03-48_MX-MI-PROYECTO[].stalker"
+    },
+    {
+      "created_at": "2026-11-04T23:32:12.700Z",
+      "duration": {
+        "value": 90.5,
+        "timescale": 1
+      },
+      "country": "mx",
+      "project": "Ñandú 2026",
+      "attempt": 1,
+      "output": "26NOV04-163212_STALKER_01-30_MX-ÑANDÚ-2026[].stalker",
+      "note": "los segundos se truncan; NFD"
+    },
+    {
+      "created_at": "2026-11-01T03:00:00Z",
+      "duration": null,
+      "country": "PE",
+      "project": "lima",
+      "attempt": 1,
+      "output": "26OCT31-200000_STALKER_00-00_PE-LIMA[].stalker",
+      "note": "sin duración: 00-00; la hora local cae en el día anterior"
+    },
+    {
+      "created_at": "2026-10-25T02:58:50Z",
+      "duration": {
+        "value": 228000,
+        "timescale": 1000
+      },
+      "country": "MX",
+      "project": "debloateando mi tele",
+      "attempt": 2,
+      "output": "26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE-2[].stalker"
+    },
+    {
+      "created_at": "2026-10-25T02:58:50Z",
+      "duration": {
+        "value": 228000,
+        "timescale": 1000
+      },
+      "country": "MX",
+      "project": "debloateando mi tele",
+      "attempt": 3,
+      "output": "26OCT24-195850_STALKER_03-48_MX-DEBLOATEANDO-MI-TELE-3[].stalker"
+    }
+  ]
+}

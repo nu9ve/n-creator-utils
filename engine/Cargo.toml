@@ -46,6 +46,9 @@ quick-xml = "0.42"
 # IANA offsets for Stalker evidence, with bundled rules on Windows.
 jiff = { version = "=0.2.39", default-features = false, features = ["std", "tzdb-zoneinfo", "tzdb-concatenated", "tzdb-bundle-platform"] }
 libc = "0.2.191"
+# `slug` normaliza a NFC antes de limpiar, como `unicodedata.normalize('NFC')` de Python: un nombre en NFD
+# (una carpeta de HFS+) daba `N-andu` en vez de `Ñandú`. Lo encontraron los vectores de nombres (2026-11-27).
+unicode-normalization = "0.1.21"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

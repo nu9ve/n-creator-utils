@@ -40,6 +40,8 @@ YYMONDD-HHMMSS_<FUENTE>_<MM-SS>_<PAIS>-<PROYECTO>[]<-N>.<EXT>
 | `[]` | Hueco histórico de etiquetas; se conserva por compatibilidad con años de archivo existente. |
 | `-N` | Sólo si dos archivos del mismo plan producen el mismo nombre (mismo segundo y fuente): `…-2[].MP4`. Determinista dentro del plan. |
 
+**Vectores compartidos** (2026-11-27): [media-naming-vectors-v1.json](examples/media-naming-vectors-v1.json) da entrada → salida de `slug`, `tag`, `duration`, `stamp` y el nombre de un bundle Stalker, con NFC, `_`, el máximo de 160 y `-N[]`. Los dos motores de nüün los prueban; un cambio de la gramática cambia ese archivo y se avisa a Stalker, que los copia a sus pruebas.
+
 Fuentes de tiempo, en orden: Sony `CreationDate` + `Duration`/`captureFps` del XML M01; Stalker `createdAt` (UTC → local) + `duration.value/timescale` del manifest; `ffprobe` (`creation_time`, `duration`); WAV por cabecera; por último `mtime` sin duración. El plan registra el nombre resultante y entra en su digest: revisar el plan es revisar los nombres.
 
 En Rust, un MP4 Canon con miniatura EXIF interna aporta su propio modelo y `DateTimeOriginal` con offset. Esa fecha se usa antes de `creation_time` del contenedor. `ffprobe` aporta duración y dimensiones. Cuando la miniatura está ausente o es ilegible se conserva la detección y el reloj disponibles por las vías existentes.

@@ -228,6 +228,19 @@ def stalker_bundle_name(manifest, fallback_ns, country, project):
     return name, found['created']
 
 
+def claim_name(taken, rel):
+    """Deterministic, plan-local disambiguation for names taken in the same second: `…-2[].ext`, `…-3[].ext`.
+
+    `taken` holds the lower-cased names already given in the plan; the one returned is added."""
+    stem, dot, ext = rel.rpartition('.')
+    candidate, n = rel, 2
+    while candidate.lower() in taken:
+        candidate = stem.replace('[]', '-{}[]'.format(n)) + dot + ext
+        n += 1
+    taken[candidate.lower()] = True
+    return candidate
+
+
 def build_layout(source, plan, units, files):
     """Map every source path to {'archive': rel, 'work': rel|None} below each volume prefix."""
     source = Path(source)
@@ -238,14 +251,7 @@ def build_layout(source, plan, units, files):
     first_capture = None
 
     def claim(rel):
-        # Deterministic, plan-local disambiguation for clips recorded in the same second.
-        stem, dot, ext = rel.rpartition('.')
-        candidate, n = rel, 2
-        while candidate.lower() in taken:
-            candidate = stem.replace('[]', '-{}[]'.format(n)) + dot + ext
-            n += 1
-        taken[candidate.lower()] = True
-        return candidate
+        return claim_name(taken, rel)
 
     for unit in sorted(units, key=lambda u: u['id']):
         members = sorted(by_unit[unit['id']], key=lambda f: f['path'])
