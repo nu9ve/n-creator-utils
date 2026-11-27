@@ -67,9 +67,9 @@ TEMPLATE = {
         'patterns': ['coverage-*.json', 'JSON-*.json'],
         'schema_versions': [1, 2, 3],
         'merge_keys': {'plans': 'id', 'captures': 'captureID', 'captureLog': 'captureID',
-                       'flightSessions': 'id', 'fieldNotes': 'id'},
+                       'flightSessions': 'id', 'fieldNotes': 'id', 'landings': 'id'},
         'record_dates': {'plans': 'updatedAt', 'captures': 'capturedAt', 'captureLog': 'capturedAt',
-                         'flightSessions': 'updatedAt', 'fieldNotes': 'createdAt'},
+                         'flightSessions': 'updatedAt', 'fieldNotes': 'createdAt', 'landings': 'finishedAt'},
         'tombstones': {'plans': 'deletedPlanIDs'},  # additive list once the app publishes deletions
         'archive_area': '004_datos/subaereo/coverage',   # below the archive volume root
         'work_mirror': 'atlas-subaereo/_missions',       # below the work volume prefix

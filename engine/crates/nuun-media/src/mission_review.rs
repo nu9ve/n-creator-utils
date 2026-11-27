@@ -882,6 +882,7 @@ mod incorporate {
                 "captureLog",
                 "flightSessions",
                 "fieldNotes",
+                "landings",
             ];
             merge_keys
                 .sort_by_key(|key| order.iter().position(|k| *k == key).unwrap_or(order.len()));
@@ -1438,6 +1439,165 @@ mod incorporate_tests {
         std::fs::remove_file(area.join("raw/2026/11/JSON-subaereo-fixture.json.gz")).unwrap();
         assert_eq!(deliver(&s).unwrap_err().code, "checksum_mismatch");
         assert_eq!(std::fs::read(&path).unwrap(), export);
+    }
+
+    /// subaereo VU9, VU10 and DA12 (2026-11-26) travel whole: landings with their stall, Home and its source per
+    /// session, the 1 Hz CSV and the reference photos tied to `homeReferences[].captureID`. A repeat adds nothing.
+    fn ingest_twice_and_check(s: &crate::volumes::test_backend::Setup, export: &Value) -> Value {
+        let library = s.card.join("nove");
+        let outbox = library.join("outbox/nuun-missions");
+        std::fs::create_dir_all(&outbox).unwrap();
+        let path = outbox.join("JSON-subaereo-vu10.json");
+        let bytes = nu9ve_json::canonical(export);
+        std::fs::write(&path, &bytes).unwrap();
+        let first = ingest_nove(&s.home, &s.backend, &library, &path).unwrap();
+        assert_eq!(first["status"], "incorporated", "{first}");
+        let area = s.archive.join("004_datos/subaereo/coverage");
+        let history = std::fs::read(area.join("history.json")).unwrap();
+        let changes = std::fs::read(area.join("changes.ndjson")).unwrap();
+        let again = ingest_nove(&s.home, &s.backend, &library, &path).unwrap();
+        assert_eq!(again["status"], "already");
+        assert_eq!(std::fs::read(area.join("history.json")).unwrap(), history);
+        assert_eq!(std::fs::read(area.join("changes.ndjson")).unwrap(), changes);
+        // The same records in a newer export are no change either: nothing is counted twice.
+        let mut newer = export.clone();
+        newer["exportedAt"] = json!("2027-01-01T00:00:00Z");
+        let second = outbox.join("JSON-subaereo-vu10-newer.json");
+        std::fs::write(&second, nu9ve_json::canonical(&newer)).unwrap();
+        assert_eq!(
+            ingest_nove(&s.home, &s.backend, &library, &second).unwrap()["status"],
+            "incorporated"
+        );
+        assert_eq!(
+            std::fs::read(area.join("changes.ndjson")).unwrap(),
+            changes,
+            "identical records in a newer export added change lines"
+        );
+        let history: Value = serde_json::from_slice(&history).unwrap();
+        let mirror: Value = serde_json::from_slice(
+            &std::fs::read(
+                s.work
+                    .join("001_proyectos/atlas-subaereo/_missions/history.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(mirror["landings"], history["landings"]);
+        for key in [
+            "landings",
+            "flightSessions",
+            "captureLog",
+            "captures",
+            "plans",
+        ] {
+            assert_eq!(
+                history[key].as_array().map(Vec::len),
+                export[key].as_array().map(Vec::len),
+                "{key} lost records"
+            );
+        }
+        history
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn nove_delivery_keeps_landings_home_telemetry_and_references() {
+        let s = setup();
+        let csv = "timestamp,latitude,longitude,altitudeMeters,satelliteCount\n\
+                   2026-11-26T16:00:00Z,29.0960,-110.9638,0.0,18\n\
+                   2026-11-26T16:00:01Z,29.0960,-110.9638,0.1,18\n";
+        let export = json!({
+            "schemaVersion": 3, "exportedAt": "2026-11-26T21:00:00Z",
+            "plans": [{"id": "P1", "name": "Calles-45m", "updatedAt": "2026-11-26T15:00:00Z"}],
+            "flightSessions": [{"id": "S1", "planID": "P1", "updatedAt": "2026-11-26T16:30:00Z",
+                "homeLatitude": 29.096, "homeLongitude": -110.9638, "homeSource": "dji",
+                "telemetry": {"filename": "flight-S1.csv", "csv": csv},
+                "homeReferences": [{"phase": "start", "captureID": "R1", "samples": [
+                    {"timestamp": "2026-11-26T16:00:00Z", "latitude": 29.096, "longitude": -110.9638,
+                     "altitudeMeters": 0.0, "satelliteCount": 18}]}]}],
+            "captureLog": [
+                {"captureID": "R1", "planID": "P1", "sessionID": "S1", "kind": "reference", "referencePhase": "start",
+                 "capturedAt": "2026-11-26T16:00:12Z", "imageReference": "DJI_0001.JPG"},
+                {"captureID": "C1", "planID": "P1", "sessionID": "S1", "capturedAt": "2026-11-26T16:05:00Z",
+                 "imageReference": "DJI_0002.JPG"}],
+            "captures": [{"captureID": "C1", "planID": "P1", "sessionID": "S1",
+                          "capturedAt": "2026-11-26T16:05:00Z", "imageReference": "DJI_0002.JPG"}],
+            "landings": [{"id": "L1", "planID": "P1", "finishedAt": "2026-11-26T16:29:00Z",
+                          "outcome": "landed", "landingStallSeconds": 7.5}],
+            "fieldNotes": []
+        });
+        let history = ingest_twice_and_check(&s, &export);
+        assert_eq!(history["landings"][0]["landingStallSeconds"], 7.5);
+        let session = &history["flightSessions"][0];
+        assert_eq!(session["homeSource"], "dji");
+        assert_eq!(session["telemetry"]["filename"], "flight-S1.csv");
+        assert_eq!(session["telemetry"]["csv"], csv);
+        let reference = session["homeReferences"][0]["captureID"].clone();
+        let photo = history["captureLog"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["captureID"] == reference)
+            .unwrap();
+        assert_eq!(
+            (photo["kind"].as_str(), photo["referencePhase"].as_str()),
+            (Some("reference"), Some("start"))
+        );
+        assert!(
+            history["captures"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|r| r["captureID"] != reference),
+            "a reference has no cell"
+        );
+    }
+
+    /// Operational check on a copy of a real export, never the original: `NUUN_MISSIONS_EXPORT=<copy>`.
+    #[cfg(target_os = "macos")]
+    #[test]
+    #[ignore = "needs NUUN_MISSIONS_EXPORT, a copy of a subaereo export"]
+    fn real_export_copy_ingests_once() {
+        let path = std::env::var("NUUN_MISSIONS_EXPORT").expect("NUUN_MISSIONS_EXPORT");
+        let export: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let s = setup();
+        let history = ingest_twice_and_check(&s, &export);
+        let sessions = history["flightSessions"].as_array().unwrap();
+        let references: Vec<&Value> = sessions
+            .iter()
+            .flat_map(|s| s["homeReferences"].as_array().into_iter().flatten())
+            .collect();
+        let log = history["captureLog"].as_array().unwrap();
+        for reference in &references {
+            let photo = log
+                .iter()
+                .find(|r| r["captureID"] == reference["captureID"]);
+            assert_eq!(
+                photo.map(|p| &p["kind"]),
+                Some(&json!("reference")),
+                "{reference}"
+            );
+        }
+        println!(
+            "landings {} (stall {}), sessions {} (home {}, csv {}), references {}",
+            history["landings"].as_array().map_or(0, Vec::len),
+            history["landings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|l| l.get("landingStallSeconds").is_some())
+                .count(),
+            sessions.len(),
+            sessions
+                .iter()
+                .filter(|s| s.get("homeLatitude").is_some())
+                .count(),
+            sessions
+                .iter()
+                .filter(|s| s["telemetry"]["csv"].is_string())
+                .count(),
+            references.len()
+        );
     }
 
     #[test]

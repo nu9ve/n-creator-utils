@@ -184,6 +184,32 @@ salida. La operación se puede repetir con los mismos bytes después de un cierr
 `mirror` indica `written`, `skipped` si no se seleccionó un SSD de trabajo, o `pending` al quedar pendiente.
 La entrega de JSON sólo actualiza el registro de misiones. La liberación de la SD sigue bajo A14.
 
+#### Aterrizajes, Home, telemetría y referencias (VU9, DA12, VU10) · 2026-11-26
+
+nüün guarda estos campos de subaereo tal como llegan, sin interpretarlos. Atlas los lee en el registro: `history.json`
+del archivo o su espejo (`EDICION/001_proyectos/atlas-subaereo/_missions/history.json`, o el SSD de trabajo al que se
+copió). No hace falta otro archivo.
+
+| Qué | Dónde lo lee Atlas |
+| --- | --- |
+| Aterrizajes y `landingStallSeconds` (VU9) | `landings[]`, unidos por `id` como las demás listas (gana el `exportedAt` más nuevo). `changes.ndjson` los registra con `list: "landings"`. El campo falta si no hubo una pausa medida. |
+| Home por sesión (DA12) | `flightSessions[].homeLatitude`, `homeLongitude` y `homeSource` (`dji`, `takeoff`, `landing` o ausente). |
+| Telemetría a 1 Hz (DA12) | `flightSessions[].telemetry.csv`, el texto UTF-8 del CSV; `telemetry.filename` (`flight-<sessionID>.csv`) es sólo su nombre. nüün no lo escribe aparte. Los CSV históricos de Diagnóstico, sin `sessionID`, no entran al registro. |
+| Referencias de GPS sobre Home (VU10) | `flightSessions[].homeReferences[]` (`phase`, `captureID`, `samples[]`). La foto de cada una es el registro de `captureLog[]` con ese `captureID`, `kind: "reference"` y `referencePhase`. No está en `captures[]`. |
+| La foto de una referencia en la tarjeta | En `units.ndjson`, su `mission` lleva además `kind: "reference"` y `referencePhase`. Queda en la carpeta de su sesión, como las demás fotos de la misión. **Atlas excluye del conteo de celdas toda unidad con `mission.kind`.** La une con su referencia por `mission.captureID` = `homeReferences[].captureID`. |
+
+Repetir la entrega con los mismos bytes responde `already` sin tocar el registro. Un export más nuevo con los mismos
+registros no agrega líneas a `changes.ndjson`: nada se cuenta dos veces.
+
+Hasta este cambio, la receta no unía `landings`, así que el registro no tiene los aterrizajes de los exports anteriores.
+Sus crudos siguen en `raw/AAAA/MM/*.gz`. Los recientes vuelven a entrar con el siguiente export de 7 días. Si se
+quieren los viejos, hace falta otra entrega que vuelva a leer esos crudos.
+
+Evidencia: `nove_delivery_keeps_landings_home_telemetry_and_references` (export sintético con los tres campos, dos
+entregas y un export más nuevo idéntico) y `real_export_copy_ingests_once`, ignorada por omisión, sobre una copia de
+`JSON-409B-AF3E-7B-0.json` del 26 nov (7 días, sin CSV ni referencias todavía). Conservó 15 aterrizajes, 23 sesiones
+(19 con Home) y repitió sin cambios. `NUUN_MISSIONS_EXPORT=<copia>` la corre con otro export.
+
 ### `units.ndjson` (A12)
 
 `EDICION/001_proyectos/atlas-subaereo/_nuun/units.ndjson`: una línea por unidad de dron, reemplazada por `asset_id`

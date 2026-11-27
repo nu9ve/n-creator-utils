@@ -21,6 +21,17 @@ fn text<'a>(value: &'a Value, key: &str) -> &'a str {
     value[key].as_str().unwrap_or_default()
 }
 
+/// The mission ids of a matched unit; a VU10 reference also carries its kind and phase (Python's `if k in mission`).
+fn mission_of(mission: &Value) -> Value {
+    let mut out = json!({"planID": mission["planID"], "sessionID": mission["sessionID"], "captureID": mission["captureID"]});
+    for key in ["kind", "referencePhase"] {
+        if let Some(value) = mission.get(key) {
+            out[key] = value.clone();
+        }
+    }
+    out
+}
+
 fn truthy(value: &Value) -> bool {
     !matches!(value, Value::Null | Value::Bool(false))
         && value != &json!("")
@@ -166,7 +177,7 @@ pub fn unit_entries(catalog: &WritableCatalog, plan: &Value, map_rel: &str) -> R
             "make": device["make"], "model": device["model"], "serial": device["serial"],
             "sha256": {"jpg": pick("jpg", "sha256"), "dng": pick("dng", "sha256")},
             "gps": photo["gps"], "flight": photo["flight"],
-            "mission": if matched { json!({"planID": mission["planID"], "sessionID": mission["sessionID"], "captureID": mission["captureID"]}) } else { Value::Null },
+            "mission": if matched { mission_of(mission) } else { Value::Null },
             "mission_state": mission["state"], "plan_name": mission["plan_name"], "updated_at": nu9ve_time::now_utc(),
         }));
     }

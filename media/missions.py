@@ -420,6 +420,9 @@ class MissionIndex:
             exact = isinstance(record.get('mediaCreatedAt'), str)
             entry = {'when': when, 'exact': exact, 'position': _position(record), 'planID': record.get('planID'), 'sessionID': session,
                      'captureID': record.get('captureID'), 'plan_name': plan.get('name') or record.get('planName') or 'MISION'}
+            if record.get('kind') == 'reference':
+                # VU10: a GPS reference over Home has no cell; Atlas reads it apart from the coverage count.
+                entry['reference'] = {'kind': 'reference', 'referencePhase': record.get('referencePhase')}
             self.by_name.setdefault(stem, []).append(entry)
             if session and (session not in self.sessions or when < self.sessions[session]):
                 self.sessions[session] = when
@@ -447,7 +450,7 @@ class MissionIndex:
             entry = best[1]
             start = self.sessions.get(entry['sessionID'], entry['when'])
             return {'state': 'matched', 'planID': entry['planID'], 'sessionID': entry['sessionID'], 'captureID': entry['captureID'],
-                    'plan_name': entry['plan_name'], 'session_start': start.isoformat()}
+                    'plan_name': entry['plan_name'], 'session_start': start.isoformat(), **entry.get('reference', {})}
         if self.covered_until and when <= self.covered_until:
             # No record, but it can still look like a survey (e.g. flown before the app exported): a hint only.
             return {'state': 'none', 'likely_mission': likely_mission(photo, self.flow)}
@@ -530,7 +533,8 @@ def unit_entries(catalog, plan, map_rel):
             'make': device.get('make'), 'model': device.get('model'), 'serial': device.get('serial'),
             'sha256': {'jpg': (member.get('jpg') or {}).get('sha256'), 'dng': (member.get('dng') or {}).get('sha256')},
             'gps': photo.get('gps'), 'flight': photo.get('flight'),
-            'mission': {k: mission[k] for k in ('planID', 'sessionID', 'captureID')} if mission['state'] == 'matched' else None,
+            'mission': {k: mission[k] for k in ('planID', 'sessionID', 'captureID', 'kind', 'referencePhase') if k in mission}
+            if mission['state'] == 'matched' else None,
             'mission_state': mission['state'], 'plan_name': mission.get('plan_name'), 'updated_at': now()})
     return entries
 

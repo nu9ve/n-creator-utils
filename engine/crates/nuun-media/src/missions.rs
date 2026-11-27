@@ -149,6 +149,8 @@ struct Entry {
     session: Value,
     capture_id: Value,
     plan_name: Value,
+    /// VU10: a GPS reference over Home has no cell; Atlas reads it apart from the coverage count.
+    reference_phase: Option<Value>,
 }
 
 /// Seconds between two naive wall times, with microseconds (Python `total_seconds()`).
@@ -219,6 +221,8 @@ impl MissionIndex {
                 session: session.clone(),
                 capture_id: record["captureID"].clone(),
                 plan_name,
+                reference_phase: (record["kind"] == "reference")
+                    .then(|| record["referencePhase"].clone()),
             };
             by_name.entry(name).or_default().push(entry);
             if truthy(&session) {
@@ -315,11 +319,14 @@ impl MissionIndex {
                 None
             };
             let start = start.unwrap_or(&entry.when);
-            return Ok(
-                json!({"state": "matched", "planID": entry.plan_id, "sessionID": entry.session,
-                             "captureID": entry.capture_id, "plan_name": entry.plan_name,
-                             "session_start": start.isoformat()}),
-            );
+            let mut found = json!({"state": "matched", "planID": entry.plan_id, "sessionID": entry.session,
+                                   "captureID": entry.capture_id, "plan_name": entry.plan_name,
+                                   "session_start": start.isoformat()});
+            if let Some(phase) = &entry.reference_phase {
+                found["kind"] = json!("reference");
+                found["referencePhase"] = phase.clone();
+            }
+            return Ok(found);
         }
         let likely = likely_mission(photo, &self.flow);
         if let Some(until) = &self.covered_until
@@ -667,6 +674,23 @@ mod tests {
             late,
             json!({"state": "none", "likely_mission": true}),
             "covered by the full export"
+        );
+    }
+
+    #[test]
+    fn a_reference_photo_matches_with_its_kind_and_phase() {
+        let mut reference = record("2026-11-04 16:30:00", "DJI_0000.JPG", "R1");
+        reference["kind"] = json!("reference");
+        reference["referencePhase"] = json!("start");
+        let index = MissionIndex::new(&history(json!([reference])), &flow(), None).unwrap();
+        let found = index
+            .matches(&photo("2026-11-04T16:30:00"), "DJI_0000.JPG")
+            .unwrap();
+        assert_eq!(
+            found,
+            json!({"state": "matched", "planID": "P1", "sessionID": "S1", "captureID": "R1",
+                   "plan_name": "Calles-45m-1104-1625", "session_start": "2026-11-04T16:30:00",
+                   "kind": "reference", "referencePhase": "start"})
         );
     }
 
