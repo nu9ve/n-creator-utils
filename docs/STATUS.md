@@ -190,7 +190,7 @@ Los nombres de disco también son neutros en código, pruebas, maquetas de QA y 
 1. **Perfiles en esta Mac** ([nu9ve-profile-v1](../vendor/nu9ve-core/contracts/nu9ve-profile-v1.md)). [`suite_profiles.rs`](../engine/crates/nuun-media/src/suite_profiles.rs) usa el crate del core. `suite_profiles` (lectura) lista perfiles, tipos, apps y bibliotecas, y qué perfiles creativos de nüün faltan. `suite_profiles_register` (escritura, pide `confirm: true`) agrega la entrada `nuun` con `upsert_app_entry`. Si el perfil ya existe (lo creó nove), sólo agrega su entrada y el nombre de nüün como alias (`estudio-a`). Crea los que faltan: `canal-a` como `person` y los demás como `team`. Nunca reescribe la entrada de otra app. La biblioteca de nüün es su catálogo, igual para todos sus perfiles. Bajo QA sólo se usa `NU9VE_PROFILES_FILE`. Pruebas: archivo inexistente, archivo de nove con `canal-a`, Rust y Python escribiendo a la vez, y un archivo inválido que no se toca ([test_suite_storage.py](../tests/test_suite_storage.py) y unitarias de Rust).
 2. **Acumulados en disco**, fase 1 en sólo lectura ([diseño](features/storage-map.md#acumulados)). Las reglas son datos ([`rules.json`](../engine/crates/nuun-media/src/accumulations/rules.json)): Rust `target/`, `.next`/`.turbo`, `node_modules`, entornos y `__pycache__` de Python, SwiftPM y DerivedData, empaquetado, git, modelos, `~/Library/Caches`, Docker y respaldos de apps (`nove-update-backups/<fecha>`, `nu9ve/app-backups`). Cada hallazgo trae tamaño en disco, último uso, repo y su actividad, sesiones de agentes del proyecto, app y perfil dueños, si se regenera y su costo. El plan agrupa por tipo y pide dos confirmaciones para lo que no se regenera. Los discos se agrupan por volumen, con un aviso de casi lleno y un umbral del interno configurable. Las bibliotecas de `profiles.json` nunca son un hallazgo. CLI: [`scripts/suite_storage.py`](../scripts/suite_storage.py).
 3. **Datos de la suite.** El escaneo más nuevo es el dataset `storage-accumulations` en `data_catalog`: `table`, `personal`, `copied`, con `revision` = escaneo y hash. `data_export` entrega su NDJSON (`ready`), una fila por hallazgo con `scanned_at`. Se guardan los últimos 26 escaneos en `<catálogo>/accumulations/`.
-4. **Benchmarks** ([nu9ve-bench-v1](../vendor/nu9ve-core/contracts/nu9ve-bench-v1.md)). [`scripts/engine_bench.py`](../scripts/engine_bench.py) escribe en `bench/nuun.ndjson`, ignorado por git, con el ayudante del core. Mide seis lecturas del dorado en Python y en Rust, con `response_equal`, y el recorrido de un árbol de fixture: `storage_scan` en Python, unos 8 400 archivos/s, y acumulados en Rust, unos 146 000. El soak hace 2 000 lecturas del catálogo en un `rpc-serve` vivo: 0 B/iter con un límite de 4 096 (`--check-soak` para el gate). No usa `snapshot` porque pregunta por los discos montados.
+4. **Benchmarks** ([nu9ve-bench-v1](../vendor/nu9ve-core/contracts/nu9ve-bench-v1.md)). [`scripts/engine_bench.py`](../scripts/engine_bench.py) escribe en `bench/nuun.ndjson`, ignorado por git, con el ayudante del core. Mide seis lecturas del dorado en Python y en Rust, con `response_equal`, y el recorrido de un árbol de fixture: `storage_scan` en Python, unos 8 400 archivos/s, y acumulados en Rust, unos 146 000. El soak hace 2 000 lecturas del catálogo en un `rpc-serve` vivo: 0 B/iter con un límite de 4 096. Desde F6 corre en el gate ([`tests/test_engine_bench.py`](../tests/test_engine_bench.py)), y `engine_bench.py copy` mide la copia y su revisión. No usa `snapshot` porque pregunta por los discos montados.
 
 5. **Exportar conversaciones a pedido de nove** (U1 de `nuun-conversations-compat.md` en nove). El socket de la suite anuncia `conversations_export_working_v1`. `conversations_export_working` arranca en segundo plano la copia de trabajo que la persona ya decidió en Ajustes → Conversaciones (el mismo disco y colecciones con `decided_at`; cualquier otra cosa es `confirmation_required`) y responde `run_id`. `conversations_export_status` dice cómo terminó. Sólo mientras la app tiene abierto su `rpc-serve`, como antes. El formato de la copia (`working.json`) no cambió: el contrato de compatibilidad sigue vigente tal como lo lee nove. La separación del sello de origen y de destino que propone sigue pendiente.
 
@@ -328,6 +328,23 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Benchmarks de copia y soak en el gate · 2026-11-27
+
+F6 de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), con [nu9ve-bench-v1](../vendor/nu9ve-core/contracts/nu9ve-bench-v1.md). Todo corre sobre fixtures en `TMPDIR`, nunca en discos de la persona.
+
+- **Soak en el gate.** [`tests/test_engine_bench.py`](../tests/test_engine_bench.py) hace 400 lecturas del catálogo del golden a un `rpc-serve` vivo, en 0,3 s dentro de `python3 -m unittest discover -s tests`. Exige una corrida válida y `memory_slope_bytes_per_iter` bajo 4 096, lo mismo que `engine_bench.py soak --check-soak`. Medido: 68,7 B/iter y pico de 12,8 MiB.
+- **Copia y revisión.** `engine_bench.py copy` compila con `--release` y corre `work_copy::tests::bench_work_copy`, que mide en discos de fixture. Escribe tres corridas al registro, válidas según `run_problem` del core. Medido en esta Mac, mediana de 3:
+
+  | Caso | Tiempo | Ritmo |
+  | --- | --- | --- |
+  | `copy/work-copy`: copia verificada de 64 × 8 MiB | 6,8 s | **0,073 GiB/s** |
+  | `review/work-copy-receipt`: revisión con recibo (U1.3) | **8,9 ms** | 7 177 archivos/s |
+  | `review/work-copy-hash`: revisión sin recibo, como antes de U1.3 | 3,4 s | 19 archivos/s |
+
+  Con recibo, la revisión es unas 380 veces más rápida. El caso `copy` no entra en los casos por omisión, porque tarda unos 40 s.
+- **Hallazgo:** la copia verificada va a unos 75 MiB/s en el SSD interno. Escribe sin caché, sincroniza cada archivo y lo lee de vuelta. Puede que sea el costo de verificar, pero conviene medirlo en los discos reales antes de tocarlo.
+- **Pruebas:** Rust 207 y 23 diferenciales con `--ignored`, sin las de medida; fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Python 426, con el soak. Golden al día y `sync-core.sh --check` sin error. No toca Swift.
+
 ### La CLI de media en Rust · 2026-11-27
 
 F5 (b) de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). `nu9ve.py` no cambió, y Clipper y Kyū siguen usando Python hasta el paso (c).
@@ -389,7 +406,7 @@ U1.3 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-
   - Si un recibo publicado entre esos dos discos lo verificó, en cualquier sentido, y los dos lados conservan su tamaño y fecha, es idéntico sin leerlo. El plan lo marca `verified_by`.
   - Lo demás se lee como antes. La copia vuelve a leer todo antes de adoptarlo.
   - [Contrato](contracts/suite-work-copy-v1.md#reglas).
-- **Medida.** `review_of_a_finished_copy` (a mano, `--release`, con `TMPDIR` físico): revisar otra vez 64 archivos de 8 MiB ya copiados pasó de **3 489 ms** (mediana de 3) a **8–18 ms**, según la corrida. Falta llevar el caso a `nu9ve-bench` (F6).
+- **Medida.** `review_of_a_finished_copy` (después `bench_work_copy`, F6; a mano, `--release`, con `TMPDIR` físico): revisar otra vez 64 archivos de 8 MiB ya copiados pasó de **3 489 ms** (mediana de 3) a **8–18 ms**, según la corrida. Falta llevar el caso a `nu9ve-bench` (F6).
 - **La revisión es una acción.**
   - Primero lista y busca en los recibos; después lee sólo lo dudoso, con etapa `reviewing`, el doble de los bytes por leer y el archivo en mano.
   - En la app, «Revisar» manda `progress_id` y muestra la vista del core («Revisando la copia») en lugar del *loader*.

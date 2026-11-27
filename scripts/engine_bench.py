@@ -10,11 +10,14 @@ compara, siempre sobre fixtures y raíces temporales, nunca sobre discos ni la b
            `storage_accumulations_scan` (acumulados, Rust), en archivos por segundo.
   soak     N lecturas del catálogo (projects, library…) a un `nuun-engine rpc-serve` vivo, muestreando su memoria:
            `memory_slope_bytes_per_iter` con su límite, para detectar fugas en el gate.
+  copy     «Copiar al otro disco» en discos de fixture (64 × 8 MiB, F6): la copia verificada en GiB/s, y la
+           revisión de esa copia ya hecha con su recibo (U1.3) y sin él (como antes de U1.3). Lo mide la prueba
+           `work_copy::tests::bench_work_copy` de Rust, compilada con `--release`; no entra en los casos por omisión.
 
 Usa el ayudante del core (vendor/nu9ve-core/scripts/nu9ve_bench.py), sin copiarlo. nove lee el registro como
 fuente de sólo lectura y une cada corrida con las sesiones de agentes por `subject.commit`.
 
-    python3 scripts/engine_bench.py [golden walk soak] [--log bench/nuun.ndjson] [--engine PATH]
+    python3 scripts/engine_bench.py [golden walk soak copy] [--log bench/nuun.ndjson] [--engine PATH]
             [--repeats 5] [--iterations 300] [--slope-limit 4096] [--check-soak]
 """
 import argparse
@@ -216,6 +219,39 @@ def soak(log, engine, iterations, slope_limit, subject_rs, machine):
         return run
 
 
+def copy(log, repeats, subject_rs, machine):
+    """The copy and its review, timed inside the Rust test on fixture disks; one run per measure."""
+    with tempfile.TemporaryDirectory() as root:
+        out = Path(root) / 'bench.json'
+        env = dict(os.environ, NUUN_BENCH_OUT=str(out), NUUN_BENCH_REPEATS=str(repeats),
+                   TMPDIR=str(Path(root).resolve()) + '/')
+        done = subprocess.run(['cargo', 'test', '--release', '-p', 'nuun-media', '--lib', 'work_copy::tests::bench_work_copy',
+                               '--', '--ignored', '--exact'], cwd=REPO / 'engine', env=env, capture_output=True, text=True)
+        if done.returncode != 0 or not out.exists():
+            raise SystemExit('bench_work_copy failed:\n' + done.stdout[-2000:] + done.stderr[-2000:])
+        result = json.loads(out.read_text(encoding='utf-8'))
+    params = {'files': result['files'], 'bytes': result['bytes']}
+    runs = []
+    for case, key, category, extra in (('copy/work-copy', 'copy_ms', 'write', {}),
+                                       ('review/work-copy-receipt', 'review_receipt_ms', 'read', {'mode': 'receipt'}),
+                                       ('review/work-copy-hash', 'review_hash_ms', 'read', {'mode': 'hash'})):
+        samples = result[key]
+        metrics = {'wall_ms': B.distribution(samples)}
+        median = metrics['wall_ms']['median']
+        if case == 'copy/work-copy' and median > 0:
+            metrics['throughput'] = {'value': result['bytes'] / 2 ** 30 / (median / 1000), 'unit': 'GiB/s'}
+        elif median > 0:
+            metrics['throughput'] = {'value': result['files'] / (median / 1000), 'unit': 'files/s'}
+        run = B.new_run('nuun-engine', case, category, subject_rs, [], 'warm', 'public', len(samples), 0, 'ok',
+                        metrics, params=dict(params, **extra), machine_info=machine)
+        B.append(str(log), run)
+        runs.append(run)
+        print('%-24s rust   %s' % (case, summary(run)))
+    speedup = runs[2]['metrics']['wall_ms']['median'] / max(runs[1]['metrics']['wall_ms']['median'], 1e-9)
+    print('revisión con recibo: %.0f× más rápida que sin él' % speedup)
+    return runs
+
+
 def summary(run):
     if run['status'] != 'ok':
         return 'failed: %s' % (run.get('error') or {}).get('message')
@@ -224,7 +260,8 @@ def summary(run):
     if 'peak_memory' in m:
         text += ', peak %.1f MiB' % (m['peak_memory']['bytes'] / 1048576)
     if 'throughput' in m:
-        text += ', %.0f %s' % (m['throughput']['value'], m['throughput']['unit'])
+        value = m['throughput']['value']
+        text += (', %.0f %s' if value >= 100 else ', %.3g %s') % (value, m['throughput']['unit'])
     for q in run.get('quality') or []:
         text += ', %s=%s%s' % (q['metric'], q['value'] if not isinstance(q['value'], float) else round(q['value'], 1),
                                '' if q['pass'] in (True, None) else ' FAIL')
@@ -233,7 +270,7 @@ def summary(run):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('cases', nargs='*', help='golden, walk, soak (all when none)')
+    parser.add_argument('cases', nargs='*', help='golden, walk, soak, copy (golden, walk and soak when none)')
     parser.add_argument('--log', type=Path, default=DEFAULT_LOG)
     parser.add_argument('--engine', type=Path, default=Path(os.environ.get('NUUN_ENGINE', DEFAULT_ENGINE)))
     parser.add_argument('--repeats', type=int, default=5)
@@ -242,8 +279,8 @@ def main(argv=None):
     parser.add_argument('--check-soak', action='store_true', help='exit 1 if the soak slope is over its limit')
     args = parser.parse_args(argv)
     args.cases = args.cases or ['golden', 'walk', 'soak']
-    if set(args.cases) - {'golden', 'walk', 'soak'}:
-        parser.error('cases are golden, walk and soak')
+    if set(args.cases) - {'golden', 'walk', 'soak', 'copy'}:
+        parser.error('cases are golden, walk, soak and copy')
     if not args.engine.exists():
         parser.error('no engine at %s: cargo build --release in engine/' % args.engine)
     args.log.parent.mkdir(parents=True, exist_ok=True)
@@ -255,6 +292,8 @@ def main(argv=None):
         golden(args.log, args.engine, args.repeats, subject_py, subject_rs, machine)
     if 'walk' in args.cases:
         walk(args.log, args.engine, args.repeats, subject_py, subject_rs, machine)
+    if 'copy' in args.cases:
+        copy(args.log, min(args.repeats, 3), subject_rs, machine)
     if 'soak' in args.cases:
         run = soak(args.log, args.engine, args.iterations, args.slope_limit, subject_rs, machine)
         if args.check_soak and (run['status'] != 'ok' or not run['quality'][0]['pass']):

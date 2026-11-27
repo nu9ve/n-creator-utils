@@ -1396,37 +1396,55 @@ mod tests {
         assert_eq!(error.code, "destination_conflict");
     }
 
-    /// U1.3 · how long the review of «Copiar al otro disco» takes once everything is already copied
-    /// (64 files of 8 MiB). Run by hand: `cargo test -p nuun-media review_of_a_finished_copy -- --ignored --nocapture`.
+    /// F6 · the copy and its review on fixture disks, for `scripts/engine_bench.py copy` (nu9ve-bench-v1). Each
+    /// repetition copies 64 files of 8 MiB to a fresh destination; then the review of that finished copy is timed
+    /// with its receipt (U1.3) and without it, as before U1.3 (the same files, copied by hand, are hashed on both
+    /// disks). The samples go to `NUUN_BENCH_OUT` as JSON. By hand:
+    /// `NUUN_BENCH_OUT=/tmp/b.json cargo test --release -p nuun-media bench_work_copy -- --ignored --nocapture`.
     #[test]
-    #[ignore = "a measure, printed; run by hand"]
-    fn review_of_a_finished_copy() {
-        let d = disks();
-        let x = Root::open(&d.viaje).unwrap();
-        let block = vec![7u8; 8 << 20];
-        for index in 0..64 {
-            x.write_bytes(&format!("atlas-derived/big/{index:02}.bin"), &block, false)
-                .unwrap();
-        }
+    #[ignore = "a measure for scripts/engine_bench.py; run by hand"]
+    fn bench_work_copy() {
+        const FILES: usize = 64;
+        const SIZE: usize = 8 << 20;
+        let repeats: usize = std::env::var("NUUN_BENCH_REPEATS")
+            .ok()
+            .and_then(|r| r.parse().ok())
+            .unwrap_or(3);
         let paths = json!(["atlas-derived/big"]);
-        let first = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
-        apply(
-            &d.home,
-            &d.backend,
-            &json!({"plan_id":first["id"],"digest":first["digest"]}),
-        )
-        .unwrap();
-        let mut times = Vec::new();
-        for _ in 0..3 {
+        let ms = |started: std::time::Instant| started.elapsed().as_secs_f64() * 1000.0;
+        let (mut copy, mut receipt, mut hashed) = (Vec::new(), Vec::new(), Vec::new());
+        for round in 0..repeats {
+            let d = disks();
+            let x = Root::open(&d.viaje).unwrap();
+            for index in 0..FILES {
+                // Different bytes per file and round, so nothing is deduplicated or cached by content.
+                let block = vec![(index + round * FILES) as u8; SIZE];
+                x.write_bytes(&format!("atlas-derived/big/{index:02}.bin"), &block, false)
+                    .unwrap();
+            }
+            let reviewed = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+            let args = json!({"plan_id":reviewed["id"],"digest":reviewed["digest"]});
+            let started = std::time::Instant::now();
+            apply(&d.home, &d.backend, &args).unwrap();
+            copy.push(ms(started));
             let started = std::time::Instant::now();
             let again = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
-            times.push(started.elapsed().as_secs_f64() * 1000.0);
-            assert_eq!(again["adopt"]["files"], 64);
+            receipt.push(ms(started));
+            assert_eq!(again["adopt"]["files"], FILES);
+            assert!(again["files"][0]["verified_by"].is_string());
+            // Without the receipt: what every review did before U1.3.
+            std::fs::remove_dir_all(d.edicion.join(COPIES)).unwrap();
+            let started = std::time::Instant::now();
+            let again = plan(&d.home, &d.backend, true, &ask(&d, paths.clone())).unwrap();
+            hashed.push(ms(started));
+            assert_eq!(again["adopt"]["files"], FILES);
+            assert!(again["files"][0].get("verified_by").is_none());
         }
-        times.sort_by(f64::total_cmp);
-        println!(
-            "review of 64 × 8 MiB already copied: median {:.0} ms ({:.0}–{:.0})",
-            times[1], times[0], times[2]
-        );
+        let result = json!({"files": FILES, "bytes": FILES * SIZE, "copy_ms": copy,
+            "review_receipt_ms": receipt, "review_hash_ms": hashed});
+        println!("{result}");
+        if let Some(out) = std::env::var_os("NUUN_BENCH_OUT") {
+            std::fs::write(out, result.to_string()).unwrap();
+        }
     }
 }
