@@ -328,6 +328,27 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Los tres tamaños de una acción · 2026-11-27
+
+U3 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), con las piezas de `Nu9veActionProgress`. Está **sin instalar ni aceptar en ventana**, y no se lanzaron capturas.
+
+- **Pantalla (1):** la de F4c, en cada vista que lanza la acción.
+- **Indicador (3):** el chip del core (`ActionProgressIndicator`) va en la barra de la ventana, completa y compacta. Reemplaza el *spinner* cuando lo que corre es una acción con registro y muestra el porcentaje de la última, o cuántas corren. El Dock muestra el porcentaje (`ActionDockBadge`).
+- **Compacta (2):** un clic en el chip abre el panel del core (`ActionProgressCompact`), con una fila por acción y la más reciente arriba. Una fila lleva a la pantalla de esa acción, en la ventana completa:
+  - el ingreso, a Ingreso;
+  - las conversaciones, a Ajustes → Conversaciones;
+  - el cierre y la liberación, a sus hojas;
+  - la entrega, a Biblioteca → Archivos.
+
+  Al salir de esa pantalla, la acción sigue en el panel y nunca se detiene. [Actions.swift](../native/Nuun/Sources/Nuun/Actions.swift).
+- **Cierre.** Las acciones terminadas quedan en el panel con su cierre en una línea (listo, con avisos, no se pudo, cancelado) hasta «Limpiar terminadas». Si una termina mientras nüün no está al frente, llega un aviso del sistema con su resumen.
+- **Sin hacer:**
+  - «Reanudar», «Reintentar» y «Ver el recibo» en el cierre. La pantalla de cada vista sigue dejando paso a su resultado de antes.
+  - Leer cada 5 s (`ActionViewSize.indicator`) cuando sólo se ve el chip.
+  - El sonido de éxito.
+- **Decisión abierta para el core:** el motor escribe `outcome.summary` y los avisos en inglés, como el resto de sus mensajes, y el cierre del core los muestra tal cual. Con la app en español se lee «Done: 2 files, 4.0 KB.». Hay dos salidas: que el contrato diga en qué idioma va `summary`, o que la vista arme la frase con números y `code` y deje `summary` para quien no sabe más.
+- **Pruebas:** Swift 36 y `sync-core.sh --check` sin error. Esta fase no toca Rust ni Python, que pasaron completos en U1.3. `check_localization.py`: «Limpiar terminadas» tiene inglés, y siguen las mismas 112 claves que faltaban antes.
+
 ### Revisión de copia sin volver a leer · 2026-11-27
 
 U1.3 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), **sin instalar ni aceptar en ventana**.

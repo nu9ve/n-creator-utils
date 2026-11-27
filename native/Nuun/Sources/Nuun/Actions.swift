@@ -3,6 +3,8 @@ import Nu9veAction
 import Nu9veActionProgress
 import NuunCore
 import SwiftUI
+import AppKit
+import UserNotifications
 
 // nu9ve-action-v1 (F4c, 2026-11-27): every long action the app launches gives the engine a `progress_id`
 // and reads its record with `action_progress` through the core's `ActionMonitor`. The view is the core's
@@ -39,8 +41,51 @@ extension Model {
             return try JSONEncoder().encode(value)
         }
         actionMonitors[slot] = monitor
+        actionStarted[slot] = Date()
+        actionNames[slot] = slot == .action ? runningAction : ""
         monitor.start()
         return monitor
+    }
+
+    /// Every action read in the app, newest first, with the place it belongs to: the bar's indicator and the
+    /// compact panel show them, finished ones with their closing until the person clears them.
+    var actionsInView: [(slot: ActionSlot, snapshot: ActionSnapshot)] {
+        actionMonitors.keys
+            .sorted { (actionStarted[$0] ?? .distantPast) > (actionStarted[$1] ?? .distantPast) }
+            .compactMap { slot in
+                // A call that failed before the engine wrote anything leaves nothing to show.
+                guard let monitor = actionMonitors[slot], monitor.snapshot.record != nil || monitor.isReading else { return nil }
+                return (slot, monitor.snapshot)
+            }
+    }
+
+    /// «Limpiar»: the finished actions leave the panel; those that run stay.
+    func clearFinishedActions() {
+        for (slot, monitor) in actionMonitors where monitor.snapshot.display.isFinished || !monitor.isReading {
+            actionMonitors[slot] = nil
+            actionStarted[slot] = nil
+            actionNames[slot] = nil
+        }
+        ActionDockBadge.show(actionsInView.map(\.snapshot))
+    }
+
+    /// A row of the compact panel was clicked: the action's own screen, in the full window (size 1). Leaving
+    /// that screen, the action is back in the panel; it never stops for it.
+    func expandAction(_ progressID: String) {
+        guard let slot = actionMonitors.first(where: { $0.value.progressID == progressID })?.key else { return }
+        showActionPanel = false
+        if presentation != .full { changeMode?(.full) }
+        switch slot {
+        case .ingest: route = .ingest; ingestStep = .run
+        case .conversations: openSettings?("conversations")
+        case .closure: showClosure = true
+        case .action:
+            switch actionNames[slot] ?? "" {
+            case "release": showRelease = true
+            case "deliver": open(.files)
+            default: break  // A copy between disks keeps its sheet open while it runs.
+            }
+        }
     }
 
     /// The call that launched the action returned or failed: stop reading. The monitor also stops on its own once
@@ -115,3 +160,57 @@ extension Model {
     }
 }
 #endif
+
+/// Size 3 in the window's bar: the core's chip with the lead action's percent (or how many run), the Dock badge,
+/// and a notice when an action ends while nüün is not in front. A click opens size 2, the compact panel: one row
+/// per action, newest on top; a row expands to its screen.
+struct ActionBarIndicator: View {
+    @Bindable var model: Model
+    @Environment(\.creatorPalette) private var palette
+
+    var body: some View {
+        let actions = model.actionsInView.map(\.snapshot)
+        ActionProgressIndicator(actions) { model.showActionPanel.toggle() }
+            .popover(isPresented: $model.showActionPanel, arrowEdge: .bottom) {
+                VStack(alignment: .trailing, spacing: 8) {
+                    ActionProgressCompact(model.actionsInView.map(\.snapshot)) { model.expandAction($0) }
+                    if model.actionsInView.contains(where: { $0.snapshot.display.isFinished }) {
+                        Button("Limpiar terminadas") { model.clearFinishedActions() }.controlSize(.small)
+                    }
+                }
+                .padding(8)
+                .environment(\.actionProgressStyle, ActionProgressStyle(palette))
+            }
+            .onAppear { ActionDockBadge.show(actions) }
+            .onChange(of: actions) { before, after in
+                ActionDockBadge.show(after)
+                let ended = after.filter { snapshot in
+                    snapshot.display.isFinished && before.contains { $0.record?.progressID == snapshot.record?.progressID && !$0.display.isFinished }
+                }
+                if !NSApp.isActive { ended.forEach(model.notifyActionEnded) }
+            }
+    }
+}
+
+extension Model {
+    /// nu9ve-notifications-v1: an action ended while nüün was not in front. Its closing in one sentence.
+    func notifyActionEnded(_ snapshot: ActionSnapshot) {
+        guard Bundle.main.bundleIdentifier != nil, let record = snapshot.record else { return }
+        let title: String = switch snapshot.display {
+        case .complete: String(localized: "Listo")
+        case .completeWithWarnings: String(localized: "Hecho, con avisos")
+        case .failed: String(localized: "No se pudo terminar")
+        case .cancelled: String(localized: "Cancelado")
+        default: String(localized: "Terminó")
+        }
+        let body = record.error?.message ?? record.outcome?.summary ?? ""
+        Task {
+            let center = UNUserNotificationCenter.current()
+            guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            try? await center.add(UNNotificationRequest(identifier: "action:" + record.progressID, content: content, trigger: nil))
+        }
+    }
+}

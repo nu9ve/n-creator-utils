@@ -96,9 +96,13 @@ struct WindowTopBar: View {
                         .help("Poner al día…").accessibilityLabel("Poner al día…")
                         .disabled(model.busy)
                 }
+                // Size 3 of a long action (nu9ve-interaction-v1 §7): the chip, which opens the compact panel.
+                if !model.actionsInView.isEmpty { ActionBarIndicator(model: model) }
                 if model.busy {
-                    Button { model.open(.activity); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
-                        .buttonStyle(.plain).help("Ver actividad")
+                    if model.actionsInView.allSatisfy(\.snapshot.display.isFinished) {
+                        Button { model.open(.activity); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }
+                            .buttonStyle(.plain).help("Ver actividad")
+                    }
                     Button("Cancelar") { model.cancel() }.controlSize(.small)
                 } else if model.storageRunning {
                     Button { model.open(.disks); if model.presentation != .full { model.changeMode?(.full) } } label: { ProgressView().controlSize(.small) }

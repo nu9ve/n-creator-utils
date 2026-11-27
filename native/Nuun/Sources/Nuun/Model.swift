@@ -174,6 +174,11 @@ enum OperationScope { case ingest, library, space, settings, source }
     var runningAction = ""
     /// The long action read in each place of the app (nu9ve-action-v1, Actions.swift).
     var actionMonitors: [ActionSlot: ActionMonitor] = [:]
+    /// When each place's action started, for the compact panel (newest on top), and which one ran there.
+    var actionStarted: [ActionSlot: Date] = [:]
+    var actionNames: [ActionSlot: String] = [:]
+    /// The compact panel of the bar's indicator (nu9ve-interaction-v1 §7, size 2).
+    var showActionPanel = false
     /// Where each saved delivery stands now (`closure.delivery_states`): the same reading as the Projects row.
     var closureDeliveries: [JSONValue] = []
     /// Linked projects (closure.related) with their saved deliveries, from `closure_candidates.group`.
