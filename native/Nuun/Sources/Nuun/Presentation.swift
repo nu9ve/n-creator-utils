@@ -6,8 +6,10 @@ import NuunCore
 struct WindowRoot: View {
     @Bindable var model: Model
     var body: some View {
-        // Skins with their own window draw nüün's bar in the content instead of the toolbar row.
-        SkinnedWindow(title: "nüün", bar: { WindowTopBar(model: model) }) {
+        // Skins with their own window draw nüün's bar in the content instead of the toolbar row. Windows 9x says
+        // where you are in its caption, as its apps did («nüün — Inicio»); Macintosh folds both into one bar.
+        SkinnedWindow(title: model.presentation == .full ? "nüün — \(model.route.name)" : "nüün", singleBar: true,
+                      bar: { WindowTopBar(model: model) }) {
             VStack(spacing: 0) {
                 if let sandbox = model.sandbox {
                     // scripts/sandbox.py: test disks and catalog; never confused with the real ones.
@@ -73,14 +75,20 @@ struct WindowTopBar: View {
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
-                Text(verbatim: palette.skin == .terminal ? "~$ nüün" : "nüün").font(palette.display(14))
-                    .padding(.leading, 8).help(model.message)
+                // Windows 9x already names the app in its caption: the row is a toolbar and does not repeat it.
+                if palette.skin != .win9x {
+                    Text(verbatim: palette.skin == .terminal ? "~$ nüün" : "nüün").font(palette.display(14))
+                        .padding(.leading, palette.skin == .classicMac ? 0 : 8).help(model.message)
+                        .modifier(PeriodPlate())
+                }
                 if model.presentation == .full {
                     Spacer(minLength: 4)
                 } else {
                     Text(model.ingestStep.title).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                        .modifier(PeriodPlate())
                     Spacer(minLength: 0)
                 }
+                HStack(spacing: 8) {
                 if model.presentation == .full { TitleBarDisks(model: model, width: geometry.size.width) }
                 if model.presentation != .full {
                     Button("Poner al día…", systemImage: "tray.full") { model.openSaveAll() }
@@ -106,6 +114,8 @@ struct WindowTopBar: View {
                 }
                 .buttonStyle(.borderless)
                 .help(model.presentation == .full ? "Vista compacta (⌘\\)" : "Vista completa (⌘\\)")
+                }
+                .modifier(PeriodPlate())
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .background(TitleBarDragArea())
@@ -115,6 +125,7 @@ struct WindowTopBar: View {
             .overlay(alignment: .topLeading) {
                 if model.presentation == .full {
                     AppNavigation(model: model, compact: geometry.size.width < 900)
+                        .fixedSize().modifier(PeriodClearing()).frame(height: geometry.size.height)
                         .position(x: measuredCenter > 0 ? measuredCenter : geometry.size.width / 2, y: geometry.size.height / 2)
                 }
             }
