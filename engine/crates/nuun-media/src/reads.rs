@@ -196,14 +196,6 @@ pub fn project_preview(params: &Value) -> Result<Value> {
     Ok(json!({"name": crate::rules::slug(name)?}))
 }
 
-/// Python `closure_progress` / `action_progress`: a progress record by id, `{}` when there is none.
-pub fn progress(catalog: &Catalog, prefix: &str, params: &Value, name: &str) -> Result<Value> {
-    let id = param(params, name)?;
-    Ok(catalog
-        .get(&format!("{prefix}{id}"))?
-        .unwrap_or_else(|| json!({})))
-}
-
 /// Python `asset_revisions`: every saved revision of an asset, or the current record when it has none.
 pub fn asset_revisions(catalog: &Catalog, params: &Value) -> Result<Value> {
     let id = param(params, "asset_id")?;

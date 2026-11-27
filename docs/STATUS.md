@@ -328,6 +328,21 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Lectura `action_progress` del contrato · 2026-11-27
+
+F4b de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), **sin instalar**. El motor ya sirve `action_progress` como dice [`nu9ve-action-v1` §2](../vendor/nu9ve-core/contracts/nu9ve-action-v1.md#2-método-action_progress).
+
+- **El método.** [`action::progress_method`](../engine/crates/nuun-media/src/action.rs) recibe `{"progress_id"}` y lee `action-progress:<id>` y luego `closure-progress:<id>`. Si no hay registro, responde `{"contract":"nu9ve-action/1","progress_id":…,"state":"unknown"}` en lugar de `{}`. Sin `progress_id`, con otro parámetro, o con un tipo o patrón equivocado responde `invalid_params`.
+- **Alias mientras la app migra.** `action_progress {"id"}` y `closure_progress {"plan_id"}` siguen valiendo, pero sólo solos: no se juntan con `progress_id`. El alias `id` se quita en F4c, cuando la app mande `progress_id`. Esto se aparta del contrato, que pide `invalid_params` con cualquier otro parámetro.
+- **`engine_info`** declara `capabilities: ["action_progress_v1"]`. nüün todavía no publica un archivo de [registro](../vendor/nu9ve-core/contracts/nu9ve-registry-v1.md), así que la capacidad sólo está en `engine_info`.
+- **Python**, que es el oráculo, lee igual en `media/service.py`. Su productor no cambió y todavía borra el registro al terminar, así que ahí lo terminado responde `unknown`.
+- **La app** compara con `{}` y ahora recibiría `unknown`. En esta fase no se instala: F4c cambia esas tres lecturas por `ActionMonitor`.
+- **Pruebas:**
+  - Nuevas: en Rust, `action_examples_v1` corre las 7 peticiones fijadas del core por `rpc-serve`, y `the_reader_serves_records_closures_and_unknown_ids` prueba el lector.
+  - El golden suma 9 lecturas, con alias, caída al cierre y errores; Python y Rust responden igual.
+  - Las dos pruebas de Python que esperaban `{}` ahora esperan `unknown`.
+  - Rust 204, más 23 diferenciales con `--ignored` (sin `real_export_copy_ingests_once` ni `cancel_file_child`); fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Python 422, Swift 34, `engine_golden.py --check` al día y `sync-core.sh --check` sin error. `check_localization.py` sigue con las mismas 112 claves sin inglés de antes.
+
 ### Registro de acción `nu9ve-action-v1` en el motor · 2026-11-27
 
 F4a de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), sólo en el motor de Rust, **sin instalar**: la app todavía lee con su `ActionProgressView` y sigue funcionando con los campos de antes. La vista del core llega en F4c.
@@ -337,7 +352,7 @@ F4a de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26), s
 - **Se conserva.** `Drop` ya no borra: el registro terminado queda hasta que el mismo id vuelve a correr, y se retira al día siguiente. Un id que ya corre da `action_running`, salvo que su latido tenga más de 60 s. Un id que no cumple el patrón da `invalid_params`.
 - **Etapas** comunes o `nuun.*` (`listing_source` → `listing`, `verifying_archive` → `verifying`, `relinking` → `nuun.relinking`…). Verbos: `copy`, `backup`, `release`, `closeout` e `ingest`. El cierre escribe también `nuun_released_files`; `released_files` queda hasta F4c.
 - **Ingreso.** `apply` y `resume` aceptan `progress_id`: la transferencia de la tarjeta refleja su medida global (copiar, verificar y liberar) en el registro. `progress:<job>` sigue igual para la recuperación. La app todavía no lo manda.
-- **Sin cambiar todavía:** `action_progress` sigue leyendo `{"id"}` y responde `{}` si no hay registro, y `engine_info` no declara `action_progress_v1` (F4b). Mientras tanto, `closure_progress` puede devolver el cierre de una corrida anterior del mismo plan.
+- **Sin cambiar en F4a** (hecho en F4b, arriba): `action_progress {progress_id}`, `unknown` y `action_progress_v1`. Hasta F4c, `closure_progress` puede devolver el cierre de una corrida anterior del mismo plan.
 - **Pruebas:** Rust 202, más las diferenciales con `--ignored` (sin `real_export_copy_ingests_once` ni `cancel_file_child`, que corre desde `a_cancel_file_pauses_the_copy`); fmt y Clippy limpios, con `TMPDIR` físico y `TZ=America/Phoenix`. Python 422, Swift 34, `engine_golden.py --check` al día. Nuevas: seis en `action::tests`; las de cierre, conversaciones, transcripciones, entrega y cancelación del ingreso ahora comprueban el registro cerrado en lugar de su ausencia. `check_localization.py` sigue fallando con 112 claves sin inglés, como antes (esta fase no toca Swift). `sync-core.sh --check` avisa que el core avanzó después de `6718418` (documentos y Windows); no se volvió a fijar.
 
 ### Sombra sobre el catálogo real · 2026-11-26

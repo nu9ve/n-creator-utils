@@ -3,6 +3,7 @@ from pathlib import Path
 import contextlib
 import json
 import time
+import re
 import uuid
 
 from .catalog import Catalog
@@ -34,6 +35,24 @@ METHODS = frozenset({
     'volumes',
 })
 
+
+PROGRESS_ID = re.compile(r'[a-z0-9][a-z0-9._:-]{0,127}')
+
+
+def action_progress(catalog, params, legacy):
+    """nu9ve-action-v1 §2: the record of `progress_id`, or `state: unknown`. Same as the Rust engine's reader.
+
+    `legacy` (`id`, `plan_id`) is accepted alone in place of `progress_id` until the app migrates."""
+    keys = set(params)
+    require(keys in ({'progress_id'}, {legacy}), 'invalid_params', 'action_progress takes one progress_id.')
+    progress_id = params.get('progress_id', params.get(legacy))
+    require(isinstance(progress_id, str) and PROGRESS_ID.fullmatch(progress_id) is not None, 'invalid_params',
+            'progress_id does not follow the nu9ve-action/1 pattern.')
+    for prefix in ('action-progress:', 'closure-progress:'):
+        record = catalog.get(prefix + progress_id)
+        if record is not None:
+            return record
+    return {'contract': 'nu9ve-action/1', 'progress_id': progress_id, 'state': 'unknown'}
 
 class Service:
     def __init__(self, catalog, backend=None, cancel=None):
@@ -112,7 +131,7 @@ class Service:
                     with self.catalog.db:
                         self.catalog.db.execute('DELETE FROM metadata WHERE key=?', (key,))
             if method == 'closure_progress':
-                return self.catalog.get('closure-progress:' + params['plan_id'], {})
+                return action_progress(self.catalog, params, 'plan_id')
             if method == 'closure_apply':
                 last = {'at': 0, 'done': 0}
                 def progress(stage, **details):
@@ -242,7 +261,7 @@ class Service:
             with self._action_progress(progress_id) as progress:
                 return project_backup(self.catalog, self.backend, params['project_id'], params['archive'], self.cancel, progress)
         if method == 'action_progress':
-            return self.catalog.get('action-progress:' + params['id'], {})
+            return action_progress(self.catalog, params, 'id')
         if method == 'release_plans':
             from .release import release_plans
             return release_plans(self.catalog)

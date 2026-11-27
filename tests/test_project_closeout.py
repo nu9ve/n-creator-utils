@@ -259,7 +259,7 @@ class ClosureTests(WorkflowFixture):
                                                  'work': 'EDICION', 'review_id': review_id})
         observed = [call.args[1] for call in write.call_args_list if call.args[0] == key]
         self.assertTrue(any(value['stage'] == 'review_final' and value['bytes_done'] > 0 for value in observed))
-        self.assertEqual(service.call('closure_progress', {'plan_id': review_id}), {})
+        self.assertEqual(service.call('closure_progress', {'plan_id': review_id})['state'], 'unknown')
         self.assertEqual(plan['state'], 'review')
         self.assertTrue((self.editor / 'renders/intermediate.mov').exists())
         self.assertTrue((self.work / '001_proyectos/canal-a_raw/intro').exists())

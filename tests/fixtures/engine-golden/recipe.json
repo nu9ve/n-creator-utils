@@ -6514,7 +6514,11 @@
       },
       {
         "answer": {
-          "data": {},
+          "data": {
+            "contract": "nu9ve-action/1",
+            "progress_id": "absent",
+            "state": "unknown"
+          },
           "ok": true
         },
         "method": "closure_progress",
@@ -6538,12 +6542,120 @@
       },
       {
         "answer": {
-          "data": {},
+          "data": {
+            "contract": "nu9ve-action/1",
+            "progress_id": "absent",
+            "state": "unknown"
+          },
           "ok": true
         },
         "method": "action_progress",
         "params": {
           "id": "absent"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "done": 1,
+            "phase": "copy",
+            "total": 4
+          },
+          "ok": true
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": "a-1"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "files_done": 3,
+            "stage": "hashing"
+          },
+          "ok": true
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": "x1"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "contract": "nu9ve-action/1",
+            "progress_id": "absent",
+            "state": "unknown"
+          },
+          "ok": true
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": "absent"
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_params",
+          "ok": false
+        },
+        "method": "action_progress",
+        "params": {}
+      },
+      {
+        "answer": {
+          "code": "invalid_params",
+          "ok": false
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": "a-1",
+          "verbose": true
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_params",
+          "ok": false
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": "Bad"
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_params",
+          "ok": false
+        },
+        "method": "action_progress",
+        "params": {
+          "progress_id": 7
+        }
+      },
+      {
+        "answer": {
+          "code": "invalid_params",
+          "ok": false
+        },
+        "method": "action_progress",
+        "params": {
+          "id": "a-1",
+          "progress_id": "a-1"
+        }
+      },
+      {
+        "answer": {
+          "data": {
+            "files_done": 3,
+            "stage": "hashing"
+          },
+          "ok": true
+        },
+        "method": "closure_progress",
+        "params": {
+          "progress_id": "x1"
         }
       },
       {

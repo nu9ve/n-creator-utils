@@ -77,6 +77,35 @@ pub fn valid_id(id: &str) -> bool {
         && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._:-".contains(c))
 }
 
+/// §2 `action_progress`: the record of `progress_id`, or `state: unknown` when there is none.
+///
+/// `legacy` is the parameter the app sent before the contract (`id`, or `plan_id` for the
+/// `closure_progress` alias); it is accepted alone, in place of `progress_id`, until the app
+/// migrates. Closures keep their record under `closure-progress:`, read after `action-progress:`.
+pub fn progress_method(
+    catalog: &crate::catalog::Catalog,
+    params: &Value,
+    legacy: &str,
+) -> Result<Value> {
+    let invalid = || Error::new("invalid_params", "action_progress takes one progress_id.");
+    let fields = params.as_object().ok_or_else(invalid)?;
+    let id = match (fields.get("progress_id"), fields.get(legacy), fields.len()) {
+        (Some(id), None, 1) | (None, Some(id), 1) => id.as_str().ok_or_else(invalid)?,
+        _ => return Err(invalid()),
+    };
+    require(
+        valid_id(id),
+        "invalid_params",
+        "progress_id does not follow the nu9ve-action/1 pattern.",
+    )?;
+    for prefix in [PREFIX, CLOSURE_PREFIX] {
+        if let Some(record) = catalog.get(&format!("{prefix}{id}"))? {
+            return Ok(record);
+        }
+    }
+    Ok(json!({"contract": CONTRACT, "progress_id": id, "state": "unknown"}))
+}
+
 /// §3.2: this engine's step names in the common vocabulary, or under `nuun.`.
 pub(crate) fn common_stage(stage: &str) -> String {
     match stage {
@@ -568,6 +597,54 @@ mod tests {
         }
         for id in ["", "A", "-a", "a b", "ñ", &"a".repeat(129)] {
             assert!(!valid_id(id), "{id}");
+        }
+    }
+
+    #[test]
+    fn the_reader_serves_records_closures_and_unknown_ids() {
+        let (dir, writable) = catalog();
+        writable
+            .set("action-progress:a-1", &json!({"state": "running"}))
+            .unwrap();
+        writable
+            .set("closure-progress:p-1", &json!({"state": "complete"}))
+            .unwrap();
+        let catalog = crate::catalog::Catalog::open(dir.path()).unwrap();
+        let read = |params: Value, legacy| progress_method(&catalog, &params, legacy);
+        assert_eq!(
+            read(json!({"progress_id": "a-1"}), "id").unwrap()["state"],
+            "running"
+        );
+        assert_eq!(
+            read(json!({"id": "a-1"}), "id").unwrap()["state"],
+            "running"
+        );
+        assert_eq!(
+            read(json!({"plan_id": "p-1"}), "plan_id").unwrap()["state"],
+            "complete"
+        );
+        assert_eq!(
+            read(json!({"progress_id": "p-1"}), "id").unwrap()["state"],
+            "complete"
+        );
+        assert_eq!(
+            read(json!({"progress_id": "nope"}), "id").unwrap(),
+            json!({"contract": CONTRACT, "progress_id": "nope", "state": "unknown"})
+        );
+        for params in [
+            json!({}),
+            json!([]),
+            json!({"progress_id": "a-1", "id": "a-1"}),
+            json!({"progress_id": "a-1", "verbose": true}),
+            json!({"plan_id": "p-1"}),
+            json!({"progress_id": "A-1"}),
+            json!({"progress_id": 7}),
+        ] {
+            assert_eq!(
+                read(params.clone(), "id").unwrap_err().code,
+                "invalid_params",
+                "{params}"
+            );
         }
     }
 

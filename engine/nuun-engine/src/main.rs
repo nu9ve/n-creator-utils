@@ -697,14 +697,11 @@ impl Engine {
             "closure_link_candidates" => {
                 nuun_media::reads::closure_link_candidates(&self.catalog()?, params)
             }
-            "closure_progress" => nuun_media::reads::progress(
-                &self.catalog()?,
-                "closure-progress:",
-                params,
-                "plan_id",
-            ),
+            "closure_progress" => {
+                nuun_media::action::progress_method(&self.catalog()?, params, "plan_id")
+            }
             "action_progress" => {
-                nuun_media::reads::progress(&self.catalog()?, "action-progress:", params, "id")
+                nuun_media::action::progress_method(&self.catalog()?, params, "id")
             }
             "asset_revisions" => nuun_media::reads::asset_revisions(&self.catalog()?, params),
             "living_collections" => nuun_media::reads::living_collections(&self.catalog()?),
@@ -938,7 +935,7 @@ impl Engine {
         EngineInfo {
             protocol: "nuun-media/1",
             version: env!("CARGO_PKG_VERSION"),
-            capabilities: &[],
+            capabilities: &["action_progress_v1"],
             ported,
             native,
             extra: serde_json::Map::from_iter([
@@ -1578,6 +1575,41 @@ mod tests {
         assert_eq!(cfg!(any(windows, target_os = "macos")), writes);
     }
 
+    /// nu9ve-action-v1 §6: the pinned `action_progress` requests, through `rpc-serve`, on an empty library.
+    #[test]
+    fn action_examples_v1() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../vendor/nu9ve-core/data/action-examples-v1.json");
+        let examples: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let cases = examples["requests"].as_array().unwrap();
+        assert!(!cases.is_empty());
+        let mut input = Vec::new();
+        for case in cases {
+            writeln!(input, "{}", case["request"].as_str().unwrap()).unwrap();
+        }
+        let mut output = Vec::new();
+        engine().serve(input.as_slice(), &mut output).unwrap();
+        let output = String::from_utf8(output).unwrap();
+        assert_eq!(output.lines().count(), cases.len());
+        for (line, case) in output.lines().zip(cases) {
+            let name = case["name"].as_str().unwrap();
+            let reply: Value = serde_json::from_str(line).unwrap();
+            let request: Value = serde_json::from_str(case["request"].as_str().unwrap()).unwrap();
+            assert_eq!(reply["id"], request["id"], "{name}: {line}");
+            assert_eq!(reply["ok"], case["ok"], "{name}: {line}");
+            if case["ok"] == json!(true) {
+                assert_eq!(
+                    reply["data"],
+                    json!({"contract": "nu9ve-action/1", "state": "unknown",
+                        "progress_id": request["params"]["progress_id"]}),
+                    "{name}"
+                );
+            } else {
+                assert_eq!(reply["error"]["code"], case["code"], "{name}: {line}");
+            }
+        }
+    }
+
     /// nu9ve-engine-v1 §11: the 20 engine cases of the pinned examples, line by line as `rpc-serve` reads them.
     #[test]
     fn engine_examples_v1() {
@@ -1629,7 +1661,7 @@ mod tests {
             engine().answer(r#"{"id": 1, "method": "engine_info"}"#, Mode::Serve)["data"].clone();
         assert_eq!(info["contract"], "nu9ve-engine/1");
         assert_eq!(info["protocol"], "nuun-media/1");
-        assert_eq!(info["capabilities"], json!([]));
+        assert_eq!(info["capabilities"], json!(["action_progress_v1"]));
         let ported = info["ported"].as_array().unwrap();
         for method in info["native"].as_array().unwrap() {
             assert!(!ported.contains(method), "{method} is ported and native");
