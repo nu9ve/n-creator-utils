@@ -85,7 +85,7 @@ La regla vigente es **replicar primero y extraer después** ([tema §10](../cont
 
 | Plataforma | Pieza | Dónde está hoy | Copias |
 | --- | --- | --- | --- |
-| Swift (Mac) | Roles de color, `readable`, presets y skins (`ThemeRoles`, `ThemeSkin`) | nüün `MediaMenuCore/ThemeColor.swift`, SoundShop `Appearance.swift`, kyu (en curso) | 2–3 |
+| Swift (Mac) | Roles de color, `readable`, presets y skins (`ThemeRoles`, `ThemeSkin`) | nüün `NuunCore/ThemeColor.swift`, SoundShop `Appearance.swift`, kyu (en curso) | 2–3 |
 | Swift (Mac) | Ventana cuadrada y barra propia (`ShellWindow`, `TitleBarDragArea`, controles × − +) | Fractos `NuMacShell`, nüün, SoundShop, neuf (doble clic) | 3–4 |
 | Swift (Mac) | `AppIdentity` / Acerca de | Fractos `NuMacShell`, SoundShop, neuf, nove | 4 |
 | Swift (Mac) | Catálogo de atajos, badge del footer, ayuda contextual | SoundShop (`ShortcutCatalog`, `WorkspaceHelpStore`) | 1 |

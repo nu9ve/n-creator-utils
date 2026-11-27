@@ -156,7 +156,7 @@ Objetivo: un workflow de GitHub Actions que corra lo que hoy sólo se corre a ma
 Windows y Ubuntu. Sin secretos, sin firma, sin discos reales.
 
 Trabajos para n-creator-utils:
-- macOS: python3 -m unittest discover -s tests; swift test --package-path native/MediaMenu;
+- macOS: python3 -m unittest discover -s tests; swift test --package-path native/Nuun;
   cd engine && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test;
   generar el dorado y comparar con el guardado (falla si Python y las fixtures difieren).
 - Windows: lo mismo para engine/; dotnet test de native/windows (las de contrato con el
@@ -499,7 +499,7 @@ instrucción explícita de su mantenedor (su AGENTS lo prohíbe por defecto).
 
 ```text
 Repo: n-creator-utils. Lee la auditoría (C7), scripts/check_localization.py, cómo carga textos
-native/MediaMenu (858 claves) y cómo los escribe native/windows (cadenas en el C#).
+native/Nuun (858 claves) y cómo los escribe native/windows (cadenas en el C#).
 
 Objetivo:
 1. Catálogo de códigos del motor: un archivo de datos (es, en) con, por código, «qué pasó» y
@@ -586,7 +586,7 @@ alguien lo escuche junto al de Mac.
 Repo: n-creator-utils (Mac). Lee AGENTS.md, CONTEXT, STATUS, docs/contracts/
 nu9ve-notifications-v1.md completo, docs/contracts/macos-app-v1.md §8 y
 docs/contracts/nu9ve-interaction-v1.md (acciones largas). Código de partida:
-native/MediaMenu/Sources/MediaMenu/Model.swift (el aviso de «tarjeta detectada») y
+native/Nuun/Sources/Nuun/Model.swift (el aviso de «tarjeta detectada») y
 Application.swift (delegado de UNUserNotificationCenter). Referencia de comportamiento:
 en nove, docs/contracts/deliveries-v1.md y apps/windows/Nove/Notifications.cs.
 

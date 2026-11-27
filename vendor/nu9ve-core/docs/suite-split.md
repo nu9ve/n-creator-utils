@@ -40,16 +40,16 @@ Mientras el código siga aquí, la frontera se cuida igual: **nada `nu9ve-*` imp
 
 Hoy no hay más candidatos. `nu9ve-ipc` (el pipe de nove), `nu9ve-mcp` y `nu9ve-os` nacen en la suite cuando haya dos copias ([rust-engine §6](https://github.com/nu9ve/n-creator-utils/blob/master/docs/platforms/rust-engine.md#6-qué-compartir-en-rust-entre-las-apps)).
 
-## 4. Swift (`native/MediaMenu`)
+## 4. Swift (`native/Nuun`)
 
-El paquete tiene `MediaMenuCore` (sin interfaz) y la app. Nada se muda tal cual; lo que hay es **convergencia** con piezas de la suite:
+El paquete (`native/Nuun`, antes `MediaMenu`) tiene `NuunCore` (sin interfaz) y la app. Nada se muda tal cual; lo que hay es **convergencia** con piezas de la suite:
 
 | Pieza de nüün | Pieza de la suite | Qué pasaría |
 | --- | --- | --- |
 | `ShellWindow.swift`, `SkinChrome.swift`, `AboutView.swift`, parte de `Appearance.swift` | `NuMacShell` (hoy en `ios-fractos`) | nüün adopta `NuMacShell` y borra lo suyo, en un cambio de interfaz propio |
-| `MediaMenuCore/AppIdentity.swift` | `Nu9veBuildID` (Fractos) | Un solo sello de build en la suite |
-| `MediaMenuCore/ThemeColor.swift` (roles de tema) | Futuro `NuTheme` en `core/swift/`, probado con `theme-vectors-v1.json` | Es el gemelo de `Nu9ve.Core/Theme` en C#. Primero, que su prueba lea los vectores compartidos (PLAN, Windows paso 2) |
-| `MediaMenuCore/Protocol.swift` (`BackendConfiguration`, transporte) | Se queda | Cuando exista el sobre común, su forma vendrá de un contrato, pero el cliente es de nüün |
+| `NuunCore/AppIdentity.swift` | `Nu9veBuildID` (Fractos) | Un solo sello de build en la suite |
+| `NuunCore/ThemeColor.swift` (roles de tema) | Futuro `NuTheme` en `core/swift/`, probado con `theme-vectors-v1.json` | Es el gemelo de `Nu9ve.Core/Theme` en C#. Primero, que su prueba lea los vectores compartidos (PLAN, Windows paso 2) |
+| `NuunCore/Protocol.swift` (`BackendConfiguration`, transporte) | Se queda | Cuando exista el sobre común, su forma vendrá de un contrato, pero el cliente es de nüün |
 
 **Se queda:** todo lo demás (`Model.swift`, `IngestFlow`, `DisksView`, `ProjectClosureView`, `StorageView`, `InboxView`, `Missions`, `PlanTable`, `QASnapshots`…) y `Localization/` (858 claves). El catálogo único de textos ([S15](audits/session-briefs-2026-11-10.md#s15--un-solo-catálogo-de-textos)) es un mecanismo de suite, pero los textos son de cada app.
 
@@ -73,7 +73,7 @@ El paquete tiene `MediaMenuCore` (sin interfaz) y la app. Nada se muda tal cual;
 
 ## 7. Qué queda en `n-creator-utils` después
 
-`media/` (Python, hasta retirarlo), `engine/` sin los crates mudados, `native/MediaMenu`, `native/windows` sin las bases, los contratos de media, `docs/features`, operación, release, CONTEXT, STATUS y PLAN, y `vendor/nu9ve-core/` con la copia fijada de lo que nüün usa. Las utilidades viejas (`manager/`, descargas, stems, MIDI en `hardware/`) también se quedan: no son de la suite, son el pasado y el futuro de este repo ([README](https://github.com/nu9ve/n-creator-utils/blob/master/README.md#más-utilidades-y-hacia-dónde-puede-crecer)).
+`media/` (Python, hasta retirarlo), `engine/` sin los crates mudados, `native/Nuun`, `native/windows` sin las bases, los contratos de media, `docs/features`, operación, release, CONTEXT, STATUS y PLAN, y `vendor/nu9ve-core/` con la copia fijada de lo que nüün usa. Las utilidades viejas (`manager/`, descargas, stems, MIDI en `hardware/`) también se quedan: no son de la suite, son el pasado y el futuro de este repo ([README](https://github.com/nu9ve/n-creator-utils/blob/master/README.md#más-utilidades-y-hacia-dónde-puede-crecer)).
 
 ## 8. Orden mientras se trabaja en la Mac
 

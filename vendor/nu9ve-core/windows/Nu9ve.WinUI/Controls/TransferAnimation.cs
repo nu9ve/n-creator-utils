@@ -8,7 +8,7 @@ using Nu9ve.WinUI;
 
 namespace Nu9ve.WinUI.Controls;
 
-// nu9ve-interaction-v1 §7 «Acciones largas» · origen: MediaMenu ActionProgress.swift (documentos que viajan
+// nu9ve-interaction-v1 §7 «Acciones largas» · origen: nüün native/Nuun ActionProgress.swift (documentos que viajan
 // entre discos, a 12 cuadros por segundo, pausado con la app inactiva y quieto con Reducir movimiento).
 // Divergencia: una sola figura para todos los skins (papeles entre dos discos) con las medidas y colores del skin;
 // las variantes de época (hormigas de Macintosh, `[====>···]` de Terminal) quedan pendientes.

@@ -33,9 +33,10 @@ public final class WindowShellState: ObservableObject {
 public struct WindowChromeBridge<Bar: View>: NSViewRepresentable {
     private let bar: Bar
     private let barHeight: CGFloat
+    private let minimumBarWidth: CGFloat
     private let title: String
     private let background: Color
-    private let isDark: Bool
+    private let isDark: Bool?
     private let usesSystemTitleBar: Bool
     private let usesSquareCorners: Bool
     private let showsToolbar: Bool
@@ -45,15 +46,20 @@ public struct WindowChromeBridge<Bar: View>: NSViewRepresentable {
     /// hidden: the content draws its own bar, using `WindowShellState` for its window
     /// controls. Square corners need a `ShellWindow`. Windows without global actions
     /// pass `showsToolbar` false and keep the system buttons over their content.
+    ///
+    /// `isDark` sets the window's appearance to Dark Aqua or Aqua; `nil` leaves it unset, so the
+    /// window inherits the app's (`NSApp.appearance`) or the system's. `minimumBarWidth` is the
+    /// narrowest the toolbar may make the bar before it moves the bar to its overflow menu.
     public init(
         title: String,
         background: Color,
-        isDark: Bool,
+        isDark: Bool?,
         usesSystemTitleBar: Bool = true,
         usesSquareCorners: Bool = false,
         showsToolbar: Bool = true,
         shell: WindowShellState,
         barHeight: CGFloat = 30,
+        minimumBarWidth: CGFloat = 260,
         @ViewBuilder bar: () -> Bar
     ) {
         self.title = title
@@ -64,15 +70,17 @@ public struct WindowChromeBridge<Bar: View>: NSViewRepresentable {
         self.showsToolbar = showsToolbar
         self.shell = shell
         self.barHeight = barHeight
+        self.minimumBarWidth = minimumBarWidth
         self.bar = bar()
     }
 
     public func makeNSView(context: Context) -> WindowChromeView<Bar> {
-        WindowChromeView(bar: bar, barHeight: barHeight, shell: shell)
+        WindowChromeView(bar: bar, barHeight: barHeight, minimumBarWidth: minimumBarWidth, shell: shell)
     }
 
     public func updateNSView(_ view: WindowChromeView<Bar>, context: Context) {
         view.update(bar: bar)
+        view.minimumBarWidth = minimumBarWidth
         view.chrome = WindowChromeView<Bar>.Chrome(
             title: title,
             background: background,
@@ -88,7 +96,7 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
     struct Chrome: Equatable {
         var title: String
         var background: Color
-        var isDark: Bool
+        var isDark: Bool?
         var usesSystemTitleBar: Bool
         var usesSquareCorners: Bool
         var showsToolbar: Bool
@@ -115,10 +123,19 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
     private let shell: WindowShellState
     private var observers: [any NSObjectProtocol] = []
     private weak var installed: NSWindow?
+    private var minimumWidthConstraint: NSLayoutConstraint?
 
-    init(bar: Bar, barHeight: CGFloat, shell: WindowShellState) {
+    /// The narrowest the toolbar may make the bar. Changing it updates the live constraint.
+    public internal(set) var minimumBarWidth: CGFloat {
+        didSet {
+            if minimumBarWidth != oldValue { minimumWidthConstraint?.constant = minimumBarWidth }
+        }
+    }
+
+    init(bar: Bar, barHeight: CGFloat, minimumBarWidth: CGFloat = 260, shell: WindowShellState) {
         host = NSHostingView(rootView: bar)
         self.barHeight = barHeight
+        self.minimumBarWidth = minimumBarWidth
         self.shell = shell
         super.init(frame: .zero)
     }
@@ -204,7 +221,8 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
         guard let window, let chrome else { return }
         window.title = chrome.title
         window.backgroundColor = NSColor(chrome.background)
-        window.appearance = NSAppearance(named: chrome.isDark ? .darkAqua : .aqua)
+        // nil inherits NSApp.appearance or the system's, and follows it when it changes.
+        window.appearance = chrome.isDark.flatMap { NSAppearance(named: $0 ? .darkAqua : .aqua) }
         guard !window.styleMask.contains(.fullScreen) else { return }
         // Changing the title bar or the toolbar keeps the content rect, which would move and
         // resize the window: the frame people left is the one that stays.
@@ -247,9 +265,12 @@ public final class WindowChromeView<Bar: View>: NSView, NSToolbarDelegate {
         host.sizingOptions = []
         host.translatesAutoresizingMaskIntoConstraints = false
         // A flexible item: the toolbar sizes it between these bounds to fill the row.
+        minimumWidthConstraint?.isActive = false
+        let minimum = host.widthAnchor.constraint(greaterThanOrEqualToConstant: minimumBarWidth)
+        minimumWidthConstraint = minimum
         NSLayoutConstraint.activate([
             host.heightAnchor.constraint(equalToConstant: barHeight),
-            host.widthAnchor.constraint(greaterThanOrEqualToConstant: 260),
+            minimum,
             host.widthAnchor.constraint(lessThanOrEqualToConstant: 10_000)
         ])
         item.view = host

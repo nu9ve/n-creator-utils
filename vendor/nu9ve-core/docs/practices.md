@@ -48,6 +48,23 @@ nove es la única que además respalda la biblioteca, porque su versión de dato
 - kyu la borra.
 - nove instala en `/Applications` en vez de `~/Applications`, y a mano.
 
+### 2.1 Firmar y notarizar
+
+nüün (`install_media_app.py` y `build_media_app.py`), nove (`package-macos.py`) y Stalker (`build-app.sh`) repetían lo mismo con pequeñas diferencias. Desde el 2026-11-27 está en [`scripts/nu9ve_sign.py`](../scripts/nu9ve_sign.py), con sus pruebas en `scripts/test-nu9ve-sign.py`: biblioteca estándar y Python 3.9, para correr la copia fijada con el Python del sistema.
+
+- **Identidad, en este orden:** `--ad-hoc`; la de la app (`STALKER_SIGNING_IDENTITY`, `NOVE_SIGN_IDENTITY`…, que la app pasa como `--identity`); `NU9VE_SIGN_IDENTITY`; la única «Apple Development» válida del llavero, o la única «Developer ID Application» con `--distribution`; y si no, ad hoc. Dos candidatas son ambiguas: firma ad hoc y lo dice. Con ad hoc, macOS pide otra vez los permisos (pantalla, micrófono, discos) en cada build.
+- **El log nunca lleva el nombre del certificado**, que trae el de la persona: sólo el principio de su SHA-1.
+- **De dentro hacia fuera:** cada Mach-O de las carpetas `--nested` (el runtime de Python de nüün), los más profundos primero; después cada `--inner` en el orden dado (motor, ayudantes); al final la app, la única con `--entitlements`. Siempre con runtime endurecido (`--options runtime`). El sello de tiempo seguro, sólo con `--distribution`, porque necesita red. Después, `codesign --verify --deep --strict`.
+- **Notarizar** (`notarize --profile <perfil de notarytool>`): rechaza una app que no esté firmada con Developer ID, la comprime con `ditto` en una carpeta temporal, la manda con `notarytool submit --wait`, engrapa el ticket con `stapler` y la evalúa con `spctl`. Ninguna app tiene todavía Developer ID: es la pasada de release.
+
+```bash
+python3 -I vendor/nu9ve-core/scripts/nu9ve_sign.py sign dist/App.app --identity "$APP_SIGNING_IDENTITY" \
+    --inner Contents/Helpers/app-engine --entitlements packaging/App.entitlements
+python3 -I vendor/nu9ve-core/scripts/nu9ve_sign.py notarize dist/App.app --profile app-notary
+```
+
+Cada app lo adopta en su sesión, en un cambio propio, y comprueba que su build instalada conserva los permisos con la misma identidad.
+
 ## 3. El gate local
 
 Decisión del usuario del 2026-11-16 ([AGENTS](../AGENTS.md#sesiones-que-trabajan-en-la-suite), [CI sólo a mano](suite-adoption.md#ci-sólo-a-mano)): **el CI no corre en cada push**. Las pruebas se corren en local antes de cada commit, con un solo comando por repo:

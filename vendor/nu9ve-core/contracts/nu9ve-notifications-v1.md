@@ -10,7 +10,7 @@ Leído el 2026-11-10, sin ejecutar nada:
 | --- | --- | --- |
 | nove (Windows) | `nove`: `core/src/deliveries.rs`, `docs/contracts/deliveries-v1.md`, `apps/windows/Nove/Notifications.cs`, `apps/windows/Package/AppxManifest.template.xml`, decisiones A16 y A36 | La cola de entregas en el motor, el ayudante que muestra una notificación y sale, la activación que abre el aviso exacto, los límites, el alcance «todo salvo lo que apagues» y la prueba de canal |
 | nove (Mac) | `nove`: `apps/macos/Sources/Nove/Markets.swift`, `ViewNotices.swift`, `ViewWatches.swift` | Permiso pedido al habilitar; la notificación la publica la app, sin cola del motor (la Mac va en datos 11; la cola llegó en datos 14) |
-| nüün (Mac) | [Model.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/MediaMenu/Sources/MediaMenu/Model.swift), [Application.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/MediaMenu/Sources/MediaMenu/Application.swift) | Un aviso de «tarjeta detectada» con identificador por tarjeta; el clic abre Ingreso |
+| nüün (Mac) | [Model.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/Nuun/Sources/Nuun/Model.swift), [Application.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/Nuun/Sources/Nuun/Application.swift) | Un aviso de «tarjeta detectada» con identificador por tarjeta; el clic abre Ingreso |
 
 ## 0. Principios
 

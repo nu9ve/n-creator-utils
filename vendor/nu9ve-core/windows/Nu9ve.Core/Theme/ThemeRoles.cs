@@ -118,7 +118,7 @@ public sealed record ThemeRoles
 
     /// <summary>
     /// Windows 9x caption: like Windows 98's appearance settings, the caption takes the user's color,
-    /// kept dark enough for white text. Origin: MediaMenu SkinChrome.swift SkinBarBackground.caption.
+    /// kept dark enough for white text. Origin: nüün native/Nuun SkinChrome.swift SkinBarBackground.caption.
     /// </summary>
     public (ThemeColor Start, ThemeColor End) Win9xCaption()
     {

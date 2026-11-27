@@ -2,7 +2,7 @@
 
 Estado: **en adopción**. Su par para Windows, con la tabla de equivalencias, es [apps de Windows v1](windows-app-v1.md); el mapa de apps está en [la suite](../docs/suite.md). Qué debe cumplir una app nativa de nu9ve para sentirse de Mac y poder distribuirse, sin importar lo que haga. Igual que los demás contratos, separa la regla de quién la adoptó: ver [adopción](#adopción). Cumplirlo no declara una app lista para producción; eso lo dicen sus propios [requisitos de release](https://github.com/nu9ve/n-creator-utils/blob/master/docs/release.md).
 
-Referencias: **SoundShop** para una app de documento en ciclo de vida SwiftUI (`Sources/SoundShop/WindowChrome.swift`, `AppCommands.swift`, `AboutWindow.swift`, `DocumentSession.swift`) y **nüün** para una app con ciclo de vida AppKit y barra de menús ([Application.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/MediaMenu/Sources/MediaMenu/Application.swift)).
+Referencias: **SoundShop** para una app de documento en ciclo de vida SwiftUI (`Sources/SoundShop/WindowChrome.swift`, `AppCommands.swift`, `AboutWindow.swift`, `DocumentSession.swift`) y **nüün** para una app con ciclo de vida AppKit y barra de menús ([Application.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/Nuun/Sources/Nuun/Application.swift)).
 
 **Debe** es obligatorio salvo que la app documente por qué no aplica. **Conviene** es lo recomendado.
 

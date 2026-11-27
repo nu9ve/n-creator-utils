@@ -10,7 +10,7 @@ using Nu9ve.WinUI;
 
 namespace Nu9ve.WinUI.Controls;
 
-// nu9ve-theme-v1 §5/§8 + windows-app-v1 §3 · origen: MediaMenu SkinChrome.swift SkinBarBackground
+// nu9ve-theme-v1 §5/§8 + windows-app-v1 §3 · origen: nüün native/Nuun SkinChrome.swift SkinBarBackground
 // (rayas de Macintosh, título con degradado de Windows 9x, dintel gótico, regla de Terminal).
 // Divergencia Windows: es sólo el fondo de la barra. Encima va la TitleBar del sistema con sus botones a la
 // derecha (minimizar, maximizar con Snap Layouts, cerrar); nada de × − + propios a la izquierda.

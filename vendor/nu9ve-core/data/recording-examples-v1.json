@@ -1,0 +1,726 @@
+{
+  "contract": "contracts/nu9ve-recording-v1.md",
+  "regenerate": "python3 -I scripts/recording-examples.py",
+  "note": "folders: §1, qa_root is the app's QA root or null; names: which files a consumer lists (§4); records: problem null means valid (§2), bytes_base64 when the text starts with a BOM that a parser may drop; liveness: status against a process table (registry §4); derive: capturing, quiet and sessions from a whole folder (§4); order: whether a notification is acted on (§4); session_time: t in µs from the epoch (§5).",
+  "folders": [
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "qa_root": null,
+      "dir": "/Users/ana/Library/Application Support/nu9ve/recording"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "qa_root": null,
+      "dir": "C:\\Users\\ana\\AppData\\Local\\nu9ve\\recording"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_RECORDING_DIR": "/tmp/qa/recording"
+      },
+      "qa_root": null,
+      "dir": "/tmp/qa/recording"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_RECORDING_DIR": "qa/recording"
+      },
+      "qa_root": null,
+      "dir": null
+    },
+    {
+      "platform": "windows",
+      "env": {},
+      "qa_root": null,
+      "dir": null
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana"
+      },
+      "qa_root": "/tmp/qa-stalker",
+      "dir": "/tmp/qa-stalker/Library/Application Support/nu9ve/recording"
+    },
+    {
+      "platform": "windows",
+      "env": {
+        "LOCALAPPDATA": "C:\\Users\\ana\\AppData\\Local"
+      },
+      "qa_root": "D:\\qa",
+      "dir": "D:\\qa\\AppData\\Local\\nu9ve\\recording"
+    },
+    {
+      "platform": "macos",
+      "env": {
+        "HOME": "/Users/ana",
+        "NU9VE_RECORDING_DIR": "/tmp/qa/recording"
+      },
+      "qa_root": "/tmp/qa-stalker",
+      "dir": "/tmp/qa/recording"
+    }
+  ],
+  "names": [
+    {
+      "file": "stalker.json",
+      "listed": true
+    },
+    {
+      "file": "escenario.json",
+      "listed": true
+    },
+    {
+      "file": ".stalker.json.3f2a.tmp",
+      "listed": false
+    },
+    {
+      "file": "Stalker.json",
+      "listed": false
+    },
+    {
+      "file": "stalker",
+      "listed": false
+    }
+  ],
+  "records": [
+    {
+      "name": "recording",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "idle",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":1,\"state\":\"idle\",\"session_id\":null,\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "preparing: session, no epoch yet",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":6,\"state\":\"preparing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "finalizing with ended_at",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":8,\"state\":\"finalizing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":\"2026-11-27T18:12:31Z\",\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "only the camera",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"camera\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "unknown fields are ignored",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\",\"library\":\"personal\"}",
+      "problem": null
+    },
+    {
+      "name": "another producer",
+      "file": "escenario.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"escenario\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "epoch with another timescale",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789,\"timescale\":1000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": null
+    },
+    {
+      "name": "not JSON",
+      "file": "stalker.json",
+      "text": "{\"contract\":",
+      "problem": "not_json"
+    },
+    {
+      "name": "NaN is not JSON",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":NaN,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "not_json"
+    },
+    {
+      "name": "too large",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\",\"note\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "problem": "too_large"
+    },
+    {
+      "name": "BOM",
+      "file": "stalker.json",
+      "text": "﻿{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bom",
+      "bytes_base64": "77u/eyJjb250cmFjdCI6Im51OXZlLXJlY29yZGluZy8xIiwiYXBwIjoic3RhbGtlciIsImFwcF92ZXJzaW9uIjoiMC42LjAiLCJwaWQiOjUxMjAsInByb2Nlc3Nfc3RhcnRfdXMiOjE3OTU2MDAwMDAxMjM0NTYsInNlcSI6Nywic3RhdGUiOiJyZWNvcmRpbmciLCJzZXNzaW9uX2lkIjoiZGVkNmZjZDEtNzAxOS00MmUxLTgzNWUtYzI1ODk2MTQ3YTdmIiwiZXBvY2giOnsiY2xvY2siOiJjb3JlbWVkaWEtaG9zdC1jbG9jayIsInZhbHVlIjoxMjM0NTY3ODkwMDAsInRpbWVzY2FsZSI6MTAwMDAwMDAwMH0sImVwb2NoX3dhbGxfY2xvY2siOiIyMDI2LTExLTI3VDE4OjAwOjAwLjEyM1oiLCJjYXB0dXJlcyI6WyJzY3JlZW4iLCJzeXN0ZW1fYXVkaW8iLCJtaWNyb3Bob25lIl0sImVuZGVkX2F0IjpudWxsLCJ3cml0dGVuX2F0IjoiMjAyNi0xMS0yN1QxODowMDowMC4xMjVaIn0="
+    },
+    {
+      "name": "missing seq",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "missing_seq"
+    },
+    {
+      "name": "missing ended_at even when null",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "missing_ended_at"
+    },
+    {
+      "name": "another major",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/2\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_contract"
+    },
+    {
+      "name": "app does not match the file",
+      "file": "nuun.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "app_mismatch"
+    },
+    {
+      "name": "pid zero",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":0,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_pid"
+    },
+    {
+      "name": "pid as text",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":\"5120\",\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_pid"
+    },
+    {
+      "name": "seq zero",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":0,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_seq"
+    },
+    {
+      "name": "seq true is not an integer",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":true,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_seq"
+    },
+    {
+      "name": "unknown state",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"paused\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_state"
+    },
+    {
+      "name": "session id in capitals",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"DED6FCD1-7019-42E1-835E-C25896147A7F\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_session_id"
+    },
+    {
+      "name": "recording without session",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":null,\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_session_id"
+    },
+    {
+      "name": "idle with a session",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":1,\"state\":\"idle\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_session_id"
+    },
+    {
+      "name": "recording without epoch",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":null,\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_epoch"
+    },
+    {
+      "name": "epoch timescale zero",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":0},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_epoch"
+    },
+    {
+      "name": "epoch from another clock",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"wall-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_epoch"
+    },
+    {
+      "name": "preparing with an epoch",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":6,\"state\":\"preparing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":null,\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_epoch"
+    },
+    {
+      "name": "wall clock without milliseconds",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_epoch_wall_clock"
+    },
+    {
+      "name": "unknown capture",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"webcam\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_captures"
+    },
+    {
+      "name": "repeated capture",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"screen\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_captures"
+    },
+    {
+      "name": "recording nothing",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_captures"
+    },
+    {
+      "name": "idle with captures",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":1,\"state\":\"idle\",\"session_id\":null,\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[\"screen\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_captures"
+    },
+    {
+      "name": "finalizing without ended_at",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"finalizing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_ended_at"
+    },
+    {
+      "name": "recording with ended_at",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":\"2026-11-27T18:12:31Z\",\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "problem": "bad_ended_at"
+    },
+    {
+      "name": "written_at in local time",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T11:00:00-07:00\"}",
+      "problem": "bad_written_at"
+    }
+  ],
+  "liveness": [
+    {
+      "name": "the process that wrote it",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "status": "live"
+    },
+    {
+      "name": "the process is gone: it died recording",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "processes": {},
+      "status": "stale"
+    },
+    {
+      "name": "pid reused by another process",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600099000000
+        }
+      },
+      "status": "stale"
+    },
+    {
+      "name": "pid of another user",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "processes": {
+        "5120": {
+          "own_user": false,
+          "start_us": 1795600000123456
+        }
+      },
+      "status": "stale"
+    },
+    {
+      "name": "an invalid file is never live",
+      "file": "stalker.json",
+      "text": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":0,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "status": "invalid"
+    }
+  ],
+  "derive": [
+    {
+      "name": "empty folder",
+      "files": {},
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": []
+      }
+    },
+    {
+      "name": "recording",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": true,
+        "quiet": true,
+        "sessions": [
+          {
+            "app": "stalker",
+            "session_id": "ded6fcd1-7019-42e1-835e-c25896147a7f",
+            "state": "recording",
+            "captures": [
+              "screen",
+              "system_audio",
+              "microphone"
+            ],
+            "epoch": {
+              "clock": "coremedia-host-clock",
+              "value": 123456789000,
+              "timescale": 1000000000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "preparing: quiet, not capturing yet",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":6,\"state\":\"preparing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": true,
+        "sessions": [
+          {
+            "app": "stalker",
+            "session_id": "ded6fcd1-7019-42e1-835e-c25896147a7f",
+            "state": "preparing",
+            "captures": [
+              "screen",
+              "system_audio",
+              "microphone"
+            ],
+            "epoch": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "finalizing: neither quiet nor capturing",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":8,\"state\":\"finalizing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":\"2026-11-27T18:12:31Z\",\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": [
+          {
+            "app": "stalker",
+            "session_id": "ded6fcd1-7019-42e1-835e-c25896147a7f",
+            "state": "finalizing",
+            "captures": [
+              "screen",
+              "system_audio",
+              "microphone"
+            ],
+            "epoch": {
+              "clock": "coremedia-host-clock",
+              "value": 123456789000,
+              "timescale": 1000000000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "idle",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":1,\"state\":\"idle\",\"session_id\":null,\"epoch\":null,\"epoch_wall_clock\":null,\"captures\":[],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": []
+      }
+    },
+    {
+      "name": "died recording: counts as idle",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {},
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": []
+      }
+    },
+    {
+      "name": "an invalid file counts as idle",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":null,\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": []
+      }
+    },
+    {
+      "name": "temporaries are not listed",
+      "files": {
+        ".stalker.json.3f2a.tmp": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":7,\"state\":\"recording\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        }
+      },
+      "derived": {
+        "capturing": false,
+        "quiet": false,
+        "sessions": []
+      }
+    },
+    {
+      "name": "two producers at once",
+      "files": {
+        "stalker.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"stalker\",\"app_version\":\"0.6.0\",\"pid\":5120,\"process_start_us\":1795600000123456,\"seq\":8,\"state\":\"finalizing\",\"session_id\":\"ded6fcd1-7019-42e1-835e-c25896147a7f\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"screen\",\"system_audio\",\"microphone\"],\"ended_at\":\"2026-11-27T18:12:31Z\",\"written_at\":\"2026-11-27T18:00:00.125Z\"}",
+        "escenario.json": "{\"contract\":\"nu9ve-recording/1\",\"app\":\"escenario\",\"app_version\":\"0.6.0\",\"pid\":6200,\"process_start_us\":1795600050000000,\"seq\":7,\"state\":\"recording\",\"session_id\":\"0b1c2d3e-4f50-4617-8899-aabbccddeeff\",\"epoch\":{\"clock\":\"coremedia-host-clock\",\"value\":123456789000,\"timescale\":1000000000},\"epoch_wall_clock\":\"2026-11-27T18:00:00.123Z\",\"captures\":[\"camera\"],\"ended_at\":null,\"written_at\":\"2026-11-27T18:00:00.125Z\"}"
+      },
+      "processes": {
+        "5120": {
+          "own_user": true,
+          "start_us": 1795600000123456
+        },
+        "6200": {
+          "own_user": true,
+          "start_us": 1795600050000000
+        }
+      },
+      "derived": {
+        "capturing": true,
+        "quiet": true,
+        "sessions": [
+          {
+            "app": "escenario",
+            "session_id": "0b1c2d3e-4f50-4617-8899-aabbccddeeff",
+            "state": "recording",
+            "captures": [
+              "camera"
+            ],
+            "epoch": {
+              "clock": "coremedia-host-clock",
+              "value": 123456789000,
+              "timescale": 1000000000
+            }
+          },
+          {
+            "app": "stalker",
+            "session_id": "ded6fcd1-7019-42e1-835e-c25896147a7f",
+            "state": "finalizing",
+            "captures": [
+              "screen",
+              "system_audio",
+              "microphone"
+            ],
+            "epoch": {
+              "clock": "coremedia-host-clock",
+              "value": 123456789000,
+              "timescale": 1000000000
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "order": [
+    {
+      "name": "first one seen",
+      "seen": null,
+      "file": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "act": true
+    },
+    {
+      "name": "higher seq",
+      "seen": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "file": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 8
+      },
+      "act": true
+    },
+    {
+      "name": "same seq: a repeated notification",
+      "seen": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "file": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "act": false
+    },
+    {
+      "name": "lower seq: an old notification",
+      "seen": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "file": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 6
+      },
+      "act": false
+    },
+    {
+      "name": "a new process starts again at 1",
+      "seen": {
+        "pid": 5120,
+        "process_start_us": 1795600000123456,
+        "seq": 7
+      },
+      "file": {
+        "pid": 5120,
+        "process_start_us": 1795600099000000,
+        "seq": 1
+      },
+      "act": true
+    }
+  ],
+  "session_time": [
+    {
+      "name": "at the epoch",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 123456789000,
+        "timescale": 1000000000
+      },
+      "now_ns": 123456789000,
+      "t_us": 0
+    },
+    {
+      "name": "12.5 s later",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 123456789000,
+        "timescale": 1000000000
+      },
+      "now_ns": 135956789000,
+      "t_us": 12500000
+    },
+    {
+      "name": "sub-microsecond is truncated",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 123456789000,
+        "timescale": 1000000000
+      },
+      "now_ns": 123456790999,
+      "t_us": 1
+    },
+    {
+      "name": "before the epoch: no event",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 123456789000,
+        "timescale": 1000000000
+      },
+      "now_ns": 123456788999,
+      "t_us": null
+    },
+    {
+      "name": "epoch in milliseconds",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 123456,
+        "timescale": 1000
+      },
+      "now_ns": 123457000000,
+      "t_us": 1000
+    },
+    {
+      "name": "timescale that does not divide",
+      "epoch": {
+        "clock": "coremedia-host-clock",
+        "value": 1,
+        "timescale": 3
+      },
+      "now_ns": 333333334,
+      "t_us": 0
+    }
+  ]
+}

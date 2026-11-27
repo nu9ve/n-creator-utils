@@ -2,7 +2,7 @@
 
 Estado: **propuesta** para una sesión del core (2026-11-26). La escribió una sesión de nüün a pedido del usuario, después de usar nüün en la M1 y la M4 con varios procesos a la vez. No cambia ningún contrato ni ninguna pieza: dice qué hay, qué falla en el uso real y en qué orden subirlo. Cada pieza entra en un cambio propio, con sus pruebas y su línea en el [CHANGELOG](../CHANGELOG.md) ([AGENTS](../AGENTS.md)). Lo que nüün hace en su repo está en su `PLAN.md`, sección «UX · acciones y procesos».
 
-Leído en: `n-creator-utils` `a85ade4` (`native/MediaMenu/Sources/MediaMenu/ActionProgress.swift`, `engine/crates/nuun-media/src/{delivery,transfer,living,work_copy,conversations}.rs`), Clipper `docs/export-progress.md`, este repo en `f267022`. Antes de empezar, la sesión del core **debe** releerlos (`git log`) por si cambiaron.
+Leído en: `n-creator-utils` `a85ade4` (`native/Nuun/Sources/Nuun/ActionProgress.swift`, `engine/crates/nuun-media/src/{delivery,transfer,living,work_copy,conversations}.rs`), Clipper `docs/export-progress.md`, este repo en `f267022`. Antes de empezar, la sesión del core **debe** releerlos (`git log`) por si cambiaron.
 
 ## 1. Lo que pidió el usuario (2026-11-26)
 
@@ -79,7 +79,37 @@ Sumar al [tema §5](../contracts/nu9ve-theme-v1.md#5-catálogo-de-skins) una col
 | 1 | **Hecho el 2026-11-26:** [`nu9ve-action-v1`](../contracts/nu9ve-action-v1.md), contrato propio con el método común `action_progress` (decisiones del usuario), y los tres tamaños y el cierre en [interacción §7](../contracts/nu9ve-interaction-v1.md#acciones-largas). Registro de acción (§4.1) y tres tamaños (§4.2–4.3) | contratos de motor e interacción, con ejemplos en `data/` | nüün `delivery.rs`, Clipper `ProgressPlan` | Ya hay dos productores |
 | 2 | **Hecho el 2026-11-26**, salvo `Nu9veLoadingState`: `Nu9veAction` (registro, reglas de lectura y monitor) y `Nu9veActionProgress` (pantalla, compacta, indicador, Dock y cierre en los cinco skins) en [`swift/`](../swift/README.md#nu9veactionprogress-la-vista-de-una-acción-larga). `Nu9veActionProgress` (vista, travesía por skin, barra, compacta, indicador) y `Nu9veLoadingState` | `swift/` | nüün `ActionProgress.swift`; Fractos `FractosProgressBar` | Tres implementaciones del mismo progreso |
 | 3 | Ponerle a `TransferAnimation` las variantes de época y el tamaño compacto | `windows/Nu9ve.WinUI` | La pieza 2 | Cuando nüün retome Windows |
-| 4 | Medidor `nu9ve-progress` (escribe el registro, ETA, latido) | `rust/` | nüün `Meter`/`ActionProgress`; Clipper `ProgressPlan` | Cuando Clipper o nove lo use como segundo motor |
+| 4 | Medidor `nu9ve-progress` (escribe el registro, ETA, latido) | `rust/` | nüün `Meter`/`ActionProgress`; Clipper `ProgressPlan` | Cuando Clipper o nove lo use como segundo motor. **Cumplida el 2026-11-27:** nove produce `action_progress` desde su build 36 (`a3a38be`) con su propio código, y nüün lo adoptó con el suyo (F4). Comparadas el 2026-11-27 ([§6](#6-los-dos-productores-comparados-2026-11-27)): se muda el núcleo, no el almacén; el usuario decidió cerrar como `failed` un registro de un proceso muerto |
 | 5 | Hover y press por skin, también en × − + (§4.5) | tema §5 y `Nu9veTheme`/`NuMacShell` | Fractos (vocabulario de señales) | Con la pieza 2 o antes |
 
 nüün adopta cada pieza en su repo. Mientras tanto corrige en su propio código lo que no depende de esto (su `PLAN.md`), dejando el comentario de origen para mudarlo después.
+
+## 6. Los dos productores, comparados (2026-11-27)
+
+Se leyó el código, sin correrlo: nüün `engine/crates/nuun-media/src/action.rs` (966 líneas, F4 y U1.3) y nove `core/src/actions.rs` (279 líneas, build 36). Clipper (`core/src/rpc_jobs/progress.rs`, `ProgressPlan`) todavía no escribe registros: sólo sirve de referencia para `phase` y `step`.
+
+| Aspecto | nüün | nove |
+| --- | --- | --- |
+| Patrón de `progress_id`, `unknown`, latido de 5 s y retiro a las 24 h | Igual | Igual |
+| Dónde vive | Fila de su catálogo SQLite (`action-progress:<id>`) | Archivo con `nu9ve-fs` en `runtime/action-progress/<digest>` |
+| Quién escribe | El hilo del paso; el latido, un hilo con su conexión, con un `UPDATE` condicional para no pisarlo | Un hilo supervisor por motor, que recibe por canal el fin de cada comando |
+| Límite de escrituras | 250 ms, siempre al cambiar de etapa | No hace falta: una escritura por comando |
+| Fracción que no retrocede | Suelo y tope `total − 1` mientras corre; varios pasos continúan el registro | Por construcción (`unit: work`, un punto por comando) |
+| Etapas, log, `current`, archivos | Mapa a las comunes o `nuun.*`; log de hasta 60, archivo en mano | Fijas (`analyzing`, `writing`); sin log ni archivos |
+| Cancelar y reanudar | Por acción | Nunca `cancellable`; `resumable` siempre falso |
+| Un registro `running` de un proceso muerto | Se puede reemplazar cuando el latido pasa de 60 s | Se cierra como `failed` al arrancar el motor y en cada lanzamiento |
+
+**Desvíos del contrato encontrados** (cada app los arregla en su repo):
+- **nüün:** al cerrar con `complete` sube `overall_done` al total, pero no mueve `progressed_at`, que la §3.1 pide mover (`action.rs` ~375). Abre con `files_total: 0` aunque no lo sepa. Un archivo terminado no fuerza la escritura retenida (es un «conviene» de la §3.3).
+- **nove:** el `summary` de un fallo dice siempre «Se publicó la cobertura. Faltantes quedó pendiente.» (`actions.rs` ~97), para cualquier acción. Hoy sólo se ve con Atlas, pero no sirve en cuanto haya otra.
+
+**Recomendación: mudar el núcleo a `rust/nu9ve-progress`, no el almacén.** Las reglas puras coinciden, y las de nüün ya están probadas; lo que cambia es la concurrencia y dónde se guarda. El crate tendría:
+- validar el id y la etapa;
+- `open`, `apply` (suelo, tope `total − 1`, `progressed_at`) y `finish` (100 %, sin `current`, `cancellable: false`);
+- `unknown`, `may_start` (`action_running`) y `expired`;
+- un `Throttle` de 250 ms y un `Heartbeat` que llama a un `trait Store { load, save, touch }`. Cada app pone su almacén.
+
+Se queda en cada app: el almacén y sus claves, el `within` y el alias `closure-progress` de nüün, su mapa de etapas, los textos de `summary`, y el hilo, `busy` y `nove_result` de nove. Compila con Rust 1.89 (las `let`-chains de nüün son estables desde 1.88 en edition 2024).
+
+**Decisión del usuario (2026-11-27): un registro `running` cuyo proceso murió se cierra como `failed`**, como hace nove, «por ahora». nüün hoy lo reemplaza al pasar 60 s sin latido, y cambia al adoptar el crate. El contrato admite las dos, así que no cambia.
+

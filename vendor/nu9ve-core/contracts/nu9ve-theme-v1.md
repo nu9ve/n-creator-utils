@@ -11,7 +11,7 @@ Referencias leídas en el código el 2026-11-06:
 | Fractos (Mac) | `ios-fractos/Packages/FractosKit/Sources/FractosDesign`, `NuMacShell`, `docs/DESIGN_SYSTEM.md`; canon web en `nu9ve.xyz/packages/styles` y `nu9ve.xyz/docs/themes.md` | Las tres capas, los materiales, el vocabulario de señales de interacción y la regla de ornamento «uno por contexto» |
 | curado | `src/lib/theme.ts`, `src/lib/dither.ts`, `docs/THEMES.md` | La paleta como función pura, las opciones de Apariencia, la matriz de pruebas de contraste y el dither Bayer |
 | SoundShop | `Sources/SoundShop/Appearance.swift` | Los roles de dominio, `readable(on:)` y la rampa que sale del acento |
-| nüün | [Appearance.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/MediaMenu/Sources/MediaMenu/Appearance.swift) | El tema aplicado a la ventana, el vidrio con respaldo sólido y un único botón principal por vista |
+| nüün | [Appearance.swift](https://github.com/nu9ve/n-creator-utils/blob/master/native/Nuun/Sources/Nuun/Appearance.swift) | El tema aplicado a la ventana, el vidrio con respaldo sólido y un único botón principal por vista |
 | kyu | `apps/macos/Sources/Kyu/Theme.swift` | Los presets culturales y el entorno neutro para las fotos |
 
 Fractos es la expresión máxima y la referencia. Es la única app que lleva el lenguaje hasta sonido y háptica por tema, y la que define los materiales con ventana cuadrada; nüün los replica como skins opcionales. Las demás toman de ella poco a poco, sin perder usabilidad.
@@ -176,7 +176,7 @@ Decisión del usuario (2026-11-07). Cada app ofrece el mismo juego en tres parte
 | nove | Por definir (Atlántico / Carta náutica / Anochecer) | Por preguntar | Pendientes |
 | neuf | Por definir (cine francés) | Por preguntar | Pendientes |
 | SoundShop | Original (lienzo espectral) | Por preguntar | Pendientes |
-| Stalker | Sistema (utilidad de barra de menús) | No aplica | Opcionales en su ventana de ajustes, si la tiene |
+| Stalker | Cristal con el rojo constructivista (Красный) | Por preguntar (tiene Gótico) | Macintosh, Windows 9x y Terminal hechos (2026-11-26) |
 
 - **Debe:** el mismo skin tiene las mismas medidas, textura y fuentes por rol en todas las apps. Eso es lo que hace que se sienta como un skin compartido.
 - **Debe:** dither con la matriz Bayer 8×8 común, umbral `(m + 0.5) / 64`:
@@ -219,7 +219,7 @@ Cada app se llama «nueve» en un idioma, y ese idioma da su referencia cultural
 | **neuf** | Francés | El cine francés | Por definir | Direcciones posibles: blanco y negro de nouvelle vague, grano de película, cartela con serif Didone. El video y el preview no se tiñen |
 | **Fractos** | — | El universo de Fractos | Por tema | Todo el catálogo, sonido y háptica por tema y el lenguaje Crystal |
 | **SoundShop** | — | El sonido como lienzo | Original · lima | La pincelada de espectrograma de `BrandMark` |
-| **Stalker** | — | Utilidad de barra de menús | Sistema | Sigue al sistema; color solo para estados (grabando, problema) |
+| **Stalker** | Ruso: «Девять» (desde el 2026-11-26; sólo la identidad visual, la app sigue llamándose Stalker) | El constructivismo y la «zona» de *Stalker*, de Tarkovski | Cristal · rojo constructivista (Красный) | Presets Красный, Зона, Сепия y Бетон: rojo, negro y crema, diagonales, grotesca condensada; sin símbolos políticos, como la cruz suiza en nüün. El ícono de la barra sigue monocromo en plantilla (rojo al grabar, naranja con problemas) y nada del tema corre mientras se graba |
 
 [product.md de nove]: ../../nove/docs/product.md
 

@@ -17,7 +17,7 @@ Documentos que salen de esta auditoría:
 
 ## 0. Alcance y método
 
-- **Leído en esta máquina (Windows 11):** `n-creator-utils` (docs, contratos, `engine/`, `native/windows`, tamaños de `native/MediaMenu`), `nove` (docs, plan, estado, manifiestos, estructura), `curado` (docs, manifiestos, estructura) e `ios-fractos` (docs, paquete `FractosKit`, app de Mac, los dos motores de sonido, proyecto Xcode).
+- **Leído en esta máquina (Windows 11):** `n-creator-utils` (docs, contratos, `engine/`, `native/windows`, tamaños de `native/Nuun`), `nove` (docs, plan, estado, manifiestos, estructura), `curado` (docs, manifiestos, estructura) e `ios-fractos` (docs, paquete `FractosKit`, app de Mac, los dos motores de sonido, proyecto Xcode).
 - **Dos pasadas sobre Fractos el mismo día.** La primera leyó `origin/main` del 28 de septiembre, sólo iOS. El usuario subió después la versión con la app de Mac (`f1a7bcb`) y la segunda pasada corrigió lo que cambia: [A2](#a2--trabajo-que-existe-en-una-sola-máquina), [C8](#c8--tres-vocabularios-de-tema-y-dos-de-sonido), [C9](#c9--los-contratos-de-la-suite-viven-en-el-repo-de-una-app), la [sección de Fractos](#fractos-ios-fractos), el contrato de sonido y el documento de Fractos.
 - **No ejecutado:** ninguna prueba, compilación ni app. Sólo lectura, `git` de consulta y búsquedas. Ningún número de pruebas de este documento es mío: vienen de los STATUS de cada repo.
 - **No disponible aquí:** Stalker, Clipper, neuf, kyu, SoundShop, Atlas y la web de Fractos (`nu9ve.xyz`). Lo que digo de ellos sale de [suite.md](../suite.md) y de los contratos.

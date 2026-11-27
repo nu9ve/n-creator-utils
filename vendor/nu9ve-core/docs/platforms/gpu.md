@@ -24,7 +24,7 @@ Responde a esta pregunta: ¿qué partes de Metal y de la GPU se repiten entre ap
 | curado | Ventana de visuales en un proceso aparte con MTKView (336 líneas), a 20 Hz y con telemetría reducida. `wgpu` está pendiente para Windows | Swift | `src-tauri/native/CuradoVisuals.swift`, ADR-006 en `docs/DECISIONS.md` |
 | neuf | Vista previa con descriptor de shader Metal | Swift | `apps/Neuf/Neuf/PreviewRuntimeViews.swift` |
 | Atlas | Mosaico, DSM y ortofotos **en CPU** (OpenCV, rasterio). ODM y OpenMVS corren como procesos externos. **Plan:** barrido del DSM en GPU con MLX o PyTorch MPS (M6d) y kernels Metal propios sólo como último recurso (M17) | Python | `atlas_vision/`, `docs/processing-profiles.md` §4, `config/engines.json` |
-| nüün | Sin GPU. Clasifica `dji-drone`, `dji-360` e `insta360` (INSV, INSP) al ingresar y tiene el plan físico de INSV en Rust. No lee píxeles | Swift, Python, Rust | `native/MediaMenu/Sources/MediaMenu/{Model,ImportViews}.swift`, `docs/contracts/atlas-drone-v1.md` |
+| nüün | Sin GPU. Clasifica `dji-drone`, `dji-360` e `insta360` (INSV, INSP) al ingresar y tiene el plan físico de INSV en Rust. No lee píxeles | Swift, Python, Rust | `native/Nuun/Sources/Nuun/{Model,ImportViews}.swift`, `docs/contracts/atlas-drone-v1.md` |
 | nove | Decidió Swift Charts (y Chart3D) y **no** un motor propio sobre Metal o `wgpu` | Swift, Rust | `docs/chart-renderers.md` |
 
 Repeticiones de hoy:

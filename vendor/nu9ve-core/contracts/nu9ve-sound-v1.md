@@ -152,7 +152,8 @@ Para el camino A:
 - **Debe** callar: mientras Stalker o cualquier captura de audio del sistema graba; mientras curado o SoundShop reproducen o graban; con video a pantalla completa; con la app en segundo plano, salvo `success` o `error` de un trabajo largo que termina.
 - **Debe** respetar al sistema: «Reproducir efectos de sonido de la interfaz» en macOS; el esquema de sonidos y el silencio del sistema en Windows; «No molestar» y modos de concentración. Si el sistema los tiene apagados, Ajustes lo explica.
 - **Conviene** bajar o apagar `hover` con un lector de pantalla activo: VoiceOver y Narrador ya tienen sus sonidos.
-- Para saber que **otra** app de la suite graba no hay hoy un canal. Mientras no exista, cada app aplica la regla sobre sí misma. Una señal compartida necesita dueño y es trabajo futuro.
+- Para saber que **otra** app de la suite graba está la [señal de grabación](nu9ve-recording-v1.md) (propuesta, 2026-11-27): **conviene** callar mientras su `quiet` es verdadero, que empieza ya en la cuenta atrás. Mientras la app no la lea, aplica la regla sobre sí misma.
+- Esta sección es sobre los sonidos de **interfaz**. El sonido del programa (un sampler, los pads, la mezcla que va a una grabación o a una llamada, como el de Stalker) es contenido: no calla con estas reglas ni con la señal de grabación.
 - La app de Mac de Fractos, que es la referencia, hoy sólo calla en modo QA: estas reglas también son un pendiente suyo.
 
 ## 7. Valor por defecto, ajustes y formato

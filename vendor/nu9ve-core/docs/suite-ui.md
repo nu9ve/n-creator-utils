@@ -10,7 +10,7 @@ Sólo lectura, el 2026-11-22, en el checkout de cada repo en la M1, sin `git fet
 
 | App | Commit | Interfaz | Dónde está la interfaz |
 | --- | --- | --- | --- |
-| nüün | `01b4c20` | SwiftUI/AppKit; WinUI 3 en C# | [`native/MediaMenu`][nuun-src], [`native/windows`][nuun-win] |
+| nüün | `01b4c20` | SwiftUI/AppKit; WinUI 3 en C# | [`native/Nuun`][nuun-src], [`native/windows`][nuun-win] |
 | nove | `a03a8e2` | SwiftUI/AppKit; WinUI 3 con XAML; gráficas en una página web común | [`apps/macos`][nove-src], [`apps/windows`][nove-win] |
 | Clipper | `e27534e7` | TUI de Textual en Python (el foco); `ClipperStudio` comparte código con neuf | [`src/clipper_tui`][clip-src] |
 | curado | `bb6f780` + árbol de trabajo | Tauri con React y TypeScript | [`src`][cur-src] |
@@ -295,15 +295,15 @@ Lo que su dominio necesita y el común no tiene (la cabina de curado, el pincel 
    - **Un contrato nuevo, `nu9ve-controls-v1`** (recomendado): un documento propio para los controles por tipo de dato, al lado del de tema y el de interacción. Cambia y sube de versión sin tocar los otros, y tiene su propia tabla de qué cumple cada app.
    - **Una sección nueva en `nu9ve-interaction-v1`:** menos documentos, pero ese contrato es sobre teclado, ayuda y atajos, y crecería mucho. Cada cambio de un control lo movería entero.
 
-[nuun-src]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu
+[nuun-src]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun
 [nuun-win]: ../../../nu9ve/n-creator-utils/native/windows
 [nuun-win-main]: ../../../nu9ve/n-creator-utils/native/windows/Nuun/MainWindow.cs
-[nuun-ts]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenuCore/Timestamps.swift
-[nuun-disks]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu/DisksView.swift
-[nuun-plan]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu/PlanTable.swift
-[nuun-projects]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu/ProjectsView.swift
-[nuun-inbox]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu/InboxView.swift
-[nuun-progress]: ../../../nu9ve/n-creator-utils/native/MediaMenu/Sources/MediaMenu/ActionProgress.swift
+[nuun-ts]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/NuunCore/Timestamps.swift
+[nuun-disks]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun/DisksView.swift
+[nuun-plan]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun/PlanTable.swift
+[nuun-projects]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun/ProjectsView.swift
+[nuun-inbox]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun/InboxView.swift
+[nuun-progress]: ../../../nu9ve/n-creator-utils/native/Nuun/Sources/Nuun/ActionProgress.swift
 [nove-src]: ../../nove/apps/macos/Sources/Nove
 [nove-win]: ../../nove/apps/windows/Nove
 [nove-win-pages]: ../../nove/apps/windows/Nove/Pages
