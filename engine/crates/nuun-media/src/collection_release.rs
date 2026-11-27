@@ -1,8 +1,8 @@
 //! Reviewed release of verified collection media to the source volume's Trash.
 
+use crate::action::{Action, ActionProgress};
 use crate::catalog::{Catalog, WritableCatalog, sql, writer_lock};
 use crate::clipper_release::Guard;
-use crate::delivery::ActionProgress;
 use crate::living::{identity, required, source, stored, text, validate_source};
 use crate::release::{checked_hash, consumers};
 use crate::rules::relative;
@@ -213,7 +213,12 @@ fn plan_with(
     let records = archives(&catalog, backend, &params["archives"], &info)?;
     let search = params["search"].as_array().cloned().unwrap_or_default();
     let writer = WritableCatalog::open(home)?;
-    let mut progress = ActionProgress::new(&writer, params["progress_id"].as_str(), "preparing");
+    let mut progress = ActionProgress::new(
+        &writer,
+        params["progress_id"].as_str(),
+        Action::planning("release"),
+        "preparing",
+    )?;
     progress.report()?;
     let index = archive_index(
         &catalog,
@@ -523,7 +528,7 @@ fn apply_with(
     // SAFETY: getuid has no arguments or memory effects.
     let trash = format!(".Trashes/{}/nuun-{}", unsafe { libc::getuid() }, &id[..8]);
     let writer = WritableCatalog::open(home)?;
-    let mut progress = ActionProgress::new(&writer, Some(id), "releasing");
+    let mut progress = ActionProgress::new(&writer, Some(id), Action::new("release"), "releasing")?;
     progress.meter.files_total = entries.len();
     progress.meter.total = value["bytes"].as_u64().unwrap_or_default();
     value["state"] = json!("applying");

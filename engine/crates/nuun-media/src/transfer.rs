@@ -77,17 +77,21 @@ fn truthy(value: &Value) -> bool {
 pub type Hook<'a> = &'a dyn Fn(&str, &Value) -> Result<()>;
 
 /// Python `progress.ActionMeter`: one overall measure that never goes back, the file in hand and a short log.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct Meter {
     pub(crate) total: u64,
     done: u64,
     pub(crate) files_total: usize,
     pub(crate) files_done: usize,
     pub(crate) current: Map<String, Value>,
-    log: Vec<Value>,
+    pub(crate) log: Vec<Value>,
 }
 
 impl Meter {
+    pub(crate) fn done(&self) -> u64 {
+        self.done
+    }
+
     pub(crate) fn reach(&mut self, value: u64) {
         self.done = self.done.max(value.min(self.total));
     }
@@ -183,6 +187,8 @@ pub struct Transfer<'a> {
     volume_tokens: HashMap<String, Value>,
     source_token: Option<Value>,
     progress: Option<Map<String, Value>>,
+    /// The ingest's `nu9ve-action-v1` record, when the caller gave a `progress_id`.
+    action: Option<crate::action::ActionProgress<'a>>,
     meter: Meter,
     started: Instant,
     flushed: Instant,
@@ -206,6 +212,7 @@ impl<'a> Transfer<'a> {
             volume_tokens: HashMap::new(),
             source_token: None,
             progress: None,
+            action: None,
             meter: Meter::default(),
             started: Instant::now(),
             flushed: Instant::now(),
@@ -441,7 +448,29 @@ impl<'a> Transfer<'a> {
         self.catalog.set(
             &format!("progress:{}", text(&snapshot, "job_id")),
             &snapshot,
-        )
+        )?;
+        if let Some(action) = self.action.as_mut() {
+            action.stage = match text(&snapshot, "phase") {
+                "copying" => "copying",
+                "verifying" => "verifying",
+                "converting" => "converting",
+                "cleaning" => "cleaning",
+                "checking_card" => "checking_card",
+                _ => "finishing",
+            };
+            // The whole ingest (copy, verify and release of the card) is the action's measure.
+            action.meter = self.meter.clone();
+            action.meter.total = snapshot["global_total"]
+                .as_u64()
+                .unwrap_or(self.meter.total);
+            action.meter.reach(
+                snapshot["global_done"]
+                    .as_u64()
+                    .unwrap_or(self.meter.done()),
+            );
+            action.report()?;
+        }
+        Ok(())
     }
 
     fn add_progress(&mut self, key: &str, amount: u64) {
@@ -905,6 +934,19 @@ impl<'a> Transfer<'a> {
         };
         self.meter.reach(previous_done);
         self.started = Instant::now();
+        if let Some(progress_id) = crate::action::ingest_id() {
+            let action = if cfg!(any(target_os = "macos", windows)) {
+                crate::action::Action::cancellable("ingest")
+            } else {
+                crate::action::Action::new("ingest")
+            };
+            self.action = Some(crate::action::ActionProgress::new(
+                self.catalog,
+                Some(&progress_id),
+                action,
+                "copying",
+            )?);
+        }
         self.report(true, json!({}))?;
         let source = Root::open(Path::new(text(plan, "source")))?;
         for record in &records {
@@ -1652,10 +1694,13 @@ pub fn apply_reviewed(
     backend: &dyn Backend,
     plan: &Value,
     reviewed_digest: &str,
+    progress_id: Option<&str>,
 ) -> Result<Value> {
     #[cfg(any(target_os = "macos", windows))]
     let _cancel = crate::interrupt::Cancel::install()?;
-    apply_cancellable(home, backend, plan, reviewed_digest)
+    crate::action::with_ingest(progress_id, || {
+        apply_cancellable(home, backend, plan, reviewed_digest)
+    })
 }
 
 pub(crate) fn apply_cancellable(
@@ -1676,14 +1721,25 @@ pub(crate) fn apply_cancellable(
 }
 
 /// The `resume` RPC: apply a job's own plan again; a recovered archive job is read-only.
-pub fn resume(home: &Path, backend: &dyn Backend, job_id: &str) -> Result<Value> {
+pub fn resume(
+    home: &Path,
+    backend: &dyn Backend,
+    job_id: &str,
+    progress_id: Option<&str>,
+) -> Result<Value> {
     let job = crate::reads::job(&Catalog::open(home)?, &json!({"job_id": job_id}))?;
     require(
         job["state"] != "recovered",
         "source_not_resumable",
         "Recovered archive jobs are read-only; use restore or deliver-work",
     )?;
-    apply_reviewed(home, backend, &job["plan"], text(&job, "digest"))
+    apply_reviewed(
+        home,
+        backend,
+        &job["plan"],
+        text(&job, "digest"),
+        progress_id,
+    )
 }
 
 /// Ports of tests/test_media_engine.py (MediaFixture): temporary card, archive and work with fixture identities.
@@ -1885,7 +1941,7 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         assert_eq!(job["error"], "cancelled");
         assert!(s.card.join("DCIM/photo.JPG").exists());
         assert_eq!(
-            super::resume(&s.home, &s.backend, id).unwrap()["state"],
+            super::resume(&s.home, &s.backend, id, None).unwrap()["state"],
             "completed"
         );
         assert!(!s.card.join("DCIM/photo.JPG").exists());
@@ -1922,8 +1978,26 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         let s = fixture();
         let plan = plan(&s, json!({}));
         std::fs::write(&file, b"").unwrap();
-        let paused = super::apply_reviewed(&s.home, &s.backend, &plan, text(&plan, "digest"));
+        let paused = crate::action::within(|| {
+            super::apply_reviewed(
+                &s.home,
+                &s.backend,
+                &plan,
+                text(&plan, "digest"),
+                Some("ingest-1"),
+            )
+        });
         assert_eq!(paused.unwrap_err().code, "cancelled");
+        let action = Catalog::open(&s.home)
+            .unwrap()
+            .get("action-progress:ingest-1")
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("ingest"), Some("cancelled"))
+        );
+        assert_eq!(action["resumable"], true);
         let id = text(&plan, "id");
         let job =
             crate::reads::job(&Catalog::open(&s.home).unwrap(), &json!({"job_id": id})).unwrap();
@@ -1933,10 +2007,16 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
         );
         assert!(s.card.join("DCIM/photo.JPG").exists(), "nothing cleaned");
         std::fs::remove_file(&file).unwrap();
-        assert_eq!(
-            super::resume(&s.home, &s.backend, id).unwrap()["state"],
-            "completed"
-        );
+        let resumed =
+            crate::action::within(|| super::resume(&s.home, &s.backend, id, Some("ingest-1")));
+        assert_eq!(resumed.unwrap()["state"], "completed");
+        let action = Catalog::open(&s.home)
+            .unwrap()
+            .get("action-progress:ingest-1")
+            .unwrap()
+            .unwrap();
+        assert_eq!(action["state"], "complete");
+        assert_eq!(action["overall_done"], action["overall_total"]);
         assert_eq!(count(&s.archive, ".ncpartial"), 0);
     }
 
@@ -2429,7 +2509,7 @@ echo '{"schema":"clipper-library-deps/1","capabilities":["media-release-lock/1"]
             }
         };
         assert!(super::apply(&s.home, &s.backend, &plan, text(&plan, "digest"), &fail).is_err());
-        let resumed = super::resume(&s.home, &s.backend, text(&plan, "id")).unwrap();
+        let resumed = super::resume(&s.home, &s.backend, text(&plan, "id"), None).unwrap();
         assert_eq!(resumed["state"], "completed");
         let backup = &resumed["metadata_backup"];
         assert_eq!(backup["schema"], "nu9ve-catalog-backup/1");

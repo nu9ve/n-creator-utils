@@ -644,13 +644,19 @@ impl Engine {
                     write_backend(platform)?,
                     plan,
                     digest,
+                    params["progress_id"].as_str(),
                 )
             }
             "resume" => {
                 let job = params["job_id"]
                     .as_str()
                     .ok_or_else(|| Error::new("internal_error", "'job_id'"))?;
-                nuun_media::transfer::resume(&self.home(), write_backend(platform)?, job)
+                nuun_media::transfer::resume(
+                    &self.home(),
+                    write_backend(platform)?,
+                    job,
+                    params["progress_id"].as_str(),
+                )
             }
             #[cfg(unix)]
             "retitle_capture" => {
@@ -995,7 +1001,8 @@ impl Engine {
                 format!("Write not ported to the Rust engine yet: {method}"),
             ));
         }
-        Ok(self.call(method, params)?)
+        // nu9ve-action-v1: every action this call opens is closed with its answer.
+        Ok(nuun_media::action::within(|| self.call(method, params))?)
     }
 
     fn reply_once(&self, wire: &[u8]) -> Reply {

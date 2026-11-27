@@ -1,8 +1,8 @@
 //! Reviewed project closeout using the shared ingest and release journals.
 
+use crate::action::{Action, ActionProgress};
 use crate::catalog::{Catalog, WritableCatalog, writer_lock};
 use crate::clipper_release::Guard;
-use crate::delivery::ActionProgress;
 use crate::planner::{build_plan, destination_path};
 use crate::reads::{closure_settings, project_record, related};
 use crate::release::{self, checked_hash};
@@ -109,8 +109,9 @@ fn plan_with(
     let mut progress = ActionProgress::closure(
         &progress_catalog,
         params["review_id"].as_str(),
+        Action::planning("closeout"),
         "review_inventory",
-    );
+    )?;
     progress.report()?;
     let (_, profile, title) = project_record(&catalog, project_id)?;
     let group = settings_group(&catalog, project_id)?;
@@ -718,7 +719,12 @@ fn apply_with(
         None
     };
     let progress_catalog = WritableCatalog::open(home)?;
-    let mut progress = ActionProgress::closure(&progress_catalog, Some(&id), "revalidating_source");
+    let mut progress = ActionProgress::closure(
+        &progress_catalog,
+        Some(&id),
+        Action::new("closeout"),
+        "revalidating_source",
+    )?;
     progress.report()?;
     {
         let _lock = writer_lock(home)?;
@@ -1045,36 +1051,42 @@ printf '%s\n' '{"schema":"clipper-library-deps/1","capabilities":["media-release
 
     fn review(s: &Setup) -> Value {
         let review_id = "11111111-1111-4111-8111-111111111111";
-        let plan = plan_with(
-            &s.home,
-            &s.backend,
-            &json!({
-                "project_id": "p1", "archive": "MEDIA", "work": "EDICION", "release_work": false,
-                "review_id": review_id,
-            }),
-            |catalog, paths| {
-                assert_eq!(paths.len(), 1);
-                let progress = catalog
-                    .get(&format!("closure-progress:{review_id}"))?
-                    .unwrap();
-                assert_eq!(progress["stage"], "inspecting_clipper");
-                Ok(json!({"blockers": [], "relinks": [], "dependencies": null}))
-            },
-        )
+        let plan = crate::action::within(|| {
+            plan_with(
+                &s.home,
+                &s.backend,
+                &json!({
+                    "project_id": "p1", "archive": "MEDIA", "work": "EDICION", "release_work": false,
+                    "review_id": review_id,
+                }),
+                |catalog, paths| {
+                    assert_eq!(paths.len(), 1);
+                    let progress = catalog
+                        .get(&format!("closure-progress:{review_id}"))?
+                        .unwrap();
+                    assert_eq!(progress["stage"], "nuun.inspecting_clipper");
+                    Ok(json!({"blockers": [], "relinks": [], "dependencies": null}))
+                },
+            )
+        })
         .unwrap();
-        assert!(
-            Catalog::open(&s.home)
-                .unwrap()
-                .get(&format!("closure-progress:{review_id}"))
-                .unwrap()
-                .is_none()
+        let action = Catalog::open(&s.home)
+            .unwrap()
+            .get(&format!("closure-progress:{review_id}"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("closeout"), Some("complete"))
         );
         plan
     }
 
     fn run(s: &Setup, args: &Value) -> Result<Value> {
-        apply_with(&s.home, &s.backend, args, || {
-            Guard::acquire_at(&s.home, s.home.join("home"))
+        crate::action::within(|| {
+            apply_with(&s.home, &s.backend, args, || {
+                Guard::acquire_at(&s.home, s.home.join("home"))
+            })
         })
     }
 
@@ -1343,11 +1355,13 @@ esac
         assert_eq!(run(&s, &args).unwrap(), done);
         let catalog = Catalog::open(&s.home).unwrap();
         assert!(catalog.get("project-released:p1").unwrap().is_none());
-        assert!(
-            catalog
-                .get(&format!("closure-progress:{}", text(&plan, "id")))
-                .unwrap()
-                .is_none()
+        let action = catalog
+            .get(&format!("closure-progress:{}", text(&plan, "id")))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("closeout"), Some("complete"))
         );
     }
 

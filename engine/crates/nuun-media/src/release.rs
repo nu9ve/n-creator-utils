@@ -949,12 +949,21 @@ pub(crate) fn apply_reviewed(
     let entries = plan["entries"].as_array().cloned().unwrap_or_default();
     let size = |entry: &Value| entry["stamp"]["size"].as_u64().unwrap_or_default();
     let bytes: u64 = entries.iter().map(size).sum();
-    let make_progress = if closeout {
-        crate::delivery::ActionProgress::closure
+    let mut progress = if closeout {
+        crate::action::ActionProgress::closure(
+            &catalog,
+            Some(&id),
+            crate::action::Action::new("closeout"),
+            "revalidating_source",
+        )?
     } else {
-        crate::delivery::ActionProgress::new
+        crate::action::ActionProgress::new(
+            &catalog,
+            Some(&id),
+            crate::action::Action::new("release"),
+            "revalidating_source",
+        )?
     };
-    let mut progress = make_progress(&catalog, Some(&id), "revalidating_source");
     progress.meter.total = bytes.saturating_mul(2);
     progress.meter.files_total = entries.len();
     progress.report()?;

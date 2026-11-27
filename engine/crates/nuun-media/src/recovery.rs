@@ -594,23 +594,28 @@ mod tests {
         let mut offline = s.backend;
         offline.offline.insert(s.work.display().to_string());
         assert_eq!(
-            crate::delivery::deliver(&home, &offline, &delivery)
+            crate::action::within(|| crate::delivery::deliver(&home, &offline, &delivery))
                 .unwrap_err()
                 .code,
             "volume_offline"
         );
         offline.offline.clear();
-        let delivered = crate::delivery::deliver(&home, &offline, &delivery).unwrap();
+        let delivered =
+            crate::action::within(|| crate::delivery::deliver(&home, &offline, &delivery)).unwrap();
         assert_eq!(
             delivered,
             json!({"delivered": [asset_id], "volume_id": "id-EDICION"})
         );
         assert_eq!(
-            crate::delivery::deliver(&home, &offline, &delivery).unwrap(),
+            crate::action::within(|| crate::delivery::deliver(&home, &offline, &delivery)).unwrap(),
             delivered
         );
         let reader = Catalog::open(&home).unwrap();
-        assert!(reader.get("action-progress:delivery").unwrap().is_none());
+        let action = reader.get("action-progress:delivery").unwrap().unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("copy"), Some("complete"))
+        );
         let work = reader
             .json_rows(
                 "SELECT payload FROM copies WHERE volume_id='id-EDICION'",

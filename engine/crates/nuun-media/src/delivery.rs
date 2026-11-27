@@ -1,9 +1,10 @@
 //! Deliver verified archive members to a registered editing disk.
 
+use crate::action::{Action, ActionProgress};
 use crate::catalog::{Catalog, WritableCatalog, writer_lock};
 use crate::planner::destination_path;
 use crate::restore::claim_directory;
-use crate::transfer::{Meter, Target, Transfer};
+use crate::transfer::{Target, Transfer};
 use crate::tree::Root;
 use crate::volumes::{self, Backend};
 use nu9ve_json::{Error, NAMESPACE_URL, Result, canonical, require, uuid5};
@@ -163,8 +164,17 @@ fn deliver_with(
         Ok(())
     };
     let mut transfer = Transfer::new(home, &catalog, backend, &hook);
-    let mut progress =
-        ActionProgress::new(&catalog, params["progress_id"].as_str(), "delivering_work");
+    let action = if cfg!(target_os = "macos") && reviewed.is_some() {
+        Action::cancellable("copy")
+    } else {
+        Action::new("copy")
+    };
+    let mut progress = ActionProgress::new(
+        &catalog,
+        params["progress_id"].as_str(),
+        action,
+        "delivering_work",
+    )?;
     let mut done = 0;
     let mut delivered = Vec::new();
     let mut assets = Vec::new();
@@ -326,83 +336,4 @@ fn deliver_with(
     progress.meter.current.clear();
     progress.report()?;
     Ok(json!({"delivered": delivered, "volume_id": work["id"]}))
-}
-
-pub(crate) struct ActionProgress<'a> {
-    catalog: &'a WritableCatalog,
-    key: Option<String>,
-    pub(crate) meter: Meter,
-    pub(crate) stage: &'static str,
-    closure: bool,
-}
-
-impl<'a> ActionProgress<'a> {
-    pub(crate) fn new(catalog: &'a WritableCatalog, id: Option<&str>, stage: &'static str) -> Self {
-        Self::with_prefix(catalog, id, stage, false)
-    }
-
-    pub(crate) fn closure(
-        catalog: &'a WritableCatalog,
-        id: Option<&str>,
-        stage: &'static str,
-    ) -> Self {
-        Self::with_prefix(catalog, id, stage, true)
-    }
-
-    fn with_prefix(
-        catalog: &'a WritableCatalog,
-        id: Option<&str>,
-        stage: &'static str,
-        closure: bool,
-    ) -> Self {
-        let prefix = if closure {
-            "closure-progress"
-        } else {
-            "action-progress"
-        };
-        Self {
-            catalog,
-            key: id
-                .filter(|id| !id.is_empty())
-                .map(|id| format!("{prefix}:{id}")),
-            meter: Meter::default(),
-            stage,
-            closure,
-        }
-    }
-
-    pub(crate) fn report(&self) -> Result<()> {
-        if let Some(key) = &self.key {
-            let mut fields = self.meter.fields();
-            fields.insert("stage".into(), json!(self.stage));
-            fields.insert("files_total".into(), json!(self.meter.files_total));
-            fields.insert("files_done".into(), json!(self.meter.files_done));
-            if self.closure {
-                fields.insert(
-                    "released_files".into(),
-                    json!(if matches!(
-                        self.stage,
-                        "releasing_originals" | "metadata_backup_after" | "release_complete"
-                    ) {
-                        self.meter.files_done
-                    } else {
-                        0
-                    }),
-                );
-            }
-            self.catalog.set(key, &Value::Object(fields))?;
-        }
-        Ok(())
-    }
-}
-
-impl Drop for ActionProgress<'_> {
-    fn drop(&mut self) {
-        if let Some(key) = &self.key {
-            let _ = self
-                .catalog
-                .db()
-                .execute("DELETE FROM metadata WHERE key=?", [key]);
-        }
-    }
 }

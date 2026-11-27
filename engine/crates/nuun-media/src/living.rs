@@ -1,7 +1,7 @@
 //! Incremental, verified backups that preserve all archived versions.
 
+use crate::action::{Action, ActionProgress};
 use crate::catalog::{Catalog, WritableCatalog, sql, writer_lock};
-use crate::delivery::ActionProgress;
 use crate::release::checked_hash;
 use crate::rules::relative;
 use crate::transfer::{Hook, Target, Transfer};
@@ -280,7 +280,12 @@ pub fn plan(home: &Path, backend: &dyn Backend, params: &Value) -> Result<Value>
                 .unwrap_or_default()
         });
     let writer = WritableCatalog::open(home)?;
-    let mut progress = ActionProgress::new(&writer, params["progress_id"].as_str(), "preparing");
+    let mut progress = ActionProgress::new(
+        &writer,
+        params["progress_id"].as_str(),
+        Action::planning("backup"),
+        "preparing",
+    )?;
     progress.report()?;
     let known = index(&catalog, &cid)?;
     let origin = Root::open(&root)?;
@@ -512,7 +517,8 @@ fn apply_with(home: &Path, backend: &dyn Backend, params: &Value, hook: Hook<'_>
             .as_u64()
             .unwrap_or_default() as usize,
     );
-    let mut progress = ActionProgress::new(&writer, Some(progress_id), "copying");
+    let mut progress =
+        ActionProgress::new(&writer, Some(progress_id), Action::new("backup"), "copying")?;
     progress.meter.total = params["progress_total"]["bytes"]
         .as_u64()
         .unwrap_or_else(|| value["bytes"].as_u64().unwrap_or_default());

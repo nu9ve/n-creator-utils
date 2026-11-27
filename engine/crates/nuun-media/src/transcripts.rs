@@ -1,8 +1,8 @@
 //! Verified copies of Clipper transcripts linked to archived members.
 
+use crate::action::{Action, ActionProgress};
 use crate::catalog::{Catalog, WritableCatalog, writer_lock};
 use crate::clipper::realpath;
-use crate::delivery::ActionProgress;
 use crate::integrations::{Integrations, invoke_clipper};
 use crate::reads::{project_record, related};
 use crate::release::checked_hash;
@@ -401,7 +401,12 @@ pub(crate) fn copy(
             "bytes": bytes, "notes": plan["notes"]}),
         );
     }
-    let mut progress = ActionProgress::new(&catalog, progress_id, "copying_transcripts");
+    let mut progress = ActionProgress::new(
+        &catalog,
+        progress_id,
+        Action::new("backup"),
+        "copying_transcripts",
+    )?;
     progress.meter.total = plan["bytes"].as_u64().unwrap_or_default().saturating_mul(2);
     progress.meter.files_total = plan["files"].as_u64().unwrap_or_default() as usize;
     let mut transfer = Transfer::new(home, &catalog, backend, &|_, _| Ok(()));
@@ -627,9 +632,11 @@ mod tests {
         let catalog = Catalog::open(&s.home).unwrap();
         let params = json!({"archive": "MEDIA", "project_id": "p1", "progress_id": "fixture"});
         let run = || {
-            backup_with(&s.home, &s.backend, &catalog, &params, |root| {
-                assert_eq!(root, path.parent().unwrap().parent().unwrap());
-                Ok(export(&path, root, json!({"path": s.work.join(EDITABLE)})))
+            crate::action::within(|| {
+                backup_with(&s.home, &s.backend, &catalog, &params, |root| {
+                    assert_eq!(root, path.parent().unwrap().parent().unwrap());
+                    Ok(export(&path, root, json!({"path": s.work.join(EDITABLE)})))
+                })
             })
             .unwrap()
         };
@@ -647,7 +654,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(portable, receipt);
-        assert!(catalog.get("action-progress:fixture").unwrap().is_none());
+        // nu9ve-action-v1 §2: the closed record stays for the client that comes back to it.
+        let action = catalog.get("action-progress:fixture").unwrap().unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("backup"), Some("complete"))
+        );
 
         std::fs::write(&path, b"another version").unwrap();
         assert_eq!(run()["copied"], 1);

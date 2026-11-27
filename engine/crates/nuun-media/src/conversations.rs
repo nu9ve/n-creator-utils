@@ -1141,23 +1141,28 @@ mod tests {
             .unwrap()
             .write_bytes(".claude/history.jsonl", b"one\ntwo\n", true)
             .unwrap();
-        let ran = run(
-            &s.home,
-            &s.backend,
-            true,
-            &user,
-            Ok(M1.into()),
-            // The app's click gives one measure for every collection; it is gone once the run answers.
-            &json!({"when":"now","progress_id":"conversations-now"}),
-        )
+        let ran = crate::action::within(|| {
+            run(
+                &s.home,
+                &s.backend,
+                true,
+                &user,
+                Ok(M1.into()),
+                // The app's click gives one measure for every collection; it is gone once the run answers.
+                &json!({"when":"now","progress_id":"conversations-now"}),
+            )
+        })
         .unwrap();
-        assert!(
-            Catalog::open(&s.home)
-                .unwrap()
-                .get("action-progress:conversations-now")
-                .unwrap()
-                .is_none()
+        let action = Catalog::open(&s.home)
+            .unwrap()
+            .get("action-progress:conversations-now")
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (action["action"].as_str(), action["state"].as_str()),
+            (Some("backup"), Some("complete"))
         );
+        assert_eq!(action["overall_done"], action["overall_total"]);
         let first = &ran["results"][0];
         assert_eq!(first["result"]["versioned"], 1);
         assert_eq!(first["working"]["state"], "completed", "{first}");

@@ -463,8 +463,12 @@ pub fn plan(home: &Path, backend: &dyn Backend, isolated: bool, params: &Value) 
         "Source and destination must be independent disks",
     )?;
     let writer = WritableCatalog::open(home)?;
-    let mut progress =
-        crate::delivery::ActionProgress::new(&writer, params["progress_id"].as_str(), "preparing");
+    let mut progress = crate::action::ActionProgress::new(
+        &writer,
+        params["progress_id"].as_str(),
+        crate::action::Action::planning("copy"),
+        "preparing",
+    )?;
     progress.report()?;
     let mut items = Vec::new();
     let (mut bytes, mut adopt, mut adopt_bytes) = (0u64, 0usize, 0u64);
@@ -642,7 +646,12 @@ pub(crate) fn apply_with(
     writer.set(&key, &value)?;
     let files = value["files"].as_array().cloned().unwrap_or_default();
     let carried = value["carried"].as_array().cloned().unwrap_or_default();
-    let mut progress = crate::delivery::ActionProgress::new(&writer, Some(id), "copying");
+    let mut progress = crate::action::ActionProgress::new(
+        &writer,
+        Some(id),
+        crate::action::Action::new("copy"),
+        "copying",
+    )?;
     progress.meter.total = files
         .iter()
         .chain(&carried)
