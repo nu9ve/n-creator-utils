@@ -140,7 +140,7 @@ La segunda petición cambia configuración local, no copia media. Volúmenes por
 Para construir un artefacto separado sin instalar:
 
 ```sh
-swift test --package-path native/MediaMenu
+swift test --package-path native/Nuun
 python3 scripts/build_media_app.py --output dist/Media-dev-NUEVO.app \
   --configuration debug --skip-build --python /ruta/absoluta/a/python3
 open dist/Media-dev-NUEVO.app --args --show

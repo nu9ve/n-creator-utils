@@ -15,9 +15,9 @@ Lee [CONTEXT](CONTEXT.md) y [STATUS](STATUS.md) antes de cambiar código. [PLAN]
 | Capturas y publicaciones | [captures](../media/captures.py), [publication](../media/publication.py) | Finalización/publicación explícitas; no inferirlas de un MOV o export existente. |
 | Índice de proyectos y finales | [projects](../media/projects.py), [finals](../media/finals.py) | Etapa calculada, estado declarado. Finales sólo lee nombres y tamaños. Nada aquí toca archivos. |
 | Boundary de operaciones | [service](../media/service.py), [cli](../media/cli.py), [save](../media/save.py), [MCP](../media/mcp.py) | JSON estructurado; stdout no mezcla logs. MCP actual sólo lectura. |
-| App nativa | [Application](../native/MediaMenu/Sources/MediaMenu/Application.swift), [Presentation](../native/MediaMenu/Sources/MediaMenu/Presentation.swift), [ImportViews](../native/MediaMenu/Sources/MediaMenu/ImportViews.swift), [Settings](../native/MediaMenu/Sources/MediaMenu/SettingsView.swift), [Inbox](../native/MediaMenu/Sources/MediaMenu/InboxView.swift), [Appearance](../native/MediaMenu/Sources/MediaMenu/Appearance.swift) | Application: modelo/coordinador de una ventana. Presentation: modos, navegación, resumen y revisión común. ImportViews: Quick Look/grid. Settings/Inbox: sus superficies. Appearance: paleta/chrome. No reimplementar copy/delete. |
+| App nativa | [Application](../native/Nuun/Sources/Nuun/Application.swift), [Presentation](../native/Nuun/Sources/Nuun/Presentation.swift), [ImportViews](../native/Nuun/Sources/Nuun/ImportViews.swift), [Settings](../native/Nuun/Sources/Nuun/SettingsView.swift), [Inbox](../native/Nuun/Sources/Nuun/InboxView.swift), [Appearance](../native/Nuun/Sources/Nuun/Appearance.swift) | Application: modelo/coordinador de una ventana. Presentation: modos, navegación, resumen y revisión común. ImportViews: Quick Look/grid. Settings/Inbox: sus superficies. Appearance: paleta/chrome. No reimplementar copy/delete. |
 | Perfiles creativos | [workspaces](../media/workspaces.py), [planner](../media/planner.py), [layout](../media/layout.py) | Registro local y rutas congeladas por plan. Los discos del perfil son sugerencias, no múltiples SSD por job. |
-| Puente/runtime/eventos nativos | [Protocol](../native/MediaMenu/Sources/MediaMenuCore/Protocol.swift), [CaptureWatcher](../native/MediaMenu/Sources/MediaMenuCore/CaptureWatcher.swift) | Preservar enteros de 64 bits y errores; cero workers periódicos en idle. |
+| Puente/runtime/eventos nativos | [Protocol](../native/Nuun/Sources/NuunCore/Protocol.swift), [CaptureWatcher](../native/Nuun/Sources/NuunCore/CaptureWatcher.swift) | Preservar enteros de 64 bits y errores; cero workers periódicos en idle. |
 | Empaquetado | [builder](../scripts/build_media_app.py), [pyproject](../pyproject.toml) | Artefacto nuevo por build; distinguir runtime externo de bundle distribuible. |
 
 `manager/file.py` conserva legacy-save/download/split. No hace falta reescribirlo para agregar una vista al dashboard. Futuras extracciones de download/stems deben entregar assets/provenance por el servicio, sin acoplarse a Swift.
@@ -28,7 +28,7 @@ Lee [CONTEXT](CONTEXT.md) y [STATUS](STATUS.md) antes de cambiar código. [PLAN]
 python3 -m unittest discover -s tests -p test_media_engine.py -v
 python3 -m unittest discover -s tests -v
 python3 -m compileall -q media manager nu9ve.py scripts
-swift test --package-path native/MediaMenu
+swift test --package-path native/Nuun
 git diff --check
 ```
 
@@ -92,7 +92,7 @@ Para trabajo simultáneo, definir superficie y archivos antes de empezar. UI/das
 Los modos de depuración `--qa-snapshots DIR` (vistas offscreen) y `--qa-skins DIR` (ventana real en cada skin, zoom, Ajustes y pantalla completa) usan fixtures. El motor de Python, en cambio, busca Stalker en el `HOME` real (registro, `~/Movies/Stalker`, `~/Downloads`), aunque `NU9VE_MEDIA_HOME` esté aislado. Hay que correrlos siempre con los dos temporales y elegir el skin por argumento, sin tocar preferencias:
 
 ```sh
-HOME=/tmp/nuun-qa/home NU9VE_MEDIA_HOME=/tmp/nuun-qa/home/media native/MediaMenu/.build/debug/MediaMenu --qa-snapshots /tmp/nuun-qa/out -appearance light -skin win9x
+HOME=/tmp/nuun-qa/home NU9VE_MEDIA_HOME=/tmp/nuun-qa/home/media native/Nuun/.build/debug/Nuun --qa-snapshots /tmp/nuun-qa/out -appearance light -skin win9x
 ```
 
 Las builds de depuración congelan la lista de capturas una vez puesto el fixture (`capturesFrozenForQA`), así que un vigilante tardío no puede reemplazarla. Aun así, revisa las imágenes antes de compartirlas.

@@ -159,7 +159,7 @@ Errores que la sombra encontró en Rust, ya corregidos: `projects` ordenaba los 
 
 La app selecciona las operaciones en Rust a partir de las capacidades del motor.
 
-- `PersistentReader` (`native/MediaMenu/Sources/MediaMenuCore/Protocol.swift`) arranca `nuun-engine rpc-serve` y le pregunta una vez `engine_info`. Cada lectura que está en `ported` va primero a Rust. Si Rust responde `not_ported`, `reader_unavailable` o `runtime_missing`, o el proceso se cae, la misma lectura va al `rpc-serve` de Python. Cualquier otro error es la respuesta del método.
+- `PersistentReader` (`native/Nuun/Sources/NuunCore/Protocol.swift`) arranca `nuun-engine rpc-serve` y le pregunta una vez `engine_info`. Cada lectura que está en `ported` va primero a Rust. Si Rust responde `not_ported`, `reader_unavailable` o `runtime_missing`, o el proceso se cae, la misma lectura va al `rpc-serve` de Python. Cualquier otro error es la respuesta del método.
 - El motor se busca en `Contents/Resources/backend/nuun-engine` (lo pone `scripts/build_media_app.py`, firmado aparte porque la app no se firma con `--deep`) o, desde el código, en `engine/target/release/nuun-engine` junto a `nu9ve.py`.
 - Ajustes → Diagnóstico → «Motor de media» elige `rust` (predeterminado si hay motor) o `python` (`UserDefaults` `readEngine`), y lista qué motor respondió cada método.
 - `BackendClient` consulta `engine_info.writes`. Para una escritura ya enviada a Rust, sólo cambia a Python ante `not_ported`; SIGINT durante una transferencia de ingreso se atiende en un punto recuperable y registra `paused`. Tras una salida abrupta, el diario permite reanudar desde el último estado registrado.

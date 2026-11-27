@@ -1,6 +1,6 @@
 # Revisión de la app y propuestas · 2026-10-29
 
-Revisión de la app nativa (`native/MediaMenu`), su puente con el motor
+Revisión de la app nativa (`native/Nuun`), su puente con el motor
 (`media/service.py`) y sus flujos de ventana, navegación, formularios, detección de SD,
 estilo, idiomas y plataformas. Es un **documento de propuestas**: no cambia
 comportamiento ni sustituye [STATUS](../STATUS.md) o [PLAN](../../PLAN.md). La experiencia
@@ -37,9 +37,9 @@ Lo que más afecta la sensación de fluidez **no es el lenguaje de la UI**, sino
 
 1. **Un proceso Python por cada llamada.** `BackendClient.call` lanza
    `python3 nu9ve.py media rpc` por petición
-   ([Protocol.swift:103](../../native/MediaMenu/Sources/MediaMenuCore/Protocol.swift)).
+   ([Protocol.swift:103](../../native/Nuun/Sources/NuunCore/Protocol.swift)).
    `refresh()` hace nueve llamadas en serie
-   ([Application.swift:165](../../native/MediaMenu/Sources/MediaMenu/Application.swift)), y se
+   ([Application.swift:165](../../native/Nuun/Sources/Nuun/Application.swift)), y se
    ejecuta al terminar cada operación y en cada montaje. El progreso del job abre otro
    proceso cada 2 s (Application.swift:361). Cada `suggest` y `source_cards` además
    ejecuta `diskutil` ([volumes.py:30](../../media/volumes.py)).
@@ -65,7 +65,7 @@ las pestañas no se ven y sólo aparecen al revelar la barra superior; en ventan
 `.right` (Application.swift:690). Al entrar en fullscreen, `windowWillEnterFullScreen`
 oculta el accesorio y activa `windowIsFullscreen`, y `WindowRoot` inserta otra
 `WindowTopBar` con `.safeAreaInset(edge: .top)`
-([Presentation.swift:13](../../native/MediaMenu/Sources/MediaMenu/Presentation.swift)).
+([Presentation.swift:13](../../native/Nuun/Sources/Nuun/Presentation.swift)).
 
 **Causa probable (sin reproducir).** Esto depende de tres comportamientos de AppKit que
 cambian en fullscreen: (a) el titlebar —con sus accesorios— se mueve a una ventana de
@@ -220,7 +220,7 @@ punto recuperable.
 ### Miniaturas
 
 - `ThumbnailLoader` codifica cada miniatura a PNG y la decodifica de nuevo
-  ([ImportViews.swift:62](../../native/MediaMenu/Sources/MediaMenu/ImportViews.swift)).
+  ([ImportViews.swift:62](../../native/Nuun/Sources/Nuun/ImportViews.swift)).
   Guardar `CGImage` en la caché evita ese trabajo.
 - Usar primero la miniatura que ya trae la cámara (Sony `THMBNL/*.JPG`, GoPro `.THM`,
   DJI `.LRF`) como imagen de vista previa; abrir el video sólo para el hover. Lectura más
@@ -264,7 +264,7 @@ volumen externo, `suggest` (otro proceso + `diskutil info`)
 ## 7. Estilo: más compacto y ordenado
 
 - `CreatorButtonStyle` se aplica a **todos** los botones desde `CreatorAppearance`
-  ([Appearance.swift:120](../../native/MediaMenu/Sources/MediaMenu/Appearance.swift)): fondo
+  ([Appearance.swift:120](../../native/Nuun/Sources/Nuun/Appearance.swift)): fondo
   de tarjeta, borde y relleno de 12×7 en cada botón pequeño hacen la interfaz pesada.
   Proponer jerarquía: un botón primario relleno por vista, secundarios `.bordered` con
   `controlSize(.small)`, acciones en línea `.borderless`.

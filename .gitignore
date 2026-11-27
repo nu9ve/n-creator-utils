@@ -12,7 +12,7 @@ config.local.json
 
 # Native build products
 .build/
-/native/MediaMenu/.build
+/native/Nuun/.build
 .swiftpm/
 
 # Windows build products

@@ -12,7 +12,7 @@ public sealed class EngineFailure(string code, string message) : Exception(messa
     public string Code { get; } = code;
 }
 
-// Mismo protocolo que native/MediaMenu/Sources/MediaMenuCore/Protocol.swift (PersistentBackend):
+// Mismo protocolo que native/Nuun/Sources/NuunCore/Protocol.swift (PersistentBackend):
 // una línea JSON por petición `{"id", "method", "params"}` y una por respuesta, con el sobre
 // `{"ok": true, "data": …}` o `{"ok": false, "error": {"code", "message"}}` (ProtocolBoundary.response).
 // El transporte es independiente del proceso para poder probarlo con flujos en memoria.

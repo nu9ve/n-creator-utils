@@ -341,7 +341,8 @@ def status(root):
 def open_app(root, app):
     for name in DISKS:
         attach(root, name)
-    running = subprocess.run(['/usr/bin/pgrep', '-f', 'Contents/MacOS/MediaMenu'], capture_output=True)
+    # MediaMenu was the executable's name until 2026-11-26 (F2).
+    running = subprocess.run(['/usr/bin/pgrep', '-f', 'Contents/MacOS/(Nuun|MediaMenu)'], capture_output=True)
     if running.returncode == 0:
         raise SystemExit('Close nüün first: the test environment opens its own instance.')
     env = environment(root)

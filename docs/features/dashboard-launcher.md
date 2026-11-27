@@ -41,13 +41,13 @@ Implementar launch-at-login/actualización después de decidir firma/runtime. No
 
 ## Diseño modular de las superficies
 
-La presentación ya se separó en Presentation, ImportViews, SettingsView, InboxView y Appearance. El modelo/coordinador aún vive en Application y puede separarse al crecer sin crear ventanas o workers paralelos. Mantener `MediaMenuCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
+La presentación ya se separó en Presentation, ImportViews, SettingsView, InboxView y Appearance. El modelo/coordinador aún vive en Application y puede separarse al crecer sin crear ventanas o workers paralelos. Mantener `NuunCore` para protocolo/runtime/eventos y pruebas independientes; el dominio y SQLite permanecen en Python hasta una decisión explícita de migración.
 
 Una futura UI web/otra plataforma necesita el mismo catálogo de operaciones, capacidades y estados; no acceso directo indiscriminado a SQLite ni serializers que descarten campos. Primero medir si el helper one-shot es suficiente. Un servicio persistente se justifica por costo medido o streaming real, no por estética del dashboard.
 
 ## Cómo tomar una feature en otra sesión
 
-Ejemplo: «Implementar detalle de job con fases y bytes reales. Leer CONTEXT, STATUS, PLAN y `media/catalog.py`, `service.py`, `MediaMenuCore/Protocol.swift`. No cambiar cleanup ni formato editorial. Añadir campos compatibles de progress y su vista, con prueba de frontera y un smoke test aislado. Actualizar STATUS con evidencia.»
+Ejemplo: «Implementar detalle de job con fases y bytes reales. Leer CONTEXT, STATUS, PLAN y `media/catalog.py`, `service.py`, `NuunCore/Protocol.swift`. No cambiar cleanup ni formato editorial. Añadir campos compatibles de progress y su vista, con prueba de frontera y un smoke test aislado. Actualizar STATUS con evidencia.»
 
 Cada tarea debe declarar: problema concreto, fuente de datos, operación del servicio, estado vacío/offline/error, impacto de contrato, prueba mínima y fuera de alcance. Así pueden avanzar sesiones de UI, launcher y backend sin redefinir las mismas reglas.
 

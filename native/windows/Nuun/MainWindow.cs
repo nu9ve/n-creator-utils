@@ -31,7 +31,7 @@ public sealed partial class MainWindow : Window
     readonly Grid toolbarRow = new() { Padding = new Thickness(8, 0, 8, 0) };
     readonly Border toolbarRule = new() { Height = 2, VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false };
     readonly StackPanel brand = new() { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 8, 0) };
-    // Macintosh: the title sits in a white box over the pinstripes (MediaMenu SkinWindowBar).
+    // Macintosh: the title sits in a white box over the pinstripes (nüün en Mac, SkinWindowBar).
     readonly Border brandBox = new() { VerticalAlignment = VerticalAlignment.Center };
     readonly StackPanel navigation = new() { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
     readonly NuSurface navGroup = new() { Kind = SurfaceKind.Group, Padding = new Thickness(3), VerticalAlignment = VerticalAlignment.Center };
@@ -141,7 +141,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>Single row in the TitleBar, or caption + toolbar row for period skins (MediaMenu SkinWindowBar).</summary>
+    /// <summary>Single row in the TitleBar, or caption + toolbar row for period skins (nüün en Mac, SkinWindowBar).</summary>
     void Arrange()
     {
         Detach(brandBox); Detach(navGroup); Detach(actions);

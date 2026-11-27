@@ -21,4 +21,4 @@ swift-macos:
   when: manual
   allow_failure: true
   script:
-    - swift test --package-path native/MediaMenu
+    - swift test --package-path native/Nuun

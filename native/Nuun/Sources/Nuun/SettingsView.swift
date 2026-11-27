@@ -1,0 +1,261 @@
+import AppKit
+import SwiftUI
+import NuunCore
+
+struct SettingsView: View {
+    @Bindable var model: Model
+    @AppStorage("settingsSection") private var section = "profiles"
+    @Environment(\.creatorPalette) private var palette
+    @State private var id = ""
+    @State private var name = ""
+    @State private var raw = ""
+    @State private var clipperProfile = ""
+    @State private var work = ""
+    @State private var archive = ""
+    @State private var deviceName = ""
+    private let sections: [(String, LocalizedStringKey, String)] = [("profiles", "Perfiles", "person.crop.square"), ("disks", "Discos", "externaldrive"),
+        ("suite", "Suite", "point.3.connected.trianglepath.dotted"),
+        ("conversations", "Conversaciones", "bubble.left.and.text.bubble.right"),
+        ("ingest", "Ingreso", "sdcard"), ("capture", "Capturas", "record.circle"), ("appearance", "Apariencia", "paintpalette"),
+        ("language", "Idioma", "globe"), ("runtime", "Diagnóstico", "stethoscope")]
+    var body: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(sections, id: \.0) { key, title, icon in
+                    Button { section = key } label: {
+                        Label(title, systemImage: icon).frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(section == key ? palette.accentSoft : .clear, in: palette.control)
+                            .contentShape(Rectangle())
+                    }.buttonStyle(.plain)
+                }
+                Spacer()
+            }.frame(width: 170).padding(10)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ErrorBanner(model: model)
+                    switch section {
+                    case "profiles": profiles
+                    case "disks": disks
+                    case "suite": suite
+                    case "conversations": ConversationsSettings(model: model)
+                    case "ingest": IngestSettings(model: model)
+                    case "appearance": AppearanceSettings()
+                    case "capture": captures
+                    case "language": LanguageSettings()
+                    default: runtime
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(20)
+            }
+        }
+        // nu9ve-agent-v1 §5: every time Settings opens, the agent's state again.
+        .task { await model.loadSuiteAgent() }
+        .onAppear {
+            guard id.isEmpty else { return }
+            // Saving must not blank what the current profile already has.
+            if let saved = model.profiles.first(where: { $0["id"].string == model.profile }) { load(saved) }
+            else { id = model.profile; name = model.profile; raw = model.profile + "_raw"; work = model.work; archive = model.archive }
+        }
+    }
+    var profiles: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Perfiles y espacios de trabajo", systemImage: "person.crop.square").font(.title3.weight(.semibold))
+            Text("Un perfil es un canal o contexto creativo (por ejemplo, tu canal o una marca). El proyecto y país/ciudad siguen siendo independientes.").foregroundStyle(.secondary)
+            ForEach(model.profiles, id: \.["id"].string) { value in
+                HStack { Image(systemName: "folder"); Text(value["name"].string).fontWeight(.medium); Text(value["id"].string).foregroundStyle(.secondary); Spacer(); Text(value["raw_dir"].string).font(.caption); Button("Editar") { load(value) }; Button("Usar") { model.selectProfile(value["id"].string) } }
+                Divider()
+            }
+            if model.profiles.isEmpty { Text("Aún no hay perfiles guardados. Crea uno: sus raws van a ID_raw hasta que elijas otra carpeta.").font(.caption) }
+            HStack { Text("Configurar perfil").font(.headline); Spacer(); Button("Nuevo") { id = ""; name = ""; raw = ""; clipperProfile = ""; work = model.work; archive = model.archive } }
+            HStack { TextField("ID: mi-canal", text: $id); TextField("Nombre: Mi canal", text: $name) }
+            TextField("Carpeta de raws: mi-canal_raw", text: $raw)
+            Text("Ruta relativa dentro del espacio de trabajo del SSD. Se añade /PROYECTO. Cambiarla no mueve copias anteriores ni cambia planes ya revisados.").font(.caption).foregroundStyle(.secondary)
+            TextField("Perfil en Clipper: mi-canal", text: $clipperProfile)
+            Text("Cómo se llama este perfil en Clipper. Vacío: sin indicar, y Clipper decide por su cuenta. No cambia rutas ni copias anteriores.").font(.caption).foregroundStyle(.secondary)
+            volume("SSD sugerido", role: "work", value: $work)
+            volume("Respaldo sugerido", role: "archive", value: $archive)
+            Button("Guardar perfil") { save() }.disabled(id.isEmpty || name.isEmpty || raw.isEmpty)
+            Text("Ejemplo: SSD / 001_proyectos / mi-canal_raw / PROYECTO. Los discos sugeridos se aplican al elegir el perfil; el plan siempre muestra los destinos reales.").font(.caption)
+            Divider()
+            SuiteProfilesSection(model: model)
+        }
+    }
+    var disks: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Discos registrados", systemImage: "externaldrive").font(.title3.weight(.semibold))
+            HStack { Button("Añadir disco de respaldo…") { model.registerVolume(role: "archive") }; Button("Añadir SSD para editar…") { model.registerVolume(role: "work") }; Button("Actualizar estado") { Task { await model.refresh() } } }
+            Button("Adoptar este disco…") { model.adoptSuiteVolume() }.disabled(model.busy)
+            HStack {
+                Text("Nombre de este dispositivo")
+                TextField("M1, M4…", text: $deviceName).frame(maxWidth: 180)
+                Button("Guardar nombre") { model.renameSuiteDevice(deviceName) }
+                    .disabled(model.busy || deviceName.trimmingCharacters(in: .whitespaces).isEmpty || deviceName == model.suiteDeviceName)
+            }
+            // With the agent installed, device.json is its own: nüün reads and renames it, never creates it (device §9.2).
+            Text(!model.suiteDeviceName.isEmpty ? "Así lo ve la suite en los discos que registra esta máquina."
+                 : ["absent", "unavailable"].contains(model.suiteAgent.state) ? "Se crea al registrar el primer disco en la suite." : "Lo crea el agente de la suite.")
+                .font(.caption).foregroundStyle(.secondary)
+            ForEach(model.volumes, id: \.["id"].string) { value in
+                HStack(alignment: .top) {
+                    Image(systemName: value["online"].bool ? "externaldrive.fill.badge.checkmark" : "externaldrive.badge.xmark").foregroundStyle(value["online"].bool ? palette.success : palette.muted)
+                    VStack(alignment: .leading) { Text(value["name"].string).fontWeight(.semibold); Text(value["root"].string + "/" + value["prefix"].string).font(.caption).textSelection(.enabled) }
+                    Spacer(); Text(value["role"].string == "archive" ? "Respaldo" : "Edición"); Text(value["online"].bool ? "Conectado" : "Ausente").foregroundStyle(.secondary)
+                }.padding(.vertical, 6)
+                HStack {
+                    Button("Registrar en la suite") { model.registerSuiteVolume(value) }
+                    Button("Publicar índice…") { model.publishSuiteIndex(value) }
+                        .disabled(!value["online"].bool)
+                }.disabled(model.busy)
+                Divider()
+            }
+            Button("Respaldar catálogo y perfiles") { model.backupMetadata() }.disabled(model.archive.isEmpty || model.busy)
+            Text("Incluye proyectos, etiquetas, perfiles, decisiones y registro de operaciones. También se guarda después del ingreso y antes/después de liberar.").font(.caption).foregroundStyle(.secondary)
+        }.task { await model.loadSuiteDevice(); deviceName = model.suiteDeviceName }
+    }
+    /// The suite agent (nu9ve-agent-v1 §5). nüün works complete without it; with it, the suite sees this machine.
+    var suite: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Agente de la suite", systemImage: "point.3.connected.trianglepath.dotted").font(.title3.weight(.semibold))
+            Text("Un solo agente por máquina guarda la identidad de este dispositivo y la comparte con tus otras máquinas. nüün funciona igual sin él.")
+                .foregroundStyle(.secondary)
+            let agent = model.suiteAgent
+            HStack(spacing: 8) {
+                Image(systemName: agent.isRunning ? "checkmark.circle.fill" : "circle.dashed")
+                    .foregroundStyle(agent.isRunning ? palette.success : palette.muted)
+                switch agent.state {
+                case "running": Text("El agente corre · \(agent.installedVersion)")
+                case "installed": Text("El agente está instalado pero no corre · \(agent.installedVersion)")
+                case "outdated": Text("Hay una versión nueva del agente: \(agent.bundledVersion) (instalada: \(agent.installedVersion))")
+                case "absent": Text("El agente no está instalado en esta máquina")
+                default: Text("No se pudo consultar el agente")
+                }
+            }
+            HStack {
+                if agent.offersInstall { Button("Instalar el agente") { model.installSuiteAgent() } }
+                if agent.offersUpdate { Button("Actualizar") { model.installSuiteAgent() } }
+                // In QA (`NU9VE_AGENT_DIR`) there is no system startup to kick: the agent is started by hand.
+                if agent.state == "installed" && !model.agentIsQA { Button("Arrancar") { model.startSuiteAgent() } }
+                Button("Volver a consultar") { Task { await model.loadSuiteAgent() } }
+            }.disabled(model.busy)
+            if agent.state == "unavailable" && !agent.problem.isEmpty {
+                Text(agent.problem).font(.caption).foregroundStyle(palette.warning).textSelection(.enabled)
+            }
+            if agent.state == "installed" && model.agentIsQA {
+                Text("Agente de prueba: se arranca a mano con nu9ve agent serve.").font(.caption).foregroundStyle(.secondary)
+            }
+            Text("Instalar o actualizar sólo ocurre cuando lo pides aquí. nüün nunca arranca su propia copia del agente.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+    var captures: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Biblioteca de Stalker", systemImage: "record.circle").font(.title3.weight(.semibold))
+            TextField("Carpeta de capturas Stalker", text: $model.captureRoot)
+            Button("Elegir biblioteca…") {
+                pickURL(message: String(localized: "Elige la biblioteca de Stalker")) { url in model.captureRoot = url.path; model.watchCaptures() }
+            }
+            Button("Guardar y redescubrir bibliotecas") { model.watchCaptures() }
+            Text("Vacío: biblioteca publicada por Stalker. Una carpeta manual se añade a la actual y a las anteriores.").font(.caption)
+            ForEach(model.captureRoots, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
+            if !model.captureError.isEmpty { Text(model.captureError).font(.caption).foregroundStyle(palette.warning) }
+            Divider()
+            TextField("Ejecutable de Clipper (para dependencias y reenlace)", text: $model.clipperExecutable)
+            Button("Elegir ejecutable Clipper…") {
+                pickURL(directories: false, hidden: true) { url in model.clipperExecutable = url.path; model.watchCaptures() }
+            }
+            Text("Sin Clipper disponible, proyectos desconectados o exportaciones en cola, liberar espacio queda bloqueado. Guardar usa el botón de arriba.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Conservar el original Stalker después del respaldo", isOn: $model.retainStalkerSource)
+                .onChange(of: model.retainStalkerSource) { _, _ in model.watchCaptures() }
+            Text("Desactivado: tras verificar el respaldo y el disco de trabajo, se revisa Clipper y se libera el original en el mismo plan. Si hay dependencias desconocidas, colas o fallos, se conserva para liberar después desde Espacio. Las pistas y el bundle completo quedan en el respaldo.").font(.caption).foregroundStyle(.secondary)
+            Text("La bandeja sólo ofrece sesiones terminadas. Los originales, micrófono, eventos y pistas se conservan juntos dentro del bundle archivado.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+    var runtime: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Diagnóstico", systemImage: "stethoscope").font(.title3.weight(.semibold))
+            Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).textSelection(.enabled)
+            TextField("Python", text: $model.python).disabled(model.packagedBackend || model.bundledRuntime)
+            TextField("Motor", text: $model.script).disabled(model.packagedBackend || model.bundledRuntime)
+            Picker("Motor de media", selection: $model.readEngine) {
+                Text("Motor en Rust, con Python de respaldo").tag("rust")
+                Text("Python").tag("python")
+            }
+            .disabled(model.enginePath.isEmpty || model.busy)
+            .onChange(of: model.readEngine) { _, _ in model.configure() }
+            Text(model.enginePath.isEmpty ? String(localized: "Sin motor en Rust en esta instalación: todo lo responde Python.")
+                 : String(localized: "Motor en Rust: ") + model.enginePath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+            if model.readEngine != "python" && !model.enginePath.isEmpty {
+                Text("Rust ejecuta las escrituras compatibles. Puedes elegir Python para todo el flujo.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Text(engineSummary).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+            Text("Una ventana · tres modos · miniaturas bajo demanda · sin sondeo periódico en reposo.").font(.caption)
+            if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }
+            Text("Instalación local de desarrollo; el runtime externo y la firma de distribución siguen siendo gates de release.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+    /// Which engine answered each read so far («snapshot: rust»), most recent state of each method.
+    var engineSummary: String {
+        let answered = model.reader?.answeredBy ?? [:]
+        guard !answered.isEmpty else { return "" }
+        let rust = answered.filter { $0.value == "rust" }.keys.sorted(), python = answered.filter { $0.value == "python" }.keys.sorted()
+        return "Rust: " + (rust.isEmpty ? "—" : rust.joined(separator: ", ")) + "\nPython: " + (python.isEmpty ? "—" : python.joined(separator: ", "))
+    }
+    func volume(_ title: String, role: String, value: Binding<String>) -> some View {
+        Picker(title, selection: value) { Text("Sin sugerencia").tag(""); ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { item in Text(item["name"].string).tag(item["id"].string) } }
+    }
+    func load(_ value: JSONValue) { id = value["id"].string; name = value["name"].string; raw = value["raw_dir"].string; work = value["work"].string; archive = value["archive"].string; clipperProfile = value["clipper_profile"].string }
+    func save() {
+        let params: [String: JSONValue] = ["id": .string(id), "name": .string(name), "raw_dir": .string(raw), "work": .string(work), "archive": .string(archive),
+                                             "clipper_profile": clipperProfile.trimmingCharacters(in: .whitespaces).isEmpty ? .null : .string(clipperProfile.trimmingCharacters(in: .whitespaces))]
+        model.operation(String(localized: "Guardando perfil"), scope: .settings) { _ = try await model.client!.call("save_profile", params); model.message = String(localized: "Perfil guardado; los planes anteriores no cambian") }
+    }
+}
+
+struct IngestSettings: View {
+    @Bindable var model: Model
+    @AppStorage("autoInspect") private var autoInspect = false
+    @AppStorage("showQuickImporter") private var showQuickImporter = true
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Ingreso", systemImage: "sdcard").font(.title3.weight(.semibold))
+            Text("Entrada → Flujo → Resultado. El botón final autoriza el plan mostrado, incluida la limpieza verificada que hayas elegido. Las excepciones se resuelven en la misma pantalla.").font(.caption).foregroundStyle(.secondary)
+            Toggle("Inspeccionar automáticamente la SD al abrir Ingreso", isOn: $autoInspect)
+            Text("Desactivado: elegir una fuente no recorre sus archivos hasta que abres Contenido o revisas el plan.").font(.caption).foregroundStyle(.secondary)
+            Divider()
+            Toggle("Mostrar el importador rápido al conectar una tarjeta", isOn: $showQuickImporter)
+            Text("Sólo con un disco de respaldo o de trabajo conectado. No inicia copias ni limpia automáticamente.").font(.caption).foregroundStyle(.secondary)
+            Button("Probar vista del importador…") { model.openImporter?() }
+        }
+    }
+}
+
+struct LanguageSettings: View {
+    @State private var language = (UserDefaults.standard.array(forKey: "AppleLanguages") as? [String])?.first.flatMap { ["es", "en"].contains(String($0.prefix(2))) ? String($0.prefix(2)) : nil } ?? ""
+    @State private var changed = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Idioma", systemImage: "globe").font(.title3.weight(.semibold))
+            Picker("Idioma de la app", selection: $language) {
+                Text("Igual que el sistema").tag("")
+                Text("Español").tag("es")
+                Text("English").tag("en")
+            }.pickerStyle(.radioGroup)
+            .onChange(of: language) { _, value in
+                if value.isEmpty { UserDefaults.standard.removeObject(forKey: "AppleLanguages") }
+                else { UserDefaults.standard.set([value], forKey: "AppleLanguages") }
+                changed = true
+            }
+            Text("El cambio se aplica al reiniciar nüün. Los mensajes técnicos del motor pueden aparecer en inglés.").font(.caption).foregroundStyle(.secondary)
+            if changed {
+                Button("Reiniciar nüün ahora") {
+                    let configuration = NSWorkspace.OpenConfiguration(); configuration.createsNewApplicationInstance = true
+                    NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration) { _, _ in
+                        Task { @MainActor in NSApp.terminate(nil) }
+                    }
+                }
+            }
+        }
+    }
+}

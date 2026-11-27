@@ -1,0 +1,1494 @@
+import AppKit
+import SwiftUI
+import UserNotifications
+import NuunCore
+import os
+
+/// Card arrival timing, to measure the popup: `log stream --predicate 'subsystem == "app.nu9ve.media"'`.
+let cardLog = Logger(subsystem: "app.nu9ve.media", category: "cards")
+func elapsedMilliseconds(since start: ContinuousClock.Instant) -> Int64 {
+    let d = start.duration(to: .now).components
+    return d.seconds * 1000 + d.attoseconds / 1_000_000_000_000_000
+}
+
+struct DraftUnit: Identifiable, Equatable {
+    var id: String
+    var paths: [String]
+    var project = ""
+    var profile = ""
+    var camera = "auto"
+    var copyForEditing = false
+    var category = "support"
+    var detectedCamera = ""
+    var detectedFamily = ""
+    var bytes: Double = 0
+    var createdAt = ""
+    var duration: Double = 0
+    var tracks = 0
+    var sessionID = ""
+    var manifestPreviewPath = ""
+    var country = ""
+    var suggestedProject = ""
+    var suggestedCountry = ""
+    /// Device decided from the file's own EXIF (recipe or confirmed registry); empty when it still needs a choice.
+    var deviceCategory = ""
+    var deviceLabel = ""
+    /// Mission or not from the archive's registry while inspecting (matched / none / pending_export); the plan decides again.
+    var missionState = ""
+    var missionPlan = ""
+    var missionLikely = false
+    var missionFlowProject = ""
+    /// Left out of the backup by the person; the reviewed cleanup deletes it from the card without a copy.
+    var discard = false
+    var includeOther = false
+    var isOther: Bool { category == "other" }
+    var convertsHandycamMovie = false
+    var canCopyForEditing: Bool { !isSupport && !isOther && !discard && !convertsHandycamMovie }
+    var previewPath: String? {
+        if !manifestPreviewPath.isEmpty { return manifestPreviewPath }
+        return paths.first { path in
+            let lower = path.lowercased()
+            return !lower.contains("/thmbnl/") && ["jpg", "jpeg", "png", "heic", "dng", "cr2", "cr3", "arw", "mov", "mp4", "mpg", "mts", "wav", "insv", "insp"].contains(URL(fileURLWithPath: path).pathExtension.lowercased())
+        }
+    }
+    /// Drone/360 only when explicitly classified; never inferred from the DJI brand.
+    var displayCategory: String {
+        let effective = camera == "auto" ? (deviceCategory.isEmpty ? detectedFamily : deviceCategory) : camera
+        return effective == "dji-drone" ? "drone" : ["dji-360", "insta360"].contains(effective) ? "360" : category
+    }
+    var isInsta360: Bool { detectedFamily == "insta360" }
+    var needsCameraReview: Bool { !isSupport && !discard && camera == "auto" && deviceCategory.isEmpty && detectedCamera.lowercased().hasPrefix("dji") }
+    var isSupport: Bool { category == "support" }
+}
+
+enum Route: String, CaseIterable, Identifiable {
+    case home, ingest, flows, library
+    var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .home: "Inicio"
+        case .ingest: "Ingreso"
+        case .flows: "Flujos"
+        case .library: "Biblioteca"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .home: "tray.full"
+        case .ingest: "sdcard"
+        case .flows: "point.3.connected.trianglepath.dotted"
+        case .library: "square.stack"
+        }
+    }
+}
+
+enum LibrarySection: String, CaseIterable, Identifiable {
+    case projects, files, disks, activity
+    var id: String { rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .projects: "Proyectos"
+        case .files: "Archivos"
+        case .disks: "Discos"
+        case .activity: "Actividad"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .projects: "folder"
+        case .files: "square.stack"
+        case .disks: "externaldrive"
+        case .activity: "clock.arrow.circlepath"
+        }
+    }
+}
+
+enum IngestStep: Int, CaseIterable, Identifiable, Comparable {
+    case source, content, destinations, review, run
+    var id: Int { rawValue }
+    static func < (lhs: IngestStep, rhs: IngestStep) -> Bool { lhs.rawValue < rhs.rawValue }
+    var title: LocalizedStringKey {
+        switch self {
+        case .source, .content: "Entrada"
+        case .destinations, .review: "Flujo"
+        case .run: "Resultado"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .source: "sdcard"
+        case .content: "photo.stack"
+        case .destinations: "externaldrive"
+        case .review: "checklist"
+        case .run: "arrow.right.circle"
+        }
+    }
+}
+
+/// What a running mutation locks. Navigation and reading never wait on it.
+enum OperationScope { case ingest, library, space, settings, source }
+
+/// Folder pickers attach to the window that asked, instead of blocking the whole app.
+@MainActor func pickURL(message: String = "", directories: Bool = true, directory: URL? = nil, hidden: Bool = false, _ completion: @escaping (URL) -> Void) {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = !directories; panel.canChooseDirectories = directories
+    panel.message = message; panel.showsHiddenFiles = hidden
+    if let directory { panel.directoryURL = directory }
+    if let window = NSApp.keyWindow {
+        panel.beginSheetModal(for: window) { response in
+            if response == .OK, let url = panel.url { completion(url) }
+        }
+    } else if panel.runModal() == .OK, let url = panel.url { completion(url) }
+}
+
+@MainActor @Observable final class Model {
+    var route: Route = .home
+    /// What is worth suggesting for the connected disks (`suite_suggestions`), and the ones «Ahora no» hid until the
+    /// next disk arrives (docs/features/suite-disks-flows.md §3).
+    var suiteSuggestions: [JSONValue] = []
+    var hiddenSuggestions: Set<String> = []
+    var lastConversationSuggestionCheck: ContinuousClock.Instant?
+    /// The copy between work disks being prepared, when its sheet is open.
+    var workCopyRequest: WorkCopyRequest?
+    var conversations: JSONValue?
+    var conversationUpdateResult = ""
+    /// Acumulados en disco (`storage_accumulations`) y perfiles de la suite en esta Mac (`suite_profiles`).
+    var accumulations: JSONValue?
+    var accumulationsRunning = false
+    var showAccumulations = false
+    var suiteProfiles: JSONValue?
+    var conversationsRunning = false
+    /// The engine's measure of the conversations backup in progress (`action_progress`), apart from `actionProgress`
+    /// so a backup and another action never overwrite each other's bar.
+    var conversationProgress: JSONValue = .object([:])
+    var librarySection: LibrarySection = .projects
+    var presentation: WindowMode = .full
+    var profiles: [JSONValue] = []
+    /// Receipts only, until the first capture overview arrives.
+    var snapshotProjects: [JSONValue] = []
+    /// Every named project, drafts included, newest first.
+    var projectIndex: [JSONValue] = []
+    var projectClosures: [JSONValue] = []
+    var closureProject: JSONValue?
+    var closureSettings: JSONValue = .object([:])
+    var closureCandidates: [JSONValue] = []
+    /// A release or a delivery from the archive in progress: which one, and the engine's last measure (`action_progress`).
+    var runningAction = ""
+    var actionProgress: JSONValue = .object([:])
+    /// Where each saved delivery stands now (`closure.delivery_states`): the same reading as the Projects row.
+    var closureDeliveries: [JSONValue] = []
+    /// Linked projects (closure.related) with their saved deliveries, from `closure_candidates.group`.
+    var closureGroup: [JSONValue] = []
+    /// The project being linked or unlinked right now, so its row shows that it is working.
+    var linkingProject = ""
+    var closureTruncated = false
+    var closurePlan: JSONValue?
+    var closureProgress: JSONValue = .object([:])
+    var closureReviewing = false
+    var closureApplying = false
+    var showClosure = false
+    var showSaveAll = false
+    var excludedSaveAllItems: Set<String> = []
+    var saveAllHomeTarget: String?
+    var saveAllPlans: [String: ReviewedPlan] = [:]
+    var saveAllResult: JSONValue?
+    var saveAllUpdating = false
+    var saveAllError = ""
+    var saveAllCollections: [JSONValue] = []
+    var saveAllProject: String?
+    var titlebarCenter: CGFloat = 0
+    var ingestDrafts: [String: IngestDraft] = [:]
+    /// Quick picks everywhere: the same order as Biblioteca, without finished projects.
+    var recentProjects: [JSONValue] {
+        var seen = Set<String>()
+        return (projectIndex.isEmpty ? snapshotProjects : projectIndex).filter { $0["stage"].string != "finished" && Array($0["kinds"].object.keys) != ["delivery"] && seen.insert($0["project"].string).inserted }
+    }
+    var sessionProjects: [String] = []
+    /// Suggestions across pending captures and drafts; selecting one remains explicit.
+    var ingestProjects: [JSONValue] {
+        let pending = pendingCaptures.map { $0["tag"]["name"].string.isEmpty ? $0["project_hint"]["name"].string : $0["tag"]["name"].string }
+        let draftNames = ingestDrafts.values.flatMap { [$0.project] + $0.units.map(\.project) }
+        var seen = Set<String>()
+        let names = sessionProjects + draftNames.sorted() + pending + recentProjects.map { $0["project"].string }
+        return names.filter { !$0.isEmpty && seen.insert($0).inserted }.map { .object(["project": .string($0)]) }
+    }
+    var libraryQuery = ""
+    /// The project just assigned from Inicio, offered to the sessions still without one.
+    var lastTagged = ""
+    @ObservationIgnored var tagTask: Task<Void, Never>?
+    var finals: JSONValue?
+    var flowSelection = "camera"
+    /// The effective recipe (`recipe` RPC): what the engine recognizes, so Flujos never describes rules by hand.
+    var recipeSummary: JSONValue?
+    /// Reviewing again must rebuild the finals route: a plain delivery plan would nest whole folders elsewhere.
+    @ObservationIgnored var finalsGroup: JSONValue?
+    /// Moving is the default: publishing and backing up is how the editing disk gets its space back.
+    var finalsKeepSource = UserDefaults.standard.bool(forKey: "finalsKeepSource") { didSet { UserDefaults.standard.set(finalsKeepSource, forKey: "finalsKeepSource") } }
+    var finalsChecking = false
+    @ObservationIgnored var finalsClient: BackendClient?
+    @ObservationIgnored var finalsCheckedAt: Date?
+    var discoveryLoading = false
+    var discoveryError = ""
+    var loadedSourceKey = ""
+    @ObservationIgnored var pendingReadID: UUID?
+    @ObservationIgnored var sourceReadTask: Task<Void, Never>?
+    @ObservationIgnored var changeMode: ((WindowMode) -> Void)?
+    var source = "" { didSet { if source != oldValue { sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; archiveExceptionConfirmed = false; units = []; plan = nil; loadedSourceKey = ""; gridSelection = []; dayFilter = ""; sessionFilter = "" } } }
+    var bundledRuntime = false
+    var captureRoot = ""
+    var pendingCaptures: [JSONValue] = []
+    @ObservationIgnored var captureWatchers: [CaptureWatcher] = []
+    /// Flight-app exports waiting in the inbox, compared with the archive's mission registry (read only).
+    var missionInbox: JSONValue?
+    @ObservationIgnored var missionWatcher: CaptureWatcher?
+    @ObservationIgnored var missionWatcherRoot = ""
+    @ObservationIgnored var missionTask: Task<Void, Never>?
+    var captureSessions: [JSONValue] = []
+    var captureRoots: [String] = []
+    var captureError = ""
+    var clipperExecutable = ""
+    var clipperAvailable = false
+    var retainStalkerSource = false
+    var releasePlan: JSONValue?
+    var releaseHistory: [JSONValue] = []
+    var showRelease = false
+    var auditPath = ""
+    var releaseProject = ""
+    var storageTargets: [JSONValue] = []
+    var storageTargetID = UserDefaults.standard.string(forKey: "storageTarget") ?? "" { didSet { UserDefaults.standard.set(storageTargetID, forKey: "storageTarget") } }
+    var storagePath = ""
+    var storageTree: JSONValue?
+    var storageSelection: String?
+    var storageRun: JSONValue?
+    var storageError = ""
+    @ObservationIgnored var storageClient: BackendClient?
+    @ObservationIgnored var storageMonitor: Task<Void, Never>?
+    @ObservationIgnored var storageFixture = false
+    @ObservationIgnored var watchedCaptureRoots: [String] = []
+    @ObservationIgnored var captureTask: Task<Void, Never>?
+    var project = "" { didSet { if project != oldValue { invalidatePlan() } } }
+    var lastProject = ""
+    var cardSuggestions: [String] = []
+    var sourceCards: [JSONValue] = []
+    @ObservationIgnored var notifiedCards: Set<String> = []
+    /// When each card was inserted in this run: the newest go first in the source list.
+    var cardArrivals: [String: Date] = [:]
+    var profile = "" { didSet { if profile != oldValue { invalidatePlan() } } }
+    var country = "" { didSet { if country != oldValue { invalidatePlan() } } }
+    var city = "" { didSet { if city != oldValue { invalidatePlan() } } }
+    var archive = "" { didSet { if archive != oldValue { invalidatePlan() } } }
+    var work = "" { didSet { if work != oldValue { archiveExceptionConfirmed = false; invalidatePlan() } } }
+    var sourceKind = "card" { didSet { if sourceKind != oldValue { invalidatePlan(); loadedSourceKey = ""; units = [] } } }
+    var cleanup = true { didSet { if cleanup != oldValue { invalidatePlan() } } }
+    var volumes: [JSONValue] = []
+    var assets: [JSONValue] = []
+    var jobs: [JSONValue] = []
+    var units: [DraftUnit] = [] { didSet { if units != oldValue { invalidatePlan() } } }
+    /// Library selection (asset IDs).
+    var selected: Set<String> = []
+    /// Ingest grid selection (unit IDs) for bulk assignment; never part of the plan itself.
+    var gridSelection: Set<String> = []
+    @ObservationIgnored var selectionAnchor: String?
+    var typeFilter = ""
+    /// Narrow the grid to one capture day (`YYYY-MM-DD`) and/or one mission session; combined with `typeFilter`.
+    var dayFilter = ""
+    var sessionFilter = ""
+    var quickLookURL: URL?
+    @ObservationIgnored var reviewedPlan: ReviewedPlan?
+    var plan: JSONValue? { didSet { if plan == nil { reviewedPlan = nil } } }
+    var activeScope: OperationScope?
+    var busy: Bool { activeScope != nil }
+    var ingestLocked: Bool { activeScope == .ingest }
+    var message = String(localized: "Listo")
+    var suiteDeviceName = ""
+    /// The suite agent (nu9ve-agent-v1 §5), as `nu9ve agent state` sees it.
+    var suiteAgent = SuiteAgentStatus.unavailable
+    /// The nüün projects some machine works on, by project key (exchange §7.1), as the agent last said.
+    var projectLeases: [String: JSONValue] = [:]
+    var error = ""
+    var python = ""
+    var script = ""
+    /// The test environment folder when scripts/sandbox.py opened this app (NU9VE_SANDBOX and a catalog inside it).
+    /// Its catalog is the environment's; the capture folder saved for the real catalog is never used here.
+    let sandbox: String? = {
+        let env = ProcessInfo.processInfo.environment
+        guard let root = env["NU9VE_SANDBOX"], let home = env["NU9VE_MEDIA_HOME"], home.hasPrefix(root + "/") else { return nil }
+        return root
+    }()
+    /// The Rust engine, inside the app or, from source, `engine/target/release` next to `nu9ve.py`.
+    var enginePath = ""
+    /// Who answers reads: "rust" (Python answers what Rust does not have) or "python".
+    var readEngine = UserDefaults.standard.string(forKey: "readEngine") ?? "rust"
+    var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
+    var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
+    private var copyChoiceOverride: String?
+    var copyChoice: String {
+        get { copyChoiceOverride ?? (units.contains(where: \.isInsta360) ? "none" : "all") }
+        set {
+            let previous = copyChoice
+            copyChoiceOverride = newValue
+            if previous != newValue { archiveExceptionConfirmed = false; invalidatePlan() }
+        }
+    }
+    var noWork: Bool { isHandycamArchiveOnly || copyChoice == "none" || (copyChoice == "some" && !units.contains(where: \.copyForEditing)) }
+    var ingestStep: IngestStep = .source
+    var activeJobID = ""
+    var jobProgress: JSONValue?
+    var lastResult: JSONValue?
+    var packagedBackend = false
+    @ObservationIgnored var client: BackendClient?
+    @ObservationIgnored var reader: PersistentReader?
+    @ObservationIgnored var openWindow: (() -> Void)?
+    @ObservationIgnored var openImporter: (() -> Void)?
+    @ObservationIgnored var openSettings: ((String) -> Void)?
+    @ObservationIgnored var statusChanged: (() -> Void)?
+    @ObservationIgnored var eventTask: Task<Void, Never>?
+    @ObservationIgnored var monitorTask: Task<Void, Never>?
+
+    init() {
+        let prefs = UserDefaults.standard
+        prefs.register(defaults: ["showQuickImporter": true, "ingestFlow": "quick"])
+        if let configURL = Bundle.main.url(forResource: "backend-config", withExtension: "json"),
+           let data = try? Data(contentsOf: configURL), let config = try? JSONDecoder().decode(BackendConfiguration.self, from: data),
+           let resources = Bundle.main.resourceURL {
+            python = config.python
+            script = config.script.hasPrefix("/") ? config.script : resources.appendingPathComponent(config.script).path
+            packagedBackend = true
+        }
+        if let resources = Bundle.main.resourceURL {
+            let bundledPython = resources.appendingPathComponent("backend/runtime/bin/python3").path
+            let bundledScript = resources.appendingPathComponent("backend/source/nu9ve.py").path
+            if FileManager.default.isExecutableFile(atPath: bundledPython) { python = bundledPython; script = bundledScript; bundledRuntime = true }
+        }
+        if !bundledRuntime && !packagedBackend {
+            python = prefs.string(forKey: "python") ?? python
+            script = prefs.string(forKey: "script") ?? script
+        }
+        enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script)
+        captureRoot = sandbox == nil ? prefs.string(forKey: "captureRoot") ?? "" : ""
+        configure()
+        // nu9ve-agent-v1 §5: the agent's state at launch, a query that never installs nor starts anything.
+        Task { await self.loadSuiteAgent() }
+    }
+
+    // MARK: Backend
+
+    /// The bundled `nuun-engine`, else the one built next to the source checkout; "" when there is none.
+    static func engine(resources: URL?, script: String) -> String {
+        let candidates: [String?] = [resources?.appendingPathComponent("backend/nuun-engine").path,
+                          URL(fileURLWithPath: script).deletingLastPathComponent().appendingPathComponent("engine/target/release/nuun-engine").path]
+        return candidates.compactMap { $0 }.first { FileManager.default.isExecutableFile(atPath: $0) } ?? ""
+    }
+
+    func configure() {
+        guard !busy else { return }
+        UserDefaults.standard.set(python, forKey: "python")
+        UserDefaults.standard.set(script, forKey: "script")
+        UserDefaults.standard.set(readEngine, forKey: "readEngine")
+        if enginePath.isEmpty { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
+        let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath,
+                                                 reads: readEngine, rustWrites: true)
+        reader?.stop()
+        client = BackendClient(configuration: configuration)
+        reader = PersistentReader(configuration: configuration)
+        Task { await refresh(loadDefaults: true) }
+    }
+    /// One read for everything the shell shows at rest (was nine processes).
+    func refresh(loadDefaults: Bool = false) async {
+        guard let reader, reader.configuration.usable else { return }
+        do {
+            let data = try await reader.call("snapshot")
+            volumes = data["volumes"].array
+            assets = data["library"].array
+            jobs = data["jobs"].array
+            profiles = data["profiles"].array
+            snapshotProjects = data["projects"].array
+            releaseHistory = data["release_plans"].array
+            projectClosures = data["project_closures"].array
+            clipperAvailable = data["capabilities"]["clipper"]["available"].bool
+            let integrations = data["integration_settings"]
+            clipperExecutable = integrations["clipper_executable"].string
+            retainStalkerSource = integrations["retain_stalker_source"].bool
+            sourceCards = data["source_cards"].array
+            if !data["errors"]["source_cards"].string.isEmpty {
+                error = String(localized: "No se pudieron actualizar las SDs: ") + data["errors"]["source_cards"].string
+            }
+            if loadDefaults {
+                loadSaveAll()
+                if !integrations["capture_override"].string.isEmpty { captureRoot = integrations["capture_override"].string }
+                else if !captureRoot.isEmpty { _ = try await client?.call("integration_settings", ["capture_override": .string(captureRoot)]) }
+                let values = data["defaults"]
+                // Offered via a suggestion; a new card never inherits it silently.
+                lastProject = values["project"].string
+                profile = values["profile"].string
+                country = values["country"].string
+                city = values["city"].string
+                let savedArchive = values["archive"].string, savedWork = values["work"].string
+                archive = volume(savedArchive)?["id"].string ?? savedArchive
+                work = volume(savedWork)?["id"].string ?? savedWork
+            }
+            if archive.isEmpty { archive = volumes.first(where: { $0["role"].string == "archive" })?["id"].string ?? "" }
+            if work.isEmpty { work = volumes.first(where: { $0["role"].string == "work" })?["id"].string ?? "" }
+            captureChanged([])
+            missionsChanged()
+            // Inicio asks for finals when it appears, often before the first snapshot knows which disks are online;
+            // asking again here keeps «finales por respaldar» from waiting for a tab change (15-minute throttle kept).
+            checkFinals()
+            statusChanged?()
+        } catch { self.error = error.localizedDescription }
+    }
+    func operation(_ title: String, scope: OperationScope = .ingest, _ body: @escaping @MainActor () async throws -> Void) {
+        guard !busy else { return }
+        if scope != .settings { yieldStorageToTransfer(); finalsClient?.cancel() }
+        activeScope = scope; error = ""; message = title; statusChanged?()
+        Task {
+            do { try await body() }
+            catch {
+                if let failure = error as? BackendFailure, failure.code == "cancelled" {
+                    message = self.stateLabel("paused")
+                } else {
+                    message = String(localized: "Operación detenida; revisa el estado")
+                }
+                if let failure = error as? BackendFailure, failure.code == "plan_changed" {
+                    self.plan = nil
+                    self.error = String(localized: "El documento del plan no coincide con su digest. Prepara y revisa un plan nuevo antes de copiar. ") + failure.message
+                } else if let failure = error as? BackendFailure, failure.code == "mission_registry_changed" {
+                    self.invalidatePlan()
+                    self.loadedSourceKey = ""
+                    self.goToStep(.content)
+                    self.error = failure.message
+                } else if let failure = error as? BackendFailure, failure.code == "camera_review_required" {
+                    self.error = String(localized: "Hay archivos DJI sin clasificar. Elige dron, 360 o action para cada uno y revisa de nuevo.")
+                    self.typeFilter = "dji"; self.goToStep(.content)
+                } else if (error as? BackendFailure)?.code != "cancelled" { self.error = error.localizedDescription }
+            }
+            activeScope = nil; monitorTask?.cancel(); monitorTask = nil
+            await refresh(); statusChanged?()
+            await reconcileMountedSonyCards()
+        }
+    }
+
+    // MARK: Stalker libraries
+
+    func watchCaptures() {
+        guard !busy else { return }
+        if sandbox == nil { UserDefaults.standard.set(captureRoot, forKey: "captureRoot") }
+        operation(String(localized: "Actualizando bibliotecas de Stalker"), scope: .settings) {
+            _ = try await self.client!.call("integration_settings", ["capture_override": .string(self.captureRoot),
+                "clipper_executable": .string(self.clipperExecutable), "retain_stalker_source": .bool(self.retainStalkerSource)])
+        }
+    }
+    #if DEBUG
+    /// QA fixtures own the capture list: a watcher firing later must not swap in the real Stalker library.
+    @ObservationIgnored var capturesFrozenForQA = false
+    #endif
+    func captureChanged(_ paths: [String]) {
+        #if DEBUG
+        if capturesFrozenForQA { return }
+        #endif
+        captureTask?.cancel()
+        captureTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, !busy, let reader, reader.configuration.usable else { return }
+            do {
+                let data = try await reader.call("capture_overview", ["override": .string(captureRoot)])
+                guard !Task.isCancelled else { return }
+                pendingCaptures = data["pending"].array; captureSessions = data["sessions"].array
+                projectIndex = data["projects"].array
+                captureRoots = data["roots"].array.map(\.string)
+                captureError = data["errors"].array.map(\.string).joined(separator: "\n")
+                let registry = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Stalker").path
+                let roots = Array(Set(captureRoots + [registry])).filter { FileManager.default.fileExists(atPath: $0) }.sorted()
+                if roots != watchedCaptureRoots {
+                    watchedCaptureRoots = roots
+                    captureWatchers = roots.map { root in CaptureWatcher(root: root) { [weak self] paths in
+                        Task { @MainActor in self?.captureChanged(paths) }
+                    } }
+                }
+                statusChanged?()
+            } catch { if !Task.isCancelled { captureError = error.localizedDescription } }
+        }
+    }
+
+    // MARK: Labels
+
+    func kindLabel(_ raw: String) -> String {
+        ["file": String(localized: "Archivo"), "camera_bundle": String(localized: "Captura"), "stalker_session": "Stalker", "delivery": String(localized: "Entrega")][raw] ?? raw
+    }
+    func workLabel(_ raw: String) -> String {
+        ["pending": String(localized: "Copia para editar pendiente"), "ready": String(localized: "Copias para editar listas"), "skipped": String(localized: "Sólo respaldo · sin copias para editar")][raw] ?? raw
+    }
+    func familyLabel(_ raw: String) -> String {
+        ["sony": "Sony", "h6": "Zoom H6", "gopro": "GoPro", "dji": "DJI", "insta360": "Insta360", "canon": "Canon", "stalker": "Stalker"][raw] ?? String(localized: "Tarjeta")
+    }
+    /// The device read from one photo (recipe or confirmed registry) names the card better than its folders.
+    func cardKindLabel(_ hint: JSONValue) -> String {
+        if let model = handycamModel(hint) { return "Sony Handycam " + model }
+        let device = hint["device"]["label"].string.isEmpty ? hint["device"]["source"].string : hint["device"]["label"].string
+        return device.isEmpty ? familyLabel(hint["family"].string) : device
+    }
+    func handycamModel(_ hint: JSONValue) -> String? {
+        let model = hint["device"]["model"].string
+        return model.uppercased().hasPrefix("DCR-SR") ? model : nil
+    }
+    func cardRecommendation(_ hint: JSONValue) -> String {
+        if handycamModel(hint) != nil { return String(localized: "Convierte a MP4 · sólo respaldo") }
+        return recommendationLabel(hint["recommendation"].string)
+    }
+    func recommendationLabel(_ raw: String) -> String {
+        switch raw {
+        case "drone_missions": return String(localized: "Fotos de dron: separa las de misión y copia sólo sus JPG para editar")
+        case "sony_format_in_camera": return String(localized: "Respaldo y copia para editar; al terminar, formatea en la cámara")
+        case "audio_needs_work_disk": return String(localized: "Audio: conecta el SSD de trabajo o confirma sólo respaldo")
+        case "dji_choose_category": return String(localized: "Elige dron, 360 o action en Contenido antes de revisar")
+        case "stalker_batch": return String(localized: "Sesiones Stalker: proyecto por sesión en un lote")
+        default: return String(localized: "Respaldo y copia para editar")
+        }
+    }
+    /// `kind` is the job's own; only the ingest in progress may fall back to the current source.
+    func stateLabel(_ state: String, kind: String? = nil) -> String {
+        let stalker = (kind ?? sourceKind) == "stalker"
+        switch state {
+        case "copying": return String(localized: "Copiando y verificando destinos")
+        case "backup_verified": return String(localized: "Archivo verificado")
+        case "cleaning_source": return (kind ?? sourceKind) == "delivery" ? String(localized: "Liberando el disco de edición") : String(localized: "Limpiando SD")
+        case "completed" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · liberado del disco de edición")
+        case "source_has_new_material" where (kind ?? sourceKind) == "delivery": return String(localized: "Respaldo verificado · llegaron archivos nuevos a la carpeta; no están respaldados")
+        case "completed": return stalker ? String(localized: "Respaldo verificado · original Stalker liberado") : String(localized: "Respaldo verificado · retiro completado")
+        case "camera_action_required": return String(localized: "Respaldo verificado · libera la tarjeta desde la cámara")
+        case "source_retained": return stalker ? String(localized: "Respaldo verificado · original Stalker conservado") : String(localized: "Respaldo verificado · origen conservado")
+        case "source_has_new_material": return String(localized: "Respaldo verificado · aparecieron archivos nuevos en la SD; no están respaldados")
+        case "paused": return String(localized: "Pausado; se puede reanudar")
+        case "failed": return String(localized: "Fallo; revisa el job antes de reanudar")
+        default: return state
+        }
+    }
+    func stageLabel(_ stage: String) -> String {
+        switch stage {
+        case "review_inventory": return String(localized: "Revisando inventario y destinos")
+        case "review_raw_archive": return String(localized: "Verificando fuentes en el respaldo")
+        case "review_intermediates": return String(localized: "Leyendo intermedios")
+        case "review_final": return String(localized: "Verificando entregas elegidas")
+        case "review_final_archive": return String(localized: "Comparando con el final en el respaldo")
+        case "review_finishing": return String(localized: "Preparando el plan para mostrarlo")
+        case "copying_finals": return String(localized: "Copiando y verificando finales")
+        case "verifying_finals": return String(localized: "Comprobando las entregas en el respaldo")
+        case "preparing": return String(localized: "Preparando liberación")
+        case "hashing_source": return String(localized: "Verificando archivos del original")
+        case "matching_archive": return String(localized: "Comparando con el respaldo")
+        case "validating_bundle": return String(localized: "Validando bundle Stalker")
+        case "inspecting_clipper": return String(localized: "Revisando dependencias de Clipper")
+        case "review_clipper_regenerable": return String(localized: "Pidiendo a Clipper su lista de regenerables")
+        case "clipper_cleanup": return String(localized: "Clipper borra sus regenerables revisados")
+        case "review_transcripts": return String(localized: "Pidiendo a Clipper sus transcripciones")
+        case "copying_transcripts": return String(localized: "Respaldando transcripciones en MEDIA")
+        case "verifying_work_copy": return String(localized: "Verificando copia de trabajo")
+        case "revalidating_source": return String(localized: "Revalidando origen")
+        case "revalidating_clipper": return String(localized: "Revalidando dependencias de Clipper")
+        case "verifying_archive": return String(localized: "Revalidando respaldo")
+        case "metadata_backup_before", "metadata_backup_after": return String(localized: "Guardando snapshot del catálogo")
+        case "relinking": return String(localized: "Actualizando referencias de Clipper")
+        case "releasing_originals": return String(localized: "Liberando archivos originales")
+        case "relink_complete": return String(localized: "Referencias actualizadas")
+        case "release_complete", "session_finished": return String(localized: "Sesión liberada")
+        case "delivering_work": return String(localized: "Copiando desde el respaldo y verificando")
+        default: return String(localized: "Liberando sesión Stalker")
+        }
+    }
+    func progressLabel(_ job: JSONValue) -> String {
+        // Real bytes from Transfer.report; never an invented percentage.
+        let p = job["progress"], gb = { (bytes: Double) in String(format: "%.1f", bytes / 1e9) }
+        if p["phase"].string == "releasing_stalker" {
+            var parts = [stageLabel(p["stage"].string), String(localized: "Sesión \(Int(p["session_index"].double))/\(Int(p["sessions_total"].double))")]
+            if !p["session_name"].string.isEmpty { parts.append(p["session_name"].string) }
+            if p["files_total"].double > 0 { parts.append(String(localized: "\(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos")) }
+            if p["bytes_total"].double > 0 { parts.append("\(gb(p["bytes_done"].double)) / \(gb(p["bytes_total"].double)) GB") }
+            if !p["path"].string.isEmpty { parts.append((p["path"].string as NSString).lastPathComponent) }
+            return parts.joined(separator: " · ")
+        }
+        guard p["bytes_total"].double > 0 else { return stateLabel(job["state"].string) }
+        let rate = p["bytes_per_second"].double > 0 ? String(format: " · %.0f MB/s", p["bytes_per_second"].double / 1e6) : ""
+        let files = " · " + String(localized: "\(Int(p["files_done"].double))/\(Int(p["files_total"].double)) archivos")
+        switch p["phase"].string {
+        case "converting": return String(localized: "Convirtiendo a MP4 y comprobando el video")
+        case "copying": return String(localized: "Copiando \(gb(p["copied_bytes"].double)) de \(gb(p["bytes_total"].double)) GB") + rate + files
+        case "verifying": return String(localized: "Verificando destinos \(gb(p["verified_bytes"].double)) de \(gb(p["verify_total"].double)) GB") + files
+        case "cleaning": return String(localized: "Limpiando SD tras verificar")
+        case "checking_card": return String(localized: "Comprobando el estado de la SD")
+        default: return stateLabel(job["state"].string)
+        }
+    }
+    /// 0…1 from measured bytes, or nil when the phase has no byte total.
+    func progressFraction(_ job: JSONValue) -> Double? {
+        let p = job["progress"]
+        if p["global_fraction"] != .null { return p["global_fraction"].double }
+        switch p["phase"].string {
+        case "copying" where p["bytes_total"].double > 0: return min(1, p["copied_bytes"].double / p["bytes_total"].double)
+        case "verifying" where p["verify_total"].double > 0: return min(1, p["verified_bytes"].double / p["verify_total"].double)
+        case "releasing_stalker" where p["bytes_total"].double > 0: return min(1, p["bytes_done"].double / p["bytes_total"].double)
+        default: return nil
+        }
+    }
+    /// The list carries these fields at the top; a single job only inside its plan.
+    func cleanupProfile(_ job: JSONValue) -> String { job["cleanup_profile"].string.isEmpty ? job["plan"]["cleanup_profile"].string : job["cleanup_profile"].string }
+    func jobLabel(_ job: JSONValue) -> String {
+        let listed = job["source_kind"].string
+        let kind = listed.isEmpty ? job["plan"]["source_kind"].string : listed
+        if job["state"].string == "completed", !job["plan"]["retained"].object.isEmpty {
+            return String(localized: "Respaldo verificado · otros archivos siguen en la SD")
+        }
+        // Observed stages (transfer.sony_stage): nothing here asks the person to confirm.
+        switch job["sony_stage"].string {
+        case "formatted": return String(localized: "Formato observado · SD lista para grabar")
+        case "originals_reappeared":
+            return String(localized: "Reaparecieron \(max(1, job["sony_reappeared"].array.count)) archivos respaldados en la SD · vuelve a revisarla")
+        case "removal_durable": return String(localized: "Retiro comprobado al reconectar · falta formatear en la cámara")
+        case "removal_observed": return String(localized: "Retiro observado · formatea en la cámara y vuelve a conectar la SD")
+        case "removal_recorded": return String(localized: "Retiro de clips registrado · falta comprobar la SD")
+        default: break
+        }
+        // Cards holding Stalker bundles end camera_action_required without any camera step.
+        if job["state"].string == "camera_action_required", cleanupProfile(job) == "files" {
+            return String(localized: "Respaldo verificado · las sesiones Stalker se conservan en el origen")
+        }
+        if job["state"].string == "camera_action_required", cleanupProfile(job) == "sony_clips_then_format" {
+            return String(localized: "Respaldo verificado · clips borrados de la SD · formatéala en la cámara")
+        }
+        return stateLabel(job["state"].string, kind: kind.isEmpty ? nil : kind)
+    }
+    func jobDetail(_ job: JSONValue) -> String {
+        let reasons = job["stalker_release"]["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
+        if !reasons.isEmpty { return reasons.joined(separator: " · ") }
+        return job["error"].string
+    }
+    func resumable(_ job: JSONValue) -> Bool {
+        guard !job["sony_removal_recorded"].bool else { return false }
+        return ["failed", "paused", "copying", "cleaning_source", "backup_verified"].contains(job["state"].string)
+            || job["state"].string == "source_retained" && job["release_stalker_source"].bool
+    }
+    func needsAttention(_ job: JSONValue) -> Bool {
+        if job["sony_stage"].string == "originals_reappeared" { return true }
+        if sonyCardFollowup(job) { return false }
+        return ["failed", "paused", "camera_action_required"].contains(job["state"].string)
+            || job["state"].string == "source_retained" && job["release_stalker_source"].bool
+    }
+    func sonyCardFollowup(_ job: JSONValue) -> Bool {
+        job["sony_removal_recorded"].bool ||
+            job["state"].string == "camera_action_required" && cleanupProfile(job) == "sony_clips_then_format"
+    }
+    var attentionJobs: [JSONValue] { jobs.filter { needsAttention($0) && !$0["dismissed"].bool } }
+    /// Only stops the reminder: the job keeps its state and its actions in Actividad.
+    func dismissJob(_ id: String, dismissed: Bool = true) {
+        func mark(_ value: Bool) {
+            jobs = jobs.map { job in
+                guard job["id"].string == id else { return job }
+                var updated = job.object; updated["dismissed"] = .bool(value)
+                return .object(updated)
+            }
+            statusChanged?()
+        }
+        mark(dismissed)
+        Task {
+            do { _ = try await oneShot("dismiss_job", ["job_id": .string(id), "dismissed": .bool(dismissed)]) }
+            catch { mark(!dismissed); self.error = error.localizedDescription }
+        }
+    }
+    /// Small catalog writes that must not wait for, or be dropped by, a running operation.
+    func oneShot(_ method: String, _ params: [String: JSONValue]) async throws -> JSONValue {
+        guard let client else { throw BackendFailure(code: "backend_unavailable", message: String(localized: "El motor no está disponible")) }
+        return try await BackendClient(configuration: client.configuration).call(method, params)
+    }
+
+    // MARK: Sources
+
+    func open(_ section: LibrarySection) { route = .library; librarySection = section }
+    func openFiles(project: String) { libraryQuery = project; open(.files) }
+    func chooseSource() {
+        pickURL(message: String(localized: "Elige la carpeta o tarjeta de origen")) { url in
+            if self.card(url.path) != nil { self.useCard(url.path) }
+            else { self.prepareSource(url.path, kind: Self.holdsStalkerSessions(url) ? "stalker" : "card") }
+        }
+    }
+    private var handycamHistorySources: Set<String> = []
+    var ingestFromSaveAll = false
+    var isHandycamHistory: Bool { handycamHistorySources.contains(source) }
+    var isHandycamHDD: Bool {
+        sourceKind == "card" && !isHandycamHistory
+            && (selectedCard.map { handycamModel($0["hint"]) != nil } == true || units.contains(where: \.convertsHandycamMovie))
+    }
+    var isHandycamArchiveOnly: Bool { isHandycamHDD || isHandycamHistory }
+    func chooseHandycamHistory(fromSaveAll: Bool = false) {
+        pickURL(message: String(localized: "Elige la carpeta con los MP4 de la Handycam")) { url in
+            self.showSaveAll = false
+            self.changeMode?(.full)
+            self.handycamHistorySources.insert(url.path)
+            self.prepareSource(url.path, kind: "card")
+            self.ingestFromSaveAll = fromSaveAll
+            self.copyChoice = "none"
+            self.cleanup = false
+            self.goToStep(.content)
+        }
+    }
+    /// A source says what it is: nobody should have to tell nüün that a folder of bundles is Stalker.
+    nonisolated static func holdsStalkerSessions(_ url: URL) -> Bool {
+        if url.pathExtension.lowercased() == "stalker" { return true }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+        return names.contains { $0.lowercased().hasSuffix(".stalker") }
+    }
+    func pendingSessions(in root: String) -> Int { pendingCaptures.filter { $0["root"].string == root }.count }
+    /// Folders with something to back up; each one is still its own reviewed plan.
+    var pendingCaptureRoots: [String] { captureRoots.filter { pendingSessions(in: $0) > 0 } }
+    func useStalker() {
+        guard let root = pendingCaptureRoots.first ?? captureRoots.first else { return }
+        prepareSource(root, kind: "stalker")
+    }
+    var selectedCard: JSONValue? { sourceCards.first { $0["path"].string == source && sourceKind == "card" } }
+    func card(_ path: String) -> JSONValue? { sourceCards.first { $0["path"].string == path } }
+    func ejectSource() { if !source.isEmpty { eject(source) } }
+    func eject(_ path: String) {
+        guard !(discoveryLoading && path == source), let card = card(path) else { return }
+        operation(String(localized: "Expulsando SD"), scope: .source) {
+            _ = try await self.client!.call("eject_card", ["source": .string(path), "identity": card["identity"]])
+            if self.source == path { self.source = "" }
+            self.sourceCards.removeAll { $0["path"].string == path }
+            self.cardSuggestions.removeAll { $0 == path }
+            self.message = String(localized: "SD expulsada · puedes retirarla")
+        }
+    }
+    func registerVolume(role: String) {
+        pickURL(message: role == "archive" ? String(localized: "Elige la raíz del disco de archivo (MEDIA)") : String(localized: "Elige la raíz del SSD para editar")) { url in
+            self.operation(String(localized: "Registrando disco"), scope: .settings) {
+                _ = try await self.client!.call("register_volume", ["root": .string(url.path), "name": .string(url.lastPathComponent), "role": .string(role)])
+                self.message = String(localized: "Disco registrado")
+            }
+        }
+    }
+    /// The bundled `nu9ve` binary, else the one built next to the checkout; "" when there is none.
+    var agentBinary: String { SuiteAgent.binary(resources: Bundle.main.resourceURL, script: script) }
+
+    /// `nu9ve agent state`, at launch and every time Settings opens (agent §5).
+    func loadSuiteAgent() async {
+        suiteAgent = await SuiteAgent.state(binary: agentBinary)
+    }
+
+    /// «Instalar el agente» or «Actualizar»: only because the person chose it here (agent §3).
+    func installSuiteAgent() {
+        let binary = agentBinary
+        operation(String(localized: "Instalando el agente de la suite"), scope: .settings) {
+            let result = try await SuiteAgent.install(binary: binary)
+            await self.loadSuiteAgent()
+            await self.loadSuiteDevice()
+            self.message = result["action"].string == "keep"
+                ? String(localized: "El agente instalado ya está al día")
+                : String(localized: "Agente \(result["version"].string) instalado")
+        }
+    }
+
+    /// «Arrancar»: the installed agent's own startup (`launchctl kickstart`), never a copy from this bundle.
+    /// In QA (`NU9VE_AGENT_DIR`) there is no startup to kick.
+    var agentIsQA: Bool { EngineEnvironment.values["NU9VE_AGENT_DIR"] != nil }
+
+    func startSuiteAgent() {
+        guard !agentIsQA else { return }
+        operation(String(localized: "Arrancando el agente de la suite"), scope: .settings) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+            process.arguments = ["kickstart", "gui/\(getuid())/xyz.nu9ve.agent"]
+            try process.run(); process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                throw BackendFailure(code: "agent_start_failed", message: String(localized: "macOS no pudo arrancar el agente"))
+            }
+            try await Task.sleep(for: .seconds(1))
+            await self.loadSuiteAgent()
+        }
+    }
+
+    /// The suite key of a nüün project: its local id, lowercased (the same one `data_catalog` lists).
+    static func projectKey(_ item: JSONValue) -> String { item["project_id"].string.lowercased() }
+
+    /// Who works on each nüün project now, through the agent. Without the agent there is nothing to show.
+    func loadProjectLeases() async {
+        guard suiteAgent.isRunning,
+              let result = try? await oneShot("suite_lease", ["action": .string("state")]),
+              result["agent"].string == "running" else { projectLeases = [:]; return }
+        var leases: [String: JSONValue] = [:]
+        for holder in result["holders"].array where holder["here"].bool || leases[holder["project_key"].string] == nil {
+            leases[holder["project_key"].string] = holder
+        }
+        projectLeases = leases
+    }
+
+    /// «Trabajar aquí» (`take`) or «Dejar de trabajar aquí» (`release`): the agent's lease_take or lease_release.
+    func setProjectLease(_ item: JSONValue, take: Bool) {
+        let key = Self.projectKey(item)
+        guard !key.isEmpty else { return }
+        operation(take ? String(localized: "Tomando el proyecto en esta máquina") : String(localized: "Soltando el proyecto"), scope: .settings) {
+            let result = try await self.oneShot("suite_lease", ["action": .string(take ? "take" : "release"), "project_key": .string(key)])
+            guard result["agent"].string == "running" else {
+                throw BackendFailure(code: "agent_absent", message: String(localized: "El agente de la suite no corre en esta máquina"))
+            }
+            await self.loadProjectLeases()
+            self.message = take ? String(localized: "Trabajas en este proyecto aquí") : String(localized: "Dejaste de trabajar aquí en este proyecto")
+        }
+    }
+
+    /// This machine's name in the suite (`device.json`). Empty until the first registration creates it.
+    func loadSuiteDevice() async {
+        guard let client else { return }
+        let result = try? await client.call("suite_device", ["peek": .bool(true)])
+        suiteDeviceName = result?["state"].string == "ok" ? result?["device"]["name"].string ?? "" : ""
+    }
+
+    func renameSuiteDevice(_ name: String) {
+        let chosen = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !chosen.isEmpty else { return }
+        operation(String(localized: "Guardando el nombre de este dispositivo"), scope: .settings) {
+            guard let client = self.client else { return }
+            let device = try await client.call("suite_device", ["name": .string(chosen)])
+            guard device["state"].string == "ok" else {
+                throw BackendFailure(code: "device_unavailable", message: device["message"].string)
+            }
+            self.suiteDeviceName = device["device"]["name"].string
+            self.message = String(localized: "Este dispositivo se llama \(self.suiteDeviceName)")
+        }
+    }
+
+    func registerSuiteVolume(_ volume: JSONValue) {
+        let root = volume["root"]
+        operation(String(localized: "Registrando disco en la suite"), scope: .settings) {
+            guard let client = self.client else { return }
+            let result: JSONValue
+            do {
+                result = try await client.call("suite_register_volume", [
+                    "root": root, "role": volume["role"], "label": volume["name"],
+                ])
+            } catch let failure as BackendFailure where ["suspect", "duplicate"].contains(failure.code) {
+                let observed = try await client.call("suite_observe_volume", ["root": root])
+                guard let decision = self.reviewSuiteVolume(observed) else {
+                    self.message = String(localized: "Identidad del disco pendiente de revisar")
+                    return
+                }
+                result = try await client.call("suite_resolve_volume", [
+                    "root": root, "volume_id": observed["marker"]["volume_id"],
+                    "serial": observed["current_fs"]["serial"], "decision": .string(decision),
+                ])
+            }
+            let suggested = result["suggested_device_name"].string
+            if !suggested.isEmpty, let chosen = self.confirmSuiteDeviceName(suggested) {
+                let device = try await client.call("suite_device", ["name": .string(chosen)])
+                guard device["state"].string == "ok" else {
+                    throw BackendFailure(code: "device_unavailable", message: device["message"].string)
+                }
+            }
+            self.message = result["state"].string == "unverified"
+                ? String(localized: "Identidad del disco sin segundo factor")
+                : String(localized: "Identidad de disco verificada")
+            await self.loadSuiteDevice()
+        }
+    }
+
+    private func reviewSuiteVolume(_ observed: JSONValue) -> String? {
+        let suspect = observed["state"].string == "suspect"
+        guard suspect || observed["state"].string == "duplicate" else { return nil }
+        let alert = NSAlert()
+        alert.messageText = suspect ? String(localized: "Cambió el serial del disco") : String(localized: "Dos discos tienen la misma identidad")
+        let currentSerial = observed["current_fs"]["serial"].string
+        alert.informativeText = String(localized: "Serial actual · \(currentSerial)")
+        alert.addButton(withTitle: String(localized: "Cancelar"))
+        alert.addButton(withTitle: String(localized: "Registrar como copia"))
+        if suspect { alert.addButton(withTitle: String(localized: "Es el mismo disco")) }
+        switch alert.runModal() {
+        case .alertSecondButtonReturn: return "copy"
+        case .alertThirdButtonReturn: return "same"
+        default: return nil
+        }
+    }
+
+    private func confirmSuiteDeviceName(_ suggestion: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Nombre de este dispositivo")
+        alert.informativeText = String(localized: "Se encontró una identidad copiada de otra máquina. Confirma o cambia el nombre de ésta.")
+        let name = NSTextField(string: suggestion)
+        name.frame.size.width = 260
+        alert.accessoryView = name
+        alert.addButton(withTitle: String(localized: "Guardar nombre"))
+        alert.addButton(withTitle: String(localized: "Más tarde"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        return name.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func publishSuiteIndex(_ volume: JSONValue) {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Publicar el índice en el disco")
+        alert.informativeText = String(localized: "El índice incluirá nombres y rutas relativas de las copias catalogadas en este disco, junto con los proyectos asociados.")
+        alert.addButton(withTitle: String(localized: "Publicar"))
+        alert.addButton(withTitle: String(localized: "Cancelar"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        operation(String(localized: "Publicando índice portátil"), scope: .settings) {
+            let result = try await self.client!.call("suite_publish_index", [
+                "root": volume["root"], "include_personal": .bool(true),
+            ])
+            self.message = String(localized: "Índice publicado · \(Int(result["file_count"].double)) archivos en \(Int(result["dataset_count"].double)) grupos")
+        }
+    }
+
+    func adoptSuiteVolume() {
+        pickURL(message: String(localized: "Elige la raíz del disco que quieres consultar")) { url in
+            guard !self.busy, let client = self.client else { return }
+            self.activeScope = .settings
+            self.error = ""
+            self.message = String(localized: "Leyendo índice portátil")
+            self.statusChanged?()
+            Task {
+                defer { self.activeScope = nil; self.statusChanged?() }
+                do {
+                    let result = try await client.call("suite_adopt_volume", ["root": .string(url.path)])
+                    self.showSuiteAdoption(result)
+                } catch {
+                    self.error = error.localizedDescription
+                    self.message = String(localized: "No se pudo adoptar el disco")
+                }
+            }
+        }
+    }
+
+    private func showSuiteAdoption(_ result: JSONValue) {
+        let alert = NSAlert()
+        let label = result["marker"]["label"].string
+        let files = Int(result["file_count"].double)
+        let groups = Int(result["dataset_count"].double)
+        let projects = Int(result["project_count"].double)
+        let date = Timestamps.label(result["generated_at"].string)
+        alert.messageText = String(localized: "Disco adoptado en sólo lectura")
+        let snapshot = result["snapshot"]["state"].string == "verified"
+            ? String(localized: "Snapshot del catálogo verificado")
+            : String(localized: "Sin snapshot del catálogo")
+        let warning = result["state"].string == "unverified"
+            ? "\n" + String(localized: "Segundo factor sin verificar")
+            : ""
+        alert.informativeText = String(localized: "\(label) · \(files) archivos en \(groups) grupos · \(projects) proyectos\nÍndice del \(date)\n\(snapshot)") + warning
+        alert.runModal()
+        message = String(localized: "Adopción en sólo lectura · \(label)")
+    }
+
+    func volume(_ key: String) -> JSONValue? { volumes.first { $0["id"].string == key || $0["name"].string == key } }
+    var sourceKey: String { source + "|" + sourceKind + "|" + archive }
+    var contentLoaded: Bool { !source.isEmpty && loadedSourceKey == sourceKey }
+    func discover() {
+        sourceReadTask?.cancel(); loadedSourceKey = ""
+        sourceReadTask = Task { await loadSource() }
+    }
+    func loadSource() async {
+        let key = sourceKey, path = source
+        guard !path.isEmpty, !ingestLocked, loadedSourceKey != key,
+              let client, client.configuration.usable else { return }
+        let readID = UUID()
+        pendingReadID = readID
+        discoveryLoading = true; discoveryError = ""
+        let reader = BackendClient(configuration: client.configuration)
+        defer { if pendingReadID == readID { pendingReadID = nil; discoveryLoading = false } }
+        do {
+            try await Task.sleep(for: .milliseconds(150))
+            let data = try await withTaskCancellationHandler {
+                try await reader.call("discover", ["source": .string(path), "source_kind": .string(sourceKind), "archive": .string(archive)])
+            } onCancel: { reader.cancel() }
+            guard !Task.isCancelled, sourceKey == key, pendingReadID == readID else { return }
+            let existing = Dictionary(uniqueKeysWithValues: units.map { ($0.id, $0) })
+            if data["handycam_hdd"].bool, !contentLoaded {
+                cleanup = false
+                copyChoice = "none"
+            }
+            units = data["units"].array.map { value in
+                let paths = value["paths"].array.map(\.string)
+                var unit = existing[value["id"].string] ?? DraftUnit(id: value["id"].string, paths: paths)
+                unit.paths = paths
+                unit.sessionID = value["session_id"].string
+                unit.suggestedProject = value["project_hint"]["name"].string
+                unit.suggestedCountry = value["project_hint"]["country"].string
+                if existing[value["id"].string] == nil {
+                    unit.project = value["tag"]["name"].string
+                    unit.country = value["tag"]["country"].string
+                }
+                unit.category = value["category"].string; unit.detectedFamily = value["camera"].string
+                unit.convertsHandycamMovie = data["handycam_hdd"].bool && unit.category == "video" && unit.paths.contains {
+                    $0.lowercased().hasPrefix("mp_root/") && $0.lowercased().hasSuffix(".mpg")
+                }
+                unit.detectedCamera = unit.detectedFamily
+                let device = value["device"]
+                unit.deviceCategory = device["requires_confirmation"].bool ? "" : device["category"].string
+                unit.deviceLabel = device["label"].string.isEmpty ? device["source"].string : device["label"].string
+                if !unit.deviceLabel.isEmpty { unit.detectedCamera = unit.deviceLabel }
+                if unit.convertsHandycamMovie {
+                    unit.detectedCamera = selectedCard.map { cardKindLabel($0["hint"]) } ?? "Sony Handycam"
+                }
+                let mission = value["mission"]
+                let previousMission = unit.missionState
+                unit.missionState = mission["state"].string; unit.missionPlan = mission["plan_name"].string
+                unit.missionLikely = mission["likely_mission"].bool; unit.missionFlowProject = mission["flow_project"].string
+                // Suggest the flow's project when a mission is first found, keeping any project the person selected.
+                if previousMission != "matched" && unit.missionState == "matched" && unit.project.isEmpty {
+                    unit.project = mission["project"].string
+                }
+                unit.bytes = value["bytes"].double; unit.createdAt = value["created_at"].string
+                unit.duration = value["duration_seconds"].double; unit.tracks = Int(value["track_count"].double)
+                unit.manifestPreviewPath = value["preview_path"].string
+                return unit
+            }
+            gridSelection = gridSelection.intersection(units.map(\.id))
+            loadedSourceKey = key; plan = nil
+            message = String(localized: "\(units.count) unidades · \(data["skipped"].array.count) capturas activas omitidas")
+        } catch {
+            if !Task.isCancelled, sourceKey == key, pendingReadID == readID { discoveryError = error.localizedDescription }
+        }
+    }
+    func discoverAndWait() async {
+        if contentLoaded { return }
+        if !discoveryLoading { discover() }
+        await sourceReadTask?.value
+    }
+    func prepareSource(_ path: String, kind: String) {
+        if source != path || sourceKind != kind { parkIngestDraft(); copyChoiceOverride = nil; ingestFromSaveAll = false }
+        sourceKind = kind; cleanup = kind == "card" && card(path) != nil; source = path; route = .ingest; ingestStep = .source; plan = nil; lastResult = nil
+        if kind == "stalker" { project = "" }
+        // Already on the work disk: it is its own editing copy, so only the backup applies.
+        if sourceWorkVolume != nil { copyChoice = "none" }
+    }
+    /// The registered work disk that already holds the chosen source folder, if any.
+    var sourceWorkVolume: JSONValue? {
+        guard !source.isEmpty else { return nil }
+        return volumes.first { volume in
+            let root = volume["root"].string
+            return volume["role"].string == "work" && !root.isEmpty && (source + "/").hasPrefix(root.hasSuffix("/") ? root : root + "/")
+        }
+    }
+    func prepareCaptureBatch(_ root: String) {
+        prepareSource(root, kind: "stalker")
+        goToStep(.content)
+    }
+    /// A Sony card whose backed-up clips reappeared: open a new reviewed plan for that same card (nothing is removed
+    /// without the person applying it). Nil when the card is not connected.
+    func reappearedCard(_ job: JSONValue) -> String? {
+        let uuid = job["source_volume_uuid"].string
+        return sourceCards.first { !uuid.isEmpty && $0["identity"]["volume_uuid"].string == uuid }?["path"].string
+    }
+    func reviewReappeared(_ job: JSONValue) {
+        guard let path = reappearedCard(job) else { return }
+        useCard(path)
+        changeMode?(.full)
+    }
+    func useCard(_ path: String) {
+        if source != path || sourceKind != "card" { parkIngestDraft(); ingestFromSaveAll = false }
+        ingestDrafts.removeValue(forKey: path)
+        sourceReadTask?.cancel(); pendingReadID = nil; discoveryLoading = false; loadedSourceKey = ""
+        sourceKind = "card"; source = path; units = []; plan = nil; project = ""; lastResult = nil
+        cleanup = !isHandycamArchiveOnly
+        copyChoiceOverride = isHandycamArchiveOnly ? "none" : nil
+        route = .ingest; ingestStep = .source
+        if UserDefaults.standard.bool(forKey: "autoInspect") { discover() }
+    }
+    /// Show a card's content (read only). Keeps the current window mode; the grid fills as files are read.
+    func previewCard(_ path: String) {
+        if source != path || sourceKind != "card" || (!contentLoaded && !discoveryLoading) {
+            useCard(path); discover()
+        }
+        route = .ingest
+        goToStep(.content)
+    }
+    /// Start the backup flow for a card: its content is read and the flow step opens; the plan is still reviewed.
+    func prepareCardBackup(_ path: String) {
+        previewCard(path)
+        goToStep(.destinations)
+    }
+    func newIngest() {
+        ingestFromSaveAll = false
+        copyChoiceOverride = nil
+        source = ""; project = ""; lastResult = nil; activeJobID = ""; jobProgress = nil; error = ""; typeFilter = ""; dayFilter = ""; sessionFilter = ""
+        ingestStep = .source; message = String(localized: "Listo")
+    }
+
+    // MARK: Ingest flow
+
+    func invalidatePlan() {
+        if plan != nil {
+            plan = nil
+            if !busy { message = String(localized: "Cambios pendientes · revisa el plan de nuevo") }
+        }
+    }
+
+    var projectIsReady: Bool {
+        let hasBatchProject = !project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if hasBatchProject { return true }
+        let media = units.filter { !$0.isSupport && !$0.isOther && !$0.discard }
+        return !units.isEmpty && media.allSatisfy { !$0.project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+    var flowReviewKey: String {
+        [sourceKey, loadedSourceKey, project, profile, country, city, work, copyChoice,
+         String(cleanup), String(deferWork), String(archiveExceptionConfirmed),
+         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing), String($0.includeOther)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
+    }
+    var canPrepareFlow: Bool {
+        if sourceKind == "delivery" { return !source.isEmpty && !archive.isEmpty }
+        let offlineWork = !noWork && !volumes.contains { $0["id"].string == work && $0["online"].bool }
+        return !source.isEmpty && !archive.isEmpty
+            && (!contentLoaded || (planBlockers.isEmpty && (!offlineWork || archiveExceptionConfirmed)))
+    }
+    /// Only what the planner truly needs; everything else has a default or is reviewed in the plan.
+    var planBlockers: [String] {
+        var reasons: [String] = []
+        if source.isEmpty { reasons.append(String(localized: "Elige una fuente")) }
+        // Stalker sessions carry their own projects: inspect first, then decide.
+        if !projectIsReady && !(sourceKind == "stalker" && !contentLoaded) { reasons.append(sourceKind == "stalker" ? String(localized: "Nombra el proyecto del lote o de cada sesión") : String(localized: "Nombra el proyecto")) }
+        if archive.isEmpty { reasons.append(String(localized: "Elige un disco de respaldo")) }
+        if copyChoice == "some" && !units.contains(where: \.copyForEditing) && contentLoaded { reasons.append(String(localized: "Marca qué copiar al SSD o elige «Ninguno»")) }
+        if units.contains(where: \.needsCameraReview) { reasons.append(String(localized: "Clasifica los archivos DJI")) }
+        return reasons
+    }
+    func goToStep(_ step: IngestStep) {
+        guard !ingestLocked || step == .run else { return }
+        ingestStep = step
+        if step == .content {
+            if !source.isEmpty && !contentLoaded { discover() }
+        }
+    }
+    func nextStep() {
+        switch ingestStep {
+        case .source, .content: goToStep(.destinations)
+        case .destinations, .review:
+            if plan == nil { reviewPlan() }
+            else if ingestFromSaveAll { addToSaveAll() }
+            else { apply() }
+        case .run: newIngest()
+        }
+    }
+    func previousStep() {
+        guard !ingestLocked else { return }
+        goToStep(.content)
+    }
+    /// Stalker needs per-session projects: inspect on demand instead of asking the user to.
+    func reviewPlan() {
+        guard !busy else { return }
+        if sourceKind == "delivery" {
+            if let finalsGroup { planFinals(finalsGroup) } else { error = String(localized: "Prepara los finales desde Inicio o Flujos.") }
+            return
+        }
+        let expectedSource = sourceKey
+        Task {
+            if !contentLoaded { await discoverAndWait() }
+            guard sourceKey == expectedSource else { return }
+            if !planBlockers.isEmpty { ingestStep = units.contains(where: \.needsCameraReview) ? .content : ingestStep; return }
+            requestPlan()
+        }
+    }
+    func requestPlan() {
+        guard sourceKind != "stalker" || (contentLoaded && !units.isEmpty) else {
+            error = String(localized: "No hay sesiones Stalker terminadas pendientes en esta fuente"); return
+        }
+        if noWork { makePlan(archiveOnly: true); return }
+        let onlineWork = volumes.contains { $0["id"].string == work && $0["online"].bool }
+        if !onlineWork && archiveExceptionConfirmed { makePlan(archiveOnly: true) }
+        else if !onlineWork { error = String(localized: "Confirma aquí continuar sin el SSD para esta operación") }
+        else { makePlan(archiveOnly: false) }
+    }
+    func makePlan(archiveOnly: Bool) {
+        operation(String(localized: "Preparando plan")) {
+            var assignments: [String: JSONValue] = [:]
+            var tags: [String: (project: String, country: String, sessions: [JSONValue])] = [:]
+            for unit in self.units where !unit.sessionID.isEmpty {
+                let title = unit.project.isEmpty ? self.project : unit.project
+                let country = unit.country.isEmpty ? self.country : unit.country
+                guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                tags[title + "|" + country, default: (title, country, [])].sessions.append(.string(unit.sessionID))
+            }
+            for tag in tags.values {
+                _ = try await self.client!.call("save_capture_tags", ["session_ids": .array(tag.sessions), "project": .string(tag.project), "country": .string(tag.country)])
+            }
+            for unit in self.units {
+                if unit.isOther {
+                    if unit.includeOther {
+                        for path in unit.paths { assignments[path] = .object(["include_other": .bool(true)]) }
+                    }
+                    continue
+                }
+                var values: [String: JSONValue] = [:]
+                if !unit.project.isEmpty { values["project"] = .string(unit.project) }
+                if !unit.profile.isEmpty { values["profile"] = .string(unit.profile) }
+                if !unit.country.isEmpty { values["country"] = .string(unit.country) }
+                if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
+                if unit.discard { values["discard"] = .bool(true) }
+                if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
+                if self.copyChoice == "all" && unit.isInsta360 { values["work"] = .bool(true) }
+                if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
+            }
+            var params: [String: JSONValue] = ["source": .string(self.source), "archive": .string(self.archive),
+                "project": .string(self.project), "profile": .string(self.profile), "country": .string(self.country), "city": .string(self.city),
+                "source_kind": .string(self.sourceKind), "cleanup": .bool(self.cleanup && self.sourceKind == "card" && !self.isHandycamArchiveOnly),
+                "assignments": .object(assignments)]
+            if self.handycamHistorySources.contains(self.source) { params["handycam_history"] = .bool(true) }
+            params.merge(IngestPolicy.parameters(archiveOnly: archiveOnly, skipWork: self.noWork, deferWork: self.deferWork, work: self.work)) { _, new in new }
+            let document = try await self.client!.call("plan_document", params).string
+            let reviewed = try ReviewedPlan(document: document)
+            self.plan = reviewed.display
+            self.reviewedPlan = reviewed
+            self.sessionProjects = Array(Set(self.sessionProjects + reviewed.display["units"].array.filter { !$0["support"].bool }.map { $0["project"].string })).sorted()
+            self.ingestStep = .review
+            self.message = String(localized: "Plan listo para revisar; no se ha copiado ni borrado media")
+        }
+    }
+    func apply() {
+        guard let reviewed = reviewedPlan else { return }
+        let jobID = reviewed.display["id"].string
+        activeJobID = jobID; jobProgress = nil; lastResult = nil; ingestStep = .run
+        operation(String(localized: "Copiando y verificando")) {
+            self.monitorTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    if Task.isCancelled { break }
+                    if let job = try? await self.reader?.call("job", ["job_id": .string(jobID)]) {
+                        self.jobProgress = job
+                        self.message = self.progressLabel(job)
+                    }
+                }
+            }
+            let result = try await self.client!.call("apply", reviewed.applyParameters)
+            self.saveAllPlans = self.saveAllPlans.filter { $0.value.display["id"].string != jobID }
+            self.lastResult = result
+            self.message = self.jobLabel(result)
+            let release = result["stalker_release"]
+            if release["status"].string == "retained" || release["status"].string == "partial" {
+                let reasons = release["retained"].array.map { $0["reason"].string }.filter { !$0.isEmpty }
+                self.error = String(localized: "Respaldo verificado; se conservó el original Stalker. ") + reasons.joined(separator: " · ")
+            }
+            if !result["metadata_backup_error"].string.isEmpty { self.error = String(localized: "Respaldo de media terminado; falta respaldar catálogo: ") + result["metadata_backup_error"].string }
+            _ = try await self.client!.call("defaults", ["project": .string(self.project), "profile": .string(self.profile),
+                "country": .string(self.country), "city": .string(self.city), "archive": .string(self.archive), "work": .string(self.work)])
+            self.lastProject = self.project; self.plan = nil; self.loadedSourceKey = ""
+        }
+    }
+    func cancel() { client?.cancel(); message = String(localized: "Cancelando en un punto recuperable…") }
+
+    // MARK: Bulk assignment on the grid
+
+    var visibleUnits: [DraftUnit] {
+        let typed = typedUnits
+        guard !dayFilter.isEmpty || !sessionFilter.isEmpty else { return typed }
+        return typed.filter { (dayFilter.isEmpty || $0.createdAt.hasPrefix(dayFilter)) && (sessionFilter.isEmpty || $0.missionPlan == sessionFilter) }
+    }
+    /// Capture days and mission sessions present in the source, with counts, for the grid menus.
+    var unitDays: [(String, Int)] {
+        Dictionary(grouping: units.filter { !$0.isSupport && $0.createdAt.count >= 10 }, by: { String($0.createdAt.prefix(10)) })
+            .map { ($0.key, $0.value.count) }.sorted { $0.0 > $1.0 }
+    }
+    var unitSessions: [(String, Int)] {
+        Dictionary(grouping: units.filter { !$0.missionPlan.isEmpty }, by: \.missionPlan).map { ($0.key, $0.value.count) }.sorted { $0.0 > $1.0 }
+    }
+    private var typedUnits: [DraftUnit] {
+        switch typeFilter {
+        case "": return units.filter { !$0.isSupport }
+        case "all": return units
+        case "dji": return units.filter { $0.detectedCamera.lowercased().hasPrefix("dji") }
+        case "mission": return units.filter { $0.missionState == "matched" }
+        case "no_mission": return units.filter { $0.missionState == "none" }
+        case "pending_export": return units.filter { $0.missionState == "pending_export" }
+        case "likely_unregistered": return units.filter { $0.missionState == "none" && $0.missionLikely }
+        case "discarded": return units.filter(\.discard)
+        default: return units.filter { $0.displayCategory == typeFilter }
+        }
+    }
+    /// The selection, or every visible unit when nothing is selected.
+    var targetIDs: Set<String> { gridSelection.isEmpty ? Set(visibleUnits.map(\.id)) : gridSelection }
+    func updateTargets(_ change: (inout DraftUnit) -> Void) {
+        let ids = targetIDs
+        var next = units
+        for index in next.indices where ids.contains(next[index].id) { change(&next[index]) }
+        units = next
+    }
+    func select(_ id: String, extend: Bool, range: Bool) {
+        defer { if !range { selectionAnchor = id } }
+        if range, let anchor = selectionAnchor, let from = visibleUnits.firstIndex(where: { $0.id == anchor }), let to = visibleUnits.firstIndex(where: { $0.id == id }) {
+            gridSelection.formUnion(visibleUnits[min(from, to)...max(from, to)].map(\.id))
+        } else if extend {
+            if gridSelection.contains(id) { gridSelection.remove(id) } else { gridSelection.insert(id) }
+        } else {
+            gridSelection = gridSelection == [id] ? [] : [id]
+        }
+    }
+    func previewURL(_ unit: DraftUnit) -> URL {
+        URL(fileURLWithPath: source).appendingPathComponent(unit.previewPath ?? unit.paths.first ?? "")
+    }
+
+    // MARK: Library and jobs
+
+    func deliver() {
+        let ids = selected.sorted()
+        operation(String(localized: "Preparando copias para editar"), scope: .library) {
+            let progressID = JSONValue.string(UUID().uuidString.lowercased())
+            let monitor = self.watchAction("deliver", progressID)
+            defer { monitor.cancel(); self.runningAction = "" }
+            _ = try await self.client!.call("deliver_work", ["asset_ids": .array(ids.map(JSONValue.string)), "work": .string(self.work), "progress_id": progressID])
+            self.message = String(localized: "Copias para editar verificadas"); self.selected = []
+        }
+    }
+    /// Polls the engine's measure for a release or a delivery; the action view reads `actionProgress`.
+    func watchAction(_ name: String, _ id: JSONValue) -> Task<Void, Never> {
+        runningAction = name
+        actionProgress = .object([:])
+        return Task { @MainActor in
+            while !Task.isCancelled {
+                if let value = try? await self.reader?.call("action_progress", ["id": id]), !Task.isCancelled, value != .object([:]) {
+                    self.actionProgress = value
+                }
+                try? await Task.sleep(for: .milliseconds(400))
+            }
+        }
+    }
+    func skip() {
+        let ids = selected.sorted()
+        operation(String(localized: "Actualizando pendientes"), scope: .library) {
+            _ = try await self.client!.call("set_work_state", ["asset_ids": .array(ids.map(JSONValue.string)), "state": .string("skipped")])
+            self.message = String(localized: "Copias para editar omitidas"); self.selected = []
+        }
+    }
+    func restoreSelected() {
+        guard selected.count == 1, let id = selected.first else { return }
+        pickURL(message: String(localized: "Elige dónde restaurar")) { url in
+            self.operation(String(localized: "Restaurando selección"), scope: .library) {
+                let result = try await self.client!.call("restore", ["asset_id": .string(id), "destination": .string(url.path)])
+                self.message = String(localized: "Restauración verificada")
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: result["path"].string)])
+            }
+        }
+    }
+    func exportHandoff() {
+        let panel = NSSavePanel(); panel.nameFieldStringValue = "media-handoff.json"
+        let ids = selected.sorted()
+        let finish: (URL) -> Void = { url in
+            self.operation(String(localized: "Preparando selección de biblioteca"), scope: .library) {
+                let data = try await self.client!.call("handoff", ["asset_ids": .array(ids.map(JSONValue.string))])
+                try JSONEncoder().encode(data).write(to: url, options: .atomic)
+                self.message = String(localized: "Selección exportada; requiere soporte de biblioteca en Clipper")
+            }
+        }
+        if let window = NSApp.keyWindow {
+            panel.beginSheetModal(for: window) { response in if response == .OK, let url = panel.url { finish(url) } }
+        } else if panel.runModal() == .OK, let url = panel.url { finish(url) }
+    }
+    func resume(_ id: String) {
+        activeJobID = id
+        operation(String(localized: "Reanudando job"), scope: .library) {
+            self.monitorTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    if Task.isCancelled { break }
+                    if let job = try? await self.reader?.call("job", ["job_id": .string(id)]) { self.jobProgress = job; self.message = self.progressLabel(job) }
+                }
+            }
+            let result = try await self.client!.call("resume", ["job_id": .string(id)])
+            self.message = self.stateLabel(result["state"].string)
+            if !result["metadata_backup_error"].string.isEmpty { self.error = String(localized: "Respaldo de media terminado; falta respaldar catálogo: ") + result["metadata_backup_error"].string }
+        }
+    }
+
+    // MARK: Mounts
+
+    @ObservationIgnored private var sonyCheckPending = false
+
+    private func reconcileMountedSonyCards() async {
+        guard sonyCheckPending, !busy, !Task.isCancelled else { return }
+        sonyCheckPending = false
+        let pending = Set(jobs.filter {
+            ($0["state"].string == "camera_action_required" || $0["sony_removal_recorded"].bool) && cleanupProfile($0) == "sony_clips_then_format"
+        }.map { $0["source_volume_uuid"].string }.filter { !$0.isEmpty })
+        let candidates = sourceCards.filter { pending.contains($0["identity"]["volume_uuid"].string) }
+        var changed = false
+        for card in candidates {
+            if Task.isCancelled { break }
+            do {
+                let result = try await oneShot("reconcile_sony_cleanup", ["source": card["path"], "identity": card["identity"]])
+                changed = changed || !result["updated"].array.isEmpty
+                if let last = lastResult, let observation = result["checked"].object[last["id"].string] {
+                    var updated = last.object
+                    updated["sony_card_check"] = observation
+                    if observation.string == "ready" { updated["state"] = .string("completed") }
+                    lastResult = .object(updated)
+                }
+            } catch let failure as BackendFailure where failure.code == "job_busy" {
+                sonyCheckPending = true
+            } catch {
+                // Unplugging or a transient mount failure leaves the pending state intact.
+            }
+        }
+        if changed && !Task.isCancelled { await refresh() }
+    }
+
+    /// A volume the system marks removable (an SD in a reader) that is not one of the registered disks.
+    func removableUnregistered(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        let removable = (try? url.resourceValues(forKeys: [.volumeIsRemovableKey]))?.volumeIsRemovable ?? false
+        return removable && !volumes.contains { $0["root"].string == path }
+    }
+
+    func notifyCard(_ path: String) {
+        guard Bundle.main.bundleIdentifier != nil else { return }  // `swift run` has no bundle for notifications.
+        let card = card(path)
+        Task {
+            let center = UNUserNotificationCenter.current()
+            guard (try? await center.requestAuthorization(options: [.alert])) == true else { return }
+            let content = UNMutableNotificationContent()
+            content.title = card.map { cardKindLabel($0["hint"]) + " · " + $0["name"].string } ?? String(localized: "Tarjeta detectada")
+            content.body = card.map { cardRecommendation($0["hint"]) } ?? String(localized: "Abre nüün para revisar el plan")
+            try? await center.add(UNNotificationRequest(identifier: "card:" + path, content: content, trigger: nil))
+        }
+    }
+    func mountChanged(arrival: String? = nil) {
+        if let arrival { notifiedCards.remove(arrival); cardArrivals[arrival] = Date() }
+        let started = ContinuousClock.now
+        if arrival != nil { cardLog.notice("mount notification") }
+        // Reading every disk can take seconds on a card that was just mounted: show the popup now, with the card
+        // as «reading», and let the snapshot fill it in. Only a removable volume that is not a registered disk.
+        if let arrival, removableUnregistered(arrival), !busy, !sourceCards.contains(where: { $0["path"].string == arrival }),
+           volumes.contains(where: { $0["online"].bool }), UserDefaults.standard.bool(forKey: "showQuickImporter") {
+            sourceCards.insert(.object(["path": .string(arrival), "name": .string(URL(fileURLWithPath: arrival).lastPathComponent),
+                                        "hint": .null, "reading": .bool(true)]), at: 0)
+            if source.isEmpty || lastResult != nil || (units.isEmpty && plan == nil) { route = .ingest; ingestStep = .source }
+            openImporter?()
+            cardLog.notice("importer opened early after \(elapsedMilliseconds(since: started), privacy: .public) ms")
+        }
+        eventTask?.cancel()
+        eventTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled, let reader, reader.configuration.usable else { return }
+            await refresh()
+            guard !Task.isCancelled else { return }
+            if arrival != nil { cardLog.notice("snapshot ready after \(elapsedMilliseconds(since: started), privacy: .public) ms") }
+            if route == .library && librarySection == .disks { await loadStorage() }
+            // No registered destination online: mounts stay silent (no popup, no content hints).
+            guard volumes.contains(where: { $0["online"].bool }) else {
+                cardSuggestions = []; notifiedCards = []; statusChanged?()
+                await loadSuiteSuggestions(arrival: arrival != nil)
+                return
+            }
+            let shown = sourceCards.map { $0["path"].string }
+            // A mount event notifies once per insertion; it never replaces work in progress.
+            cardSuggestions = shown
+            notifiedCards.formIntersection(shown)
+            var opened = false
+            for path in shown where !notifiedCards.contains(path) {
+                notifiedCards.insert(path)
+                // Only an insertion while nüün runs announces the card. Cards already there at launch (or after a wake)
+                // show in Inicio, and opening the app keeps the normal window.
+                guard arrival != nil else { continue }
+                notifyCard(path)
+                if !busy && !opened && UserDefaults.standard.bool(forKey: "showQuickImporter") {
+                    if source != path || lastResult != nil || (units.isEmpty && plan == nil) { useCard(path) }
+                    openImporter?()
+                    opened = true
+                    cardLog.notice("importer opened after \(elapsedMilliseconds(since: started), privacy: .public) ms")
+                }
+            }
+            statusChanged?()
+            sonyCheckPending = true
+            await reconcileMountedSonyCards()
+            await loadSuiteSuggestions(arrival: arrival != nil)
+        }
+    }
+}

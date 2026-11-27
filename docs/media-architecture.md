@@ -31,7 +31,7 @@ flowchart LR
 | Transferencia | `media/transfer`, `journal`, `verification` | Única autoridad de escritura de media gestionada; staging, hashes, locks, recibos, recuperación. |
 | Persistencia | `media/catalog`, `repositories` | SQLite local por equipo; manifiestos portables y recibos en cada archivo. Separar datos humanos de índices reconstruibles. |
 | Plataforma | `platforms/macos`, futuras `windows` / `linux` | Discos, eventos, bookmarks/permisos, notificaciones, safe eject. Capabilities explícitas. |
-| Entradas | CLI y `apps/MediaMenu` Swift | Mismo planner; UI no implementa su propio copy/delete. Procesos JSON al principio; worker sólo durante jobs. |
+| Entradas | CLI y `native/Nuun` Swift | Mismo planner; UI no implementa su propio copy/delete. Procesos JSON al principio; worker sólo durante jobs. |
 | Otros brazos | `downloads`, `audio/stems`, `hardware` | Adaptadores separados que producen assets/provenance para el catálogo. No otro editor dentro de este repo. |
 
 No mover todo a nuevos paquetes en un cambio cosmético. Extraer una responsabilidad al introducir su prueba y sustituir su llamada. Mantener el importador antiguo aislado hasta tener paridad verificada. `hardware` y scripts manuales se conservan hasta inventariar usos; MIDI no forma parte del daemon de media.

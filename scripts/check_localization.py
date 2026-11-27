@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--language', default='en')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
-    package = repo / 'native/MediaMenu'
+    package = repo / 'native/Nuun'
     with tempfile.TemporaryDirectory(prefix='nuun-strings-') as folder:
         for source in (package / 'Sources').rglob('*.swift'):
             source.touch()  # incremental builds skip unchanged files and their strings

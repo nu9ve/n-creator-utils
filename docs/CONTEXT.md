@@ -40,7 +40,7 @@ Cambios externos (borrados en Clipper, intermedios eliminados a mano) no se infi
 nu9ve.py → media/save.py (human save) / media/cli.py (JSON CLI/RPC/MCP)
 media/service.py → planner + volumes + transfer + catalog + library
 media/common.py → safe tree-relative IO, hashes, errors, JSON
-native/MediaMenu → WindowRoot (3 modes) / Model / JSON bridge / FSEvents
+native/Nuun → WindowRoot (3 modes) / Model / JSON bridge / FSEvents
 media/workspaces.py → creative profile registry; planner freezes profile_routes
 media/recipes.py → devices, card families, categories, mission flows as data (frozen per plan)
 manager/file.py → legacy-save + existing downloads/stems

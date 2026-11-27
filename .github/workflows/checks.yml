@@ -92,4 +92,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Swift tests
-        run: swift test --package-path native/MediaMenu
+        run: swift test --package-path native/Nuun

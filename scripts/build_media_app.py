@@ -27,10 +27,10 @@ def main():
     if output.exists() or output.is_symlink(): parser.error('Output exists; choose a new artifact path')
     if bool(args.python) == bool(args.runtime): parser.error('Choose --python for development or --runtime for a bundled build')
     if not args.skip_build:
-        subprocess.run(['swift', 'build', '--package-path', str(repo / 'native/MediaMenu'), '-c', args.configuration], check=True)
-    result = subprocess.run(['swift', 'build', '--package-path', str(repo / 'native/MediaMenu'), '-c', args.configuration, '--show-bin-path'],
+        subprocess.run(['swift', 'build', '--package-path', str(repo / 'native/Nuun'), '-c', args.configuration], check=True)
+    result = subprocess.run(['swift', 'build', '--package-path', str(repo / 'native/Nuun'), '-c', args.configuration, '--show-bin-path'],
                             check=True, capture_output=True, text=True)
-    binary = Path(result.stdout.strip()) / 'MediaMenu'
+    binary = Path(result.stdout.strip()) / 'Nuun'
     if not binary.is_file(): parser.error('Build the native executable first')
     contents = output / 'Contents'
     executable_dir = contents / 'MacOS'; executable_dir.mkdir(parents=True)
@@ -39,9 +39,9 @@ def main():
         iconset = Path(temporary) / 'Creator.iconset'
         subprocess.run(['swift', str(repo / 'scripts/media_icon.swift'), str(iconset)], check=True)
         subprocess.run(['/usr/bin/iconutil', '-c', 'icns', str(iconset), '-o', str(resources / 'Creator.icns')], check=True)
-    shutil.copy2(binary, executable_dir / 'MediaMenu')
+    shutil.copy2(binary, executable_dir / 'Nuun')
     # Spanish is the development language (keys); other languages ship as .lproj tables.
-    for table in sorted((repo / 'native/MediaMenu/Localization').glob('*.lproj')):
+    for table in sorted((repo / 'native/Nuun/Localization').glob('*.lproj')):
         shutil.copytree(table, resources / table.name)
     backend = resources / 'backend'; source = backend / 'source'; source.mkdir(parents=True)
     for name in ['nu9ve.py', 'configuration.py', 'constants.py']:
@@ -82,8 +82,8 @@ def main():
         (resources / 'backend-config.json').write_text(json.dumps({'python': str(python), 'script': 'backend/source/nu9ve.py'}))
     fingerprint = hashlib.sha256()
     inputs = [repo / name for name in ['nu9ve.py', 'configuration.py', 'constants.py', 'scripts/build_media_app.py', 'scripts/media_icon.swift',
-                                        'native/MediaMenu/Package.swift', 'vendor/nu9ve-core/swift/Package.swift']]
-    for folder in ['media', 'manager', 'native/MediaMenu/Sources', 'native/MediaMenu/Localization',
+                                        'native/Nuun/Package.swift', 'vendor/nu9ve-core/swift/Package.swift']]
+    for folder in ['media', 'manager', 'native/Nuun/Sources', 'native/Nuun/Localization',
                    'vendor/nu9ve-core/swift/Sources/Nu9veTheme']:
         inputs.extend(p for p in (repo / folder).rglob('*') if p.suffix in {'.py', '.swift', '.strings', '.stringsdict'})
     if engine is not None:
@@ -94,7 +94,7 @@ def main():
         fingerprint.update(str(path.relative_to(repo)).encode()); fingerprint.update(b'\0'); fingerprint.update(path.read_bytes())
     build_id = fingerprint.hexdigest()[:12]
     info = {'CFBundleIdentifier': 'app.nu9ve.media', 'CFBundleName': 'nüün', 'CFBundleDisplayName': 'nüün',
-            'CFBundleExecutable': 'MediaMenu', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
+            'CFBundleExecutable': 'Nuun', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '0.2.0',
             'CFBundleVersion': '1', 'LSMinimumSystemVersion': '15.0', 'CFBundleDevelopmentRegion': 'es', 'CFBundleLocalizations': ['es', 'en'], 'LSUIElement': True,
             'CFBundleIconFile': 'Creator.icns', 'LSApplicationCategoryType': 'public.app-category.productivity',
             'NSHumanReadableCopyright': '© 2026 nu9ve',

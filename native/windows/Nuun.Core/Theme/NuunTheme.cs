@@ -2,7 +2,7 @@ using Nu9ve.Theme;
 
 namespace Nuun.Core.Theme;
 
-// nu9ve-theme-v1 §5 y §7 · la identidad de nüün en Windows, par de MediaMenuCore/ThemeIdentity.swift.
+// nu9ve-theme-v1 §5 y §7 · la identidad de nüün en Windows, par de NuunCore/ThemeIdentity.swift.
 // Nu9ve.Core sólo da el catálogo de skins y el cálculo de roles; el ámbar, los presets suizos, qué skin
 // es el original y cuál el contraste, y los textos de Apariencia son de esta app.
 public static class NuunTheme

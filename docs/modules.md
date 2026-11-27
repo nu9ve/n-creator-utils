@@ -18,8 +18,8 @@ nu9ve.py
   legacy-save → manager.file.save_files
   download / split → manager.file → yt-dlp / scdl / demucs
 
-native/MediaMenu
-  UI/modelo → MediaMenuCore JSON/Process → media.service
+native/Nuun
+  UI/modelo → NuunCore JSON/Process → media.service
   eventos de volúmenes + FSEvents de captura configurada
 ```
 

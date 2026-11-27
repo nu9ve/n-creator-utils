@@ -20,7 +20,8 @@ def install(app, destination):
         raise ValueError('Not a Nu9ve Media app')
     subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(app)], check=True)
     processes = subprocess.run(['/bin/ps', '-axo', 'command='], check=True, capture_output=True, text=True).stdout
-    if any('/Contents/MacOS/MediaMenu' in line for line in processes.splitlines() if not line.lstrip().startswith(('python', '/bin/zsh', '/bin/bash'))):
+    # The executable was MediaMenu until 2026-11-26 (F2): an older build still running is refused too.
+    if any(any(name in line for name in ('/Contents/MacOS/Nuun', '/Contents/MacOS/MediaMenu')) for line in processes.splitlines() if not line.lstrip().startswith(('python', '/bin/zsh', '/bin/bash'))):
         raise RuntimeError('Close Media from its menu before updating. An active operation will not be interrupted.')
     destination.parent.mkdir(parents=True, exist_ok=True)
     token = uuid.uuid4().hex[:8]
@@ -96,7 +97,7 @@ def main():
         print('Signing: ' + ('Apple Development identity from the keychain' if args.identity else
                              'ad-hoc (no single Apple Development identity); macOS will ask for permissions again'))
     repo = Path(__file__).resolve().parents[1]
-    app = Path(args.app).absolute() if args.app else repo / 'dist' / ('Nu9veMedia-local-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:6] + '.app')
+    app = Path(args.app).absolute() if args.app else repo / 'dist' / ('Nuun-local-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:6] + '.app')
     if not args.app:
         build = [sys.executable, str(repo / 'scripts/build_media_app.py'), '--output', str(app), '--python', str(Path(args.python).absolute())]
         if args.identity: build += ['--identity', args.identity]
