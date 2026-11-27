@@ -18,6 +18,20 @@ Actualizado: 2026-11-26. Éste es el backlog priorizado. [STATUS](docs/STATUS.md
 | 4 | Cobertura EDICION contra MEDIA9 | Informe por tamaño hecho para `001_proyectos/canal-a_raw`; falta ampliar al resto del EDICION. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
 | 5 | Retiro de raws del EDICION con un plan revisado | Debloateando mi tele aplicado (8,14 GB). Próximo: revisar 16,35 GB entre Baches con el dron y El repositorio de nu9ve, con reenlaces de Clipper. [Evidencia](docs/STATUS.md#diagnóstico-de-edicion-y-música--2026-11-13) |
 
+## Tras la semana de uso (pedido del usuario, 2026-11-26)
+
+La semana con Rust quedó cumplida salvo la aceptación en ventana ([P0](#p0--uso-diario-sin-sorpresas), [sombra](docs/STATUS.md#sombra-sobre-el-catálogo-real--2026-11-26)). El usuario pidió las tres cosas que esperaban por ella y ponerse al día con el core. Una fase por commit, en este orden para que cada una parta de la anterior:
+
+| Fase | Trabajo | Estado |
+| --- | --- | --- |
+| F1 | Volver a fijar el core (`249aeb1`) y usar su `nu9ve-time` (jiff) en lugar de `engine/crates/nu9ve-time` | **Hecho el 2026-11-26** (`a24b488`); [STATUS](docs/STATUS.md#build-y-pruebas) |
+| F2 | **Renombrar `MediaMenu` → `Nuun`** sin comportamiento nuevo: paquete, targets, ejecutable, prefijo `Nu9veMedia-local-*`, scripts y documentos. Se conservan `CFBundleIdentifier` `app.nu9ve.media`, `~/Applications/nuun.app` y el catálogo. Va antes que F3 y F4 para que lo nuevo ya nazca con los nombres finales | Siguiente |
+| F3 | **`NuMacShell`** según la [adopción del core](vendor/nu9ve-core/docs/adoption.md): `PeriodWindowBar` y `PeriodGrowBox` en `SkinnedWindow`; se borran `Win9xBevel`, `ClassicPinstripes`, `WindowHandle`, `WindowHandleReader`, `WindowGrowBox` y los comunes de `SkinWindowBar`; Gótico conserva su barra. Acerca de muestra + atenuado y Ajustes en Terminal vuelve a tener × − + y título. Cadenas nuevas `Cerrar ventana · ⌘W`, `Minimizar ventana · ⌘M`, `Ampliar ventana…`. Con la época `tinted` (U1.8). Comprobar `PeriodBarColors(palette.roles)` contra la paleta, capturas de QA de skins antes y después y VoiceOver de los tres controles | Pendiente |
+| F4 | **`nu9ve-action-v1`** ([contrato](vendor/nu9ve-core/contracts/nu9ve-action-v1.md)): el productor de Rust suma `contract`, `action`, `state`, `unit`, `cancellable`, los tres instantes con latido, etapas comunes o `nuun.*`, y **conserva el registro al terminar** (hoy `Drop` lo borra); la vista pasa a `Nu9veActionProgress`. Después U1.3 (revisión de copia) y los tres tamaños (U3) | Pendiente |
+| F5 | **Retirar Python de `media/`** (Fase B, paso 9), en pasos con commit propio: (a) inventario de quien llama a `nu9ve.py media` — el motor de Clipper (`core/src/rpc_writes/handoff.rs`: `volumes list`, `resolve`, …), Kyū (`KYU_NUUN_COMMAND`), Stalker — y el MCP `media mcp`; (b) la CLI JSON en Rust con el mismo sobre `{ok, command, data}` (`nuun-engine media <orden>`); (c) `nu9ve.py media` reenvía a Rust; (d) el MCP en Rust (o el `nu9ve` del core); (e) la app sin respaldo de Python ni selector en Diagnóstico; (f) el dorado queda como archivos en git y las diferenciales que piden Python se retiran; (g) borrar `media/*.py` salvo `legacy-save` y descargas. Avisar a la sesión de Clipper antes de (c) | Pendiente; (a) primero |
+| F6 | **Benchmarks:** `soak --check-soak` en el gate, el caso de copias en GiB/s sobre fixture, y medir la revisión de «Copiar al otro disco» antes y después de U1.3 ([nu9ve-bench-v1](vendor/nu9ve-core/contracts/nu9ve-bench-v1.md)) | Pendiente |
+| — | **Windows, al volver al PC:** `OneShotWorker` de `Nu9ve.Core` en lugar de `RunAsync`/`CallCancellableAsync` con `NUUN_CANCEL_FILE`, F0 y la corrida física del paso 4 | Espera al PC |
+
 ## P1 · escalabilidad del motor (en curso)
 
 Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una receta**, no código, sin tocar la garantía plan → digest → revisión → copia verificada → limpieza.
@@ -56,7 +70,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | 6 | ~~Backend de volúmenes de macOS en Rust~~ **Hecho para lectura el 2026-11-12**: `MacBackend` con las mismas fuentes que Python (`statfs`, `diskutil -plist`, `statvfs`), discos descritos en paralelo; con él, `volumes`, `source_cards`, `snapshot` completo, `capture_overview`, `closure_deliveries` y `suggest` son iguales a Python sobre los discos reales y 2–3× más rápidos ([tiempos](engine/README.md#sombra-y-tiempos)). En Mac el backend de Rust escribe en el sandbox. La corrida física sigue pendiente para activarlo en uso diario. `eject_card` usa `diskutil eject` en el sandbox | Hecho: unitarias del plist y del volumen del sistema, dorado de proyectos, sombra real. Pendiente: corrida física para abrir las escrituras | [S16](vendor/nu9ve-core/docs/audits/session-briefs-2026-11-10.md#s16--backend-de-volúmenes-de-macos-en-rust) |
 | 7 | ~~La app de Mac elige motor por método~~ **Hecho para lecturas el 2026-11-12**, instalado según [STATUS](docs/STATUS.md#build-y-pruebas): `PersistentReader` pide primero a `nuun-engine rpc-serve` cada lectura que el motor declara (`engine_info.ported`) y Python responde lo que Rust no tiene o si el proceso falla; Ajustes → Diagnóstico elige «Rust con Python de respaldo» o «Python» y muestra quién respondió cada lectura. `build_media_app.py` mete el motor firmado en `Resources/backend/nuun-engine`. En el sandbox también usa las escrituras declaradas en `engine_info.writes` | 28 pruebas Swift. Recorrido en ventana con imágenes completado el 13 nov. Pendientes semana de uso diario y ensayo físico | — |
 | 8 | **Hecho en el sandbox de macOS**: escaneo y comparación del índice. La portabilidad de la exclusión de Clipper a Windows se valida por separado | Diferencial por familia. Pruebas físicas por dispositivo donde haya limpieza | [Ruta E2–E4](#motor-en-rust--ruta) |
-| 9 | Una semana de uso real en Mac sin diferencias; retirar Python de `media/` (salvo `legacy-save` y descargas si no se portan) | [rust-engine §7](docs/platforms/rust-engine.md#7-ruta-recomendada), fase 5 | — |
+| 9 | ~~Una semana de uso real en Mac sin diferencias~~ (cumplida, salvo aceptación en ventana); retirar Python de `media/` (salvo `legacy-save` y descargas si no se portan), en fases: [F5](#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26) | [rust-engine §7](docs/platforms/rust-engine.md#7-ruta-recomendada), fase 5 | — |
 
 **Escrituras en Rust · fases.** En el sandbox de Mac, Rust anuncia los 92 nombres del servicio y del índice de discos. También están portados el descubrimiento de sesiones Stalker y los planes Stalker con zona IANA explícita. La aceptación en ventana con imágenes pasó el 13 nov. El ensayo físico sigue pendiente. `coverage` ya compara y guarda el informe en el catálogo local. El orden va de menor a mayor riesgo, y cada fase cierra con su dorado (estado del catálogo y de los archivos después de la operación, contra Python), sombra o repetición donde aplique, y entrada en STATUS:
 
@@ -212,7 +226,7 @@ Decidido por el usuario el 2026-11-23: no se actualizan las capturas hasta la re
 
 ## Prioridad baja · nombre interno
 
-Renombrar `MediaMenu` → `Nuun` (paquete, targets, ejecutable, prefijo `Nu9veMedia-local-*`, scripts y docs) en un cambio propio sin comportamiento nuevo. Se conservan `CFBundleIdentifier` `app.nu9ve.media`, `~/Applications/nuun.app` y el catálogo.
+Subió a [F2](#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26) el 2026-11-26, al cumplirse la semana de uso.
 
 ## Retomar en otra sesión
 
