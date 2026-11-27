@@ -307,3 +307,15 @@ func theRealEngineAnswersReadsLikePython() async throws {
     let data = try Data(contentsOf: golden)
     #expect(try JSONValue.parse(data) == JSONDecoder().decode(JSONValue.self, from: data))
 }
+
+/// Timing only, on a reply saved by hand (`NUUN_REPLY_SAMPLE=<file>`); skipped otherwise.
+@Test(.enabled(if: ProcessInfo.processInfo.environment["NUUN_REPLY_SAMPLE"] != nil))
+func replyDecodingTiming() throws {
+    let data = try Data(contentsOf: URL(fileURLWithPath: ProcessInfo.processInfo.environment["NUUN_REPLY_SAMPLE"]!))
+    let clock = ContinuousClock()
+    var fast = JSONValue.null, slow = JSONValue.null
+    let fastTime = try clock.measure { fast = try JSONValue.parse(data) }
+    let slowTime = try clock.measure { slow = try JSONDecoder().decode(JSONValue.self, from: data) }
+    print("reply \(data.count) bytes: parse \(fastTime), codable \(slowTime)")
+    #expect(fast == slow)
+}

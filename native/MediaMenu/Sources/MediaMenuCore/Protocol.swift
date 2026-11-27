@@ -96,7 +96,10 @@ public struct BackendFailure: LocalizedError, Sendable {
 
 public enum ProtocolBoundary {
     public static func response(_ data: Data) throws -> JSONValue {
-        let envelope = try JSONValue.parse(data)
+        try response(envelope: JSONValue.parse(data))
+    }
+    /// The same check on an envelope already parsed (the line server reads `id` from it first).
+    public static func response(envelope: JSONValue) throws -> JSONValue {
         guard envelope["ok"].bool else {
             throw BackendFailure(code: envelope["error"]["code"].string, message: envelope["error"]["message"].string)
         }
@@ -161,6 +164,9 @@ final class LineServer: @unchecked Sendable {
     private var process: Process?
     private var input: FileHandle?
     private var buffer = Data()
+    /// Bytes of `buffer` already searched for a newline: a 7 MB reply arrives in many pipe chunks, and searching
+    /// the whole buffer again on each one cost seconds.
+    private var scanned = 0
     private var nextID = 0
     private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
 
@@ -174,7 +180,7 @@ final class LineServer: @unchecked Sendable {
         lock.lock()
         if let child, child !== process { lock.unlock(); return }
         let running = process, handle = input, waiting = pending
-        process = nil; input = nil; pending = [:]; buffer = Data()
+        process = nil; input = nil; pending = [:]; buffer = Data(); scanned = 0
         lock.unlock()
         try? handle?.close()
         // EOF first: the engine leaves in order and removes its suite record (nu9ve-registry-v1 §5). A child that
@@ -225,7 +231,7 @@ final class LineServer: @unchecked Sendable {
         }
         child.terminationHandler = { [weak self] ended in self?.stop(only: ended) }
         try child.run()
-        process = child; input = stdin.fileHandleForWriting; buffer = Data()
+        process = child; input = stdin.fileHandleForWriting; buffer = Data(); scanned = 0
         return stdin.fileHandleForWriting
     }
 
@@ -233,13 +239,22 @@ final class LineServer: @unchecked Sendable {
         lock.lock()
         buffer.append(data)
         var ready: [(CheckedContinuation<JSONValue, Error>, Result<JSONValue, Error>)] = []
-        while let newline = buffer.firstIndex(of: 0x0A) {
-            let line = buffer[buffer.startIndex..<newline]
-            buffer.removeSubrange(buffer.startIndex...newline)
-            guard let envelope = try? JSONValue.parse(Data(line)) else { continue }
+        var lines: [Data] = []
+        var start = buffer.startIndex
+        var from = buffer.startIndex + scanned
+        // Only the new bytes are searched; whole lines leave the buffer in one copy at the end.
+        while let newline = buffer[from...].firstIndex(of: 0x0A) {
+            lines.append(Data(buffer[start..<newline]))
+            start = newline + 1
+            from = start
+        }
+        if start > buffer.startIndex { buffer = Data(buffer[start...]) }
+        scanned = buffer.count
+        for line in lines {
+            guard let envelope = try? JSONValue.parse(line) else { continue }
             let id = Int(envelope["id"].double)
             guard let continuation = pending.removeValue(forKey: id) else { continue }
-            ready.append((continuation, Result { try ProtocolBoundary.response(Data(line)) }))
+            ready.append((continuation, Result { try ProtocolBoundary.response(envelope: envelope) }))
         }
         lock.unlock()
         for (continuation, result) in ready { continuation.resume(with: result) }
