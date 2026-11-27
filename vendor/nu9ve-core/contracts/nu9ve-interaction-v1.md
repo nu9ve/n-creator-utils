@@ -76,7 +76,7 @@ Para apps complejas (curado, SoundShop, kyu, neuf, nove) es **Debe**; para utili
 
 ### Acciones largas
 
-Una acción que tarda más de un par de segundos (copiar, verificar, liberar, ingresar, exportar) se muestra igual en todas las apps y sistemas. La referencia es `ActionProgress.swift` de nüün, hecho para servir de base a otros loaders.
+Una acción que tarda más de un par de segundos (copiar, verificar, liberar, ingresar, exportar) se muestra igual en todas las apps y sistemas. La referencia es `ActionProgress.swift` de nüün, mudado el 2026-11-26 a `Nu9veActionProgress` en [`swift/`](../swift/README.md#nu9veactionprogress-la-vista-de-una-acción-larga) con los tres tamaños y el cierre.
 
 - **Debe:** al empezar, la acción **reemplaza** la pantalla desde la que se lanzó (el plan, el formulario) por una vista centrada que dice:
   - qué se hace, con un verbo concreto («Copiando y verificando finales», no «Procesando»);
@@ -88,6 +88,25 @@ Una acción que tarda más de un par de segundos (copiar, verificar, liberar, in
 - **Debe:** los colores del efecto son los de estado del tema (§2): azul para copiar, ámbar para retirar, verde para lo hecho y rojo para descartar. Así se lee de un vistazo qué se respalda, qué se retira y qué no cambia.
 - Al terminar, la vista deja paso al resultado. Si se reabre lo mismo después, primero se dice qué ya pasó y qué falta (en nüün: «Cierre aplicado… · N entregas siguen en edición esperando publicarse»).
 - En Windows aplica igual, con la barra y la animación dibujadas por el tema y el progreso también en la barra de tareas (`ITaskbarList3`), como conviene.
+- **Debe** (2026-11-26): la vista lee el registro común de [`nu9ve-action-v1`](nu9ve-action-v1.md) con `action_progress`, y sigue sus reglas de lectura (§4 de ese contrato): fracción que no retrocede, ETA tras 5 s y 2 %, «ETA pendiente» tras 15 s sin avance y «Sin señal» tras 60 s sin latido.
+
+**Tres tamaños de la misma vista** (2026-11-26, [propuesta de nüün](../docs/actions-next.md)). Una acción se ve siempre, en el tamaño que toca, con la misma barra, la misma animación del skin y los mismos números:
+
+1. **Pantalla:** la vista de arriba, cuando la acción se lanzó desde esa vista.
+2. **Compacta:** un panel flotante con la barra, el verbo, el porcentaje y la animación reducida, cuando la acción corre y la persona está en otra vista o en la ventana compacta. **Debe** expandirse a la pantalla con un clic y volver a compacta al salir de ella, sin cortar la acción. Con varias acciones a la vez, una fila por acción, la más reciente arriba.
+3. **Indicador:** un chip en la barra de título con el porcentaje (un clic abre la compacta), el progreso en el Dock o en la barra de tareas ([integración con el sistema](../docs/platforms/os-integration.md)) y un aviso al terminar si la app no está al frente ([avisos v1](nu9ve-notifications-v1.md)). Una acción de fondo (un respaldo programado) usa sólo este tamaño.
+
+- **Debe:** ninguna acción de más de un par de segundos corre sólo con un *spinner*. Preparar, contar y revisar (hashear lo que ya está en el destino) son etapas de la misma acción (`preparing`, `listing`, `reviewing`) y se ven en la barra.
+- **Debe:** un escaneo largo (acumulados, mapa de discos) es una acción más, con `unit` `items`, y usa la misma vista, no una animación propia.
+- **Debe:** lo que tarda menos de un par de segundos usa un estado de carga corto, sin barra (`Nu9veLoadingState`, [controles comunes](../docs/suite-ui.md)).
+
+**El cierre** es igual para todas, según el `state` y el `outcome` del registro:
+
+- **Éxito** (`complete` sin avisos): el resumen en una frase, una animación corta del skin y la señal de éxito de [sonido v1](nu9ve-sound-v1.md).
+- **Hecho, con aviso** (`complete` con `warnings`): el resumen y cada aviso en palabras («8 archivos cambiaron durante la copia: entran en el próximo respaldo»), con el color de aviso del tema.
+- **Error** (`failed`): qué pasó en palabras, qué quedó hecho, y «Reanudar» si `resumable` o «Reintentar» si no. Nunca un código solo ni una traza.
+- **Cancelado** (`cancelled`): qué quedó hecho y, si `resumable`, «Reanudar».
+- **Debe:** respeta «Reducir movimiento»: sin animación, con todos los textos.
 - **nüün (2026-11-07):** el motor da la medida con `media/progress.py` (`ActionMeter`, el patrón de `closure.ActionProgress`). La usan el cierre y «Respaldar publicados…» desde la hoja, el ingreso y «Respaldar publicados» desde Discos (Transfer: leer + verificar en cada destino + releer antes de limpiar), Revisar liberación (`apply_release`: verificar el respaldo + releer cada original) y Copiar al SSD desde Biblioteca (`deliver_work`: copiar + verificar). El ingreso lo publica en el progreso del job; liberar y recuperar, en `action_progress`. Cada una tiene una prueba `test_apply_reports_one_overall_measure_with_a_log`. Junto a la barra global va un indicador pequeño del archivo actual (`file_done`/`file_total`, que emiten la revisión, la liberación y el ingreso), y el resumen añade el tiempo restante estimado con el ritmo real de la medida global después de unos segundos. La animación se dibuja en un `Canvas` asíncrono a 12 cuadros por segundo y se pausa con la app inactiva; la medición está en STATUS.
 
 ## 8. Atajos comunes de la suite

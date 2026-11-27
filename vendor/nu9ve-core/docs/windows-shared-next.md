@@ -18,6 +18,8 @@ Leído en: `nove` `896bc5d` (`apps/windows`, `scripts/windows`, `core/src/os.rs`
 
 ## 2. Decisión abierta: cómo se cancela un trabajador en Windows
 
+**Cerrada el 2026-11-26:** nüün eligió la opción 2, el archivo de cancelación (`NUUN_CANCEL_FILE`, `n-creator-utils` `4663631`), y el contrato no cambia. El Job Object, el plazo de gracia y `TerminateJobObject` ya están en `Nu9ve.Core` como `Engine/OneShotWorker` ([§3](#3-cliente-de-motor-en-c-windowsnu9vecoreengine)). Lo que sigue es la historia de la decisión.
+
 **Qué dice el contrato.** [`nu9ve-engine-v1` §6.2](../contracts/nu9ve-engine-v1.md#62-progreso-y-cancelación) y la decisión 4 de su §13 (del usuario, 2026-11-16): en Windows se cancela primero de forma cooperativa «con un método `<cosa>_cancel` o un archivo de cancelación que el motor vigila». Después hay un plazo de gracia, y al final el cliente corta con `TerminateJobObject` sobre el Job Object en el que arrancó el proceso. No se usa `GenerateConsoleCtrlEvent`.
 
 **Qué hizo nüün** (`n-creator-utils` `5fa3bf8`, paso 3 de su fase A):
@@ -55,7 +57,7 @@ Las dos apps hablan `nu9ve-engine-v1` desde C# con transportes distintos: nüün
 | Error del motor | `EngineFailure(code, message)` en `RpcConnection.cs` | `EngineException(code, message, retryable)` en `EngineClient.cs` | Un tipo con `code`, `message` y `retryable`, y los códigos de la [§7](../contracts/nu9ve-engine-v1.md#7-códigos-de-error) como constantes |
 | Sobre v1 | `RpcConnection.Unwrap` | lectura del sobre en `EngineClient` (sólo v1 desde la 0.12.0.54) | `EngineEnvelope.Unwrap(JsonNode)` probado con [`data/engine-examples-v1.json`](../data/engine-examples-v1.json) |
 | `engine_info` | se lee en `MethodByMethodEngine` | `hello` retirado por v1 | DTO con `contract`, `protocol`, `capabilities`, `ported`, `writes` |
-| Trabajador de una vez | `EngineWrites.CallOnceAsync` y `CallCancellableAsync`: proceso oculto, petición por stdin en UTF-8 sin BOM, respuesta por stdout | `EngineHost.StartAsync`/`StopAsync` para su motor persistente (no de una vez) | `OneShotWorker`: Job Object con *kill on close*, cancelación cooperativa (§2), plazo de gracia y `TerminateJobObject` |
+| Trabajador de una vez | `EngineWrites.CallOnceAsync` y `CallCancellableAsync`: proceso oculto, petición por stdin en UTF-8 sin BOM, respuesta por stdout | `EngineHost.StartAsync`/`StopAsync` para su motor persistente (no de una vez) | **Hecho el 2026-11-26:** `Engine/OneShotWorker`, con Job Object con *kill on close*, archivo de cancelación (§2), plazo de gracia y `TerminateJobObject`. Probado en macOS con trabajadores falsos; el Job Object, sin probar en Windows |
 | Lector persistente | `EngineProcess.StartRust` + `ProcessOwner` | `EngineHost` + `--parent-pid` | Vigilar al padre y cerrar con el handle: comparar con [§8 ciclo de vida](../contracts/nu9ve-engine-v1.md#8-ciclo-de-vida-del-proceso) antes de unificar |
 
 Pasos:

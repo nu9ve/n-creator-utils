@@ -12,13 +12,14 @@ Fuera de este contrato: el MCP ([`nu9ve-mcp-v1`](nu9ve-mcp-v1.md), JSON-RPC 2.0)
 
 ## 1. Transporte
 
-Tres modos. Un motor ofrece uno o más; cada modo es un subcomando o una opción explícita, nunca algo que el motor adivine.
+Cuatro modos. Un motor ofrece uno o más; cada modo es un subcomando o una opción explícita, nunca algo que el motor adivine.
 
 | Modo | Cómo | Límite de petición | Quién lo usa hoy |
 | --- | --- | --- | --- |
 | **Líneas** | NDJSON por stdin/stdout: una petición por línea, una respuesta por línea | 1 MiB por línea | nüün `rpc-serve`, Clipper `serve` |
 | **Marcos** | Cada mensaje es un marco: 4 bytes de largo **big-endian** sin signo y el JSON en UTF-8. Por stdin/stdout, por socket Unix o por named pipe de Windows | 1 MiB por marco, en las dos direcciones | nove `serve-stdio`, `serve-unix`, `serve-pipe` |
 | **Una vez** | La petición entera por stdin hasta EOF; una respuesta por stdout; el proceso termina | 16 MiB (nüün), 1 MiB (nove) | nüün `rpc`, nove `call` |
+| **En proceso** | El motor enlazado en la app (FFI): la app pasa los bytes de una petición y recibe los de su sobre, sin proceso ni canal | 1 MiB | SoundBender `soundbender-ffi` (desde el 2026-11-26 con `nu9ve_engine::respond`; antes, `serve_lines` sobre un `Cursor`) |
 
 Para todos:
 
@@ -36,6 +37,12 @@ Marcos:
 
 - **Debe:** un largo de 0 o de más de 1 MiB es un error (`frame_size` hoy en nove; `request_too_large` o `response_too_large` en v1, §7).
 - Por socket o pipe, nove usa **un marco por conexión**: el cliente conecta, envía, lee y cierra. Es lo que v1 pide para socket y pipe. Por stdin/stdout los marcos van uno tras otro en la misma conexión.
+
+En proceso (2026-11-26):
+
+- **Debe:** una petición, un sobre: las mismas reglas de la §2 a la §7 que en los demás modos, también `engine_info` y el id exacto. Una petición vacía o sólo de espacios es `invalid_request`, como en marcos, porque no hay canal donde ignorarla.
+- **Debe:** el sobre va compacto, sin salto de línea final. `data` ya serializado puede tener saltos de línea: nada lo enmarca.
+- El motor no tiene ciclo de vida propio (§8) ni seguridad de canal (§9): corre con los permisos de la app que lo enlaza. Un trabajo largo sigue fuera del hilo que atiende (§6.2).
 
 Una vez:
 
@@ -133,7 +140,7 @@ Todo motor responde `engine_info` con `params` vacíos, en cualquier modo, sin t
 v1 no lleva progreso ni eventos dentro del canal: una petición, una respuesta. Lo que hacen hoy las apps, y que v1 recoge:
 
 - **Debe:** un trabajo largo **no** corre dentro del bucle de un motor persistente, porque detendría las demás lecturas. Corre en un proceso de una vez (nüün: una mutación por proceso), en un trabajo supervisado (Clipper `clipper-core job run`) o en un worker del motor (nove).
-- **El progreso se lee:** un método de lectura que el cliente sondea (nüün `action_progress`, `closure_progress`, `storage_progress`; nove el estado de sus trabajos y `events` con cursor `after`).
+- **El progreso se lee:** un método de lectura que el cliente sondea (nüün `action_progress`, `closure_progress`, `storage_progress`; nove el estado de sus trabajos y `events` con cursor `after`). Desde el 2026-11-26, la forma común del registro y el método `action_progress` están en [`nu9ve-action-v1`](nu9ve-action-v1.md), con `progress_id` dado por quien lanza la acción.
 - **Cancelar:**
   - un proceso de una vez se cancela con `SIGINT` o `SIGTERM` al proceso (nüün), que termina con el código `cancelled`;
   - **en Windows**, donde no hay `SIGINT`, primero se cancela de forma cooperativa: un método `<cosa>_cancel` o un archivo de cancelación que el motor vigila, como el de Clipper. Después hay un plazo de gracia, y si el motor no terminó, el cliente lo corta con `TerminateJobObject` sobre el Job Object en el que lo arrancó, para que caigan también sus hijos. **No debe** depender de `GenerateConsoleCtrlEvent`, que no llega a un proceso sin consola. Cortado así, el cliente informa `cancelled` y no da por publicada ninguna salida;

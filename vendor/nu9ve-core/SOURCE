@@ -1,7 +1,7 @@
 # Copia fijada de nu9ve/core. No se edita: el cambio va a nu9ve/core y se vuelve a sincronizar.
 repo=nu9ve/core
-commit=f267022534f821f6b245dce8b5ee546b4e2226f6
-date=2026-11-25
+commit=249aeb1298a0624b6865b17bc8d48ff59912b9c2
+date=2026-11-26
 path=contracts
 path=data
 path=docs
@@ -14,6 +14,7 @@ path=rust/nu9ve-ipc
 path=rust/nu9ve-json
 path=rust/nu9ve-mcp
 path=rust/nu9ve-profiles
+path=rust/nu9ve-time
 path=rust/nu9ve-volumes
 path=scripts/bench-examples.py
 path=scripts/bench-from-atlas.py

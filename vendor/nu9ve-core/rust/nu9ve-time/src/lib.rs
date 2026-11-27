@@ -4,18 +4,46 @@
 //! Local time follows CPython exactly: an instant becomes local with the OS `localtime` (on macOS the same
 //! `localtime_r` Python calls, so `TZ` and `/etc/localtime` agree), and a naive wall time becomes an instant with
 //! CPython's `local_to_seconds` search (fold 0: the earlier of two repeated times, and after a gap the later
-//! offset), not with `mktime`. On Windows the zone comes from the system (chrono's `Local`).
+//! offset), not with `mktime`. On Windows the zone comes from the system (jiff's `TimeZone::system`).
+//!
+//! Built on `jiff` alone (2026-11-26, in nu9ve/core): its first version used chrono, which RustSec marks
+//! unmaintained (RUSTSEC-2026-0543). The wall time is a `jiff::civil::DateTime`.
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use jiff::civil::{Date, Time};
+use jiff::tz::Offset;
+use jiff::{SignedDuration, Timestamp};
 
-pub use chrono;
-pub use chrono::NaiveDateTime as Naive;
+pub use jiff;
+/// The wall time of a [`DateTime`].
+pub type Naive = jiff::civil::DateTime;
 
 /// A `datetime`: wall time plus an optional UTC offset in seconds (`None` is a naive datetime).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DateTime {
-    pub wall: NaiveDateTime,
+    pub wall: Naive,
     pub offset: Option<i32>,
+}
+
+/// The civil time of `seconds` and `micro` read as UTC; `None` out of jiff's range (years −9999 to 9999).
+fn utc_wall(seconds: i64, micro: u32) -> Option<Naive> {
+    let instant = Timestamp::new(seconds, (micro * 1000) as i32).ok()?;
+    Some(Offset::UTC.to_datetime(instant))
+}
+
+/// Seconds since the epoch of a wall time read as UTC (Python's `t = local` arithmetic).
+fn utc_seconds(wall: Naive) -> i64 {
+    Offset::UTC
+        .to_timestamp(wall)
+        .map_or(0, |instant| instant.as_second())
+}
+
+fn date(year: u32, month: u32, day: u32) -> Option<Date> {
+    Date::new(
+        i16::try_from(year).ok()?,
+        i8::try_from(month).ok()?,
+        i8::try_from(day).ok()?,
+    )
+    .ok()
 }
 
 const MONTHS: [&str; 12] = [
@@ -73,14 +101,18 @@ impl DateTime {
         if b[4] != b'-' || b[7] != b'-' {
             return None;
         }
-        let day = NaiveDate::from_ymd_opt(
-            digits(&date[0..4])? as i32,
+        let day = self::date(
+            digits(&date[0..4])?,
             digits(&date[5..7])?,
             digits(&date[8..10])?,
         )?;
+        // Python's datetime starts at year 1.
+        if day.year() < 1 {
+            return None;
+        }
         if rest.is_empty() {
             return Some(DateTime {
-                wall: day.and_hms_opt(0, 0, 0)?,
+                wall: day.to_datetime(Time::midnight()),
                 offset: None,
             });
         }
@@ -93,8 +125,17 @@ impl DateTime {
             None => (time, None),
         };
         let (h, m, s, us) = parse_time(clock)?;
-        let wall = day.and_time(NaiveTime::from_hms_micro_opt(h, m, s, us)?);
-        Some(DateTime { wall, offset })
+        let time = Time::new(
+            i8::try_from(h).ok()?,
+            i8::try_from(m).ok()?,
+            i8::try_from(s).ok()?,
+            i32::try_from(us * 1000).ok()?,
+        )
+        .ok()?;
+        Some(DateTime {
+            wall: day.to_datetime(time),
+            offset,
+        })
     }
 
     /// Python `isoformat()`: `T`, microseconds only when not zero, the offset as `+HH:MM` (`:SS` when needed).
@@ -109,7 +150,7 @@ impl DateTime {
             w.minute(),
             w.second()
         );
-        let micro = w.nanosecond() / 1000;
+        let micro = self.micros();
         if micro != 0 {
             out.push_str(&format!(".{micro:06}"));
         }
@@ -138,7 +179,7 @@ impl DateTime {
                 Some('Y') => out.push_str(&format!("{:04}", w.year())),
                 Some('y') => out.push_str(&format!("{:02}", w.year().rem_euclid(100))),
                 Some('m') => out.push_str(&format!("{:02}", w.month())),
-                Some('b') => out.push_str(MONTHS[w.month0() as usize]),
+                Some('b') => out.push_str(MONTHS[(w.month() - 1) as usize]),
                 Some('d') => out.push_str(&format!("{:02}", w.day())),
                 Some('H') => out.push_str(&format!("{:02}", w.hour())),
                 Some('M') => out.push_str(&format!("{:02}", w.minute())),
@@ -156,16 +197,33 @@ impl DateTime {
 
     /// Seconds since the epoch of an aware datetime (`None` for a naive one).
     pub fn timestamp(&self) -> Option<i64> {
-        self.offset
-            .map(|o| self.wall.and_utc().timestamp() - i64::from(o))
+        self.offset.map(|o| utc_seconds(self.wall) - i64::from(o))
+    }
+
+    /// The microseconds of the wall time (Python's `microsecond`).
+    pub fn micros(&self) -> u32 {
+        (self.wall.subsec_nanosecond() / 1000) as u32
+    }
+
+    /// The same value without its fraction of a second (`replace(microsecond=0)`).
+    pub fn whole_seconds(&self) -> DateTime {
+        DateTime {
+            wall: self
+                .wall
+                .with()
+                .subsec_nanosecond(0)
+                .build()
+                .unwrap_or(self.wall),
+            offset: self.offset,
+        }
     }
 
     /// Python `astimezone(timezone.utc)`. A naive value is first taken as local time, as Python does.
     pub fn to_utc(&self) -> DateTime {
         let local = self.astimezone();
-        let wall = local.wall - chrono::Duration::seconds(i64::from(local.offset.unwrap_or(0)));
+        let shift = SignedDuration::from_secs(i64::from(local.offset.unwrap_or(0)));
         DateTime {
-            wall,
+            wall: local.wall.checked_sub(shift).unwrap_or(local.wall),
             offset: Some(0),
         }
     }
@@ -176,15 +234,13 @@ impl DateTime {
     }
 
     pub fn astimezone_with(&self, local: &dyn Fn(i64) -> i64) -> DateTime {
-        let micro = self.wall.nanosecond() / 1000;
+        let micro = self.micros();
         let seconds = match self.timestamp() {
             Some(t) => t,
-            None => local_to_seconds(local, self.wall.with_nanosecond(0).expect("valid")),
+            None => local_to_seconds(local, self.whole_seconds().wall),
         };
         let offset = (local(seconds) - seconds) as i32;
-        let wall = chrono::DateTime::from_timestamp(seconds + i64::from(offset), micro * 1000)
-            .expect("in range")
-            .naive_utc();
+        let wall = utc_wall(seconds + i64::from(offset), micro).expect("in range");
         DateTime {
             wall,
             offset: Some(offset),
@@ -206,18 +262,14 @@ impl DateTime {
 
     pub fn fromtimestamp_with(t: f64, local: &dyn Fn(i64) -> i64) -> DateTime {
         let (seconds, micro) = split_timestamp(t);
-        let wall = chrono::DateTime::from_timestamp(local(seconds), micro * 1000)
-            .expect("in range")
-            .naive_utc();
+        let wall = utc_wall(local(seconds), micro).expect("in range");
         DateTime { wall, offset: None }
     }
 
     /// Python `fromtimestamp(t, timezone.utc)`.
     pub fn fromtimestamp_utc(t: f64) -> DateTime {
         let (seconds, micro) = split_timestamp(t);
-        let wall = chrono::DateTime::from_timestamp(seconds, micro * 1000)
-            .expect("in range")
-            .naive_utc();
+        let wall = utc_wall(seconds, micro).expect("in range");
         DateTime {
             wall,
             offset: Some(0),
@@ -239,8 +291,8 @@ fn split_timestamp(t: f64) -> (i64, u32) {
 }
 
 /// CPython `local_to_seconds(…, fold=0)`: the instant whose local wall time is `wall`.
-pub fn local_to_seconds(local: &dyn Fn(i64) -> i64, wall: NaiveDateTime) -> i64 {
-    let t = wall.and_utc().timestamp();
+pub fn local_to_seconds(local: &dyn Fn(i64) -> i64, wall: Naive) -> i64 {
+    let t = utc_seconds(wall);
     let a = local(t) - t;
     let u1 = t - a;
     let t1 = local(u1);
@@ -285,25 +337,28 @@ pub fn host_local(u: i64) -> i64 {
     if !ok {
         return u;
     }
-    NaiveDate::from_ymd_opt(tm.tm_year + 1900, (tm.tm_mon + 1) as u32, tm.tm_mday as u32)
-        .and_then(|d| {
-            d.and_hms_opt(
-                tm.tm_hour as u32,
-                tm.tm_min as u32,
-                tm.tm_sec.min(59) as u32,
-            )
-        })
-        .map_or(u, |w| w.and_utc().timestamp())
+    let day = date(
+        (tm.tm_year + 1900) as u32,
+        (tm.tm_mon + 1) as u32,
+        tm.tm_mday as u32,
+    );
+    let time = Time::new(
+        tm.tm_hour as i8,
+        tm.tm_min as i8,
+        tm.tm_sec.min(59) as i8,
+        0,
+    );
+    match (day, time) {
+        (Some(day), Ok(time)) => utc_seconds(day.to_datetime(time)),
+        _ => u,
+    }
 }
 
 #[cfg(windows)]
 pub fn host_local(u: i64) -> i64 {
-    use chrono::TimeZone;
-    match chrono::Local.timestamp_opt(u, 0) {
-        chrono::LocalResult::Single(d) | chrono::LocalResult::Ambiguous(d, _) => {
-            d.naive_local().and_utc().timestamp()
-        }
-        chrono::LocalResult::None => u,
+    match (jiff::tz::TimeZone::try_system(), Timestamp::new(u, 0)) {
+        (Ok(zone), Ok(instant)) => u + i64::from(zone.to_offset(instant).seconds()),
+        _ => u,
     }
 }
 
@@ -323,9 +378,7 @@ pub fn now_utc() -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
-    let wall = chrono::DateTime::from_timestamp(now.as_secs() as i64, now.subsec_micros() * 1000)
-        .expect("in range")
-        .naive_utc();
+    let wall = utc_wall(now.as_secs() as i64, now.subsec_micros()).expect("in range");
     DateTime {
         wall,
         offset: Some(0),
@@ -340,18 +393,8 @@ mod tests {
 
     /// A zone like America/Denver in 2026: -7 h, -6 h from 8 Mar 09:00 UTC to 1 Nov 08:00 UTC.
     fn denver(u: i64) -> i64 {
-        let start = NaiveDate::from_ymd_opt(2026, 3, 8)
-            .unwrap()
-            .and_hms_opt(9, 0, 0)
-            .unwrap()
-            .and_utc()
-            .timestamp();
-        let end = NaiveDate::from_ymd_opt(2026, 11, 1)
-            .unwrap()
-            .and_hms_opt(8, 0, 0)
-            .unwrap()
-            .and_utc()
-            .timestamp();
+        let start = utc_seconds(jiff::civil::date(2026, 3, 8).at(9, 0, 0, 0));
+        let end = utc_seconds(jiff::civil::date(2026, 11, 1).at(8, 0, 0, 0));
         u + if (start..end).contains(&u) {
             -6 * 3600
         } else {
@@ -472,7 +515,7 @@ mod tests {
     #[test]
     fn timestamps_round_microseconds_half_to_even() {
         let utc = DateTime::fromtimestamp_utc(1_778_000_000.000_000_5);
-        assert_eq!(utc.wall.nanosecond(), 0);
+        assert_eq!(utc.wall.subsec_nanosecond(), 0);
         assert_eq!(
             DateTime::fromtimestamp_utc(-0.25).isoformat(),
             "1969-12-31T23:59:59.750000+00:00"

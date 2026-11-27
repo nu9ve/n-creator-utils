@@ -45,5 +45,9 @@ scripts/nu9ve_bench.py
 scripts/bench-examples.py
 scripts/bench-from-atlas.py
 
+# Hora civil con la semántica de Python (fromisoformat, isoformat, strftime, astimezone) sobre jiff. Mudado de
+# engine/crates/nu9ve-time el 2026-11-26; sus pruebas leen los vectores de CPython en data/.
+rust/nu9ve-time
+
 # El chequeo de frontera: lo corre el gate sobre engine/crates/nu9ve-*.
 scripts/check-boundary.sh

@@ -10,6 +10,8 @@ Paquete de Swift (`Package.swift`, paquete `nu9ve-swift`), para las apps de Mac.
 | `Nu9veEngine` | Cliente de [`nu9ve-engine-v1`](../contracts/nu9ve-engine-v1.md) por líneas: lanza el motor, handshake con `contract` y `protocol`, peticiones concurrentes emparejadas por `id`, plazos, lectura acotada, reinicio con espera creciente, `not_ported` como resultado y leases de sesión ([§6.4](../contracts/nu9ve-engine-v1.md#64-leases-de-sesión)). Su lector de JSON guarda los números como texto. Sólo Foundation y Synchronization | nüün (`LineServer` de `Protocol.swift`), 2026-11-22 | Aquí. Consumidores: ninguno todavía; Neuf, el primero previsto ([abajo](#nu9veengine-cliente-de-nu9ve-engine-v1)) |
 | `Nu9veVision` | Apple Vision sobre una imagen (`CGImage` o `CVPixelBuffer`), con lo que pida la app: caras con confianza y giro, cuerpos (medio o completo), poses, cabezas estimadas desde la pose (de perfil, de espaldas) o desde el cuerpo (lejos), y la máscara de personas recortada a donde hay alguien, o saltada si no hay nadie. Todas las cajas van normalizadas con el origen arriba a la izquierda. La geometría (`VisionGeometry`) es pura y se prueba sin Vision | video `native/fractos-vision` (cabezas, recorte de la máscara, calidad de la segmentación) y Clipper `ClipperMacOSRender/SubjectDetection.swift` (caras y medio cuerpo con origen arriba a la izquierda), leídos el 2026-11-22. Lo de cada app se queda en ella: las vistas del panorama y su paso a la esfera en video; el muestreo por intervalos y su informe en Clipper | Aquí desde el 2026-11-22. Nadie lo usa todavía: lo adoptan video y Clipper en sus sesiones, cada uno borrando su copia de esa parte |
 | `Nu9veScore` | Motor de música sin conexión: sintetizadores, baterías, percusión del mundo, efectos de cine, buses (reverb FDN, delays), carga de muestras y mastering, con stems y su informe. `ScoreManifest.load(path:schemas:defaultRevision:)`: cada app dice qué `schema` acepta y cómo suenan sus manifiestos que no traen `engine_revision`. `ScoreRevision.v1` suena como el primer motor (bombo, reverb sin corte de graves, drive sin compensación, granos de resonadores, impacto) y `.v2` como el segundo; lo que sólo tenía uno está en las dos revisiones y apagado si el manifiesto no lo pide. Desde el 2026-11-23, también apagado salvo que se pida: pads con capa, deriva y wavetable (`wave: "wt"`, carril `morph`), leads al unísono, bajos de dos bandas (`top`), la caja `jingle`, la cadena por stem (`stem_fx`) y los retornos que bajan con el bombo (`space_duck`) | Clipper `ClipperMacOSRender/Sources/ClipperScore` (`54bc81f`, con los niveles por rol) y su copia en video `native/fractos-score` (desde Clipper `6fa115b`, 2026-10-11), que sumó voces, efectos, ecualizador de inserto, LFO, tensión, cinta y clips. Leídos el 2026-11-22 | Aquí desde el 2026-11-22. **Suena igual que los dos:** en Release, `v1` da las mismas muestras que el binario de Clipper y `v2` que el de video, también con los parámetros nuevos (video `e5a4e50`; `scripts/check-score.sh`, dentro de `check-swift.sh`). Nadie lo usa todavía: Clipper pasa `["clipper-score-v1"]` y `.v1`; video, `["fractos-score-v1", "clipper-score-v1"]` y `.v2`; los dos, `reportSchema: "clipper-score-render-v1"`, como hoy |
+| `Nu9veAction` | El registro de [`nu9ve-action-v1`](../contracts/nu9ve-action-v1.md) y lo que la vista muestra de sus lecturas: `ActionRecord.read(_:progressID:)` valida con los mismos motivos y en el mismo orden que la referencia de Python; `ActionWatch` aplica la §4 (fracción que no baja, ETA tras 5 s y 2 % y suavizada, «ETA pendiente» a los 15 s, «sin señal» a los 60 s, «ya no está») y da un `ActionSnapshot`; `ActionMonitor` (`@Observable`) sondea cada 0,75 s o cada 5 s según el tamaño, con un `fetch` que pone la app (por ejemplo `EngineReply.bytes` de `Nu9veEngine`). Prueba `data/action-examples-v1.json`. Sólo Foundation y Observation | Nació con el contrato, 2026-11-26 | Aquí. Consumidores: ninguno todavía |
+| `Nu9veActionProgress` | La vista común de una acción larga ([interacción §7](../contracts/nu9ve-interaction-v1.md#acciones-largas)), en los cinco skins: `ActionProgressScreen` (pantalla, con el cierre al terminar y los botones que pone la app), `ActionProgressCompact` (panel con una fila por acción), `ActionProgressIndicator` (chip de la barra de título), `ActionDockBadge` (porcentaje en el Dock), `ActionClosingView` (éxito, aviso, error, cancelado), `ActionProgressBar` y `ActionTravel` (la travesía por skin a 12 cuadros, quieta con «Reducir movimiento»). Los colores llegan con `.environment(\.actionProgressStyle, ActionProgressStyle(skin:roles:))`. Los textos son claves en español que la app traduce en su catálogo | nüün `ActionProgress.swift` (`d96c6fd`), mudado el 2026-11-26 sin su paleta ni su lector de JSON | Aquí. Consumidores: ninguno todavía; nüün, app de origen, cambia su copia por ésta al adoptar el contrato |
 | Motor de sonido de interfaz | | Fractos (`FractosSoundV2`) | Según el contrato de sonido |
 
 ## macOS mínimo: 15
@@ -28,6 +30,36 @@ Paquete de Swift (`Package.swift`, paquete `nu9ve-swift`), para las apps de Mac.
 - **Gate:** `scripts/check-swift.sh` corre la frontera, `swift test` y un build de Release con los avisos como errores (`NU9VE_STRICT_WARNINGS=1`). No puede ser siempre: Xcode compila los paquetes locales con `-suppress-warnings`, y el compilador rechaza las dos opciones juntas. El CI lo corre en macOS 26 (Swift 6.2).
 - **Las apps no corren `swift test` dentro de `vendor/nu9ve-core/swift`:** dejaría `.build/` ahí y `sync-core.sh --check` lo rechaza por archivos fuera del manifiesto. Las pruebas del shell corren aquí; la app prueba que lo usa bien.
 - El nombre `NuMacShell` viene de Fractos y se mantiene para no romper los `import`. La regla del prefijo pediría `Nu9veMacShell`; renombrarlo sería un cambio propio, con `-v2` conviviendo.
+
+## `Nu9veActionProgress`: la vista de una acción larga
+
+```swift
+import Nu9veAction
+import Nu9veActionProgress
+
+// Quien lanza la acción le da su id (nu9ve-action-v1 §1) y la lee con action_progress.
+let monitor = ActionMonitor(progressID: "respaldo-2026-11-26-1") { id in
+    // EngineOutcome.value es nil si el motor responde not_ported: entonces no sirve action_progress.
+    guard let reply = try await engine.call("action_progress", ["progress_id": .string(id)]).value else { throw NoProgress() }
+    return reply.bytes
+}
+monitor.start()
+
+// Pantalla, mientras la persona está en la vista que la lanzó:
+ActionProgressScreen(monitor.snapshot, note: "Si cancelas, lo copiado queda.") {
+    Button("Cancelar") { … }
+}
+.environment(\.actionProgressStyle, ActionProgressStyle(skin: skin, roles: roles))
+
+// En otra vista: el panel compacto y el chip de la barra; size = .indicator si sólo se ve el chip.
+ActionProgressCompact([monitor.snapshot]) { id in abrir(id) }
+ActionProgressIndicator([monitor.snapshot]) { mostrarCompacta = true }
+ActionDockBadge.show([monitor.snapshot])
+```
+
+- **Qué pone la app:** dónde va cada tamaño (la pantalla reemplaza la vista que lanzó la acción, la compacta flota, el chip va en su barra), los botones (Cancelar, Pausar, Reanudar, Reintentar, Ver el recibo: `snapshot.resumable` dice cuál) y la traducción de las claves.
+- **Qué no hace todavía:** la señal de éxito de [sonido v1](../contracts/nu9ve-sound-v1.md) (la pone la app al ver `complete`), el aviso del sistema al terminar ([avisos v1](../contracts/nu9ve-notifications-v1.md)) y el `hover` por skin (pieza 5 de [acciones](../docs/actions-next.md)). `Nu9veLoadingState`, para lo que tarda menos de un par de segundos, queda para cuando haya un segundo usuario.
+- **Probado:** el modelo, contra los ejemplos del contrato; las vistas se construyen y se maquetan en los cinco skins, corriendo y en cada cierre, y se revisaron renderizadas en PNG. Sin probar a mano en una app.
 
 ## `Nu9veEngine`: cliente de nu9ve-engine-v1
 

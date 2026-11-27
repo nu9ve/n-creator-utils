@@ -7,7 +7,7 @@ use serde_json::value::RawValue;
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 
-pub use transport::{MAX_MESSAGE_BYTES, serve_frames, serve_lines};
+pub use transport::{MAX_MESSAGE_BYTES, respond, serve_frames, serve_lines};
 
 pub const CONTRACT: &str = "nu9ve-engine/1";
 

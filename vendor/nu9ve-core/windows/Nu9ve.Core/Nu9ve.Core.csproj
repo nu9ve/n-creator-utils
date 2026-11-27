@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Base de la suite para Windows, sin UI: tema (nu9ve-theme-v1), superficies por skin, reglas de
-       atajos (nu9ve-interaction-v1) y de ventana (windows-app-v1). Sin dependencias.
+       atajos (nu9ve-interaction-v1) y de ventana (windows-app-v1), y el trabajador de una vez con Job Object
+       (nu9ve-engine-v1 §6.2). Sin dependencias.
        Sin el nombre ni los colores de ninguna app: cada una pasa su identidad. -->
   <PropertyGroup>
     <RootNamespace>Nu9ve</RootNamespace>
+    <!-- LibraryImport genera el código de P/Invoke del Job Object (Engine/OneShotWorker.cs). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 </Project>

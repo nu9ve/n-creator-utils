@@ -24,7 +24,9 @@ let package = Package(
         .library(name: "Nu9veFormat", targets: ["Nu9veFormat"]),
         .library(name: "Nu9veEngine", targets: ["Nu9veEngine"]),
         .library(name: "Nu9veVision", targets: ["Nu9veVision"]),
-        .library(name: "Nu9veScore", targets: ["Nu9veScore"])
+        .library(name: "Nu9veScore", targets: ["Nu9veScore"]),
+        .library(name: "Nu9veAction", targets: ["Nu9veAction"]),
+        .library(name: "Nu9veActionProgress", targets: ["Nu9veActionProgress"])
     ],
     targets: [
         // macOS-only code, compiled empty elsewhere. Knows no app: each passes its own names.
@@ -43,6 +45,14 @@ let package = Package(
         .target(name: "Nu9veVision", swiftSettings: strictSettings),
         // The offline music engine: synths, drums, world percussion, FX, buses and mastering, with revisions.
         .target(name: "Nu9veScore", swiftSettings: strictSettings),
+        // nu9ve-action-v1: the record of a long action and what the view shows from its reads. Foundation only.
+        .target(name: "Nu9veAction", swiftSettings: strictSettings),
+        // The common view of a long action (nu9ve-interaction-v1 §7): screen, compact and indicator, drawn by the skin.
+        .target(
+            name: "Nu9veActionProgress",
+            dependencies: ["Nu9veAction", "Nu9veFormat", "Nu9veTheme", "NuMacShell"],
+            swiftSettings: strictSettings
+        ),
         // A renderer the score tests and the comparison with the apps' engines use. Not a product.
         .executableTarget(name: "Nu9veScoreFixture", dependencies: ["Nu9veScore"], swiftSettings: strictSettings),
         // A test engine the client's tests launch. Not a product.
@@ -56,6 +66,12 @@ let package = Package(
         .testTarget(
             name: "NuMacShellTests",
             dependencies: ["NuMacShell", "Nu9veTheme"],
+            swiftSettings: strictSettings
+        ),
+        .testTarget(name: "Nu9veActionTests", dependencies: ["Nu9veAction"], swiftSettings: strictSettings),
+        .testTarget(
+            name: "Nu9veActionProgressTests",
+            dependencies: ["Nu9veActionProgress", "Nu9veAction", "Nu9veTheme"],
             swiftSettings: strictSettings
         ),
         .testTarget(name: "Nu9veVisionTests", dependencies: ["Nu9veVision"], swiftSettings: strictSettings),

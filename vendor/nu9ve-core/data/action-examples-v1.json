@@ -1,0 +1,414 @@
+{
+ "contract": "contracts/nu9ve-action-v1.md",
+ "regenerate": "python3 -I scripts/action-examples.py",
+ "note": "requests: action_progress requests (§2) with the expected reply; valid and invalid: records (§3) for progress_id ingreso-2026-11-26-1, or why each invalid one is not valid; sequences: reads of one action at the instant `at`, what the common view shows after each (§4: display, percent truncated, eta none/shown/pending, the problem of a read it ignored) and, for each pair of valid records in a row, the §3.3 problem or null.",
+ "requests": [
+  {
+   "name": "a progress id",
+   "request": "{\"id\":1,\"method\":\"action_progress\",\"params\":{\"progress_id\":\"ingreso-2026-11-26-1\"}}",
+   "ok": true
+  },
+  {
+   "name": "an id the engine does not know is answered, not an error",
+   "request": "{\"id\":2,\"method\":\"action_progress\",\"params\":{\"progress_id\":\"no-existe\"}}",
+   "ok": true
+  },
+  {
+   "name": "a uuid",
+   "request": "{\"id\":3,\"method\":\"action_progress\",\"params\":{\"progress_id\":\"3f2a8c1e-5b7d-4e9a-8c21-0d4f6b2a9e17\"}}",
+   "ok": true
+  },
+  {
+   "name": "no progress id",
+   "request": "{\"id\":4,\"method\":\"action_progress\",\"params\":{}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "an unknown parameter",
+   "request": "{\"id\":5,\"method\":\"action_progress\",\"params\":{\"progress_id\":\"ingreso-2026-11-26-1\",\"verbose\":true}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "upper case is not an id",
+   "request": "{\"id\":6,\"method\":\"action_progress\",\"params\":{\"progress_id\":\"Ingreso-1\"}}",
+   "ok": false,
+   "code": "invalid_params"
+  },
+  {
+   "name": "a number is not an id",
+   "request": "{\"id\":7,\"method\":\"action_progress\",\"params\":{\"progress_id\":7}}",
+   "ok": false,
+   "code": "invalid_params"
+  }
+ ],
+ "valid": [
+  {
+   "name": "copying, in bytes",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":1600000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":211,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"}],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:02:12Z\",\"updated_at\":\"2026-11-26T18:02:12Z\"}"
+  },
+  {
+   "name": "total not known yet: an indeterminate bar",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"listing\",\"overall_done\":0,\"overall_total\":null,\"unit\":\"bytes\",\"files_done\":0,\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}"
+  },
+  {
+   "name": "Clipper: work units with phase and step",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"export\",\"label\":\"Exportando el proyecto\",\"state\":\"running\",\"stage\":\"rendering\",\"overall_done\":1600,\"overall_total\":10000,\"unit\":\"work\",\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:02:13Z\",\"updated_at\":\"2026-11-26T18:02:13Z\",\"phase\":{\"index\":2,\"count\":7,\"label\":\"Render group 1/1\"},\"step\":{\"index\":4,\"count\":8,\"label\":\"Compose canvas\",\"fraction\":0.09}}"
+  },
+  {
+   "name": "an app stage with its prefix",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"release\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"nuun.metadata_backup_after\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}"
+  },
+  {
+   "name": "a scan counts items",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"scan\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"scanning\",\"overall_done\":332,\"overall_total\":null,\"unit\":\"items\",\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:05Z\"}"
+  },
+  {
+   "name": "an unknown field is ignored",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\",\"nuun_released_files\":0}"
+  },
+  {
+   "name": "complete",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":540,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"540 archivos copiados y verificados en MEDIA502\",\"warnings\":[],\"receipt\":\"/Volumes/MEDIA502/.nu9ve/apps/nuun/receipts/ingreso-2026-11-26-1.json\"}}"
+  },
+  {
+   "name": "complete, with a warning",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":540,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"532 archivos respaldados en MEDIA502\",\"receipt\":null,\"warnings\":[{\"code\":\"changed_during_copy\",\"message\":\"8 archivos cambiaron durante la copia: entran en el próximo respaldo\"}]}}"
+  },
+  {
+   "name": "failed, resumable, with what got done",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"failed\",\"stage\":\"finishing\",\"overall_done\":1600000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":211,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"211 de 540 archivos copiados\"},\"error\":{\"code\":\"disk_full\",\"message\":\"MEDIA502 se llenó\"},\"resumable\":true}"
+  },
+  {
+   "name": "cancelled, nothing done",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"cancelled\",\"stage\":\"finishing\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"resumable\":false}"
+  },
+  {
+   "name": "unknown",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"state\":\"unknown\"}"
+  }
+ ],
+ "invalid": [
+  {
+   "name": "another contract",
+   "record": "{\"contract\":\"nu9ve-action/2\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_contract"
+  },
+  {
+   "name": "another progress id",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"otro\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "other_progress_id"
+  },
+  {
+   "name": "unknown with more fields",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"state\":\"unknown\",\"stage\":\"copying\"}",
+   "problem": "unknown_with_fields"
+  },
+  {
+   "name": "a state outside the list",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"paused\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_state"
+  },
+  {
+   "name": "a stage without prefix outside the list",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"uploading\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_stage"
+  },
+  {
+   "name": "done over total",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":4000000001,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "done_over_total"
+  },
+  {
+   "name": "no overall_total at all",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_overall"
+  },
+  {
+   "name": "a boolean is not a count",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":true,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_overall"
+  },
+  {
+   "name": "another unit",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"percent\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_unit"
+  },
+  {
+   "name": "a path in current.name",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"DCIM/C0001.MP4\"},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_current"
+  },
+  {
+   "name": "a log of 61 entries",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"},{\"at\":\"2026-11-26T18:02:11Z\",\"kind\":\"copied\",\"name\":\"C0211.MP4\",\"target\":\"MEDIA502\"}],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "bad_log"
+  },
+  {
+   "name": "an instant without Z",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00+00:00\"}",
+   "problem": "bad_instant"
+  },
+  {
+   "name": "progressed after updated",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:09Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "instants_out_of_order"
+  },
+  {
+   "name": "100 % while running",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+   "problem": "full_while_running"
+  },
+  {
+   "name": "a phase past its count",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\",\"phase\":{\"index\":8,\"count\":7,\"label\":\"x\"}}",
+   "problem": "bad_phase"
+  },
+  {
+   "name": "complete but not full",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":1,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":540,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"540 archivos copiados y verificados en MEDIA502\",\"warnings\":[],\"receipt\":\"/Volumes/MEDIA502/.nu9ve/apps/nuun/receipts/ingreso-2026-11-26-1.json\"}}",
+   "problem": "complete_not_full"
+  },
+  {
+   "name": "complete and still cancellable",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":540,\"files_total\":540,\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"540 archivos copiados y verificados en MEDIA502\",\"warnings\":[],\"receipt\":\"/Volumes/MEDIA502/.nu9ve/apps/nuun/receipts/ingreso-2026-11-26-1.json\"}}",
+   "problem": "still_working_after_end"
+  },
+  {
+   "name": "complete without outcome",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\"}",
+   "problem": "complete_without_outcome"
+  },
+  {
+   "name": "failed without error",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"failed\",\"stage\":\"finishing\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"resumable\":true}",
+   "problem": "bad_error"
+  },
+  {
+   "name": "failed without resumable",
+   "record": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"failed\",\"stage\":\"finishing\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"error\":{\"code\":\"disk_full\",\"message\":\"lleno\"}}",
+   "problem": "bad_resumable"
+  }
+ ],
+ "sequences": [
+  {
+   "name": "a copy from start to end, with a pause in the middle",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:00Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"state\":\"unknown\"}",
+     "shows": {
+      "display": "preparing",
+      "percent": null,
+      "eta": "none"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:01Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:01Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 0,
+      "eta": "none"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:03Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":40000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:03Z\",\"updated_at\":\"2026-11-26T18:00:03Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 1,
+      "eta": "none"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:06Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":400000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:06Z\",\"updated_at\":\"2026-11-26T18:00:06Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 10,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:25Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":400000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:06Z\",\"updated_at\":\"2026-11-26T18:00:25Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 10,
+      "eta": "pending"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:27Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":2000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:27Z\",\"updated_at\":\"2026-11-26T18:00:27Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 50,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:40Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"complete\",\"stage\":\"finishing\",\"overall_done\":4000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":540,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:40:00Z\",\"updated_at\":\"2026-11-26T18:40:00Z\",\"outcome\":{\"summary\":\"540 archivos copiados y verificados en MEDIA502\",\"warnings\":[],\"receipt\":\"/Volumes/MEDIA502/.nu9ve/apps/nuun/receipts/ingreso-2026-11-26-1.json\"}}",
+     "shows": {
+      "display": "complete",
+      "percent": 100,
+      "eta": "none"
+     }
+    }
+   ],
+   "steps": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "name": "the heartbeat stops and comes back",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:10Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":800000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 20,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:01:20Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":800000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "no_signal",
+      "percent": 20,
+      "eta": "pending"
+     }
+    },
+    {
+     "at": "2026-11-26T18:01:25Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":800000001,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:01:25Z\",\"updated_at\":\"2026-11-26T18:01:25Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 20,
+      "eta": "shown"
+     }
+    }
+   ],
+   "steps": [
+    null,
+    null
+   ]
+  },
+  {
+   "name": "an engine that moves the bar back: the view keeps the highest",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:10Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":2000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 50,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:11Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":1000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:11Z\",\"updated_at\":\"2026-11-26T18:00:11Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 50,
+      "eta": "shown"
+     }
+    }
+   ],
+   "steps": [
+    "fraction_went_back"
+   ]
+  },
+  {
+   "name": "an invalid read keeps the last valid one",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:10Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":800000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 20,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:11Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"paused\",\"stage\":\"copying\",\"overall_done\":0,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:00Z\",\"updated_at\":\"2026-11-26T18:00:00Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 20,
+      "eta": "shown",
+      "ignored": "bad_state"
+     }
+    }
+   ],
+   "steps": [
+    null
+   ]
+  },
+  {
+   "name": "the record is gone after the end",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:10Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":800000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 20,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:30Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"state\":\"unknown\"}",
+     "shows": {
+      "display": "gone",
+      "percent": null,
+      "eta": "none"
+     }
+    }
+   ],
+   "steps": [
+    null
+   ]
+  },
+  {
+   "name": "it fails and can resume",
+   "reads": [
+    {
+     "at": "2026-11-26T18:00:10Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"running\",\"stage\":\"copying\",\"overall_done\":1000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"current\":{\"name\":\"C0001.MP4\",\"from\":\"A7S-03\",\"to\":\"MEDIA502\",\"action\":\"copy\",\"file_done\":0,\"file_total\":104857600},\"log\":[],\"cancellable\":true,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:10Z\"}",
+     "shows": {
+      "display": "running",
+      "percent": 25,
+      "eta": "shown"
+     }
+    },
+    {
+     "at": "2026-11-26T18:00:20Z",
+     "reply": "{\"contract\":\"nu9ve-action/1\",\"progress_id\":\"ingreso-2026-11-26-1\",\"action\":\"ingest\",\"label\":\"Copiando y verificando la tarjeta A7S-03\",\"state\":\"failed\",\"stage\":\"finishing\",\"overall_done\":1000000000,\"overall_total\":4000000000,\"unit\":\"bytes\",\"files_done\":0,\"files_total\":540,\"log\":[],\"cancellable\":false,\"started_at\":\"2026-11-26T18:00:00Z\",\"progressed_at\":\"2026-11-26T18:00:10Z\",\"updated_at\":\"2026-11-26T18:00:20Z\",\"error\":{\"code\":\"disk_full\",\"message\":\"MEDIA502 se llenó\"},\"resumable\":true,\"outcome\":{\"summary\":\"108 de 540 archivos copiados\"}}",
+     "shows": {
+      "display": "failed",
+      "percent": 25,
+      "eta": "none",
+      "resumable": true
+     }
+    }
+   ],
+   "steps": [
+    null
+   ]
+  }
+ ]
+}

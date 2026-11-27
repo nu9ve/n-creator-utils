@@ -661,12 +661,7 @@ fn after_month(rel: &str) -> String {
 
 /// Python comparison of two aware datetimes (`a < b`): by instant.
 fn earlier(a: &DateTime, b: &DateTime) -> bool {
-    let key = |d: &DateTime| {
-        (
-            d.timestamp().unwrap_or(i64::MAX),
-            d.wall.and_utc().timestamp_subsec_micros(),
-        )
-    };
+    let key = |d: &DateTime| (d.timestamp().unwrap_or(i64::MAX), d.micros());
     key(a) < key(b)
 }
 

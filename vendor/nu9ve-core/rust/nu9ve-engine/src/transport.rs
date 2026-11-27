@@ -70,6 +70,26 @@ pub fn serve_lines(
     })())
 }
 
+/// Answer one request in this process, without a stream: for an engine linked into its app (an FFI) that
+/// still speaks nu9ve-engine-v1. The rules are those of the stream modes: the 1 MiB limit, the exact id,
+/// the envelope and `engine_info`. Returns the compact envelope, without a trailing newline. A blank
+/// request is `invalid_request`: there is no stream to skip it in. Encoded data may span lines here, since
+/// nothing frames the reply.
+pub fn respond(
+    request: &[u8],
+    info: EngineInfo<'_>,
+    mut dispatch: impl FnMut(Request<'_>) -> Result,
+) -> Vec<u8> {
+    let response = if request.len() > MAX_MESSAGE_BYTES {
+        oversized_request()
+    } else {
+        answer(request, &info.into_data(), &mut dispatch)
+    };
+    serde_json::to_vec(&response).unwrap_or_else(|_| {
+        br#"{"id":null,"ok":false,"error":{"code":"internal_error","message":"Could not encode the response."}}"#.to_vec()
+    })
+}
+
 /// Serve successive frames on a stream. Each frame has a four-byte, unsigned
 /// big-endian length followed by UTF-8 JSON. An oversized frame's body is
 /// drained with bounded memory before the next header is read.

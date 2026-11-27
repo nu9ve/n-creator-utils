@@ -146,13 +146,38 @@ Leído en el código el 2026-11-16: nüün `4f6b07c`, Clipper `41084ccb`, nove `
 | --- | --- | --- | --- |
 | curado | Propia: `crates/audio-engine/src/loudness.rs` (sólo integrado, ponderación K con biquads RBJ) y el detector de true peak de `limiter.rs`, que es el origen del del crate | No | **Adoptarla mueve sus niveles entre 0,04 y 0,3 LU** (hoy lee bajo; con los 23 dorados, entre 0,04 y 0,29 LU menos). Su CHANGELOG debe decirlo al adoptarla. El true peak del crate es el suyo, con la misma aritmética |
 | SoundBender | **Fija el crate** (`soundshop` `9eb4ceb` y `3df4dfb`, core `d3fed8e`); su `loudness.rs`, origen del LUFS del crate, se borró. En Swift sigue `LoudnessMeter`, cada 100 ms y solo a 48 kHz | Con sus 23 dorados: integrado a 5e-5 LU o menos del manifiesto. No fija `data/audio` | Ningún dorado dura 3 s, así que el máximo de corto plazo (aquí cada 10 ms) no está comparado con Swift. El true peak aún no lo usa: lo que falta para el medidor y el limitador está en su `portable-engine.md`. **Más lento que Swift en `d3fed8e`:** 95 ms frente a 64 de `LoudnessMeter` en 3 min estéreo a 48 kHz (su cuarta medición, 2026-11-18). Medido por partes, no era la rejilla de 10 ms sino los filtros, un canal tras otro. El crate de hoy tarda la mitad con los mismos bits ([CHANGELOG](../CHANGELOG.md), 2026-11-18, `f332b48`). SoundBender lo tomó al fijar `bcd8d43` y repitió su medición: 35 ms (`41ab675`, `16ac1c8`, su quinta medición) |
-| Clipper | Mide con FFmpeg (`ebur128`) en `master_audio.py` | No | Consumidor de medidas, no implementación ([plan](suite-adoption.md)) |
+| Clipper | **Fija el crate** desde el 2026-11-22 (`clipper` `0bdd1f74`, core `08744e3`): su motor mide y decide el mastering del master, y la canción de la intro, con `nu9ve-loudness`. `master_audio.py` (FFmpeg `ebur128`) queda en el Python que no se retira | No | Consumidor de medidas, no implementación ([plan](suite-adoption.md)) |
 
 ## nu9ve-midi
 
 | App | Implementación | Verificación |
 | --- | --- | --- |
-| curado | El lector local es el origen de [`nu9ve-midi`](../rust/nu9ve-midi/). Pendiente fijar el crate y el perfil físico v1 y migrar el preset a sus IDs. | La extracción reproduce los 18 gestos de la captura CoreMIDI. Quedan escucha y reconexión en la app. |
+| curado | **Fija el crate** (`curado` `8fb7844`, core `1114e02`): `crates/midi` depende de `nu9ve-midi` por la copia fijada, que trae también el perfil físico `data/midi/pioneer-ddj-sb-v1.json`; el preset de `crates/midi/presets/pioneer-ddj-sb.json` pasa a sus IDs. | La extracción reproduce los 18 gestos de la captura CoreMIDI. Falta que el usuario pruebe la build con el DDJ-SB (faders, EQ, jogs, pads, desconectar y reconectar); después, escala del jog, LEDs y soft takeover. |
+
+## nu9ve-jobs
+
+[`rust/nu9ve-jobs`](../rust/nu9ve-jobs/) y `Engine/OneShotWorker` de [`Nu9ve.Core`](../windows/README.md), desde el 2026-11-26. Sin contrato propio: siguen [motor §6.2](../contracts/nu9ve-engine-v1.md#62-progreso-y-cancelación). Nadie los usa todavía.
+
+| App | Qué usaría | Estado |
+| --- | --- | --- |
+| Clipper | Todo `nu9ve-jobs`: es la app de origen (`core/src/rpc_jobs/jobkit/`) | Sin empezar: fijar el crate y borrar `jobkit`. Sus tres ganchos del export (escala del progreso de R7e, relevo de R7h y `sink` de R7j) se rehacen sobre `Transform` y `Sink`; su `supervise` no cambia de forma |
+| nüün | `OneShotWorker` en su cliente de Windows, con `NUUN_CANCEL_FILE` | Sin empezar. Antes de su paso 4 de Windows: cambiar `RunAsync`/`CallCancellableAsync` de `RpcConnection.cs` por `OneShotWorker` y probarlo en el PC |
+| curado | `nu9ve-jobs` para Demucs (`stems.rs`) | Sin empezar |
+
+## nu9ve-py y nu9ve-time
+
+[`rust/nu9ve-py`](../rust/nu9ve-py/) y [`rust/nu9ve-time`](../rust/nu9ve-time/), desde el 2026-11-26, con los vectores de CPython 3.14 de [`data/py-vectors-v1.json`](../data/py-vectors-v1.json). Nadie los usa todavía.
+
+Los vectores encontraron cinco diferencias con Python en el código que se mudó, ya corregidas aquí. **Las copias de origen las tienen todavía:**
+
+- `str.title()`: la sigma final (`"ΣΑΣ"` → `"Σας"`, el código daba `"Σασ"`), las letras en titlecase como `ǅ`, que Python cuenta como letras con caso, y las ligaduras (`ﬁ` → `Fi`), con una tabla de titlecase sacada de Python junto a las de Unicode 15.0.
+- `repr(str)` de un carácter no imprimible fuera de ASCII (`\xa0`, `\u200b`): Python lo escapa y el código lo copiaba; ahora es `None`.
+- `PurePosixPath('') / 'x'` es `x` (daba `/x`), `PurePosixPath('/') / '..'` es `/..` (daba `//..`) y `PurePosixPath('.').name` es `""` (daba `.`).
+
+| App | Qué toma | Estado |
+| --- | --- | --- |
+| Clipper | `nu9ve-py` en lugar de `py.rs`, `pynum.rs`, `pyval.rs` (salvo sus constantes), `paths.rs` y la parte de Unicode 15.0 de `unicode.rs`. Sus dos tipos de número (`P` y `Num`) son uno, `Num`, con operaciones `checked_*` que devuelven `None` fuera de ±2**53 | Sin empezar. Se quedan en Clipper: `even` del layout, `round3_repr` y las tablas de Unicode 16.0 de sus transcripts, `numpy_rng`, `tzif` y `civil_datetime`. Al adoptar, sus dorados dicen si alguna de las cinco correcciones cambia una respuesta |
+| nüün | `nu9ve-time` en lugar de `engine/crates/nu9ve-time` | Sin empezar. Cambia la API: `wall` es ahora `jiff::civil::DateTime` (alias `Naive`) y ya no se reexporta `chrono`. Los sitios que tocan `.wall` (`nuun-media/src/layout.rs` y `missions.rs`) usan `micros()` y `whole_seconds()` en lugar de `timestamp_subsec_micros` y `with_nanosecond(0)`. `now_utc` (69 llamadas) no cambia. Su dorado contra Python debe seguir sin diferencias |
 
 ## nu9ve-mcp-v1
 
@@ -185,23 +210,25 @@ nove es el primero que se registra (2026-11-20). Las demás necesitan antes:
 
 | App | Transporte que podría registrar | Falta |
 | --- | --- | --- |
-| nove | Socket Unix `runtime/ipc` (Mac) y pipe (Windows), ya con las comprobaciones de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) | **Versión menor del 2026-11-25:** su motor escribe `profile_id` cuando arranca con `--profile` (A98, en integración). **En Mac, hecho** (`nove` `d430c04`, su A53): escribe y borra `nove.json` con `nu9ve-ipc` de su copia fijada, sólo con `--suite-registry`, que la app pasa desde su propio bundle y nunca en QA, demos ni pruebas. Anuncia `data_catalog_v1` y `mcp_tools_v1`. Sin probar con la app instalada. En Windows falta, como en `nu9ve-ipc` |
-| nüün | Ninguno: `rpc-serve` es stdio de su app | Un socket o pipe con las reglas de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) antes de registrarse |
+| nove | Socket Unix `runtime/ipc` (Mac) y pipe (Windows), ya con las comprobaciones de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) | **Versión menor del 2026-11-25:** su motor escribe `profile_id` cuando arranca con `--profile` (A98, build 34). **En Mac, hecho** (`nove` `d430c04`, su A53): escribe y borra `nove.json` con `nu9ve-ipc` de su copia fijada, sólo con `--suite-registry`, que la app pasa desde su propio bundle y nunca en QA, demos ni pruebas. Anuncia `data_catalog_v1` y `mcp_tools_v1`. Sin probar con la app instalada. En Windows falta, como en `nu9ve-ipc` |
+| nüün | Socket Unix en marcos, mientras corre `rpc-serve`, con las reglas de [motor §9](../contracts/nu9ve-engine-v1.md#9-seguridad-sólo-local-sólo-el-usuario) | **En Mac, hecho** (`n-creator-utils` `0c21510`, 2026-11-23): se registra como `nuun` (`nuun-suite/1`) y sirve `data_catalog` y `data_export`; bajo QA sólo con `NU9VE_ENGINES_DIR`, y el registro se borra al cerrar. Desde `f088343` (core `f267022`) el registro lleva `library` y `profile_id`. Aceptado en ventana en un sandbox (`45b47fd`). En Windows falta el named pipe |
 | Clipper | Ninguno: `serve` es stdio | Igual que nüün |
 
 ## nu9ve-data-v1
 
 [Catálogo de datos v1](../contracts/nu9ve-data-v1.md)
 
-nove lo sirve desde el 2026-11-20; nadie más todavía.
+nove lo sirve desde el 2026-11-20 y nüün desde el 2026-11-23.
 
 | App | Qué serviría | Estado |
 | --- | --- | --- |
-| nove | Proyectos, fuentes y datasets del [modelo de datos v1](../../nove/docs/contracts/data-model-v1.md) | **Lo sirve** (`d430c04` y `036315d`, sus A53 y A56): el registro de datasets (incluidos Atlas, Clipper y los rásters en sitio), las series de módulos (pares OTC, mercados, seguimientos web) con ids estables y las conversaciones de agentes como `personal`, sólo con su forma. Probado en sus pruebas y con datos reales en la M1; sin un cliente de la suite real |
-| nüün | Proyectos de media y colecciones (`~/.claude`, `~/.codex`) como modalidad `files`, `personal` | Su sesión S7 expone las colecciones por su motor; `data_catalog` cuando tenga transporte registrable |
+| nove | Proyectos, fuentes y datasets del [modelo de datos v1](../../nove/docs/contracts/data-model-v1.md) | **Lo sirve** (`d430c04` y `036315d`, sus A53 y A56): el registro de datasets (incluidos Atlas, Clipper y los rásters en sitio), las series de módulos (pares OTC, mercados, seguimientos web) con ids estables y las conversaciones de agentes como `personal`, sólo con su forma. Probado con Codex CLI y registro aislado en la M1 ([QA](../../nove/docs/mcp.md#nu9ve-mcp-con-un-cliente-real-2026-11-23-la-m1)). Los datos reales se leyeron en una biblioteca aislada |
+| nüün | Proyectos de media y colecciones (`~/.claude`, `~/.codex`) como modalidad `files`, `personal` | **Lo sirve** por su socket registrable (`0c21510`): el catálogo local, el último índice publicado de cada disco con raíces por `volume_id`, y las colecciones vivas. Pasa `data-examples.py --server` 11/11. `nu9ve agent publish` escribió `catalog/nuun.json` en QA. Faltan claves de proyecto legibles (hoy un UUID) y la colección Agentes |
 | Clipper | Proyectos y transcripts | Sin empezar |
 
 Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisiones), decisión 3): raíces con `volume_id` y `volume_path`, y la clave conocida `conversaciones`. Los validadores de referencia (`scripts/data-examples.py`) y de `nu9ve-mcp` ya los aceptan; ninguna app los usa todavía.
+
+Uso de agentes por cuenta: [decidido el 2026-11-26](agent-usage-next.md#decisión-2026-11-26). Vive en nove hasta que haya un segundo lector. La cuenta sale de los campos de cada sesión (Claude Code `ownerAccountUuid`, Codex `creator_account_id`) como clave opaca, sin declarar nada por proyecto. Le toca a nove: leerlos, el turno nativo con `turn_basis` y los tokens de Codex por diferencia.
 
 ## nu9ve-music
 
@@ -215,12 +242,12 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 ## nu9ve-agent-v1
 
-[Agente de la suite v1](../contracts/nu9ve-agent-v1.md), propuesta del 2026-11-22 (F1). El agente está completo en el core desde U7c; ninguna app lo trae todavía.
+[Agente de la suite v1](../contracts/nu9ve-agent-v1.md), propuesta del 2026-11-22 (F1). El agente está completo en el core desde U7c; nüün lo trae en su bundle desde el 2026-11-23.
 
 | App | Papel | Estado |
 | --- | --- | --- |
 | core | El agente: `nu9ve agent` en el binario `nu9ve` (U7b y U7c) | **Hecho en QA** (2026-11-22, [órdenes](../rust/nu9ve-mcp/README.md#nu9ve-agent)): identidad y clave en el llavero, carpeta, publicar, leer y emparejar (U7b); `serve` con un solo agente por máquina, kqueue y cierre ordenado; `install`, `uninstall` y `state` con la tabla de §3 y el LaunchAgent `xyz.nu9ve.agent`; el motor `suite` con sus seis herramientas (U7c). Probado con dos máquinas de QA y con `nu9ve mcp`. **Instalado en la M1** (2026-11-22, por decisión del usuario): `nu9ve agent install` desde `61e8c49`, con el LaunchAgent `xyz.nu9ve.agent` cargado, la clave en el llavero y el `device.json` «M1» que ya había creado nüün (mismo `device_id`, huella `87e6 7b6a 0478 68e2 …`). Comprobado: `state` da `running`, el motor `suite` está en `engines/` y `nu9ve mcp` lista sus cuatro herramientas de lectura; launchd lo reinicia tras un `kill -9` y no tras un `SIGTERM` (salida 0, registro borrado). Carpeta de intercambio `~/nu9ve`. **Simulado con una M4 de QA** contra ese agente real: todos los flujos de F1, y después se deshizo todo (CHANGELOG, 0.2.1). **Cada actualización pide permiso del llavero** mientras el binario no esté firmado. **Sin verificar:** Windows entero (la tarea programada, el llavero, el pipe del motor y el cierre sin `SIGTERM`), y la etiqueta `xyz.nu9ve.agent` contra el identificador de firma (§8.3) |
-| nüün | Primera app que lo trae y lo ofrece en Ajustes (decisión del usuario) | Sin empezar. Le toca: fijar `rust/nu9ve-mcp` (o llevar el binario `nu9ve` en su bundle), llamar `nu9ve agent state` al arrancar y al abrir Ajustes, ofrecer «Instalar el agente» o «Actualizar» con `nu9ve agent install --by nuun`, y dejar de crear `device.json` cuando el agente esté (hoy lo crea ella, [dispositivo](#nu9ve-device-v1)) |
+| nüün | Primera app que lo trae y lo ofrece en Ajustes (decisión del usuario) | **Hecho en Mac** (`n-creator-utils` `9930fd5` y `680554f`, 2026-11-23, core `1d11d30`): el bundle lleva `Resources/backend/nu9ve`; al arrancar y al abrir Ajustes llama `nu9ve agent state`, y Ajustes → Suite ofrece «Instalar el agente», «Actualizar» (`install --by nuun`, sólo al pulsarlo) o «Arrancar»; nunca `serve`. Con el agente instalado ya no crea `device.json`. Aceptado en ventana en un sandbox con un agente de QA (`45b47fd`), sin tocar el agente de la M1. Falta Windows |
 | nove, Clipper y las demás | Comprobar al arrancar y ofrecerlo; usar sus capacidades | Sin empezar. Con `nu9ve agent state` (o `nu9ve_mcp::agent::install::state_of` en Rust) y los métodos del motor `suite` (`devices`, `where`…) |
 
 ## nu9ve-exchange-v1
@@ -230,8 +257,8 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 | App | Qué aporta o usa | Estado |
 | --- | --- | --- |
 | core | El agente que escribe y lee (U7b y U7c) | **Completo en QA** (2026-11-22): los siete `kind`, cada uno con su firma y su estado; lo personal va con su forma salvo lo compartido; pedidos de hasta 64 MiB con `too_large`, `not_found` y `not_shared` (versión menor del 2026-11-22, con [exportar](#nu9ve-export-v1)); dueñas entregadas sin relojes (§7.1); `apps/<app>/` con `.json` y `.ndjson` línea a línea. Probado con dos máquinas de QA en una carpeta temporal. **Sin verificar:** con Syncthing entre la M1 y la M4 reales; el canal propio entre agentes no existe todavía |
-| nüün | Su catálogo (necesita un transporte registrable, [registro](#nu9ve-registry-v1)), su diario de decisiones en `apps/nuun/` con `app_append`, y «Trabajar aquí» con `lease_take` | Sin empezar |
-| nove | «Otras máquinas» (`devices`, `where`), «disponible en todas mis máquinas» (`share` y `offer`) y el proyecto `conversaciones` | Sin empezar. Ya sirve su catálogo, así que el agente lo publica en cuanto corra en la M1 |
+| nüün | Su catálogo (necesita un transporte registrable, [registro](#nu9ve-registry-v1)), su diario de decisiones en `apps/nuun/` con `app_append`, y «Trabajar aquí» con `lease_take` | **Catálogo y «Trabajar aquí» hechos en QA** (`0c21510`, `918a53f`): el agente publica su catálogo, y en Proyectos el menú ofrece «Trabajar aquí» o «Dejar de trabajar aquí» con `lease_take` y `lease_release` (`tests/suite_lease.rs` con `nu9ve agent serve` real). Colecciones nuevas por dispositivo, `<colección>/<device_id>/…` (`8ae733a`). Falta el diario de decisiones con `app_append`, la lease en sólo lectura al abrir un proyecto y el intercambio real entre la M1 y la M4 |
+| nove | «Otras máquinas» (`devices`, `where`), «disponible en todas mis máquinas» (`share` y `offer`) y el proyecto `conversaciones` | «Otras máquinas» y «Mis conversaciones» en desarrollo (A74–A75), verificados con un agente ficticio. Pendientes el intercambio real M1/M4 y compartir desde la app. [QA](../../nove/docs/STATUS.md#suite-varias-máquinas-2026-11-23) |
 
 ## nu9ve-export-v1
 
@@ -240,18 +267,28 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 | App | Qué aporta o usa | Estado |
 | --- | --- | --- |
 | core | El agente que lo pide al motor dueño (§3), `not_shared` para lo personal sin compartir, y `shared`, `share` y `unshare` en el motor `suite` (§5) | **Hecho en QA** (2026-11-22, `nu9ve` 0.2.2): probado con un motor falso que sirve `data_catalog` y `data_export` y dos máquinas de QA, también por `nu9ve mcp` (`tests/agent.rs`, `tests/suite_engine.rs`). **Sin verificar:** con un motor real de una app y entre la M1 y la M4 reales |
-| nüün | `data_export` de lo pequeño que procesa (resúmenes de una tanda), y `too_large` con el disco para el raw | Sin empezar. Necesita antes un transporte registrable para su `data_catalog` ([registro](#nu9ve-registry-v1)) |
-| nove | `data_export` de sus tablas y capas (GeoJSON de baches, series), y «disponible en todas mis máquinas» con `share`, `unshare` y `shared`, ofreciendo sola lo compartido (§5) | Sin empezar. Ya sirve su catálogo, así que le falta sólo el método y la marca en su interfaz |
+| nüün | `data_export` de lo pequeño que procesa (resúmenes de una tanda), y `too_large` con el disco para el raw | **Sirve el método** (`0c21510`): por ahora sólo `too_large`, con disco y ruta, o `not_found`, nunca bytes. Pasa `export-examples.py --server` 8/8. Falta entregar lo pequeño y probar un pedido entre Macs reales |
+| nove | `data_export` de sus tablas y capas (GeoJSON de baches, series), y «disponible en todas mis máquinas» con `share`, `unshare` y `shared`, ofreciendo sola lo compartido (§5) | `data_export` implementado (A75), 8/8 ejemplos contra el motor aislado. Pendiente compartir desde la app y comprobar un pedido entre Macs reales. [QA](../../nove/docs/STATUS.md#suite-varias-máquinas-2026-11-23) |
 | Clipper | `data_export` de sus transcripts | Sin empezar |
 
-## nu9ve-profile-v1
+## nu9ve-action-v1
+
+[Acciones largas y su progreso v1](../contracts/nu9ve-action-v1.md), propuesta del 2026-11-26, desde la [propuesta de nüün](actions-next.md). Nadie lo cumple todavía; los dos productores de hoy escriben casi la misma forma.
+
+| App | Qué aporta o usa | Estado |
+| --- | --- | --- |
+| core | La vista común: `Nu9veAction` y `Nu9veActionProgress` en `swift/` (2026-11-26) | Hecho: el modelo pasa los ejemplos del contrato; las vistas, en los cinco skins, sin probar a mano en una app |
+| nüün | Productor (`ActionMeter` en Python, `Meter`/`ActionProgress` en Rust) y la vista de origen (`ActionProgress.swift`), que cambia por `Nu9veActionProgress` | Sin empezar. Le falta, según la [§7](../contracts/nu9ve-action-v1.md#7-cómo-llegan-las-apps): `contract`, `progress_id` dado por quien lanza, `action`, `state`, `unit`, `cancellable`, los tres instantes con el latido, etapas comunes o `nuun.*`, **conservar el registro al terminar** (hoy `Drop` lo borra) y el cierre. Después, el respaldo de conversaciones y la revisión de «Copiar al otro disco» con el mismo registro, y la vista en tres tamaños |
+| Clipper | Productor: `ProgressPlan` con pesos (`unit` `work`), Stage y Step (`phase` y `step`) | Sin empezar: `action_progress` en `clipper-core serve` leyendo el archivo de progreso de cada trabajo. Sus reglas de ETA ya son las del contrato |
+| nove | Productor para sus trabajos largos | Sin empezar. `events` sigue para su historial |
+
 
 [Perfiles en esta máquina v1](../contracts/nu9ve-profile-v1.md), propuesta del 2026-11-25 (la pieza local de los perfiles de [suite-devices §5](suite-devices.md#5-modelo)).
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nove | Primer escritor: registra su biblioteca personal como `e64` y cada perfil nuevo como una biblioteca nueva; su motor lee el archivo (`profile_info`, `profiles_overview`) y dice su perfil en el registro de motores | En integración (su A98): fija `nu9ve-profiles`. La app de Mac escribe el archivo |
-| nüün | Lee el archivo para saber qué perfiles hay en la máquina y en qué apps; agrega su entrada (`nuun`) a sus perfiles | Sin empezar. Con `scripts/nu9ve_profiles.py` (Python) o el crate (su motor de Rust) |
+| nove | Primer escritor: registra su biblioteca personal como `e64` y cada perfil nuevo como una biblioteca nueva; su motor lee el archivo (`profile_info`, `profiles_overview`) y dice su perfil en el registro de motores | Integrado en la build 34 (A98): fija `nu9ve-profiles`. Falta el recorrido de perfiles en la app instalada |
+| nüün | Lee el archivo para saber qué perfiles hay en la máquina y en qué apps; agrega su entrada (`nuun`) a sus perfiles | **Hecho en QA** (`n-creator-utils` `25a356b`, core `f267022`): su motor fija el crate (`suite_profiles`, `suite_profiles_register`) y Ajustes → Perfiles muestra «Perfiles en esta Mac». Probado con raíces aisladas. Falta registrar los perfiles reales, cuando el usuario lo pida, y aceptar la vista en ventana |
 | Atlas, Clipper | Leen; agregan su entrada si trabajan por perfil | Sin empezar |
 
 ## nu9ve-device-v1
@@ -260,7 +297,7 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 
 | App | Papel | Estado |
 | --- | --- | --- |
-| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado y nombrado en la M1** (2026-11-22, `n-creator-utils` `c85b881` y `0212b02`): `device.json` con `0600` y `host_check`; la persona lo llamó «M1» (antes «Mac 5577», mismo `device_id`). Ajustes → Discos muestra y cambia el nombre, y lo lee sin crear el archivo (`suite_device` con `peek`). Pasa la referencia del core. Falta crearlo en la M4 |
+| nüün | Lo crea al registrar el primer disco, hasta que exista el agente `nu9ve` | **Creado y nombrado en la M1** (2026-11-22, `n-creator-utils` `c85b881` y `0212b02`): `device.json` con `0600` y `host_check`; la persona lo llamó «M1» (antes «Mac 5577», mismo `device_id`). Ajustes → Discos muestra y cambia el nombre, y lo lee sin crear el archivo (`suite_device` con `peek`). Pasa la referencia del core. **Desde `680554f`** (2026-11-23), con el agente instalado sólo lee y renombra el archivo del agente: no lo crea ni reemplaza uno copiado. Falta crearlo en la M4 |
 | nove, Atlas, Clipper | Lo leen para decir en qué máquina vieron un disco | Sin empezar |
 
 ## nu9ve-volume-v1
@@ -271,7 +308,7 @@ Versión menor del 2026-11-22 ([data §9](../contracts/nu9ve-data-v1.md#9-decisi
 | --- | --- | --- |
 | nüün | Registra discos (único con rol `archive`), observa, escribe su carpeta con recibos, manifiestos, snapshot e índice, y adopta un disco en otra Mac. Muda `nu9ve-volumes` al core con este contrato | **F0 en la M1** (2026-11-22; `n-creator-utils` `c85b881`, `0212b02` y `7d7eb7b`, core fijado en `9711564`; su `docs/contracts/suite-volume-f0.md`). MEDIA502 registrado como `archive` (exFAT) y ESSD como `work` (HFS+), cada uno con marcador e índice en `.nu9ve/apps/nuun/` (7 666 y 1 960 datasets). **Aceptado en ventana:** «Adoptar este disco…» con los dos discos en un entorno con catálogo vacío; snapshot de MEDIA502 verificado; hashes y fechas iguales antes y después. **`nu9ve-volumes` mudado** al core (U2): nüün borró su copia y toma del módulo `marker` las reglas del marcador y de los estados. **Tope del índice, decidido por el usuario y hecho** (`01b4c20`): un dataset por proyectos × carpeta de primer nivel, con hash de manifiesto; MEDIA502 baja de 5,1 MiB a 20 KB (7 666 archivos en 27 grupos) y ESSD a 2,7 KB. Pasan `index_problem` de la referencia. No cambia el contrato (§13.4 se puede cerrar). **Falta:** prueba en la M4 y cotejo de MEDIA502 en Windows, con pasos en su STATUS |
 | Atlas | **Sólo lo urgente** (decisión del usuario, 2026-11-22): raíces por volumen en `config/atlas.json`, para que deje de crecer atado a una ruta; su carpeta en los discos de trabajo (ESSD, XSSD). Sus flujos pasan a nove | Sin empezar. Hoy usa `/Volumes/ESSD/…` |
-| nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión). **La prioridad de F0**, a la par de asentar en nove los flujos de Atlas | Sin empezar |
+| nove | Raíces por volumen; «disco no conectado»; su carpeta en los discos de trabajo (excepción a su modelo §9, que decide su sesión). **F0 (A70 y A76)** | Lectura de marcadores reales en ESSD y MEDIA502 sin escritura. Escribir índice y adoptar comprobados con dos bibliotecas y un disco de QA. [Estado](../../nove/docs/STATUS.md#suite-varias-máquinas-2026-11-23) |
 | Clipper | Su carpeta en los discos de trabajo | Sin empezar |
 
 ## nu9ve-artifact-v1
@@ -297,11 +334,12 @@ Clipper escribe en el registro desde el 2026-11-21.
 
 | App | Qué mide hoy | Qué le toca |
 | --- | --- | --- |
-| Clipper | **Adoptado** (2026-11-21): fija contrato, crate, ayudante y ejemplos en `6284877` (`ad80ef2a`). `scripts/core_bench.py` (`cdb46ebe`) mide la suite dorada con los dos motores con el ayudante de Python: suite `clipper-engine`, casos `golden/<dominio>` y `compose/score`, entradas por SHA-256 de `reads.json` y del módulo de casos. Línea base de M0 en `docs/benchmarks/2026-11-21-m0-engine-baseline.{md,ndjson}` (`835f4fc5`) | Flujos del TUI (`tui_flow_bench.py`) al registro, petición en caliente, caché fría y exports por rango; repetir todo en su M9 |
+| Clipper | **Adoptado** (2026-11-21): fija contrato, crate, ayudante y ejemplos en `6284877` (`ad80ef2a`). `scripts/core_bench.py` (`cdb46ebe`) mide la suite dorada con los dos motores con el ayudante de Python: suite `clipper-engine`, casos `golden/<dominio>` y `compose/score`, entradas por SHA-256 de `reads.json` y del módulo de casos. Línea base de M0 en `docs/benchmarks/2026-11-21-m0-engine-baseline.{md,ndjson}` (`835f4fc5`). Benchmark de M9 en `docs/benchmarks/2026-11-23-m9-engine.{md,ndjson}` (`4caa4786`) | Flujos del TUI (`tui_flow_bench.py`) al registro, petición en caliente, caché fría y exports por rango; repetir el benchmark después de R7, que movió el export al motor |
+| nüün | `scripts/engine_bench.py` (`25a356b`) escribe `bench/nuun.ndjson` con el ayudante del core: seis lecturas del dorado en Python y Rust con `response_equal`, el recorrido de un árbol de fixture y un soak de 2 000 lecturas del catálogo a un `rpc-serve` vivo (`--check-soak` para el gate) | Llevar el soak al gate y sumar las copias en GiB/s |
 | Atlas | `atlas_vision/engines/bench.py`: corridas en `derived/bench/` y líneas base en `config/bench.json` | Traducido en sólo lectura por `scripts/bench-from-atlas.py` y, desde el 2026-11-24, por `nu9ve_bench::atlas` en Rust, con los mismos `run_id`; los hitos de `analysis/history/evolucion.json` entran como corridas de sólo calidad (versión menor) y `derived/bench/*.ndjson` se lee como registro. Le toca escribir el formato nuevo en su sesión |
 | nove | Mediciones del worker tabular, Parquet y el `measure` de `nu9ve-algo` | S10 (A95, en integración): fuentes de sólo lectura (registros y repos de Atlas con `nu9ve_bench::atlas`), tablas `bench:runs` y `bench:quality`, comparación y unión con sesiones de agentes. **A96 (en integración):** `scripts/gate-bench.py` escribe `nove-gate` (duraciones del gate, pruebas, tamaños) y `nove-engine` (arranque, memoria en reposo y un soak de 2 000 peticiones con su pendiente) en `bench/nove.ndjson` |
-| Clipper, nüün | Ver arriba | Un soak del motor (`measure_soak` con el `pid` del motor) en su gate, con `resources` |
-| nüün, curado, SoundBender | Dorados de paridad y de LUFS | Traductores por escribir; su calidad es `bytes_equal` o un máximo absoluto con tolerancia |
+| Clipper | Ver arriba | Un soak del motor (`measure_soak` con el `pid` del motor) en su gate, con `resources` |
+| curado, SoundBender | Dorados de paridad y de LUFS | Traductores por escribir; su calidad es `bytes_equal` o un máximo absoluto con tolerancia |
 
 ## nu9ve-notifications-v1
 

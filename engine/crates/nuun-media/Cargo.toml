@@ -17,7 +17,7 @@ nu9ve-profiles.workspace = true
 # Escaneos de acumulados: un archivo por escaneo, escrito de forma atómica.
 nu9ve-fs.workspace = true
 nuun-recipe = { path = "../nuun-recipe" }
-nu9ve-time = { path = "../nu9ve-time" }
+nu9ve-time.workspace = true
 sha2.workspace = true
 serde_json.workspace = true
 # The catalog is SQLite (media/catalog.py). `bundled`: the same version on every OS, as nove does.

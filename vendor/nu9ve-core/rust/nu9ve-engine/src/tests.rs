@@ -209,3 +209,85 @@ fn closed_response_pipe_ends_the_session() {
     frame(&mut framed, payload);
     serve_frames(framed.as_slice(), Closed, info(), dispatch).unwrap();
 }
+
+#[test]
+fn respond_answers_the_contract_examples_in_process() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../../../data/engine-examples-v1.json")).unwrap();
+    let mut cases = Vec::new();
+    for case in vectors["server"].as_array().unwrap() {
+        let req = case["request"].as_str().unwrap();
+        let req = if let Some(pad) = case["pad_bytes"].as_u64() {
+            req.replace("<pad>", &"a".repeat(pad as usize))
+        } else {
+            req.to_owned()
+        };
+        // A blank line has no reply in a stream; in process, as in frames, it is invalid_request.
+        let want = if case["response"].is_null() {
+            json!({"id": "null", "ok": false, "code": "invalid_request"})
+        } else {
+            case["response"].clone()
+        };
+        cases.push((req, want));
+        if let Some(next) = case.get("then") {
+            cases.push((
+                next["request"].as_str().unwrap().to_owned(),
+                next["response"].clone(),
+            ));
+        }
+    }
+    assert!(cases.len() > 10);
+    for (req, want) in cases {
+        let reply = respond(req.as_bytes(), info(), dispatch);
+        let reply = std::str::from_utf8(&reply).unwrap();
+        assert!(!reply.ends_with('\n'), "{reply}");
+        let parsed: HashMap<String, &RawValue> = serde_json::from_str(reply).unwrap();
+        assert_eq!(
+            parsed["id"].get(),
+            want["id"].as_str().unwrap(),
+            "{req} -> {reply}"
+        );
+        let body: Value = serde_json::from_str(reply).unwrap();
+        assert_eq!(body["ok"], want["ok"], "{req} -> {reply}");
+        if want["ok"] == true {
+            assert_eq!(body["data"], info().into_data());
+        } else {
+            assert_eq!(body["error"]["code"], want["code"], "{req} -> {reply}");
+        }
+    }
+}
+
+#[test]
+fn respond_keeps_the_id_and_dispatch_of_the_streams() {
+    let big = format!("-1{}", "2".repeat(400));
+    let request =
+        format!(r#"{{"id":{big},"method":"echo","params":{{"a":1}},"idempotency_key":"k"}}"#);
+    let reply = respond(request.as_bytes(), info(), dispatch);
+    let mut lines = Vec::new();
+    serve_lines(
+        BufReader::new(format!("{request}\n").as_bytes()),
+        &mut lines,
+        info(),
+        dispatch,
+    )
+    .unwrap();
+    assert_eq!(reply, lines.strip_suffix(b"\n").unwrap());
+    let parsed: HashMap<String, &RawValue> = serde_json::from_slice(&reply).unwrap();
+    assert_eq!(parsed["id"].get(), big);
+
+    let not_ported = respond(br#"{"id":1,"method":"ported"}"#, info(), dispatch);
+    let body: Value = serde_json::from_slice(&not_ported).unwrap();
+    assert_eq!(body["error"]["code"], "not_ported");
+    assert_eq!(body["error"]["reason"], "platform_unavailable");
+
+    // Encoded data across lines is fine in process, where no line frames the reply.
+    let multiline = respond(br#"{"id":2,"method":"multiline"}"#, info(), dispatch);
+    let body: Value = serde_json::from_slice(&multiline).unwrap();
+    assert_eq!(body["data"], json!([1]));
+
+    let mut oversized = br#"{"id":3,"method":"echo","params":{"pad":""#.to_vec();
+    oversized.extend(std::iter::repeat_n(b'a', MAX_MESSAGE_BYTES));
+    oversized.extend_from_slice(br#""}}"#);
+    let body: Value = serde_json::from_slice(&respond(&oversized, info(), dispatch)).unwrap();
+    assert_eq!(body["error"]["code"], "request_too_large");
+}

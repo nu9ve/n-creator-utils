@@ -1,0 +1,31 @@
+[package]
+name = "nu9ve-time"
+description = "Python-compatible civil time for the suite: datetime.fromisoformat, isoformat, strftime, astimezone"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Civil time, instants and named zones (named_zone_offset) from the system's zoneinfo, with a bundled
+# database as fallback. It replaced chrono, which RustSec marks unmaintained (RUSTSEC-2026-0543).
+jiff = { version = "=0.2.39", default-features = false, features = ["std", "tzdb-zoneinfo", "tzdb-concatenated", "tzdb-bundle-platform"] }
+
+[dev-dependencies]
+# Reads the shared vectors in tests/vectors.rs. Same version as the rest of the workspace.
+serde_json = "=1.0.154"
+
+[target.'cfg(unix)'.dependencies]
+# localtime_r, the call CPython makes for astimezone() and fromtimestamp().
+libc = "=0.2.191"
+
+[target.'cfg(windows)'.dependencies]
+# The host's zone on Windows (host_local), from the system's settings.
+jiff = { version = "=0.2.39", default-features = false, features = ["std", "tz-system", "tzdb-zoneinfo", "tzdb-concatenated", "tzdb-bundle-platform"] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

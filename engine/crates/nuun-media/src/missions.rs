@@ -83,27 +83,16 @@ fn local_of(record: &Value) -> Result<Option<DateTime>> {
     if let Some(value) = record["capturedAtLocal"].as_str()
         && let Some(found) = naive(value)
     {
-        let wall = found.wall.with_nanosecond_zero();
+        let wall = found.whole_seconds().wall;
         return Ok(Some(DateTime { wall, offset: None }));
     }
     Ok(parse_date(&record["capturedAt"]).map(|when| {
         let local = when.astimezone();
         DateTime {
-            wall: local.wall.with_nanosecond_zero(),
+            wall: local.whole_seconds().wall,
             offset: None,
         }
     }))
-}
-
-trait ZeroNanos {
-    fn with_nanosecond_zero(self) -> nu9ve_time::Naive;
-}
-
-impl ZeroNanos for nu9ve_time::Naive {
-    fn with_nanosecond_zero(self) -> nu9ve_time::Naive {
-        use nu9ve_time::chrono::Timelike;
-        self.with_nanosecond(0).expect("valid")
-    }
 }
 
 /// Python `isinstance(v, (int, float))`, where a JSON boolean counts as an int (1/0) like Python's `bool`.
@@ -155,9 +144,8 @@ struct Entry {
 
 /// Seconds between two naive wall times, with microseconds (Python `total_seconds()`).
 fn seconds_between(a: &DateTime, b: &DateTime) -> f64 {
-    (a.wall - b.wall)
-        .num_microseconds()
-        .map_or(f64::INFINITY, |us| us as f64 / 1e6)
+    // Whole microseconds over 1e6, as Python divides a timedelta.
+    a.wall.duration_since(b.wall).as_micros() as f64 / 1e6
 }
 
 /// Python `MissionIndex`: registry records by original file name for the flow's time/name/position rule.
