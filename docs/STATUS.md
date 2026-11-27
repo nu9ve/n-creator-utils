@@ -328,6 +328,19 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Quién llama a `nu9ve.py media` · 2026-11-27
+
+F5 (a) de [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Es sólo un inventario, en [media-cli-callers](platforms/media-cli-callers.md), y no cambia código.
+
+- **Clipper**, en su motor de Rust y en Python, pide `projects`, `sources --project`, `volumes list` y `resolve`.
+- **Kyū** pide `projects` y `sources --project [--purpose]`.
+- **Stalker** ya habla con `nuun-engine rpc` desde la app instalada, y sólo en desarrollo cae a `nu9ve.py`.
+- **`media mcp`** no lo tiene configurado ningún cliente en esta Mac.
+- **nove, neuf y curado** no llaman a nüün.
+- **`nu9ve` en el `PATH`** es sólo un alias de zsh, que otra app no ve: Clipper cae a la ruta del checkout y Kyū dice `nuun_unavailable` si no se configura su comando.
+- **Rust** ya tiene los métodos; falta la CLI con argumentos, que es (b). `volumes` no está en las lecturas del golden.
+- **Antes de (c)** hay que avisar a la sesión de Clipper. Además queda por decidir cómo encuentran Clipper y Kyū el motor: un `nu9ve` instalado que apunte al `nuun-engine` de la app, o buscar la app como hace Stalker.
+
 ### Los tres tamaños de una acción · 2026-11-27
 
 U3 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), con las piezas de `Nu9veActionProgress`. Está **sin instalar ni aceptar en ventana**, y no se lanzaron capturas.
