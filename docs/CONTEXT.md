@@ -1,6 +1,6 @@
 # Compact project context
 
-Snapshot: 2026-11-08. Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
+Snapshot: 2026-11-26 (decisions from 2026-11-08 and earlier still apply). Start here, then [STATUS](STATUS.md) and [PLAN](../PLAN.md). This is a handoff, not a claim of release readiness.
 
 ## Product and user workflow
 
@@ -24,9 +24,13 @@ Cierre de proyectos (primera entrega, 2026-11-04): conservar fuentes y finales; 
 
 Ingreso vigente (2026-11-05): Entrada → Flujo → Resultado, proyecto general como fallback, auxiliares ligados al ingreso y filas por bundle. Un botón autoriza el plan mostrado y la limpieza verificada; excepciones inline. Publicación = `subidos` o marca manual por final, sin canales. «Respaldar publicados» opera sobre finales publicados. El cierre editorial puede respaldar finales pendientes y conserva sus copias de edición para publicar después. [Ingreso](contracts/ingest-flow-v1.md), [cierre](contracts/project-closeout-v1.md).
 
-## Estado operativo · 2026-11-08
+## Estado operativo · 2026-11-26
 
-Sony, Stalker, cierre editorial y dron están en uso real; el seguimiento Sony (incluido el `FileNotFoundError` de Baches del 6 nov) quedó cerrado por observación al reconectar. Una SD del Mavic se procesa completa y queda vacía si el export de subaereo ya está incorporado; si no, A14 conserva la tarjeta. Atlas: nüün implementa A11–A16 ([estado](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08)); no cambiar el estado geoespacial de Atlas. Reglas de dispositivos y flujos viven como datos de receta (`media/recipes.py`), y el siguiente trabajo es llevar ahí también la detección de tarjetas y la limpieza. Música (9 nov): SONIDO al 99 % y casi sin copia en MEDIA9; fases M1–M4 y decisiones del usuario en [music-flows](features/music-flows.md) — liberar grabaciones ya respaldadas en MEDIA7/501 por hash, conservar lo que use un set de Ableton, curado es dueño del estado de la biblioteca. Detalle por área en [STATUS](STATUS.md), orden en [PLAN](../PLAN.md).
+Sony, Stalker, cierre editorial y dron están en uso real; el seguimiento Sony (incluido el `FileNotFoundError` de Baches del 6 nov) quedó cerrado por observación al reconectar. Una SD del Mavic se procesa completa y queda vacía si el export de subaereo ya está incorporado; si no, A14 conserva la tarjeta. Atlas: nüün implementa A11–A16 y responde A77 por su socket local ([estado](contracts/atlas-drone-v1.md#estado-del-lado-nüün--2026-11-08)); no cambiar el estado geoespacial de Atlas.
+
+Motor: la app de Mac usa Rust para el ingreso y las demás operaciones portadas; Python queda en Ajustes → Diagnóstico y es el oráculo de paridad. Lo nuevo entra en Rust (decisión del usuario, 11 nov). Falta la semana de uso diario con la sombra antes de retirar Python ([ruta](../PLAN.md#motor-en-rust--ruta)). La detección de tarjetas ya es dato de receta (`media/recipes.py`, RPC `recipe`); las guardas de limpieza siguen en código y quedan los modelos por serial/EXIF y los bloques de Flujos generados desde la receta.
+
+Suite: el core se fija como copia en `vendor/nu9ve-core/`. F0 (identidad de discos, índice por proyecto, adopción en sólo lectura) y F1 (agente, `data_catalog`, «Trabajar aquí», copia verificada entre discos de trabajo, conversaciones por dispositivo) están en la M1; la M4 ya copió EDICION → SUBSSD. Faltan F0 en Windows, emparejar M1 y M4 y claves legibles de proyecto ([PLAN](../PLAN.md#suite-de-f0-a-f1)). Música (9 nov): SONIDO al 99 % y casi sin copia en MEDIA9; fases M1–M4 y decisiones del usuario en [music-flows](features/music-flows.md) — liberar grabaciones ya respaldadas en MEDIA7/501 por hash, conservar lo que use un set de Ableton, curado es dueño del estado de la biblioteca. Detalle por área en [STATUS](STATUS.md), orden en [PLAN](../PLAN.md).
 
 Cambios externos (borrados en Clipper, intermedios eliminados a mano) no se infieren: una ausencia antes del plan no equivale a cierre y una desaparición posterior a la revisión exige replanificar. [Límites](contracts/project-closeout-v1.md#cambios-externos-y-borrados-previos--2026-11-06).
 

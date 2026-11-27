@@ -12,7 +12,7 @@ Actualizado: 2026-11-26. Éste es el backlog priorizado. [STATUS](docs/STATUS.md
 
 | Orden | Trabajo | Criterio de cierre |
 | --- | --- | --- |
-| 1 | Aceptar en la app la build `a350af7f16af` | Tarjeta para ver, «sólo respaldo» dentro del EDICION, filtros Fecha/Sesión, Flujos → «Lo que reconoce» |
+| 1 | Aceptar en ventana, con la build instalada `3becf7b297ae`, lo que sigue sin aceptar, y abrir la semana de uso diario con Rust | Lo del 8 nov (tarjeta para ver, «sólo respaldo» dentro del EDICION, filtros Fecha/Sesión, Flujos → «Lo que reconoce»), la bandeja por proyecto y Discos → «Acumulados…»; en la M4, la tarjeta de conversaciones (`199f7b666f27`). Semana con `scripts/engine_shadow.py enable` y `report` sin `diff` en lo portado ([ruta](#motor-en-rust--ruta)) |
 | 2 | Formatear la SD `MAVIC200` en el dron y reconectar | El trabajo de dron cierra por observación, como Sony |
 | 3 | Popup al insertar | Medir latencia con la app cerrada y en menubar; aceptar o corregir |
 | 4 | Cobertura EDICION contra MEDIA9 | Informe por tamaño hecho para `001_proyectos/canal-a_raw`; falta ampliar al resto del EDICION. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
