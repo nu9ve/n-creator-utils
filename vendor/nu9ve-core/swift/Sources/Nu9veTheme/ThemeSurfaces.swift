@@ -60,8 +60,12 @@ public struct ThemeSurfaces: Sendable {
         if skin == .classicMac {
             let paper = dark ? ThemeColor.black : ThemeColor.white
             let ink = dark ? ThemeColor.white : ThemeColor.black
-            return Self(canvas: seed.mixed(with: paper, amount: 0.90), surface: seed.mixed(with: paper, amount: dark ? 0.84 : 0.96),
-                        raised: seed.mixed(with: paper, amount: dark ? 0.76 : 0.84), line: seed.mixed(with: ink, amount: 0.78),
+            let canvas = seed.mixed(with: paper, amount: 0.90), surface = seed.mixed(with: paper, amount: dark ? 0.84 : 0.96)
+            let raised = seed.mixed(with: paper, amount: dark ? 0.76 : 0.84)
+            // The pinstripes, rules and frames carry the user's color (2026-11-26): 65 % of the seed, at least 3:1 on
+            // the paper, the minimum for graphics (3.1 before rounding to 8 bits). Ink stays near black (or white) for text.
+            let line = seed.mixed(with: ink, amount: 0.35).readable(on: [canvas, surface, raised], minimum: 3.1)
+            return Self(canvas: canvas, surface: surface, raised: raised, line: line,
                         preferredInk: seed.mixed(with: ink, amount: dark ? 0.92 : 0.90))
         }
         // Windows 9x: raised is the bevel's highlight and line its light shadow, so they stay lighter and darker than the face.

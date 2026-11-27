@@ -73,6 +73,13 @@ public static class ThemeSkinInfo
     /// <summary>The mode this skin fixes with that era, or null when it follows the user's. A tinted era follows the user.</summary>
     public static bool? ForcedDark(this ThemeSkin skin, ThemeEra era) => era == ThemeEra.Tinted && skin.HasEra() ? null : skin.ForcedDark();
 
+    /// <summary>
+    /// The mode an app starts this skin in when the person has not chosen one for it: the forced one, or, with the tinted
+    /// era, light paper and dark lines for Macintosh (the opposite of Terminal). Null: the user's mode (nu9ve-theme-v1 §5).
+    /// </summary>
+    public static bool? DefaultDark(this ThemeSkin skin, ThemeEra era) =>
+        skin.ForcedDark(era) ?? (skin == ThemeSkin.ClassicMac ? false : null);
+
     /// <summary>Period skins keep the look of their era whatever the user's mode.</summary>
     public static bool? ForcedDark(this ThemeSkin skin) => skin switch
     {

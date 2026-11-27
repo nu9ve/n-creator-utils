@@ -25,20 +25,25 @@ public struct AboutView<Logo: View>: View {
     private let identity: AppIdentity
     private let colors: ShellColors
     private let drawsBackground: Bool
+    private let systemButtonStyle: Bool
     private let logo: Logo
     @State private var copied = false
 
-    /// Pass `drawsBackground` false when the window already draws its own.
+    /// Pass `drawsBackground` false when the window already draws its own. `systemButtonStyle` false leaves the
+    /// links' button style to the environment, so an app with skins gives them its own (by default, the system's
+    /// bordered buttons, as before).
     public init(
         identity: AppIdentity,
         colors: ShellColors,
         drawsBackground: Bool = true,
+        systemButtonStyle: Bool = true,
         @ViewBuilder logo: () -> Logo
     ) {
         self.logo = logo()
         self.identity = identity
         self.colors = colors
         self.drawsBackground = drawsBackground
+        self.systemButtonStyle = systemButtonStyle
     }
 
     public var body: some View {
@@ -72,16 +77,8 @@ public struct AboutView<Logo: View>: View {
                     .accessibilityLabel("Compilación \(revision)")
             }
 
-            HStack(spacing: 8) {
-                Link(destination: identity.website) {
-                    Label(identity.website.host() ?? "Sitio", systemImage: "globe")
-                }
-                Link(destination: identity.source) {
-                    Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+            links
+                .controlSize(.small)
 
             Text(identity.copyright)
                 .font(.system(size: 10))
@@ -93,6 +90,22 @@ public struct AboutView<Logo: View>: View {
         .foregroundStyle(colors.text)
         .tint(colors.accent)
         .background(drawsBackground ? colors.background : .clear)
+    }
+
+    @ViewBuilder private var links: some View {
+        let row = HStack(spacing: 8) {
+            Link(destination: identity.website) {
+                Label(identity.website.host() ?? "Sitio", systemImage: "globe")
+            }
+            Link(destination: identity.source) {
+                Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+            }
+        }
+        if systemButtonStyle {
+            row.buttonStyle(.bordered)
+        } else {
+            row
+        }
     }
 }
 #endif

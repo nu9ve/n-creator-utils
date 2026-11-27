@@ -27,6 +27,13 @@ public enum ThemeSkin: String, CaseIterable, Sendable, Identifiable {
     public var hasEra: Bool { self == .classicMac || self == .win9x }
     /// The mode this skin fixes with that era, or nil when it follows the user's. A tinted era follows the user.
     public func forcedDark(era: ThemeEra) -> Bool? { era == .tinted && hasEra ? nil : forcedDark }
+    /// The mode an app starts this skin in when the person has not chosen one for it: the forced one, or, with the tinted
+    /// era, light paper and dark lines for Macintosh (the opposite of Terminal's dark screen and bright strokes). Nil:
+    /// the user's mode. The person can still pick dark for a tinted Macintosh (nu9ve-theme-v1 §5).
+    public func defaultDark(era: ThemeEra) -> Bool? {
+        if let forced = forcedDark(era: era) { return forced }
+        return self == .classicMac ? false : nil
+    }
     /// Period skins keep the look of their era whatever the user's mode.
     public var forcedDark: Bool? {
         switch self {

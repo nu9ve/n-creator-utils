@@ -35,12 +35,15 @@ public enum PeriodEra: String, CaseIterable, Sendable {
     public var rowHeight: CGFloat { CGFloat(skin.barHeight) }
     /// Everything the bar takes above the content.
     public var height: CGFloat { captionHeight + rowHeight }
+    /// The bar with `singleRow`: one row a little taller than the app's, with the controls and the app's row
+    /// on the era's caption. Terminal's bar is a single row already.
+    public var singleRowHeight: CGFloat { captionHeight > 0 ? rowHeight + 4 : rowHeight }
     /// The margin of the controls from the window's edge.
     public static let inset: CGFloat = 8
 }
 
 /// The colors the bar takes from the app's palette. The rest belongs to the era.
-public struct PeriodBarColors: Equatable {
+public struct PeriodBarColors: Equatable, Sendable {
     /// Terminal's row and the row under a caption.
     public var canvas: Color
     /// Terminal's row background.
@@ -51,23 +54,43 @@ public struct PeriodBarColors: Equatable {
     public var accent: Color
     /// The two ends of the Windows 9x caption.
     public var caption: [Color]
+    /// The silver face of Windows 9x in the original era (`Win9xBevel.face`).
+    public static let silver = Color(.sRGB, red: 192 / 255, green: 192 / 255, blue: 192 / 255)
+    /// The face of Windows 9x's buttons and panels, and their glyphs: silver and black in the original era,
+    /// the user's tint with «Con tu color».
+    public var face: Color
+    public var faceInk: Color
+    /// Macintosh's pinstripes, rules and the borders of × − +: the ink in the original era, the user's color with
+    /// «Con tu color» (the roles' `line`). Nil: the ink, for colors built by hand.
+    public var line: Color?
 
-    public init(canvas: Color, surface: Color, ink: Color, accent: Color, caption: [Color]) {
+    public init(canvas: Color, surface: Color, ink: Color, accent: Color, caption: [Color],
+                face: Color = PeriodBarColors.silver, faceInk: Color = .black, line: Color? = nil) {
         self.canvas = canvas
         self.surface = surface
         self.ink = ink
         self.accent = accent
         self.caption = caption
+        self.face = face
+        self.faceInk = faceInk
+        self.line = line
     }
 
-    /// From the common roles: canvas, surface, ink, `accentText` and the caption from the seed.
+    /// The color of Macintosh's lines.
+    public var rule: Color { line ?? ink }
+
+    /// From the common roles: canvas, surface, ink, `accentText` and the caption from the seed. The Windows 9x
+    /// face is the canvas and its glyphs the ink: the original silver and black, or the tinted era's.
     public init(_ roles: ThemeRoles) {
         self.init(
             canvas: Self.color(roles.canvas),
             surface: Self.color(roles.surface),
             ink: Self.color(roles.ink),
             accent: Self.color(roles.accentText),
-            caption: Self.win9xCaption(seed: roles.seed)
+            caption: Self.win9xCaption(seed: roles.seed),
+            face: Self.color(roles.canvas),
+            faceInk: Self.color(roles.ink),
+            line: Self.color(roles.line)
         )
     }
 
@@ -220,16 +243,16 @@ public struct PeriodWindowControls: View {
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                 .foregroundStyle(control == .close ? colors.accent : colors.ink)
         case .win9x:
-            image.foregroundStyle(.black)
+            image.foregroundStyle(colors.faceInk)
                 .frame(width: 17, height: 15)
-                .background(Win9xBevel.face)
+                .background(colors.face)
                 .overlay(Win9xBevel())
         case .classicMac:
             // Paper and ink from the palette: white and black in the original era (nu9ve-theme-v1 §4 «Época»).
             image.foregroundStyle(colors.ink)
                 .frame(width: 13, height: 13)
                 .background(colors.surface)
-                .overlay(Rectangle().strokeBorder(colors.ink, lineWidth: 1))
+                .overlay(Rectangle().strokeBorder(colors.rule, lineWidth: 1))
                 .padding(.horizontal, 2)
                 .background(colors.surface)
         }
@@ -251,8 +274,8 @@ public struct PeriodBarBackground: View {
         Group {
             switch era {
             case .classicMac:
-                ZStack { colors.surface; ClassicPinstripes(color: colors.ink) }
-                    .overlay(alignment: .bottom) { Rectangle().fill(colors.ink).frame(height: 1) }
+                ZStack { colors.surface; ClassicPinstripes(color: colors.rule) }
+                    .overlay(alignment: .bottom) { Rectangle().fill(colors.rule).frame(height: 1) }
             case .win9x:
                 LinearGradient(colors: colors.caption, startPoint: .leading, endPoint: .trailing)
             case .terminal:
@@ -283,7 +306,7 @@ public struct PeriodRowBackground: View {
             case .win9x:
                 colors.canvas.overlay(alignment: .bottom) { Win9xBevel(isRaised: false).frame(height: 2) }
             case .classicMac:
-                colors.canvas.overlay(alignment: .bottom) { Rectangle().fill(colors.ink).frame(height: 1) }
+                colors.canvas.overlay(alignment: .bottom) { Rectangle().fill(colors.rule).frame(height: 1) }
             }
         }
         .allowsHitTesting(false)
@@ -344,12 +367,19 @@ public struct PeriodWindowBar<Row: View>: View {
     let showsRow: Bool
     let drawsRowBackground: Bool
     let rowSpacing: CGFloat
+    let singleRow: Bool
     let window: (@MainActor () -> NSWindow?)?
     let row: Row
 
     /// `showsRow` false leaves only the caption, for windows without global actions (About, Help).
     /// In Terminal the row stays, with the controls and `title`. `drawsRowBackground` false leaves the
     /// row's background to `row`.
+    ///
+    /// `singleRow` puts the app's row on the caption, so a main window with navigation does not say its name
+    /// twice (nu9ve-theme-v1 §8): in Macintosh over the pinstripes, each group of the row on a margin of paper
+    /// (`periodClearing()`); in Windows 9x on the caption's gradient after the title in white, each group on a
+    /// raised panel (`periodPlate()`). The bar writes `title` once, after × − +; the row does not repeat it.
+    /// Its height is `era.singleRowHeight`. Windows without navigation (Settings, About, Help) keep two rows.
     public init(
         title: String,
         era: PeriodEra,
@@ -358,6 +388,7 @@ public struct PeriodWindowBar<Row: View>: View {
         showsRow: Bool = true,
         drawsRowBackground: Bool = true,
         rowSpacing: CGFloat = 6,
+        singleRow: Bool = false,
         window: (@MainActor () -> NSWindow?)? = nil,
         @ViewBuilder row: () -> Row
     ) {
@@ -368,12 +399,45 @@ public struct PeriodWindowBar<Row: View>: View {
         self.showsRow = showsRow
         self.drawsRowBackground = drawsRowBackground
         self.rowSpacing = rowSpacing
+        self.singleRow = singleRow
         self.window = window
         self.row = row()
     }
 
     public var body: some View {
         let controls = PeriodWindowControls(era: era, colors: colors, zoomEnabled: zoomEnabled, window: window)
+        if singleRow && showsRow && era.captionHeight > 0 {
+            single(controls)
+        } else {
+            stacked(controls)
+        }
+    }
+
+    /// One row on the caption: the era's background, × − + on it, the title in white in Windows 9x, then the row.
+    private func single(_ controls: PeriodWindowControls) -> some View {
+        ZStack {
+            PeriodBarBackground(era: era, colors: colors)
+            HStack(spacing: rowSpacing) {
+                controls.padding(.leading, PeriodEra.inset)
+                // The title, once: on its margin of paper in Macintosh, in white on the gradient in Windows 9x.
+                if era == .win9x {
+                    Text(verbatim: title).font(.custom("Tahoma Bold", size: 12)).foregroundStyle(.white).lineLimit(1)
+                        .padding(.leading, 2).allowsHitTesting(false)
+                } else {
+                    Text(verbatim: title).font(.custom("Silom", size: 12)).foregroundStyle(colors.ink).lineLimit(1)
+                        .padding(.horizontal, 7).frame(maxHeight: .infinity).background(colors.surface)
+                        .padding(.top, 2).padding(.bottom, 1).allowsHitTesting(false)
+                }
+                row.environment(\.periodBarPlacement, PeriodBarPlacement(era: era, colors: colors, onCaption: true))
+            }
+        }
+        .frame(height: era.singleRowHeight)
+        .background(TitleBarDragArea())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text(verbatim: title))
+    }
+
+    private func stacked(_ controls: PeriodWindowControls) -> some View {
         VStack(spacing: 0) {
             if era.captionHeight > 0 {
                 PeriodCaption(title: title, era: era, colors: colors, controls: controls).frame(height: era.captionHeight)
@@ -395,12 +459,69 @@ public struct PeriodWindowBar<Row: View>: View {
 
     private func rowView<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         HStack(spacing: rowSpacing) { content() }
+            .environment(\.periodBarPlacement, PeriodBarPlacement(era: era, colors: colors, onCaption: era.captionHeight == 0))
             .frame(height: era.rowHeight)
             .background {
                 if drawsRowBackground { PeriodRowBackground(era: era, colors: colors) }
             }
             .background(TitleBarDragArea())
     }
+}
+
+/// Where the app's row is drawn, for `periodClearing()` and `periodPlate()`. Set by `PeriodWindowBar`.
+public struct PeriodBarPlacement: Equatable, Sendable {
+    public var era: PeriodEra
+    public var colors: PeriodBarColors
+    /// True when the row sits on the era's caption (`singleRow`) instead of in a row of its own.
+    public var onCaption: Bool
+
+    public init(era: PeriodEra, colors: PeriodBarColors, onCaption: Bool) {
+        self.era = era
+        self.colors = colors
+        self.onCaption = onCaption
+    }
+}
+
+extension EnvironmentValues {
+    /// Nil outside a `PeriodWindowBar`'s row.
+    @Entry public var periodBarPlacement: PeriodBarPlacement?
+}
+
+/// Macintosh: a margin of paper around what sits on the pinstripes, as the title box had in System 7, so the
+/// rules stop short of it and never touch it. The bar's bottom rule stays visible.
+struct PeriodClearing: ViewModifier {
+    @Environment(\.periodBarPlacement) private var placement
+
+    func body(content: Content) -> some View {
+        if let placement, placement.era == .classicMac, placement.onCaption {
+            content.padding(.horizontal, 7).frame(maxHeight: .infinity)
+                .background(placement.colors.surface).padding(.top, 2).padding(.bottom, 1)
+        } else {
+            content
+        }
+    }
+}
+
+/// A group of the app's row on the caption: in Macintosh on a margin of paper, in Windows 9x on a raised panel
+/// of the era's face, like a toolbar band of Windows 98. Elsewhere it changes nothing.
+struct PeriodPlate: ViewModifier {
+    @Environment(\.periodBarPlacement) private var placement
+
+    func body(content: Content) -> some View {
+        if let placement, placement.onCaption, placement.era == .win9x {
+            content.padding(.horizontal, 6).frame(height: 22)
+                .background(placement.colors.face).overlay(Win9xBevel())
+        } else {
+            content.modifier(PeriodClearing())
+        }
+    }
+}
+
+extension View {
+    /// Macintosh, on the caption: a margin of paper so the pinstripes never touch this. No-op elsewhere.
+    public func periodClearing() -> some View { modifier(PeriodClearing()) }
+    /// On the caption: a margin of paper in Macintosh, a raised panel in Windows 9x. No-op elsewhere.
+    public func periodPlate() -> some View { modifier(PeriodPlate()) }
 }
 
 /// Windows 9x: a raised or sunken two-pixel bevel. Only a drawing.
@@ -462,29 +583,36 @@ public struct ClassicPinstripes: View {
 /// drawing: the window's edges take the clicks. Terminal draws none.
 public struct PeriodGrowBox: View {
     let era: PeriodEra
+    let colors: PeriodBarColors?
 
-    public init(era: PeriodEra) {
+    /// Without `colors`, the original era's white and black. With them, the paper, the lines and the face's ink, so
+    /// the box follows «Con tu color».
+    public init(era: PeriodEra, colors: PeriodBarColors? = nil) {
         self.era = era
+        self.colors = colors
     }
 
     public var body: some View {
+        let paper = colors?.surface ?? .white
+        let rule = colors?.rule ?? .black
+        let grip = colors?.faceInk ?? .black
         Group {
             switch era {
             case .classicMac:
                 ZStack(alignment: .topLeading) {
-                    Rectangle().fill(.white)
-                    Rectangle().strokeBorder(.black, lineWidth: 1).frame(width: 9, height: 9).padding(2)
-                    Rectangle().strokeBorder(.black, lineWidth: 1).frame(width: 6, height: 6).padding(.leading, 7).padding(.top, 7)
+                    Rectangle().fill(paper)
+                    Rectangle().strokeBorder(rule, lineWidth: 1).frame(width: 9, height: 9).padding(2)
+                    Rectangle().strokeBorder(rule, lineWidth: 1).frame(width: 6, height: 6).padding(.leading, 7).padding(.top, 7)
                 }
                 .frame(width: 15, height: 15)
-                .overlay(Rectangle().strokeBorder(.black, lineWidth: 1))
+                .overlay(Rectangle().strokeBorder(rule, lineWidth: 1))
             case .win9x:
                 Canvas { canvas, size in
                     for offset in stride(from: CGFloat(3), to: size.width, by: 4) {
                         var line = Path()
                         line.move(to: CGPoint(x: size.width, y: offset))
                         line.addLine(to: CGPoint(x: offset, y: size.height))
-                        canvas.stroke(line, with: .color(.black.opacity(0.65)), lineWidth: 1)
+                        canvas.stroke(line, with: .color(grip.opacity(0.65)), lineWidth: 1)
                     }
                 }
                 .frame(width: 15, height: 15)

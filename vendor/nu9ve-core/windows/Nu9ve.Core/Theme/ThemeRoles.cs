@@ -197,8 +197,13 @@ public sealed record ThemeSurfaces(ThemeColor Canvas, ThemeColor Surface, ThemeC
         {
             var paper = dark ? ThemeColor.Black : ThemeColor.White;
             var ink = dark ? ThemeColor.White : ThemeColor.Black;
-            return new(seed.Mixed(paper, 0.90), seed.Mixed(paper, dark ? 0.84 : 0.96), seed.Mixed(paper, dark ? 0.76 : 0.84),
-                seed.Mixed(ink, 0.78), seed.Mixed(ink, dark ? 0.92 : 0.90));
+            var canvas = seed.Mixed(paper, 0.90);
+            var surface = seed.Mixed(paper, dark ? 0.84 : 0.96);
+            var raised = seed.Mixed(paper, dark ? 0.76 : 0.84);
+            // The pinstripes, rules and frames carry the user's color (2026-11-26): 65 % of the seed, at least 3:1 on the
+            // paper, the minimum for graphics (3.1 before rounding to 8 bits). Ink stays near black (or white) for text.
+            var line = seed.Mixed(ink, 0.35).Readable([canvas, surface, raised], 3.1);
+            return new(canvas, surface, raised, line, seed.Mixed(ink, dark ? 0.92 : 0.90));
         }
         // Windows 9x: raised is the bevel's highlight and line its light shadow, so they stay lighter and darker than the face.
         if (dark)

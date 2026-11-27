@@ -63,7 +63,11 @@ public final class EngineClient: Sendable {
             }
             let envelope = try await ready.connection.request(method, params, idempotencyKey: idempotencyKey,
                                                               timeout: timeout ?? self.configuration.requestTimeout)
-            self.state.withLock { $0.failures = 0 }
+            // Only the live process's answer clears the failures: an answer that arrived just before a crash
+            // can resume after the crash was counted, and must not erase it (that skipped the backoff).
+            self.state.withLock { state in
+                if state.connection === ready.connection { state.failures = 0 }
+            }
             return try Self.outcome(envelope)
         }
     }
