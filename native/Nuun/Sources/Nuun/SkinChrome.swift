@@ -139,48 +139,6 @@ struct GothicWindowBar<Content: View>: View {
     }
 }
 
-/// Over Macintosh's pinstripes, each group of the bar sits on a margin of paper, as the title did in System 7,
-/// so it reads; on the Windows 9x caption, on a raised silver panel. Elsewhere it changes nothing.
-struct PeriodPlate: ViewModifier {
-    @Environment(\.creatorPalette) private var palette
-    @Environment(\.barOnCaption) private var onCaption
-    func body(content: Content) -> some View {
-        if palette.skin == .classicMac {
-            // Only the paper margin: like the title in System 7, no box of its own.
-            content.modifier(PeriodClearing())
-        } else if palette.skin == .win9x && onCaption {
-            // On the caption's gradient: a raised silver panel, like a toolbar band in Windows 98.
-            content.padding(.horizontal, 6).frame(height: 22)
-                .background(palette.canvas).overlay(Win9xBevel())
-        } else {
-            content
-        }
-    }
-}
-
-/// Macintosh: a margin of paper around what sits on the pinstripes, as the title box had, so the rules stop
-/// short of it and never touch it. The bar's bottom rule stays visible.
-struct PeriodClearing: ViewModifier {
-    @Environment(\.creatorPalette) private var palette
-    func body(content: Content) -> some View {
-        if palette.skin == .classicMac {
-            content.padding(.horizontal, 7).frame(maxHeight: .infinity)
-                .background(palette.surface).padding(.top, 2).padding(.bottom, 1)
-        } else {
-            content
-        }
-    }
-}
-
-private struct BarOnCaptionKey: EnvironmentKey { static let defaultValue = false }
-extension EnvironmentValues {
-    /// True while nüün's bar is drawn on a period caption instead of in its own row.
-    var barOnCaption: Bool {
-        get { self[BarOnCaptionKey.self] }
-        set { self[BarOnCaptionKey.self] = newValue }
-    }
-}
-
 /// Any window's content with its skin's bar when the skin draws its own window.
 struct SkinnedWindow<Bar: View, Content: View>: View {
     @Environment(\.creatorPalette) private var palette
@@ -188,7 +146,7 @@ struct SkinnedWindow<Bar: View, Content: View>: View {
     /// Whether nüün's own bar gets a row; the settings window has none under a period caption.
     var barRow: (ThemeSkin) -> Bool = { _ in true }
     var resizable = true
-    /// Macintosh: one bar instead of a caption over nüün's row, so the name is not said twice (2026-11-26).
+    /// Macintosh and Windows 9x: one bar on the caption (`PeriodWindowBar(singleRow:)`), so the name is said once.
     var singleBar = false
     let bar: Bar
     let content: Content
@@ -202,62 +160,19 @@ struct SkinnedWindow<Bar: View, Content: View>: View {
         self.content = content()
     }
     var body: some View {
-        if palette.skin == .classicMac && singleBar && barRow(palette.skin) {
-            // Pinstripes across, × − + at the left on their own boxes, and nüün's bar (brand, navigation in the
-            // middle, actions) on plates over them: the same order as Cristal, in the era's materials.
-            VStack(spacing: 0) {
-                ZStack {
-                    PeriodBarBackground(era: .classicMac, colors: palette.periodColors)
-                    HStack(spacing: 6) {
-                        // × − + sit on the pinstripes, each on its own box, as the era drew them.
-                        PeriodWindowControls(era: .classicMac, colors: palette.periodColors, zoomEnabled: resizable)
-                            .padding(.leading, PeriodEra.inset)
-                        bar.padding(.trailing, PeriodEra.inset)
-                    }
-                }
-                .frame(height: PeriodEra.classicMac.rowHeight + 4)
-                .background(TitleBarDragArea())
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(Text(verbatim: title))
-                content.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .overlay(alignment: .bottomTrailing) { if resizable { PeriodGrowBox(era: .classicMac) } }
-            .overlay { Rectangle().strokeBorder(palette.ink, lineWidth: 1).allowsHitTesting(false) }
-            .ignoresSafeArea()
-        } else if palette.skin == .win9x && singleBar && barRow(palette.skin) {
-            // Windows 9x (user's choice, 2026-11-26): the whole bar on the caption's gradient, with the title in white
-            // after × − + and each group on a raised silver panel, so the caption holds navigation, disks and Settings.
-            VStack(spacing: 0) {
-                ZStack {
-                    PeriodBarBackground(era: .win9x, colors: palette.periodColors)
-                    HStack(spacing: 6) {
-                        PeriodWindowControls(era: .win9x, colors: palette.periodColors, zoomEnabled: resizable)
-                            .padding(.leading, PeriodEra.inset)
-                        Text(verbatim: "nüün").font(.custom("Tahoma Bold", size: 12)).foregroundStyle(.white)
-                            .padding(.leading, 2).allowsHitTesting(false)
-                        bar.padding(.trailing, PeriodEra.inset).environment(\.barOnCaption, true)
-                    }
-                }
-                .frame(height: PeriodEra.win9x.rowHeight + 4)
-                .background(TitleBarDragArea())
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(Text(verbatim: title))
-                content.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .overlay(alignment: .bottomTrailing) { if resizable { PeriodGrowBox(era: .win9x) } }
-            .ignoresSafeArea()
-        } else if let era = PeriodEra(palette.skin) {
+        if let era = PeriodEra(palette.skin) {
             VStack(spacing: 0) {
                 // The row gets no margins from the core; nüün's bar brings its own on the left and keeps 8 pt on the
                 // right, as before. In Terminal it follows the controls.
                 PeriodWindowBar(title: title, era: era, colors: palette.periodColors, zoomEnabled: resizable,
-                                showsRow: barRow(palette.skin)) {
+                                showsRow: barRow(palette.skin), singleRow: singleBar) {
                     bar.padding(.trailing, PeriodEra.inset)
                 }
                 content.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .overlay(alignment: .bottomTrailing) { if resizable { PeriodGrowBox(era: era) } }
-            .overlay { if era == .classicMac { Rectangle().strokeBorder(palette.ink, lineWidth: 1).allowsHitTesting(false) } }
+            // The window's frame in the era's line color: black in the original era, the user's with «Con tu color».
+            .overlay { if era == .classicMac { Rectangle().strokeBorder(palette.periodColors.rule, lineWidth: 1).allowsHitTesting(false) } }
             .ignoresSafeArea()
         } else if palette.skin.usesSquareWindow {
             VStack(spacing: 0) {

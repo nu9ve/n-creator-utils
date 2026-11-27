@@ -18,7 +18,7 @@ struct NuunAboutView: View {
         AboutView(identity: .nuun,
                   colors: ShellColors(background: palette.canvas, text: palette.ink, secondaryText: palette.muted,
                                       accent: palette.accentText, isDark: palette.dark),
-                  drawsBackground: false) {
+                  drawsBackground: false, systemButtonStyle: false) {
             VStack(spacing: 10) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().interpolation(.high)
                     .frame(width: 72, height: 72).accessibilityHidden(true)

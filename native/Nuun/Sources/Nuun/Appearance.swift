@@ -223,13 +223,17 @@ struct CreatorAppearance: ViewModifier {
     @AppStorage("accentHue") private var hue = CreatorPalette.defaultHue
     @AppStorage("accentSaturation") private var saturation = CreatorPalette.defaultSaturation
     @AppStorage("accentBrightness") private var brightness = 1.0
-    @AppStorage("era") private var eraID = ThemeEra.original.rawValue
+    // nu9ve-theme-v1 §5 (2026-11-26): without a stored era, «Con tu color»; «Original» is chosen apart.
+    @AppStorage("era") private var eraID = ThemeEra.tinted.rawValue
     func body(content: Content) -> some View {
         let skin = ThemeSkin(rawValue: skinID) ?? .glass
-        let era = ThemeEra(rawValue: eraID) ?? .original
-        let requested = appearance == "dark" || (appearance == "system" && systemScheme == .dark)
+        let era = ThemeEra(rawValue: eraID) ?? .tinted
+        // Following the system is no choice for a period skin: it starts in its own mode (a tinted Macintosh in
+        // light paper, `defaultDark(era:)`). Light or dark chosen by hand still wins where the skin allows it.
+        let starting = appearance == "system" ? skin.defaultDark(era: era) : nil
+        let requested = starting ?? (appearance == "dark" || (appearance == "system" && systemScheme == .dark))
         let palette = CreatorPalette(skin: skin, dark: requested, hue: hue, saturation: saturation, brightness: brightness, era: era)
-        let followsSystem = appearance == "system" && skin.forcedDark(era: era) == nil
+        let followsSystem = appearance == "system" && starting == nil && skin.forcedDark(era: era) == nil
         content
             .buttonStyle(CreatorButtonStyle())
             .textFieldStyle(CreatorTextFieldStyle())
@@ -254,8 +258,9 @@ struct AppearanceSettings: View {
     @AppStorage("accentHue") private var hue = CreatorPalette.defaultHue
     @AppStorage("accentSaturation") private var saturation = CreatorPalette.defaultSaturation
     @AppStorage("accentBrightness") private var brightness = 1.0
-    @AppStorage("era") private var eraID = ThemeEra.original.rawValue
-    private var era: ThemeEra { ThemeEra(rawValue: eraID) ?? .original }
+    // nu9ve-theme-v1 §5 (2026-11-26): without a stored era, «Con tu color»; «Original» is chosen apart.
+    @AppStorage("era") private var eraID = ThemeEra.tinted.rawValue
+    private var era: ThemeEra { ThemeEra(rawValue: eraID) ?? .tinted }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Apariencia", systemImage: "paintpalette").font(.title3.weight(.semibold))

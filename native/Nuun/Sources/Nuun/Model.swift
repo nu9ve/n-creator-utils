@@ -72,15 +72,6 @@ enum Route: String, CaseIterable, Identifiable {
         case .library: "Biblioteca"
         }
     }
-    /// The same title as text, for a window's caption.
-    var name: String {
-        switch self {
-        case .home: String(localized: "Inicio")
-        case .ingest: String(localized: "Ingreso")
-        case .flows: String(localized: "Flujos")
-        case .library: String(localized: "Biblioteca")
-        }
-    }
     var symbol: String {
         switch self {
         case .home: "tray.full"
