@@ -1,4 +1,8 @@
 import Foundation
+import os
+
+/// Slow reads (over 300 ms), to see what a card arrival waits behind: `log stream --predicate 'subsystem == "app.nu9ve.media"'`.
+private let readerLog = Logger(subsystem: "app.nu9ve.media", category: "reader")
 
 public enum JSONValue: Codable, Sendable, Equatable {
     case object([String: JSONValue]), array([JSONValue]), string(String), integer(Int64), unsignedInteger(UInt64), number(Double), bool(Bool), null
@@ -241,6 +245,12 @@ public final class PersistentReader: @unchecked Sendable {
     public var answeredBy: [String: String] { lock.withLock { answered } }
 
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
+        let started = ContinuousClock.now
+        defer {
+            let d = started.duration(to: .now).components
+            let ms = d.seconds * 1000 + d.attoseconds / 1_000_000_000_000_000
+            if ms > 300 { readerLog.notice("\(method, privacy: .public) took \(ms, privacy: .public) ms") }
+        }
         if let rust, await rustAnswers(method, rust) {
             do {
                 let value = try await rust.send(method, params)
