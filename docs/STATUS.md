@@ -328,6 +328,10 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Sombra sobre el catálogo real · 2026-11-26
+
+`scripts/engine_shadow.py replay` con el motor instalado (`c0de130ed8e9`), sólo lectura, tras el respaldo de conversaciones: 40 métodos y 243 lecturas. Todas iguales a Python (`closure_link_candidates`: 6 iguales y 3 con el mismo error), salvo `storage_collections`: difiere en `measured_at` y, en la primera vuelta, en los bytes de la colección de agentes (`~/.claude` crecía con sesiones abiertas). Rust fue más rápido o igual en las lecturas lentas: `snapshot` 706 ms contra 2 028, `source_cards` 416 contra 1 454, arranque 6,6 ms contra 82. La sombra en vivo (`enable`/`report`) ya no registra: la app pregunta primero a Rust y Python sólo responde lo que Rust no tiene; el último registro es del 16 nov. Con esto y el uso desde el 19 nov, el criterio de la semana queda cumplido salvo la aceptación en ventana pendiente ([PLAN](../PLAN.md#p0--uso-diario-sin-sorpresas)).
+
 ### Acciones y sugerencias · 2026-11-26
 
 U1.1, U1.2 y U1.4 de [PLAN · UX](../PLAN.md#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26), en código y **sin instalar ni aceptar en ventana**.
