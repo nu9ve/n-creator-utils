@@ -15,6 +15,7 @@ COMMANDS = {'save', 'inspect', 'download', 'split', 'doctor', 'control', 'media'
 # `nuun-engine media <order>`, which answers the same values (tests/test_media_cli_rust.py). Everything else, and
 # any order Rust refuses as usage (exit 2: a usage error, or an engine older than its `media` CLI), stays in Python.
 # `NUUN_MEDIA_ENGINE=python` keeps Python (the oracle tests); `NUUN_ENGINE` names the engine, as for Stalker.
+# F5 (d): `media mcp` too, by handing the process to the engine.
 RUST_ORDERS = {'projects', 'sources', 'volumes', 'resolve', 'captures', 'integration-capabilities', 'retitle-operations'}
 
 
@@ -52,7 +53,21 @@ def rust_media(args):
     """Answer `media …` with the Rust engine; None when Python should (not a Rust order, no engine, or exit 2)."""
     import os
 
-    if os.environ.get('NUUN_MEDIA_ENGINE') == 'python' or media_order(args) not in RUST_ORDERS:
+    if os.environ.get('NUUN_MEDIA_ENGINE') == 'python':
+        return None
+    if media_order(args) == 'mcp':
+        # F5 (d): the MCP stdio server is a conversation, so the engine takes over this process. An engine that
+        # answers an empty conversation without a usage error (exit 2) has it.
+        for engine in rust_engines():
+            try:
+                probe = subprocess.run([str(engine), 'media', *args], input=b'', capture_output=True, timeout=10)
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if probe.returncode != 2:
+                sys.stdout.flush()
+                os.execv(str(engine), [str(engine), 'media', *args])
+        return None
+    if media_order(args) not in RUST_ORDERS:
         return None
     for engine in rust_engines():
         try:

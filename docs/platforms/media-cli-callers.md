@@ -49,7 +49,13 @@ Texto para que el usuario lo pase; esta sesión no escribe a otras.
 
 > nüün, 2026-11-27: desde el commit de F5 (c), `nu9ve.py media projects | sources | volumes list | resolve` responde con `nuun-engine media` cuando hay un motor que la entiende, y si no, con Python como antes. El sobre es el mismo (`ok`, `command`, `data` o `error`) y los valores también. Cambian el orden de las claves (Rust las ordena) y el tiempo de arranque (unos 50 ms en vez de 80). Para fijar un motor, `NUUN_ENGINE=<ruta>`; para volver a Python, `NUUN_MEDIA_ENGINE=python`. Nada cambia en `CLIPPER_NU9VE` ni en `CLIPPER_NU9VE_STATE_DIR`.
 
+## Paso (d), hecho el 2026-11-27
+
+`nuun-engine [--state-dir D] media [--state-dir D] mcp` es el servidor MCP de `media/mcp.py` en Rust ([mcp.rs](../../engine/nuun-engine/src/mcp.rs)): stdio, las mismas ocho herramientas de sólo lectura, el mismo `serverInfo` y las mismas respuestas. Sólo llama a esos ocho métodos de lectura. `nu9ve.py media mcp` comprueba que el motor lo entienda con una conversación vacía y le cede el proceso (`exec`); con un motor viejo, o con `NUUN_MEDIA_ENGINE=python`, sigue Python.
+
+[test_media_mcp_rust.py](../../tests/test_media_mcp_rust.py) manda la misma conversación a los dos servidores sobre dos catálogos del golden: `initialize`, cada herramienta, argumentos que faltan o sobran, una herramienta que no existe, notificaciones, métodos desconocidos y una línea que no es JSON. Las respuestas son iguales salvo los bytes libres del disco y la hora de medición, que cambian entre las dos corridas. Nadie configura este MCP hoy (arriba); el del core (`nu9ve mcp`) sigue siendo el de la suite.
+
 ## Lo que queda
 
 - **Cómo lo encuentran sin el checkout:** un `nu9ve` instalado que apunte a `nuun.app/Contents/Resources/backend/nuun-engine` cubriría a Clipper y a Kyū sin cambiarlos; la otra opción es que cada uno busque la app, como Stalker. Lo decide el usuario con la sesión de Clipper. Hasta entonces, Clipper usa el checkout y por él llega a Rust.
-- **(d) en adelante:** el MCP en Rust, la app sin respaldo de Python, el golden como archivos y borrar `media/*.py` ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).
+- **(e) en adelante:** la app sin respaldo de Python, el golden como archivos y borrar `media/*.py` ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).

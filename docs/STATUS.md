@@ -328,6 +328,10 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### El MCP de `media` en Rust · 2026-11-27
+
+Paso (d) de F5 ([inventario](platforms/media-cli-callers.md#paso-d-hecho-el-2026-11-27)). `nuun-engine media mcp` sirve las ocho herramientas de sólo lectura de `media/mcp.py` por stdio ([mcp.rs](../engine/nuun-engine/src/mcp.rs)), y `nu9ve.py media mcp` le cede el proceso cuando hay un motor que lo entiende. [test_media_mcp_rust.py](../tests/test_media_mcp_rust.py): la misma conversación de 23 mensajes a los dos servidores, sobre dos catálogos del golden, con respuestas iguales (salvo los bytes libres del disco y `measured_at`, que cambian entre corridas), más la cesión desde `nu9ve.py` y la vuelta a Python con un motor viejo. Nadie configura este MCP hoy.
+
 ### Inglés completo en la app · 2026-11-27
 
 `check_localization.py` pasa por primera vez: 1 236 claves, 0 sin inglés. Se agregaron las 112 que faltaban desde antes de F4 (Acumulados, Perfiles, identidad de discos, Handycam, adopción e índice portátil) al final de [en.lproj](../native/Nuun/Localization/en.lproj/Localizable.strings), con los mismos `%@` y `%lld` que la clave, comprobados por un script, y `plutil -lint` en verde. Las 22 que el script marca como sin uso se quedan: varias son textos del core (`PeriodWindowBar`) que llegan como `String` y el extractor no ve. Sin instalar: entra en la próxima build.

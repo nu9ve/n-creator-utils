@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 
+mod mcp;
 mod suite;
 
 /// media/cli.py `READ_METHODS` and `READ_WHEN_EMPTY`; tests/test_engine_boundary.py keeps them equal.
@@ -1237,11 +1238,16 @@ fn media_cli(mut state_dir: Option<PathBuf>, args: &[String]) -> i32 {
         state_dir = Some(PathBuf::from(value));
         rest = tail;
     }
+    // F5 (d): `media mcp`, the read-only MCP stdio server (mcp.rs).
+    if rest == ["mcp"] {
+        let engine = Engine { state_dir };
+        return mcp::serve(&engine, io::stdin().lock(), io::stdout().lock());
+    }
     let (method, params) = match media_order(rest) {
         Ok(order) => order,
         Err(usage) => {
             eprintln!(
-                "usage: nuun-engine media [--state-dir DIR] projects | sources --project P [--purpose edit|archive] | volumes list | resolve ASSET [--revision R] | captures ROOT | integration-capabilities | retitle-operations\nnuun-engine media: error: {usage}"
+                "usage: nuun-engine media [--state-dir DIR] projects | sources --project P [--purpose edit|archive] | volumes list | resolve ASSET [--revision R] | captures ROOT | integration-capabilities | retitle-operations | mcp\nnuun-engine media: error: {usage}"
             );
             return 2;
         }
