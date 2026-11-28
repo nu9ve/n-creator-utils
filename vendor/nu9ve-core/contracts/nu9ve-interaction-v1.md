@@ -18,6 +18,8 @@ Referencias leídas en el código el 2026-11-07:
 - **Debe:** cada acción de la app se declara una vez en un catálogo con: identificador estable, título, grupo, teclas, alcance (global, vista, panel o foco), cuándo está visible o activa y un nombre corto que quepa en un keycap. Es el `ShortcutSpec` de Clipper y el `ShortcutCatalog` de SoundShop.
 - **Debe:** menús, badges, ayuda contextual, panel de atajos, Ayuda y HUD leen ese catálogo. No hay texto de atajo escrito a mano en una vista.
 - **Debe:** una prueba falla si dos acciones del mismo alcance comparten tecla, si un atajo pisa uno del sistema (§8) o si una acción del menú no tiene entrada en el catálogo.
+- **Debe — controladores** (2026-11-27, desde M0 de Stalker): las acciones que se asignan a un control MIDI salen de **este mismo catálogo**, con su clase, de disparo o continua. Son el `action` de [`nu9ve-controller-map-v1`](nu9ve-controller-map-v1.md#3-mapa) y lo que la app declara al agente en [`nu9ve-surface-v1`](nu9ve-surface-v1.md#4-mensajes).
+- **Debe:** una acción que llega de un controlador **no** abre un diálogo modal: la app suele estar al fondo y el diálogo queda escondido, mientras las pulsaciones siguientes se acumulan. Si necesita confirmación, se confirma en el propio aparato: el control parpadea en naranja (`warning`) y se pulsa otra vez antes de un plazo corto (Stalker: 4 s). El aviso va también a un lugar que no interrumpa, como el menú ([`nu9ve-surface-v1` §3](nu9ve-surface-v1.md#3-estados-y-luces)). Desde el teclado o la ventana, el diálogo sigue.
 
 ## 2. Todo por teclado
 
@@ -149,3 +151,5 @@ Quién adoptó qué está en [adopción por app](../docs/adoption.md#nu9ve-inter
 ## Cambios
 
 Regla nueva o más estricta: añadirla, actualizar su tabla en [adopción por app](../docs/adoption.md#nu9ve-interaction-v1) y avisar en cada app afectada.
+
+- **2026-11-27:** §1 suma los controladores: el mismo catálogo y confirmar en el aparato.

@@ -4,6 +4,9 @@
 
 pub mod install;
 mod serve;
+// nu9ve-surface-v1: the controller of the whole suite. CoreMIDI, so macOS only for now (§10.4).
+#[cfg(target_os = "macos")]
+pub mod surface;
 // The suite engine serves a Unix socket; Windows has no named pipe server yet (not verified).
 #[cfg_attr(not(unix), allow(dead_code, unused_imports))]
 mod suite;

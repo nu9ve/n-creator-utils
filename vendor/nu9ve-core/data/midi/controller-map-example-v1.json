@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "devices": [
+    {
+      "match": "Launchpad Pro",
+      "profile": "novation-launchpad-pro",
+      "mappings": [
+        {"control": "left-8", "action": "recording.toggle"},
+        {"control": "left-2", "action": "recording.marker"},
+        {"control": "top-3", "action": "preset.previous"},
+        {"control": "top-4", "action": "preset.next"},
+        {"control": "right-1", "action": "preset.select", "argument": "6f1c2a4e-9b1d-4c3a-8e5f-0a1b2c3d4e5f"},
+        {"control": "right-2", "action": "preset.select", "argument": "0b1c2d3e-4f50-4617-8899-aabbccddeeff", "color": "cyan"}
+      ]
+    },
+    {
+      "match": "DDJ-SB",
+      "profile": "pioneer-ddj-sb",
+      "mappings": [
+        {"control": "deck-1-play-pause", "action": "recording.toggle"},
+        {"control": "deck-1-cue", "action": "recording.marker"},
+        {"key": {"kind": "note", "channel": 1, "number": "0x30"}, "action": "preset.next"}
+      ]
+    },
+    {
+      "match": "Generic Keys",
+      "profile": null,
+      "mappings": [
+        {"key": {"kind": "cc", "channel": 16, "number": 7}, "action": "mix.volume"}
+      ]
+    }
+  ]
+}

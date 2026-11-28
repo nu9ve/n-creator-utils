@@ -3,7 +3,7 @@ name = "nu9ve-mcp"
 description = "MCP server of the suite: tools of every registered engine with its prefix, levels and session grants (nu9ve-mcp-v1)"
 edition = "2024"
 rust-version = "1.89"
-version = "0.2.2"
+version = "0.3.0"
 license = "UNLICENSED"
 publish = false
 
@@ -27,6 +27,10 @@ nu9ve-exchange = { path = "../nu9ve-exchange", version = "=0.1.0" }
 nu9ve-fs = { path = "../nu9ve-fs", version = "=0.1.0" }
 # Volume markers and their serial, for the agent's sightings (nu9ve-volume-v1).
 nu9ve-volumes = { path = "../nu9ve-volumes", version = "=0.1.0" }
+# The agent owns the suite's controller (nu9ve-surface-v1): profiles, maps, lights and CoreMIDI.
+nu9ve-midi = { path = "../nu9ve-midi", version = "=0.1.0" }
+# The recording signal, for the surface's recording mode and zones (nu9ve-recording-v1).
+nu9ve-recording = { path = "../nu9ve-recording", version = "=0.1.0" }
 # The device key in the keystore, as base64. MIT or Apache-2.0.
 base64 = "=0.22.1"
 

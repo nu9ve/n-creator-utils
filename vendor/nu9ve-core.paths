@@ -23,6 +23,9 @@ rust/nu9ve-mcp
 rust/nu9ve-ipc
 rust/nu9ve-device
 rust/nu9ve-exchange
+# Desde nu9ve-mcp 0.3.0 (core 1ea3234, 2026-11-27): el control de la suite (nu9ve-surface-v1) y la señal de grabación.
+rust/nu9ve-midi
+rust/nu9ve-recording
 
 # Los roles de tema de la app de macOS.
 swift

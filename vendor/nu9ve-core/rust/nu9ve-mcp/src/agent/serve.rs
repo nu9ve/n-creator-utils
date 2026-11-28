@@ -447,6 +447,47 @@ fn cycle(agent: &Mutex<Agent>, reading: bool) {
     }
 }
 
+#[cfg(target_os = "macos")]
+type SurfaceServer = Option<super::surface::Server>;
+#[cfg(not(target_os = "macos"))]
+type SurfaceServer = ();
+
+/// The surface socket, with CoreMIDI. If it cannot be served the agent goes on without it: apps then
+/// open their controller directly (surface §1).
+#[cfg(target_os = "macos")]
+fn start_surface(dir: &Path) -> SurfaceServer {
+    use nu9ve_midi::{MidiSystem, coremidi::CoreMidi};
+    let (socket, controllers, recording) = super::surface::paths(dir);
+    let config = super::surface::Config {
+        socket,
+        controllers,
+        recording,
+        midi: Box::new(|sink| {
+            Ok(Box::new(CoreMidi::new("nu9ve agent", sink)?) as Box<dyn MidiSystem>)
+        }),
+    };
+    match super::surface::Server::start(config) {
+        Ok(server) => Some(server),
+        Err(e) => {
+            log(&format!("surface: not served: {e}"));
+            None
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn surface_socket(surface: &SurfaceServer) -> Option<PathBuf> {
+    surface.as_ref().map(|s| s.socket().to_path_buf())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn start_surface(_: &Path) -> SurfaceServer {}
+
+#[cfg(not(target_os = "macos"))]
+fn surface_socket(_: &SurfaceServer) -> Option<PathBuf> {
+    None
+}
+
 /// Runs until a signal or `engine_shutdown`. Returns why it stopped.
 pub(super) fn serve(agent: Agent) -> io::Result<Value> {
     let _lock = ServeLock::take(&agent.dir)?;
@@ -456,8 +497,11 @@ pub(super) fn serve(agent: Agent) -> io::Result<Value> {
         agent.device_id(),
         std::process::id()
     ));
+    // nu9ve-surface-v1: dropped on every way out, which darkens the controller and tells the apps (§7).
+    let surface = start_surface(&agent.dir);
+    let socket = surface_socket(&surface);
     let agent = Arc::new(Mutex::new(agent));
-    let _engine = super::suite::start(agent.clone(), watcher.stopper())?;
+    let _engine = super::suite::start(agent.clone(), watcher.stopper(), socket)?;
     let every = every();
     cycle(&agent, true);
     let mut next_read = Instant::now() + every;

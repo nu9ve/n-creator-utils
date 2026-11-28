@@ -1,0 +1,1136 @@
+{
+  "about" : "Shared cases of nu9ve-controller-map-v1 §1, §2 and §4: the lights an app asks for, what the light board sends, and live reading. Written with Nu9veMIDI (Swift) as the reference: NU9VE_WRITE_MIDI_VECTORS=1 swift test --filter ControllerVectors fills every `expect`. nu9ve-midi (Rust) passes the same file. Bytes are hex, one message per string. Keys use channels 0–15, as in memory.",
+  "boards" : [
+    {
+      "name" : "only what changed, then everything after a reconnect",
+      "profile" : "launchpad",
+      "steps" : [
+        {
+          "expect" : [
+            "90 51 15"
+          ],
+          "update" : {
+            "pad-1-1" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : [
+
+          ],
+          "update" : {
+            "pad-1-1" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : [
+            "90 51 00",
+            "90 52 05"
+          ],
+          "update" : {
+            "pad-1-2" : {
+              "color" : "red",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : [
+            "F0 00 20 29 02 10 2C 03 F7",
+            "B0 5B 00",
+            "B0 5C 00",
+            "B0 5D 00",
+            "B0 5E 00",
+            "B0 5F 00",
+            "B0 60 00",
+            "B0 61 00",
+            "B0 62 00",
+            "B0 50 00",
+            "B0 46 00",
+            "B0 3C 00",
+            "B0 32 00",
+            "B0 28 00",
+            "B0 1E 00",
+            "B0 14 00",
+            "B0 0A 00",
+            "90 51 00",
+            "90 52 00",
+            "90 53 00",
+            "90 54 00",
+            "90 55 00",
+            "90 56 00",
+            "90 57 00",
+            "90 58 00",
+            "90 47 00",
+            "90 48 00",
+            "90 49 00",
+            "90 4A 00",
+            "90 4B 00",
+            "90 4C 00",
+            "90 4D 00",
+            "90 4E 00",
+            "90 3D 00",
+            "90 3E 00",
+            "90 3F 00",
+            "90 40 00",
+            "90 41 00",
+            "90 42 00",
+            "90 43 00",
+            "90 44 00",
+            "90 33 00",
+            "90 34 00",
+            "90 35 00",
+            "90 36 00",
+            "90 37 00",
+            "90 38 00",
+            "90 39 00",
+            "90 3A 00",
+            "90 29 00",
+            "90 2A 00",
+            "90 2B 00",
+            "90 2C 00",
+            "90 2D 00",
+            "90 2E 00",
+            "90 2F 00",
+            "90 30 00",
+            "90 1F 00",
+            "90 20 00",
+            "90 21 00",
+            "90 22 00",
+            "90 23 00",
+            "90 24 00",
+            "90 25 00",
+            "90 26 00",
+            "90 15 00",
+            "90 16 00",
+            "90 17 00",
+            "90 18 00",
+            "90 19 00",
+            "90 1A 00",
+            "90 1B 00",
+            "90 1C 00",
+            "90 0B 00",
+            "90 0C 00",
+            "90 0D 00",
+            "90 0E 00",
+            "90 0F 00",
+            "90 10 00",
+            "90 11 00",
+            "90 12 00",
+            "B0 59 00",
+            "B0 4F 00",
+            "B0 45 00",
+            "B0 3B 00",
+            "B0 31 00",
+            "B0 27 00",
+            "B0 1D 00",
+            "B0 13 00",
+            "B0 01 00",
+            "B0 02 00",
+            "B0 03 00",
+            "B0 04 00",
+            "B0 05 00",
+            "B0 06 00",
+            "B0 07 00",
+            "B0 08 00",
+            "90 52 05"
+          ],
+          "forget" : true
+        },
+        {
+          "expect" : [
+            "B0 5B 2D",
+            "F0 00 20 29 02 10 28 5B 2D F7"
+          ],
+          "update" : {
+            "pad-1-2" : {
+              "color" : "red",
+              "dim" : false,
+              "motion" : "solid"
+            },
+            "top-1" : {
+              "color" : "blue",
+              "dim" : false,
+              "motion" : "pulse"
+            }
+          }
+        },
+        {
+          "expect" : false,
+          "needsBlink" : true
+        },
+        {
+          "darken" : true,
+          "expect" : [
+            "B0 5B 00",
+            "90 52 00"
+          ]
+        },
+        {
+          "darken" : true,
+          "expect" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "software blink only while something blinks",
+      "profile" : "launchpad-onoff",
+      "steps" : [
+        {
+          "expect" : [
+            "90 51 7F"
+          ],
+          "update" : {
+            "pad-1-1" : {
+              "color" : "red",
+              "dim" : false,
+              "motion" : "flash"
+            }
+          }
+        },
+        {
+          "expect" : true,
+          "needsBlink" : true
+        },
+        {
+          "blink" : false,
+          "expect" : [
+            "90 51 00"
+          ]
+        },
+        {
+          "blink" : true,
+          "expect" : [
+            "90 51 7F"
+          ]
+        },
+        {
+          "expect" : [
+            "90 51 7F"
+          ],
+          "update" : {
+            "pad-1-1" : {
+              "color" : "red",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : false,
+          "needsBlink" : true
+        },
+        {
+          "blink" : false,
+          "expect" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "only lit controls, mirrors never",
+      "profile" : "ddj-lit",
+      "steps" : [
+        {
+          "expect" : [
+            "90 0B 7F"
+          ],
+          "update" : {
+            "deck-1-play-pause" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            },
+            "deck-1-sync" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            },
+            "fx1-level-copy" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : [
+            "90 0B 00",
+            "90 0C 00",
+            "90 0B 7F"
+          ],
+          "forget" : true
+        },
+        {
+          "darken" : true,
+          "expect" : [
+            "90 0B 00"
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "a v1 profile has no output",
+      "profile" : "ddj",
+      "steps" : [
+        {
+          "expect" : [
+
+          ],
+          "update" : {
+            "deck-1-cue" : {
+              "color" : "green",
+              "dim" : false,
+              "motion" : "solid"
+            }
+          }
+        },
+        {
+          "expect" : [
+
+          ],
+          "forget" : true
+        }
+      ]
+    }
+  ],
+  "lights" : [
+    {
+      "control" : "pad-5-4",
+      "expect" : [
+        "90 2C 05"
+      ],
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-5-4",
+      "expect" : [
+        "90 2C 17"
+      ],
+      "light" : {
+        "color" : "green",
+        "dim" : true,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-5-4",
+      "expect" : [
+        "90 2C 35",
+        "F0 00 20 29 02 10 23 2C 35 F7"
+      ],
+      "light" : {
+        "color" : "pink",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-5-4",
+      "expect" : [
+        "90 2C 27",
+        "F0 00 20 29 02 10 28 2C 27 F7"
+      ],
+      "light" : {
+        "color" : "cyan",
+        "dim" : true,
+        "motion" : "pulse"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "top-1",
+      "expect" : [
+        "B0 5B 2D"
+      ],
+      "light" : {
+        "color" : "blue",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 00"
+      ],
+      "light" : {
+        "color" : null,
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 01"
+      ],
+      "light" : {
+        "color" : "white",
+        "dim" : true,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 03"
+      ],
+      "light" : {
+        "color" : "cyan",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 07"
+      ],
+      "light" : {
+        "color" : "red",
+        "dim" : true,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 03"
+      ],
+      "light" : {
+        "color" : "yellow",
+        "dim" : true,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 05"
+      ],
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "phase" : true,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 00"
+      ],
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "phase" : false,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : [
+        "90 51 00"
+      ],
+      "light" : {
+        "color" : "green",
+        "dim" : true,
+        "motion" : "pulse"
+      },
+      "phase" : false,
+      "profile" : "launchpad-onoff"
+    },
+    {
+      "control" : "deck-1-cue",
+      "expect" : [
+        "90 0C 7F"
+      ],
+      "light" : {
+        "color" : "orange",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "ddj-lit"
+    },
+    {
+      "control" : "deck-1-cue",
+      "expect" : [
+        "90 0C 00"
+      ],
+      "light" : {
+        "color" : null,
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "phase" : true,
+      "profile" : "ddj-lit"
+    }
+  ],
+  "lit" : [
+    {
+      "control" : "pad-1-1",
+      "expect" : true,
+      "profile" : "launchpad"
+    },
+    {
+      "control" : "pad-1-1",
+      "expect" : true,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "pad-1-3",
+      "expect" : false,
+      "profile" : "launchpad-some"
+    },
+    {
+      "control" : "deck-1-cue",
+      "expect" : false,
+      "profile" : "ddj"
+    },
+    {
+      "control" : "deck-1-cue",
+      "expect" : true,
+      "profile" : "ddj-lit"
+    },
+    {
+      "control" : "deck-1-sync",
+      "expect" : false,
+      "profile" : "ddj-lit"
+    },
+    {
+      "control" : "fx1-level-copy",
+      "expect" : false,
+      "profile" : "ddj-lit"
+    }
+  ],
+  "profiles" : {
+    "ddj" : {
+      "file" : "pioneer-ddj-sb-v1.json"
+    },
+    "ddj-lit" : {
+      "file" : "pioneer-ddj-sb-v1.json",
+      "patch" : {
+        "feedback" : {
+          "allControls" : false,
+          "kind" : "onOff"
+        },
+        "lit" : {
+          "deck-1-cue" : true,
+          "deck-1-play-pause" : true,
+          "fx1-level-copy" : true
+        },
+        "schemaVersion" : 2
+      }
+    },
+    "launchpad" : {
+      "file" : "novation-launchpad-pro-v2.json"
+    },
+    "launchpad-onoff" : {
+      "file" : "novation-launchpad-pro-v2.json",
+      "patch" : {
+        "feedback" : {
+          "allControls" : true,
+          "kind" : "onOff",
+          "on" : 127
+        }
+      }
+    },
+    "launchpad-some" : {
+      "file" : "novation-launchpad-pro-v2.json",
+      "patch" : {
+        "feedback" : {
+          "allControls" : false,
+          "kind" : "palette",
+          "palette" : {
+            "red" : 5,
+            "red.dim" : 7,
+            "white" : 3
+          }
+        },
+        "lit" : {
+          "pad-1-1" : true,
+          "pad-1-2" : true,
+          "top-1" : true
+        }
+      }
+    }
+  },
+  "readings" : [
+    {
+      "name" : "presses once, at any velocity; release once",
+      "profile" : "launchpad",
+      "steps" : [
+        {
+          "at" : 0,
+          "bytes" : "90 0B 01",
+          "expect" : [
+            {
+              "control" : "pad-8-1",
+              "gesture" : {
+                "kind" : "press"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "note",
+                "number" : 11
+              }
+            }
+          ]
+        },
+        {
+          "at" : 5,
+          "bytes" : "90 0B 00",
+          "expect" : [
+            {
+              "control" : "pad-8-1",
+              "gesture" : {
+                "kind" : "release"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "note",
+                "number" : 11
+              }
+            }
+          ]
+        },
+        {
+          "at" : 6,
+          "bytes" : "90 0B 00",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 7,
+          "bytes" : "80 0B 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 8,
+          "bytes" : "B0 5B 7F",
+          "expect" : [
+            {
+              "control" : "top-1",
+              "gesture" : {
+                "kind" : "press"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "cc",
+                "number" : 91
+              }
+            }
+          ]
+        },
+        {
+          "at" : 9,
+          "bytes" : "B0 5B 7F",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 10,
+          "bytes" : "B0 5B 00",
+          "expect" : [
+            {
+              "control" : "top-1",
+              "gesture" : {
+                "kind" : "release"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "cc",
+                "number" : 91
+              }
+            }
+          ]
+        },
+        {
+          "at" : 11,
+          "bytes" : "D0 28 00",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 12,
+          "bytes" : "F8",
+          "expect" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "14 bits, mirrors, steps",
+      "profile" : "ddj",
+      "steps" : [
+        {
+          "at" : 0,
+          "bytes" : "B6 3F 00",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 1,
+          "bytes" : "B6 1F 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 2,
+          "bytes" : "B6 3F 00",
+          "expect" : [
+            {
+              "control" : "crossfader",
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.5
+              },
+              "key" : {
+                "channel" : 6,
+                "kind" : "cc",
+                "number" : 31
+              }
+            }
+          ]
+        },
+        {
+          "at" : 3,
+          "bytes" : "B6 40 7F",
+          "expect" : [
+            {
+              "control" : "browse-turn",
+              "gesture" : {
+                "delta" : -1,
+                "kind" : "step"
+              },
+              "key" : {
+                "channel" : 6,
+                "kind" : "cc",
+                "number" : 64
+              }
+            }
+          ]
+        },
+        {
+          "at" : 4,
+          "bytes" : "B6 40 01",
+          "expect" : [
+            {
+              "control" : "browse-turn",
+              "gesture" : {
+                "delta" : 1,
+                "kind" : "step"
+              },
+              "key" : {
+                "channel" : 6,
+                "kind" : "cc",
+                "number" : 64
+              }
+            }
+          ]
+        },
+        {
+          "at" : 5,
+          "bytes" : "B0 21 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 6,
+          "bytes" : "B4 04 10",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 7,
+          "bytes" : "B4 24 00",
+          "expect" : [
+            {
+              "control" : "fx1-level",
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.125
+              },
+              "key" : {
+                "channel" : 4,
+                "kind" : "cc",
+                "number" : 2
+              }
+            }
+          ]
+        },
+        {
+          "at" : 8,
+          "bytes" : "90 0B 7F",
+          "expect" : [
+            {
+              "control" : "deck-1-play-pause",
+              "gesture" : {
+                "kind" : "press"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "note",
+                "number" : 11
+              }
+            }
+          ]
+        },
+        {
+          "at" : 9,
+          "bytes" : "90 0B 00",
+          "expect" : [
+            {
+              "control" : "deck-1-play-pause",
+              "gesture" : {
+                "kind" : "release"
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "note",
+                "number" : 11
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "a worn tempo fader is held by its dead band",
+      "profile" : "ddj",
+      "steps" : [
+        {
+          "at" : 0,
+          "bytes" : "B0 00 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 1,
+          "bytes" : "B0 20 00",
+          "expect" : [
+            {
+              "control" : "deck-1-tempo",
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.5
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "cc",
+                "number" : 0
+              }
+            }
+          ]
+        },
+        {
+          "at" : 1000,
+          "bytes" : "B0 20 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 2000,
+          "bytes" : "B0 00 41",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 2001,
+          "bytes" : "B0 20 00",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 2005,
+          "bytes" : "B0 20 01",
+          "expect" : [
+            {
+              "control" : "deck-1-tempo",
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.50787449639848614
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "cc",
+                "number" : 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name" : "without a profile",
+      "profile" : null,
+      "steps" : [
+        {
+          "at" : 0,
+          "bytes" : "B3 07 7F",
+          "expect" : [
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "press"
+              },
+              "key" : {
+                "channel" : 3,
+                "kind" : "cc",
+                "number" : 7
+              }
+            },
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "value",
+                "value" : 1
+              },
+              "key" : {
+                "channel" : 3,
+                "kind" : "cc",
+                "number" : 7
+              }
+            }
+          ]
+        },
+        {
+          "at" : 1,
+          "bytes" : "B3 07 00",
+          "expect" : [
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "release"
+              },
+              "key" : {
+                "channel" : 3,
+                "kind" : "cc",
+                "number" : 7
+              }
+            },
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0
+              },
+              "key" : {
+                "channel" : 3,
+                "kind" : "cc",
+                "number" : 7
+              }
+            }
+          ]
+        },
+        {
+          "at" : 2,
+          "bytes" : "92 30 64",
+          "expect" : [
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "press"
+              },
+              "key" : {
+                "channel" : 2,
+                "kind" : "note",
+                "number" : 48
+              }
+            }
+          ]
+        },
+        {
+          "at" : 3,
+          "bytes" : "E0 00 40",
+          "expect" : [
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.5
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "pitchBend",
+                "number" : 0
+              }
+            }
+          ]
+        },
+        {
+          "at" : 1000,
+          "bytes" : "E0 01 40",
+          "expect" : [
+
+          ]
+        },
+        {
+          "at" : 2000,
+          "bytes" : "E0 00 50",
+          "expect" : [
+            {
+              "control" : null,
+              "gesture" : {
+                "kind" : "value",
+                "value" : 0.62501526065193502
+              },
+              "key" : {
+                "channel" : 0,
+                "kind" : "pitchBend",
+                "number" : 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "schemaVersion" : 1,
+  "softwareBlink" : [
+    {
+      "expect" : false,
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "profile" : "launchpad"
+    },
+    {
+      "expect" : false,
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "pulse"
+      },
+      "profile" : "launchpad"
+    },
+    {
+      "expect" : true,
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "profile" : "launchpad-some"
+    },
+    {
+      "expect" : false,
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "profile" : "launchpad-onoff"
+    },
+    {
+      "expect" : true,
+      "light" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "pulse"
+      },
+      "profile" : "launchpad-onoff"
+    }
+  ],
+  "states" : [
+    {
+      "color" : "green",
+      "expect" : {
+        "color" : null,
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "state" : "off"
+    },
+    {
+      "color" : "green",
+      "expect" : {
+        "color" : "green",
+        "dim" : true,
+        "motion" : "solid"
+      },
+      "state" : "available"
+    },
+    {
+      "color" : "green",
+      "expect" : {
+        "color" : "green",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "state" : "active"
+    },
+    {
+      "color" : "green",
+      "expect" : {
+        "color" : "orange",
+        "dim" : false,
+        "motion" : "flash"
+      },
+      "state" : "warning"
+    },
+    {
+      "color" : "red",
+      "expect" : {
+        "color" : "red",
+        "dim" : false,
+        "motion" : "solid"
+      },
+      "state" : "active"
+    }
+  ]
+}

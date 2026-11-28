@@ -26,7 +26,10 @@ let package = Package(
         .library(name: "Nu9veVision", targets: ["Nu9veVision"]),
         .library(name: "Nu9veScore", targets: ["Nu9veScore"]),
         .library(name: "Nu9veAction", targets: ["Nu9veAction"]),
-        .library(name: "Nu9veActionProgress", targets: ["Nu9veActionProgress"])
+        .library(name: "Nu9veActionProgress", targets: ["Nu9veActionProgress"]),
+        .library(name: "Nu9veMIDI", targets: ["Nu9veMIDI"]),
+        .library(name: "Nu9veRecording", targets: ["Nu9veRecording"]),
+        .library(name: "Nu9veSurface", targets: ["Nu9veSurface"])
     ],
     targets: [
         // macOS-only code, compiled empty elsewhere. Knows no app: each passes its own names.
@@ -53,6 +56,13 @@ let package = Package(
             dependencies: ["Nu9veAction", "Nu9veFormat", "Nu9veTheme", "NuMacShell"],
             swiftSettings: strictSettings
         ),
+        // nu9ve-midi in Swift (messages, profiles, detection) plus lights, maps, live reading and CoreMIDI.
+        // The profiles of data/midi/ are embedded (scripts/embed-midi-profiles.py), like the crate's include_str!.
+        .target(name: "Nu9veMIDI", swiftSettings: strictSettings),
+        // nu9ve-recording-v1: the reader, the producer and a watcher of the recording signal. Foundation, Darwin, os.
+        .target(name: "Nu9veRecording", swiftSettings: strictSettings),
+        // nu9ve-surface-v1, the app side: the client of the agent's controller socket and the maps of every app.
+        .target(name: "Nu9veSurface", dependencies: ["Nu9veMIDI"], swiftSettings: strictSettings),
         // A renderer the score tests and the comparison with the apps' engines use. Not a product.
         .executableTarget(name: "Nu9veScoreFixture", dependencies: ["Nu9veScore"], swiftSettings: strictSettings),
         // A test engine the client's tests launch. Not a product.
@@ -74,6 +84,9 @@ let package = Package(
             dependencies: ["Nu9veActionProgress", "Nu9veAction", "Nu9veTheme"],
             swiftSettings: strictSettings
         ),
+        .testTarget(name: "Nu9veMIDITests", dependencies: ["Nu9veMIDI"], swiftSettings: strictSettings),
+        .testTarget(name: "Nu9veRecordingTests", dependencies: ["Nu9veRecording"], swiftSettings: strictSettings),
+        .testTarget(name: "Nu9veSurfaceTests", dependencies: ["Nu9veSurface", "Nu9veMIDI"], swiftSettings: strictSettings),
         .testTarget(name: "Nu9veVisionTests", dependencies: ["Nu9veVision"], swiftSettings: strictSettings),
         .testTarget(name: "Nu9veScoreTests", dependencies: ["Nu9veScore"], exclude: ["Fixtures"], swiftSettings: strictSettings),
         .testTarget(

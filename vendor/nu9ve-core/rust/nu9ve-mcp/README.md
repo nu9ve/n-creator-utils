@@ -49,6 +49,17 @@ Una app llama los mismos métodos por su nombre (`devices`, `where`…), sin `gr
 
 **Pedidos y dueñas** ([intercambio §7 y §7.1](../../contracts/nu9ve-exchange-v1.md#7-pedidos)): tras cada lectura, el agente responde lo que le piden (copia lo ofrecido de hasta 64 MiB a `objects/sha256/`, o lo que exporta el motor dueño con `data_export` si su registro dice `data_export_v1` ([exportar un dataset](../../contracts/nu9ve-export-v1.md)), o anota `too_large` con el disco, `not_shared` para lo personal que la persona no compartió, o `not_found`), recibe lo que pidió en `received/<hex>` si el hash coincide, y suelta la dueña de un proyecto que otra máquina le tomó. Lo que viene de otra máquina sale en campos `_untrusted`; de lo personal, sólo su forma. Cada edición queda en `changes.ndjson`. `engine_shutdown` para el agente en orden.
 
+### El controlador de la suite (`surface_v1`)
+
+Desde 0.3.0, en macOS, `serve` también es el único dueño del controlador ([`nu9ve-surface-v1`](../../contracts/nu9ve-surface-v1.md)), con `nu9ve-midi` para el perfil, las luces y CoreMIDI:
+
+- Sirve `runtime/surface` en la carpeta del agente (carpeta `0700`, socket `0600`, sólo el mismo usuario por `getpeereid`), marcos de 4 bytes más JSON de hasta 64 KiB. Mientras lo sirve, el motor `suite` dice `surface_v1` y la ruta en `engine_info.surface.socket`.
+- Lee los mapas de `controllers/<perfil>/<app>.json` y `controllers/suite.json`, y la señal de grabación de `recording/`, carpetas hermanas de la del agente (`NU9VE_CONTROLLERS_DIR` y `NU9VE_RECORDING_DIR` las cambian). Las vigila con kqueue.
+- Abre CoreMIDI sólo mientras hay una app conectada con un mapa encendido; el hilo de CoreMIDI duerme hasta un aviso. El parpadeo por software corre sólo mientras algo parpadea.
+- Cada app tiene su escritor: un valor continuo que todavía no salió se reemplaza por el último del mismo control; un disparo nunca se pierde.
+- Al parar (señal, `engine_shutdown` o una actualización) apaga las luces y manda `released` a cada app.
+- `surface::Server` y `surface::Surface` son públicos para las pruebas: `tests/surface.rs` conecta apps falsas al socket real con un MIDI falso (acciones, luces, mapa que cambia en disco, página por foco, zona mientras se graba, control de página, `released` y `hello` inválido).
+
 **QA:** `NU9VE_AGENT_DIR` cambia la carpeta del agente y obliga a dar también `NU9VE_DEVICE_FILE`. Con eso, la clave va en un archivo de la carpeta y no en el llavero. `NU9VE_ENGINES_DIR` y `NU9VE_VOLUMES_DIR` cambian el registro y la carpeta de montajes. `tests/agent.rs` corre dos máquinas así, con una carpeta compartida.
 
 **Falta** para cerrar F1:

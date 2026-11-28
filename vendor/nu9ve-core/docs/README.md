@@ -10,6 +10,7 @@
 | Ver qué se extrae después, en qué orden, y cómo empieza a compartir cada app | [Qué se extrae y cómo se adopta](suite-adoption.md) |
 | Saber qué controles comparten las apps (fechas, números, listas, textos, estados) y cuáles se extraen | [Controles comunes](suite-ui.md) (propuesta, con preguntas abiertas) |
 | Saber qué se estandariza del progreso de las acciones largas, sus estados y el hover por skin | [Acciones, progreso y estados](actions-next.md) (propuesta, desde nüün) |
+| Saber cómo se comparten los perfiles entre lenguajes, las páginas dentro de una app en el controlador y los eventos de acción para Stalker y Clipper | [Perfiles, páginas y eventos de acción](profiles-pages-actions-next.md) (propuesta, desde SoundBender, con preguntas para el usuario) |
 | Saber qué se comparte del uso de agentes por cuenta y de las vistas por categoría | [Uso de agentes por cuenta](agent-usage-next.md) (decidido el 2026-11-26, vive en nove) |
 | Construir una app de Windows sobre la base de la suite | [Windows en la suite](platforms/windows.md) |
 | Saber qué repiten nove y nüün en Windows y qué subir aquí | [Windows: lo que se repite](windows-shared-next.md) (propuesta; la cancelación en Windows se decidió el 2026-11-26) |

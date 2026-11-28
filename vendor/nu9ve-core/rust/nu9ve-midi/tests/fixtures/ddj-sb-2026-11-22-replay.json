@@ -1,0 +1,20 @@
+[
+  [26140,{"key":{"kind":"cc","channel":1,"number":35},"lsb":null,"mode":{"type":"relative","encoding":"offset64"},"bits":7,"min":63,"max":67,"count":178,"mirrors":[]}],
+  [26707,{"key":{"kind":"note","channel":8,"number":3},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [27191,{"key":{"kind":"note","channel":8,"number":2},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [28788,{"key":{"kind":"note","channel":8,"number":3},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [29061,{"key":{"kind":"note","channel":1,"number":11},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [29516,{"key":{"kind":"note","channel":0,"number":88},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [31095,{"key":{"kind":"note","channel":1,"number":88},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [31545,{"key":{"kind":"note","channel":7,"number":2},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [37500,{"key":{"kind":"note","channel":8,"number":3},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [71697,{"key":{"kind":"cc","channel":0,"number":19},"lsb":51,"mode":{"type":"absolute"},"bits":14,"min":0,"max":5840,"count":24,"mirrors":[]}],
+  [72398,{"key":{"kind":"note","channel":6,"number":70},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [74711,{"key":{"kind":"cc","channel":5,"number":2},"lsb":34,"mode":{"type":"absolute"},"bits":14,"min":0,"max":16320,"count":65,"mirrors":[{"kind":"cc","channel":5,"number":4},{"kind":"cc","channel":5,"number":6}]}],
+  [124739,{"key":{"kind":"cc","channel":1,"number":0},"lsb":32,"mode":{"type":"absolute"},"bits":14,"min":8192,"max":16383,"count":208,"mirrors":[]}],
+  [125856,{"key":{"kind":"cc","channel":6,"number":64},"lsb":null,"mode":{"type":"relative","encoding":"twosComplement"},"bits":7,"min":1,"max":127,"count":11,"mirrors":[]}],
+  [126521,{"key":{"kind":"note","channel":6,"number":65},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [127600,{"key":{"kind":"cc","channel":6,"number":64},"lsb":null,"mode":{"type":"relative","encoding":"twosComplement"},"bits":7,"min":1,"max":127,"count":11,"mirrors":[]}],
+  [128143,{"key":{"kind":"note","channel":6,"number":65},"lsb":null,"mode":{"type":"button"},"bits":7,"min":0,"max":127,"count":2,"mirrors":[]}],
+  [130424,{"key":{"kind":"cc","channel":6,"number":64},"lsb":null,"mode":{"type":"relative","encoding":"twosComplement"},"bits":7,"min":1,"max":127,"count":17,"mirrors":[]}]
+]

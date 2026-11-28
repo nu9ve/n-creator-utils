@@ -1,0 +1,1492 @@
+{
+  "schemaVersion": 2,
+  "id": "novation-launchpad-pro",
+  "name": "Launchpad Pro",
+  "vendor": "Novation",
+  "ports": [
+    "Launchpad Pro Standalone Port"
+  ],
+  "evidence": "Launchpad Pro (first model, device inquiry family 0x51 0x00, firmware 01 08 02) in Programmer layout, CoreMIDI on 2026-11-27: pads 11 and 88 sent Note On with velocity, Up sent CC 0x5B 7F/00 and the lowest right button CC 0x13. Still colors (5, 13, 21, 45, 53), SysEx 0x23 flash and 0x28 pulse were seen on the unit. The other addresses follow Novation's Programmer's Reference for the Launchpad Pro.",
+  "notes": [
+    "Programmer layout: pad notes are row × 10 + column from the bottom left (11–88); the four edges send CC.",
+    "Pads are velocity sensitive: a light press can send velocity 1. Pads also send channel pressure, which this reader ignores.",
+    "Lights take the same address on channel 1; the value is a color from the 128-color palette."
+  ],
+  "layout": [
+    10,
+    10
+  ],
+  "pageControl": "top-5",
+  "feedback": {
+    "kind": "palette",
+    "allControls": true,
+    "init": [
+      "F0 00 20 29 02 10 2C 03 F7"
+    ],
+    "palette": {
+      "white": 3,
+      "white.dim": 1,
+      "red": 5,
+      "red.dim": 7,
+      "orange": 9,
+      "orange.dim": 11,
+      "yellow": 13,
+      "yellow.dim": 15,
+      "green": 21,
+      "green.dim": 23,
+      "cyan": 37,
+      "cyan.dim": 39,
+      "blue": 45,
+      "blue.dim": 47,
+      "purple": 49,
+      "purple.dim": 51,
+      "pink": 53,
+      "pink.dim": 55
+    },
+    "flash": "F0 00 20 29 02 10 23 {number} {value} F7",
+    "pulse": "F0 00 20 29 02 10 28 {number} {value} F7",
+    "evidence": "Colors 5, 13, 21, 45 and 53, flash and pulse seen on the unit on 2026-11-27. The init message selects Programmer layout (reference manual)."
+  },
+  "controls": [
+    {
+      "id": "top-1",
+      "label": "Top 1 · Up",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x5B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "grid": [
+        1,
+        0
+      ]
+    },
+    {
+      "id": "top-2",
+      "label": "Top 2 · Down",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x5C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        0
+      ]
+    },
+    {
+      "id": "top-3",
+      "label": "Top 3 · Left",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x5D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        0
+      ]
+    },
+    {
+      "id": "top-4",
+      "label": "Top 4 · Right",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x5E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        0
+      ]
+    },
+    {
+      "id": "top-5",
+      "label": "Top 5 · Session",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x5F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        0
+      ]
+    },
+    {
+      "id": "top-6",
+      "label": "Top 6 · Note",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x60",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        0
+      ]
+    },
+    {
+      "id": "top-7",
+      "label": "Top 7 · Device",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x61",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        0
+      ]
+    },
+    {
+      "id": "top-8",
+      "label": "Top 8 · User",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x62",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        0
+      ]
+    },
+    {
+      "id": "left-1",
+      "label": "Left 1 · Shift",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x50",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": "left-2",
+      "label": "Left 2 · Click",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x46",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        2
+      ]
+    },
+    {
+      "id": "left-3",
+      "label": "Left 3 · Undo",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x3C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        3
+      ]
+    },
+    {
+      "id": "left-4",
+      "label": "Left 4 · Delete",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x32",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        4
+      ]
+    },
+    {
+      "id": "left-5",
+      "label": "Left 5 · Quantise",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x28",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        5
+      ]
+    },
+    {
+      "id": "left-6",
+      "label": "Left 6 · Duplicate",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x1E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        6
+      ]
+    },
+    {
+      "id": "left-7",
+      "label": "Left 7 · Double",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x14",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        7
+      ]
+    },
+    {
+      "id": "left-8",
+      "label": "Left 8 · Record",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x0A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        0,
+        8
+      ]
+    },
+    {
+      "id": "pad-1-1",
+      "label": "Pad 1·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x51",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-2",
+      "label": "Pad 1·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x52",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-3",
+      "label": "Pad 1·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x53",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-4",
+      "label": "Pad 1·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x54",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-5",
+      "label": "Pad 1·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x55",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-6",
+      "label": "Pad 1·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x56",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-7",
+      "label": "Pad 1·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x57",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        1
+      ]
+    },
+    {
+      "id": "pad-1-8",
+      "label": "Pad 1·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x58",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "grid": [
+        8,
+        1
+      ]
+    },
+    {
+      "id": "pad-2-1",
+      "label": "Pad 2·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x47",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-2",
+      "label": "Pad 2·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x48",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-3",
+      "label": "Pad 2·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x49",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-4",
+      "label": "Pad 2·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x4A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-5",
+      "label": "Pad 2·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x4B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-6",
+      "label": "Pad 2·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x4C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-7",
+      "label": "Pad 2·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x4D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        2
+      ]
+    },
+    {
+      "id": "pad-2-8",
+      "label": "Pad 2·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x4E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        2
+      ]
+    },
+    {
+      "id": "pad-3-1",
+      "label": "Pad 3·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x3D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-2",
+      "label": "Pad 3·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x3E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-3",
+      "label": "Pad 3·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x3F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-4",
+      "label": "Pad 3·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x40",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-5",
+      "label": "Pad 3·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x41",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-6",
+      "label": "Pad 3·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x42",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-7",
+      "label": "Pad 3·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x43",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        3
+      ]
+    },
+    {
+      "id": "pad-3-8",
+      "label": "Pad 3·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x44",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        3
+      ]
+    },
+    {
+      "id": "pad-4-1",
+      "label": "Pad 4·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x33",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-2",
+      "label": "Pad 4·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x34",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-3",
+      "label": "Pad 4·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x35",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-4",
+      "label": "Pad 4·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x36",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-5",
+      "label": "Pad 4·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x37",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-6",
+      "label": "Pad 4·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x38",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-7",
+      "label": "Pad 4·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x39",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        4
+      ]
+    },
+    {
+      "id": "pad-4-8",
+      "label": "Pad 4·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x3A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        4
+      ]
+    },
+    {
+      "id": "pad-5-1",
+      "label": "Pad 5·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x29",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-2",
+      "label": "Pad 5·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-3",
+      "label": "Pad 5·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-4",
+      "label": "Pad 5·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-5",
+      "label": "Pad 5·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-6",
+      "label": "Pad 5·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-7",
+      "label": "Pad 5·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x2F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        5
+      ]
+    },
+    {
+      "id": "pad-5-8",
+      "label": "Pad 5·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x30",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        5
+      ]
+    },
+    {
+      "id": "pad-6-1",
+      "label": "Pad 6·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-2",
+      "label": "Pad 6·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x20",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-3",
+      "label": "Pad 6·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x21",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-4",
+      "label": "Pad 6·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x22",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-5",
+      "label": "Pad 6·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x23",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-6",
+      "label": "Pad 6·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x24",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-7",
+      "label": "Pad 6·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x25",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        6
+      ]
+    },
+    {
+      "id": "pad-6-8",
+      "label": "Pad 6·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x26",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        6
+      ]
+    },
+    {
+      "id": "pad-7-1",
+      "label": "Pad 7·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x15",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-2",
+      "label": "Pad 7·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x16",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-3",
+      "label": "Pad 7·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x17",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-4",
+      "label": "Pad 7·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x18",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-5",
+      "label": "Pad 7·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x19",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-6",
+      "label": "Pad 7·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1A",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-7",
+      "label": "Pad 7·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        7
+      ]
+    },
+    {
+      "id": "pad-7-8",
+      "label": "Pad 7·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x1C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        7
+      ]
+    },
+    {
+      "id": "pad-8-1",
+      "label": "Pad 8·1",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "grid": [
+        1,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-2",
+      "label": "Pad 8·2",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0C",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-3",
+      "label": "Pad 8·3",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-4",
+      "label": "Pad 8·4",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0E",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-5",
+      "label": "Pad 8·5",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x0F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-6",
+      "label": "Pad 8·6",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x10",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-7",
+      "label": "Pad 8·7",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x11",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        8
+      ]
+    },
+    {
+      "id": "pad-8-8",
+      "label": "Pad 8·8",
+      "kind": "note",
+      "channel": 1,
+      "number": "0x12",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        8
+      ]
+    },
+    {
+      "id": "right-1",
+      "label": "Right 1 · Scene 1",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x59",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        1
+      ]
+    },
+    {
+      "id": "right-2",
+      "label": "Right 2 · Scene 2",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x4F",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        2
+      ]
+    },
+    {
+      "id": "right-3",
+      "label": "Right 3 · Scene 3",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x45",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        3
+      ]
+    },
+    {
+      "id": "right-4",
+      "label": "Right 4 · Scene 4",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x3B",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        4
+      ]
+    },
+    {
+      "id": "right-5",
+      "label": "Right 5 · Scene 5",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x31",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        5
+      ]
+    },
+    {
+      "id": "right-6",
+      "label": "Right 6 · Scene 6",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x27",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        6
+      ]
+    },
+    {
+      "id": "right-7",
+      "label": "Right 7 · Scene 7",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x1D",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        9,
+        7
+      ]
+    },
+    {
+      "id": "right-8",
+      "label": "Right 8 · Scene 8",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x13",
+      "mode": {
+        "type": "button"
+      },
+      "verified": true,
+      "grid": [
+        9,
+        8
+      ]
+    },
+    {
+      "id": "bottom-1",
+      "label": "Bottom 1 · Record Arm",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x01",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        1,
+        9
+      ]
+    },
+    {
+      "id": "bottom-2",
+      "label": "Bottom 2 · Track Select",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x02",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        2,
+        9
+      ]
+    },
+    {
+      "id": "bottom-3",
+      "label": "Bottom 3 · Mute",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x03",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        3,
+        9
+      ]
+    },
+    {
+      "id": "bottom-4",
+      "label": "Bottom 4 · Solo",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x04",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        4,
+        9
+      ]
+    },
+    {
+      "id": "bottom-5",
+      "label": "Bottom 5 · Volume",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x05",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        5,
+        9
+      ]
+    },
+    {
+      "id": "bottom-6",
+      "label": "Bottom 6 · Pan",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x06",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        6,
+        9
+      ]
+    },
+    {
+      "id": "bottom-7",
+      "label": "Bottom 7 · Sends",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x07",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        7,
+        9
+      ]
+    },
+    {
+      "id": "bottom-8",
+      "label": "Bottom 8 · Stop Clip",
+      "kind": "cc",
+      "channel": 1,
+      "number": "0x08",
+      "mode": {
+        "type": "button"
+      },
+      "verified": false,
+      "grid": [
+        8,
+        9
+      ]
+    }
+  ]
+}

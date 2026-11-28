@@ -18,6 +18,8 @@ use std::sync::{Arc, Mutex};
 pub const APP: &str = "suite";
 pub const PROTOCOL: &str = "nu9ve-suite/1";
 pub const CAPABILITIES: [&str; 3] = ["devices_v1", "exchange_v1", "mcp_tools_v1"];
+/// nu9ve-surface-v1 §2: announced only while the agent serves its surface socket.
+pub const SURFACE: &str = "surface_v1";
 
 /// The tools, by level (suite-devices §7). `read` ones are also plain methods for apps.
 const READ_TOOLS: [&str; 4] = ["devices", "volumes", "where", "leases"];
@@ -520,7 +522,11 @@ fn socket_path(dir: &Path) -> io::Result<PathBuf> {
 
 /// §5: serves the socket and registers as `suite`. Without a registry folder it serves nothing.
 #[cfg(unix)]
-pub(super) fn start(agent: Arc<Mutex<Agent>>, stopper: Stopper) -> io::Result<Option<Engine>> {
+pub(super) fn start(
+    agent: Arc<Mutex<Agent>>,
+    stopper: Stopper,
+    surface: Option<PathBuf>,
+) -> io::Result<Option<Engine>> {
     use std::os::unix::fs::PermissionsExt;
     use std::os::unix::net::UnixListener;
     let Some(registry) = nu9ve_ipc::default_dir() else {
@@ -547,6 +553,15 @@ pub(super) fn start(agent: Arc<Mutex<Agent>>, stopper: Stopper) -> io::Result<Op
         }
     };
     fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))?;
+    let mut capabilities: Vec<&'static str> = CAPABILITIES.to_vec();
+    let mut extra = Map::new();
+    if let Some(socket) = &surface {
+        capabilities.push(SURFACE);
+        extra.insert(
+            "surface".into(),
+            serde_json::json!({"socket": socket.to_string_lossy()}),
+        );
+    }
     let record = nu9ve_ipc::Record::for_current_process(
         APP,
         install::VERSION,
@@ -559,7 +574,7 @@ pub(super) fn start(agent: Arc<Mutex<Agent>>, stopper: Stopper) -> io::Result<Op
             engine: "rust".into(),
             version: install::VERSION.into(),
         },
-        CAPABILITIES.iter().map(|c| (*c).to_owned()).collect(),
+        capabilities.iter().map(|c| (*c).to_owned()).collect(),
     )?;
     let shared = agent.clone();
     std::thread::spawn(move || {
@@ -573,10 +588,10 @@ pub(super) fn start(agent: Arc<Mutex<Agent>>, stopper: Stopper) -> io::Result<Op
             let info = nu9ve_engine::EngineInfo {
                 protocol: PROTOCOL,
                 version: install::VERSION,
-                capabilities: &CAPABILITIES,
+                capabilities: &capabilities,
                 ported: &[],
                 native: &methods,
-                extra: Map::new(),
+                extra: extra.clone(),
             };
             let _ = nu9ve_engine::serve_frames(io::BufReader::new(reader), &stream, info, |r| {
                 dispatch(&shared, stopper, r)
@@ -593,7 +608,11 @@ pub(super) fn start(agent: Arc<Mutex<Agent>>, stopper: Stopper) -> io::Result<Op
 
 /// Not verified: Windows needs a named pipe server, which this binary does not have yet.
 #[cfg(not(unix))]
-pub(super) fn start(_: Arc<Mutex<Agent>>, _: Stopper) -> io::Result<Option<Engine>> {
+pub(super) fn start(
+    _: Arc<Mutex<Agent>>,
+    _: Stopper,
+    _: Option<PathBuf>,
+) -> io::Result<Option<Engine>> {
     log("the suite engine has no named pipe on this system yet");
     Ok(None)
 }

@@ -1,0 +1,18 @@
+[package]
+name = "nu9ve-midi"
+description = "MIDI control reading, gesture detection, hardware profiles, lights and the CoreMIDI port"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# MIDI control metadata and compatibility with serialized event descriptions.
+serde = { version = "=1.0.229", features = ["derive"] }
+# Read versioned physical controller profiles.
+serde_json = "=1.0.154"
+# CoreMIDI and CoreFoundation are reached by direct FFI to the system frameworks (src/coremidi.rs): no crate.
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

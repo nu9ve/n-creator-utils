@@ -1,0 +1,21 @@
+[package]
+name = "nu9ve-recording"
+description = "Reader of the suite's recording signal (nu9ve-recording-v1): validation, liveness, what a consumer derives and session time"
+edition = "2024"
+rust-version = "1.89"
+version = "0.1.0"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+# Pid liveness with start time (nu9ve-registry-v1 §4).
+nu9ve-ipc = { path = "../nu9ve-ipc", version = "=0.1.0" }
+# State files are small JSON objects.
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+# The BOM example carries its bytes in base64. MIT or Apache-2.0.
+base64 = "=0.22.1"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

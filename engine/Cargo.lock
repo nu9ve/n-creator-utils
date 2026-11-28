@@ -459,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "nu9ve-mcp"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "base64",
  "libc",
@@ -469,8 +469,18 @@ dependencies = [
  "nu9ve-fs",
  "nu9ve-ipc",
  "nu9ve-json",
+ "nu9ve-midi",
+ "nu9ve-recording",
  "nu9ve-volumes",
  "security-framework",
+ "serde_json",
+]
+
+[[package]]
+name = "nu9ve-midi"
+version = "0.1.0"
+dependencies = [
+ "serde",
  "serde_json",
 ]
 
@@ -479,6 +489,14 @@ name = "nu9ve-profiles"
 version = "0.1.0"
 dependencies = [
  "nu9ve-fs",
+ "serde_json",
+]
+
+[[package]]
+name = "nu9ve-recording"
+version = "0.1.0"
+dependencies = [
+ "nu9ve-ipc",
  "serde_json",
 ]
 
@@ -731,6 +749,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
+ "serde_derive",
 ]
 
 [[package]]
