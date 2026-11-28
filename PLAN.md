@@ -23,7 +23,7 @@ La lista corta: lo de abajo da el detalle y la evidencia. La M1 tiene instalada 
 3. **Lo que queda de U1 y U2** ([UX](#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26)):
    - ~~la ventana compacta en su sitio y cómo restablecerla~~ y ~~la nota JPG+DNG del dron~~ (27 nov);
    - ~~abrir la compacta con el segundo disco~~ (27 nov);
-   - la época `tinted`;
+   - ~~la época `tinted`~~ (falta mirarla en ventana);
    - Acumulados en Discos.
 
    De U3 quedan Reanudar, Reintentar y Ver el recibo en el cierre.
@@ -239,7 +239,7 @@ Lo pidió el usuario después de usar nüün en la M1 y la M4 con varios proceso
 5. ~~**Ventana compacta por omisión**~~ **Hecho el 2026-11-27, sin instalar** (Ventana → «Restablecer posición de la ventana compacta»). A unos 3/4 hacia la derecha y un poco arriba del centro, cuando no hay posición guardada, con una forma de restablecerla.
 6. ~~**Dron en Ingreso:**~~ **Hecho el 2026-11-27, sin instalar** («También el DNG» / «Sólo el JPG» en el inspector, `work_raw` en el plan de Rust). Decir en la fila JPG+DNG que a edición va sólo el JPG (el DNG queda archivado y se pide después), con un control por unidad o para el lote.
 7. ~~**Abrir la compacta al conectar el segundo disco de trabajo**~~ **Hecho el 2026-11-27, sin instalar** (`WorkCopyPrompt`: sólo con cambios, nunca dos veces para los mismos cambios tras «Ahora no», y una tarjeta que abrió el importador va primero). cuando hay cambios por copiar, sin repetirla si ya se dijo «Ahora no» a ese par con esos mismos cambios.
-8. **Época `tinted` del core** en Macintosh y Windows 9x: el color en bordes, líneas de la barra y controles ([tema §5](vendor/nu9ve-core/contracts/nu9ve-theme-v1.md#5-catálogo-de-skins)). Comprobar el tema en hojas y popovers.
+8. ~~**Época `tinted` del core**~~ **Hecho** (F3 y «Con tu color» por omisión); el 27 nov el popover de acciones tomó los colores del skin, y las hojas ya los tenían. Falta mirarlo en ventana. En Macintosh y Windows 9x: el color en bordes, líneas de la barra y controles ([tema §5](vendor/nu9ve-core/contracts/nu9ve-theme-v1.md#5-catálogo-de-skins)). Comprobar el tema en hojas y popovers.
 
 **U2 · Acumulados en Discos.** Los hallazgos de [Acumulados](docs/features/storage-map.md#acumulados) en el mapa de Discos (los cuadros), para ver dónde hay qué revisar y volver a medir desde ahí. Por proyecto: icono o favicon si lo hay, y si es un repo de git, su remoto. Acciones por grupo: todos los builds menos el último, cachés regenerables (turbo, `.next`, `node_modules`…) y carpetas ocultas con descargas grandes (modelos viejos), sin tocar lo que usa el próximo build salvo que se pida limpiar todo. El tipo de análisis se elige; por omisión, todo. Ejecutar sigue siendo la fase 2 de Acumulados (P2: Papelera con recibo).
 

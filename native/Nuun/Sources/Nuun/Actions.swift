@@ -180,6 +180,12 @@ struct ActionBarIndicator: View {
                 }
                 .padding(8)
                 .environment(\.actionProgressStyle, ActionProgressStyle(palette))
+                // U1.8: the popover is its own window; it takes the skin's paper, ink and buttons, not the system's.
+                .environment(\.creatorPalette, palette)
+                .buttonStyle(CreatorButtonStyle())
+                .foregroundStyle(palette.ink)
+                .tint(palette.accentText)
+                .presentationBackground(palette.canvas)
             }
             .onAppear { ActionDockBadge.show(actions) }
             .onChange(of: actions) { before, after in
