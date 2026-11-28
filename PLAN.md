@@ -1,6 +1,6 @@
 # Plan de trabajo
 
-Actualizado: 2026-11-26. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
+Actualizado: 2026-11-27. Éste es el backlog priorizado. [STATUS](docs/STATUS.md) dice qué funciona hoy y con qué evidencia; [CONTEXT](docs/CONTEXT.md) guarda las decisiones. La historia por entrega está en [releases/](docs/releases/status-log-2026-10-25_2026-11-08.md) y no es otra lista de pendientes.
 
 ## Cerrado (no reabrir sin un hecho nuevo)
 
@@ -8,11 +8,43 @@ Actualizado: 2026-11-26. Éste es el backlog priorizado. [STATUS](docs/STATUS.md
 - **Dron, ingreso completo:** una SD del Mavic se respalda, se verifica, se copia el trabajo sin duplicados y queda vacía, siempre que el export de subaereo ya esté incorporado. Si falta, A14 bloquea la limpieza a propósito.
 - **Cierre de Terra:** aplicado el 8 nov.
 
+## Siguiente, en orden (2026-11-27)
+
+La lista corta: lo de abajo da el detalle y la evidencia. La M1 tiene instalada la build `c4350a4e0416`, con todo lo hecho hasta F5 (c) y el core en `b4dee11`. El repo ya fija `1ea3234`, que sólo cambia el agente `nu9ve` del bundle (control MIDI de la suite): entra en la próxima instalación. El usuario la está usando y avisa si algo falla.
+
+1. **Usar la build instalada** y arreglar lo que salga ([P0](#p0--uso-diario-sin-sorpresas), fila 1). Hasta ahora, sin quejas.
+2. **Terminar de retirar Python de `media/`** ([F5](#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)), en este orden:
+   - (d) el MCP en Rust;
+   - (e) la app sin el respaldo de Python ni el selector de Diagnóstico;
+   - (f) el golden como archivos en git;
+   - (g) borrar `media/*.py`, salvo `legacy-save` y descargas.
+
+   Antes de (e), decidir con Clipper cómo encuentran el motor sin el checkout.
+3. **Lo que queda de U1 y U2** ([UX](#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26)):
+   - la ventana compacta en su sitio y cómo restablecerla;
+   - la nota JPG+DNG del dron;
+   - abrir la compacta con el segundo disco;
+   - la época `tinted`;
+   - Acumulados en Discos.
+
+   De U3 quedan Reanudar, Reintentar y Ver el recibo en el cierre.
+4. **Deuda que se ve:**
+   - el inglés de 112 claves (`check_localization.py` falla por ellas en el gate);
+   - firmar con `nu9ve_sign.py` del core en lugar de la copia propia de `install_media_app.py` y `build_media_app.py` ([prácticas §2.1](vendor/nu9ve-core/docs/practices.md#21-firmar-y-notarizar)).
+5. **Decisiones del usuario:**
+   - F7c, el diario de decisiones: sólo la escritura ya, o esperar a `nu9ve-exchange-v1`;
+   - callar los sonidos con la [señal de grabación](vendor/nu9ve-core/contracts/nu9ve-recording-v1.md) cuando Stalker la produzca.
+6. **Corridas con discos reales, que pide el usuario:**
+   - cobertura del EDICION y retiro de raws (P0, filas 4 y 5);
+   - F0 en la M4 y emparejar M1 y M4;
+   - la vuelta de las misiones a la M1.
+7. **Windows, en el PC:** `OneShotWorker`, F0, el paso 4 de la fase A y el sobre común de `Nu9ve.Core`.
+
 ## P0 · uso diario sin sorpresas
 
 | Orden | Trabajo | Criterio de cierre |
 | --- | --- | --- |
-| 1 | Aceptar en ventana, con la build instalada (M1 `59fd8fe38f08`, M4 `ccb5ce50d21a`; [STATUS](docs/STATUS.md#build-y-pruebas)), lo que sigue sin aceptar, y abrir la semana de uso diario con Rust | Lo del 8 nov (tarjeta para ver, «sólo respaldo» dentro del EDICION, filtros Fecha/Sesión, Flujos → «Lo que reconoce»), la bandeja por proyecto y Discos → «Acumulados…»; en la M4, la tarjeta de conversaciones (`199f7b666f27`). Semana de uso con Rust: hecha en la práctica (desde el 19 nov, ingresos, copias entre discos y respaldos sin caer a Python). La sombra en vivo ya no sirve de criterio: sólo anota cuando Python responde y la app pregunta primero a Rust; no registra nada desde el 16 nov. En su lugar, `engine_shadow.py replay` sobre el catálogo real: **2026-11-26, 39 de 40 métodos iguales**; sólo difiere `storage_collections` en `measured_at` y en los bytes de la colección viva de agentes, que crecía mientras se leía ([STATUS](docs/STATUS.md#sombra-sobre-el-catálogo-real--2026-11-26)). Queda aceptar en ventana lo de la izquierda |
+| 1 | Aceptar en ventana, con la build instalada (M1 `c4350a4e0416` desde el 27 nov, M4 `ccb5ce50d21a`; [STATUS](docs/STATUS.md#build-y-pruebas)), lo que sigue sin aceptar, y abrir la semana de uso diario con Rust | Lo del 8 nov (tarjeta para ver, «sólo respaldo» dentro del EDICION, filtros Fecha/Sesión, Flujos → «Lo que reconoce»), la bandeja por proyecto y Discos → «Acumulados…»; en la M4, la tarjeta de conversaciones (`199f7b666f27`). Semana de uso con Rust: hecha en la práctica (desde el 19 nov, ingresos, copias entre discos y respaldos sin caer a Python). La sombra en vivo ya no sirve de criterio: sólo anota cuando Python responde y la app pregunta primero a Rust; no registra nada desde el 16 nov. En su lugar, `engine_shadow.py replay` sobre el catálogo real: **2026-11-26, 39 de 40 métodos iguales**; sólo difiere `storage_collections` en `measured_at` y en los bytes de la colección viva de agentes, que crecía mientras se leía ([STATUS](docs/STATUS.md#sombra-sobre-el-catálogo-real--2026-11-26)). Queda aceptar en ventana lo de la izquierda |
 | 2 | ~~Formatear la SD `MAVIC200` en el dron y reconectar~~ **No hace falta (2026-11-26).** La limpieza DJI es `files`: nüün borra las fotos verificadas, no toca `MISC/` y el dron rehace su estructura sin formatear. Los cuatro ingresos de la tarjeta (8, 13, 24 y 26 nov) quedaron `completed` y ninguno repitió fotos; sólo `MISC/GIS/dji.gis` e `MISC/IDX_BLOCK` aparecen en cada plan | Cerrado ([STATUS](docs/STATUS.md#por-área)) |
 | 3 | ~~Popup al insertar~~ | **Medido el 26 nov** con la MAVIC200 y la app abierta: macOS montó y la app recibió el aviso en 7 ms; el `snapshot` tardó 6,8 s (0,6–1,3 s con la tarjeta ya leída) y el popup abrió a los 6,9 s. Corregido en código: el popup abre al montar un volumen extraíble no registrado, con la tarjeta «Leyendo la tarjeta…», y el `snapshot` la completa. Instalado en `ccb5ce50d21a` y medido otra vez: **popup a los 141 ms** del montaje; el `snapshot` siguió en 7,1 s, ahora sin bloquear. Layout de fuentes aceptado por el usuario. **Causa de los 7 s:** el motor responde el `snapshot` (6,9 MB) en 0,7–1,1 s y la app tardaba ~6 s en decodificarlo, porque `JSONValue` probaba tipo por tipo lanzando errores. Corregido con `JSONValue.parse` (`JSONSerialization`, mismos valores, prueba contra el dorado): en release, 0,19 s contra 1,22 s sobre la respuesta real. El lector además decodificaba cada línea dos veces y volvía a buscar el salto de línea en todo el búfer con cada pedazo del pipe; ahora una sola pasada. Con la build `c2cc37cd3ec3`, al arrancar: primer `snapshot` 1,2 s (antes 6,1–7,5), segundo 1,5 s (antes 11–13), `missions_review` 1,5 s (antes 5,2–5,4) y `capture_overview` 0,5–1,3 s (antes 4,6–5,5). Inserción con esta build: popup a 127 ms y la tarjeta completa a 1,97 s del montaje. **Cerrado** (`subsystem app.nu9ve.media`, categoría `cards`) La instalación en la M4 se registra en [STATUS](docs/STATUS.md#build-y-pruebas). |
 | 4 | Cobertura EDICION contra MEDIA9 | Informe por tamaño hecho para `001_proyectos/canal-a_raw`; falta ampliar al resto del EDICION. Liberar exige hash actual. [Política](docs/features/replication-policy.md) |
@@ -111,7 +143,7 @@ Objetivo: que agregar una cámara, un disco o un flujo sea **agregar datos a una
 | **Acumulados en disco** (pedido del usuario, 2026-11-25) | Fase 1 hecha (inventario y plan en sólo lectura, CLI, RPC, Discos → Acumulados…, dataset de la suite). Siguen en orden: (1) ~~un escaneo real en sólo lectura de `~/code`~~ hecho desde la app el 26 nov (332 hallazgos, 257,7 GB; [STATUS](docs/STATUS.md#por-área)); falta aceptar la vista en ventana y llevar «Acumulados…» a Inicio, hoy sólo está en Discos; (2) **fase 2**: ejecutar el plan aprobado por grupo, a la Papelera por omisión, dos confirmaciones para lo que no se regenera, volver a medir antes de mover y recibo con lo liberado según `df`; (3) actividad de agentes desde nove (`agents:summary:sessions`) en lugar del mtime de `~/.claude/projects`; (4) acceso del sandbox a `HOME` | [Diseño](docs/features/storage-map.md#acumulados) · [Evidencia](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
 | **Perfiles de la suite** | Lectura y registro hechos en el motor y en Ajustes → Perfiles. Decidido por el usuario el 2026-11-26: `e64` (erikiado64) es `person`; `nu9ve-xyz` (nu9ve.xyz) y hemorragia.interna son `team`. El usuario los registra desde Ajustes → Perfiles → «Registrar en esta Mac…». hemorragia.interna todavía no es perfil de nüün: hay que crearlo antes en «Configurar perfil». Falta comprobar el archivo resultante | [nu9ve-profile-v1](vendor/nu9ve-core/contracts/nu9ve-profile-v1.md) · [STATUS](docs/STATUS.md#perfiles-y-acumulados--2026-11-25) |
 | Sin datos personales | Hecho el 2026-11-26: sin perfil, país ni ciudad en el código, y nombres neutros, discos incluidos, en pruebas y documentos ([STATUS](docs/STATUS.md#sin-datos-personales-en-el-repo--2026-11-26)). Queda la bitácora histórica, que nombra proyectos reales | [STATUS](docs/STATUS.md#sin-datos-personales-en-el-repo--2026-11-26) |
-| Benchmarks | `scripts/engine_bench.py` (golden, walk, soak) en `bench/nuun.ndjson`. Falta el caso de copias (GiB/s) sobre fixture, y meter `soak --check-soak` en el gate de release | [nu9ve-bench-v1](vendor/nu9ve-core/contracts/nu9ve-bench-v1.md) |
+| Benchmarks | `scripts/engine_bench.py` (golden, walk, soak, copy) en `bench/nuun.ndjson`; el soak corre en el gate y la copia se mide en GiB/s desde F6 (27 nov). Falta medir la copia con discos reales antes de optimizarla (0,073 GiB/s en el fixture) | [nu9ve-bench-v1](vendor/nu9ve-core/contracts/nu9ve-bench-v1.md) |
 | Estado humano | Restaurar sin SD, retención de snapshots, rehash periódico | Catálogo/library/recovery |
 
 **Clipper:** sources/handoff, relink y ACK ya adoptados; `library retire-plan`/`retire` existe del lado de Clipper. Que nüün lo invoque sería otra entrega.
@@ -201,10 +233,10 @@ Lo pidió el usuario después de usar nüün en la M1 y la M4 con varios proceso
 
 **U1 · arreglos en nüün que no esperan al core.** En orden:
 
-1. ~~**Respaldo de conversaciones con progreso.**~~ **Hecho en código el 2026-11-26, sin instalar** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). El motor ya guarda `action-progress:<plan>`, pero `conversations_run` es de una vez y Ajustes sólo muestra un *spinner*: 37 min sin saber si avanzaba (2026-11-26, 7 403 archivos y 4,4 GB a MEDIA502, ~3 archivos/s en exFAT por USB). Pasar un `progress_id` hasta `living::apply` y leerlo con `ActionProgressView`.
-2. ~~**Sugerencias entre discos de trabajo sin ping-pong.**~~ **Hecho en código el 2026-11-26, sin instalar** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). `changed_since_copy` compara con los recibos y no con el otro disco: tras copiar ESSD → SUBSSD y luego SUBSSD → ESSD, o tras actualizar las conversaciones en los dos, vuelve a proponer la copia de regreso. No proponer lo que el otro disco ya tiene igual (tamaño y fecha); una sola tarjeta por par de discos con las dos direcciones; una sola tarjeta para las conversaciones por copiar a varios discos.
-3. ~~**Revisar «Copiar al otro disco» sin que crezca con los datos.**~~ **Hecho en código el 2026-11-27, sin instalar** ([STATUS](docs/STATUS.md#revisión-de-copia-sin-volver-a-leer--2026-11-27)): 64 × 8 MiB ya copiados, de 3 489 ms a 8–18 ms. Hoy `work_copy::plan` hashea en los dos discos cada archivo que ya existe en el destino (20 GB de `atlas-subaereo` cada vez). Adoptar sin rehashear lo que coincide en tamaño y fecha con un recibo verificado; hashear sólo lo dudoso. Mostrar la etapa con la vista de acción, no con un *loader* en la esquina.
-4. ~~**Terminal:** centrar las dos líneas de la travesía (`ActionTravel.terminal`).~~ **Hecho en código el 2026-11-26, sin instalar.**
+1. ~~**Respaldo de conversaciones con progreso.**~~ **Hecho el 2026-11-26, instalado el 27 nov** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). El motor ya guarda `action-progress:<plan>`, pero `conversations_run` es de una vez y Ajustes sólo muestra un *spinner*: 37 min sin saber si avanzaba (2026-11-26, 7 403 archivos y 4,4 GB a MEDIA502, ~3 archivos/s en exFAT por USB). Pasar un `progress_id` hasta `living::apply` y leerlo con `ActionProgressView`.
+2. ~~**Sugerencias entre discos de trabajo sin ping-pong.**~~ **Hecho el 2026-11-26, instalado el 27 nov** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). `changed_since_copy` compara con los recibos y no con el otro disco: tras copiar ESSD → SUBSSD y luego SUBSSD → ESSD, o tras actualizar las conversaciones en los dos, vuelve a proponer la copia de regreso. No proponer lo que el otro disco ya tiene igual (tamaño y fecha); una sola tarjeta por par de discos con las dos direcciones; una sola tarjeta para las conversaciones por copiar a varios discos.
+3. ~~**Revisar «Copiar al otro disco» sin que crezca con los datos.**~~ **Hecho el 2026-11-27 e instalado** ([STATUS](docs/STATUS.md#revisión-de-copia-sin-volver-a-leer--2026-11-27)): 64 × 8 MiB ya copiados, de 3 489 ms a 8–18 ms. Hoy `work_copy::plan` hashea en los dos discos cada archivo que ya existe en el destino (20 GB de `atlas-subaereo` cada vez). Adoptar sin rehashear lo que coincide en tamaño y fecha con un recibo verificado; hashear sólo lo dudoso. Mostrar la etapa con la vista de acción, no con un *loader* en la esquina.
+4. ~~**Terminal:** centrar las dos líneas de la travesía (`ActionTravel.terminal`).~~ **Hecho el 2026-11-26, instalado el 27 nov.**
 5. **Ventana compacta por omisión** a unos 3/4 hacia la derecha y un poco arriba del centro, cuando no hay posición guardada, con una forma de restablecerla.
 6. **Dron en Ingreso:** decir en la fila JPG+DNG que a edición va sólo el JPG (el DNG queda archivado y se pide después), con un control por unidad o para el lote.
 7. **Abrir la compacta al conectar el segundo disco de trabajo** cuando hay cambios por copiar, sin repetirla si ya se dijo «Ahora no» a ese par con esos mismos cambios.
@@ -212,7 +244,7 @@ Lo pidió el usuario después de usar nüün en la M1 y la M4 con varios proceso
 
 **U2 · Acumulados en Discos.** Los hallazgos de [Acumulados](docs/features/storage-map.md#acumulados) en el mapa de Discos (los cuadros), para ver dónde hay qué revisar y volver a medir desde ahí. Por proyecto: icono o favicon si lo hay, y si es un repo de git, su remoto. Acciones por grupo: todos los builds menos el último, cachés regenerables (turbo, `.next`, `node_modules`…) y carpetas ocultas con descargas grandes (modelos viejos), sin tocar lo que usa el próximo build salvo que se pida limpiar todo. El tipo de análisis se elige; por omisión, todo. Ejecutar sigue siendo la fase 2 de Acumulados (P2: Papelera con recibo).
 
-**U3 · con las piezas del core** ([propuesta](../../ai/core/docs/actions-next.md)): registro de acción común, tres tamaños de la vista (pantalla, compacta que se expande y vuelve, indicador en la barra y en el Dock), cierre de éxito, aviso o error con la animación del skin, escaneos como acciones, y *hover* por skin también en × − +. nüün lo adopta cuando el core lo publique; lo de U1 se hace ya con comentario de origen para mudarlo. **En parte hecho el 2026-11-27, sin instalar** ([STATUS](docs/STATUS.md#los-tres-tamaños-de-una-acción--2026-11-27)): registro común (F4), los tres tamaños, el Dock, el aviso al terminar y el cierre en el panel. Faltan «Reanudar», «Reintentar» y «Ver el recibo» en el cierre, los escaneos como acciones (`unit` `items`), el *hover* por skin y el idioma de `outcome.summary` (decisión del core).
+~~**U3 · con las piezas del core**~~ **Hecho el 2026-11-27** (F4c y `9af83ea`, instalado en `c4350a4e0416`); faltan Reanudar, Reintentar y Ver el recibo en el cierre. ([propuesta](../../ai/core/docs/actions-next.md)): registro de acción común, tres tamaños de la vista (pantalla, compacta que se expande y vuelve, indicador en la barra y en el Dock), cierre de éxito, aviso o error con la animación del skin, escaneos como acciones, y *hover* por skin también en × − +. nüün lo adopta cuando el core lo publique; lo de U1 se hace ya con comentario de origen para mudarlo. **En parte hecho el 2026-11-27, sin instalar** ([STATUS](docs/STATUS.md#los-tres-tamaños-de-una-acción--2026-11-27)): registro común (F4), los tres tamaños, el Dock, el aviso al terminar y el cierre en el panel. Faltan «Reanudar», «Reintentar» y «Ver el recibo» en el cierre, los escaneos como acciones (`unit` `items`), el *hover* por skin y el idioma de `outcome.summary` (decisión del core).
 
 ## Pasada de UX · discos y conversaciones
 
