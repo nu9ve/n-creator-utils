@@ -38,6 +38,7 @@ private extension NSToolbarItem.Identifier {
         model.changeMode = { [weak self] mode in self?.present(mode) }
         model.openWindow = { [weak self] in self?.show() }
         model.openImporter = { [weak self] in self?.showImporter() }
+        model.openCompact = { [weak self] in self?.present(.compact) }
         model.openSettings = { [weak self] section in self?.openSettings(section) }
         model.statusChanged = { [weak self] in
             guard let self else { return }

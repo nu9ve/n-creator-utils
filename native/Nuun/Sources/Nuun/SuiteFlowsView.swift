@@ -18,10 +18,17 @@ struct WorkCopyRequest: Identifiable {
 extension Model {
     /// The suggestions for the connected disks. A disk that arrives brings back what «Ahora no» hid; with the person's
     /// automatic schedule, due conversations are backed up here, while nüün is open (no LaunchAgent).
-    func loadSuiteSuggestions(arrival: Bool) async {
+    func loadSuiteSuggestions(arrival: Bool, arrived: String? = nil) async {
         if arrival { hiddenSuggestions = [] }
         guard let found = try? await oneShot("suite_suggestions", [:]) else { return }
         suiteSuggestions = found["suggestions"].array
+        // U1.7: the second work disk arrived with changes to copy: the compact window opens on them, unless the
+        // person already said «Ahora no» to these same changes.
+        if let arrived, !busy, UserDefaults.standard.bool(forKey: "showQuickImporter"),
+           WorkCopyPrompt.toOpen(suiteSuggestions, arrived: arrived, declined: declinedWorkCopies) != nil {
+            route = .home
+            openCompact?()
+        }
         lastConversationSuggestionCheck = .now
         if arrival || conversations == nil { await loadConversations() }
         if conversations?["settings"]["schedule"]["mode"].string == "auto",
@@ -46,7 +53,19 @@ extension Model {
     var visibleSuiteSuggestions: [JSONValue] {
         suiteSuggestions.filter { !hiddenSuggestions.contains($0["key"].string) }
     }
-    func hideSuggestion(_ key: String) { hiddenSuggestions.insert(key) }
+    func hideSuggestion(_ key: String) {
+        hiddenSuggestions.insert(key)
+        // U1.7: «Ahora no» to a copy between work disks is kept for these changes, so they never open the window again.
+        if let suggestion = suiteSuggestions.first(where: { $0["key"].string == key }), suggestion["flow"].string == "work_copy_changed" {
+            var declined = declinedWorkCopies
+            declined[key] = WorkCopyPrompt.signature(suggestion)
+            UserDefaults.standard.set(declined, forKey: "declinedWorkCopies")
+        }
+    }
+    /// The copies between work disks declined with «Ahora no», by suggestion key: the changes they had.
+    var declinedWorkCopies: [String: String] {
+        UserDefaults.standard.dictionary(forKey: "declinedWorkCopies") as? [String: String] ?? [:]
+    }
     /// «No volver a preguntar» for this disk and flow; it stays in the catalog until brought back.
     func silenceSuggestion(_ key: String) {
         suiteSuggestions.removeAll { $0["key"].string == key }

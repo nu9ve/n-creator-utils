@@ -351,6 +351,8 @@ enum OperationScope { case ingest, library, space, settings, source }
     @ObservationIgnored var reader: PersistentReader?
     @ObservationIgnored var openWindow: (() -> Void)?
     @ObservationIgnored var openImporter: (() -> Void)?
+    /// The compact window on the current route (U1.7).
+    @ObservationIgnored var openCompact: (() -> Void)?
     @ObservationIgnored var openSettings: ((String) -> Void)?
     @ObservationIgnored var statusChanged: (() -> Void)?
     @ObservationIgnored var eventTask: Task<Void, Never>?
@@ -1523,7 +1525,8 @@ enum OperationScope { case ingest, library, space, settings, source }
             statusChanged?()
             sonyCheckPending = true
             await reconcileMountedSonyCards()
-            await loadSuiteSuggestions(arrival: arrival != nil)
+            // A card that opened the importer comes first; otherwise a work disk may open the compact (U1.7).
+            await loadSuiteSuggestions(arrival: arrival != nil, arrived: opened ? nil : arrival)
         }
     }
 }

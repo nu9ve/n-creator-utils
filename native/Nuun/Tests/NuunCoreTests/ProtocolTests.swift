@@ -298,3 +298,26 @@ func replyDecodingTiming() throws {
     let fitted = WindowPlacement.compact(width: 440, height: 700, in: small)
     #expect(small.contains(fitted) && fitted.height == 500)
 }
+
+@Test func aSecondWorkDiskOpensTheCompactOnlyForChangesNotDeclined() throws {
+    let changed = try JSONValue.parse(Data(#"""
+    {"key": "work_copy_changed:A:B", "flow": "work_copy_changed", "count": 2, "bytes": 30,
+     "source": {"root": "/Volumes/ESSD"}, "destination": {"root": "/Volumes/SUBSSD"},
+     "paths": [{"path": "atlas/b.json"}, {"path": "atlas/a.json"}]}
+    """#.utf8))
+    let other = try JSONValue.parse(Data(#"{"key": "conversations_backup:X", "flow": "conversations_backup", "count": 9}"#.utf8))
+    // The arriving disk is either end of the pair; another disk, or another flow, opens nothing.
+    #expect(WorkCopyPrompt.toOpen([other, changed], arrived: "/Volumes/SUBSSD", declined: [:]) == changed)
+    #expect(WorkCopyPrompt.toOpen([changed], arrived: "/Volumes/ESSD/", declined: [:]) == changed)
+    #expect(WorkCopyPrompt.toOpen([changed, other], arrived: "/Volumes/MEDIA9", declined: [:]) == nil)
+    // «Ahora no» to these changes: not again. New changes on the same pair: again.
+    let declined = [changed["key"].string: WorkCopyPrompt.signature(changed)]
+    #expect(WorkCopyPrompt.toOpen([changed], arrived: "/Volumes/SUBSSD", declined: declined) == nil)
+    var grown = changed
+    if case .object(var fields) = grown { fields["count"] = .integer(3); fields["paths"] = .array(changed["paths"].array + [.object(["path": .string("atlas/c.json")])]); grown = .object(fields) }
+    #expect(WorkCopyPrompt.toOpen([grown], arrived: "/Volumes/SUBSSD", declined: declined) == grown)
+    // The order the engine lists paths in does not change the signature.
+    var reordered = changed
+    if case .object(var fields) = reordered { fields["paths"] = .array(changed["paths"].array.reversed()); reordered = .object(fields) }
+    #expect(WorkCopyPrompt.signature(reordered) == WorkCopyPrompt.signature(changed))
+}
