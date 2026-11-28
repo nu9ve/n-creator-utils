@@ -107,6 +107,7 @@ Las dependencias son las mismas versiones que nove y curado y ya estaban en la c
 ```bash
 python3 scripts/engine_golden.py            # regenera (sólo a propósito; revisar el diff)
 python3 scripts/engine_golden.py --check    # ¿siguen siendo las respuestas de Python las que están en git?
+python3 scripts/media_answers.py --check    # lo mismo para la CLI y el MCP de media (F5 f)
 cd engine && TZ=America/Phoenix cargo test --offline -- --ignored
 ```
 

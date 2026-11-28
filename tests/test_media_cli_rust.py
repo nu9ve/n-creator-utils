@@ -1,17 +1,16 @@
-"""F5 (b): `nuun-engine media <order>` answers what `nu9ve.py media <order>` answers, for the orders other apps send
-(docs/platforms/media-cli-callers.md: Clipper, Kyū and Stalker's development fallback).
+"""F5 (b) and (f): `nuun-engine media <order>` answers what `nu9ve.py media <order>` answered, for the orders other
+apps send (docs/platforms/media-cli-callers.md: Clipper, Kyū and Stalker's development fallback).
 
-Both run on two catalogs of the golden file (scripts/engine_golden.py): `reads` and `projects`, which has
-the editor sources and three registered disks (offline here, the same for both). The values must be equal; key order is not
-compared, since the Rust engine sorts keys and the callers parse the JSON. Usage errors exit 2 in both.
-Since F5 (c) `nu9ve.py media <order>` hands these orders to Rust; the comparison keeps Python with
-`NUUN_MEDIA_ENGINE=python`, and `ForwardTest` checks the hand-off and its fallbacks.
+Since (f) Python's answers are frozen in tests/fixtures/engine-golden/media-answers.json (scripts/media_answers.py,
+which also says how the catalogs are built), so Rust is checked against them without running Python. Values are
+compared, not key order: the Rust engine sorts keys and the callers parse the JSON. Usage errors exit 2.
+`ForwardTest` checks that `nu9ve.py media` hands these orders to Rust (F5 c) and falls back to Python.
 Skipped when the engine is not built (`cargo build -p nuun-engine`).
 """
+import importlib.util
 import json
 import os
 from pathlib import Path
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -20,82 +19,56 @@ import unittest
 from tests.test_engine_examples import rust_engine
 
 REPO = Path(__file__).resolve().parents[1]
-GOLDEN = REPO / 'tests' / 'fixtures' / 'engine-golden' / 'recipe.json'
 
-ORDERS = {'reads': [
-    ['projects'],
-    ['sources', '--project', 'nope'],
-    ['volumes', 'list'],
-    ['resolve', 'a1'],
-    ['resolve', 'a1', '--revision', 'r1'],
-    ['resolve', 'a1', '--revision', 'r9'],
-    ['resolve', 'nope'],
-    ['integration-capabilities'],
-    ['retitle-operations'],
-    ['captures', '/nonexistent-nuun-library'],
-], 'projects': [
-    ['projects'],
-    ['sources', '--project', 'terra'],
-    ['sources', '--project', 'terra', '--purpose', 'archive'],
-    ['sources', '--purpose', 'edit', '--project', 'terra'],
-    ['volumes', 'list'],
-]}
-PYTHON = dict(os.environ, NUUN_MEDIA_ENGINE='python')
-USAGE = [['sources'], ['sources', '--project', 'p', '--purpose', 'other'], ['resolve'], ['volumes'], ['nope'], []]
+
+def media_answers():
+    spec = importlib.util.spec_from_file_location('media_answers', REPO / 'scripts' / 'media_answers.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+A = media_answers()
 
 
 @unittest.skipUnless(rust_engine(), 'cargo build -p nuun-engine')
 class MediaCliTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temp = tempfile.TemporaryDirectory(prefix='nuun-media-cli-')
-        golden = json.loads(GOLDEN.read_text(encoding='utf-8'))
-        cls.homes = {}
-        for case in ORDERS:
-            # Python refuses a state path through a symlink (/var → /private/var).
-            home = Path(cls.temp.name).resolve() / case
-            home.mkdir()
-            db = sqlite3.connect(home / 'catalog.sqlite3')
-            db.executescript(golden[case]['sql'])
-            db.commit()
-            db.close()
-            cls.homes[case] = home
-        cls.home = cls.homes['reads']
+        cls.saved = json.loads(A.TARGET.read_text(encoding='utf-8'))
+        cls.found = A.answers([rust_engine(), 'media'], A.homes())
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def run_both(self, order, home=None):
-        home = str(home or self.home)
-        python = subprocess.run([sys.executable, '-S', str(REPO / 'nu9ve.py'), 'media', '--state-dir', home, *order],
-                                capture_output=True, text=True, cwd=REPO, env=PYTHON)
-        rust = subprocess.run([rust_engine(), 'media', '--state-dir', home, *order], capture_output=True, text=True)
-        return python, rust
-
-    def test_orders_answer_the_same(self):
+    def test_orders_answer_what_python_answered(self):
         answered = set()
-        for case, orders in ORDERS.items():
-            for order in orders:
-                with self.subTest(case=case, order=order):
-                    python, rust = self.run_both(order, self.homes[case])
-                    self.assertEqual(rust.returncode, python.returncode, rust.stdout + rust.stderr)
-                    self.assertEqual(json.loads(rust.stdout), json.loads(python.stdout))
-                    if json.loads(rust.stdout)['ok'] and json.loads(rust.stdout)['data']:
-                        answered.add(order[0])
+        for case, orders in self.saved['orders'].items():
+            for expected, found in zip(orders, self.found['orders'][case]):
+                with self.subTest(case=case, order=expected['order']):
+                    self.assertEqual(found['order'], expected['order'])
+                    self.assertEqual((found['exit'], found['answer']), (expected['exit'], expected['answer']))
+                    if found['answer']['ok'] and found['answer']['data']:
+                        answered.add(expected['order'][0])
+            self.assertEqual(len(self.found['orders'][case]), len(orders))
         # Each order the other apps send answered with data at least once, not only with the same error.
         self.assertLessEqual({'projects', 'sources', 'volumes', 'resolve'}, answered)
 
     def test_usage_errors_exit_2_without_an_envelope(self):
-        for order in USAGE:
-            with self.subTest(order=order):
-                python, rust = self.run_both(order)
-                self.assertEqual((python.returncode, rust.returncode), (2, 2))
-                self.assertEqual(rust.stdout, '')
+        for expected, found in zip(self.saved['usage'], self.found['usage']):
+            with self.subTest(order=expected['order']):
+                self.assertEqual((found['exit'], found['stdout']), (2, ''))
+                self.assertEqual(expected['exit'], 2)
+
+    def test_integration_capabilities_answers(self):
+        # Not frozen: it says what this Mac has installed.
+        child = subprocess.run([rust_engine(), 'media', '--state-dir', str(A.ROOT / 'reads'), 'integration-capabilities'],
+                               capture_output=True, text=True, env=A.environment())
+        answer = json.loads(child.stdout)
+        self.assertTrue(answer['ok'])
+        self.assertLessEqual({'clipper', 'stalker'}, set(answer['data']))
 
     def test_state_dir_goes_before_or_after_media(self):
-        before = subprocess.run([rust_engine(), '--state-dir', str(self.home), 'media', 'projects'], capture_output=True, text=True)
-        after = subprocess.run([rust_engine(), 'media', '--state-dir', str(self.home), 'projects'], capture_output=True, text=True)
+        home = str(A.ROOT / 'reads')
+        before = subprocess.run([rust_engine(), '--state-dir', home, 'media', 'projects'], capture_output=True, text=True)
+        after = subprocess.run([rust_engine(), 'media', '--state-dir', home, 'projects'], capture_output=True, text=True)
         self.assertEqual(json.loads(before.stdout), json.loads(after.stdout))
         self.assertTrue(json.loads(after.stdout)['data'])
 
@@ -106,7 +79,8 @@ class ForwardTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        MediaCliTest.setUpClass.__func__(cls)
+        cls.home = A.homes()['reads']
+        cls.temp = tempfile.TemporaryDirectory(prefix='nuun-forward-')
         # An engine older than `nuun-engine media` prints its usage and exits 2; another one only says it ran.
         cls.old = Path(cls.temp.name) / 'old-engine'
         cls.old.write_text('#!/bin/sh\necho "usage: nuun-engine rpc-serve | rpc" >&2\nexit 2\n', encoding='utf-8')
@@ -120,8 +94,9 @@ class ForwardTest(unittest.TestCase):
         cls.temp.cleanup()
 
     def nu9ve(self, order, **env):
+        base = {k: v for k, v in os.environ.items() if k != 'NUUN_MEDIA_ENGINE'}
         return subprocess.run([sys.executable, '-S', str(REPO / 'nu9ve.py'), 'media', '--state-dir', str(self.home), *order],
-                              capture_output=True, text=True, cwd=REPO, env=dict(os.environ, **env))
+                              capture_output=True, text=True, cwd=REPO, env=dict(base, **env))
 
     def test_read_orders_are_rusts_answer(self):
         for order in (['projects'], ['resolve', 'a1'], ['volumes', 'list'], ['resolve', 'nope']):

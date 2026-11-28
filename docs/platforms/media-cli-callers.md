@@ -61,7 +61,13 @@ La app de Mac ya no lanza Python. `PersistentReader` habla sólo con `nuun-engin
 
 Antes de quitarlo se comprobó que Rust declare los 93 métodos del servicio de Python, que todos los que nombra la app estén entre los que declara, y que los `not_ported` que quedan en Rust no se den en Mac: falta de backend de volúmenes, liberación de Stalker sin Unix, finales sin la exclusión de Clipper y cierres por la liberación simple, que la app manda a `closure_apply`. El bundle todavía lleva el runtime de Python y `media/`; se quitan en (g).
 
+## Paso (f), hecho el 2026-11-27
+
+El golden ya estaba en git (`tests/fixtures/engine-golden/recipe.json`) y las diferenciales de Rust lo leen sin Python. Lo que todavía corría Python en vivo eran las pruebas de la CLI y del MCP: ahora las respuestas de Python quedan congeladas en [media-answers.json](../../tests/fixtures/engine-golden/media-answers.json), escritas por [media_answers.py](../../scripts/media_answers.py), y `test_media_cli_rust.py` y `test_media_mcp_rust.py` comparan a Rust con ese archivo. Los catálogos se arman en una carpeta fija para que las rutas sean las mismas en cada corrida. Se dejan fuera lo que depende de la Mac o cambia entre corridas (tamaño y uso de su disco, la hora de medición) y `integration-capabilities`, que dice qué hay instalado; de ésta sólo se prueba que Rust responda. `media_answers.py --check` entra al gate y a la CI junto a `engine_golden.py --check`, mientras exista `media/`.
+
+Siguen corriendo Python en vivo, y se van con `media/` en (g): las pruebas de reenvío de `nu9ve.py` (la vuelta a Python), `test_engine_examples.py` del lado de Python, la comparación de `storage_collections` en `test_agent_storage.py`, y las herramientas `engine_shadow.py`, `engine_bench.py` (caso Python) y `sandbox.py --engine python`.
+
 ## Lo que queda
 
 - **Cómo lo encuentran sin el checkout:** un `nu9ve` instalado que apunte a `nuun.app/Contents/Resources/backend/nuun-engine` cubriría a Clipper y a Kyū sin cambiarlos; la otra opción es que cada uno busque la app, como Stalker. Lo decide el usuario con la sesión de Clipper. Hasta entonces, Clipper usa el checkout y por él llega a Rust.
-- **(f) y (g):** el golden como archivos y borrar `media/*.py` y el runtime de Python del bundle ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).
+- **(g):** borrar `media/*.py`, el runtime de Python del bundle y las pruebas y herramientas que corren Python en vivo (lista arriba); `engine_golden.py --check` y `media_answers.py --check` salen del gate con ellos ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).

@@ -328,6 +328,10 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Respuestas de Python congeladas · 2026-11-27
+
+Paso (f) de F5 ([detalle](platforms/media-cli-callers.md#paso-f-hecho-el-2026-11-27)). Las respuestas de Python a las órdenes de la CLI, a los errores de uso y a la conversación del MCP quedan en [media-answers.json](../tests/fixtures/engine-golden/media-answers.json), escritas por `scripts/media_answers.py`; las pruebas de la CLI y del MCP comparan a Rust con ese archivo, sin correr Python. `media_answers.py --check` entra al gate y a la CI. Se dejan fuera el tamaño y uso del disco de la Mac, la hora de medición e `integration-capabilities`. Lo que todavía corre Python en vivo se va con `media/` en (g).
+
 ### La app sin Python · 2026-11-27
 
 Paso (e) de F5 ([detalle](platforms/media-cli-callers.md#paso-e-hecho-el-2026-11-27)). La app de Mac sólo habla con `nuun-engine`: el lector persistente con `rpc-serve` y un `rpc` para las lecturas de un solo uso, y cada llamada de una vez con `rpc`. Ajustes → Diagnóstico ya no tiene Python ni el selector de motor. Comprobado antes: Rust declara los 93 métodos del servicio y todos los que nombra la app, y sus `not_ported` no se dan en Mac. Pruebas Swift: 36, con tres nuevas en lugar de las tres que comparaban con Python (el lector nunca empieza una escritura, las llamadas de una vez van sólo al motor, y sin motor nada responde); las de catálogo, lector e índice de discos corren ahora contra el motor real. **Sin instalar.** El bundle todavía lleva el runtime de Python, que se quita en (g).

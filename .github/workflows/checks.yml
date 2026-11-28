@@ -32,7 +32,9 @@ jobs:
           export TMPDIR="$(cd "$TMPDIR" && pwd -P)"
           python -m unittest discover -s tests
       - name: Golden answers are the ones in git
-        run: python scripts/engine_golden.py --check
+        run: |
+          python scripts/engine_golden.py --check
+          python scripts/media_answers.py --check
 
   engine-macos:
     runs-on: macos-15
