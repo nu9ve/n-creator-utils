@@ -44,11 +44,10 @@ import Testing
     let serialized = try JSONEncoder().encode(value)
     #expect(String(decoding: serialized, as: UTF8.self).contains("1761400000123456789"))
 }
-@Test func realPythonBoundaryUsesIsolatedCatalog() async throws {
-    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+@Test(.enabled(if: builtEngine != nil)) func realEngineBoundaryUsesIsolatedCatalog() async throws {
     let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-swift-" + UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: state) }
-    let client = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repo.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path))
+    let client = BackendClient(configuration: .init(stateDirectory: state.path, engine: builtEngine))
     let result = try await client.call("suggest", ["source": .string("/does/not/exist")])
     #expect(!result["show"].bool)
     #expect(result["reason"].string == "no_registered_destinations")
@@ -61,11 +60,17 @@ import Testing
     #expect(String(decoding: try JSONEncoder().encode(value), as: UTF8.self).contains("18446744073709551615"))
 }
 
+/// The transport of a reviewed plan document, against a fixture engine (`tests/fixtures/native_plan_backend.py`,
+/// behind a one-line wrapper) whose card has a 64-bit root inode.
 @Test func originalReviewedDocumentSurvivesNativePlanApplyRoundtrip() async throws {
-    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-plan-swift-" + UUID().uuidString)
+    try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: state) }
-    let client = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repo.appendingPathComponent("tests/fixtures/native_plan_backend.py").path, stateDirectory: state.path))
+    let wrapper = state.appendingPathComponent("fixture-engine")
+    try "#!/bin/sh\nexec /usr/bin/python3 '\(repoRoot.appendingPathComponent("tests/fixtures/native_plan_backend.py").path)' \"$@\"\n"
+        .write(to: wrapper, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: wrapper.path)
+    let client = BackendClient(configuration: .init(stateDirectory: state.path, engine: wrapper.path))
     let document = try await client.call("plan_document", ["source": .string(state.appendingPathComponent("card").path),
         "archive": .string("MEDIA"), "work": .string("EDICION"), "project": .string("roundtrip"), "cleanup": .bool(false)]).string
     let reviewed = try ReviewedPlan(document: document)
@@ -91,11 +96,10 @@ import Testing
     } catch let error as BackendFailure { #expect(error.code == "plan_changed") }
 }
 
-@Test func persistentReaderAnswersReadsInOrderAndRefusesMutations() async throws {
-    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+@Test(.enabled(if: builtEngine != nil)) func persistentReaderAnswersReadsInOrderAndRefusesMutations() async throws {
     let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-reader-swift-" + UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: state) }
-    let reader = PersistentReader(configuration: .init(python: "/usr/bin/python3", script: repo.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path))
+    let reader = PersistentReader(configuration: .init(stateDirectory: state.path, engine: builtEngine))
     defer { reader.stop() }
     async let first = reader.call("snapshot", ["cards": .bool(false)])
     async let second = reader.call("suggest", ["source": .string("/does/not/exist")])
@@ -131,15 +135,14 @@ import Testing
     #expect(Treemap.layout([], in: bounds).isEmpty)
     #expect(Treemap.layout([1, 2], in: .zero) == [.zero, .zero])
 }
-@Test func diskIndexCrossesTheRealBoundary() async throws {
-    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+@Test(.enabled(if: builtEngine != nil)) func diskIndexCrossesTheRealBoundary() async throws {
     let scratch = URL(fileURLWithPath: "/private/tmp")
     let state = scratch.appendingPathComponent(UUID().uuidString)
     let folder = scratch.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: state); try? FileManager.default.removeItem(at: folder) }
     try FileManager.default.createDirectory(at: folder.appendingPathComponent("Music"), withIntermediateDirectories: true)
     try Data(count: 2 * 1024 * 1024).write(to: folder.appendingPathComponent("Music/song.wav"))
-    let configuration = BackendConfiguration(python: "/usr/bin/python3", script: repo.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path)
+    let configuration = BackendConfiguration(stateDirectory: state.path, engine: builtEngine)
     let client = BackendClient(configuration: configuration), reader = PersistentReader(configuration: configuration)
     defer { reader.stop() }
     _ = try await client.call("register_volume", ["root": .string(folder.path), "name": .string("QA"), "role": .string("work"), "allow_local": .bool(true)])
@@ -170,126 +173,90 @@ import Testing
     #expect(FlowGeometry.blockWidth(available: 3000, stages: 3, connector: 30, range: 120...210) == 210)
 }
 
-// MARK: Rust engine first, Python as fallback (PLAN «Motor en Rust · ruta», paso 7)
+// MARK: One engine (F5 (e), 2026-11-27): Rust answers everything, without Python behind it
 
 private let repoRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
-/// A stand-in engine: it has `snapshot`, `jobs` and `recipe`; `snapshot` is not ported here, `jobs` fails as a method
-/// would, `recipe` stops the process mid-request.
+/// The engine this checkout built (`cargo build -p nuun-engine`), the debug one first: the gate builds it.
+private let builtEngine: String? = ["debug", "release"]
+    .map { repoRoot.appendingPathComponent("engine/target/\($0)/nuun-engine").path }
+    .first { FileManager.default.isExecutableFile(atPath: $0) }
+
+/// A stand-in engine: `rpc-serve` keeps `snapshot` and `jobs`, `resolve` is a one-shot read, `defaults` a write.
 private let fakeEngine = #"""
 #!/usr/bin/python3
 import json, sys
+serve = 'rpc-serve' in sys.argv
 for line in sys.stdin:
     request = json.loads(line)
     method = request['method']
     if method == 'engine_info':
-        out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs', 'recipe'],
-                                    'once': ['publications', 'retitle_operations', 'discover'],
-                                    'writes': ['defaults', 'plan_document', 'apply']}}
+        out = {'ok': True, 'data': {'engine': 'rust', 'ported': ['snapshot', 'jobs'], 'once': ['resolve'], 'writes': ['defaults']}}
+    elif serve and method == 'snapshot':
+        out = {'ok': True, 'data': {'from': 'rpc-serve'}}
+    elif serve and method == 'jobs':
+        out = {'ok': False, 'error': {'code': 'unknown_project', 'message': 'Proyecto desconocido'}}
+    elif serve:
+        out = {'ok': False, 'error': {'code': 'read_only', 'message': 'rpc-serve only answers reads: ' + method}}
+    elif method == 'resolve':
+        out = {'ok': True, 'data': {'from': 'rpc'}}
     elif method == 'defaults':
         out = {'ok': True, 'data': {'project': 'from-rust'}}
-    elif method == 'plan_document':
-        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
-    elif method == 'publications':
-        out = {'ok': True, 'data': [{'asset_id': 'from-rust'}]}
-    elif method == 'retitle_operations':
-        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
-    elif method == 'snapshot':
-        out = {'ok': False, 'error': {'code': 'not_ported', 'message': 'x'}}
-    elif method == 'jobs':
-        out = {'ok': False, 'error': {'code': 'unknown_project', 'message': 'Proyecto desconocido'}}
     else:
         sys.exit(3)
     out['id'] = request.get('id')
     sys.stdout.write(json.dumps(out) + '\n'); sys.stdout.flush()
 """#
 
-@Test func readsAskRustFirstAndPythonAnswersWhatRustCannot() async throws {
+private func fakeEngineFolder() throws -> (URL, String) {
     let scratch = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-engine-swift-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: scratch) }
     let engine = scratch.appendingPathComponent("fake-engine")
     try fakeEngine.write(to: engine, atomically: true, encoding: .utf8)
     try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: engine.path)
-    let reader = PersistentReader(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
-                                                        stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path))
+    return (scratch, engine.path)
+}
+
+@Test func theReaderAsksTheEngineAndNeverStartsAWrite() async throws {
+    let (scratch, engine) = try fakeEngineFolder()
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let reader = PersistentReader(configuration: .init(stateDirectory: scratch.appendingPathComponent("state").path, engine: engine))
     defer { reader.stop() }
-    // `not_ported` from Rust: Python answers.
-    let snapshot = try await reader.call("snapshot", ["cards": .bool(false)])
-    #expect(snapshot["defaults"] == .object([:]))  // a fresh library has no defaults; the code adds none
-    #expect(reader.answeredBy["snapshot"] == "python")
-    // An error of the method itself is Rust's answer, as Python's would be.
+    #expect(try await reader.call("snapshot")["from"].string == "rpc-serve")
+    #expect(reader.answeredBy["snapshot"] == "rpc-serve")
+    // A one-shot read the server does not keep: its own `rpc`.
+    #expect(try await reader.call("resolve", ["asset_id": .string("a1")])["from"].string == "rpc")
+    #expect(reader.answeredBy["resolve"] == "rpc")
+    // An error of the method itself is the answer; there is nobody else to ask.
     do {
         _ = try await reader.call("jobs")
-        Issue.record("Rust's method error was not returned")
+        Issue.record("The engine's method error was not returned")
     } catch let failure as BackendFailure { #expect(failure.code == "unknown_project") }
-    #expect(reader.answeredBy["jobs"] == "rust")
-    // Not among the engine's methods: straight to Python.
-    let suggestion = try await reader.call("suggest", ["source": .string("/does/not/exist")])
-    #expect(suggestion["reason"].string == "no_registered_destinations")
-    #expect(reader.answeredBy["suggest"] == "python")
-    // The engine stops mid-request: Python answers.
-    let recipe = try await reader.call("recipe")
-    #expect(recipe["cards"].array.first?["family"].string == "stalker")
-    #expect(reader.answeredBy["recipe"] == "python")
+    // A write goes to the server, which refuses it.
+    do {
+        _ = try await reader.call("defaults", ["project": .string("x")])
+        Issue.record("A write reached the one-shot engine through the reader")
+    } catch let failure as BackendFailure { #expect(failure.code == "read_only") }
 }
 
-@Test(.enabled(if: FileManager.default.isExecutableFile(atPath: repoRoot.appendingPathComponent("engine/target/release/nuun-engine").path)))
-func theRealEngineAnswersReadsLikePython() async throws {
-    let state = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-rust-swift-" + UUID().uuidString)
-    defer { try? FileManager.default.removeItem(at: state) }
-    let base = BackendConfiguration(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path, stateDirectory: state.path,
-                                    engine: repoRoot.appendingPathComponent("engine/target/release/nuun-engine").path)
-    var pythonOnly = base
-    pythonOnly.reads = "python"
-    let rust = PersistentReader(configuration: base), python = PersistentReader(configuration: pythonOnly)
-    defer { rust.stop(); python.stop() }
-    for (method, params) in [("snapshot", ["cards": JSONValue.bool(false)]), ("recipe", [:]), ("jobs", [:]), ("library", [:])] {
-        var mine = try await rust.call(method, params), theirs = try await python.call(method, params)
-        if method == "snapshot" {
-            // Clipper and Stalker are this machine's, asked at different moments.
-            if case .object(var a) = mine { a["capabilities"] = nil; mine = .object(a) }
-            if case .object(var b) = theirs { b["capabilities"] = nil; theirs = .object(b) }
-        }
-        #expect(mine == theirs, "\(method)")
-        #expect(rust.answeredBy[method] == "rust")
-        #expect(python.answeredBy[method] == "python")
-    }
-}
-
-@Test func oneShotReadsAskRustFirstAndNeverSendWrites() async throws {
-    let scratch = URL(fileURLWithPath: "/private/tmp").appendingPathComponent("media-once-swift-" + UUID().uuidString)
-    try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+@Test func oneShotCallsGoToTheEngineOnly() async throws {
+    let (scratch, engine) = try fakeEngineFolder()
     defer { try? FileManager.default.removeItem(at: scratch) }
-    let engine = scratch.appendingPathComponent("fake-engine")
-    try fakeEngine.write(to: engine, atomically: true, encoding: .utf8)
-    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: engine.path)
-    let client = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
-                                                    stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path))
-    // Declared one-shot read: Rust answers.
-    #expect(try await client.call("publications").array.first?["asset_id"].string == "from-rust")
-    // `not_ported` from Rust: Python answers (an empty catalog has no operations).
-    #expect(try await client.call("retitle_operations").array.isEmpty)
-    // Not declared: Python answers, and its error is the answer.
+    let client = BackendClient(configuration: .init(stateDirectory: scratch.appendingPathComponent("state").path, engine: engine))
+    #expect(try await client.call("defaults", ["project": .string("x")])["project"].string == "from-rust")
+    #expect(try await client.call("resolve", ["asset_id": .string("a1")])["from"].string == "rpc")
+    // The engine ends without an answer: that is the failure, not a cue to ask someone else.
     do {
-        _ = try await client.call("resolve", ["asset_id": .string("nope")])
-        Issue.record("resolve unexpectedly answered")
-    } catch let failure as BackendFailure { #expect(failure.code == "unknown_asset") }
-    // A write never reaches the engine, even with Rust reads on.
-    let saved = try await client.call("defaults", ["project": .string("x")])
-    #expect(saved["project"].string == "x")
-
-    let sandbox = BackendClient(configuration: .init(python: "/usr/bin/python3", script: repoRoot.appendingPathComponent("nu9ve.py").path,
-                                                     stateDirectory: scratch.appendingPathComponent("state").path, engine: engine.path, rustWrites: true))
-    #expect(try await sandbox.call("defaults", ["project": .string("x")])["project"].string == "from-rust")
-    do {
-        _ = try await sandbox.call("plan_document")
-        Issue.record("Python should reject a request without a source")
-    } catch let failure as BackendFailure { #expect(failure.code != "not_ported") }
-    do {
-        _ = try await sandbox.call("apply")
+        _ = try await client.call("apply")
         Issue.record("The fake engine terminates without an apply response")
     } catch let failure as BackendFailure { #expect(failure.code == "backend_failed") }
+}
+
+@Test func withoutAnEngineNothingAnswers() async throws {
+    let missing = BackendConfiguration(engine: "/nonexistent/nuun-engine")
+    #expect(!missing.usable)
+    await #expect(throws: BackendFailure.self) { _ = try await BackendClient(configuration: missing).call("jobs") }
+    await #expect(throws: BackendFailure.self) { _ = try await PersistentReader(configuration: missing).call("jobs") }
 }
 
 /// The one-pass parser gives the same values as the Codable init, on edge cases and on the whole golden file.

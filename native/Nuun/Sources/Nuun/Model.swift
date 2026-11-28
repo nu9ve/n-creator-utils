@@ -320,10 +320,9 @@ enum OperationScope { case ingest, library, space, settings, source }
         guard let root = env["NU9VE_SANDBOX"], let home = env["NU9VE_MEDIA_HOME"], home.hasPrefix(root + "/") else { return nil }
         return root
     }()
-    /// The Rust engine, inside the app or, from source, `engine/target/release` next to `nu9ve.py`.
+    /// The Rust engine, which answers everything since F5 (e): `NUUN_ENGINE`, the one inside the app or, from source,
+    /// the one chosen in Ajustes → Diagnóstico or built in `engine/target` next to `nu9ve.py`.
     var enginePath = ""
-    /// Who answers reads: "rust" (Python answers what Rust does not have) or "python".
-    var readEngine = UserDefaults.standard.string(forKey: "readEngine") ?? "rust"
     var archiveExceptionConfirmed = false { didSet { if archiveExceptionConfirmed != oldValue { invalidatePlan() } } }
     var deferWork = true { didSet { if deferWork != oldValue { invalidatePlan() } } }
     private var copyChoiceOverride: String?
@@ -366,10 +365,10 @@ enum OperationScope { case ingest, library, space, settings, source }
             if FileManager.default.isExecutableFile(atPath: bundledPython) { python = bundledPython; script = bundledScript; bundledRuntime = true }
         }
         if !bundledRuntime && !packagedBackend {
-            python = prefs.string(forKey: "python") ?? python
             script = prefs.string(forKey: "script") ?? script
+            enginePath = prefs.string(forKey: "enginePath") ?? ""
         }
-        enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script)
+        if !FileManager.default.isExecutableFile(atPath: enginePath) { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
         captureRoot = sandbox == nil ? prefs.string(forKey: "captureRoot") ?? "" : ""
         configure()
         // nu9ve-agent-v1 §5: the agent's state at launch, a query that never installs nor starts anything.
@@ -378,21 +377,22 @@ enum OperationScope { case ingest, library, space, settings, source }
 
     // MARK: Backend
 
-    /// The bundled `nuun-engine`, else the one built next to the source checkout; "" when there is none.
+    /// `NUUN_ENGINE`, the bundled `nuun-engine`, else the one built next to the source checkout; "" when there is none.
     static func engine(resources: URL?, script: String) -> String {
-        let candidates: [String?] = [resources?.appendingPathComponent("backend/nuun-engine").path,
-                          URL(fileURLWithPath: script).deletingLastPathComponent().appendingPathComponent("engine/target/release/nuun-engine").path]
+        let checkout = URL(fileURLWithPath: script).deletingLastPathComponent().appendingPathComponent("engine/target")
+        let candidates: [String?] = [ProcessInfo.processInfo.environment["NUUN_ENGINE"],
+                          resources?.appendingPathComponent("backend/nuun-engine").path,
+                          checkout.appendingPathComponent("release/nuun-engine").path,
+                          checkout.appendingPathComponent("debug/nuun-engine").path]
         return candidates.compactMap { $0 }.first { FileManager.default.isExecutableFile(atPath: $0) } ?? ""
     }
 
     func configure() {
         guard !busy else { return }
-        UserDefaults.standard.set(python, forKey: "python")
         UserDefaults.standard.set(script, forKey: "script")
-        UserDefaults.standard.set(readEngine, forKey: "readEngine")
         if enginePath.isEmpty { enginePath = Self.engine(resources: Bundle.main.resourceURL, script: script) }
-        let configuration = BackendConfiguration(python: python, script: script, engine: enginePath.isEmpty ? nil : enginePath,
-                                                 reads: readEngine, rustWrites: true)
+        if !packagedBackend && !bundledRuntime { UserDefaults.standard.set(enginePath, forKey: "enginePath") }
+        let configuration = BackendConfiguration(script: script, engine: enginePath.isEmpty ? nil : enginePath)
         reader?.stop()
         client = BackendClient(configuration: configuration)
         reader = PersistentReader(configuration: configuration)

@@ -175,32 +175,23 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Diagnóstico", systemImage: "stethoscope").font(.title3.weight(.semibold))
             Text("Build: " + (Bundle.main.object(forInfoDictionaryKey: "Nu9veBuildID") as? String ?? "desde código")).textSelection(.enabled)
-            TextField("Python", text: $model.python).disabled(model.packagedBackend || model.bundledRuntime)
-            TextField("Motor", text: $model.script).disabled(model.packagedBackend || model.bundledRuntime)
-            Picker("Motor de media", selection: $model.readEngine) {
-                Text("Motor en Rust, con Python de respaldo").tag("rust")
-                Text("Python").tag("python")
-            }
-            .disabled(model.enginePath.isEmpty || model.busy)
-            .onChange(of: model.readEngine) { _, _ in model.configure() }
-            Text(model.enginePath.isEmpty ? String(localized: "Sin motor en Rust en esta instalación: todo lo responde Python.")
+            Text(model.enginePath.isEmpty ? String(localized: "Sin el motor de nüün en esta instalación: nada puede responder.")
                  : String(localized: "Motor en Rust: ") + model.enginePath).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-            if model.readEngine != "python" && !model.enginePath.isEmpty {
-                Text("Rust ejecuta las escrituras compatibles. Puedes elegir Python para todo el flujo.")
-                    .font(.caption).foregroundStyle(.secondary)
+            if !model.packagedBackend && !model.bundledRuntime {
+                TextField("Motor", text: $model.enginePath)
+                Button("Aplicar motor") { model.configure() }.disabled(model.busy)
             }
             Text(engineSummary).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
             Text("Una ventana · tres modos · miniaturas bajo demanda · sin sondeo periódico en reposo.").font(.caption)
-            if !model.packagedBackend && !model.bundledRuntime { Button("Aplicar runtime") { model.configure() } }
             Text("Instalación local de desarrollo; el runtime externo y la firma de distribución siguen siendo gates de release.").font(.caption).foregroundStyle(.secondary)
         }
     }
-    /// Which engine answered each read so far («snapshot: rust»), most recent state of each method.
+    /// How each read was answered so far: by the long-lived reader (`rpc-serve`) or in one shot (`rpc`).
     var engineSummary: String {
         let answered = model.reader?.answeredBy ?? [:]
         guard !answered.isEmpty else { return "" }
-        let rust = answered.filter { $0.value == "rust" }.keys.sorted(), python = answered.filter { $0.value == "python" }.keys.sorted()
-        return "Rust: " + (rust.isEmpty ? "—" : rust.joined(separator: ", ")) + "\nPython: " + (python.isEmpty ? "—" : python.joined(separator: ", "))
+        let served = answered.filter { $0.value == "rpc-serve" }.keys.sorted(), once = answered.filter { $0.value == "rpc" }.keys.sorted()
+        return "rpc-serve: " + (served.isEmpty ? "—" : served.joined(separator: ", ")) + "\nrpc: " + (once.isEmpty ? "—" : once.joined(separator: ", "))
     }
     func volume(_ title: String, role: String, value: Binding<String>) -> some View {
         Picker(title, selection: value) { Text("Sin sugerencia").tag(""); ForEach(model.volumes.filter { $0["role"].string == role }, id: \.["id"].string) { item in Text(item["name"].string).tag(item["id"].string) } }

@@ -559,7 +559,7 @@ import Nu9veTheme
     static func disks(_ delegate: AppDelegate, _ folder: URL) async {
         let model = delegate.model
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        model.python = "/usr/bin/python3"; model.script = ProcessInfo.processInfo.environment["NUUN_QA_SCRIPT"] ?? ""
+        if let engine = ProcessInfo.processInfo.environment["NUUN_ENGINE"] { model.enginePath = engine }
         model.configure()
         await model.refresh()
         model.route = .library; model.librarySection = .disks; model.presentation = .full

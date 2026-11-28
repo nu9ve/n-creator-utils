@@ -55,7 +55,13 @@ Texto para que el usuario lo pase; esta sesión no escribe a otras.
 
 [test_media_mcp_rust.py](../../tests/test_media_mcp_rust.py) manda la misma conversación a los dos servidores sobre dos catálogos del golden: `initialize`, cada herramienta, argumentos que faltan o sobran, una herramienta que no existe, notificaciones, métodos desconocidos y una línea que no es JSON. Las respuestas son iguales salvo los bytes libres del disco y la hora de medición, que cambian entre las dos corridas. Nadie configura este MCP hoy (arriba); el del core (`nu9ve mcp`) sigue siendo el de la suite.
 
+## Paso (e), hecho el 2026-11-27
+
+La app de Mac ya no lanza Python. `PersistentReader` habla sólo con `nuun-engine rpc-serve`, y una lectura de un solo uso que el servidor no guarda (`engine_info.once`, como `resolve`) va a un `rpc` propio; una escritura nunca sale del lector. `BackendClient` manda cada llamada a `nuun-engine rpc`, y lo que el motor rechaza es la respuesta. Ajustes → Diagnóstico ya no tiene el campo de Python ni el selector «Motor de media»: muestra la ruta del motor y, al compilar desde el código, deja elegirla. El motor se busca en `NUUN_ENGINE`, en el bundle, en `enginePath` de las preferencias o en `engine/target/{release,debug}` junto a `nu9ve.py`.
+
+Antes de quitarlo se comprobó que Rust declare los 93 métodos del servicio de Python, que todos los que nombra la app estén entre los que declara, y que los `not_ported` que quedan en Rust no se den en Mac: falta de backend de volúmenes, liberación de Stalker sin Unix, finales sin la exclusión de Clipper y cierres por la liberación simple, que la app manda a `closure_apply`. El bundle todavía lleva el runtime de Python y `media/`; se quitan en (g).
+
 ## Lo que queda
 
 - **Cómo lo encuentran sin el checkout:** un `nu9ve` instalado que apunte a `nuun.app/Contents/Resources/backend/nuun-engine` cubriría a Clipper y a Kyū sin cambiarlos; la otra opción es que cada uno busque la app, como Stalker. Lo decide el usuario con la sesión de Clipper. Hasta entonces, Clipper usa el checkout y por él llega a Rust.
-- **(e) en adelante:** la app sin respaldo de Python, el golden como archivos y borrar `media/*.py` ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).
+- **(f) y (g):** el golden como archivos y borrar `media/*.py` y el runtime de Python del bundle ([PLAN](../../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26)).

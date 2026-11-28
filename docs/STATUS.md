@@ -328,6 +328,10 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### La app sin Python · 2026-11-27
+
+Paso (e) de F5 ([detalle](platforms/media-cli-callers.md#paso-e-hecho-el-2026-11-27)). La app de Mac sólo habla con `nuun-engine`: el lector persistente con `rpc-serve` y un `rpc` para las lecturas de un solo uso, y cada llamada de una vez con `rpc`. Ajustes → Diagnóstico ya no tiene Python ni el selector de motor. Comprobado antes: Rust declara los 93 métodos del servicio y todos los que nombra la app, y sus `not_ported` no se dan en Mac. Pruebas Swift: 36, con tres nuevas en lugar de las tres que comparaban con Python (el lector nunca empieza una escritura, las llamadas de una vez van sólo al motor, y sin motor nada responde); las de catálogo, lector e índice de discos corren ahora contra el motor real. **Sin instalar.** El bundle todavía lleva el runtime de Python, que se quita en (g).
+
 ### El MCP de `media` en Rust · 2026-11-27
 
 Paso (d) de F5 ([inventario](platforms/media-cli-callers.md#paso-d-hecho-el-2026-11-27)). `nuun-engine media mcp` sirve las ocho herramientas de sólo lectura de `media/mcp.py` por stdio ([mcp.rs](../engine/nuun-engine/src/mcp.rs)), y `nu9ve.py media mcp` le cede el proceso cuando hay un motor que lo entiende. [test_media_mcp_rust.py](../tests/test_media_mcp_rust.py): la misma conversación de 23 mensajes a los dos servidores, sobre dos catálogos del golden, con respuestas iguales (salvo los bytes libres del disco y `measured_at`, que cambian entre corridas), más la cesión desde `nu9ve.py` y la vuelta a Python con un motor viejo. Nadie configura este MCP hoy.

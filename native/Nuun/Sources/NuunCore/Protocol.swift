@@ -111,25 +111,23 @@ public enum ProtocolBoundary {
 }
 
 public struct BackendConfiguration: Codable, Sendable {
+    /// Unused since F5 (e) (2026-11-27): the app no longer runs Python. Kept so a `backend-config.json` of an
+    /// older build still decodes; `script` still locates a checkout's `engine/target` in a build from source.
     public var python: String
     public var script: String
     public var stateDirectory: String?
-    /// The Rust engine (`nuun-engine`), when this build has one.
+    /// The Rust engine (`nuun-engine`), which answers everything.
     public var engine: String?
-    /// Who answers reads: `"rust"` with Python fallback, or `"python"`.
+    /// Unused since F5 (e): there is one engine.
     public var reads: String?
-    /// Use Rust for mutations advertised by the engine.
     public var rustWrites: Bool?
-    public init(python: String, script: String, stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil, rustWrites: Bool? = nil) {
+    public init(python: String = "", script: String = "", stateDirectory: String? = nil, engine: String? = nil, reads: String? = nil, rustWrites: Bool? = nil) {
         self.python = python; self.script = script; self.stateDirectory = stateDirectory; self.engine = engine; self.reads = reads
         self.rustWrites = rustWrites
     }
+    /// There is an engine to ask.
     public var usable: Bool {
-        FileManager.default.isExecutableFile(atPath: python) && FileManager.default.fileExists(atPath: script)
-    }
-    /// Reads go to the Rust engine first.
-    public var rustReads: Bool {
-        reads != "python" && engine.map { FileManager.default.isExecutableFile(atPath: $0) } == true
+        engine.map { FileManager.default.isExecutableFile(atPath: $0) } == true
     }
 }
 
@@ -261,32 +259,27 @@ final class LineServer: @unchecked Sendable {
     }
 }
 
-/// The long-lived readers (snapshot, progress, suggestions). With a Rust engine, each read it has
-/// (`engine_info.ported`) goes to `nuun-engine rpc-serve` first; whatever it does not have, or any
-/// transport failure, is asked of Python's `rpc-serve`, so a read never goes unanswered. A Rust answer
-/// that is an error of the method itself (unknown project, offline disk…) is the answer, as Python's would be:
-/// the two engines give the same answers (scripts/engine_shadow.py). Mutations run in one-shot processes.
+/// The long-lived readers (snapshot, progress, suggestions), answered by `nuun-engine rpc-serve`. Since F5 (e)
+/// (2026-11-27) there is no Python behind it. A read the server does not keep but the engine answers in one shot
+/// (`engine_info.once`, such as `resolve`) goes to a one-shot `rpc`; everything else goes to the server, which
+/// refuses a mutation (`read_only`), so no write ever starts here.
 public final class PersistentReader: @unchecked Sendable {
     public let configuration: BackendConfiguration
-    /// Rust codes that mean «ask Python instead».
-    static let fallbackCodes: Set<String> = ["not_ported", "reader_unavailable", "runtime_missing"]
-    private let python: LineServer
     private let rust: LineServer?
-    private let fallback: BackendClient
+    private let once: BackendClient
     private let lock = NSLock()
-    private var rustMethods: Set<String>?
+    private var onceMethods: Set<String>?
     private var answered: [String: String] = [:]
 
     public init(configuration: BackendConfiguration) {
         self.configuration = configuration
         let state = configuration.stateDirectory.map { ["--state-dir", $0] } ?? []
-        python = LineServer(executable: configuration.python, arguments: ["-B", "-S", configuration.script, "media"] + state + ["rpc-serve"])
-        rust = configuration.rustReads ? configuration.engine.map { LineServer(executable: $0, arguments: state + ["rpc-serve"]) } : nil
-        fallback = BackendClient(configuration: configuration)
+        rust = configuration.usable ? configuration.engine.map { LineServer(executable: $0, arguments: state + ["rpc-serve"]) } : nil
+        once = BackendClient(configuration: configuration)
     }
     deinit { stop() }
 
-    /// Which engine answered each method last (`rust` or `python`), for Ajustes → Diagnóstico.
+    /// How each method was answered last (`rpc-serve` or `rpc`), for Ajustes → Diagnóstico.
     public var answeredBy: [String: String] { lock.withLock { answered } }
 
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
@@ -296,48 +289,29 @@ public final class PersistentReader: @unchecked Sendable {
             let ms = d.seconds * 1000 + d.attoseconds / 1_000_000_000_000_000
             if ms > 300 { readerLog.notice("\(method, privacy: .public) took \(ms, privacy: .public) ms") }
         }
-        if let rust, await rustAnswers(method, rust) {
-            do {
-                let value = try await rust.send(method, params)
-                record(method, "rust")
-                return value
-            } catch let failure as BackendFailure where !Self.fallbackCodes.contains(failure.code) {
-                record(method, "rust")
-                throw failure
-            } catch {
-                // Python answers what Rust could not.
-            }
+        guard let rust else { throw BackendFailure(code: "runtime_missing", message: String(localized: "Esta instalación no tiene el motor de nüün.")) }
+        if await answeredOnce(method, rust) {
+            record(method, "rpc")
+            return try await once.call(method, params)
         }
-        record(method, "python")
-        guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }
-        do { return try await python.send(method, params) }
-        catch let failure as BackendFailure where failure.code != "reader_unavailable" { throw failure }
-        catch { return try await fallback.call(method, params) }
+        record(method, "rpc-serve")
+        return try await rust.send(method, params)
     }
 
-    public func stop() { python.stop(); rust?.stop() }
+    public func stop() { rust?.stop() }
 
-    private func record(_ method: String, _ engine: String) { lock.withLock { answered[method] = engine } }
+    private func record(_ method: String, _ how: String) { lock.withLock { answered[method] = how } }
 
-    /// The methods the engine answers here, asked once (`engine_info`); none if it cannot say.
-    private func rustAnswers(_ method: String, _ rust: LineServer) async -> Bool {
-        if let known = lock.withLock({ rustMethods }) { return known.contains(method) }
+    /// Whether `method` is a one-shot read the server does not keep (`engine_info`, asked once).
+    private func answeredOnce(_ method: String, _ rust: LineServer) async -> Bool {
+        if let known = lock.withLock({ onceMethods }) { return known.contains(method) }
         let info = try? await rust.send("engine_info", [:])
-        let methods = Set((info?["ported"].array ?? []).map(\.string))
-        lock.withLock { rustMethods = methods }
+        let served = Set((info?["ported"].array ?? []).map(\.string))
+        let writes = Set((info?["writes"].array ?? []).map(\.string))
+        // A method that may write never goes to the one-shot process from here.
+        let methods = Set((info?["once"].array ?? []).map(\.string)).subtracting(served).subtracting(writes)
+        lock.withLock { onceMethods = methods }
         return methods.contains(method)
-    }
-}
-
-/// The one-shot methods of each engine binary, asked once.
-final class OnceMethods: @unchecked Sendable {
-    private let lock = NSLock()
-    private var known: [String: Set<String>] = [:]
-    func methods(engine: String, ask: () -> Set<String>?) -> Set<String> {
-        if let found = lock.withLock({ known[engine] }) { return found }
-        let found = ask() ?? []
-        lock.withLock { known[engine] = found }
-        return found
     }
 }
 
@@ -348,6 +322,8 @@ final class CollectedData: @unchecked Sendable {
     func read() -> Data { lock.lock(); defer { lock.unlock() }; return value }
 }
 
+/// Every one-shot call, reads and writes, in its own `nuun-engine rpc` process. Since F5 (e) there is no Python:
+/// what the engine refuses is the answer.
 public final class BackendClient: @unchecked Sendable {
     public let configuration: BackendConfiguration
     private let lock = NSLock()
@@ -361,64 +337,21 @@ public final class BackendClient: @unchecked Sendable {
     public func call(_ method: String, _ params: [String: JSONValue] = [:]) async throws -> JSONValue {
         let request = try JSONEncoder().encode(JSONValue.object(["method": .string(method), "params": .object(params)]))
         let epoch = currentEpoch()
-        let rustOnly = method.hasPrefix("suite_") || method.hasPrefix("save_all_") || method == "clipper_project_status"
-            || method.hasPrefix("clipper_restore_")
-            || method.hasPrefix("missions_archived_")
-            || method.hasPrefix("work_copy") || method == "volume_apps" || method.hasPrefix("conversations_")
-            || method == "suggestions_dismiss"
-            || method == "living_plan" && params["batch_managed"] == .bool(true)
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 do {
-                    if rustOnly {
-                        guard let engine = self.configuration.engine else {
-                            throw BackendFailure(code: "runtime_missing", message: "Esta operación requiere el motor Rust.")
-                        }
-                        continuation.resume(returning: try self.execute(engine, self.state + ["rpc"], request, epoch: epoch))
-                    } else {
-                        continuation.resume(returning: try self.run(request, epoch: epoch))
+                    guard self.configuration.usable, let engine = self.configuration.engine else {
+                        throw BackendFailure(code: "runtime_missing", message: String(localized: "Esta instalación no tiene el motor de nüün."))
                     }
+                    continuation.resume(returning: try self.execute(engine, self.state + ["rpc"], request, epoch: epoch))
                 }
                 catch { continuation.resume(throwing: error) }
             }
         }
     }
     private func currentEpoch() -> UInt { lock.lock(); defer { lock.unlock() }; return cancelEpoch }
-    /// One-shot capabilities depend on the engine and the effective catalog.
-    private static let onceCache = OnceMethods()
-    /// Keep the discard guard in Python. Rust discovery is enabled with Rust writes to use the same planner.
-    static let pythonOnly: Set<String> = ["discover", "capture_discard_check"]
-
-    private func run(_ request: Data, epoch: UInt) throws -> JSONValue {
-        let method = (try? JSONDecoder().decode(JSONValue.self, from: request))?["method"].string ?? ""
-        if configuration.rustReads, let engine = configuration.engine {
-            let rustWrites = configuration.rustWrites == true
-            let key = [engine, configuration.stateDirectory ?? "", String(rustWrites)].joined(separator: "\0")
-            let methods = Self.onceCache.methods(engine: key, ask: { try? self.engineInfo(engine, rustWrites: rustWrites) })
-            if methods.contains("write:" + method) {
-                do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
-                catch let failure as BackendFailure where failure.code == "not_ported" {
-                    // The Rust method refused the request before mutating media.
-                }
-            } else if methods.contains(method), !Self.pythonOnly.contains(method) || (rustWrites && method == "discover") {
-                do { return try execute(engine, state + ["rpc"], request, epoch: epoch) }
-                catch let failure as BackendFailure where !PersistentReader.fallbackCodes.contains(failure.code) && failure.code != "backend_failed" { throw failure }
-                catch { /* Python answers what Rust could not. */ }
-            }
-        }
-        guard configuration.usable else { throw BackendFailure(code: "runtime_missing", message: "Configura el runtime Python y nu9ve.py antes de operar.") }
-        return try execute(configuration.python, ["-B", "-S", configuration.script, "media"] + state + ["rpc"], request, epoch: epoch)
-    }
 
     private var state: [String] { configuration.stateDirectory.map { ["--state-dir", $0] } ?? [] }
-
-    private func engineInfo(_ engine: String, rustWrites: Bool) throws -> Set<String> {
-        let request = try JSONEncoder().encode(JSONValue.object(["method": .string("engine_info"), "params": .object([:])]))
-        let info = try execute(engine, state + ["rpc"], request, epoch: currentEpoch())
-        var methods = Set(info["once"].array.map(\.string))
-        if rustWrites { methods.formUnion(info["writes"].array.map { "write:" + $0.string }) }
-        return methods
-    }
 
     private func execute(_ executable: String, _ arguments: [String], _ request: Data, epoch: UInt) throws -> JSONValue {
         guard FileManager.default.isExecutableFile(atPath: executable) else { throw BackendFailure(code: "runtime_missing", message: "Runtime no configurado") }

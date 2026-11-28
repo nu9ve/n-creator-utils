@@ -1283,3 +1283,6 @@
 "Último uso" = "Last used";
 "‹" = "‹";
 "›" = "›";
+"Aplicar motor" = "Apply engine";
+"Esta instalación no tiene el motor de nüün." = "This installation does not have the nüün engine.";
+"Sin el motor de nüün en esta instalación: nada puede responder." = "No nüün engine in this installation: nothing can answer.";
