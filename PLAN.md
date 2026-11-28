@@ -26,7 +26,7 @@ La lista corta: lo de abajo da el detalle y la evidencia. La M1 tiene instalada 
    - ~~la época `tinted`~~ (falta mirarla en ventana);
    - Acumulados en Discos: ~~primer corte~~ (27 nov); faltan las acciones por grupo y elegir el tipo de análisis.
 
-   De U3 quedan Reanudar, Reintentar y Ver el recibo en el cierre.
+   De U3, ~~Reanudar, Reintentar y Ver el recibo~~ (27 nov: Reanudar en un ingreso detenido, Reintentar y Ver el recibo en «Copiar al otro disco»); faltan en cierre de proyecto, liberación y conversaciones.
 4. **Deuda que se ve:**
    - ~~el inglés de 112 claves~~ (hecho el 27 nov: `check_localization.py` pasa con 0 faltantes);
    - firmar con `nu9ve_sign.py` del core en lugar de la copia propia de `install_media_app.py` y `build_media_app.py` ([prácticas §2.1](vendor/nu9ve-core/docs/practices.md#21-firmar-y-notarizar)).

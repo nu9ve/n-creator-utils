@@ -351,6 +351,8 @@ struct WorkCopySheet: View {
     @State private var copying = false
     @State private var reviewing = false
     @State private var failure = ""
+    /// The copy itself failed: the reviewed plan still holds, and what was verified is adopted on the next run.
+    @State private var copyFailed = false
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if reviewing {
@@ -392,7 +394,8 @@ struct WorkCopySheet: View {
                 Button(done == nil ? "Cancelar" : "Cerrar") { model.workCopyRequest = nil }.disabled(inFlight && plan != nil)
                 if done == nil {
                     if let plan {
-                        Button("Copiar y verificar") { apply(plan) }.buttonStyle(CreatorButtonStyle(prominent: true)).disabled(inFlight)
+                        // U3: after a failed copy the same reviewed plan is tried again; nothing verified is copied twice.
+                        Button(copyFailed ? "Reintentar" : "Copiar y verificar") { apply(plan) }.buttonStyle(CreatorButtonStyle(prominent: true)).disabled(inFlight)
                     } else {
                         Button("Revisar") { review() }.buttonStyle(CreatorButtonStyle(prominent: true))
                             .disabled(inFlight || chosen.isEmpty || request.source.isEmpty || request.destination.isEmpty)
@@ -543,6 +546,11 @@ struct WorkCopySheet: View {
             Label("Copia verificada", systemImage: "checkmark.seal.fill").foregroundStyle(palette.success).font(.headline)
             Text("\(Int(done["receipt"]["copied"].double)) copiados · \(Int(done["receipt"]["replaced"].double)) actualizados · \(Int(done["receipt"]["adopted"].double)) ya estaban iguales")
             Text("Recibo en los dos discos: \(done["receipt"]["path"].string)").font(.caption).textSelection(.enabled)
+            // U3: the receipt itself, on the destination.
+            let receipt = URL(fileURLWithPath: request.destination).appendingPathComponent(done["receipt"]["path"].string)
+            if FileManager.default.fileExists(atPath: receipt.path) {
+                Button("Ver el recibo") { NSWorkspace.shared.activateFileViewerSelecting([receipt]) }.buttonStyle(.link).font(.caption)
+            }
         }.modifier(Panel())
     }
     private func loadApps() async {
@@ -572,7 +580,7 @@ struct WorkCopySheet: View {
         }
     }
     private func apply(_ plan: JSONValue) {
-        inFlight = true; copying = true; failure = ""
+        inFlight = true; copying = true; failure = ""; copyFailed = false
         Task {
             model.watchAction("work_copy", plan["id"].string)
             defer {
@@ -584,7 +592,7 @@ struct WorkCopySheet: View {
             do {
                 done = try await model.oneShot("work_copy_apply", ["plan_id": plan["id"], "digest": plan["digest"]])
                 await model.loadSuiteSuggestions(arrival: false)
-            } catch { failure = error.localizedDescription }
+            } catch { failure = error.localizedDescription; copyFailed = true }
         }
     }
 }

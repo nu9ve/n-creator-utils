@@ -894,6 +894,10 @@ struct RunStep: View {
             } else {
                 Text("La operación se detuvo. Revisa el mensaje y el estado en Actividad.").foregroundStyle(.secondary)
                 HStack {
+                    // U3: the job that stopped picks up where it left off; what was verified is kept.
+                    if let job = model.jobs.first(where: { $0["id"].string == model.activeJobID }), model.resumable(job) {
+                        Button("Reanudar") { model.resume(job["id"].string) }.buttonStyle(CreatorButtonStyle(prominent: true))
+                    }
                     Button("Volver a revisar") { model.goToStep(.review) }
                     Button("Abrir actividad") { model.open(.activity); model.changeMode?(.full) }
                 }
