@@ -328,6 +328,10 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Inglés completo en la app · 2026-11-27
+
+`check_localization.py` pasa por primera vez: 1 236 claves, 0 sin inglés. Se agregaron las 112 que faltaban desde antes de F4 (Acumulados, Perfiles, identidad de discos, Handycam, adopción e índice portátil) al final de [en.lproj](../native/Nuun/Localization/en.lproj/Localizable.strings), con los mismos `%@` y `%lld` que la clave, comprobados por un script, y `plutil -lint` en verde. Las 22 que el script marca como sin uso se quedan: varias son textos del core (`PeriodWindowBar`) que llegan como `String` y el extractor no ve. Sin instalar: entra en la próxima build.
+
 ### `nu9ve.py media` responde con Rust · 2026-11-27
 
 Paso (c) de F5 en [PLAN](../PLAN.md#tras-la-semana-de-uso-pedido-del-usuario-2026-11-26). Detalle en el [inventario](platforms/media-cli-callers.md#paso-c-hecho-el-2026-11-27).
