@@ -1,6 +1,6 @@
 # Perfiles, páginas de una app y eventos de acción: qué subir al core
 
-Estado: **propuesta** para una sesión del core (2026-11-27). La escribió una sesión de SoundBender a pedido del usuario, al planear sus perfiles y su llegada a [`nu9ve-surface-v1`](../contracts/nu9ve-surface-v1.md) como segunda app con controlador (C4). No cambia ningún contrato ni ninguna pieza: dice qué falta, por qué y en qué orden. Cada pieza entra en un cambio propio, con sus pruebas y su línea en el [CHANGELOG](../CHANGELOG.md).
+Estado: **propuesta con las decisiones del usuario** (2026-11-27, §7); falta implementarla. La escribió una sesión de SoundBender a pedido del usuario, al planear sus perfiles y su llegada a [`nu9ve-surface-v1`](../contracts/nu9ve-surface-v1.md) como segunda app con controlador (C4). No cambia ningún contrato ni ninguna pieza: dice qué falta, por qué y en qué orden. Cada pieza entra en un cambio propio, con sus pruebas y su línea en el [CHANGELOG](../CHANGELOG.md).
 
 Leído en: este repo en `cdbe5f3`; SoundBender (`soundshop`) `372055e`, en especial `docs/plans/profiles-and-controls.md`. Antes de empezar, la sesión del core **debe** releerlos (`git log`) por si cambiaron.
 
@@ -31,7 +31,7 @@ Para el [README](../README.md) o las [prácticas](practices.md), si el usuario l
 | **A. Interfaz C de `nu9ve-profiles`** | Un crate `nu9ve-profiles-ffi` con unas pocas funciones (`read`, `for_app`, `upsert_app_entry`, `remove_app_entry`, `create`, liberar) que pasan JSON o estructuras C. XCFramework para `swift/` y DLL para `windows/`, con una capa fina `Nu9veProfiles` en Swift y `Nu9ve.Core.Profiles` en C# que sólo traducen tipos | La lógica queda una vez, para Mac y Windows, como pidió el usuario. Los ejemplos del contrato (`data/profile-examples-v1.json`) prueban las tres capas | El primer binario de Rust dentro de `swift/`: compilarlo para arm64 y x86_64, firmarlo dentro de cada app, y `sync-core.sh` debe copiar el artefacto o construirlo. SoundBender ya enlaza su propio XCFramework de Rust, así que el camino existe en una app |
 | **B. Una versión por lenguaje con vectores** | `Nu9veProfiles` en Swift y su par en C#, probados contra los mismos ejemplos, como `Nu9veRecording` y `Nu9veMIDI` | Sin binarios; nativo en cada app; el precedente de hoy | Tres escritores del mismo archivo compartido; cada regla nueva del contrato se programa tres veces |
 
-**Recomendación:** A, por la regla del §2 (un archivo compartido entre apps y sistemas). Si A pesa demasiado ahora, B con una condición: ninguna versión nativa escribe hasta que pase los mismos ejemplos de escritura concurrente que el crate. **Decide la sesión del core con el usuario.**
+**Decidido: B** ([§7](#7-decisiones-del-usuario-2026-11-27)), por el costo de A en las apps de Mac sin Rust. La recomendación inicial era A, por la regla del §2 (un archivo compartido entre apps y sistemas). Si A pesa demasiado ahora, B con una condición: ninguna versión nativa escribe hasta que pase los mismos ejemplos de escritura concurrente que el crate. **Decide la sesión del core con el usuario.**
 
 Lo que toma SoundBender, sea cual sea: perfil por omisión con su biblioteca de hoy en su sitio, apariencia por perfil, recuperación de la máquina, y `NU9VE_PROFILES_FILE` dentro de su raíz de QA.
 
@@ -65,16 +65,16 @@ Sale casi gratis de un catálogo de acciones con ids estables, que ya pide [inte
 
 | Paso | Qué | Quién | Depende de |
 | --- | --- | --- | --- |
-| 1 | Decidir A o B para los perfiles (§3) y la regla del §2 | Usuario y sesión del core | — |
-| 2 | Perfiles en Swift (y C#) según lo decidido, con los ejemplos del contrato | Core | 1 |
+| 1 | ~~Decidir A o B (§3) y la regla del §2~~ | Usuario | Hecho: B y prácticas §4 |
+| 2 | `Nu9veProfiles` en Swift con los ejemplos del contrato y la prueba de escritura simultánea con el crate | Core | — |
 | 3 | Páginas internas en el mapa, el agente y `SurfaceMaps` (§4) | Core | C3 (Stalker cliente) |
 | 4 | `nu9ve-action-events-v1` (§5), con Stalker como receptor y Clipper como lector | Core, Stalker y Clipper | Catálogo con ids en la primera app |
 
 Mientras tanto, SoundBender hace su catálogo con ids estables, sus perfiles con lo que haya y lo básico del controlador resolviendo sus páginas ella misma.
 
-## 7. Preguntas para el usuario
+## 7. Decisiones del usuario (2026-11-27)
 
-1. ¿La regla del §2 (capas suite → app → perfil; Rust para lo que comparte Windows; nativo lo demás) entra al README o a las prácticas?
-2. Perfiles: ¿A (interfaz C de Rust, primer binario en `swift/`) o B (versión nativa por lenguaje con vectores)?
-3. Páginas internas: ¿acción reservada en el catálogo de cada app, o pulsación larga del control de página?
-4. Eventos de acción: ¿apagados por omisión y activados por app, o encendidos para todas mientras Stalker graba?
+1. **La regla del §2 va a las [prácticas §4](practices.md#4-lo-compartido-y-su-copia)**, ya escrita.
+2. **Perfiles: B**, una versión nativa por lenguaje con vectores, como `Nu9veMIDI` y `Nu9veRecording`. Se descartó A por su costo: el primer binario de Rust en `swift/`, que cada app de Mac tendría que compilar y firmar, y apps sin Rust en su build. La condición del §3 queda como regla: `Nu9veProfiles` no escribe hasta pasar los ejemplos de escritura del crate, con una prueba de escritura simultánea entre Rust y Swift. Las apps de Windows con motor en Rust usan el crate directamente.
+3. **Páginas internas: acciones del catálogo** (`surface.page.next`, `surface.page.previous`, `surface.page.<id>`), que la persona mapea; el control de cambiar de app no cambia y no hay pulsación larga, que retrasaría el cambio de app hasta soltar.
+4. **Eventos de acción: apagados por omisión**; cada app los activa por perfil (capa de perfil del §2). Stalker muestra qué apps le mandan eventos mientras graba.

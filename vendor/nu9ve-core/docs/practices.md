@@ -92,6 +92,8 @@ Las reglas son las de [AGENTS](../AGENTS.md) y [cómo se comparte](suite-sharing
 - **La copia no se edita.** Si algo compartido falla, el arreglo va al core y la app vuelve a fijar.
 - **Mudar una pieza al core:** el core recibe la pieza con su prueba y su línea en el CHANGELOG. La app de origen deja el enlace y fija la primera copia en el mismo paso (así se hizo con `nu9ve-json`, `NuMacShell`, `nu9ve-volumes` y `nu9ve-midi`).
 - **CHANGELOG por pieza** en el core. curado y SoundBender tienen además el suyo en `docs/CHANGELOG.md`.
+- **Capas de ajustes: suite → app → perfil** (decisión del usuario, 2026-11-27). El core da el valor de la suite; una app lo sobrescribe para sí; un perfil de la persona lo sobrescribe dentro de esa app. Cada capa escribe sólo su archivo o su clave, como `controllers/suite.json` y `controllers/<perfil>/<app>.json` ([surface §6](../contracts/nu9ve-surface-v1.md#6-mapas-por-aparato-app-modo-y-perfil)).
+- **Lenguaje** (la misma decisión): la lógica que también necesita Windows va en Rust, una vez; lo propio del sistema va nativo en cada app. Si una pieza tiene versiones por lenguaje (`Nu9veMIDI`, `Nu9veRecording`), comparten vectores, y una versión que escribe un archivo compartido entre apps no escribe hasta pasar los mismos ejemplos que el crate. Ante la duda, lo más eficiente, robusto y confiable.
 
 ## 5. Al cerrar una sesión
 

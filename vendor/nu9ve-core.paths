@@ -54,3 +54,7 @@ rust/nu9ve-time
 
 # El chequeo de frontera: lo corre el gate sobre engine/crates/nu9ve-*.
 scripts/check-boundary.sh
+
+# Firma y notarización de las apps de Mac (prácticas §2.1): build_media_app.py e install_media_app.py lo importan.
+scripts/nu9ve_sign.py
+scripts/test-nu9ve-sign.py

@@ -328,6 +328,19 @@ Esta página no autoriza operaciones sobre media real. Las pruebas automáticas 
 
 ## Entregas recientes
 
+### Mejoras de la app y firma del core · 2026-11-27
+
+Lo que quedaba de U1, el primer corte de U2, parte del cierre de U3 y la firma del core ([PLAN](../PLAN.md#siguiente-en-orden-2026-11-27)). **Sin instalar ni mirar en ventana**: entra en la próxima build.
+
+- **U1.5 · Ventana compacta:** sin posición guardada abre a 3/4 del ancho y algo por encima del centro (`WindowPlacement.compact`, con prueba), y Ventana → «Restablecer posición de la ventana compacta».
+- **U1.6 · Dron en Ingreso:** el inspector dice que a edición va sólo el JPG, con «También el DNG» y «Sólo el JPG» por unidad o para el lote. El plan de Rust acepta `work_raw` por unidad ([contrato](contracts/media-library-v1.md)); sin él, el plan no cambia.
+- **U1.7 · Segundo disco de trabajo:** al conectarlo con cambios por copiar se abre la compacta en Inicio; «Ahora no» se recuerda para esos mismos cambios (`WorkCopyPrompt`, con prueba), y una tarjeta que abrió el importador va primero.
+- **U1.8 · Tema:** el popover de acciones toma el papel, la tinta y los botones del skin; las hojas ya los tenían.
+- **U2 · Acumulados en Discos (primer corte):** cada cuadro marca lo acumulado dentro, y el detalle lleva a Acumulados o vuelve a medir. Cada hallazgo trae el remoto del repo (sin usuario ni clave) y el icono del proyecto. Faltan las acciones por grupo y elegir el tipo de análisis.
+- **U3 · Cierre:** «Reanudar» en un ingreso detenido; «Reintentar» y «Ver el recibo» en «Copiar al otro disco».
+- **Firma:** `build_media_app.py` e `install_media_app.py` usan `nu9ve_sign.py` del core (fijado en `c86a157`). Una build de prueba quedó firmada con Apple Development, con runtime endurecido y `codesign --verify --deep --strict` en verde.
+- **Gate:** Rust 212 más 23 diferenciales, fmt y Clippy; Swift 38; Python 440, con las dos de `test_media_closure` que fallan por el `clipper-core` instalado, como antes; golden, `media_answers.py --check`, `sync-core.sh --check` y la localización sin faltantes.
+
 ### Respuestas de Python congeladas · 2026-11-27
 
 Paso (f) de F5 ([detalle](platforms/media-cli-callers.md#paso-f-hecho-el-2026-11-27)). Las respuestas de Python a las órdenes de la CLI, a los errores de uso y a la conversación del MCP quedan en [media-answers.json](../tests/fixtures/engine-golden/media-answers.json), escritas por `scripts/media_answers.py`; las pruebas de la CLI y del MCP comparan a Rust con ese archivo, sin correr Python. `media_answers.py --check` entra al gate y a la CI. Se dejan fuera el tamaño y uso del disco de la Mac, la hora de medición e `integration-capabilities`. Lo que todavía corre Python en vivo se va con `media/` en (g).

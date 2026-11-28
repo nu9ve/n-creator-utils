@@ -11,6 +11,12 @@ import subprocess
 import sys
 import tempfile
 
+# Signing is the suite's (nu9ve/core scripts/nu9ve_sign.py, practices §2.1), from the pinned copy. No __pycache__ in
+# vendor/: sync-core.sh --check would refuse it.
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'vendor' / 'nu9ve-core' / 'scripts'))
+import nu9ve_sign  # noqa: E402
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -102,21 +108,12 @@ def main():
             'NSHighResolutionCapable': True, 'NSRemovableVolumesUsageDescription': 'Respaldar y organizar media de tus tarjetas y discos elegidos.',
             'Nu9veBuildID': build_id, 'Nu9veBuildDate': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
-    identity = args.identity or '-'
-    if args.runtime:
-        # Sign real Mach-O objects deepest first; no --deep to hide nested failures.
-        magic = {b'\xcf\xfa\xed\xfe', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe', b'\xbe\xba\xfe\xca'}
-        for path in sorted((backend / 'runtime').rglob('*'), key=lambda p: len(p.parts), reverse=True):
-            if path.is_file() and not path.is_symlink():
-                with path.open('rb') as stream: header = stream.read(4)
-                if header in magic:
-                    subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(path)], check=True)
-    if engine is not None:
-        # A nested executable is signed on its own: the bundle is signed without --deep.
-        subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(engine)], check=True)
-        subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(agent)], check=True)
-    subprocess.run(['/usr/bin/codesign', '--force', '--sign', identity, '--options', 'runtime', str(output)], check=True)
-    subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(output)], check=True)
+    identity = args.identity or nu9ve_sign.AD_HOC
+    # Inside out, as the core signs: every Mach-O of the bundled runtime, then the engine and the agent, then the app;
+    # hardened runtime, then `codesign --verify --deep --strict`.
+    inner = [str(path.relative_to(output)) for path in (engine, agent if engine is not None else None) if path is not None]
+    nested = [str((backend / 'runtime').relative_to(output))] if args.runtime else []
+    nu9ve_sign.sign(output, identity, inner=inner, nested=nested)
     print(json.dumps({'app': str(output), 'bundled_runtime': bool(args.runtime), 'rust_engine': engine is not None, 'suite_agent': engine is not None,
                       # A stable identity may be Apple Development, which is not Developer ID: only a name says so.
                       'signed_with_identity': bool(args.identity),

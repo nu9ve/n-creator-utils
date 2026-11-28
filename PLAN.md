@@ -29,7 +29,7 @@ La lista corta: lo de abajo da el detalle y la evidencia. La M1 tiene instalada 
    De U3, ~~Reanudar, Reintentar y Ver el recibo~~ (27 nov: Reanudar en un ingreso detenido, Reintentar y Ver el recibo en «Copiar al otro disco»); faltan en cierre de proyecto, liberación y conversaciones.
 4. **Deuda que se ve:**
    - ~~el inglés de 112 claves~~ (hecho el 27 nov: `check_localization.py` pasa con 0 faltantes);
-   - firmar con `nu9ve_sign.py` del core en lugar de la copia propia de `install_media_app.py` y `build_media_app.py` ([prácticas §2.1](vendor/nu9ve-core/docs/practices.md#21-firmar-y-notarizar)).
+   - ~~firmar con `nu9ve_sign.py` del core~~ (27 nov: `build_media_app.py` e `install_media_app.py` usan la copia fijada; [prácticas §2.1](vendor/nu9ve-core/docs/practices.md#21-firmar-y-notarizar)).
 5. **Decisiones del usuario:**
    - F7c, el diario de decisiones: sólo la escritura ya, o esperar a `nu9ve-exchange-v1`;
    - callar los sonidos con la [señal de grabación](vendor/nu9ve-core/contracts/nu9ve-recording-v1.md) cuando Stalker la produzca.
