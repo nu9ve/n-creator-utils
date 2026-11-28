@@ -8,6 +8,20 @@ extension Model {
     func storageName(_ target: JSONValue) -> String { target["builtin"].bool ? String(localized: "Esta Mac") : target["name"].string }
     /// What the footer acts on: the selected row, otherwise the folder on screen.
     var storageActionPath: String { storageSelection ?? storagePath }
+    /// U2 (2026-11-27): what the last Acumulados scan found inside a folder of the disk on screen (`relative` to its
+    /// root; "" is the whole disk). The Mac's data volume also answers for the paths its firmlinks show at `/`.
+    func accumulated(in relative: String) -> (bytes: Double, count: Int) {
+        guard let target = storageTarget, let findings = accumulations?["findings"].array, !findings.isEmpty else { return (0, 0) }
+        let root = target["root"].string.hasSuffix("/") ? String(target["root"].string.dropLast()) : target["root"].string
+        let tail = relative.isEmpty ? "" : "/" + relative
+        var bases = [root + tail]
+        if root == "/System/Volumes/Data" { bases.append(tail) }
+        let inside = findings.filter { finding in
+            let path = finding["path"].string
+            return bases.contains { base in base.isEmpty || path == base || path.hasPrefix(base + "/") }
+        }
+        return (inside.reduce(0) { $0 + $1["bytes_on_disk"].double }, inside.count)
+    }
     var storageArchiveReady: Bool { storageTargets.contains { $0["role"].string == "archive" && $0["online"].bool && $0["indexed"].bool } }
 
     func loadStorage() async {
@@ -21,6 +35,8 @@ extension Model {
                 selectStorageTarget(preferred?["id"].string ?? "", reload: false)
             }
             await loadStorageTree()
+            // U2: the last Acumulados scan, to mark where on this disk there is something to review.
+            if accumulations == nil { await loadAccumulations() }
         } catch { storageError = error.localizedDescription }
     }
     func loadStorageTree() async {
@@ -310,7 +326,8 @@ struct DisksView: View {
                     }
                     navigation
                     HStack(alignment: .top, spacing: 10) {
-                        TreemapView(rows: rows.filter { $0.allocated > 0 }, rest: model.storageTree?["rest"].double ?? 0, lens: lens, selection: model.storageSelection) { row in
+                        TreemapView(rows: rows.filter { $0.allocated > 0 }, rest: model.storageTree?["rest"].double ?? 0, lens: lens, selection: model.storageSelection,
+                                    accumulated: { $0.isFolder ? model.accumulated(in: $0.id).bytes : 0 }) { row in
                             if row.isFolder && !row.opaque { model.openStorageFolder(row.id) } else { model.storageSelection = row.id }
                         }
                         .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
@@ -503,6 +520,8 @@ struct TreemapView: View {
     let rest: Double
     let lens: DiskLens
     let selection: String?
+    /// U2: the accumulated bytes inside a tile, from the last Acumulados scan.
+    var accumulated: (DiskRow) -> Double = { _ in 0 }
     let action: (DiskRow) -> Void
     @Environment(\.creatorPalette) private var palette
     private var tiles: [DiskRow] { Array(rows.sorted { $0.allocated > $1.allocated }.prefix(40)) }
@@ -536,6 +555,7 @@ struct TreemapView: View {
     }
     private func tile(_ row: DiskRow, _ rect: CGRect) -> some View {
         let key = row.key(lens)
+        let piled = accumulated(row)
         return Button { action(row) } label: {
             VStack(alignment: .leading, spacing: 1) {
                 if rect.width > 56 && rect.height > 32 {
@@ -544,6 +564,9 @@ struct TreemapView: View {
                         Text(row.name).font(.caption2.weight(.medium)).lineLimit(1).truncationMode(.middle)
                     }
                     Text(bytesLabel(row.allocated)).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                    if piled > 0 && rect.height > 46 {
+                        Label(bytesLabel(piled), systemImage: "shippingbox").font(.caption2).foregroundStyle(palette.warning).lineLimit(1)
+                    }
                 }
                 if key == "mixed" && rect.height > 44 && rect.width > 30 {
                     Spacer(minLength: 0)
@@ -558,13 +581,15 @@ struct TreemapView: View {
         }
         .buttonStyle(.plain)
         .offset(x: rect.minX + 1, y: rect.minY + 1)
-        .help(row.name + " · " + bytesLabel(row.allocated) + " · " + diskClassTitle(key))
+        .help(row.name + " · " + bytesLabel(row.allocated) + " · " + diskClassTitle(key)
+              + (piled > 0 ? " · " + String(localized: "\(bytesLabel(piled)) acumulados") : ""))
         .accessibilityLabel(Text(row.name + ", " + bytesLabel(row.allocated) + ", " + diskClassTitle(key)))
     }
 }
 
 /// Plain words for the row in focus. Never says "safe to delete": only a release plan can decide that.
 struct SelectionDetail: View {
+    @Environment(\.creatorPalette) private var palette
     @Bindable var model: Model
     let row: DiskRow?
     private var folderName: String { model.storagePath.isEmpty ? (model.storageTarget.map(model.storageName) ?? "") : (model.storageTree?["name"].string ?? "") }
@@ -574,6 +599,15 @@ struct SelectionDetail: View {
             HStack(spacing: 6) {
                 Text(row?.name ?? folderName).font(.callout.weight(.medium)).lineLimit(1).truncationMode(.middle).textSelection(.enabled)
                 Text(bytesLabel(row?.allocated ?? model.storageTree?["allocated"].double ?? 0)).font(.callout).foregroundStyle(.secondary).monospacedDigit()
+            }
+            let here = row?.isFolder == false ? (bytes: 0.0, count: 0) : model.accumulated(in: row?.id ?? model.storagePath)
+            if here.count > 0 {
+                HStack(spacing: 8) {
+                    Label(String(localized: "\(bytesLabel(here.bytes)) acumulados en \(here.count) lugares"), systemImage: "shippingbox")
+                        .font(.caption).foregroundStyle(palette.warning)
+                    Button("Ver acumulados…") { model.showAccumulations = true }.buttonStyle(.link).font(.caption)
+                    Button("Volver a medir") { model.scanAccumulations() }.buttonStyle(.link).font(.caption).disabled(model.accumulationsRunning)
+                }
             }
             if let row, !row.isFolder {
                 Text(fileExplanation(row)).font(.caption).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(2)

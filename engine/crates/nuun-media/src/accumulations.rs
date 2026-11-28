@@ -231,6 +231,75 @@ fn repo_of(start: &Path, stop: &Path) -> Option<PathBuf> {
     None
 }
 
+/// U2 (2026-11-27): the repository's remote, `origin` or else the first one, from its `.git/config` (the one file
+/// read besides worktree `gitdir`s). A user name or token in an `https` URL is left out.
+fn repo_remote(repo: &Path) -> Option<String> {
+    let mut git = repo.join(".git");
+    if git.is_file() {
+        // A worktree: `gitdir: <path>/.git/worktrees/<name>`, whose `commondir` leads to the shared config.
+        let text = read_small(&git)?;
+        let pointed = PathBuf::from(text.strip_prefix("gitdir:")?.trim());
+        let common = read_small(&pointed.join("commondir")).map(|c| pointed.join(c.trim()));
+        git = common.unwrap_or(pointed);
+    }
+    let config = read_small(&git.join("config"))?;
+    let mut remotes: Vec<(String, String)> = Vec::new();
+    let mut current: Option<String> = None;
+    for line in config.lines().map(str::trim) {
+        if line.starts_with('[') {
+            current = line
+                .strip_prefix("[remote \"")
+                .and_then(|rest| rest.strip_suffix("\"]"))
+                .map(str::to_owned);
+        } else if let (Some(name), Some(url)) = (&current, line.strip_prefix("url"))
+            && let Some(url) = url.trim_start().strip_prefix('=')
+        {
+            remotes.push((name.clone(), without_credentials(url.trim())));
+        }
+    }
+    remotes
+        .iter()
+        .find(|(name, _)| name == "origin")
+        .or(remotes.first())
+        .map(|(_, url)| url.clone())
+}
+
+/// `https://user:token@host/x` → `https://host/x`; other forms as they are.
+fn without_credentials(url: &str) -> String {
+    match url.split_once("://") {
+        Some((scheme, rest)) if scheme.starts_with("http") => match rest.split_once('@') {
+            Some((auth, host)) if !auth.contains('/') => format!("{scheme}://{host}"),
+            _ => url.to_owned(),
+        },
+        _ => url.to_owned(),
+    }
+}
+
+fn read_small(path: &Path) -> Option<String> {
+    let meta = fs::symlink_metadata(path).ok()?;
+    (meta.is_file() && meta.len() <= 64 * 1024).then(|| fs::read_to_string(path).ok())?
+}
+
+/// U2: a project's own icon, the first of the usual places that exists (metadata only; the app draws it).
+fn project_icon(project: &Path) -> Option<PathBuf> {
+    const PLACES: [&str; 10] = [
+        "favicon.ico",
+        "public/favicon.ico",
+        "app/favicon.ico",
+        "src/app/favicon.ico",
+        "static/favicon.ico",
+        "public/favicon.svg",
+        "public/icon.png",
+        "icon.png",
+        "assets/icon.png",
+        "docs/icon.png",
+    ];
+    PLACES
+        .iter()
+        .map(|p| project.join(p))
+        .find(|p| fs::symlink_metadata(p).is_ok_and(|m| m.is_file() && m.len() <= 1024 * 1024))
+}
+
 /// The last commit, checkout or fetch of a repository, by the mtime of its reflog (metadata only).
 fn repo_activity(repo: &Path) -> i64 {
     let git = repo.join(".git");
@@ -685,6 +754,16 @@ pub fn inventory(ctx: &Context, settings: &Value, scanned_at: &str, scan_id: &st
         if let Some(detail) = f.detail {
             row["git"] = detail;
         }
+        if let Some(remote) = repo.as_deref().and_then(repo_remote) {
+            row["repo_remote"] = json!(remote);
+        }
+        if let Some(icon) = repo
+            .iter()
+            .chain(std::iter::once(&project))
+            .find_map(|p| project_icon(p))
+        {
+            row["project_icon"] = json!(icon);
+        }
         rows.push(row);
     }
     rows.sort_by(|a, b| {
@@ -965,6 +1044,12 @@ mod tests {
         touch(&code.join("nove/Cargo.toml"), 10);
         fs::create_dir_all(code.join("nove/.git/objects/pack")).unwrap();
         touch(&code.join("nove/.git/logs/HEAD"), 10);
+        fs::write(
+            code.join("nove/.git/config"),
+            "[core]\n\tbare = false\n[remote \"backup\"]\n\turl = /Volumes/X/nove.git\n[remote \"origin\"]\n\turl = https://someone:tok3n@github.com/acme/nove.git\n",
+        )
+        .unwrap();
+        touch(&code.join("nove/public/favicon.ico"), 10);
         touch(&code.join("nove/target/CACHEDIR.TAG"), 10);
         touch(&code.join("nove/target/release/big"), 3 * mb);
         touch(&code.join("nove/dist/nove-1.dmg"), 2 * mb);
@@ -1051,6 +1136,18 @@ mod tests {
         let target = rows.iter().find(|r| r["rule"] == "rust-target").unwrap();
         assert!(target["bytes_on_disk"].as_u64().unwrap() >= 3 * 1024 * 1024);
         assert!(target["repo"].as_str().unwrap().ends_with("code/nove"));
+        // U2: `origin`, without the token; and the project's icon.
+        assert_eq!(target["repo_remote"], "https://github.com/acme/nove.git");
+        assert!(
+            target["project_icon"]
+                .as_str()
+                .unwrap()
+                .ends_with("nove/public/favicon.ico")
+        );
+        assert_eq!(
+            without_credentials("git@github.com:acme/nove.git"),
+            "git@github.com:acme/nove.git"
+        );
         assert!(target["repo_activity_at"].is_string());
         assert!(target["last_used_at"].is_string());
         let backup = rows

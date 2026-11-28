@@ -82,7 +82,7 @@ struct AccumulationsSheet: View {
                 volumes(data["volumes"].array)
                 if data["state"].string == "none" {
                     ContentUnavailableView("Sin escanear", systemImage: "shippingbox",
-                                           description: Text("Se leen sólo nombres, tamaños y fechas de tus carpetas de código y de las cachés conocidas. No se abre ningún archivo."))
+                                           description: Text("Se leen sólo nombres, tamaños y fechas de tus carpetas de código y de las cachés conocidas. Sólo se abre el .git/config de cada repo, para su remoto."))
                 } else {
                     summary(data)
                     HStack(alignment: .top, spacing: 12) {
@@ -200,7 +200,15 @@ struct AccumulationsSheet: View {
                 Text(row.activity.isEmpty ? "—" : ago(row.activity)).foregroundStyle(.secondary)
                     .help("Último commit o checkout del repo, o la última conversación de agentes del proyecto")
             }.width(min: 70, ideal: 100)
-            TableColumn("Dueño") { Text($0.owner).lineLimit(1).foregroundStyle(.secondary) }.width(min: 60, ideal: 110)
+            TableColumn("Dueño") { row in
+                HStack(spacing: 4) {
+                    ProjectIcon(path: row.icon)
+                    Text(row.owner).lineLimit(1).foregroundStyle(.secondary)
+                }.help(row.remote.isEmpty ? row.owner : row.owner + " · " + row.remote)
+            }.width(min: 60, ideal: 120)
+            TableColumn("Remoto") { row in
+                Text(row.remote.isEmpty ? "—" : row.remote).lineLimit(1).truncationMode(.middle).foregroundStyle(.secondary).textSelection(.enabled)
+            }.width(min: 70, ideal: 150)
         }.modifier(CreatorListSurface())
     }
     private func libraries(_ list: [JSONValue]) -> some View {
@@ -219,9 +227,22 @@ struct AccumulationsSheet: View {
     }
 }
 
+/// A project's own icon (favicon or app icon) at 14 pt, or nothing.
+struct ProjectIcon: View {
+    let path: String
+    var body: some View {
+        if !path.isEmpty, let image = NSImage(contentsOfFile: path) {
+            Image(nsImage: image).resizable().interpolation(.high).frame(width: 14, height: 14).clipShape(RoundedRectangle(cornerRadius: 3))
+        }
+    }
+}
+
 struct AccumulationRow: Identifiable {
     let id: String, path: String, label: String, bytes: Double, lastUsed: String, activity: String, owner: String
+    /// U2: the repository's remote (without credentials) and the project's own icon, when there are.
+    let remote: String, icon: String
     init(_ value: JSONValue) {
+        remote = value["repo_remote"].string; icon = value["project_icon"].string
         id = value["id"].string; path = value["path"].string; label = value["label"].string
         bytes = value["bytes_on_disk"].double; lastUsed = value["last_used_at"].string
         activity = [value["repo_activity_at"].string, value["agent_activity_at"].string].max() ?? ""

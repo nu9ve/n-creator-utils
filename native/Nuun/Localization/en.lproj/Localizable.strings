@@ -1258,7 +1258,7 @@
 "Se alcanzó el tope de entradas; elige carpetas más pequeñas." = "The entry limit was reached; choose smaller folders.";
 "Se crea al registrar el primer disco en la suite." = "It is created when the first disk is registered in the suite.";
 "Se encontró una identidad copiada de otra máquina. Confirma o cambia el nombre de ésta." = "Found an identity copied from another machine. Confirm or change this one's name.";
-"Se leen sólo nombres, tamaños y fechas de tus carpetas de código y de las cachés conocidas. No se abre ningún archivo." = "Only names, sizes and dates of your code folders and known caches are read. No file is opened.";
+"Se leen sólo nombres, tamaños y fechas de tus carpetas de código y de las cachés conocidas. Sólo se abre el .git/config de cada repo, para su remoto." = "Only names, sizes and dates of your code folders and known caches are read. The only file opened is each repo's .git/config, for its remote.";
 "Se libera desde su herramienta, no a la Papelera" = "Freed from its own tool, not to the Trash";
 "Se queda en la SD" = "Stays on the SD";
 "Se quedan en la SD" = "Stay on the SD";
@@ -1292,3 +1292,8 @@
 "%lld de %lld fotos van a edición con su DNG; las demás, sólo con el JPG." = "%lld of %lld photos go to editing with their DNG; the rest, with the JPG only.";
 "También el DNG" = "The DNG too";
 "Sólo el JPG" = "JPG only";
+"Remoto" = "Remote";
+"%@ acumulados" = "%@ accumulated";
+"%@ acumulados en %lld lugares" = "%@ accumulated in %lld places";
+"Ver acumulados…" = "View accumulations…";
+"Volver a medir" = "Measure again";
