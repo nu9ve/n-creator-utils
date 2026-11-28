@@ -167,6 +167,7 @@ private extension NSToolbarItem.Identifier {
         if !sameMode && !window.styleMask.contains(.fullScreen) {
             let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
             let frame = savedFrame(mode, in: visible) ?? {
+                if mode == .compact { return WindowPlacement.compact(width: mode.width, height: mode.height, in: visible) }
                 let width = min(mode.width, visible.width), height = min(mode.height, visible.height)
                 return NSRect(x: min(max(visible.minX, window.frame.midX - width / 2), visible.maxX - width),
                               y: min(max(visible.minY, window.frame.maxY - height), visible.maxY - height), width: width, height: height)
@@ -193,6 +194,17 @@ private extension NSToolbarItem.Identifier {
         guard let text = UserDefaults.standard.string(forKey: "frame." + mode.rawValue) else { return nil }
         let frame = NSRectFromString(text)
         return visible.contains(frame) && frame.width >= 300 ? frame : nil
+    }
+    /// U1.5: forget where the compact window was and put it back in its default place.
+    @objc func resetCompactFrame() {
+        UserDefaults.standard.removeObject(forKey: "frame." + WindowMode.compact.rawValue)
+        guard let window, model.presentation == .compact, window.isVisible, !window.styleMask.contains(.fullScreen) else { return }
+        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
+        let frame = WindowPlacement.compact(width: WindowMode.compact.width, height: WindowMode.compact.height, in: visible)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.24
+            window.animator().setFrame(frame, display: true)
+        }
     }
     func saveFrame() {
         guard let window, window.isVisible, !window.styleMask.contains(.fullScreen) else { return }
@@ -350,6 +362,7 @@ private extension NSToolbarItem.Identifier {
         add(ingest, String(localized: "Cancelar operación"), #selector(cancel), ".", target: self)
         let windowMenu = submenu(String(localized: "Ventana"))
         add(windowMenu, String(localized: "Minimizar"), #selector(NSWindow.performMiniaturize(_:)), "m")
+        add(windowMenu, String(localized: "Restablecer posición de la ventana compacta"), #selector(resetCompactFrame), "", target: self)
         NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = bar
     }

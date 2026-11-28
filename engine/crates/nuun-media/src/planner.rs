@@ -1014,6 +1014,7 @@ fn build_with_stamps(
                 "country",
                 "camera",
                 "work",
+                "work_raw",
                 "discard",
                 "include_other",
             ];
@@ -1033,6 +1034,11 @@ fn build_with_stamps(
                 choice.get("discard").is_none_or(Value::is_boolean),
                 "invalid_assignment",
                 "discard must be boolean",
+            )?;
+            require(
+                choice.get("work_raw").is_none_or(Value::is_boolean),
+                "invalid_assignment",
+                "work_raw must be boolean",
             )?;
             require(
                 choice
@@ -1208,6 +1214,10 @@ fn build_with_stamps(
         }
         if let Some(work) = assignment.get("work") {
             unit["work_selected"] = work.clone();
+        }
+        // U1.6: its RAW in the editing copy too; only written when asked, so earlier plans keep their digest.
+        if assignment.get("work_raw") == Some(&json!(true)) {
+            unit["work_raw"] = json!(true);
         }
         if let Some(country) = assignment.get("country") {
             unit["country"] = json!(slug_value(country)?);

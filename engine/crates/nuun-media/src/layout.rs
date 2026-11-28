@@ -915,6 +915,9 @@ pub fn build_layout(
             );
             let name = after_month(&claimed);
             let mut entry = json!({"archive": format!("{folder}/{month}/{name}"), "work": format!("{work_root}/{name}")});
+            // U1.6 (2026-11-27): the person asked for this unit's RAW in the editing copy too (`work_raw`), which the
+            // recipe otherwise keeps in the archive only (drone DNG, to be asked for later).
+            let raw_to_work = kind == "raw_image" && unit["work_raw"] == true;
             if mission["state"] == "matched" {
                 // A mission keeps its session together: <first photo of the session>_<PLAN>/ in archive and work.
                 let rules = &plan["missions"][text(mission, "flow")]["layout"];
@@ -929,7 +932,8 @@ pub fn build_layout(
                 );
                 let in_work = rules["work_kinds"]
                     .as_array()
-                    .is_some_and(|k| k.iter().any(|v| v == kind));
+                    .is_some_and(|k| k.iter().any(|v| v == kind))
+                    || raw_to_work;
                 let work = if in_work {
                     json!(format!("{}/{session}/{name}", text(rules, "work_folder")))
                 } else {
@@ -938,7 +942,8 @@ pub fn build_layout(
                 entry = json!({"archive": format!("{}/{session}/{name}", text(rules, "archive_folder")), "work": work});
             }
             let work_kinds = &plan["category_work"][camera.as_str()];
-            let outside_kinds = !work_kinds.is_null()
+            let outside_kinds = !raw_to_work
+                && !work_kinds.is_null()
                 && !work_kinds
                     .as_array()
                     .is_some_and(|k| k.iter().any(|v| v == kind));
@@ -1200,6 +1205,18 @@ mod tests {
         assert_eq!(
             layout["DCIM/101MEDIA/DJI_0001.DNG"],
             json!({"archive": "dron/fotos/2026/11/26NOV04-163212_MAVICAIR2_MX-INTRO[].DNG", "work": null})
+        );
+        // Asked for (`work_raw`), the DNG goes to editing beside its JPG.
+        let mut wanted = units.clone();
+        wanted[0]["work_raw"] = json!(true);
+        let with_raw = build_layout(root.path(), &drone_plan(), &mut wanted, &files).unwrap();
+        assert_eq!(
+            with_raw["DCIM/101MEDIA/DJI_0001.DNG"]["work"],
+            "canal-a_raw/intro/26NOV04-163212_MAVICAIR2_MX-INTRO[].DNG"
+        );
+        assert_eq!(
+            with_raw["DCIM/101MEDIA/DJI_0001.JPG"],
+            layout["DCIM/101MEDIA/DJI_0001.JPG"]
         );
         // Same second, same name: the next one takes -2.
         assert_eq!(

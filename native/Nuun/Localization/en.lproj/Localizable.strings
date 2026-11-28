@@ -1286,3 +1286,9 @@
 "Aplicar motor" = "Apply engine";
 "Esta instalación no tiene el motor de nüün." = "This installation does not have the nüün engine.";
 "Sin el motor de nüün en esta instalación: nada puede responder." = "No nüün engine in this installation: nothing can answer.";
+"Restablecer posición de la ventana compacta" = "Reset compact window position";
+"A edición va sólo el JPG. El DNG queda en el archivo y puedes pedirlo después." = "Only the JPG goes to editing. The DNG stays in the archive and you can ask for it later.";
+"A edición van el JPG y el DNG." = "The JPG and the DNG go to editing.";
+"%lld de %lld fotos van a edición con su DNG; las demás, sólo con el JPG." = "%lld of %lld photos go to editing with their DNG; the rest, with the JPG only.";
+"También el DNG" = "The DNG too";
+"Sólo el JPG" = "JPG only";

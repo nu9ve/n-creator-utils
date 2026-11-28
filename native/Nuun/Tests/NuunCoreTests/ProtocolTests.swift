@@ -286,3 +286,15 @@ func replyDecodingTiming() throws {
     print("reply \(data.count) bytes: parse \(fastTime), codable \(slowTime)")
     #expect(fast == slow)
 }
+
+@Test func theCompactWindowStartsRightOfCenterAndInsideTheScreen() {
+    let screen = CGRect(x: 0, y: 25, width: 1512, height: 920)
+    let frame = WindowPlacement.compact(width: 440, height: 700, in: screen)
+    #expect(abs(frame.midX - 1134) < 0.01)              // three quarters of the width
+    #expect(frame.midY > screen.midY)                   // a little above the middle
+    #expect(screen.contains(frame))
+    // A small or offset screen still holds it whole.
+    let small = CGRect(x: -1280, y: 0, width: 600, height: 500)
+    let fitted = WindowPlacement.compact(width: 440, height: 700, in: small)
+    #expect(small.contains(fitted) && fitted.height == 500)
+}

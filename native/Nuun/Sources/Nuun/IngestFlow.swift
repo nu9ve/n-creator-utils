@@ -565,6 +565,7 @@ struct AssignPanel: View {
                 HStack(spacing: 8) { metadataMenus }.controlSize(.small)
                 Divider()
                 copyControls
+                rawControls
                 Text("Clic selecciona · ⌘ o ⇧ amplían · espacio abre vista rápida").font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -624,6 +625,23 @@ struct AssignPanel: View {
         } else {
             Text(model.copyChoice == "all" ? "Todo el lote se copia al SSD para editar." : "Sólo respaldo: nada se copia al SSD.").font(.caption).foregroundStyle(.secondary)
             Button("Elegir qué copiar al SSD") { model.copyChoice = "some" }.buttonStyle(.link).font(.caption)
+        }
+    }
+    /// U1.6: a drone still is a JPG and a DNG; editing gets the JPG unless the person asks for the DNG too.
+    @ViewBuilder private var rawControls: some View {
+        let pairs = model.units.filter { model.targetIDs.contains($0.id) && $0.hasRawPair && !$0.discard }
+        if !pairs.isEmpty && !model.noWork {
+            let withRaw = pairs.filter(\.workRaw).count
+            VStack(alignment: .leading, spacing: 4) {
+                Text(withRaw == 0 ? String(localized: "A edición va sólo el JPG. El DNG queda en el archivo y puedes pedirlo después.")
+                     : withRaw == pairs.count ? String(localized: "A edición van el JPG y el DNG.")
+                     : String(localized: "\(withRaw) de \(pairs.count) fotos van a edición con su DNG; las demás, sólo con el JPG."))
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    if withRaw < pairs.count { Button("También el DNG") { model.updateTargets { if $0.hasRawPair { $0.workRaw = true } } } }
+                    if withRaw > 0 { Button("Sólo el JPG") { model.updateTargets { $0.workRaw = false } } }
+                }.controlSize(.small)
+            }
         }
     }
     private func applyTitle() {

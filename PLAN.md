@@ -21,8 +21,7 @@ La lista corta: lo de abajo da el detalle y la evidencia. La M1 tiene instalada 
 
    Antes de (g), decidir con Clipper cómo encuentran el motor sin el checkout: hoy el reenvío de `nu9ve.py` vuelve a Python cuando no hay motor.
 3. **Lo que queda de U1 y U2** ([UX](#ux--acciones-y-procesos-pedido-del-usuario-2026-11-26)):
-   - la ventana compacta en su sitio y cómo restablecerla;
-   - la nota JPG+DNG del dron;
+   - ~~la ventana compacta en su sitio y cómo restablecerla~~ y ~~la nota JPG+DNG del dron~~ (27 nov);
    - abrir la compacta con el segundo disco;
    - la época `tinted`;
    - Acumulados en Discos.
@@ -237,8 +236,8 @@ Lo pidió el usuario después de usar nüün en la M1 y la M4 con varios proceso
 2. ~~**Sugerencias entre discos de trabajo sin ping-pong.**~~ **Hecho el 2026-11-26, instalado el 27 nov** ([STATUS](docs/STATUS.md#acciones-y-sugerencias--2026-11-26)). `changed_since_copy` compara con los recibos y no con el otro disco: tras copiar ESSD → SUBSSD y luego SUBSSD → ESSD, o tras actualizar las conversaciones en los dos, vuelve a proponer la copia de regreso. No proponer lo que el otro disco ya tiene igual (tamaño y fecha); una sola tarjeta por par de discos con las dos direcciones; una sola tarjeta para las conversaciones por copiar a varios discos.
 3. ~~**Revisar «Copiar al otro disco» sin que crezca con los datos.**~~ **Hecho el 2026-11-27 e instalado** ([STATUS](docs/STATUS.md#revisión-de-copia-sin-volver-a-leer--2026-11-27)): 64 × 8 MiB ya copiados, de 3 489 ms a 8–18 ms. Hoy `work_copy::plan` hashea en los dos discos cada archivo que ya existe en el destino (20 GB de `atlas-subaereo` cada vez). Adoptar sin rehashear lo que coincide en tamaño y fecha con un recibo verificado; hashear sólo lo dudoso. Mostrar la etapa con la vista de acción, no con un *loader* en la esquina.
 4. ~~**Terminal:** centrar las dos líneas de la travesía (`ActionTravel.terminal`).~~ **Hecho el 2026-11-26, instalado el 27 nov.**
-5. **Ventana compacta por omisión** a unos 3/4 hacia la derecha y un poco arriba del centro, cuando no hay posición guardada, con una forma de restablecerla.
-6. **Dron en Ingreso:** decir en la fila JPG+DNG que a edición va sólo el JPG (el DNG queda archivado y se pide después), con un control por unidad o para el lote.
+5. ~~**Ventana compacta por omisión**~~ **Hecho el 2026-11-27, sin instalar** (Ventana → «Restablecer posición de la ventana compacta»). A unos 3/4 hacia la derecha y un poco arriba del centro, cuando no hay posición guardada, con una forma de restablecerla.
+6. ~~**Dron en Ingreso:**~~ **Hecho el 2026-11-27, sin instalar** («También el DNG» / «Sólo el JPG» en el inspector, `work_raw` en el plan de Rust). Decir en la fila JPG+DNG que a edición va sólo el JPG (el DNG queda archivado y se pide después), con un control por unidad o para el lote.
 7. **Abrir la compacta al conectar el segundo disco de trabajo** cuando hay cambios por copiar, sin repetirla si ya se dijo «Ahora no» a ese par con esos mismos cambios.
 8. **Época `tinted` del core** en Macintosh y Windows 9x: el color en bordes, líneas de la barra y controles ([tema §5](vendor/nu9ve-core/contracts/nu9ve-theme-v1.md#5-catálogo-de-skins)). Comprobar el tema en hojas y popovers.
 

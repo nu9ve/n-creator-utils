@@ -42,6 +42,13 @@ struct DraftUnit: Identifiable, Equatable {
     /// Left out of the backup by the person; the reviewed cleanup deletes it from the card without a copy.
     var discard = false
     var includeOther = false
+    /// U1.6: also send this unit's RAW (a drone DNG) to the editing copy; by default it stays in the archive only.
+    var workRaw = false
+    /// A photo kept as JPG and RAW together (drone stills): the editing copy takes the JPG unless `workRaw`.
+    var hasRawPair: Bool {
+        let kinds = Set(paths.map { URL(fileURLWithPath: $0).pathExtension.lowercased() })
+        return !kinds.isDisjoint(with: ["jpg", "jpeg"]) && !kinds.isDisjoint(with: ["dng", "cr2", "cr3", "arw"])
+    }
     var isOther: Bool { category == "other" }
     var convertsHandycamMovie = false
     var canCopyForEditing: Bool { !isSupport && !isOther && !discard && !convertsHandycamMovie }
@@ -1152,7 +1159,7 @@ enum OperationScope { case ingest, library, space, settings, source }
     var flowReviewKey: String {
         [sourceKey, loadedSourceKey, project, profile, country, city, work, copyChoice,
          String(cleanup), String(deferWork), String(archiveExceptionConfirmed),
-         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing), String($0.includeOther)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
+         units.map { [$0.id, $0.project, $0.profile, $0.country, $0.camera, String($0.copyForEditing), String($0.includeOther), String($0.workRaw)].joined(separator: "|") }.joined(separator: ";")].joined(separator: "\n")
     }
     var canPrepareFlow: Bool {
         if sourceKind == "delivery" { return !source.isEmpty && !archive.isEmpty }
@@ -1243,6 +1250,7 @@ enum OperationScope { case ingest, library, space, settings, source }
                 if !unit.country.isEmpty { values["country"] = .string(unit.country) }
                 if unit.camera != "auto" { values["camera"] = .string(unit.camera) }
                 if unit.discard { values["discard"] = .bool(true) }
+                if unit.workRaw && unit.hasRawPair { values["work_raw"] = .bool(true) }
                 if self.copyChoice == "some" { values["work"] = .bool(unit.copyForEditing) }
                 if self.copyChoice == "all" && unit.isInsta360 { values["work"] = .bool(true) }
                 if !values.isEmpty { for path in unit.paths { assignments[path] = .object(values) } }
